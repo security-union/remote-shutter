@@ -1,0 +1,36 @@
+PODS:
+  - BFGallery (0.1.5):
+    - BFGallery/json (= 0.1.5)
+  - BFGallery/json (0.1.5)
+  - Starscream (3.0.6)
+  - Theater (0.9.1):
+    - Starscream (~> 3.0.6)
+
+DEPENDENCIES:
+  - BFGallery (from `https://github.com/darioalessandro/BlackFireGallery.git`, tag `0.1.5`)
+  - Starscream (~> 3.0.6)
+  - Theater (~> 0.9.1)
+
+SPEC REPOS:
+  https://github.com/CocoaPods/Specs.git:
+    - Starscream
+    - Theater
+
+EXTERNAL SOURCES:
+  BFGallery:
+    :git: https://github.com/darioalessandro/BlackFireGallery.git
+    :tag: 0.1.5
+
+CHECKOUT OPTIONS:
+  BFGallery:
+    :git: https://github.com/darioalessandro/BlackFireGallery.git
+    :tag: 0.1.5
+
+SPEC CHECKSUMS:
+  BFGallery: 32104cd088b30482c4fadb5386bfd953115fafa9
+  Starscream: ef3ece99d765eeccb67de105bfa143f929026cf5
+  Theater: e5f67d3550b1be65ab5642ec3b9c253de96b57db
+
+PODFILE CHECKSUM: 6b52ed18a4812c369ab788d408c6379602899882
+
+COCOAPODS: 1.9.3
