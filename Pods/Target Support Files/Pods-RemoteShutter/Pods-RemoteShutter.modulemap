@@ -1,0 +1,6 @@
+framework module Pods_RemoteShutter {
+  umbrella header "Pods-RemoteShutter-umbrella.h"
+
+  export *
+  module * { export * }
+}

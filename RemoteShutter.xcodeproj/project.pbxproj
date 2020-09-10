@@ -1,0 +1,764 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 47;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		060B1E201BE70CC000077BCC /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 060B1E1F1BE70CC000077BCC /* AdSupport.framework */; };
+		060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060B1E241BE710FE00077BCC /* BaseViewController.swift */; };
+		0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0624C0401BE8616E001CC738 /* CameraAccess.swift */; };
+		0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */; };
+		0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */; };
+		0624C04B1BE8662D001CC738 /* BFDeniedAccessToCameraView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */; };
+		0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */; };
+		0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */; };
+		065024101BEA407F00311C8A /* AcknowledgmentsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */; };
+		065024121BEA407F00311C8A /* CMConfigurationsViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0650240B1BEA407F00311C8A /* CMConfigurationsViewController.mm */; };
+		065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0650240C1BEA407F00311C8A /* CMConfigurationsViewController.xib */; };
+		0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024161BEA413900311C8A /* PurchasesRestorer.m */; };
+		0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024181BEA413900311C8A /* InAppPurchasesManager.m */; };
+		066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066427741BE924DD003EDD41 /* EnumExtensions.swift */; };
+		0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */; };
+		0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D21BE6E98A00F0B238 /* CamStates.swift */; };
+		0684A2D51BE6E9A000F0B238 /* MonitorStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */; };
+		0684A2DE1BE6F82D00F0B238 /* RCTimer.m in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2DC1BE6F82D00F0B238 /* RCTimer.m */; };
+		0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2E01BE702BC00F0B238 /* CPSoundManager.m */; };
+		0684A2E81BE7049800F0B238 /* beep.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E61BE7049800F0B238 /* beep.m4a */; };
+		0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E91BE704C600F0B238 /* fastBeep.aif */; };
+		0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */; };
+		069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284251BE5BF5B00AF4678 /* Assets.xcassets */; };
+		0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284421BE5C0E600AF4678 /* CameraViewController.swift */; };
+		0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284431BE5C0E600AF4678 /* MonitorViewController.swift */; };
+		0692844E1BE5C0E600AF4678 /* Multipeer.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 069284441BE5C0E600AF4678 /* Multipeer.storyboard */; };
+		0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284451BE5C0E600AF4678 /* MultipeerMessages.swift */; };
+		069284511BE5C0E600AF4678 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284471BE5C0E600AF4678 /* Session.swift */; };
+		069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
+		069284531BE5C0E600AF4678 /* States.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284491BE5C0E600AF4678 /* States.swift */; };
+		069284541BE5C0E600AF4678 /* UIImage+ImageProcessing.m in Sources */ = {isa = PBXBuildFile; fileRef = 0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */; };
+		069284561BE5C12000AF4678 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 069284551BE5C12000AF4678 /* Main.storyboard */; };
+		069284661BE5C71800AF4678 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284651BE5C71800AF4678 /* Media.xcassets */; };
+		069284691BE5C7DB00AF4678 /* Acknowledgments.html in Resources */ = {isa = PBXBuildFile; fileRef = 069284671BE5C7DB00AF4678 /* Acknowledgments.html */; };
+		069284721BE5C82E00AF4678 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0692846F1BE5C82E00AF4678 /* Localizable.strings */; };
+		069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 069284701BE5C82E00AF4678 /* InfoPlist.strings */; };
+		06B6CE951BE9B0B100F5B5B7 /* GalleryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B6CE941BE9B0B100F5B5B7 /* GalleryViewController.swift */; };
+		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		069284301BE5BF5C00AF4678 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 06E1D4EA1BB7699700E07321 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0692841B1BE5BF5B00AF4678;
+			remoteInfo = RemoteCam;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		0615C2FC1BEE7F0100E494B8 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0602E4EA1BEA4FC90015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
+		0602E4EC1BEA4FDE0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
+		0602E4EE1BEA504D0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
+		0602E4F21BEA50A00015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
+		0602E4F41BEA527B0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
+		0602E4F81BEA54380015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
+		060B1E1F1BE70CC000077BCC /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
+		060B1E241BE710FE00077BCC /* BaseViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseViewController.swift; sourceTree = "<group>"; };
+		060E28551BE1A5CA00D73ACB /* Nimble.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Nimble.framework; path = "Pods/../build/Debug-iphoneos/Nimble.framework"; sourceTree = "<group>"; };
+		060E28561BE1A5CA00D73ACB /* Quick.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quick.framework; path = "Pods/../build/Debug-iphoneos/Quick.framework"; sourceTree = "<group>"; };
+		0624C0401BE8616E001CC738 /* CameraAccess.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraAccess.swift; sourceTree = "<group>"; };
+		0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BFDeniedAccessToAssetsView.xib; sourceTree = "<group>"; };
+		0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToAssetsView~ipad.xib"; sourceTree = "<group>"; };
+		0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BFDeniedAccessToCameraView.xib; sourceTree = "<group>"; };
+		0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToCameraView~ipad.xib"; sourceTree = "<group>"; };
+		065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AcknowledgmentsViewController.h; sourceTree = "<group>"; };
+		065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AcknowledgmentsViewController.m; sourceTree = "<group>"; };
+		065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = AcknowledgmentsViewController.xib; sourceTree = "<group>"; };
+		0650240A1BEA407F00311C8A /* CMConfigurationsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMConfigurationsViewController.h; sourceTree = "<group>"; };
+		0650240B1BEA407F00311C8A /* CMConfigurationsViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CMConfigurationsViewController.mm; sourceTree = "<group>"; };
+		0650240C1BEA407F00311C8A /* CMConfigurationsViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = CMConfigurationsViewController.xib; sourceTree = "<group>"; };
+		065024151BEA413900311C8A /* PurchasesRestorer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PurchasesRestorer.h; sourceTree = "<group>"; };
+		065024161BEA413900311C8A /* PurchasesRestorer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PurchasesRestorer.m; sourceTree = "<group>"; };
+		065024171BEA413900311C8A /* InAppPurchasesManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InAppPurchasesManager.h; sourceTree = "<group>"; };
+		065024181BEA413900311C8A /* InAppPurchasesManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = InAppPurchasesManager.m; sourceTree = "<group>"; };
+		066427741BE924DD003EDD41 /* EnumExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EnumExtensions.swift; sourceTree = "<group>"; };
+		0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OrientationUtils.swift; sourceTree = "<group>"; };
+		0684A2D21BE6E98A00F0B238 /* CamStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CamStates.swift; sourceTree = "<group>"; };
+		0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorStates.swift; sourceTree = "<group>"; };
+		0684A2DB1BE6F82D00F0B238 /* RCTimer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RCTimer.h; sourceTree = "<group>"; };
+		0684A2DC1BE6F82D00F0B238 /* RCTimer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RCTimer.m; sourceTree = "<group>"; };
+		0684A2DF1BE702BC00F0B238 /* CPSoundManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CPSoundManager.h; sourceTree = "<group>"; };
+		0684A2E01BE702BC00F0B238 /* CPSoundManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CPSoundManager.m; sourceTree = "<group>"; };
+		0684A2E61BE7049800F0B238 /* beep.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = beep.m4a; sourceTree = "<group>"; };
+		0684A2E91BE704C600F0B238 /* fastBeep.aif */ = {isa = PBXFileReference; lastKnownFileType = file; path = fastBeep.aif; sourceTree = "<group>"; };
+		0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		069284251BE5BF5B00AF4678 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0692842A1BE5BF5B00AF4678 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		069284351BE5BF5C00AF4678 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		069284411BE5C0E500AF4678 /* RemoteCam-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteCam-Bridging-Header.h"; sourceTree = "<group>"; };
+		069284421BE5C0E600AF4678 /* CameraViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraViewController.swift; sourceTree = "<group>"; };
+		069284431BE5C0E600AF4678 /* MonitorViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorViewController.swift; sourceTree = "<group>"; };
+		069284441BE5C0E600AF4678 /* Multipeer.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Multipeer.storyboard; sourceTree = "<group>"; };
+		069284451BE5C0E600AF4678 /* MultipeerMessages.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MultipeerMessages.swift; sourceTree = "<group>"; };
+		069284471BE5C0E600AF4678 /* Session.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		069284481BE5C0E600AF4678 /* RolePickerController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RolePickerController.swift; sourceTree = "<group>"; };
+		069284491BE5C0E600AF4678 /* States.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = States.swift; sourceTree = "<group>"; };
+		0692844A1BE5C0E600AF4678 /* UIImage+ImageProcessing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImage+ImageProcessing.h"; sourceTree = "<group>"; };
+		0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+ImageProcessing.m"; sourceTree = "<group>"; };
+		069284551BE5C12000AF4678 /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
+		069284651BE5C71800AF4678 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
+		069284671BE5C7DB00AF4678 /* Acknowledgments.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Acknowledgments.html; sourceTree = "<group>"; };
+		0692846F1BE5C82E00AF4678 /* Localizable.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
+		069284701BE5C82E00AF4678 /* InfoPlist.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = InfoPlist.strings; sourceTree = "<group>"; };
+		06B6CE941BE9B0B100F5B5B7 /* GalleryViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GalleryViewController.swift; sourceTree = "<group>"; };
+		06EEA7DB1BBB87EE005787AE /* Starscream.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Starscream.framework; path = "Pods/../build/Debug-iphoneos/Starscream.framework"; sourceTree = "<group>"; };
+		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
+		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.debug.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.debug.xcconfig"; sourceTree = "<group>"; };
+		69E2751E42D4D3ED3B0395F8 /* Pods-RemoteCam.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.release.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.release.xcconfig"; sourceTree = "<group>"; };
+		85F118E5250ACBE100B73E48 /* RemoteShutter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		85F11911250ACD9500B73E48 /* RemoteShutterDemo copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "RemoteShutterDemo copy-Info.plist"; path = "/Users/griffin/workspace/securityunion/RemoteShutter/RemoteShutterDemo copy-Info.plist"; sourceTree = "<absolute>"; };
+		85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
+		BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1F8EDB852F5C77347AE6066 /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		069284191BE5BF5B00AF4678 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				060B1E201BE70CC000077BCC /* AdSupport.framework in Frameworks */,
+				A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0692842C1BE5BF5C00AF4678 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		060B1E141BE7079800077BCC /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				0684A2DB1BE6F82D00F0B238 /* RCTimer.h */,
+				0684A2DC1BE6F82D00F0B238 /* RCTimer.m */,
+				0684A2DF1BE702BC00F0B238 /* CPSoundManager.h */,
+				0684A2E01BE702BC00F0B238 /* CPSoundManager.m */,
+				0692844A1BE5C0E600AF4678 /* UIImage+ImageProcessing.h */,
+				0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */,
+				066427741BE924DD003EDD41 /* EnumExtensions.swift */,
+			);
+			name = Helpers;
+			sourceTree = "<group>";
+		};
+		065024061BEA406B00311C8A /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				0650241D1BEA414200311C8A /* InAppPurchases */,
+				065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */,
+				065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */,
+				065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */,
+				0650240A1BEA407F00311C8A /* CMConfigurationsViewController.h */,
+				0650240B1BEA407F00311C8A /* CMConfigurationsViewController.mm */,
+				0650240C1BEA407F00311C8A /* CMConfigurationsViewController.xib */,
+			);
+			name = Settings;
+			sourceTree = "<group>";
+		};
+		0650241D1BEA414200311C8A /* InAppPurchases */ = {
+			isa = PBXGroup;
+			children = (
+				065024151BEA413900311C8A /* PurchasesRestorer.h */,
+				065024161BEA413900311C8A /* PurchasesRestorer.m */,
+				065024171BEA413900311C8A /* InAppPurchasesManager.h */,
+				065024181BEA413900311C8A /* InAppPurchasesManager.m */,
+			);
+			name = InAppPurchases;
+			sourceTree = "<group>";
+		};
+		0684A2D81BE6E9D400F0B238 /* RemoteCamSession */ = {
+			isa = PBXGroup;
+			children = (
+				069284471BE5C0E600AF4678 /* Session.swift */,
+				0684A2D21BE6E98A00F0B238 /* CamStates.swift */,
+				0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */,
+			);
+			name = RemoteCamSession;
+			sourceTree = "<group>";
+		};
+		0692841D1BE5BF5B00AF4678 /* RemoteCam */ = {
+			isa = PBXGroup;
+			children = (
+				069284761BE5C94600AF4678 /* Delegate */,
+				069284611BE5C1BD00AF4678 /* Model */,
+				069284601BE5C1A700AF4678 /* Controllers */,
+				069284751BE5C8F900AF4678 /* Assets */,
+				0692842A1BE5BF5B00AF4678 /* Info.plist */,
+			);
+			path = RemoteCam;
+			sourceTree = "<group>";
+		};
+		069284321BE5BF5C00AF4678 /* RemoteCamTests */ = {
+			isa = PBXGroup;
+			children = (
+				069284351BE5BF5C00AF4678 /* Info.plist */,
+			);
+			path = RemoteCamTests;
+			sourceTree = "<group>";
+		};
+		069284601BE5C1A700AF4678 /* Controllers */ = {
+			isa = PBXGroup;
+			children = (
+				065024061BEA406B00311C8A /* Settings */,
+				069284421BE5C0E600AF4678 /* CameraViewController.swift */,
+				069284431BE5C0E600AF4678 /* MonitorViewController.swift */,
+				060B1E241BE710FE00077BCC /* BaseViewController.swift */,
+				069284481BE5C0E600AF4678 /* RolePickerController.swift */,
+				0624C0401BE8616E001CC738 /* CameraAccess.swift */,
+				06B6CE941BE9B0B100F5B5B7 /* GalleryViewController.swift */,
+			);
+			name = Controllers;
+			sourceTree = "<group>";
+		};
+		069284611BE5C1BD00AF4678 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				069284451BE5C0E600AF4678 /* MultipeerMessages.swift */,
+				0684A2D81BE6E9D400F0B238 /* RemoteCamSession */,
+				069284491BE5C0E600AF4678 /* States.swift */,
+				0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */,
+				060B1E141BE7079800077BCC /* Helpers */,
+			);
+			name = Model;
+			sourceTree = "<group>";
+		};
+		069284751BE5C8F900AF4678 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */,
+				0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */,
+				0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */,
+				0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */,
+				0684A2E61BE7049800F0B238 /* beep.m4a */,
+				0684A2E91BE704C600F0B238 /* fastBeep.aif */,
+				069284251BE5BF5B00AF4678 /* Assets.xcassets */,
+				069284651BE5C71800AF4678 /* Media.xcassets */,
+				069284671BE5C7DB00AF4678 /* Acknowledgments.html */,
+				069284551BE5C12000AF4678 /* Main.storyboard */,
+				0692846F1BE5C82E00AF4678 /* Localizable.strings */,
+				069284701BE5C82E00AF4678 /* InfoPlist.strings */,
+				069284441BE5C0E600AF4678 /* Multipeer.storyboard */,
+			);
+			name = Assets;
+			sourceTree = "<group>";
+		};
+		069284761BE5C94600AF4678 /* Delegate */ = {
+			isa = PBXGroup;
+			children = (
+				0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */,
+				069284411BE5C0E500AF4678 /* RemoteCam-Bridging-Header.h */,
+			);
+			name = Delegate;
+			sourceTree = "<group>";
+		};
+		06E1D4E91BB7699700E07321 = {
+			isa = PBXGroup;
+			children = (
+				0692841D1BE5BF5B00AF4678 /* RemoteCam */,
+				069284321BE5BF5C00AF4678 /* RemoteCamTests */,
+				1FEBF1D32E8FD6506AAEDD87 /* Frameworks */,
+				6E71D580DBCCE813F82C1948 /* Pods */,
+				85F118E5250ACBE100B73E48 /* RemoteShutter.app */,
+				85F11911250ACD9500B73E48 /* RemoteShutterDemo copy-Info.plist */,
+				85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */,
+			);
+			sourceTree = "<group>";
+		};
+		1FEBF1D32E8FD6506AAEDD87 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0602E4F81BEA54380015A988 /* BFGallery.framework */,
+				0602E4F41BEA527B0015A988 /* BFGallery.framework */,
+				0602E4F21BEA50A00015A988 /* BFGallery.framework */,
+				0602E4EE1BEA504D0015A988 /* BFGallery.framework */,
+				0602E4EC1BEA4FDE0015A988 /* BFGallery.framework */,
+				0602E4EA1BEA4FC90015A988 /* BFGallery.framework */,
+				060B1E1F1BE70CC000077BCC /* AdSupport.framework */,
+				060E28551BE1A5CA00D73ACB /* Nimble.framework */,
+				060E28561BE1A5CA00D73ACB /* Quick.framework */,
+				06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */,
+				06EEA7DB1BBB87EE005787AE /* Starscream.framework */,
+				27B79A6BB7E56A401AD5A495 /* Pods.framework */,
+				BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		6E71D580DBCCE813F82C1948 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */,
+				69E2751E42D4D3ED3B0395F8 /* Pods-RemoteCam.release.xcconfig */,
+				B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */,
+				D1F8EDB852F5C77347AE6066 /* Pods-RemoteShutter.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0692841B1BE5BF5B00AF4678 /* RemoteShutter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 069284361BE5BF5C00AF4678 /* Build configuration list for PBXNativeTarget "RemoteShutter" */;
+			buildPhases = (
+				8F0BD161644B70FD40F8B308 /* [CP] Check Pods Manifest.lock */,
+				069284181BE5BF5B00AF4678 /* Sources */,
+				069284191BE5BF5B00AF4678 /* Frameworks */,
+				0692841A1BE5BF5B00AF4678 /* Resources */,
+				0615C2FC1BEE7F0100E494B8 /* Embed Frameworks */,
+				8AC1B538FE9584BC346DAE60 /* [CP] Embed Pods Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RemoteShutter;
+			productName = RemoteCam;
+			productReference = 85F118E5250ACBE100B73E48 /* RemoteShutter.app */;
+			productType = "com.apple.product-type.application";
+		};
+		0692842E1BE5BF5C00AF4678 /* RemoteShutterTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 069284391BE5BF5C00AF4678 /* Build configuration list for PBXNativeTarget "RemoteShutterTests" */;
+			buildPhases = (
+				0692842B1BE5BF5C00AF4678 /* Sources */,
+				0692842C1BE5BF5C00AF4678 /* Frameworks */,
+				0692842D1BE5BF5C00AF4678 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				069284311BE5BF5C00AF4678 /* PBXTargetDependency */,
+			);
+			name = RemoteShutterTests;
+			productName = RemoteCamTests;
+			productReference = 85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		06E1D4EA1BB7699700E07321 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 0710;
+				LastUpgradeCheck = 1170;
+				ORGANIZATIONNAME = dario;
+				TargetAttributes = {
+					0692841B1BE5BF5B00AF4678 = {
+						CreatedOnToolsVersion = 7.1;
+						DevelopmentTeam = 9BAHU39A66;
+						LastSwiftMigration = 1170;
+						ProvisioningStyle = Automatic;
+					};
+					0692842E1BE5BF5C00AF4678 = {
+						CreatedOnToolsVersion = 7.1;
+						TestTargetID = 0692841B1BE5BF5B00AF4678;
+					};
+				};
+			};
+			buildConfigurationList = 06E1D4ED1BB7699700E07321 /* Build configuration list for PBXProject "RemoteShutter" */;
+			compatibilityVersion = "Xcode 6.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 06E1D4E91BB7699700E07321;
+			productRefGroup = 06E1D4E91BB7699700E07321;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0692841B1BE5BF5B00AF4678 /* RemoteShutter */,
+				0692842E1BE5BF5C00AF4678 /* RemoteShutterTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0692841A1BE5BF5B00AF4678 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0692844E1BE5C0E600AF4678 /* Multipeer.storyboard in Resources */,
+				0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */,
+				0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */,
+				069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */,
+				069284721BE5C82E00AF4678 /* Localizable.strings in Resources */,
+				065024101BEA407F00311C8A /* AcknowledgmentsViewController.xib in Resources */,
+				0624C04B1BE8662D001CC738 /* BFDeniedAccessToCameraView.xib in Resources */,
+				069284691BE5C7DB00AF4678 /* Acknowledgments.html in Resources */,
+				0684A2E81BE7049800F0B238 /* beep.m4a in Resources */,
+				0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */,
+				069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */,
+				069284661BE5C71800AF4678 /* Media.xcassets in Resources */,
+				065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */,
+				0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */,
+				069284561BE5C12000AF4678 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0692842D1BE5BF5C00AF4678 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		8AC1B538FE9584BC346DAE60 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/BFGallery/BFGallery.framework",
+				"${BUILT_PRODUCTS_DIR}/Starscream/Starscream.framework",
+				"${BUILT_PRODUCTS_DIR}/Theater/Theater.framework",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/BFGallery.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Starscream.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Theater.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		8F0BD161644B70FD40F8B308 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-RemoteShutter-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		069284181BE5BF5B00AF4678 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0684A2DE1BE6F82D00F0B238 /* RCTimer.m in Sources */,
+				069284511BE5C0E600AF4678 /* Session.swift in Sources */,
+				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
+				0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */,
+				0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */,
+				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
+				0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */,
+				0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */,
+				069284531BE5C0E600AF4678 /* States.swift in Sources */,
+				0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */,
+				0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */,
+				0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */,
+				069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */,
+				0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */,
+				065024121BEA407F00311C8A /* CMConfigurationsViewController.mm in Sources */,
+				0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */,
+				0684A2D51BE6E9A000F0B238 /* MonitorStates.swift in Sources */,
+				0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */,
+				06B6CE951BE9B0B100F5B5B7 /* GalleryViewController.swift in Sources */,
+				066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */,
+				069284541BE5C0E600AF4678 /* UIImage+ImageProcessing.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0692842B1BE5BF5C00AF4678 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		069284311BE5BF5C00AF4678 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0692841B1BE5BF5B00AF4678 /* RemoteShutter */;
+			targetProxy = 069284301BE5BF5C00AF4678 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		069284371BE5BF5C00AF4678 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
+				GCC_WARN_UNUSED_LABEL = NO;
+				GCC_WARN_UNUSED_PARAMETER = NO;
+				INFOPLIST_FILE = RemoteCam/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				OTHER_LDFLAGS = "$(inherited)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.securityunion.remoteshutter;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteCam-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		069284381BE5BF5C00AF4678 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D1F8EDB852F5C77347AE6066 /* Pods-RemoteShutter.release.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "iPhone Distribution";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
+				GCC_WARN_UNUSED_LABEL = NO;
+				GCC_WARN_UNUSED_PARAMETER = NO;
+				INFOPLIST_FILE = RemoteCam/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				OTHER_LDFLAGS = "$(inherited)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.securityunion.remoteshutter;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "8b558639-db8f-430e-b358-6af70e3e2a84";
+				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteCam-Bridging-Header.h";
+				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		0692843A1BE5BF5C00AF4678 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = RemoteCamTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.1;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.RemoteCamTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteCam.app/RemoteCam";
+			};
+			name = Debug;
+		};
+		0692843B1BE5BF5C00AF4678 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = RemoteCamTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.1;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.RemoteCamTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteCam.app/RemoteCam";
+			};
+			name = Release;
+		};
+		06E1D50D1BB7699800E07321 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 3.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		06E1D50E1BB7699800E07321 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 3.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		069284361BE5BF5C00AF4678 /* Build configuration list for PBXNativeTarget "RemoteShutter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				069284371BE5BF5C00AF4678 /* Debug */,
+				069284381BE5BF5C00AF4678 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		069284391BE5BF5C00AF4678 /* Build configuration list for PBXNativeTarget "RemoteShutterTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0692843A1BE5BF5C00AF4678 /* Debug */,
+				0692843B1BE5BF5C00AF4678 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		06E1D4ED1BB7699700E07321 /* Build configuration list for PBXProject "RemoteShutter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				06E1D50D1BB7699800E07321 /* Debug */,
+				06E1D50E1BB7699800E07321 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 06E1D4EA1BB7699700E07321 /* Project object */;
+}
