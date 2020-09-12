@@ -88,9 +88,11 @@ public class RemoteCamSession : ViewCtrlActor<RolePickerController>, MCSessionDe
                 
             case let w as OnConnectToDevice:
                 if let c = self.browser {
-                    c.dismiss(animated: true, completion: {[unowned self] in
-                        self.browser = nil
-                    })
+                    DispatchQueue.main.async {
+                        c.dismiss(animated: true, completion: {[unowned self] in
+                            self.browser = nil
+                        })
+                    }
                 }
                 self.become(name: self.states.connected, state: self.connected(lobby: lobby, peer: w.peer))
                 self.mcAdvertiserAssistant.stop()
@@ -202,19 +204,22 @@ public class RemoteCamSession : ViewCtrlActor<RolePickerController>, MCSessionDe
     }
     
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
-        switch state {
-        case MCSessionState.connected:
-            self.this ! OnConnectToDevice(peer : peerID, sender : this)
-            print("Connected: \(peerID.displayName)")
-            
-        case MCSessionState.connecting:
-            print("Connecting: \(peerID.displayName)")
-            
-        case MCSessionState.notConnected:
-            self.this ! DisconnectPeer(peer : peerID, sender : this)
-            print("Not Connected: \(peerID.displayName)")
+        DispatchQueue.main.async {
+            switch state {
+                case MCSessionState.connected:
+                    self.this ! OnConnectToDevice(peer : peerID, sender : self.this)
+                    print("Connected: \(peerID.displayName)")
+                    
+                case MCSessionState.connecting:
+                    print("Connecting: \(peerID.displayName)")
+                    
+                case MCSessionState.notConnected:
+                    self.this ! DisconnectPeer(peer : peerID, sender : self.this)
+                    print("Not Connected: \(peerID.displayName)")
+            @unknown default:
+                fatalError()
+            }
         }
-    
     }
     
     public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
