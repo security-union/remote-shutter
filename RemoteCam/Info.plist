@@ -24,10 +24,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Take Pictures using a Remote Shutter</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Store the pictures taken by the Remote Shutter App</string>
 	<key>UILaunchStoryboardName</key>
 	<string>Multipeer</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>In order to store pictures to the photo library</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
