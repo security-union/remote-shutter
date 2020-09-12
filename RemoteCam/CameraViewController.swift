@@ -111,21 +111,21 @@ public class CameraViewController :
                 do {
                     let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
                     captureSession.addInput(videoDeviceInput)
-                    
+
                     let output = ActorOutput(delegate: self)
                     captureSession.addOutput(output)
-                    
+
                     output.videoSettings = [kCVPixelBufferPixelFormatTypeKey : Int(kCVPixelFormatType_32BGRA)] as [String : Any]
                     output.alwaysDiscardsLateVideoFrames = true
-                    
-                    self.setFrameRate(framerate: self.fps,videoDevice:videoDevice)
-                    
+
+                    self.setFrameRate(framerate: self.fps, videoDevice:videoDevice)
+
                     session ! UICmd.ToggleCameraResp(
-                            flashMode: (videoDevice.hasFlash) ? videoDevice.flashMode : nil,
+                        flashMode: (videoDevice.hasFlash) ? self.cameraSettings.flashMode : nil,
                             camPosition: videoDevice.position,
                             error: nil
                     )
-                    
+
                     self.captureSession?.startRunning()
                     self.rotateCameraToOrientation(orientation: UIApplication.shared.statusBarOrientation)
                 } catch let error as NSError {
@@ -148,7 +148,7 @@ public class CameraViewController :
                 DispatchQueue.main.async {
                     self.rotateCameraToOrientation(orientation: UIApplication.shared.statusBarOrientation)
                 }
-                let newFlashMode : AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? newInput.device.flashMode : nil
+                let newFlashMode : AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
                 return Success(value: (newFlashMode, newInput.device.position))
                 }
         } catch let error as NSError {
@@ -161,18 +161,19 @@ public class CameraViewController :
         let genericDevice = captureSession?.inputs.first as? AVCaptureDeviceInput
         let device = genericDevice?.device
         if (device?.hasFlash)! {
-            return self.setFlashMode(mode: (device?.flashMode.next())!, device: device!)
+            let newFlashMode = self.cameraSettings.flashMode.next()
+            self.cameraSettings.flashMode = newFlashMode
+            return Success(value: newFlashMode)
         } else {
             return Failure(error: NSError(domain: "Current camera does not support flash.", code: 0, userInfo: nil))
         }
-        return Failure(error: NSError(domain: "Unable to find camera", code: 0, userInfo: nil))
     }
     
     func setFlashMode(mode : AVCaptureDevice.FlashMode, device : AVCaptureDevice) -> Try<AVCaptureDevice.FlashMode> {
         if device.hasFlash {
             do {
                 try device.lockForConfiguration()
-                device.flashMode = mode
+                self.cameraSettings.flashMode = mode
                 device.unlockForConfiguration()
             } catch let error as NSError {
                 return Failure(error: error)
@@ -184,12 +185,9 @@ public class CameraViewController :
     }
     
     func cameraForPosition(position : AVCaptureDevice.Position) -> AVCaptureDevice? {
-        if let videoDevices = AVCaptureDevice.devices(for: AVMediaType.video) as? [AVCaptureDevice] {
-            let filtered : [AVCaptureDevice] = videoDevices.filter { return $0.position == position}
-            return filtered.first
-        } else {
-            return nil
-        }
+        let videoDevices = AVCaptureDevice.devices(for: AVMediaType.video)
+        let filtered : [AVCaptureDevice] = videoDevices.filter { return $0.position == position}
+        return filtered.first
     }
 
     private func rotateCameraToOrientation(orientation : UIInterfaceOrientation) {

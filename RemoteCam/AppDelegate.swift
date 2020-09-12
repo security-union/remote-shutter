@@ -15,7 +15,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     private func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         InAppPurchasesManager.shared().reloadProducts { (i, e) in }
-        application.statusBarStyle = .lightContent
         self.setCustomNavBarTheme()
         return true
     }
