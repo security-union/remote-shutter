@@ -9,6 +9,7 @@
 import Foundation
 import Theater
 import MultipeerConnectivity
+import Photos
 
 extension RemoteCamSession {
     
@@ -26,12 +27,22 @@ extension RemoteCamSession {
                     
                 case let t as UICmd.OnPicture:
                     
-                    if let imageData = t.pic,
-                        let image = UIImage(data: imageData) {
-                        //#selector(Bank.onClickBtoA(_:)
-                        UIImageWriteToSavedPhotosAlbum(image, self, Selector("image:didFinishSavingWithError:contextInfo:"), nil)
+                    if let imageData = t.pic {
+                        PHPhotoLibrary.requestAuthorization { status in
+                            guard status == .authorized else { return }
+                            
+                            PHPhotoLibrary.shared().performChanges({
+                                let creationRequest = PHAssetCreationRequest.forAsset()
+                                creationRequest.addResource(with: .photo, data: imageData, options: nil)
+                            }) { (success: Bool, err: Error?) in
+                                if success {
+                                    print("Saved photo!")
+                                } else {
+                                    print("Failed to save photo!")
+                                }
+                            }
+                        }
                     }
-                    
                     ^{alert.dismiss(animated: true, completion: nil)}
                     
                     self.sendMessage(peer: [peer], msg: RemoteCmd.TakePicAck(sender: self.this))
@@ -125,6 +136,10 @@ extension RemoteCamSession {
                     self.receive(msg: msg)
                 }
             }
+    }
+    
+    private func handlePhotoSaveError() {
+        print("Failed to save photo")
     }
 
 }

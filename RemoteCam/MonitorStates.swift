@@ -9,6 +9,7 @@
 import Foundation
 import Theater
 import MultipeerConnectivity
+import Photos
 
 extension RemoteCamSession {
     
@@ -139,8 +140,21 @@ extension RemoteCamSession {
                     })}
                     
                 case let picResp as RemoteCmd.TakePicResp:
-                    if let imageData = picResp.pic, let image = UIImage(data: imageData) {
-                        UIImageWriteToSavedPhotosAlbum(image, self, Selector("image:didFinishSavingWithError:contextInfo:"), nil)
+                    if let imageData = picResp.pic {
+                        PHPhotoLibrary.requestAuthorization { status in
+                            guard status == .authorized else { return }
+                            
+                            PHPhotoLibrary.shared().performChanges({
+                                let creationRequest = PHAssetCreationRequest.forAsset()
+                                creationRequest.addResource(with: .photo, data: imageData, options: nil)
+                            }) { (success: Bool, err: Error?) in
+                                if success {
+                                    print("Saved photo!")
+                                } else {
+                                    print("Failed to save photo!")
+                                }
+                            }
+                        }
                         ^{alert.dismiss(animated: true, completion: nil)}
                     }else if let error = picResp.error {
                         ^{alert.dismiss(animated: true, completion:{ () in
