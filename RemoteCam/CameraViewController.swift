@@ -222,16 +222,16 @@ public class CameraViewController :
     }
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        if error != nil {
+            self.session ! UICmd.OnPicture(sender: nil, error: error!)
+            return
+        }
         guard let photoData = photo.fileDataRepresentation() else {
             return
         }
-        guard let imageData = UIImage(data: photoData) else {
-            return
-        }
-        let jpegData = imageData.jpegData(compressionQuality: 0.1)
-        self.session ! UICmd.OnPicture(sender: nil, pic: jpegData!)
+        self.session ! UICmd.OnPicture(sender: nil, pic: photoData)
         let genericDevice = self.captureSession?.inputs.first as? AVCaptureDeviceInput
         let device = genericDevice?.device
-        _ = RemoteCmd.SendFrame(data: jpegData!, sender: nil, fps: fps, camPosition: (device?.position)!)
+        _ = RemoteCmd.SendFrame(data: photoData, sender: nil, fps: fps, camPosition: (device?.position)!)
     }
 }
