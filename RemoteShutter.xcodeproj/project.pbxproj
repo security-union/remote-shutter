@@ -44,6 +44,7 @@
 		069284721BE5C82E00AF4678 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0692846F1BE5C82E00AF4678 /* Localizable.strings */; };
 		069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 069284701BE5C82E00AF4678 /* InfoPlist.strings */; };
 		06B6CE951BE9B0B100F5B5B7 /* GalleryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B6CE941BE9B0B100F5B5B7 /* GalleryViewController.swift */; };
+		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
 /* End PBXBuildFile section */
 
@@ -54,6 +55,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 0692841B1BE5BF5B00AF4678;
 			remoteInfo = RemoteCam;
+		};
+		852E430B250D4B1D00F5151E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 06E1D4EA1BB7699700E07321 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0692841B1BE5BF5B00AF4678;
+			remoteInfo = RemoteShutter;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -131,6 +139,9 @@
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.debug.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.debug.xcconfig"; sourceTree = "<group>"; };
 		69E2751E42D4D3ED3B0395F8 /* Pods-RemoteCam.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.release.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.release.xcconfig"; sourceTree = "<group>"; };
+		852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteShutterUITests.swift; sourceTree = "<group>"; };
+		852E430A250D4B1D00F5151E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		85F118E5250ACBE100B73E48 /* RemoteShutter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85F11911250ACD9500B73E48 /* RemoteShutterDemo copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "RemoteShutterDemo copy-Info.plist"; path = "/Users/griffin/workspace/securityunion/RemoteShutter/RemoteShutterDemo copy-Info.plist"; sourceTree = "<absolute>"; };
 		85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -150,6 +161,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		0692842C1BE5BF5C00AF4678 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		852E4303250D4B1D00F5151E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -288,11 +306,13 @@
 			children = (
 				0692841D1BE5BF5B00AF4678 /* RemoteCam */,
 				069284321BE5BF5C00AF4678 /* RemoteCamTests */,
+				852E4307250D4B1D00F5151E /* RemoteShutterUITests */,
 				1FEBF1D32E8FD6506AAEDD87 /* Frameworks */,
 				6E71D580DBCCE813F82C1948 /* Pods */,
 				85F118E5250ACBE100B73E48 /* RemoteShutter.app */,
 				85F11911250ACD9500B73E48 /* RemoteShutterDemo copy-Info.plist */,
 				85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */,
+				852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */,
 			);
 			sourceTree = "<group>";
 		};
@@ -325,6 +345,15 @@
 				D1F8EDB852F5C77347AE6066 /* Pods-RemoteShutter.release.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		852E4307250D4B1D00F5151E /* RemoteShutterUITests */ = {
+			isa = PBXGroup;
+			children = (
+				852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */,
+				852E430A250D4B1D00F5151E /* Info.plist */,
+			);
+			path = RemoteShutterUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -368,24 +397,49 @@
 			productReference = 85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		852E4305250D4B1D00F5151E /* RemoteShutterUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 852E430F250D4B1D00F5151E /* Build configuration list for PBXNativeTarget "RemoteShutterUITests" */;
+			buildPhases = (
+				852E4302250D4B1D00F5151E /* Sources */,
+				852E4303250D4B1D00F5151E /* Frameworks */,
+				852E4304250D4B1D00F5151E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				852E430C250D4B1D00F5151E /* PBXTargetDependency */,
+			);
+			name = RemoteShutterUITests;
+			productName = RemoteShutterUITests;
+			productReference = 852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		06E1D4EA1BB7699700E07321 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 0710;
+				LastSwiftUpdateCheck = 1170;
 				LastUpgradeCheck = 1170;
 				ORGANIZATIONNAME = "Security Union";
 				TargetAttributes = {
 					0692841B1BE5BF5B00AF4678 = {
 						CreatedOnToolsVersion = 7.1;
-						DevelopmentTeam = 86N68E36XN;
+						DevelopmentTeam = J5A8XNQSV9;
 						LastSwiftMigration = 1170;
 						ProvisioningStyle = Automatic;
 					};
 					0692842E1BE5BF5C00AF4678 = {
 						CreatedOnToolsVersion = 7.1;
+						DevelopmentTeam = J5A8XNQSV9;
+						TestTargetID = 0692841B1BE5BF5B00AF4678;
+					};
+					852E4305250D4B1D00F5151E = {
+						CreatedOnToolsVersion = 11.7;
+						DevelopmentTeam = 86N68E36XN;
+						ProvisioningStyle = Automatic;
 						TestTargetID = 0692841B1BE5BF5B00AF4678;
 					};
 				};
@@ -405,6 +459,7 @@
 			targets = (
 				0692841B1BE5BF5B00AF4678 /* RemoteShutter */,
 				0692842E1BE5BF5C00AF4678 /* RemoteShutterTests */,
+				852E4305250D4B1D00F5151E /* RemoteShutterUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -433,6 +488,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		0692842D1BE5BF5C00AF4678 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		852E4304250D4B1D00F5151E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -524,6 +586,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		852E4302250D4B1D00F5151E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -531,6 +601,11 @@
 			isa = PBXTargetDependency;
 			target = 0692841B1BE5BF5B00AF4678 /* RemoteShutter */;
 			targetProxy = 069284301BE5BF5C00AF4678 /* PBXContainerItemProxy */;
+		};
+		852E430C250D4B1D00F5151E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0692841B1BE5BF5B00AF4678 /* RemoteShutter */;
+			targetProxy = 852E430B250D4B1D00F5151E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -543,10 +618,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 86N68E36XN;
+				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_WARN_UNUSED_LABEL = NO;
 				GCC_WARN_UNUSED_PARAMETER = NO;
@@ -554,7 +629,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				OTHER_LDFLAGS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.griffin.remotecamera;
+				PRODUCT_BUNDLE_IDENTIFIER = com.securityunion.remoteshutter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteCam-Bridging-Header.h";
@@ -572,10 +647,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
-				DEVELOPMENT_TEAM = "";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_WARN_UNUSED_LABEL = NO;
 				GCC_WARN_UNUSED_PARAMETER = NO;
@@ -583,7 +658,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				OTHER_LDFLAGS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.griffin.remotecamera;
+				PRODUCT_BUNDLE_IDENTIFIER = com.securityunion.remoteshutter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteCam-Bridging-Header.h";
@@ -652,6 +727,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -710,6 +786,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -727,6 +804,57 @@
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		852E430D250D4B1D00F5151E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 86N68E36XN;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = RemoteShutterUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.7;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.securityunion.RemoteShutterUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = RemoteShutter;
+			};
+			name = Debug;
+		};
+		852E430E250D4B1D00F5151E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 86N68E36XN;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = RemoteShutterUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.7;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.securityunion.RemoteShutterUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = RemoteShutter;
 			};
 			name = Release;
 		};
@@ -756,6 +884,15 @@
 			buildConfigurations = (
 				06E1D50D1BB7699800E07321 /* Debug */,
 				06E1D50E1BB7699800E07321 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		852E430F250D4B1D00F5151E /* Build configuration list for PBXNativeTarget "RemoteShutterUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				852E430D250D4B1D00F5151E /* Debug */,
+				852E430E250D4B1D00F5151E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
