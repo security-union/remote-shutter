@@ -203,10 +203,6 @@ public class CameraViewController :
         }
     }
     
-    func takePicture() -> Void {
-        self.cameraOutput.capturePhoto(with: self.cameraSettings, delegate: self)
-    }
-    
     func setFrameRate(framerate:Int, videoDevice: AVCaptureDevice) -> Try<Int> {
         do {
             try videoDevice.lockForConfiguration()
@@ -219,6 +215,21 @@ public class CameraViewController :
         } catch {
             return Failure(error: NSError(domain: "unknown error", code: 0, userInfo: nil))
         }
+    }
+    
+    
+    public func captureOutput(_ captureOutput: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        if let cgBackedImage = UIImage(from: sampleBuffer, orientation: OrientationUtils.transformOrientationToImage(o: UIApplication.shared.statusBarOrientation)) {
+            let imageData = cgBackedImage.jpegData(compressionQuality: 0.1)
+            let captureSession = self.captureSession
+            let genericDevice = captureSession?.inputs.first as? AVCaptureDeviceInput
+            let device = genericDevice?.device
+            _ = RemoteCmd.SendFrame(data: imageData!, sender: nil, fps: self.fps, camPosition: (device?.position)!)
+        }
+    }
+    
+    func takePicture() -> Void {
+        self.cameraOutput.capturePhoto(with: self.cameraSettings, delegate: self)
     }
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
