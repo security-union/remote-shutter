@@ -47,6 +47,16 @@
                ReferencedContainer = "container:RemoteShutter.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "852E4305250D4B1D00F5151E"
+               BuildableName = "RemoteShutterUITests.xctest"
+               BlueprintName = "RemoteShutterUITests"
+               ReferencedContainer = "container:RemoteShutter.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
