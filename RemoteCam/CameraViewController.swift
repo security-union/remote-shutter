@@ -218,13 +218,34 @@ public class CameraViewController :
     }
     
     
+    func imageFromSampleBuffer(sampleBuffer:CMSampleBuffer) -> UIImage? {
+        if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+            CVPixelBufferLockBaseAddress(imageBuffer,CVPixelBufferLockFlags(rawValue: 0))
+            let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
+            let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+            let width = CVPixelBufferGetWidth(imageBuffer)
+            let height = CVPixelBufferGetHeight(imageBuffer)
+            let colorSpace = CGColorSpaceCreateDeviceRGB()
+            guard let context = CGContext(data: baseAddress,width: width,height: height,bitsPerComponent: 8,bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue) else { return nil }
+
+            let quartzImage = context.makeImage()
+            CVPixelBufferUnlockBaseAddress(imageBuffer,CVPixelBufferLockFlags(rawValue: 0))
+
+            if let quartzImage = quartzImage {
+                let image = UIImage(cgImage: quartzImage)
+                return image
+            }
+        }
+        return nil
+    }
+    
     public func captureOutput(_ captureOutput: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        if let cgBackedImage = UIImage(from: sampleBuffer, orientation: OrientationUtils.transformOrientationToImage(o: UIApplication.shared.statusBarOrientation)) {
+        if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer) {
             let imageData = cgBackedImage.jpegData(compressionQuality: 0.1)
             let captureSession = self.captureSession
             let genericDevice = captureSession?.inputs.first as? AVCaptureDeviceInput
             let device = genericDevice?.device
-            _ = RemoteCmd.SendFrame(data: imageData!, sender: nil, fps: self.fps, camPosition: (device?.position)!)
+            self.session ! RemoteCmd.SendFrame(data: imageData!, sender: nil, fps: self.fps, camPosition: (device?.position)!)
         }
     }
     
@@ -241,8 +262,5 @@ public class CameraViewController :
             return
         }
         self.session ! UICmd.OnPicture(sender: nil, pic: photoData)
-        let genericDevice = self.captureSession?.inputs.first as? AVCaptureDeviceInput
-        let device = genericDevice?.device
-        _ = RemoteCmd.SendFrame(data: photoData, sender: nil, fps: fps, camPosition: (device?.position)!)
     }
 }
