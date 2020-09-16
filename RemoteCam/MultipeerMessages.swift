@@ -298,7 +298,7 @@ public class RemoteCmd : Actor.Message {
         }
     }
     
-    @objc(_TtCC10ActorsDemo9RemoteCmd15OnFrame)public class OnFrame : Actor.Message {
+    public class OnFrame : Actor.Message {
         public let data : Data
         public let peerId : MCPeerID
         public let fps : NSInteger
