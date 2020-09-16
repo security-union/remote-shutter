@@ -207,7 +207,7 @@ extension RemoteCamSession {
                     }
                     
                 case is UICmd.ToggleCamera:
-                    self.become(name: self.states.monitorTakingPicture, state:
+                    self.become(name: self.states.monitorTogglingCamera, state:
                         self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
                     self.this ! msg
                     
