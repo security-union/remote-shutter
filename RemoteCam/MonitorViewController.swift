@@ -44,11 +44,13 @@ public class MonitorActor : ViewCtrlActor<MonitorViewController> {
                 if let img = UIImage(data: f.data) {
                     var t : CGAffineTransform?
                     switch(img.imageOrientation) {
-                    case .left, .right:
-                        let multiplier = (f.camPosition == .back) ? Double(-1) : Double(1)
-                        t = CGAffineTransform(rotationAngle: CGFloat(multiplier * Double.pi))
-                    case .up:
-                            t = CGAffineTransform(rotationAngle: CGFloat(Double.pi))
+                        case .left, .right:
+                            let multiplier = (f.camPosition == .back) ? Double(-1) : Double(1)
+                            t = CGAffineTransform(rotationAngle: CGFloat(multiplier * Double.pi))
+                        case .up:
+                            t = CGAffineTransform(rotationAngle: CGFloat(Double.pi/2))
+                        case .down:
+                            t = CGAffineTransform(rotationAngle: CGFloat(Double.pi/Double(-2)))
                         default:
                             print("none")
                     }
