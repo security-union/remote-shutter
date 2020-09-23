@@ -88,7 +88,7 @@ public class CameraViewController :
         }
         
         captureSession = AVCaptureSession()
-        
+                
         let previewPixelType = self.cameraSettings.availablePreviewPhotoPixelFormatTypes.first!
         let previewFormat = [kCVPixelBufferPixelFormatTypeKey as String: previewPixelType,
                              kCVPixelBufferWidthKey as String: 160,
