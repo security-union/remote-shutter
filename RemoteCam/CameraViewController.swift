@@ -240,17 +240,23 @@ public class CameraViewController :
     }
     
     public func captureOutput(_ captureOutput: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer) {
-            let imageData = cgBackedImage.jpegData(compressionQuality: 0.1)
-            let captureSession = self.captureSession
-            let genericDevice = captureSession?.inputs.first as? AVCaptureDeviceInput
-            let device = genericDevice?.device
-            self.session ! RemoteCmd.SendFrame(data: imageData!, sender: nil, fps: self.fps, camPosition: (device?.position)!)
+        if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
+            let imageData = cgBackedImage.jpegData(compressionQuality: 0.1),
+            let genericDevice = captureSession?.inputs.first as? AVCaptureDeviceInput {
+            let device = genericDevice.device
+            self.session ! RemoteCmd.SendFrame(data: imageData, sender: nil, fps: self.fps, camPosition: device.position)
         }
     }
     
+    func cloneCameraSettings(_ settings: AVCapturePhotoSettings) -> AVCapturePhotoSettings {
+        let newSettings = AVCapturePhotoSettings()
+        newSettings.flashMode = settings.flashMode
+        return newSettings
+    }
+    
     func takePicture() -> Void {
-        self.cameraOutput.capturePhoto(with: self.cameraSettings, delegate: self)
+        let cameraSettings = cloneCameraSettings(self.cameraSettings)
+        self.cameraOutput.capturePhoto(with: cameraSettings, delegate: self)
     }
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
