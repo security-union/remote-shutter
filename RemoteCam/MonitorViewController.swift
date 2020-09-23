@@ -9,7 +9,6 @@
 import UIKit
 import Theater
 import AVFoundation
-import BFGallery
 
 /**
 Monitor actor has a reference to the session actor and to the monitorViewController, it acts as the connection between the model and the controller from an MVC perspective.
@@ -129,9 +128,7 @@ public class MonitorViewController : iAdViewController {
     }
     
     @IBAction func showGallery(sender: UIButton) {
-        if let ctrl = GalleryViewController(nibName: "BFGalleryViewController", bundle: Bundle(for:BFGalleryViewController.self),  mediaProvider:BFGAssetsManagerProviderPhotoLibrary) {
-            self.navigationController?.pushViewController(ctrl, animated: true)
-        }
+        goToPhotos()
     }
     
     @IBAction func goBack(sender: UIButton) {

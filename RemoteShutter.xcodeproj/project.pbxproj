@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
+		0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
+		0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		060B1E201BE70CC000077BCC /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 060B1E1F1BE70CC000077BCC /* AdSupport.framework */; };
 		060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060B1E241BE710FE00077BCC /* BaseViewController.swift */; };
 		0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0624C0401BE8616E001CC738 /* CameraAccess.swift */; };
@@ -43,7 +46,6 @@
 		069284691BE5C7DB00AF4678 /* Acknowledgments.html in Resources */ = {isa = PBXBuildFile; fileRef = 069284671BE5C7DB00AF4678 /* Acknowledgments.html */; };
 		069284721BE5C82E00AF4678 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0692846F1BE5C82E00AF4678 /* Localizable.strings */; };
 		069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 069284701BE5C82E00AF4678 /* InfoPlist.strings */; };
-		06B6CE951BE9B0B100F5B5B7 /* GalleryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B6CE941BE9B0B100F5B5B7 /* GalleryViewController.swift */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
 /* End PBXBuildFile section */
@@ -85,6 +87,7 @@
 		0602E4F21BEA50A00015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4F41BEA527B0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4F81BEA54380015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
+		0609A4DA251BFED80090DEB7 /* Photos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Photos.swift; sourceTree = "<group>"; };
 		060B1E1F1BE70CC000077BCC /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
 		060B1E241BE710FE00077BCC /* BaseViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseViewController.swift; sourceTree = "<group>"; };
 		060E28551BE1A5CA00D73ACB /* Nimble.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Nimble.framework; path = "Pods/../build/Debug-iphoneos/Nimble.framework"; sourceTree = "<group>"; };
@@ -133,7 +136,6 @@
 		069284671BE5C7DB00AF4678 /* Acknowledgments.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Acknowledgments.html; sourceTree = "<group>"; };
 		0692846F1BE5C82E00AF4678 /* Localizable.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
 		069284701BE5C82E00AF4678 /* InfoPlist.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = InfoPlist.strings; sourceTree = "<group>"; };
-		06B6CE941BE9B0B100F5B5B7 /* GalleryViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GalleryViewController.swift; sourceTree = "<group>"; };
 		06EEA7DB1BBB87EE005787AE /* Starscream.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Starscream.framework; path = "Pods/../build/Debug-iphoneos/Starscream.framework"; sourceTree = "<group>"; };
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -255,7 +257,7 @@
 				060B1E241BE710FE00077BCC /* BaseViewController.swift */,
 				069284481BE5C0E600AF4678 /* RolePickerController.swift */,
 				0624C0401BE8616E001CC738 /* CameraAccess.swift */,
-				06B6CE941BE9B0B100F5B5B7 /* GalleryViewController.swift */,
+				0609A4DA251BFED80090DEB7 /* Photos.swift */,
 			);
 			name = Controllers;
 			sourceTree = "<group>";
@@ -434,6 +436,7 @@
 					0692842E1BE5BF5C00AF4678 = {
 						CreatedOnToolsVersion = 7.1;
 						DevelopmentTeam = J5A8XNQSV9;
+						LastSwiftMigration = 1200;
 						TestTargetID = 0692841B1BE5BF5B00AF4678;
 					};
 					852E4305250D4B1D00F5151E = {
@@ -571,9 +574,9 @@
 				0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */,
 				065024121BEA407F00311C8A /* CMConfigurationsViewController.mm in Sources */,
 				0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */,
+				0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */,
 				0684A2D51BE6E9A000F0B238 /* MonitorStates.swift in Sources */,
 				0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */,
-				06B6CE951BE9B0B100F5B5B7 /* GalleryViewController.swift in Sources */,
 				066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */,
 				069284541BE5C0E600AF4678 /* UIImage+ImageProcessing.m in Sources */,
 			);
@@ -583,6 +586,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -590,6 +594,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */,
 				852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -672,11 +677,14 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				INFOPLIST_FILE = RemoteCamTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.RemoteCamTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteCam.app/RemoteCam";
 			};
 			name = Debug;
@@ -686,11 +694,13 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				INFOPLIST_FILE = RemoteCamTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.RemoteCamTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteCam.app/RemoteCam";
 			};
 			name = Release;
