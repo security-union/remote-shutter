@@ -33,7 +33,6 @@
         <string>_RemoteCam._tcp</string>
         <string>_RemoteCam._udp</string>
     </array>
-        
 	<key>UILaunchStoryboardName</key>
 	<string>Multipeer</string>
 	<key>UIMainStoryboardFile</key>
