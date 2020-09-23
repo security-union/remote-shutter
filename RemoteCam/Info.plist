@@ -26,6 +26,14 @@
 	<string>Take Pictures using a Remote Shutter</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>In order to store pictures to the photo library</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Allow camera to connect to the remote shutter</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_RemoteCam._tcp</string>
+        <string>_RemoteCam._udp</string>
+    </array>
+        
 	<key>UILaunchStoryboardName</key>
 	<string>Multipeer</string>
 	<key>UIMainStoryboardFile</key>
