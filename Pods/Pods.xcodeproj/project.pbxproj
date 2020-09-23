@@ -7,95 +7,51 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		009A5B0922F5317C35BDF5C7E41B4988 /* BFGalleryViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = A64E73AFB336598413C45E8C72AA18BC /* BFGalleryViewController.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		027F87D6E0A793CA3058FB11EF67B923 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBB895F616DD1C4C7C1587261E4EBE5D /* Foundation.framework */; };
-		03379799037BADE2FCABD6E8AAEA0086 /* Theater-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = B74DDD2DBDDB246C12667FC1C3842BAE /* Theater-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		05E78FAE92D258B44DC39D394FA0C29F /* BFGCell.m in Sources */ = {isa = PBXBuildFile; fileRef = F38CB2F6ED6C0D3E9C1D5A98961D6EB7 /* BFGCell.m */; };
-		068248F177148D5728E2F23064848BFE /* SBJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = 14E130828FF30DC7086D74EAD3D75D29 /* SBJSON.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		068E5963381B58D7D8CD321462F567ED /* Compression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A22CA1102F2C4492EE74AA6D5C2DA91 /* Compression.swift */; };
-		06D1B5BBBE47BC127FC390A2431E76E9 /* SBJsonBase.h in Headers */ = {isa = PBXBuildFile; fileRef = 5393A7BC8E20F1B046E4C65517E7561E /* SBJsonBase.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		089E7EB65253B2293AF3B2970AD69D9E /* WithListeners.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB658790004A15AD0DABC6615ED4DA9 /* WithListeners.swift */; };
-		1627E6FA0453D6DB472BA444F1D32AE7 /* SSLClientCertificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED82A829AEBA8AA3D0AE311E79EA76FD /* SSLClientCertificate.swift */; };
-		1B09791BE996F08C7B181369E2D524FF /* BFGallery-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 2CB0B402838D3A6506B6224D474F53B0 /* BFGallery-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		22A5A910321157427BC2053E21541E10 /* ActorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927B5C67B2DBB91C49278FAC57720E7F /* ActorSystem.swift */; };
-		294D61E8A195B6A1F6AEDCF0F73599A5 /* Starscream-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 8DBBBCBE0383FBC7CE4D626773D188FB /* Starscream-dummy.m */; };
-		29CB6ABC45C8AC9511007A81BFFDE0AF /* BLEPeripheralConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E56F9CA0833CDFAE6AEC9826A897236 /* BLEPeripheralConnection.swift */; };
-		3207077F4687E8B5FE97F077D9D89AED /* BFImage.h in Headers */ = {isa = PBXBuildFile; fileRef = 402FBE5DF703B38FEB79F6DCA59083AA /* BFImage.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		34937B96A73094510780DB1B338EFE89 /* BFGFullSizeViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = 96EAEF02337F715A6C5D2939AF29B546 /* BFGFullSizeViewController.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		3E45CDB3522BDAD2DA97FD0696FB0C5E /* FlickrRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 14CE41D335E0443E3BB11A1F196886AA /* FlickrRequest.m */; };
-		3F560F0A887A6E9F6BBFA020A3CC6E80 /* BFGCell.h in Headers */ = {isa = PBXBuildFile; fileRef = 8D78A7BFC25882F8A91A29CF84597806 /* BFGCell.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		4A8408AAA1201724A21011E0A2717AA3 /* BFImage.m in Sources */ = {isa = PBXBuildFile; fileRef = 60217BE5FAD6452AA905E9DBCD3108ED /* BFImage.m */; };
-		4D8FEFBD564C40D5BD8C439A7074E827 /* BFGalleryLib.h in Headers */ = {isa = PBXBuildFile; fileRef = E664972DF11B8F27201DA0D04E47DE3A /* BFGalleryLib.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		4FAF8840B624110EE7FFA1680DC402B5 /* NSString+SBJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 9DD422573529813EE9FAD87EEB9E5645 /* NSString+SBJSON.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		50F066A807D014A4597DDA391D589672 /* SBJsonParser.h in Headers */ = {isa = PBXBuildFile; fileRef = 35F8AC21D361FAB473B757F31C046597 /* SBJsonParser.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		53B1FBFA56D663FE785487B23BA7A656 /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46C550CEBB44D4EDDE790C54810A438 /* Try.swift */; };
-		54B1B4DA48EC00104AD4E605274A9B14 /* NSObject+SBJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 2E3EFCD7DD94511542EA4FE0F13170DC /* NSObject+SBJSON.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		5D02BE9D70A00DE2EAB68526F0368C34 /* FlickrImageParser.h in Headers */ = {isa = PBXBuildFile; fileRef = 345BCB4290FBFF60B0D0ACF12E7F5570 /* FlickrImageParser.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		03379799037BADE2FCABD6E8AAEA0086 /* Theater-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 277A9D101860025512D75487A59CBAD8 /* Theater-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		068E5963381B58D7D8CD321462F567ED /* Compression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBA44277E804E652ADC42CF87C0014 /* Compression.swift */; };
+		089E7EB65253B2293AF3B2970AD69D9E /* WithListeners.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A483349435E743C42D62C6DEEC1116B /* WithListeners.swift */; };
+		1627E6FA0453D6DB472BA444F1D32AE7 /* SSLClientCertificate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F902FBDF7DA047704136BFD03B6F8904 /* SSLClientCertificate.swift */; };
+		22A5A910321157427BC2053E21541E10 /* ActorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110874115560FCDF7CC39BCB622018A8 /* ActorSystem.swift */; };
+		294D61E8A195B6A1F6AEDCF0F73599A5 /* Starscream-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 00D39AA8D854CD221FBD70E4FE6179D1 /* Starscream-dummy.m */; };
+		29CB6ABC45C8AC9511007A81BFFDE0AF /* BLEPeripheralConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6BFA535A7C153D572F75D844AB7169F /* BLEPeripheralConnection.swift */; };
+		53B1FBFA56D663FE785487B23BA7A656 /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A80C8CA9E66A7236184FB608F924C13 /* Try.swift */; };
 		5EC15C8086BA585CD7D4C5EB876810C1 /* Starscream.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3319CBE6BF16B5B2366BDE834B663B5E /* Starscream.framework */; };
-		6689206235EFBB665C09BC859229BB4C /* ViewControllerActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79FB924E639201A51628CD87B6F7A445 /* ViewControllerActor.swift */; };
-		6CED7BAA10F569381211F0DDA45AAE63 /* SharedConstants.h in Headers */ = {isa = PBXBuildFile; fileRef = D7B4A7D064D4AC414EA7D3FFF895D9BA /* SharedConstants.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		72944C265FA0BA332B7AF45FBAFA38F4 /* SBJsonParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 316B4DFB6B20BC163BDA3CACAF7077B7 /* SBJsonParser.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		7BEC1F67F119F1CB19F2031C67186C52 /* BLEMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED17299D47CC6CBCF6178E6DE00DB57 /* BLEMessages.swift */; };
-		7E4AF43A99D3E10B972A063291721BC6 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA67044087D05F9CD26BB265511B1F5 /* Message.swift */; };
-		82C11C721A5A1E4E66DB32ABE387793E /* NSOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7578E09B70DE5E089A0072782E914028 /* NSOperationQueue.swift */; };
-		837DB1278E265AB8141720C36FBE0592 /* WebSocketClientWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11AFA4A8FB4277AF00D86DD08D5EFB8 /* WebSocketClientWrapper.swift */; };
-		83F0599914FD8BD3C8457F1CAC9A21B4 /* Theater-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = FB52CB16AE43166ADC012719E59C8EB2 /* Theater-dummy.m */; };
-		84F9A994BA92B34EED076FBB9119E71D /* NSObject+SBJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = ABD3260AEE1C5E263127D5ED0F1E77BF /* NSObject+SBJSON.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		8B307A8DA1D4BBC9C1490B2C0F6CE2EF /* BFGAssetsManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EEB55B649E5E9238A493A32D9B11DA4 /* BFGAssetsManager.m */; };
-		8B3350D96B15B975184C8EE0819F9623 /* SSLSecurity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2EF8ABC4B82D178A2702FEF7D57F7D2 /* SSLSecurity.swift */; };
-		8E234EC683D8C1B9EF1491A1E0DEC616 /* BFGAssetsManager.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B42D74985C44E3B31876A3C8E2B5AA /* BFGAssetsManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		91772AD1FAF4CB9C028A68BA5EDAC730 /* BFGallery-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B3ED838C743BAB1E086A4B95526209E /* BFGallery-dummy.m */; };
-		936288956B64C14D0BC91424737C2B8A /* Pods-RemoteShutter-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = AD28E6C4D1C09E7287E2B4EC720CFB99 /* Pods-RemoteShutter-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		950258458BC65C2383A08ECFA02E7A17 /* SBJSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B6F6E309E74F04BD95CA3F5E27E0E51 /* SBJSON.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		6689206235EFBB665C09BC859229BB4C /* ViewControllerActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52A105ADA320BAD31E246D920532AF1 /* ViewControllerActor.swift */; };
+		74B295921FC42A9056B69BC3F0E1793F /* Pods-RemoteShutter-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = B2BF6E6135FBDCF633FA85505BF7B0C9 /* Pods-RemoteShutter-dummy.m */; };
+		7BEC1F67F119F1CB19F2031C67186C52 /* BLEMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0718BAB3B56FC03CFD23DCBCDE7A8E8C /* BLEMessages.swift */; };
+		7E4AF43A99D3E10B972A063291721BC6 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FAC26D852697641927A30C401C853D7 /* Message.swift */; };
+		82C11C721A5A1E4E66DB32ABE387793E /* NSOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BEB68D4E42E3011FD62F305ECAD51E /* NSOperationQueue.swift */; };
+		837DB1278E265AB8141720C36FBE0592 /* WebSocketClientWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0AF02B996B48468C0833E00D34AFB8 /* WebSocketClientWrapper.swift */; };
+		83F0599914FD8BD3C8457F1CAC9A21B4 /* Theater-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 0D9E9D41A658894E5F96505634767986 /* Theater-dummy.m */; };
+		8B3350D96B15B975184C8EE0819F9623 /* SSLSecurity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867E1149D8C80B0398958F0C36F97F2D /* SSLSecurity.swift */; };
+		8F115FA8E3740ACE7E956BAEC3E7DE91 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBB895F616DD1C4C7C1587261E4EBE5D /* Foundation.framework */; };
 		96D67F9A7630A34944B6EAAD47F785E3 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBB895F616DD1C4C7C1587261E4EBE5D /* Foundation.framework */; };
-		97B065088D7A2F5585E6BC0A224014BA /* BFGFullSizeCell.h in Headers */ = {isa = PBXBuildFile; fileRef = 7661F46DFB3F694C0A846F36A8F19063 /* BFGFullSizeCell.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		A5D1FFD746CA14C61548F099A312367A /* JSON.h in Headers */ = {isa = PBXBuildFile; fileRef = 3DFC79548DB3598E1574C99ADAECA7FE /* JSON.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		A863C7A6E6A03D511E2059F16A0F7663 /* FlickrImageParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 56E03DDAF18ACB56F6808500CF04FE97 /* FlickrImageParser.m */; };
-		AB16CAD065A7B221DBF1D68B0ED0DDA3 /* BFGalleryViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 31836A6990D93AFCA2F5C19379366C58 /* BFGalleryViewController.m */; };
-		AB5A326C0F2F6E1EC570DA054863819C /* SBJsonWriter.h in Headers */ = {isa = PBXBuildFile; fileRef = F9754B6B1C61ACB14E45B3B3AC896F44 /* SBJsonWriter.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		AE0D92ED90B26BC226193E326A90C3C0 /* NSString+SBJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = C8745317AECC3B21ED1DECF0EDE91AD9 /* NSString+SBJSON.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		B2E25B34481E8F42C81B83A98AC7BC9D /* FlickrImage.m in Sources */ = {isa = PBXBuildFile; fileRef = 1D409C6AE4E18B7C45EF0AA46FF52B94 /* FlickrImage.m */; };
-		B4A6283FDFA04E3A7B6FD0C13B6FEF32 /* Starscream-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 4A2F2459FAA32847BAD09A5E888C8B0D /* Starscream-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		B60DC594BD3145CF4AFE63E467644551 /* SBJsonBase.m in Sources */ = {isa = PBXBuildFile; fileRef = 84364374F678A9CAA3149CD49725D336 /* SBJsonBase.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		C02D9FEB295BDA1359D2F52C80F8E75A /* WebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DD2F7299D3DDACCD6EDB988A36DD66 /* WebSocket.swift */; };
-		C7BEDF37B8CDFE73CD77D387B698383C /* BLECentral.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF46D4214C60C3BCD546F2F60805D31A /* BLECentral.swift */; };
-		CB68C009C23C172088C270D12EF9DD66 /* SBJsonWriter.m in Sources */ = {isa = PBXBuildFile; fileRef = E86FD175C9B1C256EEDB73A98B4F31B3 /* SBJsonWriter.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		CE92A892AD96210855720697FFA8381E /* BFGFullSizeViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A4C6ECCB8B7666FB9515F756C245DC4 /* BFGFullSizeViewController.m */; };
-		D0A696EC6EC6B915D55CC25484F2D08E /* Pods-RemoteShutter-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = B2BF6E6135FBDCF633FA85505BF7B0C9 /* Pods-RemoteShutter-dummy.m */; };
-		E0C2D2C057847E70520CFAA976B97FBA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBB895F616DD1C4C7C1587261E4EBE5D /* Foundation.framework */; };
-		E1887B524FBCD926A7C2BB6A9E5D7E57 /* Stack.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA43C2F29C48C6D463CAADB78E9203E1 /* Stack.swift */; };
-		E2B1997140B7072C99C8A78680D2797B /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C41CC090A9B083EBBB675B1F015A970F /* Actor.swift */; };
+		B4A6283FDFA04E3A7B6FD0C13B6FEF32 /* Starscream-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 486816A06E485DCB3A8B835DC58C7F79 /* Starscream-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C02D9FEB295BDA1359D2F52C80F8E75A /* WebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10193EAA37BE3547423406834390D63F /* WebSocket.swift */; };
+		C7BEDF37B8CDFE73CD77D387B698383C /* BLECentral.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82E8A3D7F9DDAED1C9148482E8F554C3 /* BLECentral.swift */; };
+		CD7DF7E798D7A4DBFEFAF44C9E5E1881 /* Pods-RemoteShutter-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = AD28E6C4D1C09E7287E2B4EC720CFB99 /* Pods-RemoteShutter-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		E1887B524FBCD926A7C2BB6A9E5D7E57 /* Stack.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F54312A3B544EA9914C6BB35C953C2 /* Stack.swift */; };
+		E2B1997140B7072C99C8A78680D2797B /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9E3E2E8B92C74F881DB678CD24B368 /* Actor.swift */; };
 		ED60325C9956930E4F7EE469C1809324 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBB895F616DD1C4C7C1587261E4EBE5D /* Foundation.framework */; };
-		EDEF591E8A78E74ABDCB3238AECE2393 /* FlickrImage.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B68080AAE95983804A09EFB3D18C784 /* FlickrImage.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		F03F75AB0A9FF680D7FF460E4E9BB33A /* BLEPeripheral.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43C41824383F0410763E9012F59EAAD2 /* BLEPeripheral.swift */; };
-		F23C3168FA0E13E2440A214897756D31 /* BFLog.h in Headers */ = {isa = PBXBuildFile; fileRef = DAC4F1F58B6D5F69BF04F9C3FC03AEB2 /* BFLog.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		F3615D1246A3F94C9033C7E148471233 /* FlickrRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 7EE9C814A61ACFEF4AB0DAC8864F6E32 /* FlickrRequest.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		FBCD997D0EA2737B11165AC1BCCD5D5B /* BFGFullSizeCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 3774535D902F48690CEC10C3D24D4EF0 /* BFGFullSizeCell.m */; };
+		F03F75AB0A9FF680D7FF460E4E9BB33A /* BLEPeripheral.swift in Sources */ = {isa = PBXBuildFile; fileRef = A94950F82E535ABE32EF51BDBFFCFFE4 /* BLEPeripheral.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		0781767A0B539F1D11D92DD171FC3A9C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 40E95035640575A0EAB6FD66B8634B35;
-			remoteInfo = BFGallery;
-		};
-		3E65EC84730F7281C1A2B598A8B43992 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = CB91C4CE935848A3D0063E3102193038;
-			remoteInfo = Theater;
-		};
-		8FB7D4842BA38FEB1C1B998BCBFCCE5B /* PBXContainerItemProxy */ = {
+		424EE7C375F60657406A5FD439D40CB8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 9B78EE4AF6AE03E79D88886319853FF7;
 			remoteInfo = Starscream;
 		};
-		E67D65C8E6ECC9A6483C2F978DD2C0C7 /* PBXContainerItemProxy */ = {
+		C05DF30449F6CB729F4B305CEE697307 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CB91C4CE935848A3D0063E3102193038;
+			remoteInfo = Theater;
+		};
+		E63C2010311EECC07ACA9FFA45014947 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
@@ -105,94 +61,52 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		03FADC875BD8591E30575F92D9AC7B8F /* Theater.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = Theater.modulemap; sourceTree = "<group>"; };
-		04F4103E0728333F96D67F13CABA05E4 /* BFGallery.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = BFGallery.debug.xcconfig; sourceTree = "<group>"; };
-		0B3ED838C743BAB1E086A4B95526209E /* BFGallery-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "BFGallery-dummy.m"; sourceTree = "<group>"; };
-		14CE41D335E0443E3BB11A1F196886AA /* FlickrRequest.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = FlickrRequest.m; path = BFGallery/BFGalleryLib/FlickrRequest.m; sourceTree = "<group>"; };
-		14E130828FF30DC7086D74EAD3D75D29 /* SBJSON.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = SBJSON.h; path = BFGallery/JSON/SBJSON.h; sourceTree = "<group>"; };
-		1A4C6ECCB8B7666FB9515F756C245DC4 /* BFGFullSizeViewController.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = BFGFullSizeViewController.m; path = BFGallery/BFGalleryLib/BFGFullSizeViewController.m; sourceTree = "<group>"; };
-		1B6F6E309E74F04BD95CA3F5E27E0E51 /* SBJSON.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = SBJSON.m; path = BFGallery/JSON/SBJSON.m; sourceTree = "<group>"; };
-		1D409C6AE4E18B7C45EF0AA46FF52B94 /* FlickrImage.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = FlickrImage.m; path = BFGallery/BFGalleryLib/FlickrImage.m; sourceTree = "<group>"; };
-		1E527E728EF2A9CF8D2AB538D2CCFBF5 /* Starscream-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Starscream-Info.plist"; sourceTree = "<group>"; };
-		2CB0B402838D3A6506B6224D474F53B0 /* BFGallery-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "BFGallery-umbrella.h"; sourceTree = "<group>"; };
-		2E3EFCD7DD94511542EA4FE0F13170DC /* NSObject+SBJSON.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = "NSObject+SBJSON.m"; path = "BFGallery/JSON/NSObject+SBJSON.m"; sourceTree = "<group>"; };
-		316B4DFB6B20BC163BDA3CACAF7077B7 /* SBJsonParser.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = SBJsonParser.m; path = BFGallery/JSON/SBJsonParser.m; sourceTree = "<group>"; };
-		31836A6990D93AFCA2F5C19379366C58 /* BFGalleryViewController.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = BFGalleryViewController.m; path = BFGallery/BFGalleryLib/BFGalleryViewController.m; sourceTree = "<group>"; };
+		00D39AA8D854CD221FBD70E4FE6179D1 /* Starscream-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Starscream-dummy.m"; sourceTree = "<group>"; };
+		03BEB68D4E42E3011FD62F305ECAD51E /* NSOperationQueue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NSOperationQueue.swift; path = Classes/NSOperationQueue.swift; sourceTree = "<group>"; };
+		0718BAB3B56FC03CFD23DCBCDE7A8E8C /* BLEMessages.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BLEMessages.swift; path = Classes/BLEMessages.swift; sourceTree = "<group>"; };
+		0A483349435E743C42D62C6DEEC1116B /* WithListeners.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WithListeners.swift; path = Classes/WithListeners.swift; sourceTree = "<group>"; };
+		0CCBA44277E804E652ADC42CF87C0014 /* Compression.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Compression.swift; path = Sources/Starscream/Compression.swift; sourceTree = "<group>"; };
+		0D9E9D41A658894E5F96505634767986 /* Theater-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Theater-dummy.m"; sourceTree = "<group>"; };
+		10193EAA37BE3547423406834390D63F /* WebSocket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WebSocket.swift; path = Sources/Starscream/WebSocket.swift; sourceTree = "<group>"; };
+		10493B33F8A5695B43355D5E6C05CFEE /* Theater.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = Theater.modulemap; sourceTree = "<group>"; };
+		110874115560FCDF7CC39BCB622018A8 /* ActorSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ActorSystem.swift; path = Classes/ActorSystem.swift; sourceTree = "<group>"; };
+		14458E8017A14DEFC7CB72E930636A80 /* Theater-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Theater-prefix.pch"; sourceTree = "<group>"; };
+		1FAC26D852697641927A30C401C853D7 /* Message.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Message.swift; path = Classes/Message.swift; sourceTree = "<group>"; };
+		277A9D101860025512D75487A59CBAD8 /* Theater-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Theater-umbrella.h"; sourceTree = "<group>"; };
+		2815F3A667114FD16BB6C4AA98192A6C /* Theater.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Theater.release.xcconfig; sourceTree = "<group>"; };
+		2B1B8CA0D27076C676D9370D1FE374F8 /* Starscream-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Starscream-prefix.pch"; sourceTree = "<group>"; };
+		2C9E3E2E8B92C74F881DB678CD24B368 /* Actor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Actor.swift; path = Classes/Actor.swift; sourceTree = "<group>"; };
 		3319CBE6BF16B5B2366BDE834B663B5E /* Starscream.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Starscream.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		345BCB4290FBFF60B0D0ACF12E7F5570 /* FlickrImageParser.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = FlickrImageParser.h; path = BFGallery/BFGalleryLib/FlickrImageParser.h; sourceTree = "<group>"; };
-		35F8AC21D361FAB473B757F31C046597 /* SBJsonParser.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = SBJsonParser.h; path = BFGallery/JSON/SBJsonParser.h; sourceTree = "<group>"; };
-		373DCC2ADA1692A13D31D20292DACAAA /* Theater.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Theater.release.xcconfig; sourceTree = "<group>"; };
-		3774535D902F48690CEC10C3D24D4EF0 /* BFGFullSizeCell.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = BFGFullSizeCell.m; path = BFGallery/BFGalleryLib/BFGFullSizeCell.m; sourceTree = "<group>"; };
 		379D5D7B861C91A2C288C377F03B6F9F /* Pods-RemoteShutter-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutter-Info.plist"; sourceTree = "<group>"; };
 		39351F7B668221FAE78A014A31E7DC28 /* Pods-RemoteShutter-acknowledgements.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutter-acknowledgements.plist"; sourceTree = "<group>"; };
-		3DFC79548DB3598E1574C99ADAECA7FE /* JSON.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = JSON.h; path = BFGallery/JSON/JSON.h; sourceTree = "<group>"; };
-		3E56F9CA0833CDFAE6AEC9826A897236 /* BLEPeripheralConnection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BLEPeripheralConnection.swift; path = Classes/BLEPeripheralConnection.swift; sourceTree = "<group>"; };
-		402FBE5DF703B38FEB79F6DCA59083AA /* BFImage.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = BFImage.h; path = BFGallery/BFGalleryLib/BFImage.h; sourceTree = "<group>"; };
-		43C41824383F0410763E9012F59EAAD2 /* BLEPeripheral.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BLEPeripheral.swift; path = Classes/BLEPeripheral.swift; sourceTree = "<group>"; };
+		417AAE01DBA71F371479AA1FD71A9536 /* Theater.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Theater.debug.xcconfig; sourceTree = "<group>"; };
 		43EF65C51BE1A9F3E7304DB46C4E9EAD /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
-		456FDA0378DDE6C333688E831410A295 /* BFGallery.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = BFGallery.modulemap; sourceTree = "<group>"; };
-		4A2F2459FAA32847BAD09A5E888C8B0D /* Starscream-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Starscream-umbrella.h"; sourceTree = "<group>"; };
+		486816A06E485DCB3A8B835DC58C7F79 /* Starscream-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Starscream-umbrella.h"; sourceTree = "<group>"; };
+		4DBEDE38CEC72CFE69E85BF39EAE4D1C /* Starscream.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Starscream.release.xcconfig; sourceTree = "<group>"; };
 		4F2A9454FE49FFE1DEC337E091F78895 /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
-		5393A7BC8E20F1B046E4C65517E7561E /* SBJsonBase.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = SBJsonBase.h; path = BFGallery/JSON/SBJsonBase.h; sourceTree = "<group>"; };
 		54A3CBB19783330A26B3E6CEDE4AB984 /* Pods-RemoteShutter-acknowledgements.markdown */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "Pods-RemoteShutter-acknowledgements.markdown"; sourceTree = "<group>"; };
-		56E03DDAF18ACB56F6808500CF04FE97 /* FlickrImageParser.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = FlickrImageParser.m; path = BFGallery/BFGalleryLib/FlickrImageParser.m; sourceTree = "<group>"; };
-		57B22684EA80DB2C7E80F42D411D1B96 /* Starscream.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Starscream.release.xcconfig; sourceTree = "<group>"; };
-		5B68080AAE95983804A09EFB3D18C784 /* FlickrImage.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = FlickrImage.h; path = BFGallery/BFGalleryLib/FlickrImage.h; sourceTree = "<group>"; };
 		5D1D50E923BF95A1DCCDF637C50BD480 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = Pods_RemoteShutter.framework; path = "Pods-RemoteShutter.framework"; sourceTree = BUILT_PRODUCTS_DIR; };
-		5DF7A749F1791D1559961F85932A61AF /* Theater-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Theater-prefix.pch"; sourceTree = "<group>"; };
-		60217BE5FAD6452AA905E9DBCD3108ED /* BFImage.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = BFImage.m; path = BFGallery/BFGalleryLib/BFImage.m; sourceTree = "<group>"; };
-		6A22CA1102F2C4492EE74AA6D5C2DA91 /* Compression.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Compression.swift; path = Sources/Starscream/Compression.swift; sourceTree = "<group>"; };
-		6EEB55B649E5E9238A493A32D9B11DA4 /* BFGAssetsManager.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = BFGAssetsManager.m; path = BFGallery/BFGalleryLib/BFGAssetsManager.m; sourceTree = "<group>"; };
-		7072E79CE885DAF5E2AEBF48B04A4BA7 /* BFGallery-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "BFGallery-Info.plist"; sourceTree = "<group>"; };
-		7578E09B70DE5E089A0072782E914028 /* NSOperationQueue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NSOperationQueue.swift; path = Classes/NSOperationQueue.swift; sourceTree = "<group>"; };
-		7661F46DFB3F694C0A846F36A8F19063 /* BFGFullSizeCell.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = BFGFullSizeCell.h; path = BFGallery/BFGalleryLib/BFGFullSizeCell.h; sourceTree = "<group>"; };
-		79FB924E639201A51628CD87B6F7A445 /* ViewControllerActor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ViewControllerActor.swift; path = Classes/ViewControllerActor.swift; sourceTree = "<group>"; };
-		7A706EDA87874F83141BB2DD3BB6498D /* Starscream.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Starscream.debug.xcconfig; sourceTree = "<group>"; };
-		7EE9C814A61ACFEF4AB0DAC8864F6E32 /* FlickrRequest.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = FlickrRequest.h; path = BFGallery/BFGalleryLib/FlickrRequest.h; sourceTree = "<group>"; };
-		84364374F678A9CAA3149CD49725D336 /* SBJsonBase.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = SBJsonBase.m; path = BFGallery/JSON/SBJsonBase.m; sourceTree = "<group>"; };
+		6A80C8CA9E66A7236184FB608F924C13 /* Try.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Try.swift; path = Classes/Try.swift; sourceTree = "<group>"; };
+		82E8A3D7F9DDAED1C9148482E8F554C3 /* BLECentral.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BLECentral.swift; path = Classes/BLECentral.swift; sourceTree = "<group>"; };
+		867E1149D8C80B0398958F0C36F97F2D /* SSLSecurity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLSecurity.swift; path = Sources/Starscream/SSLSecurity.swift; sourceTree = "<group>"; };
 		87A83C50DE6B70FDA51B27682E5A0AD8 /* Theater.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = Theater.framework; path = Theater.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		891B2270823847ED23F2ECFC28F935EC /* Starscream.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = Starscream.framework; path = Starscream.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		8D78A7BFC25882F8A91A29CF84597806 /* BFGCell.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = BFGCell.h; path = BFGallery/BFGalleryLib/BFGCell.h; sourceTree = "<group>"; };
-		8DBBBCBE0383FBC7CE4D626773D188FB /* Starscream-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Starscream-dummy.m"; sourceTree = "<group>"; };
-		927B5C67B2DBB91C49278FAC57720E7F /* ActorSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ActorSystem.swift; path = Classes/ActorSystem.swift; sourceTree = "<group>"; };
 		9565945C05F9A4897FC95902632FD3D1 /* Pods-RemoteShutter.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "Pods-RemoteShutter.modulemap"; sourceTree = "<group>"; };
-		96EAEF02337F715A6C5D2939AF29B546 /* BFGFullSizeViewController.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = BFGFullSizeViewController.h; path = BFGallery/BFGalleryLib/BFGFullSizeViewController.h; sourceTree = "<group>"; };
+		957A3BC8DF68049D5AFE533A01D1F427 /* Theater-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Theater-Info.plist"; sourceTree = "<group>"; };
 		9D940727FF8FB9C785EB98E56350EF41 /* Podfile */ = {isa = PBXFileReference; explicitFileType = text.script.ruby; includeInIndex = 1; indentWidth = 2; lastKnownFileType = text; name = Podfile; path = ../Podfile; sourceTree = SOURCE_ROOT; tabWidth = 2; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
-		9DD422573529813EE9FAD87EEB9E5645 /* NSString+SBJSON.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = "NSString+SBJSON.m"; path = "BFGallery/JSON/NSString+SBJSON.m"; sourceTree = "<group>"; };
-		9FB658790004A15AD0DABC6615ED4DA9 /* WithListeners.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WithListeners.swift; path = Classes/WithListeners.swift; sourceTree = "<group>"; };
-		A2EF8ABC4B82D178A2702FEF7D57F7D2 /* SSLSecurity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLSecurity.swift; path = Sources/Starscream/SSLSecurity.swift; sourceTree = "<group>"; };
-		A64E73AFB336598413C45E8C72AA18BC /* BFGalleryViewController.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = BFGalleryViewController.h; path = BFGallery/BFGalleryLib/BFGalleryViewController.h; sourceTree = "<group>"; };
-		AAA67044087D05F9CD26BB265511B1F5 /* Message.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Message.swift; path = Classes/Message.swift; sourceTree = "<group>"; };
-		ABD3260AEE1C5E263127D5ED0F1E77BF /* NSObject+SBJSON.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "NSObject+SBJSON.h"; path = "BFGallery/JSON/NSObject+SBJSON.h"; sourceTree = "<group>"; };
-		ABF0754B7FEB0DA7295BD967237FD303 /* Starscream.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = Starscream.modulemap; sourceTree = "<group>"; };
+		A3F54312A3B544EA9914C6BB35C953C2 /* Stack.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Stack.swift; path = Classes/Stack.swift; sourceTree = "<group>"; };
+		A52A105ADA320BAD31E246D920532AF1 /* ViewControllerActor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ViewControllerActor.swift; path = Classes/ViewControllerActor.swift; sourceTree = "<group>"; };
+		A6BFA535A7C153D572F75D844AB7169F /* BLEPeripheralConnection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BLEPeripheralConnection.swift; path = Classes/BLEPeripheralConnection.swift; sourceTree = "<group>"; };
+		A94950F82E535ABE32EF51BDBFFCFFE4 /* BLEPeripheral.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BLEPeripheral.swift; path = Classes/BLEPeripheral.swift; sourceTree = "<group>"; };
 		AD28E6C4D1C09E7287E2B4EC720CFB99 /* Pods-RemoteShutter-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-RemoteShutter-umbrella.h"; sourceTree = "<group>"; };
-		AFA511BB65814BF99FD78F62073F4E87 /* Theater.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Theater.debug.xcconfig; sourceTree = "<group>"; };
 		B2BF6E6135FBDCF633FA85505BF7B0C9 /* Pods-RemoteShutter-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Pods-RemoteShutter-dummy.m"; sourceTree = "<group>"; };
-		B35C88E5BAF020100C6470E45548E0B2 /* BFGallery-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "BFGallery-prefix.pch"; sourceTree = "<group>"; };
 		B5E3F37E85B6C07A9DE6508A87EACB0C /* Pods-RemoteShutter-frameworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "Pods-RemoteShutter-frameworks.sh"; sourceTree = "<group>"; };
-		B74DDD2DBDDB246C12667FC1C3842BAE /* Theater-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Theater-umbrella.h"; sourceTree = "<group>"; };
-		BF46D4214C60C3BCD546F2F60805D31A /* BLECentral.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BLECentral.swift; path = Classes/BLECentral.swift; sourceTree = "<group>"; };
-		C41CC090A9B083EBBB675B1F015A970F /* Actor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Actor.swift; path = Classes/Actor.swift; sourceTree = "<group>"; };
-		C685FAA8AC5BFB7EEA492C879FE58AD4 /* Theater-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Theater-Info.plist"; sourceTree = "<group>"; };
-		C8745317AECC3B21ED1DECF0EDE91AD9 /* NSString+SBJSON.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "NSString+SBJSON.h"; path = "BFGallery/JSON/NSString+SBJSON.h"; sourceTree = "<group>"; };
-		C8B42D74985C44E3B31876A3C8E2B5AA /* BFGAssetsManager.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = BFGAssetsManager.h; path = BFGallery/BFGalleryLib/BFGAssetsManager.h; sourceTree = "<group>"; };
-		CED17299D47CC6CBCF6178E6DE00DB57 /* BLEMessages.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BLEMessages.swift; path = Classes/BLEMessages.swift; sourceTree = "<group>"; };
-		D11AFA4A8FB4277AF00D86DD08D5EFB8 /* WebSocketClientWrapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WebSocketClientWrapper.swift; path = Classes/WebSocketClientWrapper.swift; sourceTree = "<group>"; };
-		D46C550CEBB44D4EDDE790C54810A438 /* Try.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Try.swift; path = Classes/Try.swift; sourceTree = "<group>"; };
-		D59967A7DE543957614F957092455E42 /* Starscream-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Starscream-prefix.pch"; sourceTree = "<group>"; };
-		D7B4A7D064D4AC414EA7D3FFF895D9BA /* SharedConstants.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = SharedConstants.h; path = BFGallery/BFGalleryLib/SharedConstants.h; sourceTree = "<group>"; };
-		DA43C2F29C48C6D463CAADB78E9203E1 /* Stack.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Stack.swift; path = Classes/Stack.swift; sourceTree = "<group>"; };
-		DAC4F1F58B6D5F69BF04F9C3FC03AEB2 /* BFLog.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = BFLog.h; path = BFGallery/BFGalleryLib/BFLog.h; sourceTree = "<group>"; };
+		CC0AF02B996B48468C0833E00D34AFB8 /* WebSocketClientWrapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WebSocketClientWrapper.swift; path = Classes/WebSocketClientWrapper.swift; sourceTree = "<group>"; };
+		CCA527D51554487A907699AEC313C7EC /* Starscream.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Starscream.debug.xcconfig; sourceTree = "<group>"; };
 		DBB895F616DD1C4C7C1587261E4EBE5D /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.2.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		E476ECF3DF67B9538795D00AD03ABDC4 /* BFGallery.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = BFGallery.release.xcconfig; sourceTree = "<group>"; };
-		E62F7FFDC53E056C603518E185F011DA /* BFGallery.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = BFGallery.framework; path = BFGallery.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		E664972DF11B8F27201DA0D04E47DE3A /* BFGalleryLib.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = BFGalleryLib.h; path = BFGallery/BFGalleryLib/BFGalleryLib.h; sourceTree = "<group>"; };
-		E6DD2F7299D3DDACCD6EDB988A36DD66 /* WebSocket.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WebSocket.swift; path = Sources/Starscream/WebSocket.swift; sourceTree = "<group>"; };
-		E86FD175C9B1C256EEDB73A98B4F31B3 /* SBJsonWriter.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = SBJsonWriter.m; path = BFGallery/JSON/SBJsonWriter.m; sourceTree = "<group>"; };
-		ED82A829AEBA8AA3D0AE311E79EA76FD /* SSLClientCertificate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLClientCertificate.swift; path = Sources/Starscream/SSLClientCertificate.swift; sourceTree = "<group>"; };
-		F38CB2F6ED6C0D3E9C1D5A98961D6EB7 /* BFGCell.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = BFGCell.m; path = BFGallery/BFGalleryLib/BFGCell.m; sourceTree = "<group>"; };
-		F9754B6B1C61ACB14E45B3B3AC896F44 /* SBJsonWriter.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = SBJsonWriter.h; path = BFGallery/JSON/SBJsonWriter.h; sourceTree = "<group>"; };
-		FB52CB16AE43166ADC012719E59C8EB2 /* Theater-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Theater-dummy.m"; sourceTree = "<group>"; };
+		DCCAAE21CA28A2C300F10BE88111ACF2 /* Starscream.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = Starscream.modulemap; sourceTree = "<group>"; };
+		DE262AA585868EC3D12FA3A932ABCD1B /* Starscream-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Starscream-Info.plist"; sourceTree = "<group>"; };
+		F902FBDF7DA047704136BFD03B6F8904 /* SSLClientCertificate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SSLClientCertificate.swift; path = Sources/Starscream/SSLClientCertificate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -201,14 +115,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				96D67F9A7630A34944B6EAAD47F785E3 /* Foundation.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		0C52531A7A1C2D872BA753C691FB8B0A /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				E0C2D2C057847E70520CFAA976B97FBA /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -221,32 +127,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		CCF3532C4CDE433428F27F09BF396AAE /* Frameworks */ = {
+		30A0811A1CF44779844FAFF1427ABF8C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				027F87D6E0A793CA3058FB11EF67B923 /* Foundation.framework in Frameworks */,
+				8F115FA8E3740ACE7E956BAEC3E7DE91 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0A7B44C57F652FC456B882328559970A /* Support Files */ = {
-			isa = PBXGroup;
-			children = (
-				456FDA0378DDE6C333688E831410A295 /* BFGallery.modulemap */,
-				0B3ED838C743BAB1E086A4B95526209E /* BFGallery-dummy.m */,
-				7072E79CE885DAF5E2AEBF48B04A4BA7 /* BFGallery-Info.plist */,
-				B35C88E5BAF020100C6470E45548E0B2 /* BFGallery-prefix.pch */,
-				2CB0B402838D3A6506B6224D474F53B0 /* BFGallery-umbrella.h */,
-				04F4103E0728333F96D67F13CABA05E4 /* BFGallery.debug.xcconfig */,
-				E476ECF3DF67B9538795D00AD03ABDC4 /* BFGallery.release.xcconfig */,
-			);
-			name = "Support Files";
-			path = "../Target Support Files/BFGallery";
-			sourceTree = "<group>";
-		};
 		19E173CB9C1E28418E66947BEFE5419E /* Targets Support Files */ = {
 			isa = PBXGroup;
 			children = (
@@ -255,105 +146,78 @@
 			name = "Targets Support Files";
 			sourceTree = "<group>";
 		};
-		4445A41A0B477E1AE68EFDA17AFB203C /* Starscream */ = {
+		41CFF3DF074C3DF43C341B063B25FB9D /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				6A22CA1102F2C4492EE74AA6D5C2DA91 /* Compression.swift */,
-				ED82A829AEBA8AA3D0AE311E79EA76FD /* SSLClientCertificate.swift */,
-				A2EF8ABC4B82D178A2702FEF7D57F7D2 /* SSLSecurity.swift */,
-				E6DD2F7299D3DDACCD6EDB988A36DD66 /* WebSocket.swift */,
-				C0C44D8FF6992147E4764684F3782C4F /* Support Files */,
+				A72231F858CFF56CE6A818E1EA72692C /* Starscream */,
+				66905E4EACCB9F80D08BCACEB7A145DE /* Theater */,
 			);
-			name = Starscream;
-			path = Starscream;
+			name = Pods;
 			sourceTree = "<group>";
 		};
-		7333AE34DE00CCFF677A2583BEB2669D /* Support Files */ = {
+		66905E4EACCB9F80D08BCACEB7A145DE /* Theater */ = {
 			isa = PBXGroup;
 			children = (
-				03FADC875BD8591E30575F92D9AC7B8F /* Theater.modulemap */,
-				FB52CB16AE43166ADC012719E59C8EB2 /* Theater-dummy.m */,
-				C685FAA8AC5BFB7EEA492C879FE58AD4 /* Theater-Info.plist */,
-				5DF7A749F1791D1559961F85932A61AF /* Theater-prefix.pch */,
-				B74DDD2DBDDB246C12667FC1C3842BAE /* Theater-umbrella.h */,
-				AFA511BB65814BF99FD78F62073F4E87 /* Theater.debug.xcconfig */,
-				373DCC2ADA1692A13D31D20292DACAAA /* Theater.release.xcconfig */,
-			);
-			name = "Support Files";
-			path = "../Target Support Files/Theater";
-			sourceTree = "<group>";
-		};
-		79BB87D5C0C9C18BB8700F4C436D0AEE /* json */ = {
-			isa = PBXGroup;
-			children = (
-				3DFC79548DB3598E1574C99ADAECA7FE /* JSON.h */,
-				ABD3260AEE1C5E263127D5ED0F1E77BF /* NSObject+SBJSON.h */,
-				2E3EFCD7DD94511542EA4FE0F13170DC /* NSObject+SBJSON.m */,
-				C8745317AECC3B21ED1DECF0EDE91AD9 /* NSString+SBJSON.h */,
-				9DD422573529813EE9FAD87EEB9E5645 /* NSString+SBJSON.m */,
-				14E130828FF30DC7086D74EAD3D75D29 /* SBJSON.h */,
-				1B6F6E309E74F04BD95CA3F5E27E0E51 /* SBJSON.m */,
-				5393A7BC8E20F1B046E4C65517E7561E /* SBJsonBase.h */,
-				84364374F678A9CAA3149CD49725D336 /* SBJsonBase.m */,
-				35F8AC21D361FAB473B757F31C046597 /* SBJsonParser.h */,
-				316B4DFB6B20BC163BDA3CACAF7077B7 /* SBJsonParser.m */,
-				F9754B6B1C61ACB14E45B3B3AC896F44 /* SBJsonWriter.h */,
-				E86FD175C9B1C256EEDB73A98B4F31B3 /* SBJsonWriter.m */,
-			);
-			name = json;
-			sourceTree = "<group>";
-		};
-		956C5290AF534986B534241B588E618E /* Theater */ = {
-			isa = PBXGroup;
-			children = (
-				C41CC090A9B083EBBB675B1F015A970F /* Actor.swift */,
-				927B5C67B2DBB91C49278FAC57720E7F /* ActorSystem.swift */,
-				BF46D4214C60C3BCD546F2F60805D31A /* BLECentral.swift */,
-				CED17299D47CC6CBCF6178E6DE00DB57 /* BLEMessages.swift */,
-				43C41824383F0410763E9012F59EAAD2 /* BLEPeripheral.swift */,
-				3E56F9CA0833CDFAE6AEC9826A897236 /* BLEPeripheralConnection.swift */,
-				AAA67044087D05F9CD26BB265511B1F5 /* Message.swift */,
-				7578E09B70DE5E089A0072782E914028 /* NSOperationQueue.swift */,
-				DA43C2F29C48C6D463CAADB78E9203E1 /* Stack.swift */,
-				D46C550CEBB44D4EDDE790C54810A438 /* Try.swift */,
-				79FB924E639201A51628CD87B6F7A445 /* ViewControllerActor.swift */,
-				D11AFA4A8FB4277AF00D86DD08D5EFB8 /* WebSocketClientWrapper.swift */,
-				9FB658790004A15AD0DABC6615ED4DA9 /* WithListeners.swift */,
-				7333AE34DE00CCFF677A2583BEB2669D /* Support Files */,
+				2C9E3E2E8B92C74F881DB678CD24B368 /* Actor.swift */,
+				110874115560FCDF7CC39BCB622018A8 /* ActorSystem.swift */,
+				82E8A3D7F9DDAED1C9148482E8F554C3 /* BLECentral.swift */,
+				0718BAB3B56FC03CFD23DCBCDE7A8E8C /* BLEMessages.swift */,
+				A94950F82E535ABE32EF51BDBFFCFFE4 /* BLEPeripheral.swift */,
+				A6BFA535A7C153D572F75D844AB7169F /* BLEPeripheralConnection.swift */,
+				1FAC26D852697641927A30C401C853D7 /* Message.swift */,
+				03BEB68D4E42E3011FD62F305ECAD51E /* NSOperationQueue.swift */,
+				A3F54312A3B544EA9914C6BB35C953C2 /* Stack.swift */,
+				6A80C8CA9E66A7236184FB608F924C13 /* Try.swift */,
+				A52A105ADA320BAD31E246D920532AF1 /* ViewControllerActor.swift */,
+				CC0AF02B996B48468C0833E00D34AFB8 /* WebSocketClientWrapper.swift */,
+				0A483349435E743C42D62C6DEEC1116B /* WithListeners.swift */,
+				769D54CA0BDD539416F52B9582A00A2F /* Support Files */,
 			);
 			name = Theater;
 			path = Theater;
 			sourceTree = "<group>";
 		};
-		AD31FFA1FD047341F81D58C8C953026C /* BFGallery */ = {
+		6B09101AFB72E405D1E6C4948776EA02 /* Support Files */ = {
 			isa = PBXGroup;
 			children = (
-				E664972DF11B8F27201DA0D04E47DE3A /* BFGalleryLib.h */,
-				A64E73AFB336598413C45E8C72AA18BC /* BFGalleryViewController.h */,
-				31836A6990D93AFCA2F5C19379366C58 /* BFGalleryViewController.m */,
-				C8B42D74985C44E3B31876A3C8E2B5AA /* BFGAssetsManager.h */,
-				6EEB55B649E5E9238A493A32D9B11DA4 /* BFGAssetsManager.m */,
-				8D78A7BFC25882F8A91A29CF84597806 /* BFGCell.h */,
-				F38CB2F6ED6C0D3E9C1D5A98961D6EB7 /* BFGCell.m */,
-				7661F46DFB3F694C0A846F36A8F19063 /* BFGFullSizeCell.h */,
-				3774535D902F48690CEC10C3D24D4EF0 /* BFGFullSizeCell.m */,
-				96EAEF02337F715A6C5D2939AF29B546 /* BFGFullSizeViewController.h */,
-				1A4C6ECCB8B7666FB9515F756C245DC4 /* BFGFullSizeViewController.m */,
-				402FBE5DF703B38FEB79F6DCA59083AA /* BFImage.h */,
-				60217BE5FAD6452AA905E9DBCD3108ED /* BFImage.m */,
-				DAC4F1F58B6D5F69BF04F9C3FC03AEB2 /* BFLog.h */,
-				5B68080AAE95983804A09EFB3D18C784 /* FlickrImage.h */,
-				1D409C6AE4E18B7C45EF0AA46FF52B94 /* FlickrImage.m */,
-				345BCB4290FBFF60B0D0ACF12E7F5570 /* FlickrImageParser.h */,
-				56E03DDAF18ACB56F6808500CF04FE97 /* FlickrImageParser.m */,
-				7EE9C814A61ACFEF4AB0DAC8864F6E32 /* FlickrRequest.h */,
-				14CE41D335E0443E3BB11A1F196886AA /* FlickrRequest.m */,
-				D7B4A7D064D4AC414EA7D3FFF895D9BA /* SharedConstants.h */,
-				79BB87D5C0C9C18BB8700F4C436D0AEE /* json */,
-				0A7B44C57F652FC456B882328559970A /* Support Files */,
+				DCCAAE21CA28A2C300F10BE88111ACF2 /* Starscream.modulemap */,
+				00D39AA8D854CD221FBD70E4FE6179D1 /* Starscream-dummy.m */,
+				DE262AA585868EC3D12FA3A932ABCD1B /* Starscream-Info.plist */,
+				2B1B8CA0D27076C676D9370D1FE374F8 /* Starscream-prefix.pch */,
+				486816A06E485DCB3A8B835DC58C7F79 /* Starscream-umbrella.h */,
+				CCA527D51554487A907699AEC313C7EC /* Starscream.debug.xcconfig */,
+				4DBEDE38CEC72CFE69E85BF39EAE4D1C /* Starscream.release.xcconfig */,
 			);
-			name = BFGallery;
-			path = BFGallery;
+			name = "Support Files";
+			path = "../Target Support Files/Starscream";
+			sourceTree = "<group>";
+		};
+		769D54CA0BDD539416F52B9582A00A2F /* Support Files */ = {
+			isa = PBXGroup;
+			children = (
+				10493B33F8A5695B43355D5E6C05CFEE /* Theater.modulemap */,
+				0D9E9D41A658894E5F96505634767986 /* Theater-dummy.m */,
+				957A3BC8DF68049D5AFE533A01D1F427 /* Theater-Info.plist */,
+				14458E8017A14DEFC7CB72E930636A80 /* Theater-prefix.pch */,
+				277A9D101860025512D75487A59CBAD8 /* Theater-umbrella.h */,
+				417AAE01DBA71F371479AA1FD71A9536 /* Theater.debug.xcconfig */,
+				2815F3A667114FD16BB6C4AA98192A6C /* Theater.release.xcconfig */,
+			);
+			name = "Support Files";
+			path = "../Target Support Files/Theater";
+			sourceTree = "<group>";
+		};
+		A72231F858CFF56CE6A818E1EA72692C /* Starscream */ = {
+			isa = PBXGroup;
+			children = (
+				0CCBA44277E804E652ADC42CF87C0014 /* Compression.swift */,
+				F902FBDF7DA047704136BFD03B6F8904 /* SSLClientCertificate.swift */,
+				867E1149D8C80B0398958F0C36F97F2D /* SSLSecurity.swift */,
+				10193EAA37BE3547423406834390D63F /* WebSocket.swift */,
+				6B09101AFB72E405D1E6C4948776EA02 /* Support Files */,
+			);
+			name = Starscream;
+			path = Starscream;
 			sourceTree = "<group>";
 		};
 		B14326F684F9257AB4569A5DF2C4FC6F /* Pods-RemoteShutter */ = {
@@ -373,19 +237,14 @@
 			path = "Target Support Files/Pods-RemoteShutter";
 			sourceTree = "<group>";
 		};
-		C0C44D8FF6992147E4764684F3782C4F /* Support Files */ = {
+		CA6F76547108DCB14255B10CCAD9CCE1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				ABF0754B7FEB0DA7295BD967237FD303 /* Starscream.modulemap */,
-				8DBBBCBE0383FBC7CE4D626773D188FB /* Starscream-dummy.m */,
-				1E527E728EF2A9CF8D2AB538D2CCFBF5 /* Starscream-Info.plist */,
-				D59967A7DE543957614F957092455E42 /* Starscream-prefix.pch */,
-				4A2F2459FAA32847BAD09A5E888C8B0D /* Starscream-umbrella.h */,
-				7A706EDA87874F83141BB2DD3BB6498D /* Starscream.debug.xcconfig */,
-				57B22684EA80DB2C7E80F42D411D1B96 /* Starscream.release.xcconfig */,
+				5D1D50E923BF95A1DCCDF637C50BD480 /* Pods_RemoteShutter.framework */,
+				891B2270823847ED23F2ECFC28F935EC /* Starscream.framework */,
+				87A83C50DE6B70FDA51B27682E5A0AD8 /* Theater.framework */,
 			);
-			name = "Support Files";
-			path = "../Target Support Files/Starscream";
+			name = Products;
 			sourceTree = "<group>";
 		};
 		CD272A03C5BA2A49B245F2735E358B7D /* Frameworks */ = {
@@ -402,31 +261,10 @@
 			children = (
 				9D940727FF8FB9C785EB98E56350EF41 /* Podfile */,
 				CD272A03C5BA2A49B245F2735E358B7D /* Frameworks */,
-				D79F27EEDCCE440602AF61796A6C47DB /* Pods */,
-				D6A0A6082AEF0C0A625F00D5EEA8F532 /* Products */,
+				41CFF3DF074C3DF43C341B063B25FB9D /* Pods */,
+				CA6F76547108DCB14255B10CCAD9CCE1 /* Products */,
 				19E173CB9C1E28418E66947BEFE5419E /* Targets Support Files */,
 			);
-			sourceTree = "<group>";
-		};
-		D6A0A6082AEF0C0A625F00D5EEA8F532 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				E62F7FFDC53E056C603518E185F011DA /* BFGallery.framework */,
-				5D1D50E923BF95A1DCCDF637C50BD480 /* Pods_RemoteShutter.framework */,
-				891B2270823847ED23F2ECFC28F935EC /* Starscream.framework */,
-				87A83C50DE6B70FDA51B27682E5A0AD8 /* Theater.framework */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		D79F27EEDCCE440602AF61796A6C47DB /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				AD31FFA1FD047341F81D58C8C953026C /* BFGallery */,
-				4445A41A0B477E1AE68EFDA17AFB203C /* Starscream */,
-				956C5290AF534986B534241B588E618E /* Theater */,
-			);
-			name = Pods;
 			sourceTree = "<group>";
 		};
 		DB2C61061EC170240411C29EF6DD7C9D /* iOS */ = {
@@ -448,41 +286,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		85BC18CF56954272A5FB033075882C7A /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				1B09791BE996F08C7B181369E2D524FF /* BFGallery-umbrella.h in Headers */,
-				4D8FEFBD564C40D5BD8C439A7074E827 /* BFGalleryLib.h in Headers */,
-				009A5B0922F5317C35BDF5C7E41B4988 /* BFGalleryViewController.h in Headers */,
-				8E234EC683D8C1B9EF1491A1E0DEC616 /* BFGAssetsManager.h in Headers */,
-				3F560F0A887A6E9F6BBFA020A3CC6E80 /* BFGCell.h in Headers */,
-				97B065088D7A2F5585E6BC0A224014BA /* BFGFullSizeCell.h in Headers */,
-				34937B96A73094510780DB1B338EFE89 /* BFGFullSizeViewController.h in Headers */,
-				3207077F4687E8B5FE97F077D9D89AED /* BFImage.h in Headers */,
-				F23C3168FA0E13E2440A214897756D31 /* BFLog.h in Headers */,
-				EDEF591E8A78E74ABDCB3238AECE2393 /* FlickrImage.h in Headers */,
-				5D02BE9D70A00DE2EAB68526F0368C34 /* FlickrImageParser.h in Headers */,
-				F3615D1246A3F94C9033C7E148471233 /* FlickrRequest.h in Headers */,
-				A5D1FFD746CA14C61548F099A312367A /* JSON.h in Headers */,
-				84F9A994BA92B34EED076FBB9119E71D /* NSObject+SBJSON.h in Headers */,
-				AE0D92ED90B26BC226193E326A90C3C0 /* NSString+SBJSON.h in Headers */,
-				068248F177148D5728E2F23064848BFE /* SBJSON.h in Headers */,
-				06D1B5BBBE47BC127FC390A2431E76E9 /* SBJsonBase.h in Headers */,
-				50F066A807D014A4597DDA391D589672 /* SBJsonParser.h in Headers */,
-				AB5A326C0F2F6E1EC570DA054863819C /* SBJsonWriter.h in Headers */,
-				6CED7BAA10F569381211F0DDA45AAE63 /* SharedConstants.h in Headers */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		8F31BEB205FCA2D85FF69E5322C9138E /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				936288956B64C14D0BC91424737C2B8A /* Pods-RemoteShutter-umbrella.h in Headers */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		ABD37AF9B9F78580D159AE761C456202 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -491,42 +294,31 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E8185EB4E14C4DAEF7DBC69456E46647 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD7DF7E798D7A4DBFEFAF44C9E5E1881 /* Pods-RemoteShutter-umbrella.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		40E95035640575A0EAB6FD66B8634B35 /* BFGallery */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = BAB5E73F02D35BA1EB10AC9227B41358 /* Build configuration list for PBXNativeTarget "BFGallery" */;
-			buildPhases = (
-				85BC18CF56954272A5FB033075882C7A /* Headers */,
-				F2E2ACDCE20CCC11811854F9AB0871C3 /* Sources */,
-				0C52531A7A1C2D872BA753C691FB8B0A /* Frameworks */,
-				CF7D04D9615DD1463512F0AC1BF3EA02 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = BFGallery;
-			productName = BFGallery;
-			productReference = E62F7FFDC53E056C603518E185F011DA /* BFGallery.framework */;
-			productType = "com.apple.product-type.framework";
-		};
 		49600CDCCC4E83C6CBB9BBDB533A9E9D /* Pods-RemoteShutter */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = DB390B2E71EA3A029165F89BCE002D43 /* Build configuration list for PBXNativeTarget "Pods-RemoteShutter" */;
+			buildConfigurationList = C692160B0EBE66295C0BE35576AA59BA /* Build configuration list for PBXNativeTarget "Pods-RemoteShutter" */;
 			buildPhases = (
-				8F31BEB205FCA2D85FF69E5322C9138E /* Headers */,
-				F9A1AA5CFB029004ADF6221CDFC2A3D8 /* Sources */,
-				CCF3532C4CDE433428F27F09BF396AAE /* Frameworks */,
-				1DB4743DF8AFC9B8A9557BAC3B729C5A /* Resources */,
+				E8185EB4E14C4DAEF7DBC69456E46647 /* Headers */,
+				767BF06E2A972CF8C7FF7ED745F3594A /* Sources */,
+				30A0811A1CF44779844FAFF1427ABF8C /* Frameworks */,
+				423BFD43875800FA77BBAFB65D140C1E /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				389298677DFD0F9E45F6EFA331D151BF /* PBXTargetDependency */,
-				1A440C48308F67C7A028E4D6D524F540 /* PBXTargetDependency */,
-				FF596B7984A059EBFE686D3FB5BE1710 /* PBXTargetDependency */,
+				448330A818A0CF3EF106F03D2C87E88D /* PBXTargetDependency */,
+				7D742607A507957A6CD247AACAEBA032 /* PBXTargetDependency */,
 			);
 			name = "Pods-RemoteShutter";
 			productName = "Pods-RemoteShutter";
@@ -563,7 +355,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				CFC2651255A2510E5E85D06D1E8F08A6 /* PBXTargetDependency */,
+				3F22DC0D3699B8F1C2E4A6E9F8D94AD7 /* PBXTargetDependency */,
 			);
 			name = Theater;
 			productName = Theater;
@@ -588,11 +380,10 @@
 				Base,
 			);
 			mainGroup = CF1408CF629C7361332E53B88F7BD30C;
-			productRefGroup = D6A0A6082AEF0C0A625F00D5EEA8F532 /* Products */;
+			productRefGroup = CA6F76547108DCB14255B10CCAD9CCE1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				40E95035640575A0EAB6FD66B8634B35 /* BFGallery */,
 				49600CDCCC4E83C6CBB9BBDB533A9E9D /* Pods-RemoteShutter */,
 				9B78EE4AF6AE03E79D88886319853FF7 /* Starscream */,
 				CB91C4CE935848A3D0063E3102193038 /* Theater */,
@@ -601,7 +392,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		1DB4743DF8AFC9B8A9557BAC3B729C5A /* Resources */ = {
+		423BFD43875800FA77BBAFB65D140C1E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -609,13 +400,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		BE174469BA3F43D1B5CE60520CA93EB3 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CF7D04D9615DD1463512F0AC1BF3EA02 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -665,70 +449,41 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		F2E2ACDCE20CCC11811854F9AB0871C3 /* Sources */ = {
+		767BF06E2A972CF8C7FF7ED745F3594A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				91772AD1FAF4CB9C028A68BA5EDAC730 /* BFGallery-dummy.m in Sources */,
-				AB16CAD065A7B221DBF1D68B0ED0DDA3 /* BFGalleryViewController.m in Sources */,
-				8B307A8DA1D4BBC9C1490B2C0F6CE2EF /* BFGAssetsManager.m in Sources */,
-				05E78FAE92D258B44DC39D394FA0C29F /* BFGCell.m in Sources */,
-				FBCD997D0EA2737B11165AC1BCCD5D5B /* BFGFullSizeCell.m in Sources */,
-				CE92A892AD96210855720697FFA8381E /* BFGFullSizeViewController.m in Sources */,
-				4A8408AAA1201724A21011E0A2717AA3 /* BFImage.m in Sources */,
-				B2E25B34481E8F42C81B83A98AC7BC9D /* FlickrImage.m in Sources */,
-				A863C7A6E6A03D511E2059F16A0F7663 /* FlickrImageParser.m in Sources */,
-				3E45CDB3522BDAD2DA97FD0696FB0C5E /* FlickrRequest.m in Sources */,
-				54B1B4DA48EC00104AD4E605274A9B14 /* NSObject+SBJSON.m in Sources */,
-				4FAF8840B624110EE7FFA1680DC402B5 /* NSString+SBJSON.m in Sources */,
-				950258458BC65C2383A08ECFA02E7A17 /* SBJSON.m in Sources */,
-				B60DC594BD3145CF4AFE63E467644551 /* SBJsonBase.m in Sources */,
-				72944C265FA0BA332B7AF45FBAFA38F4 /* SBJsonParser.m in Sources */,
-				CB68C009C23C172088C270D12EF9DD66 /* SBJsonWriter.m in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		F9A1AA5CFB029004ADF6221CDFC2A3D8 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				D0A696EC6EC6B915D55CC25484F2D08E /* Pods-RemoteShutter-dummy.m in Sources */,
+				74B295921FC42A9056B69BC3F0E1793F /* Pods-RemoteShutter-dummy.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		1A440C48308F67C7A028E4D6D524F540 /* PBXTargetDependency */ = {
+		3F22DC0D3699B8F1C2E4A6E9F8D94AD7 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Starscream;
 			target = 9B78EE4AF6AE03E79D88886319853FF7 /* Starscream */;
-			targetProxy = E67D65C8E6ECC9A6483C2F978DD2C0C7 /* PBXContainerItemProxy */;
+			targetProxy = 424EE7C375F60657406A5FD439D40CB8 /* PBXContainerItemProxy */;
 		};
-		389298677DFD0F9E45F6EFA331D151BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = BFGallery;
-			target = 40E95035640575A0EAB6FD66B8634B35 /* BFGallery */;
-			targetProxy = 0781767A0B539F1D11D92DD171FC3A9C /* PBXContainerItemProxy */;
-		};
-		CFC2651255A2510E5E85D06D1E8F08A6 /* PBXTargetDependency */ = {
+		448330A818A0CF3EF106F03D2C87E88D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Starscream;
 			target = 9B78EE4AF6AE03E79D88886319853FF7 /* Starscream */;
-			targetProxy = 8FB7D4842BA38FEB1C1B998BCBFCCE5B /* PBXContainerItemProxy */;
+			targetProxy = E63C2010311EECC07ACA9FFA45014947 /* PBXContainerItemProxy */;
 		};
-		FF596B7984A059EBFE686D3FB5BE1710 /* PBXTargetDependency */ = {
+		7D742607A507957A6CD247AACAEBA032 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Theater;
 			target = CB91C4CE935848A3D0063E3102193038 /* Theater */;
-			targetProxy = 3E65EC84730F7281C1A2B598A8B43992 /* PBXContainerItemProxy */;
+			targetProxy = C05DF30449F6CB729F4B305CEE697307 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		19E77238B83BE52822D55FA4F3ABBA99 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 373DCC2ADA1692A13D31D20292DACAAA /* Theater.release.xcconfig */;
+			baseConfigurationReference = 2815F3A667114FD16BB6C4AA98192A6C /* Theater.release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
@@ -758,75 +513,9 @@
 			};
 			name = Release;
 		};
-		2CB05820E8F28890CF8FACCA9578A552 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = E476ECF3DF67B9538795D00AD03ABDC4 /* BFGallery.release.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				GCC_PREFIX_HEADER = "Target Support Files/BFGallery/BFGallery-prefix.pch";
-				INFOPLIST_FILE = "Target Support Files/BFGallery/BFGallery-Info.plist";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				MODULEMAP_FILE = "Target Support Files/BFGallery/BFGallery.modulemap";
-				PRODUCT_MODULE_NAME = BFGallery;
-				PRODUCT_NAME = BFGallery;
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Release;
-		};
-		344498130D433E89B1FB50364C99C6CE /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4F2A9454FE49FFE1DEC337E091F78895 /* Pods-RemoteShutter.release.xcconfig */;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
-				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				INFOPLIST_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-Info.plist";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				MACH_O_TYPE = staticlib;
-				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.modulemap";
-				OTHER_LDFLAGS = "";
-				OTHER_LIBTOOLFLAGS = "";
-				PODS_ROOT = "$(SRCROOT)";
-				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.${PRODUCT_NAME:rfc1034identifier}";
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Release;
-		};
 		3E06D9461032CC4CE41B933D8A6B717A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 57B22684EA80DB2C7E80F42D411D1B96 /* Starscream.release.xcconfig */;
+			baseConfigurationReference = 4DBEDE38CEC72CFE69E85BF39EAE4D1C /* Starscream.release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
@@ -918,7 +607,7 @@
 		};
 		511CE8D2C675AEB3E4FB2B1CA5A91C09 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7A706EDA87874F83141BB2DD3BB6498D /* Starscream.debug.xcconfig */;
+			baseConfigurationReference = CCA527D51554487A907699AEC313C7EC /* Starscream.debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
@@ -941,6 +630,39 @@
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
 				SWIFT_VERSION = 4.2;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		55E5833D9B87A3B736C835BB956E24F9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 43EF65C51BE1A9F3E7304DB46C4E9EAD /* Pods-RemoteShutter.debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				MACH_O_TYPE = staticlib;
+				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.modulemap";
+				OTHER_LDFLAGS = "";
+				OTHER_LIBTOOLFLAGS = "";
+				PODS_ROOT = "$(SRCROOT)";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.${PRODUCT_NAME:rfc1034identifier}";
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
@@ -1013,7 +735,7 @@
 		};
 		C5FF212AF586D2DCD5CD50CC075FC914 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = AFA511BB65814BF99FD78F62073F4E87 /* Theater.debug.xcconfig */;
+			baseConfigurationReference = 417AAE01DBA71F371479AA1FD71A9536 /* Theater.debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
@@ -1042,40 +764,9 @@
 			};
 			name = Debug;
 		};
-		CE99D56CA8C96CE5376A8A858A0798D0 /* Debug */ = {
+		DCC4D7E9B441690DCF04D642F0126687 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 04F4103E0728333F96D67F13CABA05E4 /* BFGallery.debug.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				GCC_PREFIX_HEADER = "Target Support Files/BFGallery/BFGallery-prefix.pch";
-				INFOPLIST_FILE = "Target Support Files/BFGallery/BFGallery-Info.plist";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				MODULEMAP_FILE = "Target Support Files/BFGallery/BFGallery.modulemap";
-				PRODUCT_MODULE_NAME = BFGallery;
-				PRODUCT_NAME = BFGallery;
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Debug;
-		};
-		D5C0104DD58822C2C1DFE2ED577EF015 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 43EF65C51BE1A9F3E7304DB46C4E9EAD /* Pods-RemoteShutter.debug.xcconfig */;
+			baseConfigurationReference = 4F2A9454FE49FFE1DEC337E091F78895 /* Pods-RemoteShutter.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
 				CODE_SIGN_IDENTITY = "";
@@ -1101,10 +792,11 @@
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
-			name = Debug;
+			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
@@ -1118,11 +810,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BAB5E73F02D35BA1EB10AC9227B41358 /* Build configuration list for PBXNativeTarget "BFGallery" */ = {
+		C692160B0EBE66295C0BE35576AA59BA /* Build configuration list for PBXNativeTarget "Pods-RemoteShutter" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				CE99D56CA8C96CE5376A8A858A0798D0 /* Debug */,
-				2CB05820E8F28890CF8FACCA9578A552 /* Release */,
+				55E5833D9B87A3B736C835BB956E24F9 /* Debug */,
+				DCC4D7E9B441690DCF04D642F0126687 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1132,15 +824,6 @@
 			buildConfigurations = (
 				C5FF212AF586D2DCD5CD50CC075FC914 /* Debug */,
 				19E77238B83BE52822D55FA4F3ABBA99 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		DB390B2E71EA3A029165F89BCE002D43 /* Build configuration list for PBXNativeTarget "Pods-RemoteShutter" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				D5C0104DD58822C2C1DFE2ED577EF015 /* Debug */,
-				344498130D433E89B1FB50364C99C6CE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

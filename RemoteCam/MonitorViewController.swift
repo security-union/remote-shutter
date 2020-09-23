@@ -199,7 +199,7 @@ public class MonitorViewController : iAdViewController {
         self.sliderContainer.layer.cornerRadius = 30.0
         self.sliderContainer.clipsToBounds=true
         self.timerSlider.layer.anchorPoint = CGPoint.init(x: 1.0, y: 1.0)
-        self.timerSlider.transform = CGAffineTransform(rotationAngle: CGFloat(-Double.pi))
+        self.timerSlider.transform = CGAffineTransform(rotationAngle: CGFloat(-Double.pi/2))
         self.timerSlider.minimumTrackTintColor = sliderColor1
         self.timerSlider.maximumTrackTintColor = sliderColor2
         self.timerSlider.thumbTintColor = sliderColor1

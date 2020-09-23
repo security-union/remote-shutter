@@ -372,7 +372,7 @@
                                         <nil key="highlightedColor"/>
                                     </label>
                                     <slider opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="5" minValue="0.0" maxValue="20" translatesAutoresizingMaskIntoConstraints="NO" id="rfi-eK-Po1">
-                                        <rect key="frame" x="-6" y="16" width="94" height="23"/>
+                                        <rect key="frame" x="-7" y="16" width="94" height="23"/>
                                         <constraints>
                                             <constraint firstAttribute="width" constant="90" id="YP5-Z4-PXW"/>
                                             <constraint firstAttribute="height" constant="22" id="jtN-Fm-hut"/>
@@ -386,7 +386,7 @@
                                 <constraints>
                                     <constraint firstAttribute="height" constant="160" id="36d-AI-JNX"/>
                                     <constraint firstItem="yef-zE-Sz5" firstAttribute="leading" secondItem="Mhh-yx-IbA" secondAttribute="leading" id="9eC-11-ePh"/>
-                                    <constraint firstItem="rfi-eK-Po1" firstAttribute="leading" secondItem="Mhh-yx-IbA" secondAttribute="leading" constant="-4" id="Pbf-49-Ib2"/>
+                                    <constraint firstItem="rfi-eK-Po1" firstAttribute="leading" secondItem="Mhh-yx-IbA" secondAttribute="leading" constant="-5" id="Pbf-49-Ib2"/>
                                     <constraint firstItem="2Oq-fu-0Ze" firstAttribute="centerX" secondItem="yef-zE-Sz5" secondAttribute="centerX" id="X0R-xt-7yK"/>
                                     <constraint firstItem="yef-zE-Sz5" firstAttribute="top" secondItem="Mhh-yx-IbA" secondAttribute="top" constant="1" id="ZsB-Vv-U5h"/>
                                     <constraint firstItem="rfi-eK-Po1" firstAttribute="top" secondItem="Mhh-yx-IbA" secondAttribute="top" constant="16" id="m6v-j7-5oE"/>
