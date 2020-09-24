@@ -2,16 +2,65 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="84685322-ebb0-42d2-99bf-f98030fa002c" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Acknowledgments.html" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Acknowledgments.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/AcknowledgmentsViewController.h" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/AcknowledgmentsViewController.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/AcknowledgmentsViewController.m" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/AcknowledgmentsViewController.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/AppDelegate.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/AppDelegate.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Assets.xcassets/AppIcon.appiconset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Assets.xcassets/AppIcon.appiconset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Assets.xcassets/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Assets.xcassets/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Assets.xcassets/LaunchImage.launchimage/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Assets.xcassets/LaunchImage.launchimage/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/BaseViewController.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/BaseViewController.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/CMConfigurationsViewController.h" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/CMConfigurationsViewController.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/CMConfigurationsViewController.mm" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/CMConfigurationsViewController.mm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/CPSoundManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/CPSoundManager.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/CPSoundManager.m" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/CPSoundManager.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/CamStates.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/CamStates.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/CameraAccess.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/CameraAccess.swift" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/RemoteCam/CameraViewController.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/CameraViewController.swift" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RemoteCam/Multipeer.storyboard" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Multipeer.storyboard" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RemoteShutter.xcodeproj/project.pbxproj" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteShutter.xcodeproj/project.pbxproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/EnumExtensions.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/EnumExtensions.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/InAppPurchasesManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/InAppPurchasesManager.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/InAppPurchasesManager.m" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/InAppPurchasesManager.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Info.plist" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Info.plist" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/DevicePin.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/DevicePin.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/RemoteShutterSex.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/RemoteShutterSex.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/RoundedCircle.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/RoundedCircle.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/Settings.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/Settings.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/SwitchCamera.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/SwitchCamera.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/blackfireapps.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/blackfireapps.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/blueBar.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/blueBar.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/camera.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/camera.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/cameraRoleBtn.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/cameraRoleBtn.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/clapmera.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/clapmera.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/deviceThumbnail.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/deviceThumbnail.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/galleryIcon.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/galleryIcon.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/lock.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/lock.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/navigationBarBack.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/navigationBarBack.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/navigationBarButton.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/navigationBarButton.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/remote.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/remote.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/remoteControlsiPn.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/remoteControlsiPn.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/theaterLogo.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/theaterLogo.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Media.xcassets/timerLoFI.imageset/Contents.json" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Media.xcassets/timerLoFI.imageset/Contents.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/MonitorStates.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/MonitorStates.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/MonitorViewController.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/MonitorViewController.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/MultipeerMessages.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/MultipeerMessages.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/OrientationUtils.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/OrientationUtils.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Photos.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Photos.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/PurchasesRestorer.h" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/PurchasesRestorer.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/PurchasesRestorer.m" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/PurchasesRestorer.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/RCTimer.h" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/RCTimer.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/RCTimer.m" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/RCTimer.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/RolePickerController.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/RolePickerController.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/Session.swift" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/Session.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/UIImage+ImageProcessing.h" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/UIImage+ImageProcessing.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/RemoteCam/UIImage+ImageProcessing.m" beforeDir="false" afterPath="$PROJECT_DIR$/RemoteCam/UIImage+ImageProcessing.m" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="iphoneos_00008020-001D2D163646002E" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="iphoneos_1f31912e5a6a801da281b306de22ffd796ac4939" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
@@ -23,6 +72,7 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="nodejs_package_manager_path" value="npm" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -33,6 +83,7 @@
       <option name="presentableId" value="Default" />
       <updated>1599797820413</updated>
       <workItem from="1599797822490" duration="1012000" />
+      <workItem from="1600913349925" duration="219000" />
     </task>
     <servers />
   </component>

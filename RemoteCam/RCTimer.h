@@ -9,7 +9,9 @@
 #import <Foundation/Foundation.h>
 
 @class RCTimer;
+
 typedef void (^RCTimerTick)(RCTimer *timer);
+
 typedef void (^RCTimerCompletion)(RCTimer *timer);
 
 /**
@@ -18,8 +20,10 @@ Neat timer that uses blocks instead of the delegate pattern
 
 @interface RCTimer : NSObject
 
--(void)cancel;
--(void)startTimerWithDuration:(NSInteger)duration withTickHandler:(RCTimerTick)tick cancelHandler:(RCTimerTick)cancelHandler andCompletionHandler:(RCTimerCompletion)completionHandler;
--(NSInteger)timeRemaining;
+- (void)cancel;
+
+- (void)startTimerWithDuration:(NSInteger)duration withTickHandler:(RCTimerTick)tick cancelHandler:(RCTimerTick)cancelHandler andCompletionHandler:(RCTimerCompletion)completionHandler;
+
+- (NSInteger)timeRemaining;
 
 @end
