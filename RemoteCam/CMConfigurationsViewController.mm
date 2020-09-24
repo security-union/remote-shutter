@@ -1,7 +1,8 @@
 #import "CMConfigurationsViewController.h"
-#import <QuartzCore/QuartzCore.h>
 #import "InAppPurchasesManager.h"
+
 #define kiAdsFeatureInstalled NSLocalizedString(@"iAds Removed.",nil);
+
 #import "AcknowledgmentsViewController.h"
 
 @interface CMConfigurationsViewController ()
@@ -13,37 +14,37 @@
 #pragma mark -
 #pragma mark View Lifecycle
 
-- (void)viewDidLoad{
+- (void)viewDidLoad {
     [super viewDidLoad];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadData:)  name:@"AppDidBecomeActive" object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadData:) name:@"AppDidBecomeActive" object:nil];
     [self setTitle:NSLocalizedString(@"Settings", nil)];
     [[[self navigationController] navigationBar] setHidden:FALSE];
-    self.tableViewCells=@[@[ self.disableiAds, self.restorePurchases], @[self.acknowledgments, self.versionCell, self.blackFireApps, self.theaterFramework]];
+    self.tableViewCells = @[@[self.disableiAds, self.restorePurchases], @[self.acknowledgments, self.versionCell, self.blackFireApps, self.theaterFramework]];
 }
 
--(void)viewWillAppear:(BOOL)animated{
+- (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [self.navigationController setNavigationBarHidden:FALSE];
     [[self tableView] reloadData];
 }
 
--(void)viewWillDisappear:(BOOL)animated{
+- (void)viewWillDisappear:(BOOL)animated {
     [super viewWillDisappear:animated];
     if ([self isBeingDismissed] || [self isMovingFromParentViewController])
         [self.navigationController setNavigationBarHidden:TRUE];
 }
 
-- (void)viewDidUnload{
+- (void)viewDidUnload {
     [self setTableView:nil];
     [super viewDidUnload];
 }
 
--(void)reloadData:(NSNotification *)notif{
+- (void)reloadData:(NSNotification *)notif {
     [self.tableView reloadData];
 }
 
--(void)showAcknowledgments{
-    AcknowledgmentsViewController * acknowledgments= [AcknowledgmentsViewController new];
+- (void)showAcknowledgments {
+    AcknowledgmentsViewController *acknowledgments = [AcknowledgmentsViewController new];
     [acknowledgments setURL:[[NSBundle mainBundle] URLForResource:@"Acknowledgments.html" withExtension:nil]];
     [acknowledgments setTitle:NSLocalizedString(@"Acknowledgments", nil)];
     [self.navigationController pushViewController:acknowledgments animated:TRUE];
@@ -52,60 +53,60 @@
 #pragma mark -
 #pragma mark UITableView Stuff
 
--(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     return self.tableViewCells[indexPath.section][indexPath.row];
 }
 
--(NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section{
-    NSString * title=nil;
-    if (section == 0){
-            title= NSLocalizedString(@"Upgrades", nil);
-    }else if(section == 1){
-        title= nil;
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    NSString *title = nil;
+    if (section == 0) {
+        title = NSLocalizedString(@"Upgrades", nil);
+    } else if (section == 1) {
+        title = nil;
     }
     return title;
 }
 
--(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
     return [self.tableViewCells count];
 }
 
--(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     return [self.tableViewCells[section] count];
 }
 
--(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
-    UITableViewCell * cell = self.tableViewCells[indexPath.section][indexPath.row];
-    return  [cell frame].size.height;
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = self.tableViewCells[indexPath.section][indexPath.row];
+    return [cell frame].size.height;
 }
 
--(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:TRUE];
-    UITableViewCell * cell= [tableView cellForRowAtIndexPath:indexPath];
-    InAppPurchasesManager * manager= [InAppPurchasesManager sharedManager];
-    if ([cell isEqual:self.disableiAds]){
-        if([manager didUserBuyRemoveiAdsFeature])
+    UITableViewCell *cell = [tableView cellForRowAtIndexPath:indexPath];
+    InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+    if ([cell isEqual:self.disableiAds]) {
+        if ([manager didUserBuyRemoveiAdsFeature])
             return;
-        if([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]){
+        if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
             [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
-                if(!error) [self fillRestoreiAdsRow];
+                if (!error) [self fillRestoreiAdsRow];
             }];
-        }else{
+        } else {
             [manager userWantsToBuyRemoveiAdsFeature:^(InAppPurchasesManager *purchasesManager, NSError *error) {
-                if(error){
-                    UIAlertController * alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"InApp Purchases:",nil) message:[error localizedDescription] preferredStyle: UIAlertControllerStyleAlert];
-                    [alert addAction:[UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                if (error) {
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"InApp Purchases:", nil) message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction *_Nonnull action) {
                         [alert dismissViewControllerAnimated:TRUE completion:NULL];
                     }]];
-                    
+
                     [self presentViewController:alert animated:TRUE completion:NULL];
-                }else{
+                } else {
                     [self fillRestoreiAdsRow];
                     [[NSNotificationCenter defaultCenter] postNotificationName:ShouldHideiAds object:nil];
                 }
             }];
         }
-    }else if([cell isEqual:self.restorePurchases]){
+    } else if ([cell isEqual:self.restorePurchases]) {
         [self restoreThePurchases];
     } else if ([cell isEqual:self.acknowledgments]) {
         [self showAcknowledgments];
@@ -116,14 +117,14 @@
     }
 }
 
--(void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath{
-    if([cell isEqual:self.disableiAds]){
-        InAppPurchasesManager * manager= [InAppPurchasesManager sharedManager];
-        NSArray * products= [manager products];
-        if(indexPath.row==0){
-            if([products count]>0){
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+    if ([cell isEqual:self.disableiAds]) {
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        if (indexPath.row == 0) {
+            if ([products count] > 0) {
                 [self fillRestoreiAdsRow];
-            }else{
+            } else {
                 [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
                     if (!error) {
                         [self fillRestoreiAdsRow];
@@ -131,25 +132,25 @@
                 }];
             }
         }
-    }else if([cell isEqual:self.versionCell]){
-        NSDictionary * infoDictionary= [[NSBundle mainBundle] infoDictionary];
-        NSString * bundle=[infoDictionary objectForKey:@"CFBundleVersion"];
-        NSString * shortVersion=[infoDictionary objectForKey:@"CFBundleShortVersionString"];        
-        self.versionCell.detailTextLabel.text=[NSString stringWithFormat:@"%@ (%@) ", shortVersion,  bundle];
+    } else if ([cell isEqual:self.versionCell]) {
+        NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
+        NSString *bundle = [infoDictionary objectForKey:@"CFBundleVersion"];
+        NSString *shortVersion = [infoDictionary objectForKey:@"CFBundleShortVersionString"];
+        self.versionCell.detailTextLabel.text = [NSString stringWithFormat:@"%@ (%@) ", shortVersion, bundle];
     }
 }
 
--(void)fillRestoreiAdsRow{
-    InAppPurchasesManager * manager= [InAppPurchasesManager sharedManager];
-    NSArray * products= [manager products];
-    if([manager didUserBuyRemoveiAdsFeature]) {
-        self.disableiAds.textLabel.text=kiAdsFeatureInstalled;
-        self.disableiAds.detailTextLabel.text=@"";
+- (void)fillRestoreiAdsRow {
+    InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+    NSArray *products = [manager products];
+    if ([manager didUserBuyRemoveiAdsFeature]) {
+        self.disableiAds.textLabel.text = kiAdsFeatureInstalled;
+        self.disableiAds.detailTextLabel.text = @"";
         [self.disableiAds setNeedsDisplay];
-    }else if([products count]>0){
-        SKProduct * disableiAdsProduct=[manager productWithIdentifier:RemoveiAdsFeatureIdentifier];
+    } else if ([products count] > 0) {
+        SKProduct *disableiAdsProduct = [manager productWithIdentifier:RemoveiAdsFeatureIdentifier];
         [[self.disableiAds textLabel] setText:[disableiAdsProduct localizedTitle]];
-        NSString * localizedPrice=[[[InAppPurchasesManager sharedManager] currencyFormatter] stringFromNumber:disableiAdsProduct.price];
+        NSString *localizedPrice = [[[InAppPurchasesManager sharedManager] currencyFormatter] stringFromNumber:disableiAdsProduct.price];
         [[self.disableiAds detailTextLabel] setText:localizedPrice];
         [self.disableiAds setNeedsLayout];
     }
@@ -158,33 +159,33 @@
 #pragma mark -
 #pragma mark Local Storage.
 
-+(BOOL)firstRun{
++ (BOOL)firstRun {
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    NSString * version= [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
-    NSString * firstRunFlag= [NSString stringWithFormat:@"%@_firstRun", version];
-    if([userDefaults objectForKey:firstRunFlag]){    
+    NSString *version = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
+    NSString *firstRunFlag = [NSString stringWithFormat:@"%@_firstRun", version];
+    if ([userDefaults objectForKey:firstRunFlag]) {
         return [userDefaults boolForKey:firstRunFlag];
     }
     return TRUE;
 }
 
-+(void)setFirstRunFlag:(BOOL)flag{
++ (void)setFirstRunFlag:(BOOL)flag {
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    NSString * version= [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
-    NSString * firstRunFlag= [NSString stringWithFormat:@"%@_firstRun", version];
+    NSString *version = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
+    NSString *firstRunFlag = [NSString stringWithFormat:@"%@_firstRun", version];
     [userDefaults setBool:flag forKey:firstRunFlag];
     [userDefaults synchronize];
 }
 
--(void)restoreThePurchases{
+- (void)restoreThePurchases {
     [[InAppPurchasesManager sharedManager] restorePurchasesWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
-            if (!error) {
-                [self fillRestoreiAdsRow];
-            }
+        if (!error) {
+            [self fillRestoreiAdsRow];
+        }
     }];
 }
-    
-- (void)dealloc{
+
+- (void)dealloc {
 
 }
 

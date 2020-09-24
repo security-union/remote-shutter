@@ -10,6 +10,6 @@
 
 @interface AcknowledgmentsViewController : UIViewController
 
-@property (weak, nonatomic) IBOutlet UIWebView *webView;
-@property( strong, nonatomic) NSURL * URL;
+@property(weak, nonatomic) IBOutlet UIWebView *webView;
+@property(strong, nonatomic) NSURL *URL;
 @end

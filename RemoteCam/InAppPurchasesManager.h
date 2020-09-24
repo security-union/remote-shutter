@@ -17,22 +17,31 @@
 #import "PurchasesRestorer.h"
 
 @class InAppPurchasesManager;
-typedef void(^InAppPurchasesManagerHandler)(InAppPurchasesManager * purchasesManager, NSError *error);
 
-@interface InAppPurchasesManager : NSObject <SKProductsRequestDelegate, SKPaymentTransactionObserver, PurchasesRestorerDelegate>{
-        NSArray * products;
-    }
-    @property(nonatomic, strong)         NSArray * products;
-    @property(nonatomic, copy) InAppPurchasesManagerHandler productRefreshHandler;
-    @property(nonatomic, copy) InAppPurchasesManagerHandler buyIAdsHandler;
-    @property(nonatomic, strong) PurchasesRestorer * purchasesRestorer;
-    +(InAppPurchasesManager *)sharedManager;
-    -(void)userWantsToBuyRemoveiAdsFeature:(InAppPurchasesManagerHandler)handler;
-    -(SKProduct *)productWithIdentifier:(NSString *)identifier;
-    -(BOOL)didUserBuyRemoveiAdsFeature;
-    -(void)reloadProductsWithHandler:(InAppPurchasesManagerHandler)handler;
-    -(NSNumberFormatter *)currencyFormatter;
-    -(void)restorePurchasesWithHandler:(InAppPurchasesManagerHandler)handler;
-    -(BOOL)isInProgress;
+typedef void(^InAppPurchasesManagerHandler)(InAppPurchasesManager *purchasesManager, NSError *error);
+
+@interface InAppPurchasesManager : NSObject <SKProductsRequestDelegate, SKPaymentTransactionObserver, PurchasesRestorerDelegate> {
+    NSArray *products;
+}
+@property(nonatomic, strong) NSArray *products;
+@property(nonatomic, copy) InAppPurchasesManagerHandler productRefreshHandler;
+@property(nonatomic, copy) InAppPurchasesManagerHandler buyIAdsHandler;
+@property(nonatomic, strong) PurchasesRestorer *purchasesRestorer;
+
++ (InAppPurchasesManager *)sharedManager;
+
+- (void)userWantsToBuyRemoveiAdsFeature:(InAppPurchasesManagerHandler)handler;
+
+- (SKProduct *)productWithIdentifier:(NSString *)identifier;
+
+- (BOOL)didUserBuyRemoveiAdsFeature;
+
+- (void)reloadProductsWithHandler:(InAppPurchasesManagerHandler)handler;
+
+- (NSNumberFormatter *)currencyFormatter;
+
+- (void)restorePurchasesWithHandler:(InAppPurchasesManagerHandler)handler;
+
+- (BOOL)isInProgress;
 
 @end

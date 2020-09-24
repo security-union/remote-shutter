@@ -11,20 +11,20 @@
 #include <AudioToolbox/AudioToolbox.h>
 
 typedef enum CPSoundManagerAudioType {
-    CPSoundManagerAudioTypeSlow=0,
+    CPSoundManagerAudioTypeSlow = 0,
     CPSoundManagerAudioTypeFast
-    } CPSoundManagerAudioType;
+} CPSoundManagerAudioType;
 
-@interface CPSoundManager : NSObject{
+@interface CPSoundManager : NSObject {
     //TODO: Understand why the plain C implementation of this doesn't work, but this is good enough for the current devices.
-    AVAudioPlayer * player;
+    AVAudioPlayer *player;
 }
 
 
-- (void) stopPlayer;
+- (void)stopPlayer;
 
-- (void) playBeepSound: (CPSoundManagerAudioType) audioId;
+- (void)playBeepSound:(CPSoundManagerAudioType)audioId;
 
-- (void) vibrate: (id) sender;
+- (void)vibrate:(id)sender;
 
 @end

@@ -9,5 +9,5 @@
 import Foundation
 
 func goToPhotos() {
-    UIApplication.shared.open(URL(string:"photos-redirect://")!)
+    UIApplication.shared.open(URL(string: "photos-redirect://")!)
 }

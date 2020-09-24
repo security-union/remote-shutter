@@ -14,40 +14,37 @@
 
 @implementation AcknowledgmentsViewController
 
--(void)viewDidLoad{
+- (void)viewDidLoad {
     [super viewDidLoad];
     [self setupWebView];
 }
 
--(void)setupWebView{
+- (void)setupWebView {
     self.webView.opaque = NO;
     self.webView.backgroundColor = [UIColor clearColor];
 }
 
--(void)viewWillAppear:(BOOL)animated{
-    [super viewWillAppear:animated];    
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
     [self.webView loadRequest:[self acknowledgmentsLoadRequest]];
 }
 
--(NSURLRequest *)acknowledgmentsLoadRequest{
-    NSURLRequest * request=[NSURLRequest requestWithURL:self.URL];
+- (NSURLRequest *)acknowledgmentsLoadRequest {
+    NSURLRequest *request = [NSURLRequest requestWithURL:self.URL];
     return request;
 }
 
 #pragma mark Autorotation
 
--(BOOL)shouldAutorotate
-{
+- (BOOL)shouldAutorotate {
     return NO;
 }
 
--(UIInterfaceOrientationMask)supportedInterfaceOrientations
-{
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
     return UIInterfaceOrientationMaskPortrait;
 }
 
-- (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation
-{
+- (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation {
     return UIInterfaceOrientationPortrait;
 }
 
