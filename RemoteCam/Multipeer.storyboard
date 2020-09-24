@@ -437,6 +437,7 @@
                         <outlet property="bannerView" destination="Bu2-yA-LPw" id="NQ4-H1-b8m"/>
                         <outlet property="bottomBannerConstraint" destination="nG7-sh-7ah" id="8bQ-t7-4V5"/>
                         <outlet property="flashStatus" destination="wPR-EO-JjB" id="vAv-15-3KF"/>
+                        <outlet property="galleryButton" destination="EGp-xW-Dem" id="1Ll-Vt-LCd"/>
                         <outlet property="imageView" destination="rc6-hX-T3o" id="Db7-D8-rXh"/>
                         <outlet property="sliderContainer" destination="Mhh-yx-IbA" id="yFn-c4-6a8"/>
                         <outlet property="takePicture" destination="ipA-69-mKl" id="gar-rO-vP9"/>

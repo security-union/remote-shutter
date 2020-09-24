@@ -96,6 +96,10 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                 ^{
                     ctrl.flashStatus.text = "Auto"
                 }
+            default:
+                ^{
+                    ctrl.flashStatus.text = "None"
+                }
             }
         } else {
             ^{
@@ -110,7 +114,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
 UI for the monitor.
 */
 
-public class MonitorViewController: iAdViewController {
+public class MonitorViewController: iAdViewController, UIImagePickerControllerDelegate & UINavigationControllerDelegate {
 
     let session = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")!
 
@@ -134,6 +138,8 @@ public class MonitorViewController: iAdViewController {
     @IBOutlet weak var timerSlider: UISlider!
 
     @IBOutlet weak var timerLabel: UILabel!
+    
+    @IBOutlet weak var galleryButton: UIButton!
 
     @IBAction func toggleCamera(sender: UIButton) {
         session ! UICmd.ToggleCamera()
@@ -153,7 +159,18 @@ public class MonitorViewController: iAdViewController {
     }
 
     @IBAction func showGallery(sender: UIButton) {
-        goToPhotos()
+        let pickerController = UIImagePickerController()
+        pickerController.delegate = self
+        pickerController.allowsEditing = true
+        pickerController.mediaTypes = ["public.image"]
+        pickerController.sourceType = .photoLibrary
+        #if targetEnvironment(macCatalyst)
+            pickerController.modalPresentationStyle = UIModalPresentationStyle.pageSheet
+        #else
+            pickerController.modalPresentationStyle = UIModalPresentationStyle.popover
+            pickerController.popoverPresentationController?.sourceView = sender
+        #endif
+        self.present(pickerController, animated: true)
     }
 
     @IBAction func goBack(sender: UIButton) {
@@ -240,6 +257,22 @@ public class MonitorViewController: iAdViewController {
         self.timer.cancel()
         self.soundManager.stopPlayer()
     }
+    
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        if let image = info[.originalImage] {
+            let activityViewController = UIActivityViewController(activityItems: [image], applicationActivities: [])
+            picker.dismiss(animated: true) {
+                #if targetEnvironment(macCatalyst)
+                activityViewController.modalPresentationStyle = UIModalPresentationStyle.pageSheet
+                #else
+                activityViewController.modalPresentationStyle = UIModalPresentationStyle.popover
+                activityViewController.popoverPresentationController?.sourceView = self.galleryButton
+                #endif
+                
+                self.present(activityViewController, animated: true)
+            }
+        }
+    }
 }
 
 extension CGImage {
@@ -280,5 +313,4 @@ extension CGImage {
 
         return rotatedImage
     }
-
 }

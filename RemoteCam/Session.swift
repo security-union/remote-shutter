@@ -46,11 +46,11 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
 
             case let m as UICmd.BecomeCamera:
                 self.become(name: self.states.camera, state: self.camera(peer: peer, ctrl: m.ctrl, lobby: lobby))
-                self.sendMessage(peer: [peer], msg: RemoteCmd.PeerBecameCamera())
+                self.sendAndForget(peer: [peer], msg: RemoteCmd.PeerBecameCamera())
 
             case let m as UICmd.BecomeMonitor:
                 self.become(name: self.states.monitor, state: self.monitor(monitor: m.sender!, peer: peer, lobby: lobby))
-                self.sendMessage(peer: [peer], msg: RemoteCmd.PeerBecameMonitor())
+                self.sendAndForget(peer: [peer], msg: RemoteCmd.PeerBecameMonitor())
 
             case is RemoteCmd.PeerBecameCamera:
                 ^{
@@ -172,15 +172,15 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
 
         case is RemoteCmd.TakePic:
             let l = RemoteCmd.TakePicResp(sender: this, error: self.unableToProcessError(msg: msg))
-            self.sendMessage(peer: self.session.connectedPeers, msg: l)
+            self.sendAndForget(peer: self.session.connectedPeers, msg: l)
 
         case is RemoteCmd.ToggleCamera:
             let l = RemoteCmd.ToggleCameraResp(flashMode: nil, camPosition: nil, error: self.unableToProcessError(msg: msg))
-            self.sendMessage(peer: self.session.connectedPeers, msg: l)
+            self.sendAndForget(peer: self.session.connectedPeers, msg: l)
 
         case is RemoteCmd.ToggleFlash:
             let l = RemoteCmd.ToggleFlashResp(flashMode: nil, error: self.unableToProcessError(msg: msg))
-            self.sendMessage(peer: self.session.connectedPeers, msg: l)
+            self.sendAndForget(peer: self.session.connectedPeers, msg: l)
 
         default:
             super.receive(msg: msg)
@@ -196,7 +196,8 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
 
     public func sendMessage(peer: [MCPeerID], msg: Actor.Message, mode: MCSessionSendDataMode = .reliable) -> Try<Message> {
         do {
-            try self.session.send(NSKeyedArchiver.archivedData(withRootObject: msg),
+            let serializedMessage = try NSKeyedArchiver.archivedData(withRootObject: msg, requiringSecureCoding: false)
+            try self.session.send(serializedMessage,
                     toPeers: peer,
                     with: mode)
             return Success(value: msg)
@@ -204,6 +205,10 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
             print("error \(error)")
             return Failure(error: error)
         }
+    }
+    
+    public func sendAndForget(peer: [MCPeerID], msg: Actor.Message, mode: MCSessionSendDataMode = .reliable) {
+            let _ = sendMessage(peer: peer, msg: msg, mode: mode)
     }
 
     public func browserViewControllerDidFinish(_ browserViewController: MCBrowserViewController) {
@@ -237,10 +242,15 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
     }
 
     public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-
-        switch (NSKeyedUnarchiver.unarchiveObject(with: data)) {
+        let inboundMessage = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data)
+        switch (inboundMessage) {
         case let frame as RemoteCmd.SendFrame:
-            this ! RemoteCmd.OnFrame(data: frame.data, sender: nil, peerId: peerID, fps: frame.fps, camPosition: frame.camPosition, camOrientation: frame.camOrientation)
+            this ! RemoteCmd.OnFrame(data: frame.data,
+                                     sender: nil,
+                                     peerId: peerID,
+                                     fps: frame.fps,
+                                     camPosition: frame.camPosition,
+                                     camOrientation: frame.camOrientation)
 
         case let m as Message:
             this ! m
