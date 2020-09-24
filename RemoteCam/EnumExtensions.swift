@@ -32,6 +32,8 @@ extension AVCaptureDevice.FlashMode {
             return .auto
         case .auto:
             return .off
+        default:
+            return .off
         }
     }
 }

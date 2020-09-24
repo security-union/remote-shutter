@@ -27,6 +27,17 @@ public class ActorOutput: AVCaptureVideoDataOutput, AVCaptureVideoDataOutputSamp
 }
 
 /**
+Default fps, it would be neat if we would adjust this based on network conditions.
+*/
+
+let fps = 30
+
+/**
+ We downsample fps to streamFps because it is not possible for phones to keep up with the 30 fps.
+ */
+let streammingFPS = 5
+
+/**
   Camera UI
 */
 
@@ -48,14 +59,9 @@ public class CameraViewController:
     @IBOutlet weak var back: UIButton!
 
     var session: ActorRef = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")!
-
-    /**
-    Default fps, it would be neat if we would adjust this based on network conditions.
-    */
-
-    let fps = 30
-
-    let stream_fps = 5
+    
+    // Variable used to downsample the camera preview, please use with care.
+    private var frameCounter = 0
 
     override public func viewDidLoad() {
         super.viewDidLoad()
@@ -66,7 +72,7 @@ public class CameraViewController:
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = true
-        orientation = UIApplication.shared.statusBarOrientation
+        orientation = getOrientation()
     }
 
     override public func viewDidDisappear(_ animated: Bool) {
@@ -80,7 +86,7 @@ public class CameraViewController:
     }
 
     public override func willAnimateRotation(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
-        orientation = UIApplication.shared.statusBarOrientation
+        orientation = getOrientation()
         self.rotateCameraToOrientation(orientation: toInterfaceOrientation)
     }
 
@@ -95,7 +101,9 @@ public class CameraViewController:
 
         captureSession = AVCaptureSession()
 
-        let previewPixelType = self.cameraSettings.availablePreviewPhotoPixelFormatTypes.first!
+        guard let previewPixelType = self.cameraSettings.__availablePreviewPhotoPixelFormatTypes.first else {
+            return
+        }
         let previewFormat = [kCVPixelBufferPixelFormatTypeKey as String: previewPixelType,
                              kCVPixelBufferWidthKey as String: 160,
                              kCVPixelBufferHeightKey as String: 160]
@@ -124,7 +132,7 @@ public class CameraViewController:
                 output.videoSettings = [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
                 output.alwaysDiscardsLateVideoFrames = true
 
-                self.setFrameRate(framerate: self.fps, videoDevice: videoDevice)
+                self.setFrameRate(framerate: fps, videoDevice: videoDevice)
 
                 session ! UICmd.ToggleCameraResp(
                         flashMode: (videoDevice.hasFlash) ? self.cameraSettings.flashMode : nil,
@@ -133,7 +141,7 @@ public class CameraViewController:
                 )
 
                 self.captureSession?.startRunning()
-                self.rotateCameraToOrientation(orientation: UIApplication.shared.statusBarOrientation)
+                self.rotateCameraToOrientation(orientation: getOrientation())
             } catch let error as NSError {
                 print("error \(error)")
             }
@@ -150,7 +158,8 @@ public class CameraViewController:
             let newInput = try AVCaptureDeviceInput(device: newDevice!)
             captureSession?.removeInput(genericDevice!)
             captureSession?.addInput(newInput)
-            setFrameRate(framerate: self.fps, videoDevice: newDevice!); do {
+            setFrameRate(framerate: fps, videoDevice: newDevice!)
+            do {
                 DispatchQueue.main.async {
                     self.rotateCameraToOrientation(orientation: self.orientation)
                 }
@@ -191,7 +200,7 @@ public class CameraViewController:
     }
 
     func cameraForPosition(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
-//        let videoDevices = AVCaptureDevice.devices(for: AVMediaType.video)
+
         let videoDevices = AVCaptureDevice.DiscoverySession.init(
                 deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera],
                 mediaType: .video, position: position).devices
@@ -228,7 +237,6 @@ public class CameraViewController:
         }
     }
 
-
     func imageFromSampleBuffer(sampleBuffer: CMSampleBuffer) -> UIImage? {
         if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
             CVPixelBufferLockBaseAddress(imageBuffer, CVPixelBufferLockFlags(rawValue: 0))
@@ -252,14 +260,14 @@ public class CameraViewController:
         return nil
     }
 
-    var counter = 0
-
-    public func captureOutput(_ captureOutput: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        counter = counter + 1
-        if counter < (fps / stream_fps) {
+    public func captureOutput(_ captureOutput: AVCaptureOutput,
+                              didOutput sampleBuffer: CMSampleBuffer,
+                              from connection: AVCaptureConnection) {
+        frameCounter = frameCounter + 1
+        if frameCounter < (fps / streammingFPS) {
             return
         } else {
-            counter = 0
+            frameCounter = 0
         }
         if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
            let imageData = cgBackedImage.jpegData(compressionQuality: 0.1),
@@ -268,7 +276,7 @@ public class CameraViewController:
             let device = genericDevice.device
             self.session ! RemoteCmd.SendFrame(data: imageData,
                     sender: nil,
-                    fps: self.fps,
+                    fps: fps,
                     camPosition: device.position,
                     camOrientation: self.orientation)
         }

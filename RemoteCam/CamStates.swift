@@ -51,7 +51,7 @@ extension RemoteCamSession {
                     alert.dismiss(animated: true, completion: nil)
                 }
 
-                self.sendMessage(peer: [peer], msg: RemoteCmd.TakePicAck(sender: self.this))
+                self.sendAndForget(peer: [peer], msg: RemoteCmd.TakePicAck(sender: self.this))
 
                 let result = self.sendMessage(peer: [peer], msg: RemoteCmd.TakePicResp(sender: self.this, pic: t.pic, error: t.error))
 
@@ -103,10 +103,10 @@ extension RemoteCamSession {
         return { [unowned self] (msg: Actor.Message) in
             switch (msg) {
             case let m as UICmd.ToggleCameraResp:
-                self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleCameraResp(flashMode: m.flashMode, camPosition: m.camPosition, error: nil))
+                self.sendAndForget(peer: [peer], msg: RemoteCmd.ToggleCameraResp(flashMode: m.flashMode, camPosition: m.camPosition, error: nil))
 
             case let s as RemoteCmd.SendFrame:
-                self.sendMessage(peer: [peer], msg: s, mode: .unreliable)
+                self.sendAndForget(peer: [peer], msg: s, mode: .unreliable)
 
             case is RemoteCmd.TakePic:
                 ^{
@@ -123,7 +123,7 @@ extension RemoteCamSession {
                 } else if let failure = result as? Failure {
                     resp = RemoteCmd.ToggleCameraResp(flashMode: nil, camPosition: nil, error: failure.error)
                 }
-                self.sendMessage(peer: [peer], msg: resp!)
+                self.sendAndForget(peer: [peer], msg: resp!)
 
             case is RemoteCmd.ToggleFlash:
                 let result = ctrl.toggleFlash()
@@ -133,7 +133,7 @@ extension RemoteCamSession {
                 } else if let failure = result as? Failure {
                     resp = RemoteCmd.ToggleFlashResp(flashMode: nil, error: failure.error)
                 }
-                self.sendMessage(peer: [peer], msg: resp!)
+                self.sendAndForget(peer: [peer], msg: resp!)
 
             case is UICmd.UnbecomeCamera:
                 self.popToState(name: self.states.connected)
