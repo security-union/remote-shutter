@@ -11,6 +11,7 @@
 
 
 @interface UIImage (ImageProcessing)
-+ (UIImage *) imageFromSampleBuffer:(CMSampleBufferRef) sampleBuffer orientation:(UIImageOrientation) orientation;
-    + (UIImage*) cgImageBackedImageWithCIImage:(CIImage*) ciImage orientation:(UIImageOrientation) orientation;
++ (UIImage *)imageFromSampleBuffer:(CMSampleBufferRef)sampleBuffer orientation:(UIImageOrientation)orientation;
+
++ (UIImage *)cgImageBackedImageWithCIImage:(CIImage *)ciImage orientation:(UIImageOrientation)orientation;
 @end
