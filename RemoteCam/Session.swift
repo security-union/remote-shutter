@@ -226,7 +226,7 @@ public class RemoteCamSession : ViewCtrlActor<RolePickerController>, MCSessionDe
         
         switch (NSKeyedUnarchiver.unarchiveObject(with: data)) {
             case let frame as RemoteCmd.SendFrame:
-                this ! RemoteCmd.OnFrame(data: frame.data, sender: nil, peerId: peerID, fps: frame.fps, camPosition:  frame.camPosition)
+                this ! RemoteCmd.OnFrame(data: frame.data, sender: nil, peerId: peerID, fps: frame.fps, camPosition:  frame.camPosition, camOrientation: frame.camOrientation)
             
             case let m as Message:
                 this ! m
