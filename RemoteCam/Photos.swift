@@ -9,5 +9,19 @@
 import Foundation
 
 func goToPhotos() {
-    UIApplication.shared.open(URL(string: "photos-redirect://")!)
+    #if targetEnvironment(macCatalyst)
+        UIApplication.shared.open(URL(string: "/Applications/Photos.app")!)
+    #else
+        UIApplication.shared.open(URL(string: "photos-redirect://")!)
+    #endif
+}
+
+func getOrientation() -> UIInterfaceOrientation {
+    if #available(iOS 13.0, *) {
+        return UIApplication.shared.windows.first?
+            .windowScene?
+            .interfaceOrientation ?? .portrait
+    } else {
+        return UIApplication.shared.statusBarOrientation
+    }
 }
