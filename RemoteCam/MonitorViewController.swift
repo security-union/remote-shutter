@@ -41,27 +41,39 @@ public class MonitorActor : ViewCtrlActor<MonitorViewController> {
                 
             case let f as RemoteCmd.OnFrame:
                 if let img = UIImage(data: f.data) {
-                    var t : CGAffineTransform?
-                    switch(img.imageOrientation) {
-                        case .left, .right:
-                            let multiplier = (f.camPosition == .back) ? Double(-1) : Double(1)
-                            t = CGAffineTransform(rotationAngle: CGFloat(multiplier * Double.pi))
-                        case .up:
-                            t = CGAffineTransform(rotationAngle: CGFloat(Double.pi/2))
-                        case .down:
-                            t = CGAffineTransform(rotationAngle: CGFloat(Double.pi/Double(-2)))
-                        default:
-                            print("none")
-                    }
-                    if let transform = t {
-                        ^{ctrl.imageView.transform = transform}
-                    }
-                    ^{ctrl.imageView.image = img}
+                    let orientation = imageTransform(UIDevice.current.orientation, cameraOrientation: f.camOrientation, camPosition: f.camPosition)
+                    ^{ctrl.imageView.image = UIImage(cgImage: img.cgImage!, scale: 1, orientation: orientation)}
                 }
                 
             default:
                 self.receive(msg: msg)
             }
+        }
+    }
+    
+    func imageTransform(_ deviceOrientation: UIDeviceOrientation,
+                        cameraOrientation: UIInterfaceOrientation,
+                        camPosition: AVCaptureDevice.Position) -> UIImage.Orientation {
+        switch (cameraOrientation, camPosition) {
+        case (UIInterfaceOrientation.landscapeRight, AVCaptureDevice.Position.back):
+            return .up
+        case (UIInterfaceOrientation.portrait,  AVCaptureDevice.Position.back):
+            return .right
+        case (UIInterfaceOrientation.landscapeLeft,  AVCaptureDevice.Position.back):
+            return .down
+        case (UIInterfaceOrientation.portraitUpsideDown,  AVCaptureDevice.Position.back):
+            return .left
+            
+        case (UIInterfaceOrientation.landscapeRight, AVCaptureDevice.Position.front):
+            return .down
+        case (UIInterfaceOrientation.portrait,  AVCaptureDevice.Position.front):
+            return .right
+        case (UIInterfaceOrientation.landscapeLeft,  AVCaptureDevice.Position.front):
+            return .up
+        case (UIInterfaceOrientation.portraitUpsideDown,  AVCaptureDevice.Position.front):
+            return .left
+        default:
+            return .up
         }
     }
     
@@ -209,4 +221,43 @@ public class MonitorViewController : iAdViewController {
         self.timer.cancel()
         self.soundManager.stopPlayer()
     }
+}
+
+extension CGImage {
+
+    func rotated(by angle: CGFloat) -> CGImage? {
+        let angleInRadians = angle * .pi / 180
+
+        let imgRect = CGRect(x: 0, y: 0, width: width, height: height)
+        let transform = CGAffineTransform.identity.rotated(by: angleInRadians)
+        let rotatedRect = imgRect.applying(transform)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+
+        guard let bmContext = CGContext(
+            data: nil,
+            width: Int(rotatedRect.size.width),
+            height: Int(rotatedRect.size.height),
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)
+            else {
+                return nil
+        }
+
+        bmContext.setAllowsAntialiasing(true)
+        bmContext.setShouldAntialias(true)
+        bmContext.interpolationQuality = .high
+        bmContext.translateBy(x: rotatedRect.size.width * 0.5, y: rotatedRect.size.height * 0.5)
+        bmContext.rotate(by: angleInRadians)
+        let drawRect = CGRect(
+            origin: CGPoint(x: -imgRect.size.width * 0.5, y: -imgRect.size.height * 0.5),
+            size: imgRect.size)
+        bmContext.draw(self, in: drawRect)
+
+        guard let rotatedImage = bmContext.makeImage() else { return nil }
+
+        return rotatedImage
+    }
+
 }
