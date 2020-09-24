@@ -225,7 +225,9 @@ open class Actor : NSObject {
             
         default :
             if let (name,state) : (String,Receive) = self.statesStack.head() {
+                #if DEBUG
                 print("Sending message to state \(name)")
+                #endif
                 state(msg)
             } else {
                 self.receive(msg: msg)
@@ -253,7 +255,9 @@ open class Actor : NSObject {
     final public func tell(msg : Actor.Message) -> Void {
         mailbox.addOperation { () in
             self.sender = msg.sender
+            #if DEBUG
             print("\(self.sender?.path.asString ?? "No Sender") told \(msg) to \(self.this.path.asString)")
+            #endif
             self.systemReceive(msg: msg)
         }
     }

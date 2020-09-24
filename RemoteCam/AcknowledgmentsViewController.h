@@ -7,9 +7,10 @@
 //
 
 #import <UIKit/UIKit.h>
+#import <WebKit/WebKit.h>
 
 @interface AcknowledgmentsViewController : UIViewController
 
-@property(weak, nonatomic) IBOutlet UIWebView *webView;
+@property(weak, nonatomic) IBOutlet WKWebView *webView;
 @property(strong, nonatomic) NSURL *URL;
 @end

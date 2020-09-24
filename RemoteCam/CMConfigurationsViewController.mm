@@ -34,11 +34,6 @@
         [self.navigationController setNavigationBarHidden:TRUE];
 }
 
-- (void)viewDidUnload {
-    [self setTableView:nil];
-    [super viewDidUnload];
-}
-
 - (void)reloadData:(NSNotification *)notif {
     [self.tableView reloadData];
 }
@@ -111,9 +106,9 @@
     } else if ([cell isEqual:self.acknowledgments]) {
         [self showAcknowledgments];
     } else if ([cell isEqual:self.blackFireApps]) {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://darioalessandro.com"]];
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://darioalessandro.com"] options:@{} completionHandler:nil];
     } else if ([cell isEqual:self.theaterFramework]) {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://www.theaterframework.com"]];
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://www.theaterframework.com"] options:@{} completionHandler:nil];
     }
 }
 
@@ -183,10 +178,6 @@
             [self fillRestoreiAdsRow];
         }
     }];
-}
-
-- (void)dealloc {
-
 }
 
 @end
