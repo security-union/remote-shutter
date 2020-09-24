@@ -62,7 +62,7 @@ extension RemoteCamSession {
                     self.popToState(name: self.states.connected)
                     
                 default:
-                    print("sdfsdf")
+                    print("ignoring message")
                 }
             }
     }
@@ -116,7 +116,7 @@ extension RemoteCamSession {
                     self.popToState(name: self.states.connected)
                     
                 default:
-                    print("sdfsdf")
+                    print("ignoring message")
                 }
             }
     }
@@ -185,7 +185,7 @@ extension RemoteCamSession {
                     
                 default:
                     ^{alert.dismiss(animated: true, completion: nil)}
-                    print("sdfsdf")
+                    print("ignoring message")
                 }
             }
     }

@@ -43,6 +43,8 @@ public class CameraViewController :
     
     var captureVideoPreviewLayer : AVCaptureVideoPreviewLayer?
     
+    var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
+    
     @IBOutlet weak var back : UIButton!
     
     var session : ActorRef = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")!
@@ -53,6 +55,8 @@ public class CameraViewController :
     
     let fps = 30
     
+    let stream_fps = 5
+    
     override public func viewDidLoad() {
         super.viewDidLoad()
         self.setupCamera()
@@ -62,6 +66,7 @@ public class CameraViewController :
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = true
+        orientation = UIApplication.shared.statusBarOrientation
     }
     
     override public func viewDidDisappear(_ animated: Bool) {
@@ -75,6 +80,7 @@ public class CameraViewController :
     }
     
     public override func willAnimateRotation(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
+        orientation = UIApplication.shared.statusBarOrientation
         self.rotateCameraToOrientation(orientation: toInterfaceOrientation)
     }
     
@@ -146,7 +152,7 @@ public class CameraViewController :
             captureSession?.addInput(newInput)
             setFrameRate(framerate: self.fps,videoDevice:newDevice!); do {
                 DispatchQueue.main.async {
-                    self.rotateCameraToOrientation(orientation: UIApplication.shared.statusBarOrientation)
+                    self.rotateCameraToOrientation(orientation: self.orientation)
                 }
                 let newFlashMode : AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
                 return Success(value: (newFlashMode, newInput.device.position))
@@ -160,7 +166,7 @@ public class CameraViewController :
         let captureSession = self.captureSession
         let genericDevice = captureSession?.inputs.first as? AVCaptureDeviceInput
         let device = genericDevice?.device
-        if (device?.hasFlash)! {
+        if let hasFlash = device?.hasFlash, hasFlash {
             let newFlashMode = self.cameraSettings.flashMode.next()
             self.cameraSettings.flashMode = newFlashMode
             return Success(value: newFlashMode)
@@ -185,7 +191,10 @@ public class CameraViewController :
     }
     
     func cameraForPosition(position : AVCaptureDevice.Position) -> AVCaptureDevice? {
-        let videoDevices = AVCaptureDevice.devices(for: AVMediaType.video)
+//        let videoDevices = AVCaptureDevice.devices(for: AVMediaType.video)
+        let videoDevices = AVCaptureDevice.DiscoverySession.init(
+            deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera],
+            mediaType: .video, position: position).devices
         let filtered : [AVCaptureDevice] = videoDevices.filter { return $0.position == position}
         return filtered.first
     }
@@ -239,12 +248,25 @@ public class CameraViewController :
         return nil
     }
     
+    var counter = 0
+    
     public func captureOutput(_ captureOutput: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        counter = counter + 1
+        if counter < (fps / stream_fps) {
+            return
+        } else {
+            counter = 0
+        }
         if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
             let imageData = cgBackedImage.jpegData(compressionQuality: 0.1),
             let genericDevice = captureSession?.inputs.first as? AVCaptureDeviceInput {
+            
             let device = genericDevice.device
-            self.session ! RemoteCmd.SendFrame(data: imageData, sender: nil, fps: self.fps, camPosition: device.position)
+            self.session ! RemoteCmd.SendFrame(data: imageData,
+                                               sender: nil,
+                                               fps: self.fps,
+                                               camPosition: device.position,
+                                               camOrientation: self.orientation)
         }
     }
     

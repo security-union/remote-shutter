@@ -276,11 +276,13 @@ public class RemoteCmd : Actor.Message {
         public let data : Data
         public let fps : NSInteger
         public let camPosition : AVCaptureDevice.Position
+        public let camOrientation: UIInterfaceOrientation
         
-        init(data : Data, sender : Optional<ActorRef>, fps : NSInteger, camPosition : AVCaptureDevice.Position) {
+        init(data : Data, sender : Optional<ActorRef>, fps : NSInteger, camPosition : AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation) {
             self.data = data
             self.fps = fps
             self.camPosition = camPosition
+            self.camOrientation = camOrientation
             super.init(sender: sender)
         }
         
@@ -288,12 +290,14 @@ public class RemoteCmd : Actor.Message {
             aCoder.encode(self.data)
             aCoder.encode(self.fps, forKey: "fps")
             aCoder.encode(self.camPosition.rawValue, forKey: "camPosition")
+            aCoder.encode(self.camOrientation.rawValue, forKey: "camOrientation")
         }
         
         public required init?(coder aDecoder: NSCoder) {
             self.data = aDecoder.decodeData()!
             self.fps = aDecoder.decodeInteger(forKey: "fps")
             self.camPosition = AVCaptureDevice.Position(rawValue: aDecoder.decodeInteger(forKey: "camPosition"))!
+            self.camOrientation = UIInterfaceOrientation.init(rawValue: aDecoder.decodeInteger(forKey: "camOrientation"))!
             super.init(sender: nil)
         }
     }
@@ -303,12 +307,14 @@ public class RemoteCmd : Actor.Message {
         public let peerId : MCPeerID
         public let fps : NSInteger
         public let camPosition : AVCaptureDevice.Position
+        public let camOrientation: UIInterfaceOrientation
         
-        init(data : Data, sender : Optional<ActorRef>, peerId : MCPeerID, fps:NSInteger, camPosition : AVCaptureDevice.Position) {
+        init(data : Data, sender : Optional<ActorRef>, peerId : MCPeerID, fps:NSInteger, camPosition : AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation) {
             self.camPosition = camPosition
             self.data = data
             self.peerId = peerId
             self.fps = fps
+            self.camOrientation = camOrientation
             super.init(sender: sender)
         }
     }
