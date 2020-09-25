@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="16097.3" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="17156" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" colorMatched="YES">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="16087"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="17125"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
-        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="ErrorViewController" customModule="RemoteShutter" customModuleProvider="target">
+            <connections>
+                <outlet property="view" destination="3" id="tqe-Yt-PGQ"/>
+            </connections>
+        </placeholder>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
         <view contentMode="scaleToFill" id="3">
             <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
@@ -24,13 +29,13 @@
                             </constraints>
                         </imageView>
                         <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="This app does not have access to your Camera." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" preferredMaxLayoutWidth="280" translatesAutoresizingMaskIntoConstraints="NO" id="413">
-                            <rect key="frame" x="0.0" y="338" width="374" height="41"/>
+                            <rect key="frame" x="0.0" y="337.5" width="374" height="41"/>
                             <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
                             <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                             <nil key="highlightedColor"/>
                         </label>
                         <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="You can enable access in Privacy Settings." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" preferredMaxLayoutWidth="280" translatesAutoresizingMaskIntoConstraints="NO" id="427">
-                            <rect key="frame" x="0.0" y="386" width="374" height="50"/>
+                            <rect key="frame" x="0.0" y="386.5" width="374" height="50"/>
                             <constraints>
                                 <constraint firstAttribute="height" constant="50" id="433"/>
                             </constraints>
@@ -39,7 +44,7 @@
                             <nil key="highlightedColor"/>
                         </label>
                         <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="*This is necessary to use Remote Shutter." textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumScaleFactor="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="444">
-                            <rect key="frame" x="0.0" y="444" width="374" height="48"/>
+                            <rect key="frame" x="0.0" y="444.5" width="374" height="48"/>
                             <constraints>
                                 <constraint firstAttribute="height" constant="48" id="486"/>
                             </constraints>
@@ -47,6 +52,20 @@
                             <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                             <nil key="highlightedColor"/>
                         </label>
+                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Rl4-fm-2aP">
+                            <rect key="frame" x="48" y="639" width="278" height="42"/>
+                            <color key="backgroundColor" systemColor="systemBlueColor"/>
+                            <constraints>
+                                <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="42" id="2LL-Ul-AaV"/>
+                                <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="278" id="4lH-lP-47I"/>
+                            </constraints>
+                            <fontDescription key="fontDescription" type="system" pointSize="18"/>
+                            <color key="tintColor" red="0.99033265429999995" green="1" blue="0.98426243030000005" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            <state key="normal" title="Change Settings"/>
+                            <connections>
+                                <action selector="btnOpenSettings:" destination="-1" eventType="touchUpInside" id="Atn-oJ-erY"/>
+                            </connections>
+                        </button>
                     </subviews>
                     <color key="backgroundColor" red="0.4381581182" green="0.4381581182" blue="0.4381581182" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
                     <constraints>
@@ -61,6 +80,8 @@
                         <constraint firstItem="382" firstAttribute="centerX" secondItem="413" secondAttribute="centerX" id="475"/>
                         <constraint firstItem="427" firstAttribute="top" secondItem="413" secondAttribute="bottom" constant="8" symbolic="YES" id="480"/>
                         <constraint firstItem="444" firstAttribute="top" secondItem="427" secondAttribute="bottom" constant="8" symbolic="YES" id="485"/>
+                        <constraint firstAttribute="bottom" secondItem="Rl4-fm-2aP" secondAttribute="bottom" constant="35" id="Qu5-ew-E9B"/>
+                        <constraint firstItem="Rl4-fm-2aP" firstAttribute="centerX" secondItem="339" secondAttribute="centerX" id="iIc-El-s2a"/>
                     </constraints>
                 </view>
             </subviews>
@@ -80,5 +101,8 @@
     </objects>
     <resources>
         <image name="lock.png" width="382" height="503"/>
+        <systemColor name="systemBlueColor">
+            <color red="0.0" green="0.47843137254901963" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
     </resources>
 </document>
