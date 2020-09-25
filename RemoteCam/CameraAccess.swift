@@ -16,16 +16,31 @@ Permissions verification extensions
 */
 
 extension UIViewController {
+    
+    private struct AssociatedKeys {
+        static var errorViewController = "errorViewController"
+    }
+    
+    private func setErrorViewController(_ ctrl: UIViewController?) {
+        objc_setAssociatedObject(self, &AssociatedKeys.errorViewController,
+                                 ctrl,
+                objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    }
+    
+    private func getErrorViewController() -> UIViewController? {
+        return objc_getAssociatedObject(self, &AssociatedKeys.errorViewController) as? UIViewController
+    }
 
     @objc public func verifyCameraAndCameraRollAccess() {
         verifyCameraRollAccess()
         verifyCameraAccess()
+        verifyNetworkAccess()
     }
 
     public func verifyCameraAccess() {
         if AVCaptureDevice.authorizationStatus(for: AVMediaType(rawValue: convertFromAVMediaType(AVMediaType.video))) != AVAuthorizationStatus.authorized {
             AVCaptureDevice.requestAccess(for: AVMediaType(rawValue: convertFromAVMediaType(AVMediaType.video)), completionHandler: { (granted: Bool) -> Void in
-                if granted == false {
+                if !granted {
                     self.showNoAccessToCamera()
                 }
             })
@@ -43,11 +58,13 @@ extension UIViewController {
             }
         }
     }
+    
+    public func verifyNetworkAccess() {
+        // TODO: Implement after apple explains us how.
+    }
 
     public func showNoAccessToCamera() {
-        let fileName = "BFDeniedAccessToCameraView"
-        let blocker = Bundle.main.loadNibNamed(fileName, owner: nil, options: nil)![0] as! UIView
-        self.addErrorView(view: blocker)
+        showErrorNibWithName("BFDeniedAccessToCameraView")
     }
 
     public func addErrorView(view: UIView) {
@@ -59,9 +76,15 @@ extension UIViewController {
     }
 
     public func showNoCameraRollAccess() {
-        let fileName = "BFDeniedAccessToAssetsView"
-        let blocker = Bundle.main.loadNibNamed(fileName, owner: nil, options: nil)![0] as! UIView
-        addErrorView(view: blocker)
+        showErrorNibWithName("BFDeniedAccessToAssetsView")
+    }
+    
+    private func showErrorNibWithName(_ fileName: String) {
+        DispatchQueue.main.async {
+            let errorViewController = ErrorViewController(nibName: fileName, bundle: Bundle.main)
+            self.setErrorViewController(errorViewController)
+            self.addErrorView(view: errorViewController.view)
+        }
     }
 
 }

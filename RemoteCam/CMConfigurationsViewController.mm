@@ -106,9 +106,9 @@
     } else if ([cell isEqual:self.acknowledgments]) {
         [self showAcknowledgments];
     } else if ([cell isEqual:self.blackFireApps]) {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://darioalessandro.com"] options:@{} completionHandler:nil];
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://securityunion.dev"] options:@{} completionHandler:nil];
     } else if ([cell isEqual:self.theaterFramework]) {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://www.theaterframework.com"] options:@{} completionHandler:nil];
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/security-union/Theater"] options:@{} completionHandler:nil];
     }
 }
 
@@ -136,19 +136,21 @@
 }
 
 - (void)fillRestoreiAdsRow {
-    InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
-    NSArray *products = [manager products];
-    if ([manager didUserBuyRemoveiAdsFeature]) {
-        self.disableiAds.textLabel.text = kiAdsFeatureInstalled;
-        self.disableiAds.detailTextLabel.text = @"";
-        [self.disableiAds setNeedsDisplay];
-    } else if ([products count] > 0) {
-        SKProduct *disableiAdsProduct = [manager productWithIdentifier:RemoveiAdsFeatureIdentifier];
-        [[self.disableiAds textLabel] setText:[disableiAdsProduct localizedTitle]];
-        NSString *localizedPrice = [[[InAppPurchasesManager sharedManager] currencyFormatter] stringFromNumber:disableiAdsProduct.price];
-        [[self.disableiAds detailTextLabel] setText:localizedPrice];
-        [self.disableiAds setNeedsLayout];
-    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        if ([manager didUserBuyRemoveiAdsFeature]) {
+            self.disableiAds.textLabel.text = kiAdsFeatureInstalled;
+            self.disableiAds.detailTextLabel.text = @"";
+            [self.disableiAds setNeedsDisplay];
+        } else if ([products count] > 0) {
+            SKProduct *disableiAdsProduct = [manager productWithIdentifier:RemoveiAdsFeatureIdentifier];
+            [[self.disableiAds textLabel] setText:[disableiAdsProduct localizedTitle]];
+            NSString *localizedPrice = [[[InAppPurchasesManager sharedManager] currencyFormatter] stringFromNumber:disableiAdsProduct.price];
+            [[self.disableiAds detailTextLabel] setText:localizedPrice];
+            [self.disableiAds setNeedsLayout];
+        }
+    });
 }
 
 #pragma mark -
