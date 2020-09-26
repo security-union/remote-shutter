@@ -3,11 +3,12 @@
 # pod trunk push Theater.podspec --allow-warnings 
 
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '8.0'
+platform :ios, '10.0'
 use_frameworks!
 
 target 'RemoteShutter' do    
     pod 'Starscream', '~> 3.0.6'
     pod 'Theater', '~> 0.9.1'
+    pod 'Google-Mobile-Ads-SDK', '~> 7.65.0'
 end
 

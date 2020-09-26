@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import GoogleMobileAds
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -15,7 +16,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     private func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         InAppPurchasesManager.shared().reloadProducts { (i, e) in
+            
         }
+        GADMobileAds.sharedInstance().start(completionHandler: nil)
         self.setCustomNavBarTheme()
         return true
     }
