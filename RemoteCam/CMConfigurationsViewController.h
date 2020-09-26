@@ -2,8 +2,7 @@
 
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
-
-#define ShouldHideiAds @"ShouldHideiAds"
+#import "Constants.h"
 
 @interface CMConfigurationsViewController : UIViewController <UITableViewDelegate, UITableViewDataSource> {
 
