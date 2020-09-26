@@ -15,6 +15,7 @@
 #import <Foundation/Foundation.h>
 #import <StoreKit/StoreKit.h>
 #import "PurchasesRestorer.h"
+#import "Constants.h"
 
 @class InAppPurchasesManager;
 

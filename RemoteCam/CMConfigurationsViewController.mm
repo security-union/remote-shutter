@@ -97,7 +97,7 @@
                     [self presentViewController:alert animated:TRUE completion:NULL];
                 } else {
                     [self fillRestoreiAdsRow];
-                    [[NSNotificationCenter defaultCenter] postNotificationName:ShouldHideiAds object:nil];
+                    [[NSNotificationCenter defaultCenter] postNotificationName:Constants.RemoveAds object:nil];
                 }
             }];
         }
