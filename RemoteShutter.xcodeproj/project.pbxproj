@@ -10,7 +10,6 @@
 		0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
-		060B1E201BE70CC000077BCC /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 060B1E1F1BE70CC000077BCC /* AdSupport.framework */; };
 		060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060B1E241BE710FE00077BCC /* BaseViewController.swift */; };
 		0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0624C0401BE8616E001CC738 /* CameraAccess.swift */; };
 		0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */; };
@@ -160,7 +159,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				060B1E201BE70CC000077BCC /* AdSupport.framework in Frameworks */,
 				A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -519,13 +517,19 @@
 			);
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/GoogleUtilities/GoogleUtilities.framework",
+				"${BUILT_PRODUCTS_DIR}/PromisesObjC/FBLPromises.framework",
 				"${BUILT_PRODUCTS_DIR}/Starscream/Starscream.framework",
 				"${BUILT_PRODUCTS_DIR}/Theater/Theater.framework",
+				"${BUILT_PRODUCTS_DIR}/nanopb/nanopb.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/GoogleUtilities.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FBLPromises.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Starscream.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Theater.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/nanopb.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
