@@ -73,7 +73,8 @@ static InAppPurchasesManager *_manager = nil;
 
 - (void)setDidUserBuyRemoveiAdsFeatures:(BOOL)feature {
     if (feature) {
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"ShouldHideiAds" object:nil];
+        [[NSNotificationCenter defaultCenter] postNotificationName: Constants.RemoveAds
+ object:nil];
     }
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults setBool:feature forKey:didBuyRemoveiAdsFeature];
