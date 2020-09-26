@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import iAd
+import GoogleMobileAds
 import Theater
 
 /**
@@ -15,8 +15,8 @@ This UIViewController provides a preconfigured banner and some NSLayoutConstrain
 Users must subclass to integrate this into their projects
 */
 
-public class iAdViewController: UIViewController, ADBannerViewDelegate {
-    let iAdBanner: ADBannerView = ADBannerView()
+public class iAdViewController: UIViewController, GADBannerViewDelegate {
+    let iAdBanner: GADBannerView = GADBannerView()
     var iAdConstraints: [NSLayoutConstraint]?
 
     @IBOutlet weak var bannerView: UIView!
@@ -24,11 +24,15 @@ public class iAdViewController: UIViewController, ADBannerViewDelegate {
     @IBOutlet weak var bannerHeight: NSLayoutConstraint?
 
     private func setupiAdNetwork() {
-        iAdBanner.delegate = self;
-        iAdBanner.translatesAutoresizingMaskIntoConstraints = false
+        iAdBanner.adUnitID = "ca-app-pub-4832821923197585/2168670673"
+        iAdBanner.rootViewController = self
+        iAdBanner.delegate = self
+        iAdBanner.adSize = GADAdSize(size: bannerView.frame.size, flags: 0)
+        iAdBanner.frame = CGRect(x: 0, y: 0, width: bannerView.frame.width, height: bannerView.frame.height)
         self.bannerView.addSubview(iAdBanner)
         self.bannerView.addConstraints(self.iAdsLayoutConstrains())
-        self.layoutBanners()
+        self.shouldHideBanner()
+        iAdBanner.isAutoloadEnabled = true
     }
 
     override public func viewDidLoad() {
@@ -39,14 +43,6 @@ public class iAdViewController: UIViewController, ADBannerViewDelegate {
             self.shouldHideBanner()
         }
         NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideiAds(notification:)), name: NSNotification.Name(rawValue: "ShouldHideiAds"), object: nil)
-    }
-
-    func layoutBanners() {
-        if iAdBanner.isBannerLoaded {
-            self.shouldShowBanner()
-        } else {
-            self.shouldHideBanner()
-        }
     }
 
     func shouldHideBanner() {
@@ -97,20 +93,23 @@ public class iAdViewController: UIViewController, ADBannerViewDelegate {
         super.init(coder: aDecoder)
     }
 
-
-    public func bannerViewDidLoadAd(banner: ADBannerView!) {
-        self.layoutBanners()
+    /// Tells the delegate that an ad request successfully received an ad. The delegate may want to add
+    /// the banner view to the view hierarchy if it hasn't been added yet.
+    public func adViewDidReceiveAd(_ bannerView: GADBannerView) {
+        self.shouldShowBanner()
     }
-
-    public func bannerView(_ banner: ADBannerView, didFailToReceiveAdWithError error: Error) {
+    
+    /// Tells the delegate that an ad request failed. The failure is normally due to network
+    /// connectivity or ad availablility (i.e., no fill).
+    public func adView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: GADRequestError) {
         self.shouldHideBanner()
     }
 
-    public func bannerViewActionShouldBegin(_ banner: ADBannerView, willLeaveApplication willLeave: Bool) -> Bool {
-        return true
+    public func adViewWillPresentScreen(_ bannerView: GADBannerView) {
+        
     }
-
-    public func bannerViewActionDidFinish(_ banner: ADBannerView) {
+    
+    public func adViewDidDismissScreen(_ bannerView: GADBannerView) {
         self.shouldHideBanner()
     }
 
