@@ -11,6 +11,9 @@
 		0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060B1E241BE710FE00077BCC /* BaseViewController.swift */; };
+		061596F6251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
+		061596F7251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
+		061596F8251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
 		0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0624C0401BE8616E001CC738 /* CameraAccess.swift */; };
 		0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */; };
 		0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */; };
@@ -93,6 +96,10 @@
 		060B1E241BE710FE00077BCC /* BaseViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseViewController.swift; sourceTree = "<group>"; };
 		060E28551BE1A5CA00D73ACB /* Nimble.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Nimble.framework; path = "Pods/../build/Debug-iphoneos/Nimble.framework"; sourceTree = "<group>"; };
 		060E28561BE1A5CA00D73ACB /* Quick.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quick.framework; path = "Pods/../build/Debug-iphoneos/Quick.framework"; sourceTree = "<group>"; };
+		061596F2251FCFDA0032289B /* RemoteShutterTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteShutterTests-Bridging-Header.h"; sourceTree = "<group>"; };
+		061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteShutterUITests-Bridging-Header.h"; sourceTree = "<group>"; };
+		061596F4251FCFDA0032289B /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
+		061596F5251FCFDA0032289B /* Constants.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Constants.m; sourceTree = "<group>"; };
 		0624C0401BE8616E001CC738 /* CameraAccess.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraAccess.swift; sourceTree = "<group>"; };
 		0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BFDeniedAccessToAssetsView.xib; sourceTree = "<group>"; };
 		0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToAssetsView~ipad.xib"; sourceTree = "<group>"; };
@@ -260,6 +267,10 @@
 				0624C0401BE8616E001CC738 /* CameraAccess.swift */,
 				0609A4DA251BFED80090DEB7 /* Photos.swift */,
 				06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */,
+				061596F4251FCFDA0032289B /* Constants.h */,
+				061596F5251FCFDA0032289B /* Constants.m */,
+				061596F2251FCFDA0032289B /* RemoteShutterTests-Bridging-Header.h */,
+				061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */,
 			);
 			name = Controllers;
 			sourceTree = "<group>";
@@ -445,6 +456,7 @@
 					852E4305250D4B1D00F5151E = {
 						CreatedOnToolsVersion = 11.7;
 						DevelopmentTeam = 86N68E36XN;
+						LastSwiftMigration = 1200;
 						ProvisioningStyle = Automatic;
 						TestTargetID = 0692841B1BE5BF5B00AF4678;
 					};
@@ -570,6 +582,7 @@
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */,
 				0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */,
+				061596F6251FCFDA0032289B /* Constants.m in Sources */,
 				06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */,
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
 				0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */,
@@ -595,6 +608,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */,
+				061596F7251FCFDA0032289B /* Constants.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -604,6 +618,7 @@
 			files = (
 				0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */,
 				852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */,
+				061596F8251FCFDA0032289B /* Constants.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -701,6 +716,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.RemoteCamTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteShutterTests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteCam.app/RemoteCam";
@@ -718,6 +734,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.RemoteCamTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteShutterTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteCam.app/RemoteCam";
 			};
@@ -841,6 +858,7 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
@@ -855,6 +873,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.securityunion.RemoteShutterUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteShutterUITests-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = RemoteShutter;
@@ -867,6 +887,7 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
@@ -879,6 +900,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.securityunion.RemoteShutterUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteShutterUITests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
