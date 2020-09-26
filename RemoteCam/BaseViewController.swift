@@ -16,33 +16,33 @@ Users must subclass to integrate this into their projects
 */
 
 public class iAdViewController: UIViewController, GADBannerViewDelegate {
-    let iAdBanner: GADBannerView = GADBannerView()
-    var iAdConstraints: [NSLayoutConstraint]?
+    let AdBanner: GADBannerView = GADBannerView()
+    var AdConstraints: [NSLayoutConstraint]?
 
     @IBOutlet weak var bannerView: UIView!
     @IBOutlet weak var bottomBannerConstraint: NSLayoutConstraint?
     @IBOutlet weak var bannerHeight: NSLayoutConstraint?
 
-    private func setupiAdNetwork() {
-        iAdBanner.adUnitID = "ca-app-pub-4832821923197585/2168670673"
-        iAdBanner.rootViewController = self
-        iAdBanner.delegate = self
-        iAdBanner.adSize = GADAdSize(size: bannerView.frame.size, flags: 0)
-        iAdBanner.frame = CGRect(x: 0, y: 0, width: bannerView.frame.width, height: bannerView.frame.height)
-        self.bannerView.addSubview(iAdBanner)
+    private func setupAdNetwork() {
+        AdBanner.adUnitID = "ca-app-pub-4832821923197585/2168670673"
+        AdBanner.rootViewController = self
+        AdBanner.delegate = self
+        AdBanner.adSize = GADAdSize(size: bannerView.frame.size, flags: 0)
+        AdBanner.frame = CGRect(x: 0, y: 0, width: bannerView.frame.width, height: bannerView.frame.height)
+        self.bannerView.addSubview(AdBanner)
         self.bannerView.addConstraints(self.iAdsLayoutConstrains())
         self.shouldHideBanner()
-        iAdBanner.isAutoloadEnabled = true
+        AdBanner.isAutoloadEnabled = true
     }
 
     override public func viewDidLoad() {
         super.viewDidLoad()
         if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() {
-            self.setupiAdNetwork()
+            self.setupAdNetwork()
         } else {
             self.shouldHideBanner()
         }
-        NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideiAds(notification:)), name: NSNotification.Name(rawValue: "ShouldHideiAds"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideAds(notification:)), name: NSNotification.Name(rawValue: Constants.removeAds()), object: nil)
     }
 
     func shouldHideBanner() {
@@ -54,38 +54,38 @@ public class iAdViewController: UIViewController, GADBannerViewDelegate {
 
     func shouldShowBanner() {
         UIView.animate(withDuration: 0.3) { () -> Void in
-            let value = 40 - self.iAdBanner.frame.size.height
+            let value = 40 - self.AdBanner.frame.size.height
             self.bottomBannerConstraint!.constant = value
             self.view.layoutSubviews()
         }
     }
 
-    @objc func ShouldHideiAds(notification: NSNotification) {
+    @objc func ShouldHideAds(notification: NSNotification) {
         ^{
-            self.turnOffiAds()
+            self.turnOffAds()
         }
     }
 
-    func turnOffiAds() {
+    func turnOffAds() {
         self.bannerView.removeConstraints(self.iAdsLayoutConstrains())
         self.shouldHideBanner()
-        self.iAdBanner.removeFromSuperview()
-        self.iAdBanner.delegate = nil
+        self.AdBanner.removeFromSuperview()
+        self.AdBanner.delegate = nil
     }
 
     func iAdsLayoutConstrains() -> [NSLayoutConstraint] {
-        if iAdConstraints != nil {
-            return iAdConstraints!
+        if AdConstraints != nil {
+            return AdConstraints!
         }
 
-        let leading = NSLayoutConstraint(item: iAdBanner, attribute: .leading, relatedBy: .equal, toItem: self.bannerView, attribute: .leading, multiplier: 1, constant: 0)
+        let leading = NSLayoutConstraint(item: AdBanner, attribute: .leading, relatedBy: .equal, toItem: self.bannerView, attribute: .leading, multiplier: 1, constant: 0)
 
-        let top = NSLayoutConstraint(item: iAdBanner, attribute: .top, relatedBy: .equal, toItem: self.bannerView, attribute: .top, multiplier: 1, constant: 0)
+        let top = NSLayoutConstraint(item: AdBanner, attribute: .top, relatedBy: .equal, toItem: self.bannerView, attribute: .top, multiplier: 1, constant: 0)
 
-        let width = NSLayoutConstraint(item: iAdBanner, attribute: .width, relatedBy: .equal, toItem: self.bannerView, attribute: .width, multiplier: 1, constant: 0)
+        let width = NSLayoutConstraint(item: AdBanner, attribute: .width, relatedBy: .equal, toItem: self.bannerView, attribute: .width, multiplier: 1, constant: 0)
 
-        self.iAdConstraints = [top, width, leading]
-        return self.iAdConstraints!
+        self.AdConstraints = [top, width, leading]
+        return self.AdConstraints!
     }
 
 
