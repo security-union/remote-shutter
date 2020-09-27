@@ -1,9 +1,9 @@
 //
 //  LobbyViewController.swift
-//  Actors
+//  RemoteShutter
 //
 //  Created by Dario on 10/7/15.
-//  Copyright © 2015 dario. All rights reserved.
+//  Copyright © 2020 Security Union LLC. All rights reserved.
 //
 
 import UIKit
@@ -39,6 +39,7 @@ public class RolePickerController: UIViewController {
 
     @IBOutlet weak var remote: UIButton!
     @IBOutlet weak var camera: UIButton!
+    @IBOutlet weak var instructionLabel: UILabel!
 
 
     lazy var remoteCamSession: ActorRef = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
@@ -46,7 +47,11 @@ public class RolePickerController: UIViewController {
     override public func viewDidLoad() {
         super.viewDidLoad()
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: states.connect, style: .done, target: self, action: #selector(RolePickerController.toggleConnect(button:)))
-        self.navigationItem.prompt = "Select camera or remote:"
+        self.navigationItem.prompt = "Connect to an iOS or macOS device"
+        remote.alpha = 0.3
+        camera.alpha = 0.3
+        remote.isEnabled = false
+        camera.isEnabled = false
         self.remoteCamSession ! SetViewCtrl(ctrl: self)
         self.remoteCamSession ! UICmd.StartScanning(sender: nil)
     }
