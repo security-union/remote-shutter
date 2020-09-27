@@ -40,6 +40,12 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
                    peer: MCPeerID) -> Receive {
         ^{
             lobby.navigationItem.rightBarButtonItem?.title = lobby.states.disconnect
+            lobby.navigationItem.prompt = "Select Camera or Remote"
+            lobby.remote.alpha = 1
+            lobby.camera.alpha = 1
+            lobby.remote.isEnabled = true
+            lobby.camera.isEnabled = true
+            lobby.instructionLabel.text = "Pick a role: Camera or Remote"
         }
         return { [unowned self] (msg: Actor.Message) in
             switch (msg) {
@@ -92,6 +98,12 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
                 self.startScanning(lobby: lobby)
                 ^{
                     lobby.navigationItem.rightBarButtonItem?.title = lobby.states.connect
+                    lobby.self.navigationItem.prompt = "Connect to an iOS or macOS device"
+                    lobby.remote.alpha = 0.3
+                    lobby.camera.alpha = 0.3
+                    lobby.remote.isEnabled = false
+                    lobby.camera.isEnabled = false
+                    lobby.instructionLabel.text = "Connect to an iOS or macOS device"
                 }
 
             case let w as OnConnectToDevice:

@@ -63,12 +63,22 @@
                                     <action selector="becomeCameraWithButton:" destination="Cdl-GO-JiS" eventType="touchUpInside" id="eCE-fL-n3K"/>
                                 </connections>
                             </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Connect to an iOS or macOS device" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3SZ-bq-63p">
+                                <rect key="frame" x="51" y="301" width="273" height="21"/>
+                                <accessibility key="accessibilityConfiguration" identifier="instructionLabel" label="instructionLabel"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                                <color key="shadowColor" white="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            </label>
                         </subviews>
                         <color key="backgroundColor" red="0.072984814643859863" green="0.13994456827640533" blue="0.26697003841400146" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
+                            <constraint firstItem="3SZ-bq-63p" firstAttribute="centerY" secondItem="9mE-gc-HA6" secondAttribute="centerY" id="4N0-5s-YYS"/>
                             <constraint firstItem="YX2-mi-m3d" firstAttribute="top" secondItem="XBC-RQ-5s6" secondAttribute="bottom" constant="10" id="6NN-dx-65I"/>
                             <constraint firstItem="Ouk-AK-7eb" firstAttribute="centerX" secondItem="9mE-gc-HA6" secondAttribute="centerX" id="Exz-ga-ipq"/>
                             <constraint firstItem="Ouk-AK-7eb" firstAttribute="height" secondItem="YX2-mi-m3d" secondAttribute="height" id="FOy-ho-cAa"/>
+                            <constraint firstItem="3SZ-bq-63p" firstAttribute="centerX" secondItem="YX2-mi-m3d" secondAttribute="centerX" id="XvY-1c-5di"/>
                             <constraint firstItem="Puv-Qq-hCV" firstAttribute="top" secondItem="Ouk-AK-7eb" secondAttribute="bottom" constant="10" id="Z94-Tb-UUq"/>
                             <constraint firstItem="YX2-mi-m3d" firstAttribute="centerX" secondItem="9mE-gc-HA6" secondAttribute="centerX" id="puA-fK-CF2"/>
                             <constraint firstItem="Ouk-AK-7eb" firstAttribute="width" secondItem="YX2-mi-m3d" secondAttribute="width" id="v7e-cu-10T"/>
@@ -81,6 +91,7 @@
                     <nil key="simulatedBottomBarMetrics"/>
                     <connections>
                         <outlet property="camera" destination="Ouk-AK-7eb" id="qX9-Aj-CYR"/>
+                        <outlet property="instructionLabel" destination="3SZ-bq-63p" id="btG-z5-7LW"/>
                         <outlet property="remote" destination="YX2-mi-m3d" id="ZOJ-NI-3F0"/>
                         <segue destination="fEZ-Nu-U1S" kind="show" identifier="showCamera" id="7b8-mq-6U1"/>
                         <segue destination="fzh-OB-Afg" kind="show" identifier="showRemote" id="uAs-bn-b3l"/>
@@ -88,7 +99,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Ved-Cy-zTR" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="216" y="236"/>
+            <point key="canvasLocation" x="215.19999999999999" y="235.23238380809596"/>
         </scene>
         <!--Camera-->
         <scene sceneID="9fQ-26-UVo">
