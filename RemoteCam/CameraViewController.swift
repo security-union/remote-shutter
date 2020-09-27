@@ -1,9 +1,9 @@
 //
 //  CameraViewController.swift
-//  Actors
+//  RemoteShutter
 //
 //  Created by Dario on 10/7/15.
-//  Copyright © 2015 dario. All rights reserved.
+//  Copyright © 2020 Security Union LLC. All rights reserved.
 //
 
 import UIKit
