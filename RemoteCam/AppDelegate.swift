@@ -9,47 +9,21 @@
 import UIKit
 import GoogleMobileAds
 
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
-
-    private func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
+    
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         InAppPurchasesManager.shared().reloadProducts { (i, e) in
             
         }
-        GADMobileAds.sharedInstance().start(completionHandler: nil)
-        self.setCustomNavBarTheme()
+        if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() {
+            GADMobileAds.sharedInstance().start(completionHandler: nil)
+        }
         return true
     }
-
-    func setCustomNavBarTheme() {
-        let shadow = NSShadow()
-        shadow.shadowColor = UIColor.black
-        shadow.shadowOffset = CGSize.init(width: 0.0, height: 1.0)
-
-        let app = UINavigationBar.appearance()
-
-        app.setBackgroundImage(UIImage(named: "blueBar"), for: .default)
-        let atts = [
-            convertFromNSAttributedStringKey(NSAttributedString.Key.foregroundColor): UIColor.white,
-            convertFromNSAttributedStringKey(NSAttributedString.Key.shadow): shadow
-        ]
-
-        app.titleTextAttributes = convertToOptionalNSAttributedStringKeyDictionary(atts)
-
-        let buttonApp = UIBarButtonItem.appearance()
-        buttonApp.setTitleTextAttributes(convertToOptionalNSAttributedStringKeyDictionary(atts), for: .normal)
-        buttonApp.setBackgroundImage(UIImage(named: "navigationBarButton"), for: .normal, barMetrics: .default)
-
-
-        let backButtonPressed = UIImage(named: "navigationBarBack")
-        let _backButtonPressed = backButtonPressed!.resizableImage(withCapInsets: UIEdgeInsets.init(top: 0, left: 14, bottom: 0, right: 4))
-
-        buttonApp.setBackButtonBackgroundImage(_backButtonPressed, for: .normal, barMetrics: .default)
-
-    }
-
 
     func applicationWillResignActive(_ application: UIApplication) {
     }
