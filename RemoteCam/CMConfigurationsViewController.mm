@@ -19,7 +19,7 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadData:) name:@"AppDidBecomeActive" object:nil];
     [self setTitle:NSLocalizedString(@"Settings", nil)];
     [[[self navigationController] navigationBar] setHidden:FALSE];
-    self.tableViewCells = @[@[self.disableiAds, self.restorePurchases], @[self.acknowledgments, self.versionCell, self.blackFireApps, self.theaterFramework]];
+    self.tableViewCells = @[@[self.disableiAds, self.restorePurchases], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.versionCell]];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -109,6 +109,8 @@
         [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://securityunion.dev"] options:@{} completionHandler:nil];
     } else if ([cell isEqual:self.theaterFramework]) {
         [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/security-union/Theater"] options:@{} completionHandler:nil];
+    } else if ([cell isEqual:self.contactSupport]) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"mailto:support@securityunion.dev"] options:@{} completionHandler:nil];
     }
 }
 
