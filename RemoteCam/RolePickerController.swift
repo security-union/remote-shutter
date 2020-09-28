@@ -9,6 +9,7 @@
 import UIKit
 import Theater
 
+
 /**
      Role picker allows the user to select whether the current device want's to be the camera or the monitor.
     
@@ -74,6 +75,11 @@ public class RolePickerController: UIViewController {
 
     @IBAction public func becomeMonitor(button: UIButton) {
         becomeMonitor()
+    }
+    
+    @IBAction func showSettings(sender: UIButton) {
+        let ctrl = CMConfigurationsViewController()
+        self.navigationController?.pushViewController(ctrl, animated: true)
     }
 
     public func becomeMonitor() {
