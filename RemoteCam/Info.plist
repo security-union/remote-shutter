@@ -20,14 +20,18 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-4832821923197585~2551814054</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.photography</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Allow camera to connect to the remote shutter</string>
+    <key>NSUserTrackingUsageDescription</key>
+    <string>Allow camera to connect to the remote shutter</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Allow camera to connect to the remote shutter</string>
+	<string>Show Ads to support Remote Shutter</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_RemoteCam._tcp</string>
@@ -57,8 +61,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-4832821923197585~2551814054</string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

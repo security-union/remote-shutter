@@ -19,8 +19,8 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="623"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <button opaque="NO" contentMode="scaleAspectFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="YX2-mi-m3d">
-                                <rect key="frame" x="98.5" y="10" width="178" height="297.5"/>
+                            <button opaque="NO" contentMode="scaleAspectFit" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="YX2-mi-m3d">
+                                <rect key="frame" x="16" y="10" width="343" height="283"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="YX2-mi-m3d" secondAttribute="height" multiplier="280:249" id="SKM-nl-HAs"/>
                                 </constraints>
@@ -41,8 +41,8 @@
                                     <action selector="becomeMonitorWithButton:" destination="Cdl-GO-JiS" eventType="touchUpInside" id="G3l-xq-Poq"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleAspectFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ouk-AK-7eb">
-                                <rect key="frame" x="98.5" y="315.5" width="178" height="297.5"/>
+                            <button opaque="NO" contentMode="scaleAspectFit" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ouk-AK-7eb">
+                                <rect key="frame" x="15" y="330" width="345" height="283"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="Ouk-AK-7eb" secondAttribute="height" multiplier="280:249" id="zPV-Ow-r94"/>
                                 </constraints>
@@ -63,9 +63,13 @@
                                     <action selector="becomeCameraWithButton:" destination="Cdl-GO-JiS" eventType="touchUpInside" id="eCE-fL-n3K"/>
                                 </connections>
                             </button>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Connect to an iOS or macOS device" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3SZ-bq-63p">
-                                <rect key="frame" x="51" y="301" width="273" height="21"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Connect to an iOS or macOS device" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3SZ-bq-63p">
+                                <rect key="frame" x="15" y="301" width="345" height="21"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <accessibility key="accessibilityConfiguration" identifier="instructionLabel" label="instructionLabel"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="Bgk-xI-dX7"/>
+                                </constraints>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <nil key="highlightedColor"/>
@@ -74,20 +78,22 @@
                         </subviews>
                         <color key="backgroundColor" red="0.072984814643859863" green="0.13994456827640533" blue="0.26697003841400146" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="3SZ-bq-63p" firstAttribute="centerY" secondItem="9mE-gc-HA6" secondAttribute="centerY" id="4N0-5s-YYS"/>
+                            <constraint firstItem="3SZ-bq-63p" firstAttribute="leading" secondItem="9mE-gc-HA6" secondAttribute="leading" constant="15" id="1o4-Jb-gRS"/>
                             <constraint firstItem="YX2-mi-m3d" firstAttribute="top" secondItem="XBC-RQ-5s6" secondAttribute="bottom" constant="10" id="6NN-dx-65I"/>
-                            <constraint firstItem="Ouk-AK-7eb" firstAttribute="centerX" secondItem="9mE-gc-HA6" secondAttribute="centerX" id="Exz-ga-ipq"/>
-                            <constraint firstItem="Ouk-AK-7eb" firstAttribute="height" secondItem="YX2-mi-m3d" secondAttribute="height" id="FOy-ho-cAa"/>
-                            <constraint firstItem="3SZ-bq-63p" firstAttribute="centerX" secondItem="YX2-mi-m3d" secondAttribute="centerX" id="XvY-1c-5di"/>
+                            <constraint firstItem="YX2-mi-m3d" firstAttribute="leading" secondItem="9mE-gc-HA6" secondAttribute="leadingMargin" id="BGn-xy-4EV"/>
+                            <constraint firstItem="Ouk-AK-7eb" firstAttribute="top" secondItem="3SZ-bq-63p" secondAttribute="bottom" constant="8" id="FM0-n8-2ap"/>
+                            <constraint firstItem="3SZ-bq-63p" firstAttribute="top" secondItem="YX2-mi-m3d" secondAttribute="bottom" constant="8" id="KyM-QZ-FdV"/>
+                            <constraint firstItem="Ouk-AK-7eb" firstAttribute="height" secondItem="YX2-mi-m3d" secondAttribute="height" id="TNt-CJ-IJv"/>
                             <constraint firstItem="Puv-Qq-hCV" firstAttribute="top" secondItem="Ouk-AK-7eb" secondAttribute="bottom" constant="10" id="Z94-Tb-UUq"/>
-                            <constraint firstItem="YX2-mi-m3d" firstAttribute="centerX" secondItem="9mE-gc-HA6" secondAttribute="centerX" id="puA-fK-CF2"/>
-                            <constraint firstItem="Ouk-AK-7eb" firstAttribute="width" secondItem="YX2-mi-m3d" secondAttribute="width" id="v7e-cu-10T"/>
-                            <constraint firstItem="Ouk-AK-7eb" firstAttribute="top" secondItem="YX2-mi-m3d" secondAttribute="bottom" constant="8" id="wfI-2t-W7N"/>
+                            <constraint firstItem="Ouk-AK-7eb" firstAttribute="leading" secondItem="9mE-gc-HA6" secondAttribute="leading" constant="15" id="hE3-8o-wVH"/>
+                            <constraint firstItem="YX2-mi-m3d" firstAttribute="trailing" secondItem="9mE-gc-HA6" secondAttribute="trailingMargin" id="hUm-9a-5bz"/>
+                            <constraint firstAttribute="trailing" secondItem="Ouk-AK-7eb" secondAttribute="trailing" constant="15" id="lao-mF-1Q9"/>
+                            <constraint firstAttribute="trailing" secondItem="3SZ-bq-63p" secondAttribute="trailing" constant="15" id="mEU-rZ-Izu"/>
                         </constraints>
                     </view>
                     <toolbarItems/>
                     <simulatedStatusBarMetrics key="simulatedStatusBarMetrics" statusBarStyle="lightContent"/>
-                    <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" translucent="NO" prompted="NO"/>
+                    <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" translucent="NO"/>
                     <nil key="simulatedBottomBarMetrics"/>
                     <connections>
                         <outlet property="camera" destination="Ouk-AK-7eb" id="qX9-Aj-CYR"/>
