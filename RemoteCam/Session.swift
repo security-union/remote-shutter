@@ -134,7 +134,8 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
     override public func receiveWithCtrl(ctrl: RolePickerController) -> Receive {
         return { [unowned self](msg: Message) in
             switch (msg) {
-            case is UICmd.StartScanning:
+            case is UICmd.StartScanning,
+                 is UICmd.ToggleConnect:
                 self.become(name: self.states.scanning, state: self.scanning(lobby: ctrl))
                 self.this ! BLECentral.StartScanning(services: nil, sender: self.this)
 

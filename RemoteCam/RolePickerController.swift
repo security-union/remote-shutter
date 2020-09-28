@@ -15,7 +15,6 @@ import Theater
     It is important to mention that the session is the actor that coordinates this modes internally.
  
     One neat feature is that if two devices are connected and both are in the RolePickerController, when device1 selects a role, say Camera, RemoteCamSession will inform device2 about the choice, so that it becomes the Monitor.
- 
 */
 
 public class RemoteCamSystem: ActorSystem {
@@ -53,7 +52,6 @@ public class RolePickerController: UIViewController {
         remote.isEnabled = false
         camera.isEnabled = false
         self.remoteCamSession ! SetViewCtrl(ctrl: self)
-        self.remoteCamSession ! UICmd.StartScanning(sender: nil)
     }
 
     override public func viewWillAppear(_ animated: Bool) {

@@ -38,6 +38,7 @@ PODS:
 
 DEPENDENCIES:
   - Google-Mobile-Ads-SDK (~> 7.65.0)
+  - GoogleUserMessagingPlatform (~> 1.2.0)
   - Starscream (~> 3.0.6)
   - Theater (~> 0.9.1)
 
@@ -62,6 +63,6 @@ SPEC CHECKSUMS:
   Starscream: ef3ece99d765eeccb67de105bfa143f929026cf5
   Theater: e5f67d3550b1be65ab5642ec3b9c253de96b57db
 
-PODFILE CHECKSUM: c0259e6ced940159147eb3a69afecacc37c8fb46
+PODFILE CHECKSUM: d944a36d16511107ff37b107c095a88330499dc1
 
 COCOAPODS: 1.9.3
