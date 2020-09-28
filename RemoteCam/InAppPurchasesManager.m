@@ -130,7 +130,6 @@ static InAppPurchasesManager *_manager = nil;
     for (SKPaymentTransaction *transaction in transactions) {
         switch ([transaction transactionState]) {
             case SKPaymentTransactionStatePurchasing:
-
                 break;
             case SKPaymentTransactionStateRestored:
             case SKPaymentTransactionStatePurchased: {

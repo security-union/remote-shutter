@@ -9,6 +9,7 @@
 import UIKit
 import GoogleMobileAds
 import Theater
+import UserMessagingPlatform
 
 /**
 This UIViewController provides a preconfigured banner and some NSLayoutConstraints to show/hide the banner.
@@ -24,23 +25,28 @@ public class iAdViewController: UIViewController, GADBannerViewDelegate {
     @IBOutlet weak var bannerHeight: NSLayoutConstraint?
 
     private func setupAdNetwork() {
-        AdBanner.adUnitID = "ca-app-pub-4832821923197585/2168670673"
-        AdBanner.rootViewController = self
-        AdBanner.delegate = self
-        AdBanner.adSize = GADAdSize(size: bannerView.frame.size, flags: 0)
-        AdBanner.frame = CGRect(x: 0, y: 0, width: bannerView.frame.width, height: bannerView.frame.height)
-        self.bannerView.addSubview(AdBanner)
-        self.bannerView.addConstraints(self.iAdsLayoutConstrains())
-        self.shouldHideBanner()
-        AdBanner.isAutoloadEnabled = true
+        let parameters = UMPRequestParameters()
+        // Set tag for under age of consent. Here NO means users are not under age.
+        parameters.tagForUnderAgeOfConsent = false
+
+        UMPConsentInformation.sharedInstance.requestConsentInfoUpdate(
+            with: parameters,
+            completionHandler: { [self] error in
+              if error == nil {
+                if UMPConsentInformation.sharedInstance.formStatus  == UMPFormStatus.available {
+                  loadForm()
+                } else {
+                    startShowingAds()
+                }
+              }
+        })
     }
 
     override public func viewDidLoad() {
         super.viewDidLoad()
+        self.shouldHideBanner()
         if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() {
             self.setupAdNetwork()
-        } else {
-            self.shouldHideBanner()
         }
         NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideAds(notification:)), name: NSNotification.Name(rawValue: Constants.removeAds()), object: nil)
     }
@@ -61,7 +67,7 @@ public class iAdViewController: UIViewController, GADBannerViewDelegate {
     }
 
     @objc func ShouldHideAds(notification: NSNotification) {
-        ^{
+        DispatchQueue.main.async {
             self.turnOffAds()
         }
     }
@@ -111,6 +117,34 @@ public class iAdViewController: UIViewController, GADBannerViewDelegate {
     
     public func adViewDidDismissScreen(_ bannerView: GADBannerView) {
         self.shouldHideBanner()
+    }
+    
+    func loadForm() {
+      UMPConsentForm.load(
+        completionHandler: { form, loadError in
+            if loadError != nil {
+            } else {
+                form?.present(
+                    from: self,
+                    completionHandler: { [self] dismissError in
+                        if UMPConsentInformation.sharedInstance.consentStatus == UMPConsentStatus.obtained {
+                            self.startShowingAds()
+                      }
+                })
+            }
+          })
+    }
+    
+    func startShowingAds() {
+        self.AdBanner.adUnitID = "ca-app-pub-4832821923197585/2168670673"
+        self.AdBanner.rootViewController = self
+        self.AdBanner.delegate = self
+        self.AdBanner.adSize = GADAdSize(size: self.bannerView.frame.size, flags: 0)
+        self.AdBanner.frame = CGRect(x: 0, y: 0, width: bannerView.frame.width, height: bannerView.frame.height)
+        self.bannerView.addSubview(self.AdBanner)
+        self.bannerView.addConstraints(self.iAdsLayoutConstrains())
+        self.shouldHideBanner()
+        self.AdBanner.isAutoloadEnabled = true
     }
 
 }

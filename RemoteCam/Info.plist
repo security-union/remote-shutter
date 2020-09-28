@@ -28,8 +28,6 @@
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Allow camera to connect to the remote shutter</string>
-    <key>NSUserTrackingUsageDescription</key>
-    <string>Allow camera to connect to the remote shutter</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Show Ads to support Remote Shutter</string>
 	<key>NSBonjourServices</key>
@@ -43,6 +41,8 @@
 	<string>Allow camera to connect to the remote shutter</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>In order to store pictures to the photo library</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Help support our app by showing Google Ads</string>
 	<key>UILaunchStoryboardName</key>
 	<string>Multipeer</string>
 	<key>UIMainStoryboardFile</key>
