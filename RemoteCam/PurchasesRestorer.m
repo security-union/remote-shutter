@@ -95,7 +95,7 @@
 }
 
 - (void)paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue {
-    [progressView setProgress:0.5];
+    [progressAlert dismissWithClickedButtonIndex:-1 animated:true];
     NSUserDefaults *userDefs = [NSUserDefaults standardUserDefaults];
     [userDefs setBool:TRUE forKey:DidRestoredPurchasesInDevice];
     [userDefs synchronize];
@@ -124,8 +124,8 @@
 - (void)alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex {
     if (buttonIndex == 0) {
         SKPaymentQueue *queue = [SKPaymentQueue defaultQueue];
-        [queue restoreCompletedTransactions];
         [queue addTransactionObserver:self];
+        [queue restoreCompletedTransactions];
         [self createProgressionAlertWithMessage:NSLocalizedString(@"Reestableciendo compras", nil) withActivity:TRUE];
     } else {
         SKPaymentQueue *queue = [SKPaymentQueue defaultQueue];

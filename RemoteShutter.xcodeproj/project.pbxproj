@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		060866BE2522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
+		060866BF2522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
+		060866C02522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
@@ -90,6 +93,7 @@
 		0602E4F21BEA50A00015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4F41BEA527B0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4F81BEA54380015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
+		060866BD2522519B001B59FC /* Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Configuration.storekit; sourceTree = "<group>"; };
 		0609A4DA251BFED80090DEB7 /* Photos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Photos.swift; sourceTree = "<group>"; };
 		0609A4FE251C3ADB0090DEB7 /* RemoteShutter.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RemoteShutter.entitlements; sourceTree = "<group>"; };
 		060B1E1F1BE70CC000077BCC /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
@@ -319,6 +323,7 @@
 		06E1D4E91BB7699700E07321 = {
 			isa = PBXGroup;
 			children = (
+				060866BD2522519B001B59FC /* Configuration.storekit */,
 				0609A4FE251C3ADB0090DEB7 /* RemoteShutter.entitlements */,
 				0692841D1BE5BF5B00AF4678 /* RemoteCam */,
 				069284321BE5BF5C00AF4678 /* RemoteCamTests */,
@@ -488,6 +493,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0692844E1BE5C0E600AF4678 /* Multipeer.storyboard in Resources */,
+				060866BE2522519B001B59FC /* Configuration.storekit in Resources */,
 				0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */,
 				0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */,
 				069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */,
@@ -509,6 +515,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				060866BF2522519B001B59FC /* Configuration.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -516,6 +523,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				060866C02522519B001B59FC /* Configuration.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -650,7 +658,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_WARN_UNUSED_LABEL = NO;
@@ -684,7 +692,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_WARN_UNUSED_LABEL = NO;
