@@ -1,0 +1,94 @@
+/* No comment provided by engineer. */
+"%@, ¿Desea intentar nuevamente?" = "%@, Would you like to try again?";
+
+/* No comment provided by engineer. */
+"AppName" = "Remote Shutter";
+
+/* No comment provided by engineer. */
+"Camera or remote shutter?" = "Camera or remote shutter?";
+
+/* No comment provided by engineer. */
+"Cellular" = "Cellular";
+
+/* No comment provided by engineer. */
+"CHOOSE A DEVICE" = "CHOOSE A DEVICE";
+
+/* No comment provided by engineer. */
+"Connecting" = "Connecting";
+
+/* No comment provided by engineer. */
+"Disconnect" = "Disconnect";
+
+/* No comment provided by engineer. */
+"Espere..." = "Wait...";
+
+/* No comment provided by engineer. */
+"flash_mode_auto" = "Auto";
+
+/* No comment provided by engineer. */
+"flash_mode_off" = "Off";
+
+/* No comment provided by engineer. */
+"flash_mode_on" = "On";
+
+/* No comment provided by engineer. */
+"Loading Image" = "Loading Image";
+
+/* Default DejalActivtyView label text */
+"Loading..." = "Loading...";
+
+/* No comment provided by engineer. */
+"Looking for devices over Wifi and Bluetooth." = "Looking for devices over Wifi and Bluetooth.";
+
+/* No comment provided by engineer. */
+"No Connection" = "No Connection";
+
+/* No comment provided by engineer. */
+"Reestableciendo compras" = "Restoring Purchases";
+
+/* No comment provided by engineer. */
+"Requesting capture" = "Requesting capture";
+
+/* No comment provided by engineer. */
+"ROLE PICKER" = "ROLE PICKER";
+
+/* No comment provided by engineer. */
+"Sending Photo to Remote" = "Sending Photo to Remote";
+
+/* No comment provided by engineer. */
+"Si" = "Yes";
+
+"Yes"= "Yes";
+
+/* No comment provided by engineer. */
+"WiFi" = "WiFi";
+
+/* No comment provided by engineer. */
+"¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "Would you like to syncronize your %@ with your previously purchased features (free)?";
+
+"Acknowledgments"= "Acknowledgments";
+
+"timeunit"= "sec";
+
+"Settings"="Settings";
+
+"Upgrades"="Upgrades";
+
+"Timer to take photos"="Timer to take photos";
+
+"Incoming Invite from %@"="Incoming Invite from %@";
+
+"Do you wish to accept?,"="Do you wish to accept?";
+
+"¡Gracias por usar nuestra App!"="Thank you for using this app!";
+
+"En otro momento"="Maybe later";
+
+"Calificar en la AppStore"="Rate";
+
+"Mandar Feedback"="Send feedback";
+
+"No Gracias"="No Thanks";
+
+"iAds Removed."="iAds Removed";
+
