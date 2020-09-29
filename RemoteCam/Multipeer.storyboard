@@ -20,7 +20,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <button opaque="NO" contentMode="scaleAspectFit" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="YX2-mi-m3d">
-                                <rect key="frame" x="16" y="10" width="343" height="283"/>
+                                <rect key="frame" x="16" y="10" width="343" height="263.5"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="YX2-mi-m3d" secondAttribute="height" multiplier="280:249" id="SKM-nl-HAs"/>
                                 </constraints>
@@ -42,7 +42,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleAspectFit" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ouk-AK-7eb">
-                                <rect key="frame" x="15" y="330" width="345" height="283"/>
+                                <rect key="frame" x="15" y="349.5" width="345" height="263.5"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="Ouk-AK-7eb" secondAttribute="height" multiplier="280:249" id="zPV-Ow-r94"/>
                                 </constraints>
@@ -63,12 +63,12 @@
                                     <action selector="becomeCameraWithButton:" destination="Cdl-GO-JiS" eventType="touchUpInside" id="eCE-fL-n3K"/>
                                 </connections>
                             </button>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Connect to an iOS or macOS device" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3SZ-bq-63p">
-                                <rect key="frame" x="15" y="301" width="345" height="21"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Connect to an iOS or macOS device (make sure that Wifi is on)" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3SZ-bq-63p">
+                                <rect key="frame" x="15" y="281.5" width="345" height="60"/>
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <accessibility key="accessibilityConfiguration" identifier="instructionLabel" label="instructionLabel"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="21" id="Bgk-xI-dX7"/>
+                                    <constraint firstAttribute="height" constant="60" id="Bgk-xI-dX7"/>
                                 </constraints>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
