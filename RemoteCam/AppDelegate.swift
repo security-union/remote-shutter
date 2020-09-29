@@ -22,6 +22,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() {
             GADMobileAds.sharedInstance().start(completionHandler: nil)
         }
+        UIApplication.shared.isIdleTimerDisabled = true
         return true
     }
 
