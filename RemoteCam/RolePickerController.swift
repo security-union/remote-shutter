@@ -40,19 +40,24 @@ public class RolePickerController: UIViewController {
     @IBOutlet weak var remote: UIButton!
     @IBOutlet weak var camera: UIButton!
     @IBOutlet weak var instructionLabel: UILabel!
-
+    
+    let disconnectedInstructionsLabel = NSLocalizedString("1. Make sure Wifi is on.\n2. Connect to another iOS or macOS device.", comment: "")
+    let disconnectedPrompt = NSLocalizedString("Turn on Wifi and connect to an iOS or macOS device", comment: "")
+    let connectedInstructionsLabel = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
+    let connectedPrompt = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
 
     lazy var remoteCamSession: ActorRef = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
 
     override public func viewDidLoad() {
         super.viewDidLoad()
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: states.connect, style: .done, target: self, action: #selector(RolePickerController.toggleConnect(button:)))
-        self.navigationItem.prompt = "Connect to an iOS or macOS device"
+        self.navigationItem.prompt = disconnectedPrompt
         remote.alpha = 0.3
         camera.alpha = 0.3
         remote.isEnabled = false
         camera.isEnabled = false
         self.remoteCamSession ! SetViewCtrl(ctrl: self)
+        instructionLabel.text = disconnectedInstructionsLabel
     }
 
     override public func viewWillAppear(_ animated: Bool) {
