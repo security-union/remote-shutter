@@ -1,17 +1,25 @@
 
 <p align="center" >
-  <img src="Docs/icon.png" title="Remote Shutter" float=left>
+  <img src="Docs/icon.png" title="Remote Shutter" width="200" float=left>
 </p>
 
 # Remote shutter: camera connect
----
 ## P2P Remote control camera
 
 <p align="center" >
-  <img src="store_assets/2.1/imgs/3.png" title="Pic 1" float=left>
-  <img src="store_assets/2.1/imgs/5.png" title="Pic 2" float=left>
-  <img src="store_assets/2.1/imgs/1.png" title="Pic 3" float=left>
+  <img src="store_assets/2.1/imgs/iphone_8_plus/3.png" width="200" title="Pic 1" float=left>
+  <img src="store_assets/2.1/imgs/iphone_8_plus/5.png" width="200" title="Pic 2" float=left>
+  <img src="store_assets/2.1/imgs/iphone_8_plus/1.png" width="200" title="Pic 3" float=left>
 </p>
+
+<p align="center">
+<a href="https://apps.apple.com/us/app/remote-shutter/id633274861" rel="App Store Link">
+    <img src="Docs/apple_app_store_badge.svg" width="200" title="Pic 3" float=left>
+</a>
+</p>
+
+
+
 
 ### Description
 ---
