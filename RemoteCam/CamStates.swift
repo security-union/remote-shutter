@@ -65,7 +65,7 @@ extension RemoteCamSession {
             case let c as DisconnectPeer:
                 ^{
                     alert.dismiss(animated: true, completion: nil)
-                    if (c.peer.displayName == peer.displayName) {
+                    if (c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0) {
                         mailbox.addOperation {
                             self.popAndStartScanning()
                         }
@@ -137,7 +137,7 @@ extension RemoteCamSession {
                 self.popToState(name: self.states.connected)
 
             case let c as DisconnectPeer:
-                if (c.peer.displayName == peer.displayName) {
+                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     self.popAndStartScanning()
                 }
 
