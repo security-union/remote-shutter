@@ -26,16 +26,21 @@ typedef void(^InAppPurchasesManagerHandler)(InAppPurchasesManager *purchasesMana
 }
 @property(nonatomic, strong) NSArray *products;
 @property(nonatomic, copy) InAppPurchasesManagerHandler productRefreshHandler;
-@property(nonatomic, copy) InAppPurchasesManagerHandler buyIAdsHandler;
+@property(nonatomic, copy) InAppPurchasesManagerHandler buyProductHandler;
 @property(nonatomic, strong) PurchasesRestorer *purchasesRestorer;
 
 + (InAppPurchasesManager *)sharedManager;
 
-- (void)userWantsToBuyRemoveiAdsFeature:(InAppPurchasesManagerHandler)handler;
+- (void)userWantsToBuyFeature:(NSString *)identifier
+                  withHandler:(InAppPurchasesManagerHandler)handler;
 
 - (SKProduct *)productWithIdentifier:(NSString *)identifier;
 
 - (BOOL)didUserBuyRemoveiAdsFeature;
+
+- (BOOL)didUserBuyRemoveiAdsFeatureAndEnableVideo;
+
+- (void)setDidUserBuyRemoveiAdsAndEnableVideoFeatures:(BOOL)feature;
 
 - (void)reloadProductsWithHandler:(InAppPurchasesManagerHandler)handler;
 
