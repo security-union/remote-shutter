@@ -10,6 +10,24 @@ import UIKit
 import Theater
 import AVFoundation
 
+
+func setFlashMode(ctrl: MonitorViewController, flashMode: AVCaptureDevice.FlashMode?) {
+    if let f = flashMode {
+        switch (f) {
+        case .off:
+            ctrl.flashStatus.text = "Off"
+        case .on:
+            ctrl.flashStatus.text = "On"
+        case .auto:
+            ctrl.flashStatus.text = "Auto"
+        default:
+            ctrl.flashStatus.text = "None"
+        }
+    } else {
+        ctrl.flashStatus.text = "None"
+    }
+}
+
 /**
 Monitor actor has a reference to the session actor and to the monitorViewController, it acts as the connection between the model and the controller from an MVC perspective.
 */
@@ -18,96 +36,66 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
 
     public required init(context: ActorSystem, ref: ActorRef) {
         super.init(context: context, ref: ref)
+        mailbox = OperationQueue()
         let session: Optional<ActorRef> = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")
-        session! ! UICmd.BecomeMonitor(sender: ref)
+        session! ! UICmd.BecomeMonitor(ref, mode: .Photo)
     }
 
     override public func receiveWithCtrl(ctrl: MonitorViewController) -> Receive {
+        
         return { [unowned self](msg: Message) in
             switch (msg) {
+            case is UICmd.RenderPhotoMode:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.configurePhotoMode()
+                }
+                
+            case is UICmd.RenderVideoMode:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.configureVideoMode()
+                }
+                
+            case is UICmd.RenderVideoModeRecording:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.configureVideoModeRecording()
+                }
 
             case is UICmd.BecomeMonitorFailed:
-                ^{
-                    ctrl.navigationController?.popViewController(animated: true)
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.navigationController?.popViewController(animated: true)
                 }
 
             case let cam as UICmd.ToggleCameraResp:
-                self.setFlashMode(ctrl: ctrl, flashMode: cam.flashMode)
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    if let ctrl = ctrl {
+                        setFlashMode(ctrl: ctrl, flashMode: cam.flashMode)
+                    }
+                }
 
             case let flash as RemoteCmd.ToggleFlashResp:
-                self.setFlashMode(ctrl: ctrl, flashMode: flash.flashMode)
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    if let ctrl = ctrl {
+                        setFlashMode(ctrl: ctrl, flashMode: flash.flashMode)
+                    }
+                }
 
             case is UICmd.UnbecomeMonitor:
                 let session: Optional<ActorRef> = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")
                 session! ! msg
 
             case let f as RemoteCmd.OnFrame:
-                if let img = UIImage(data: f.data) {
-                    let orientation = imageTransform(UIDevice.current.orientation, cameraOrientation: f.camOrientation, camPosition: f.camPosition)
-                    ^{
-                        ctrl.imageView.image = UIImage(cgImage: img.cgImage!, scale: 1, orientation: orientation)
+                if let cgImage = UIImage(data: f.data) {
+                    OperationQueue.main.addOperation {[weak ctrl] in
+                        if let ctrl = ctrl {
+                            ctrl.imageView.image = cgImage
+                        }
                     }
                 }
-
             default:
                 self.receive(msg: msg)
             }
         }
     }
-
-    func imageTransform(_ deviceOrientation: UIDeviceOrientation,
-                        cameraOrientation: UIInterfaceOrientation,
-                        camPosition: AVCaptureDevice.Position) -> UIImage.Orientation {
-        switch (cameraOrientation, camPosition) {
-        case (UIInterfaceOrientation.landscapeRight, AVCaptureDevice.Position.back):
-            return .up
-        case (UIInterfaceOrientation.portrait, AVCaptureDevice.Position.back):
-            return .right
-        case (UIInterfaceOrientation.landscapeLeft, AVCaptureDevice.Position.back):
-            return .down
-        case (UIInterfaceOrientation.portraitUpsideDown, AVCaptureDevice.Position.back):
-            return .left
-
-        case (UIInterfaceOrientation.landscapeRight, AVCaptureDevice.Position.front):
-            return .down
-        case (UIInterfaceOrientation.portrait, AVCaptureDevice.Position.front):
-            return .right
-        case (UIInterfaceOrientation.landscapeLeft, AVCaptureDevice.Position.front):
-            return .up
-        case (UIInterfaceOrientation.portraitUpsideDown, AVCaptureDevice.Position.front):
-            return .left
-        default:
-            return .up
-        }
-    }
-
-    func setFlashMode(ctrl: MonitorViewController, flashMode: AVCaptureDevice.FlashMode?) {
-        if let f = flashMode {
-            switch (f) {
-            case .off:
-                ^{
-                    ctrl.flashStatus.text = "Off"
-                }
-            case .on:
-                ^{
-                    ctrl.flashStatus.text = "On"
-                }
-            case .auto:
-                ^{
-                    ctrl.flashStatus.text = "Auto"
-                }
-            default:
-                ^{
-                    ctrl.flashStatus.text = "None"
-                }
-            }
-        } else {
-            ^{
-                ctrl.flashStatus.text = "None"
-            }
-        }
-    }
-
 }
 
 /**
@@ -138,8 +126,98 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     @IBOutlet weak var timerSlider: UISlider!
 
     @IBOutlet weak var timerLabel: UILabel!
-    
+
     @IBOutlet weak var galleryButton: UIButton!
+    
+    @IBOutlet weak var backButton: UIButton!
+    
+    @IBOutlet weak var flashButton: UIButton!
+    
+    @IBOutlet weak var settingsButton: UIButton!
+    
+    @IBOutlet weak var toggleCamera: UIButton!
+    
+    @IBOutlet weak var segmentedControl: UISegmentedControl!
+    
+    @IBOutlet weak var recordingView: UIImageView!
+    
+    var buttonPrompt: String = ""
+    
+    override public func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        self.navigationController?.isNavigationBarHidden = true
+    }
+
+    override public func viewDidLoad() {
+        super.viewDidLoad()
+        monitor ! SetViewCtrl(ctrl: self)
+        self.configureTimerUI()
+        self.segmentedControl.addTarget(self,
+                                        action: #selector(self.onSegmentedControlChanged(event:)),
+                                        for: .valueChanged)
+        self.takePicture.imageView?.contentMode = .scaleAspectFit
+        recordingView.image = UIImage.gifImageWithName("recording")
+        configurePhotoMode()
+    }
+
+    override public func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if self.isBeingDismissed || self.isMovingFromParent {
+            monitor ! UICmd.UnbecomeMonitor(sender: nil)
+            monitor ! Actor.Harakiri(sender: nil)
+        }
+    }
+    
+    deinit {
+        self.timer.cancel()
+        self.soundManager.stopPlayer()
+    }
+    
+    let buttonPromptPhotoMode = NSLocalizedString("Taking picture", comment: "")
+    let buttonPromptVideoMode = NSLocalizedString("Starting video", comment: "")
+    let buttonPromptRecordingMode = NSLocalizedString("Stopping video", comment: "")
+    
+    func configurePhotoMode() {
+        takePicture.setImage(UIImage.init(named: "camera.png"), for: .normal)
+        galleryButton.isEnabled = true
+        backButton.isEnabled = true
+        flashButton.isEnabled = true
+        timerSlider.isEnabled = true
+        settingsButton.isEnabled = true
+        segmentedControl.isEnabled = true
+        recordingView.isHidden = true
+        toggleCamera.isEnabled = true
+        toggleCamera.isHidden = false
+        buttonPrompt = buttonPromptPhotoMode
+    }
+    
+    func configureVideoMode() {
+        takePicture.setImage(UIImage.init(named: "record-button.png"), for: .normal)
+        galleryButton.isEnabled = true
+        backButton.isEnabled = true
+        flashButton.isEnabled = false
+        timerSlider.isEnabled = true
+        settingsButton.isEnabled = true
+        segmentedControl.isEnabled = true
+        recordingView.isHidden = true
+        toggleCamera.isEnabled = true
+        toggleCamera.isHidden = false
+        buttonPrompt = buttonPromptVideoMode
+    }
+    
+    func configureVideoModeRecording() {
+        takePicture.setImage(UIImage.init(named: "stop-button.png"), for: .normal)
+        galleryButton.isEnabled = false
+        backButton.isEnabled = false
+        flashButton.isEnabled = false
+        timerSlider.isEnabled = false
+        settingsButton.isEnabled = false
+        segmentedControl.isEnabled = false
+        recordingView.isHidden = false
+        toggleCamera.isEnabled = false
+        toggleCamera.isHidden = true
+        buttonPrompt = buttonPromptRecordingMode
+    }
 
     @IBAction func toggleCamera(sender: UIButton) {
         session ! UICmd.ToggleCamera()
@@ -162,13 +240,14 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         let pickerController = UIImagePickerController()
         pickerController.delegate = self
         pickerController.allowsEditing = true
-        pickerController.mediaTypes = ["public.image"]
-        pickerController.sourceType = .photoLibrary
+        pickerController.videoMaximumDuration = 60 * 60
+        pickerController.mediaTypes = ["public.image", "public.movie"]
+        pickerController.sourceType = .savedPhotosAlbum
         #if targetEnvironment(macCatalyst)
-            pickerController.modalPresentationStyle = UIModalPresentationStyle.pageSheet
+        pickerController.modalPresentationStyle = UIModalPresentationStyle.pageSheet
         #else
-            pickerController.modalPresentationStyle = UIModalPresentationStyle.popover
-            pickerController.popoverPresentationController?.sourceView = sender
+        pickerController.modalPresentationStyle = UIModalPresentationStyle.popover
+        pickerController.popoverPresentationController?.sourceView = sender
         #endif
         self.present(pickerController, animated: true)
     }
@@ -182,9 +261,13 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     */
 
     @IBAction func onTakePicture(sender: UIBarButtonItem) {
+        if buttonPrompt == buttonPromptRecordingMode {
+            self.session ! UICmd.TakePicture(sender: nil)
+            return
+        }
 
         func timerAlertTitle(seconds: Int) -> String {
-            return "Taking picture in \(seconds) seconds"
+            "\(buttonPrompt) in \(seconds) seconds"
         }
 
         let alert = UIAlertController(title: timerAlertTitle(seconds: Int(round(self.timerSlider.value))),
@@ -200,9 +283,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
         self.present(alert, animated: true) { [unowned self] in
             self.timer.start(withDuration: Int(round(self.timerSlider.value)), withTickHandler: { [unowned self](t) in
-                ^^{
-                    alert.title = timerAlertTitle(seconds: t!.timeRemaining())
-                }
+                alert.title = timerAlertTitle(seconds: t!.timeRemaining())
                 switch (t!.timeRemaining()) {
                 case let l where l > 3:
                     self.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
@@ -212,38 +293,16 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                     break
                 }
             }, cancelHandler: { (t) in
-                ^^{
                     alert.dismiss(animated: true, completion: nil)
-                }
             }, andCompletionHandler: { [unowned self] (t) in
-                ^^{
-                    alert.dismiss(animated: true, completion: nil)
-                }
+                alert.dismiss(animated: true, completion: nil)
                 self.session ! UICmd.TakePicture(sender: nil)
             })
         }
     }
 
-    override public func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        self.navigationController?.isNavigationBarHidden = true
-    }
-
-    override public func viewDidLoad() {
-        super.viewDidLoad()
-        monitor ! SetViewCtrl(ctrl: self)
-        self.configureTimerUI()
-    }
-
-    override public func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        if self.isBeingDismissed || self.isMovingFromParent {
-            monitor ! UICmd.UnbecomeMonitor(sender: nil)
-            monitor ! Actor.Harakiri(sender: nil)
-        }
-    }
-
     private func configureTimerUI() {
+        self.timerSlider.value = 5
         self.sliderContainer.layer.cornerRadius = 30.0
         self.sliderContainer.clipsToBounds = true
         self.timerSlider.layer.anchorPoint = CGPoint.init(x: 1.0, y: 1.0)
@@ -252,13 +311,24 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         self.timerSlider.maximumTrackTintColor = sliderColor2
         self.timerSlider.thumbTintColor = sliderColor1
     }
-
-    deinit {
-        self.timer.cancel()
-        self.soundManager.stopPlayer()
-    }
     
-    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+    @objc func onSegmentedControlChanged(event: UIEvent) {
+        if InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeatureAndEnableVideo() {
+            var mode = RecordingMode.Photo
+            switch segmentedControl.selectedSegmentIndex {
+            case 0:
+                mode = RecordingMode.Photo
+            default:
+                mode = RecordingMode.Video
+            }
+            session ! UICmd.BecomeMonitor(nil, mode: mode)
+        } else {
+            showSettings(sender: settingsButton)
+            segmentedControl.selectedSegmentIndex = 0
+        }
+    }
+
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         if let image = info[.originalImage] {
             let activityViewController = UIActivityViewController(activityItems: [image], applicationActivities: [])
             picker.dismiss(animated: true) {
@@ -268,49 +338,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                 activityViewController.modalPresentationStyle = UIModalPresentationStyle.popover
                 activityViewController.popoverPresentationController?.sourceView = self.galleryButton
                 #endif
-                
+
                 self.present(activityViewController, animated: true)
             }
         }
-    }
-}
-
-extension CGImage {
-
-    func rotated(by angle: CGFloat) -> CGImage? {
-        let angleInRadians = angle * .pi / 180
-
-        let imgRect = CGRect(x: 0, y: 0, width: width, height: height)
-        let transform = CGAffineTransform.identity.rotated(by: angleInRadians)
-        let rotatedRect = imgRect.applying(transform)
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-
-        guard let bmContext = CGContext(
-                data: nil,
-                width: Int(rotatedRect.size.width),
-                height: Int(rotatedRect.size.height),
-                bitsPerComponent: 8,
-                bytesPerRow: 0,
-                space: colorSpace,
-                bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue)
-                else {
-            return nil
-        }
-
-        bmContext.setAllowsAntialiasing(true)
-        bmContext.setShouldAntialias(true)
-        bmContext.interpolationQuality = .high
-        bmContext.translateBy(x: rotatedRect.size.width * 0.5, y: rotatedRect.size.height * 0.5)
-        bmContext.rotate(by: angleInRadians)
-        let drawRect = CGRect(
-                origin: CGPoint(x: -imgRect.size.width * 0.5, y: -imgRect.size.height * 0.5),
-                size: imgRect.size)
-        bmContext.draw(self, in: drawRect)
-
-        guard let rotatedImage = bmContext.makeImage() else {
-            return nil
-        }
-
-        return rotatedImage
     }
 }

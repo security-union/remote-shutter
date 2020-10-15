@@ -40,7 +40,7 @@ public class RolePickerController: UIViewController {
     @IBOutlet weak var remote: UIButton!
     @IBOutlet weak var camera: UIButton!
     @IBOutlet weak var instructionLabel: UILabel!
-    
+
     let disconnectedInstructionsLabel = NSLocalizedString("1. Make sure Wifi is on.\n2. Connect to another iOS or macOS device.", comment: "")
     let disconnectedPrompt = NSLocalizedString("Turn on Wifi and connect to an iOS or macOS device", comment: "")
     let connectedInstructionsLabel = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
@@ -81,7 +81,7 @@ public class RolePickerController: UIViewController {
     @IBAction public func becomeMonitor(button: UIButton) {
         becomeMonitor()
     }
-    
+
     @IBAction func showSettings(sender: UIButton) {
         let ctrl = CMConfigurationsViewController()
         self.navigationController?.pushViewController(ctrl, animated: true)
