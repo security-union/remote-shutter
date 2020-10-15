@@ -8,15 +8,19 @@
 
 import Foundation
 
-struct States {
+struct RemoteCamStates {
     let scanning = "scanni§ng"
     let idle = "idle"
     let connected = "connected"
     let camera = "camera"
     let monitor = "monitor"
     let cameraTakingPic = "cameraTakingPic"
-    let cameraWithController = "cameraWithController"
+    let cameraRecordingVideo = "cameraRecordingVideo"
     let monitorTakingPicture = "monitorTakingPicture"
     let monitorTogglingFlash = "monitorTogglingFlash"
     let monitorTogglingCamera = "monitorTogglingCamera"
+    let monitorRecordingVideo = "monitorRecordingVideo"
+    let monitorPhotoMode = "monitorPhotoMode"
+    let monitorVideoMode = "monitorVideoMode"
+
 }

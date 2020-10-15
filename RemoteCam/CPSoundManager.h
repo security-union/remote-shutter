@@ -16,7 +16,6 @@ typedef enum CPSoundManagerAudioType {
 } CPSoundManagerAudioType;
 
 @interface CPSoundManager : NSObject {
-    //TODO: Understand why the plain C implementation of this doesn't work, but this is good enough for the current devices.
     AVAudioPlayer *player;
 }
 
@@ -28,3 +27,4 @@ typedef enum CPSoundManagerAudioType {
 - (void)vibrate:(id)sender;
 
 @end
+
