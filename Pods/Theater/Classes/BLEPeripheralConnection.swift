@@ -10,16 +10,16 @@ import Foundation
 import CoreBluetooth
 
 /**
- BLECentral returns a BLEPeripheralConnection OnConnect, the idea is to simplify and provide a more organized
- way to interact with CBPeripherals
- */
+    BLECentral returns a BLEPeripheralConnection OnConnect, the idea is to simplify and provide a more organized
+     way to interact with CBPeripherals
+*/
 
 public class BLEPeripheralConnection : Actor, WithListeners, CBPeripheralDelegate {
     
     /**
      
-     Actors that care about this peripheral connection
-     
+    Actors that care about this peripheral connection
+    
      */
     
     public var listeners : [ActorRef] = [ActorRef]()
@@ -27,17 +27,17 @@ public class BLEPeripheralConnection : Actor, WithListeners, CBPeripheralDelegat
     func connected(peripheral : CBPeripheral) -> Receive {
         peripheral.delegate = self
         return { [unowned self] (msg : Actor.Message) in
-            switch(msg) {
-                
+        switch(msg) {
+            
             case let m as DiscoverServices:
                 peripheral.discoverServices(m.services)
-                
+            
             case is AddListener:
                 self.addListener(sender: msg.sender)
-                
+            
             case is PeripheralDidUpdateName:
                 self.broadcast(msg: msg)
-                
+            
             case is DidModifyServices:
                 self.broadcast(msg: msg)
                 
@@ -73,37 +73,37 @@ public class BLEPeripheralConnection : Actor, WithListeners, CBPeripheralDelegat
                 
             default:
                 print("ignored")
-            }
+        }
         }
     }
     
     /**
-     
-     This is the message handler when there's no peripheral
+    
+    This is the message handler when there's no peripheral
      
      - parameter msg : incoming message
      
-     */
+    */
     
     override public func receive(msg: Actor.Message) {
         switch(msg) {
             
-        case let p as SetPeripheral:
-            self.become(name: "connected", state: self.connected(peripheral: p.peripheral))
+            case let p as SetPeripheral:
+                self.become(name: "connected", state: self.connected(peripheral: p.peripheral))
             
-        default:
-            super.receive(msg: msg)
+            default:
+                super.receive(msg: msg)
         }
     }
     
     /**
-     CBPeripheralDelegate forwarded message, this method is exposed through an Actor.Message subclass
-     */
+    CBPeripheralDelegate forwarded message, this method is exposed through an Actor.Message subclass
+    */
     
     public func peripheralDidUpdateName(_ peripheral: CBPeripheral){
         this ! PeripheralDidUpdateName(sender: this, peripheral: peripheral)
     }
-    
+
     /**
      CBPeripheralDelegate forwarded message, this method is exposed through an Actor.Message subclass
      */
@@ -194,7 +194,7 @@ public class BLEPeripheralConnection : Actor, WithListeners, CBPeripheralDelegat
     /**
      CBPeripheralDelegate forwarded message, this method is exposed through an Actor.Message subclass
      */
-    
+
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor descriptor: CBDescriptor, error: Error?){
         this ! DidUpdateValueForDescriptor(sender: this, peripheral: peripheral, descriptor: descriptor, error: error)
     }

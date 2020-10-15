@@ -43,7 +43,7 @@ prefix operator ^^
  
  Replaces:
  
- 
+
  
  ```
  NSOperationQueue.mainQueue().addOperationWithBlock({

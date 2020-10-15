@@ -1526,6 +1526,38 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		1121FACD7400C8456ABFD6D5FCB18D3D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = DDA8CD4568828333985F944D0B407A0A /* Theater.debug.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GCC_PREFIX_HEADER = "Target Support Files/Theater/Theater-prefix.pch";
+				INFOPLIST_FILE = "Target Support Files/Theater/Theater-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				MODULEMAP_FILE = "Target Support Files/Theater/Theater.modulemap";
+				PRODUCT_MODULE_NAME = Theater;
+				PRODUCT_NAME = Theater;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
+				SWIFT_VERSION = 5;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
 		15C74D615CA91661B2AAB7267213E1D6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = A0C6AB36B4EE60A06F8C4F8A857809FA /* Google-Mobile-Ads-SDK.debug.xcconfig */;
@@ -1602,38 +1634,6 @@
 				SYMROOT = "${SRCROOT}/../build";
 			};
 			name = Debug;
-		};
-		19E77238B83BE52822D55FA4F3ABBA99 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = E2E764D793E7BF4D7BB8ABA924CA01CC /* Theater.release.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
-				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				GCC_PREFIX_HEADER = "Target Support Files/Theater/Theater-prefix.pch";
-				INFOPLIST_FILE = "Target Support Files/Theater/Theater-Info.plist";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				MODULEMAP_FILE = "Target Support Files/Theater/Theater.modulemap";
-				PRODUCT_MODULE_NAME = Theater;
-				PRODUCT_NAME = Theater;
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
-				SWIFT_VERSION = 4.2;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Release;
 		};
 		1C8EBB75A410677C46963B1867D66FCB /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -1992,10 +1992,11 @@
 			};
 			name = Debug;
 		};
-		C5FF212AF586D2DCD5CD50CC075FC914 /* Debug */ = {
+		D1C32B206BB9CE843CA98CDFC9E7610D /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DDA8CD4568828333985F944D0B407A0A /* Theater.debug.xcconfig */;
+			baseConfigurationReference = E2E764D793E7BF4D7BB8ABA924CA01CC /* Theater.release.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
@@ -2008,7 +2009,7 @@
 				GCC_PREFIX_HEADER = "Target Support Files/Theater/Theater-prefix.pch";
 				INFOPLIST_FILE = "Target Support Files/Theater/Theater-Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				MODULEMAP_FILE = "Target Support Files/Theater/Theater.modulemap";
 				PRODUCT_MODULE_NAME = Theater;
@@ -2016,12 +2017,13 @@
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
-			name = Debug;
+			name = Release;
 		};
 		D7CD2DA8B26354F5FD22BCDDBDD0C8C3 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -2182,8 +2184,8 @@
 		D182457DA494ED4F92B98654A1A56F84 /* Build configuration list for PBXNativeTarget "Theater" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				C5FF212AF586D2DCD5CD50CC075FC914 /* Debug */,
-				19E77238B83BE52822D55FA4F3ABBA99 /* Release */,
+				1121FACD7400C8456ABFD6D5FCB18D3D /* Debug */,
+				D1C32B206BB9CE843CA98CDFC9E7610D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
