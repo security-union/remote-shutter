@@ -9,7 +9,7 @@
 import UIKit
 
 class ErrorViewController: UIViewController {
-    
+
     @IBAction func btnOpenSettings(_ sender: Any) {
         if let bundleId = Bundle.main.bundleIdentifier,
            let url = URL(string: "\(UIApplication.openSettingsURLString)&path=LOCATION/\(bundleId)") {
