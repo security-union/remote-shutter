@@ -48,7 +48,7 @@ extension MonitorVideoStates {
                 self.this ! msg
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
+                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     self.popAndStartScanning()
                 }
 
@@ -89,7 +89,7 @@ extension MonitorVideoStates {
                 self.popAndStartScanning()
                 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
+                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     self.popAndStartScanning()
                 }
 
@@ -123,7 +123,7 @@ extension MonitorVideoStates {
                 self.popAndStartScanning()
                 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
+                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{alert.dismiss(animated: true)}
                     self.popAndStartScanning()
                 }

@@ -62,7 +62,7 @@ extension RemoteCamSession {
 
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
+                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{
                         alert.dismiss(animated: true) {
                             mailbox.addOperation {
@@ -142,7 +142,7 @@ extension RemoteCamSession {
                 }
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
+                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{
                         alert.dismiss(animated: true) {
                             mailbox.addOperation {
