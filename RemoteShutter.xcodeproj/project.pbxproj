@@ -14,6 +14,9 @@
 		0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060B1E241BE710FE00077BCC /* BaseViewController.swift */; };
+		0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
+		0613BBD12530887500A6C24F /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
+		0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
 		061596F6251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
 		061596F7251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
 		061596F8251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
@@ -36,15 +39,27 @@
 		0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2E01BE702BC00F0B238 /* CPSoundManager.m */; };
 		0684A2E81BE7049800F0B238 /* beep.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E61BE7049800F0B238 /* beep.m4a */; };
 		0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E91BE704C600F0B238 /* fastBeep.aif */; };
+		068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
+		068EF0B02531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
+		068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
+		068EF0B82531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
+		068EF0B92531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
+		068EF0BA2531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
+		068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
+		068EF0C72531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
+		068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
+		068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
+		068EF0CF2531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
+		068EF0D02531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
 		0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */; };
 		069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284251BE5BF5B00AF4678 /* Assets.xcassets */; };
 		0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284421BE5C0E600AF4678 /* CameraViewController.swift */; };
 		0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284431BE5C0E600AF4678 /* MonitorViewController.swift */; };
 		0692844E1BE5C0E600AF4678 /* Multipeer.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 069284441BE5C0E600AF4678 /* Multipeer.storyboard */; };
 		0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284451BE5C0E600AF4678 /* MultipeerMessages.swift */; };
-		069284511BE5C0E600AF4678 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284471BE5C0E600AF4678 /* Session.swift */; };
+		069284511BE5C0E600AF4678 /* RemoteCamSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284471BE5C0E600AF4678 /* RemoteCamSession.swift */; };
 		069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
-		069284531BE5C0E600AF4678 /* States.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284491BE5C0E600AF4678 /* States.swift */; };
+		069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284491BE5C0E600AF4678 /* RemoteCamStateNames.swift */; };
 		069284541BE5C0E600AF4678 /* UIImage+ImageProcessing.m in Sources */ = {isa = PBXBuildFile; fileRef = 0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */; };
 		069284561BE5C12000AF4678 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 069284551BE5C12000AF4678 /* Main.storyboard */; };
 		069284661BE5C71800AF4678 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284651BE5C71800AF4678 /* Media.xcassets */; };
@@ -52,6 +67,38 @@
 		069284721BE5C82E00AF4678 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0692846F1BE5C82E00AF4678 /* Localizable.strings */; };
 		069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 069284701BE5C82E00AF4678 /* InfoPlist.strings */; };
 		06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */; };
+		06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AEE43325333B4A00C2ED90 /* UIAlertController.swift */; };
+		06AEE43525333B4A00C2ED90 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AEE43325333B4A00C2ED90 /* UIAlertController.swift */; };
+		06AEE43625333B4A00C2ED90 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AEE43325333B4A00C2ED90 /* UIAlertController.swift */; };
+		06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */; };
+		06B1D8102536C2330029CCB6 /* UIImage+gif.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */; };
+		06B1D8112536C2330029CCB6 /* UIImage+gif.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */; };
+		06B1D8152536C3FA0029CCB6 /* recording.gif in Resources */ = {isa = PBXBuildFile; fileRef = 06B1D8142536C3F90029CCB6 /* recording.gif */; };
+		06B1D8162536C3FA0029CCB6 /* recording.gif in Resources */ = {isa = PBXBuildFile; fileRef = 06B1D8142536C3F90029CCB6 /* recording.gif */; };
+		06B1D8172536C3FA0029CCB6 /* recording.gif in Resources */ = {isa = PBXBuildFile; fileRef = 06B1D8142536C3F90029CCB6 /* recording.gif */; };
+		06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
+		06C32C3D2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
+		06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
+		06CDFB17252E9A7900EA56FB /* RemoteCmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */; };
+		06CDFB18252E9A7900EA56FB /* RemoteCmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */; };
+		06CDFB1E252E9CD200EA56FB /* UICmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB1D252E9CD200EA56FB /* UICmds.swift */; };
+		06CDFB1F252E9CD200EA56FB /* UICmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB1D252E9CD200EA56FB /* UICmds.swift */; };
+		06CDFB20252E9CD200EA56FB /* UICmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB1D252E9CD200EA56FB /* UICmds.swift */; };
+		06CDFB2A252EC2C300EA56FB /* CGImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB29252EC2C300EA56FB /* CGImage.swift */; };
+		06CDFB2B252EC2C300EA56FB /* CGImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB29252EC2C300EA56FB /* CGImage.swift */; };
+		06CDFB2C252EC2C300EA56FB /* CGImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB29252EC2C300EA56FB /* CGImage.swift */; };
+		06D114CF2532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */; };
+		06D114D02532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */; };
+		06D114D12532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */; };
+		06E965212535199400E5A8B3 /* MediaProcessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E965202535199400E5A8B3 /* MediaProcessors.swift */; };
+		06E965222535199400E5A8B3 /* MediaProcessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E965202535199400E5A8B3 /* MediaProcessors.swift */; };
+		06E965232535199400E5A8B3 /* MediaProcessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E965202535199400E5A8B3 /* MediaProcessors.swift */; };
+		06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
+		06E9652825351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
+		06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
+		06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
+		06E9653F2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
+		06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
 /* End PBXBuildFile section */
@@ -100,6 +147,7 @@
 		060B1E241BE710FE00077BCC /* BaseViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseViewController.swift; sourceTree = "<group>"; };
 		060E28551BE1A5CA00D73ACB /* Nimble.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Nimble.framework; path = "Pods/../build/Debug-iphoneos/Nimble.framework"; sourceTree = "<group>"; };
 		060E28561BE1A5CA00D73ACB /* Quick.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quick.framework; path = "Pods/../build/Debug-iphoneos/Quick.framework"; sourceTree = "<group>"; };
+		0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIOrientationHelpers.swift; sourceTree = "<group>"; };
 		061596F2251FCFDA0032289B /* RemoteShutterTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteShutterTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteShutterUITests-Bridging-Header.h"; sourceTree = "<group>"; };
 		061596F4251FCFDA0032289B /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
@@ -129,6 +177,10 @@
 		0684A2E01BE702BC00F0B238 /* CPSoundManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CPSoundManager.m; sourceTree = "<group>"; };
 		0684A2E61BE7049800F0B238 /* beep.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = beep.m4a; sourceTree = "<group>"; };
 		0684A2E91BE704C600F0B238 /* fastBeep.aif */ = {isa = PBXFileReference; lastKnownFileType = file; path = fastBeep.aif; sourceTree = "<group>"; };
+		068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorVideoStates.swift; sourceTree = "<group>"; };
+		068EF0B72531844B00A84DFA /* CameraVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraVideoStates.swift; sourceTree = "<group>"; };
+		068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerDelegates.swift; sourceTree = "<group>"; };
+		068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamScanning.swift; sourceTree = "<group>"; };
 		0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		069284251BE5BF5B00AF4678 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0692842A1BE5BF5B00AF4678 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -138,9 +190,9 @@
 		069284431BE5C0E600AF4678 /* MonitorViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorViewController.swift; sourceTree = "<group>"; };
 		069284441BE5C0E600AF4678 /* Multipeer.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Multipeer.storyboard; sourceTree = "<group>"; };
 		069284451BE5C0E600AF4678 /* MultipeerMessages.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MultipeerMessages.swift; sourceTree = "<group>"; };
-		069284471BE5C0E600AF4678 /* Session.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		069284471BE5C0E600AF4678 /* RemoteCamSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteCamSession.swift; sourceTree = "<group>"; };
 		069284481BE5C0E600AF4678 /* RolePickerController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RolePickerController.swift; sourceTree = "<group>"; };
-		069284491BE5C0E600AF4678 /* States.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = States.swift; sourceTree = "<group>"; };
+		069284491BE5C0E600AF4678 /* RemoteCamStateNames.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteCamStateNames.swift; sourceTree = "<group>"; };
 		0692844A1BE5C0E600AF4678 /* UIImage+ImageProcessing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImage+ImageProcessing.h"; sourceTree = "<group>"; };
 		0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+ImageProcessing.m"; sourceTree = "<group>"; };
 		069284551BE5C12000AF4678 /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
@@ -149,6 +201,17 @@
 		0692846F1BE5C82E00AF4678 /* Localizable.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
 		069284701BE5C82E00AF4678 /* InfoPlist.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = InfoPlist.strings; sourceTree = "<group>"; };
 		06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorViewController.swift; sourceTree = "<group>"; };
+		06AEE43325333B4A00C2ED90 /* UIAlertController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIAlertController.swift; sourceTree = "<group>"; };
+		06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+gif.swift"; sourceTree = "<group>"; };
+		06B1D8142536C3F90029CCB6 /* recording.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = recording.gif; sourceTree = "<group>"; };
+		06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamConnected.swift; sourceTree = "<group>"; };
+		06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCmds.swift; sourceTree = "<group>"; };
+		06CDFB1D252E9CD200EA56FB /* UICmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICmds.swift; sourceTree = "<group>"; };
+		06CDFB29252EC2C300EA56FB /* CGImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGImage.swift; sourceTree = "<group>"; };
+		06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorPhotoStates.swift; sourceTree = "<group>"; };
+		06E965202535199400E5A8B3 /* MediaProcessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaProcessors.swift; sourceTree = "<group>"; };
+		06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftConstants.swift; sourceTree = "<group>"; };
+		06E9653D2535754800E5A8B3 /* Data+MD5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+MD5.swift"; sourceTree = "<group>"; };
 		06EEA7DB1BBB87EE005787AE /* Starscream.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Starscream.framework; path = "Pods/../build/Debug-iphoneos/Starscream.framework"; sourceTree = "<group>"; };
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -201,6 +264,7 @@
 				0692844A1BE5C0E600AF4678 /* UIImage+ImageProcessing.h */,
 				0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */,
 				066427741BE924DD003EDD41 /* EnumExtensions.swift */,
+				0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */,
 			);
 			name = Helpers;
 			sourceTree = "<group>";
@@ -233,16 +297,40 @@
 		0684A2D81BE6E9D400F0B238 /* RemoteCamSession */ = {
 			isa = PBXGroup;
 			children = (
-				069284471BE5C0E600AF4678 /* Session.swift */,
-				0684A2D21BE6E98A00F0B238 /* CamStates.swift */,
-				0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */,
+				069284491BE5C0E600AF4678 /* RemoteCamStateNames.swift */,
+				069284471BE5C0E600AF4678 /* RemoteCamSession.swift */,
+				068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */,
+				06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */,
+				068EF0B62531842C00A84DFA /* CameraStates */,
+				068EF0AD2531835900A84DFA /* MonitorStates */,
+				068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */,
 			);
 			name = RemoteCamSession;
+			sourceTree = "<group>";
+		};
+		068EF0AD2531835900A84DFA /* MonitorStates */ = {
+			isa = PBXGroup;
+			children = (
+				0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */,
+				068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */,
+				06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */,
+			);
+			name = MonitorStates;
+			sourceTree = "<group>";
+		};
+		068EF0B62531842C00A84DFA /* CameraStates */ = {
+			isa = PBXGroup;
+			children = (
+				0684A2D21BE6E98A00F0B238 /* CamStates.swift */,
+				068EF0B72531844B00A84DFA /* CameraVideoStates.swift */,
+			);
+			name = CameraStates;
 			sourceTree = "<group>";
 		};
 		0692841D1BE5BF5B00AF4678 /* RemoteCam */ = {
 			isa = PBXGroup;
 			children = (
+				06CDFB28252EC2B200EA56FB /* Extensions */,
 				069284761BE5C94600AF4678 /* Delegate */,
 				069284611BE5C1BD00AF4678 /* Model */,
 				069284601BE5C1A700AF4678 /* Controllers */,
@@ -282,11 +370,14 @@
 		069284611BE5C1BD00AF4678 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				06CDFB1D252E9CD200EA56FB /* UICmds.swift */,
+				06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */,
 				069284451BE5C0E600AF4678 /* MultipeerMessages.swift */,
 				0684A2D81BE6E9D400F0B238 /* RemoteCamSession */,
-				069284491BE5C0E600AF4678 /* States.swift */,
 				0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */,
 				060B1E141BE7079800077BCC /* Helpers */,
+				06E965202535199400E5A8B3 /* MediaProcessors.swift */,
+				06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */,
 			);
 			name = Model;
 			sourceTree = "<group>";
@@ -294,6 +385,7 @@
 		069284751BE5C8F900AF4678 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				06B1D8142536C3F90029CCB6 /* recording.gif */,
 				0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */,
 				0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */,
 				0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */,
@@ -318,6 +410,17 @@
 				069284411BE5C0E500AF4678 /* RemoteCam-Bridging-Header.h */,
 			);
 			name = Delegate;
+			sourceTree = "<group>";
+		};
+		06CDFB28252EC2B200EA56FB /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				06AEE43325333B4A00C2ED90 /* UIAlertController.swift */,
+				06CDFB29252EC2C300EA56FB /* CGImage.swift */,
+				06E9653D2535754800E5A8B3 /* Data+MD5.swift */,
+				06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */,
+			);
+			name = Extensions;
 			sourceTree = "<group>";
 		};
 		06E1D4E91BB7699700E07321 = {
@@ -505,6 +608,7 @@
 				0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */,
 				069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */,
 				069284661BE5C71800AF4678 /* Media.xcassets in Resources */,
+				06B1D8152536C3FA0029CCB6 /* recording.gif in Resources */,
 				065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */,
 				0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */,
 				069284561BE5C12000AF4678 /* Main.storyboard in Resources */,
@@ -515,6 +619,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06B1D8162536C3FA0029CCB6 /* recording.gif in Resources */,
 				060866BF2522519B001B59FC /* Configuration.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -523,6 +628,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06B1D8172536C3FA0029CCB6 /* recording.gif in Resources */,
 				060866C02522519B001B59FC /* Configuration.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -586,24 +692,39 @@
 			buildActionMask = 2147483647;
 			files = (
 				0684A2DE1BE6F82D00F0B238 /* RCTimer.m in Sources */,
-				069284511BE5C0E600AF4678 /* Session.swift in Sources */,
+				069284511BE5C0E600AF4678 /* RemoteCamSession.swift in Sources */,
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
+				0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
+				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
+				06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */,
+				068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */,
 				0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */,
 				0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */,
+				068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
 				061596F6251FCFDA0032289B /* Constants.m in Sources */,
+				06CDFB17252E9A7900EA56FB /* RemoteCmds.swift in Sources */,
 				06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */,
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
 				0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */,
 				0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */,
-				069284531BE5C0E600AF4678 /* States.swift in Sources */,
+				06CDFB2A252EC2C300EA56FB /* CGImage.swift in Sources */,
+				069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */,
+				06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
 				0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */,
+				06CDFB1E252E9CD200EA56FB /* UICmds.swift in Sources */,
+				068EF0B82531844B00A84DFA /* CameraVideoStates.swift in Sources */,
 				0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */,
 				0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */,
 				069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */,
 				0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */,
+				068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
+				06E965212535199400E5A8B3 /* MediaProcessors.swift in Sources */,
 				065024121BEA407F00311C8A /* CMConfigurationsViewController.mm in Sources */,
+				06D114CF2532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
 				0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */,
 				0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */,
+				06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */,
 				0684A2D51BE6E9A000F0B238 /* MonitorStates.swift in Sources */,
 				0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */,
 				066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */,
@@ -615,8 +736,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0613BBD12530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
+				068EF0C72531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				06E9652825351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
+				06CDFB2B252EC2C300EA56FB /* CGImage.swift in Sources */,
+				06E9653F2535754800E5A8B3 /* Data+MD5.swift in Sources */,
+				06CDFB1F252E9CD200EA56FB /* UICmds.swift in Sources */,
+				06AEE43525333B4A00C2ED90 /* UIAlertController.swift in Sources */,
+				068EF0CF2531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
+				06C32C3D2533A41800C18687 /* RemoteCamConnected.swift in Sources */,
+				06CDFB18252E9A7900EA56FB /* RemoteCmds.swift in Sources */,
+				06B1D8102536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */,
 				061596F7251FCFDA0032289B /* Constants.m in Sources */,
+				06D114D02532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
+				06E965222535199400E5A8B3 /* MediaProcessors.swift in Sources */,
+				068EF0B92531844B00A84DFA /* CameraVideoStates.swift in Sources */,
+				068EF0B02531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -624,9 +760,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
+				068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
+				06CDFB2C252EC2C300EA56FB /* CGImage.swift in Sources */,
+				06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */,
+				06CDFB20252E9CD200EA56FB /* UICmds.swift in Sources */,
+				06AEE43625333B4A00C2ED90 /* UIAlertController.swift in Sources */,
+				068EF0D02531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
+				06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */,
 				0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */,
+				06B1D8112536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */,
 				061596F8251FCFDA0032289B /* Constants.m in Sources */,
+				06D114D12532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
+				06E965232535199400E5A8B3 /* MediaProcessors.swift in Sources */,
+				068EF0BA2531844B00A84DFA /* CameraVideoStates.swift in Sources */,
+				068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -658,8 +808,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
+				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_WARN_UNUSED_LABEL = NO;
 				GCC_WARN_UNUSED_PARAMETER = NO;
@@ -667,7 +818,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 13.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 2.2;
+				MARKETING_VERSION = 2.3;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -692,8 +843,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
+				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_WARN_UNUSED_LABEL = NO;
 				GCC_WARN_UNUSED_PARAMETER = NO;
@@ -701,7 +853,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 13.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 2.2;
+				MARKETING_VERSION = 2.3;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";

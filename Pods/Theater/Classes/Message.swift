@@ -26,7 +26,7 @@ extension Actor {
          The constuctor requires an Optional<ActorRef> to setup the sender
          */
         
-        public init(sender : Optional<ActorRef>) {
+        public init(sender : Optional<ActorRef> = nil) {
             self.sender = sender
         }
         
@@ -37,6 +37,11 @@ extension Actor {
      */
     
     public class Harakiri : Message {}
+    
+    /**
+         Called when an actor transitions to a particular state.
+     */
+    public class OnEnter: Message {}
     
     /**
      PoisonPill is the same than Harakiri but for Akka fans, like me.
@@ -78,4 +83,3 @@ extension Actor {
     }
     
 }
-

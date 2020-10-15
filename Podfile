@@ -8,7 +8,7 @@ use_frameworks!
 
 target 'RemoteShutter' do    
     pod 'Starscream', '~> 3.0.6'
-    pod 'Theater', '~> 0.9.1'
+    pod 'Theater', '~> 0.11'
     pod 'Google-Mobile-Ads-SDK', '~> 7.65.0'
     pod 'GoogleUserMessagingPlatform', '~> 1.2.0'
 
