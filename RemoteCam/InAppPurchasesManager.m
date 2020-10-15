@@ -32,13 +32,17 @@ static InAppPurchasesManager *_manager = nil;
     return isInProgress;
 }
 
-- (void)userWantsToBuyRemoveiAdsFeature:(InAppPurchasesManagerHandler)handler {
-    self.buyIAdsHandler = handler;
+- (void)userWantsToBuyFeature:(NSString *) identifier withHandler:(InAppPurchasesManagerHandler)handler {
+    self.buyProductHandler = handler;
     if (self.products) {
         if ([self.products count] <= 0) {
             return;
         }
-        SKProduct *product = [self productWithIdentifier:RemoveiAdsFeatureIdentifier];
+        SKProduct *product = [self productWithIdentifier:identifier];
+        if (product == nil) {
+            handler(self, [NSError errorWithDomain:@"unable to find product" code:20 userInfo:nil]);
+            return;
+        }
         SKPayment *payment = [SKPayment paymentWithProduct:product];
         SKPaymentQueue *queue = [SKPaymentQueue defaultQueue];
         [queue addPayment:payment];
@@ -52,14 +56,13 @@ static InAppPurchasesManager *_manager = nil;
     }
 };
 
-
 - (SKProduct *)productWithIdentifier:(NSString *)identifier {
     if ([self.products count] <= 0) return nil;
 
     NSArray *filteredArray = [self.products filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(SKProduct *evaluatedObject, NSDictionary *bindings) {
         return [evaluatedObject.productIdentifier isEqualToString:identifier];
     }]];
-    return filteredArray[0];
+    return filteredArray.count > 0 ? filteredArray[0] : nil;
 }
 
 - (BOOL)didUserBuyRemoveiAdsFeature {
@@ -73,11 +76,30 @@ static InAppPurchasesManager *_manager = nil;
 
 - (void)setDidUserBuyRemoveiAdsFeatures:(BOOL)feature {
     if (feature) {
-        [[NSNotificationCenter defaultCenter] postNotificationName: Constants.RemoveAds
- object:nil];
+        [[NSNotificationCenter defaultCenter] postNotificationName:Constants.RemoveAds
+                                                            object:nil];
     }
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults setBool:feature forKey:didBuyRemoveiAdsFeature];
+    [defaults synchronize];
+}
+
+- (BOOL)didUserBuyRemoveiAdsFeatureAndEnableVideo {
+    BOOL didBuyiAds = FALSE;
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    if ([defaults objectForKey:didBuyRemoveAdsAndEnableVideo]) {
+        didBuyiAds = [defaults boolForKey:didBuyRemoveAdsAndEnableVideo];
+    }
+    return didBuyiAds;
+};
+
+- (void)setDidUserBuyRemoveiAdsAndEnableVideoFeatures:(BOOL)feature {
+    if (feature) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:Constants.RemoveAdsAndEnableVideo
+                                                            object:nil];
+    }
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setBool:feature forKey:didBuyRemoveAdsAndEnableVideo];
     [defaults synchronize];
 }
 
@@ -87,7 +109,7 @@ static InAppPurchasesManager *_manager = nil;
         req = nil;
     }
     self.productRefreshHandler = handler;
-    NSSet *_products = [NSSet setWithObjects:RemoveiAdsFeatureIdentifier, nil];
+    NSSet *_products = [NSSet setWithObjects:RemoveiAdsFeatureIdentifier, RemoveAdsAndEnableVideoIdentifier, nil];
     req = [[SKProductsRequest alloc] initWithProductIdentifiers:_products];
     [req setDelegate:self];
     [req start];
@@ -117,8 +139,8 @@ static InAppPurchasesManager *_manager = nil;
 }
 
 - (void)lacompraFallo:(NSError *)error {
-    if (self.buyIAdsHandler)
-        self.buyIAdsHandler(self, error);
+    if (self.buyProductHandler)
+        self.buyProductHandler(self, error);
 }
 
 - (void)request:(SKRequest *)request didFailWithError:(NSError *)error {
@@ -136,16 +158,25 @@ static InAppPurchasesManager *_manager = nil;
                 [queue finishTransaction:transaction];
                 if ([[[transaction payment] productIdentifier] isEqualToString:RemoveiAdsFeatureIdentifier]) {
                     [self setDidUserBuyRemoveiAdsFeatures:TRUE];
-                    if (self.buyIAdsHandler)
-                        self.buyIAdsHandler(self, nil);
+                    if (self.buyProductHandler)
+                        self.buyProductHandler(self, nil);
+                }
+                if ([[[transaction payment] productIdentifier] isEqualToString:RemoveAdsAndEnableVideoIdentifier]) {
+                    [self setDidUserBuyRemoveiAdsAndEnableVideoFeatures:TRUE];
+                    if (self.buyProductHandler)
+                        self.buyProductHandler(self, nil);
                 }
             }
                 break;
             case SKPaymentTransactionStateFailed:
                 [queue finishTransaction:transaction];
                 if ([[[transaction payment] productIdentifier] isEqualToString:RemoveiAdsFeatureIdentifier]) {
-                    if (self.buyIAdsHandler)
-                        self.buyIAdsHandler(self, transaction.error);
+                    if (self.buyProductHandler)
+                        self.buyProductHandler(self, transaction.error);
+                }
+                if ([[[transaction payment] productIdentifier] isEqualToString:RemoveAdsAndEnableVideoIdentifier]) {
+                    if (self.buyProductHandler)
+                        self.buyProductHandler(self, transaction.error);
                 }
 
                 break;
@@ -157,7 +188,7 @@ static InAppPurchasesManager *_manager = nil;
 }
 
 - (void)restorePurchasesWithHandler:(InAppPurchasesManagerHandler)handler {
-    self.buyIAdsHandler = handler;
+    self.buyProductHandler = handler;
     PurchasesRestorer *_sync = [PurchasesRestorer new];
     self.purchasesRestorer = _sync;
     self.purchasesRestorer.delegate = self;
@@ -165,12 +196,12 @@ static InAppPurchasesManager *_manager = nil;
 }
 
 - (void)errorHappened:(NSError *)error withRestorer:(PurchasesRestorer *)restorer {
-    self.buyIAdsHandler(self, error);
+    self.buyProductHandler(self, error);
 }
 
 - (void)didEndedSync:(PurchasesRestorer *)restorer {
     [self setPurchasesRestorer:nil];
-    self.buyIAdsHandler(self, nil);
+    self.buyProductHandler(self, nil);
 }
 
 

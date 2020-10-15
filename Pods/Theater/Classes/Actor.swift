@@ -124,7 +124,7 @@ open class Actor : NSObject {
      Each actor has it's own mailbox to process Actor.Messages.
      */
     
-    final public let mailbox : OperationQueue = OperationQueue()
+    open var mailbox : OperationQueue = OperationQueue()
     
     /**
      Sender has a reference to the last actor ref that sent this actor a message
@@ -165,6 +165,7 @@ open class Actor : NSObject {
     final public func become(name : String, state : @escaping Receive, discardOld : Bool) -> Void  {
         if discardOld { self.statesStack.popAndThrowAway() }
         self.statesStack.push(element: (name, state))
+        this ! OnEnter()
     }
     
     /**
@@ -173,6 +174,7 @@ open class Actor : NSObject {
     
     final public func unbecome() {
         self.statesStack.popAndThrowAway()
+        this ! OnEnter()
     }
     
     /**
@@ -228,6 +230,9 @@ open class Actor : NSObject {
                 #if DEBUG
                 print("Sending message to state \(name)")
                 #endif
+                if String(describing: msg).contains("ToggleCameraResp") {
+                    print("block")
+                }
                 state(msg)
             } else {
                 self.receive(msg: msg)
