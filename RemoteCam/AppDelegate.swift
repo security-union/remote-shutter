@@ -8,20 +8,21 @@
 
 import UIKit
 import GoogleMobileAds
-
+import Photos
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
-    
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         InAppPurchasesManager.shared().reloadProducts { (i, e) in
-            
+
         }
         if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() {
             GADMobileAds.sharedInstance().start(completionHandler: nil)
         }
+
         UIApplication.shared.isIdleTimerDisabled = true
         return true
     }

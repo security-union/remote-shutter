@@ -10,15 +10,15 @@ import Foundation
 import Starscream
 
 /**
- WebSocketClientWrapper messages
- */
+WebSocketClientWrapper messages
+*/
 
 extension WebSocketClientWrapper {
     
     /**
-     Connect command
-     */
-    
+    Connect command
+    */
+
     public class Connect : Actor.Message {
         public let url : NSURL
         
@@ -31,7 +31,7 @@ extension WebSocketClientWrapper {
     /**
      Disconnect command
      */
-    
+
     public class Disconnect : Actor.Message {}
     
     /**
@@ -43,7 +43,7 @@ extension WebSocketClientWrapper {
     /**
      Message broadcasted when there is an incoming WebSocket message
      */
-    
+
     public class OnMessage : Actor.Message {
         public let message : String
         
@@ -56,7 +56,7 @@ extension WebSocketClientWrapper {
     /**
      Message broadcasted when there is incoming WebSocket data
      */
-    
+
     public class OnData : Actor.Message {
         public let data : Data
         
@@ -69,7 +69,7 @@ extension WebSocketClientWrapper {
     /**
      Message broadcasted when the websocket get's disconnected
      */
-    
+
     public class OnDisconnect : Actor.Message {
         public let error : Optional<Error>
         
@@ -82,9 +82,9 @@ extension WebSocketClientWrapper {
     /**
      Message broadcasted when the websocket get's connected
      */
-    
+
     public class OnConnect : Actor.Message {}
-    
+        
 }
 
 /**
@@ -96,7 +96,7 @@ public class WebSocketClientWrapper : Actor , WebSocketDelegate,  WithListeners 
     /**
      Collection with actors that care about changes in BLECentral
      */
-    
+
     public var listeners : [ActorRef] = [ActorRef]()
     
     override public func preStart() {
@@ -105,8 +105,8 @@ public class WebSocketClientWrapper : Actor , WebSocketDelegate,  WithListeners 
     }
     
     /**
-     websocketDidConnect
-     */
+    websocketDidConnect
+    */
     
     public func websocketDidConnect(socket: WebSocketClient) {
         self.broadcast(msg: OnConnect(sender: this))
@@ -125,7 +125,6 @@ public class WebSocketClientWrapper : Actor , WebSocketDelegate,  WithListeners 
     /**
      websocketDidReceiveMessage
      */
-    
     public func websocketDidReceiveMessage(socket: WebSocketClient, text: String) {
         self.broadcast(msg: OnMessage(sender: this, message: text))
     }
@@ -139,8 +138,8 @@ public class WebSocketClientWrapper : Actor , WebSocketDelegate,  WithListeners 
     }
     
     /**
-     stupid variable to keep websocket around.
-     */
+    stupid variable to keep websocket around.
+    */
     var socket : WebSocket?
     
     /**
@@ -150,7 +149,7 @@ public class WebSocketClientWrapper : Actor , WebSocketDelegate,  WithListeners 
     lazy var disconnected : Receive = {[unowned self](msg : Actor.Message) in
         switch (msg) {
         case let c as Connect:
-            let socket = WebSocket(url: URL(string: c.url.absoluteString!)!)
+            let socket = WebSocket(request:URLRequest(url:URL(string: c.url.absoluteString!)!))
             self.socket = socket
             socket.delegate = self
             self.addListener(sender: c.sender)
@@ -183,8 +182,8 @@ public class WebSocketClientWrapper : Actor , WebSocketDelegate,  WithListeners 
     }
     
     /**
-     Cleanup
-     */
+    Cleanup
+    */
     
     deinit {
         self.this ! Disconnect(sender: nil)

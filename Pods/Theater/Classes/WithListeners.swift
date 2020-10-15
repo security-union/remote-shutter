@@ -10,7 +10,7 @@ import Foundation
 
 /**
  Generic protocol so that Actors can have a collection of observers.
- */
+*/
 
 public protocol WithListeners : class {
     
@@ -21,7 +21,7 @@ public protocol WithListeners : class {
      
      - parameter sender : ActorRef to add to the listeners
      */
-    
+        
     func addListener(sender : ActorRef?)
     
     /**
@@ -31,7 +31,7 @@ public protocol WithListeners : class {
      */
     
     func removeListener(sender : ActorRef?)
-    
+
     /**
      Send message to all listeners
      
@@ -39,15 +39,15 @@ public protocol WithListeners : class {
      */
     
     func broadcast(msg : Actor.Message)
-    
+
 }
 
 /**
  This default implementation of WithListeners mantains the listeners collection so that the Actor does not have to deal with that.
- */
+*/
 
 extension WithListeners {
-    
+
     /**
      adds sender to listeners
      
@@ -66,21 +66,21 @@ extension WithListeners {
     /**
      removes sender from listeners
      
-     - parameter sender : ActorRef to remove from the listeners collection
-     */
+      - parameter sender : ActorRef to remove from the listeners collection
+    */
     
     public func removeListener(sender : ActorRef?) {
         if let l = sender,
             let n = listeners.firstIndex(where:{ a -> Bool in  return l.path.asString == a.path.asString}) {
-            listeners.removeFirst(n)
+                listeners.removeFirst(n)
         }
     }
     
     /**
-     Send message to all listeners
+    Send message to all listeners
      
-     -parameter msg : message to send
-     */
+    -parameter msg : message to send
+    */
     
     public func broadcast(msg : Actor.Message) { listeners.forEach { $0 ! msg} }
 }

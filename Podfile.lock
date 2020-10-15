@@ -33,14 +33,14 @@ PODS:
   - nanopb/encode (1.30906.0)
   - PromisesObjC (1.2.10)
   - Starscream (3.0.6)
-  - Theater (0.9.1):
+  - Theater (0.11):
     - Starscream (~> 3.0.6)
 
 DEPENDENCIES:
   - Google-Mobile-Ads-SDK (~> 7.65.0)
   - GoogleUserMessagingPlatform (~> 1.2.0)
   - Starscream (~> 3.0.6)
-  - Theater (~> 0.9.1)
+  - Theater (~> 0.11)
 
 SPEC REPOS:
   https://github.com/CocoaPods/Specs.git:
@@ -61,8 +61,8 @@ SPEC CHECKSUMS:
   nanopb: 59317e09cf1f1a0af72f12af412d54edf52603fc
   PromisesObjC: b14b1c6b68e306650688599de8a45e49fae81151
   Starscream: ef3ece99d765eeccb67de105bfa143f929026cf5
-  Theater: e5f67d3550b1be65ab5642ec3b9c253de96b57db
+  Theater: d5df211f19d0bce93d743b43dea9242dba8580fe
 
-PODFILE CHECKSUM: d944a36d16511107ff37b107c095a88330499dc1
+PODFILE CHECKSUM: a513062b9122827aca2cb82f4cc1da72ea528f01
 
 COCOAPODS: 1.9.3

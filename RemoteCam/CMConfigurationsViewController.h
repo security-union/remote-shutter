@@ -7,6 +7,7 @@
 @interface CMConfigurationsViewController : UIViewController <UITableViewDelegate, UITableViewDataSource> {
 
 }
+@property(strong, nonatomic) IBOutlet UITableViewCell *disableAdsAndEnableVideoRecording;
 @property(strong, nonatomic) IBOutlet UITableViewCell *disableiAds;
 @property(nonatomic, strong) IBOutlet UITableViewCell *restorePurchases;
 @property(nonatomic, strong) IBOutlet UITableViewCell *acknowledgments;
