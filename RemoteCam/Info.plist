@@ -1,74 +1,74 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-    <dict>
-        <key>CFBundleDevelopmentRegion</key>
-        <string>en</string>
-        <key>CFBundleExecutable</key>
-        <string>$(EXECUTABLE_NAME)</string>
-        <key>CFBundleIdentifier</key>
-        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-        <key>CFBundleInfoDictionaryVersion</key>
-        <string>6.0</string>
-        <key>CFBundleName</key>
-        <string>$(PRODUCT_NAME)</string>
-        <key>CFBundlePackageType</key>
-        <string>APPL</string>
-        <key>CFBundleShortVersionString</key>
-        <string>$(MARKETING_VERSION)</string>
-        <key>CFBundleSignature</key>
-        <string>????</string>
-        <key>CFBundleVersion</key>
-        <string>$(CURRENT_PROJECT_VERSION)</string>
-        <key>GADApplicationIdentifier</key>
-        <string>ca-app-pub-4832821923197585~2551814054</string>
-        <key>LSApplicationCategoryType</key>
-        <string>public.app-category.photography</string>
-        <key>LSRequiresIPhoneOS</key>
-        <true/>
-        <key>NSBluetoothAlwaysUsageDescription</key>
-        <string>Allow camera to connect to the remote shutter</string>
-        <key>NSBluetoothPeripheralUsageDescription</key>
-        <string>Show Ads to support Remote Shutter</string>
-        <key>NSBonjourServices</key>
-        <array>
-            <string>_RemoteCam._tcp</string>
-            <string>_RemoteCam._udp</string>
-        </array>
-        <key>NSCameraUsageDescription</key>
-        <string>Take Pictures using a Remote Shutter</string>
-        <key>NSMicrophoneUsageDescription</key>
-        <string>Add audio to videos taken using Remote Shutter</string>
-        <key>NSLocalNetworkUsageDescription</key>
-        <string>Allow camera to connect to the remote shutter</string>
-        <key>NSPhotoLibraryUsageDescription</key>
-        <string>Store pictures to the photo library</string>
-        <key>NSUserTrackingUsageDescription</key>
-        <string>Help support our app by showing Google Ads</string>
-        <key>UILaunchStoryboardName</key>
-        <string>Multipeer</string>
-        <key>UIMainStoryboardFile</key>
-        <string>Main</string>
-        <key>UIRequiredDeviceCapabilities</key>
-        <array>
-            <string>armv7</string>
-        </array>
-        <key>UIRequiresFullScreen</key>
-        <true/>
-        <key>UIStatusBarStyle</key>
-        <string>UIStatusBarStyleLightContent</string>
-        <key>UISupportedInterfaceOrientations</key>
-        <array>
-            <string>UIInterfaceOrientationPortrait</string>
-            <string>UIInterfaceOrientationLandscapeLeft</string>
-            <string>UIInterfaceOrientationLandscapeRight</string>
-        </array>
-        <key>UISupportedInterfaceOrientations~ipad</key>
-        <array>
-            <string>UIInterfaceOrientationPortrait</string>
-            <string>UIInterfaceOrientationPortraitUpsideDown</string>
-            <string>UIInterfaceOrientationLandscapeLeft</string>
-            <string>UIInterfaceOrientationLandscapeRight</string>
-        </array>
-    </dict>
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-4832821923197585~2551814054</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.photography</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Allow camera to connect to the remote shutter</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Show Ads to support Remote Shutter</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_RemoteCam._tcp</string>
+		<string>_RemoteCam._udp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Take Pictures using a Remote Shutter</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Allow camera to connect to the remote shutter</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Add audio to videos taken using Remote Shutter</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Store pictures to the photo library</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Help support our app by showing Google Ads</string>
+	<key>UILaunchStoryboardName</key>
+	<string>Multipeer</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+</dict>
 </plist>
