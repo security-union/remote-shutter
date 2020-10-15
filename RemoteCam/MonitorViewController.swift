@@ -156,6 +156,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                                         action: #selector(self.onSegmentedControlChanged(event:)),
                                         for: .valueChanged)
         self.takePicture.imageView?.contentMode = .scaleAspectFit
+        self.flashButton.imageView?.contentMode = .scaleAspectFit
         recordingView.image = UIImage.gifImageWithName("recording")
         configurePhotoMode()
     }
@@ -182,6 +183,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         galleryButton.isEnabled = true
         backButton.isEnabled = true
         flashButton.isEnabled = true
+        flashButton.isHidden = false
+        flashStatus.isHidden = false
         timerSlider.isEnabled = true
         settingsButton.isEnabled = true
         segmentedControl.isEnabled = true
@@ -196,6 +199,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         galleryButton.isEnabled = true
         backButton.isEnabled = true
         flashButton.isEnabled = false
+        flashButton.isHidden = true
+        flashStatus.isHidden = true
         timerSlider.isEnabled = true
         settingsButton.isEnabled = true
         segmentedControl.isEnabled = true
@@ -210,6 +215,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         galleryButton.isEnabled = false
         backButton.isEnabled = false
         flashButton.isEnabled = false
+        flashButton.isHidden = true
+        flashStatus.isHidden = true
         timerSlider.isEnabled = false
         settingsButton.isEnabled = false
         segmentedControl.isEnabled = false
