@@ -18,28 +18,31 @@ extension RemoteCamSession {
     func monitorTogglingFlash(monitor: ActorRef,
                               peer: MCPeerID,
                               lobby: RolePickerController) -> Receive {
-        let alert = UIAlertController(title: "Requesting flash toggle",
+        var alert: UIAlertController?
+        ^{
+        alert = UIAlertController(title: "Requesting flash toggle",
                 message: nil,
                 preferredStyle: .alert)
+        }
         return { [unowned self] (msg: Actor.Message) in
             switch (msg) {
 
             case is UICmd.ToggleFlash:
                 ^{
-                    lobby.present(alert, animated: true, completion: {
+                    alert?.show(true) {
                         mailbox.addOperation {
                             if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleFlash()) as? Failure {
                                 self.this ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: f.error)
                             }
                         }
-                    })
+                    }
                 }
 
             case let t as RemoteCmd.ToggleFlashResp:
                 if let _ = t.flashMode {
                     monitor ! t
                     ^{
-                        alert.dismiss(animated: true) {
+                        alert?.dismiss(animated: true) {
                             mailbox.addOperation {
                                 self.unbecome()
                             }
@@ -47,7 +50,7 @@ extension RemoteCamSession {
                     }
                 } else if let error = t.error {
                     ^{
-                        alert.dismiss(animated: true) {
+                        alert?.dismiss(animated: true) {
                             let errorAlert = UIAlertController(title: error._domain,
                                                                message: nil,
                                                                preferredStyle: .alert)
@@ -64,7 +67,7 @@ extension RemoteCamSession {
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{
-                        alert.dismiss(animated: true) {
+                        alert?.dismiss(animated: true) {
                             mailbox.addOperation {
                                 self.popAndStartScanning()
                             }
@@ -74,7 +77,7 @@ extension RemoteCamSession {
 
             case is Disconnect:
                 ^{
-                    alert.dismiss(animated: true) {
+                    alert?.dismiss(animated: true) {
                         mailbox.addOperation {
                             self.popAndStartScanning()
                         }
@@ -83,7 +86,7 @@ extension RemoteCamSession {
 
             case is UICmd.UnbecomeMonitor:
                 ^{
-                    alert.dismiss(animated: true) {
+                    alert?.dismiss(animated: true) {
                         mailbox.addOperation {
                             self.popToState(name: self.states.connected)
                         }
@@ -99,14 +102,17 @@ extension RemoteCamSession {
     func monitorTogglingCamera(monitor: ActorRef,
                                peer: MCPeerID,
                                lobby: RolePickerController) -> Receive {
-        let alert = UIAlertController(title: "Requesting camera toggle",
-                message: nil,
-                preferredStyle: .alert)
+        var alert: UIAlertController?
+        ^{
+            alert = UIAlertController(title: "Requesting camera toggle",
+                    message: nil,
+                    preferredStyle: .alert)
+        }
         return { [unowned self] (msg: Actor.Message) in
             switch (msg) {
             case is UICmd.ToggleCamera:
                 ^{
-                    alert.show(true) {
+                    alert?.show(true) {
                         mailbox.addOperation {
                             if let f = self.sendMessage(
                                 peer: [peer], msg: RemoteCmd.ToggleCamera()) as? Failure {
@@ -124,13 +130,13 @@ extension RemoteCamSession {
                     camPosition: t.camPosition, error: t.error)
                 ^{
                     if let _ = t.flashMode {
-                        alert.dismiss(animated: true) {
+                        alert?.dismiss(animated: true) {
                             mailbox.addOperation {
                                 self.unbecome()
                             }
                         }
                     } else if let error = t.error {
-                        alert.dismiss(animated: true, completion: {
+                        alert?.dismiss(animated: true, completion: {
                             let errorAlert = UIAlertController(title: error._domain, message: nil, preferredStyle: .alert)
                             errorAlert.simpleOkAction()
                             errorAlert.show(true)
@@ -144,7 +150,7 @@ extension RemoteCamSession {
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{
-                        alert.dismiss(animated: true) {
+                        alert?.dismiss(animated: true) {
                             mailbox.addOperation {
                                 self.popAndStartScanning()
                             }
@@ -154,7 +160,7 @@ extension RemoteCamSession {
 
             case is Disconnect:
                 ^{
-                    alert.dismiss(animated: true) {
+                    alert?.dismiss(animated: true) {
                         mailbox.addOperation {
                             self.popAndStartScanning()
                         }
@@ -163,7 +169,7 @@ extension RemoteCamSession {
 
             case is UICmd.UnbecomeMonitor:
                 ^{
-                    alert.dismiss(animated: true) {
+                    alert?.dismiss(animated: true) {
                         mailbox.addOperation {
                             self.popToState(name: self.states.connected)
                         }
