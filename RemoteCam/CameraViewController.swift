@@ -116,28 +116,22 @@ public class CameraViewController:
 
     func setupCamera() -> Void {
         videoDataOutput.setSampleBufferDelegate(self, queue: videoDataOutputQueue)
-        videoDataOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
+        videoDataOutput.videoSettings =
+            [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
         videoDataOutput.alwaysDiscardsLateVideoFrames = true
         if captureSession.isRunning {
             captureSession.stopRunning()
         }
+        self.captureSession.beginConfiguration()
+        captureSession.sessionPreset = .high
         
         guard let videoDevice = AVCaptureDevice.default(for: AVMediaType.video) else {
             return
         }
 
-        guard let previewPixelType = self.cameraSettings.__availablePreviewPhotoPixelFormatTypes.first else {
-            return
-        }
-        
-        let previewFormat = [kCVPixelBufferPixelFormatTypeKey as String: previewPixelType,
-                             kCVPixelBufferWidthKey as String: 160,
-                             kCVPixelBufferHeightKey as String: 160]
-        self.cameraSettings.previewPhotoFormat = previewFormat
-
         self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
 
-        captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspectFill
+        captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
         captureVideoPreviewLayer!.frame = self.view.frame
 
         self.view.layer.insertSublayer(captureVideoPreviewLayer!, below: self.back.layer)
@@ -172,6 +166,7 @@ public class CameraViewController:
             DispatchQueue.main.async {
                 self.rotateCameraToOrientation(orientation: self.orientation)
             }
+            self.captureSession.commitConfiguration()
             self.captureSession.startRunning()
         } catch let error as NSError {
             print("error \(error)")
@@ -181,7 +176,7 @@ public class CameraViewController:
     func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)> {
         do {
             let captureSession = self.captureSession
-
+            captureSession.beginConfiguration()
             let device = self.videoDeviceInput?.device
             let newPosition = device?.position.toggle().toOptional()
             let newDevice = cameraForPosition(position: newPosition!)
@@ -196,6 +191,7 @@ public class CameraViewController:
                     self.rotateCameraToOrientation(orientation: self.orientation)
                 }
                 let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
+                captureSession.commitConfiguration()
                 return Success(value: (newFlashMode, newInput.device.position))
             }
         } catch let error as NSError {
@@ -204,6 +200,7 @@ public class CameraViewController:
     }
     
     private func configSessionOutput() {
+        self.captureSession.beginConfiguration()
         captureSession.removeOutput(videoDataOutput)
         if captureSession.canAddOutput(videoDataOutput) {
             captureSession.addOutput(videoDataOutput)
@@ -221,6 +218,7 @@ public class CameraViewController:
         }
         videoConnection = videoDataOutput.connection(with: .video)
         audioConnection = audioDataOutput.connection(with: .audio)
+        self.captureSession.commitConfiguration()
     }
 
     func toggleFlash() -> Try<AVCaptureDevice.FlashMode> {
@@ -297,8 +295,10 @@ public class CameraViewController:
     }
 
     func takePicture() -> Void {
-        let cameraSettings = cloneCameraSettings(self.cameraSettings)
-        self.photoOutput.capturePhoto(with: cameraSettings, delegate: self)
+        OperationQueue.main.addOperation {
+            let cameraSettings = self.cloneCameraSettings(self.cameraSettings)
+            self.photoOutput.capturePhoto(with: cameraSettings, delegate: self)
+        }
     }
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
@@ -439,7 +439,35 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
     
     func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
-        let videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
+        var videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
+        if #available(iOS 13, *) {
+            videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
+        } else {
+            // Please do not remove this code unless we drop iOS 12.
+            let dimensions = CMVideoFormatDescriptionGetDimensions(formatDescription)
+            var bitsPerPixel: Float
+            let numPixels = dimensions.width * dimensions.height
+            var bitsPerSecond: Int
+            
+            // Assume that lower-than-SD resolutions are intended for streaming, and use a lower bitrate
+            if numPixels < 640 * 480 {
+                bitsPerPixel = 4.05 // This bitrate approximately matches the quality produced by AVCaptureSessionPresetMedium or Low.
+            } else {
+                bitsPerPixel = 10.1 // This bitrate approximately matches the quality produced by AVCaptureSessionPresetHigh.
+            }
+            
+            bitsPerSecond = Int(Float(numPixels) * bitsPerPixel)
+            
+            let compressionProperties: NSDictionary = [AVVideoAverageBitRateKey : bitsPerSecond,
+                                                       AVVideoExpectedSourceFrameRateKey : 24,
+                                                       AVVideoMaxKeyFrameIntervalKey : 24]
+            
+            videoSettings = [AVVideoCodecKey : AVVideoCodecType.h264,
+                             AVVideoWidthKey : dimensions.width,
+                             AVVideoHeightKey : dimensions.height,
+                             AVVideoCompressionPropertiesKey : compressionProperties]
+        }
+
         if assetWriter.canApply(outputSettings: videoSettings, forMediaType: .video) {
             videoInput = AVAssetWriterInput(
                 mediaType: .video,
