@@ -157,11 +157,12 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
         assert(Thread.isMainThread == false, "can't be called from the main thread")
         if (self.sendMessage(peer: self.session.connectedPeers, msg: msg).isFailure()) {
             self.popToState(name: self.states.scanning)
+            ^{
             let alert = UIAlertController(
                 title: NSLocalizedString("Connection error", comment: ""),
                 message: NSLocalizedString("Peer disconnected, please reconnect", comment: ""),
                 preferredStyle: .alert)
-            ^{
+            
                 alert.simpleOkAction()
                 alert.show(true)
             }

@@ -157,6 +157,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                                         for: .valueChanged)
         self.takePicture.imageView?.contentMode = .scaleAspectFit
         self.flashButton.imageView?.contentMode = .scaleAspectFit
+        self.imageView.contentMode = .scaleAspectFit
         recordingView.image = UIImage.gifImageWithName("recording")
         configurePhotoMode()
     }
