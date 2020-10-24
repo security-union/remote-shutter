@@ -31,7 +31,7 @@
 		065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0650240C1BEA407F00311C8A /* CMConfigurationsViewController.xib */; };
 		0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024161BEA413900311C8A /* PurchasesRestorer.m */; };
 		0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024181BEA413900311C8A /* InAppPurchasesManager.m */; };
-		065DE66C253A43BA0022193C /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */; };
+		065DE66C253A43BA0022193C /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066427741BE924DD003EDD41 /* EnumExtensions.swift */; };
 		0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */; };
 		0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D21BE6E98A00F0B238 /* CamStates.swift */; };
@@ -812,7 +812,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -822,7 +822,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 13.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -847,7 +847,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -857,7 +857,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				"IPHONEOS_DEPLOYMENT_TARGET[sdk=macosx*]" = 13.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
