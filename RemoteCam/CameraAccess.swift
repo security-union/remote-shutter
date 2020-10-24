@@ -16,17 +16,17 @@ Permissions verification extensions
 */
 
 extension UIViewController {
-    
+
     private struct AssociatedKeys {
         static var errorViewController = "errorViewController"
     }
-    
+
     private func setErrorViewController(_ ctrl: UIViewController?) {
         objc_setAssociatedObject(self, &AssociatedKeys.errorViewController,
-                                 ctrl,
+                ctrl,
                 objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
-    
+
     private func getErrorViewController() -> UIViewController? {
         return objc_getAssociatedObject(self, &AssociatedKeys.errorViewController) as? UIViewController
     }
@@ -35,11 +35,22 @@ extension UIViewController {
         verifyCameraRollAccess()
         verifyCameraAccess()
         verifyNetworkAccess()
+        verifyMicrophoneAccess()
     }
 
     public func verifyCameraAccess() {
         if AVCaptureDevice.authorizationStatus(for: AVMediaType(rawValue: convertFromAVMediaType(AVMediaType.video))) != AVAuthorizationStatus.authorized {
             AVCaptureDevice.requestAccess(for: AVMediaType(rawValue: convertFromAVMediaType(AVMediaType.video)), completionHandler: { (granted: Bool) -> Void in
+                if !granted {
+                    self.showNoAccessToCamera()
+                }
+            })
+        }
+    }
+
+    public func verifyMicrophoneAccess() {
+        if AVCaptureDevice.authorizationStatus(for: AVMediaType(rawValue: convertFromAVMediaType(AVMediaType.audio))) != AVAuthorizationStatus.authorized {
+            AVCaptureDevice.requestAccess(for: AVMediaType(rawValue: convertFromAVMediaType(AVMediaType.audio)), completionHandler: { (granted: Bool) -> Void in
                 if !granted {
                     self.showNoAccessToCamera()
                 }
@@ -58,7 +69,7 @@ extension UIViewController {
             }
         }
     }
-    
+
     public func verifyNetworkAccess() {
         // TODO: Implement after apple explains us how.
     }
@@ -78,7 +89,7 @@ extension UIViewController {
     public func showNoCameraRollAccess() {
         showErrorNibWithName("BFDeniedAccessToAssetsView")
     }
-    
+
     private func showErrorNibWithName(_ fileName: String) {
         DispatchQueue.main.async {
             let errorViewController = ErrorViewController(nibName: fileName, bundle: Bundle.main)

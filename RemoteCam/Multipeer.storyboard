@@ -4,6 +4,7 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="17125"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -190,10 +191,20 @@
                                     <action selector="goBackWithSender:" destination="fEZ-Nu-U1S" eventType="touchUpInside" id="oAR-Yl-yAL"/>
                                 </connections>
                             </button>
+                            <imageView clearsContextBeforeDrawing="NO" userInteractionEnabled="NO" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="YDg-O6-vat">
+                                <rect key="frame" x="165" y="17" width="45" height="45"/>
+                                <color key="backgroundColor" red="0.072984814640000006" green="0.13994456829999999" blue="0.2669700384" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="45" id="TKg-dA-r1q"/>
+                                    <constraint firstAttribute="width" constant="45" id="jn3-Mb-J7Z"/>
+                                </constraints>
+                            </imageView>
                         </subviews>
                         <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="6In-cm-wQH" firstAttribute="top" secondItem="dGC-7F-6cb" secondAttribute="topMargin" constant="124" id="BIX-mf-dMo"/>
+                            <constraint firstItem="YDg-O6-vat" firstAttribute="centerX" secondItem="dGC-7F-6cb" secondAttribute="centerX" id="KPt-cr-SaC"/>
+                            <constraint firstItem="YDg-O6-vat" firstAttribute="top" secondItem="5cr-Vb-2ff" secondAttribute="bottom" constant="17" id="OPi-n3-Syg"/>
                             <constraint firstItem="6In-cm-wQH" firstAttribute="leading" secondItem="dGC-7F-6cb" secondAttribute="leadingMargin" constant="-36" id="Q18-yJ-Sk9"/>
                             <constraint firstItem="6In-cm-wQH" firstAttribute="centerY" secondItem="dGC-7F-6cb" secondAttribute="centerY" id="Uak-Yo-y4J"/>
                             <constraint firstItem="6In-cm-wQH" firstAttribute="top" secondItem="dGC-7F-6cb" secondAttribute="topMargin" constant="-16" id="cxJ-h3-MDf"/>
@@ -212,6 +223,7 @@
                     <nil key="simulatedTopBarMetrics"/>
                     <connections>
                         <outlet property="back" destination="6In-cm-wQH" id="KyT-LB-F8i"/>
+                        <outlet property="recordingView" destination="YDg-O6-vat" id="3LM-Y9-b3a"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="kA7-xE-XiK" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -247,7 +259,7 @@
                                 </constraints>
                             </imageView>
                             <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="f0H-Je-i1g" userLabel="Controls">
-                                <rect key="frame" x="9.5" y="452" width="356" height="167"/>
+                                <rect key="frame" x="9.5" y="417" width="356" height="202"/>
                                 <subviews>
                                     <imageView opaque="NO" multipleTouchEnabled="YES" contentMode="scaleAspectFill" image="remoteControlsiPn" translatesAutoresizingMaskIntoConstraints="NO" id="k0B-Hz-dNJ">
                                         <rect key="frame" x="0.0" y="50" width="356" height="168"/>
@@ -256,14 +268,16 @@
                                             <constraint firstAttribute="height" constant="168" id="w0O-s6-KgC"/>
                                         </constraints>
                                     </imageView>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ipA-69-mKl" userLabel="shutter">
+                                    <button opaque="NO" contentMode="scaleAspectFit" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ipA-69-mKl" userLabel="shutter">
                                         <rect key="frame" x="141.5" y="62" width="73" height="73"/>
                                         <constraints>
                                             <constraint firstAttribute="width" constant="73" id="0dp-10-VDg"/>
                                             <constraint firstAttribute="height" constant="73" id="Ru7-6o-RWw"/>
                                         </constraints>
                                         <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
-                                        <state key="normal">
+                                        <color key="tintColor" systemColor="systemRedColor"/>
+                                        <inset key="contentEdgeInsets" minX="20" minY="20" maxX="20" maxY="20"/>
+                                        <state key="normal" image="camera">
                                             <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                             <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                         </state>
@@ -274,14 +288,15 @@
                                             <action selector="onTakePictureWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="mLE-f5-kFj"/>
                                         </connections>
                                     </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="25V-jV-Dep" userLabel="flash">
+                                    <button opaque="NO" contentMode="redraw" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="25V-jV-Dep" userLabel="flash">
                                         <rect key="frame" x="253" y="92" width="73" height="73"/>
                                         <constraints>
                                             <constraint firstAttribute="width" constant="73" id="a0Q-WO-b5l"/>
                                             <constraint firstAttribute="height" constant="73" id="pP2-oe-tOH"/>
                                         </constraints>
                                         <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
-                                        <state key="normal">
+                                        <inset key="contentEdgeInsets" minX="8" minY="4" maxX="10" maxY="10"/>
+                                        <state key="normal" image="flash">
                                             <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                             <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                         </state>
@@ -320,21 +335,31 @@
                                         <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                         <nil key="highlightedColor"/>
                                     </label>
+                                    <segmentedControl opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" translatesAutoresizingMaskIntoConstraints="NO" id="Lb0-pX-IiZ">
+                                        <rect key="frame" x="122" y="159" width="111" height="32"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                        <segments>
+                                            <segment title="Photo"/>
+                                            <segment title="Video"/>
+                                        </segments>
+                                        <color key="selectedSegmentTintColor" red="0.14366987349999999" green="0.50198024510000006" blue="0.84436720610000005" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                    </segmentedControl>
                                 </subviews>
                                 <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
                                 <constraints>
                                     <constraint firstItem="ipA-69-mKl" firstAttribute="centerX" secondItem="k0B-Hz-dNJ" secondAttribute="centerX" id="3W8-xW-8hj"/>
-                                    <constraint firstAttribute="height" constant="167" id="Aqr-Mq-vnP"/>
-                                    <constraint firstAttribute="bottom" secondItem="wPR-EO-JjB" secondAttribute="bottom" constant="8" id="C85-Oh-H7Z"/>
+                                    <constraint firstAttribute="height" constant="202" id="Aqr-Mq-vnP"/>
+                                    <constraint firstAttribute="bottom" secondItem="wPR-EO-JjB" secondAttribute="bottom" constant="43" id="C85-Oh-H7Z"/>
                                     <constraint firstAttribute="trailing" secondItem="25V-jV-Dep" secondAttribute="trailing" constant="30" id="FkR-gV-Vxz"/>
                                     <constraint firstItem="EGp-xW-Dem" firstAttribute="leading" secondItem="f0H-Je-i1g" secondAttribute="leading" constant="33" id="Hq2-qh-TDc"/>
-                                    <constraint firstItem="EGp-xW-Dem" firstAttribute="bottom" secondItem="f0H-Je-i1g" secondAttribute="bottom" id="XmI-Bc-GDj"/>
+                                    <constraint firstItem="EGp-xW-Dem" firstAttribute="bottom" secondItem="f0H-Je-i1g" secondAttribute="bottom" constant="-35" id="XmI-Bc-GDj"/>
                                     <constraint firstItem="k0B-Hz-dNJ" firstAttribute="leading" secondItem="f0H-Je-i1g" secondAttribute="leading" id="Zb7-jb-mnp"/>
                                     <constraint firstItem="ipA-69-mKl" firstAttribute="top" secondItem="f0H-Je-i1g" secondAttribute="top" constant="62" id="fWd-VN-21C"/>
                                     <constraint firstItem="k0B-Hz-dNJ" firstAttribute="top" secondItem="f0H-Je-i1g" secondAttribute="top" constant="50" id="nXv-VS-RAk"/>
                                     <constraint firstAttribute="trailing" secondItem="wPR-EO-JjB" secondAttribute="trailing" constant="20" symbolic="YES" id="qqf-G1-eWv"/>
                                     <constraint firstItem="k0B-Hz-dNJ" firstAttribute="trailing" secondItem="f0H-Je-i1g" secondAttribute="trailing" id="sBG-d1-2IW"/>
-                                    <constraint firstAttribute="bottom" secondItem="25V-jV-Dep" secondAttribute="bottom" constant="2" id="uaV-15-QbZ"/>
+                                    <constraint firstAttribute="bottom" secondItem="25V-jV-Dep" secondAttribute="bottom" constant="37" id="uaV-15-QbZ"/>
                                     <constraint firstAttribute="width" constant="356" id="yAT-cK-0SP"/>
                                 </constraints>
                             </view>
@@ -461,6 +486,14 @@
                                     <constraint firstAttribute="height" constant="40" id="O6q-eN-7zw"/>
                                 </constraints>
                             </view>
+                            <imageView clearsContextBeforeDrawing="NO" userInteractionEnabled="NO" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="gfL-ja-qQ8">
+                                <rect key="frame" x="29.5" y="270" width="25" height="25"/>
+                                <color key="backgroundColor" red="0.072984814640000006" green="0.13994456829999999" blue="0.2669700384" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="25" id="Ix1-1J-DPY"/>
+                                    <constraint firstAttribute="height" constant="25" id="gRn-Ra-Sho"/>
+                                </constraints>
+                            </imageView>
                         </subviews>
                         <color key="backgroundColor" red="0.072984814643859863" green="0.13994456827640533" blue="0.26697003841400146" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
@@ -468,6 +501,7 @@
                             <constraint firstItem="Wry-iT-YVg" firstAttribute="centerX" secondItem="f0H-Je-i1g" secondAttribute="centerX" id="7kr-NA-Kfg"/>
                             <constraint firstItem="Bu2-yA-LPw" firstAttribute="top" secondItem="f0H-Je-i1g" secondAttribute="bottom" constant="8" symbolic="YES" id="AWW-7e-gT5"/>
                             <constraint firstAttribute="trailing" secondItem="kC2-0J-DET" secondAttribute="trailing" constant="-17" id="BiJ-9s-w7W"/>
+                            <constraint firstItem="gfL-ja-qQ8" firstAttribute="centerX" secondItem="Mhh-yx-IbA" secondAttribute="centerX" id="DS5-DK-1Rf"/>
                             <constraint firstItem="rc6-hX-T3o" firstAttribute="trailing" secondItem="QeB-Y1-TPW" secondAttribute="trailing" id="EqV-qA-gLe"/>
                             <constraint firstItem="Wry-iT-YVg" firstAttribute="centerX" secondItem="QeB-Y1-TPW" secondAttribute="centerX" id="Hjh-hE-D02"/>
                             <constraint firstItem="3wP-23-M5p" firstAttribute="top" secondItem="kC2-0J-DET" secondAttribute="bottom" constant="3" id="I7C-wg-h3A"/>
@@ -481,6 +515,7 @@
                             <constraint firstItem="kC2-0J-DET" firstAttribute="top" secondItem="5eT-gB-J9n" secondAttribute="top" id="f1s-EI-fZH"/>
                             <constraint firstAttribute="trailing" secondItem="3wP-23-M5p" secondAttribute="trailing" constant="10" id="g71-Lg-Ari"/>
                             <constraint firstItem="rc6-hX-T3o" firstAttribute="leading" secondItem="QeB-Y1-TPW" secondAttribute="leading" id="gu0-rb-E6b"/>
+                            <constraint firstItem="gfL-ja-qQ8" firstAttribute="top" secondItem="Mhh-yx-IbA" secondAttribute="bottom" constant="8" symbolic="YES" id="j8C-YS-qu7"/>
                             <constraint firstItem="Bu2-yA-LPw" firstAttribute="bottom" secondItem="QeB-Y1-TPW" secondAttribute="bottom" id="nG7-sh-7ah"/>
                             <constraint firstItem="Mhh-yx-IbA" firstAttribute="top" secondItem="QeB-Y1-TPW" secondAttribute="top" constant="102" id="rn2-hK-9zS"/>
                             <constraint firstItem="Wry-iT-YVg" firstAttribute="centerY" secondItem="QeB-Y1-TPW" secondAttribute="centerY" id="vG2-s2-Dby"/>
@@ -492,16 +527,22 @@
                     <nil key="simulatedTopBarMetrics"/>
                     <nil key="simulatedBottomBarMetrics"/>
                     <connections>
+                        <outlet property="backButton" destination="5eT-gB-J9n" id="42F-cx-51v"/>
                         <outlet property="bannerHeight" destination="O6q-eN-7zw" id="uJn-sx-A9V"/>
                         <outlet property="bannerView" destination="Bu2-yA-LPw" id="NQ4-H1-b8m"/>
                         <outlet property="bottomBannerConstraint" destination="nG7-sh-7ah" id="8bQ-t7-4V5"/>
+                        <outlet property="flashButton" destination="25V-jV-Dep" id="ZOx-qN-GCK"/>
                         <outlet property="flashStatus" destination="wPR-EO-JjB" id="vAv-15-3KF"/>
                         <outlet property="galleryButton" destination="EGp-xW-Dem" id="1Ll-Vt-LCd"/>
                         <outlet property="imageView" destination="rc6-hX-T3o" id="Db7-D8-rXh"/>
+                        <outlet property="recordingView" destination="gfL-ja-qQ8" id="6ev-Bx-saJ"/>
+                        <outlet property="segmentedControl" destination="Lb0-pX-IiZ" id="Hoz-7J-rP9"/>
+                        <outlet property="settingsButton" destination="BdQ-7b-j0J" id="yto-Ag-rND"/>
                         <outlet property="sliderContainer" destination="Mhh-yx-IbA" id="yFn-c4-6a8"/>
                         <outlet property="takePicture" destination="ipA-69-mKl" id="gar-rO-vP9"/>
                         <outlet property="timerLabel" destination="yef-zE-Sz5" id="IgK-Yn-0Wq"/>
                         <outlet property="timerSlider" destination="rfi-eK-Po1" id="BWA-sM-HUM"/>
+                        <outlet property="toggleCamera" destination="kC2-0J-DET" id="idi-Kh-LsW"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="2eq-5e-rvD" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -517,8 +558,15 @@
         <image name="camera" width="178" height="136"/>
         <image name="cameraRoleBtn" width="221" height="229"/>
         <image name="cameraRoleBtn.png" width="175" height="148"/>
+        <image name="flash" width="76" height="121"/>
         <image name="remote" width="174.5" height="148"/>
         <image name="remoteControlsiPn" width="705" height="339"/>
         <image name="timerLoFI" width="100" height="100"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="systemRedColor">
+            <color red="1" green="0.23137254901960785" blue="0.18823529411764706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
     </resources>
 </document>

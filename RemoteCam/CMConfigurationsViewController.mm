@@ -1,7 +1,8 @@
 #import "CMConfigurationsViewController.h"
 #import "InAppPurchasesManager.h"
 
-#define kiAdsFeatureInstalled NSLocalizedString(@"iAds Removed.",nil);
+#define kiAdsFeatureInstalled NSLocalizedString(@"Ads Removed",nil);
+#define kiAdsRemovedANdVideoEnabledInstalled NSLocalizedString(@"Ads Removed and video enabled",nil);
 
 #import "AcknowledgmentsViewController.h"
 
@@ -19,7 +20,7 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadData:) name:@"AppDidBecomeActive" object:nil];
     [self setTitle:NSLocalizedString(@"Settings", nil)];
     [[[self navigationController] navigationBar] setHidden:FALSE];
-    self.tableViewCells = @[@[self.disableiAds, self.restorePurchases], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.sourceCode, self.versionCell]];
+    self.tableViewCells = @[@[self.disableAdsAndEnableVideoRecording, self.disableiAds, self.restorePurchases], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.sourceCode, self.versionCell]];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -53,13 +54,12 @@
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
-    NSString *title = nil;
-    if (section == 0) {
-        title = NSLocalizedString(@"Upgrades", nil);
-    } else if (section == 1) {
-        title = nil;
+    switch (section) {
+        case 0:
+            return NSLocalizedString(@"Upgrades", nil);
+        default:
+            return NSLocalizedString(@"INFORMATION", nil);
     }
-    return title;
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -87,10 +87,10 @@
                 if (!error) [self fillRestoreiAdsRow];
             }];
         } else {
-            [manager userWantsToBuyRemoveiAdsFeature:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+            [manager userWantsToBuyFeature:RemoveiAdsFeatureIdentifier withHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
                 if (error) {
                     UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"InApp Purchases:", nil) message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
-                    [alert addAction:[UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction *_Nonnull action) {
+                    [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Ok", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction *_Nonnull action) {
                         [alert dismissViewControllerAnimated:TRUE completion:NULL];
                     }]];
 
@@ -98,6 +98,28 @@
                 } else {
                     [self fillRestoreiAdsRow];
                     [[NSNotificationCenter defaultCenter] postNotificationName:Constants.RemoveAds object:nil];
+                }
+            }];
+        }
+    } else if ([cell isEqual:self.disableAdsAndEnableVideoRecording]) {
+        if ([manager didUserBuyRemoveiAdsFeatureAndEnableVideo])
+            return;
+        if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) [self fillRestoreRemoveAdsAndEnableVideoRow];
+            }];
+        } else {
+            [manager userWantsToBuyFeature:RemoveAdsAndEnableVideoIdentifier withHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (error) {
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"InApp Purchases:", nil) message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Ok", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction *_Nonnull action) {
+                        [alert dismissViewControllerAnimated:TRUE completion:NULL];
+                    }]];
+
+                    [self presentViewController:alert animated:TRUE completion:NULL];
+                } else {
+                    [self fillRestoreRemoveAdsAndEnableVideoRow];
+                    [[NSNotificationCenter defaultCenter] postNotificationName:Constants.RemoveAdsAndEnableVideo object:nil];
                 }
             }];
         }
@@ -120,16 +142,26 @@
     if ([cell isEqual:self.disableiAds]) {
         InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
         NSArray *products = [manager products];
-        if (indexPath.row == 0) {
-            if ([products count] > 0) {
-                [self fillRestoreiAdsRow];
-            } else {
-                [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
-                    if (!error) {
-                        [self fillRestoreiAdsRow];
-                    }
-                }];
-            }
+        if ([products count] > 0) {
+            [self fillRestoreiAdsRow];
+        } else {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) {
+                    [self fillRestoreiAdsRow];
+                }
+            }];
+        }
+    } else if ([cell isEqual:self.disableAdsAndEnableVideoRecording]) {
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        if ([products count] > 0) {
+            [self fillRestoreRemoveAdsAndEnableVideoRow];
+        } else {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) {
+                    [self fillRestoreRemoveAdsAndEnableVideoRow];
+                }
+            }];
         }
     } else if ([cell isEqual:self.versionCell]) {
         NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
@@ -154,6 +186,27 @@
             [[self.disableiAds detailTextLabel] setText:localizedPrice];
             [self.disableiAds setNeedsLayout];
         }
+    });
+}
+    
+- (void)fillRestoreRemoveAdsAndEnableVideoRow {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        UITableViewCell * disableAdsAndEnableVideo = self.disableAdsAndEnableVideoRecording;
+        if ([manager didUserBuyRemoveiAdsFeatureAndEnableVideo]) {
+            disableAdsAndEnableVideo.textLabel.text = kiAdsRemovedANdVideoEnabledInstalled;
+            disableAdsAndEnableVideo.detailTextLabel.text = @"";
+        } else if ([products count] > 0) {
+            SKProduct *disableAdsAndEnableVideoProduct = [manager productWithIdentifier:RemoveAdsAndEnableVideoIdentifier];
+            if (disableAdsAndEnableVideoProduct == nil) {
+                return;
+            }
+            [[disableAdsAndEnableVideo textLabel] setText:[disableAdsAndEnableVideoProduct localizedTitle]];
+            NSString *localizedPrice = [[[InAppPurchasesManager sharedManager] currencyFormatter] stringFromNumber:disableAdsAndEnableVideoProduct.price];
+            [[disableAdsAndEnableVideo detailTextLabel] setText:localizedPrice];
+        }
+        [disableAdsAndEnableVideo setNeedsDisplay];
     });
 }
 

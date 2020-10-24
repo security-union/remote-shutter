@@ -21,7 +21,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>GADApplicationIdentifier</key>
-	<string>replaceme</string>
+	<string>ca-app-pub-4832821923197585~2551814054</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.photography</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -39,8 +39,10 @@
 	<string>Take Pictures using a Remote Shutter</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Allow camera to connect to the remote shutter</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Add audio to videos taken using Remote Shutter</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>In order to store pictures to the photo library</string>
+	<string>Store pictures to the photo library</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Help support our app by showing Google Ads</string>
 	<key>UILaunchStoryboardName</key>

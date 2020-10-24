@@ -10,8 +10,12 @@
 
 @implementation Constants
 
-+ (NSString *) RemoveAds {
++ (NSString *)RemoveAds {
     return @"RemoveAds";
+}
+
++(NSString *)RemoveAdsAndEnableVideo {
+    return @"RemoveAdsAndEnableVideo";
 }
 
 @end
