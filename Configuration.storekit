@@ -1,18 +1,33 @@
 {
   "products" : [
     {
-      "displayPrice" : "2.99",
+      "displayPrice" : "3.99",
       "familyShareable" : false,
       "internalID" : "E468C833",
       "localizations" : [
         {
           "description" : "",
-          "displayName" : "Remove Ads",
+          "displayName" : "Remove ads",
           "locale" : "en_US"
         }
       ],
-      "productID" : "3145623462345623456",
+      "productID" : "05",
       "referenceName" : "Remove iAds",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "2D9566A3",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "Remove ads + enable video",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "06",
+      "referenceName" : "Remove ads enable video",
       "type" : "NonConsumable"
     }
   ],

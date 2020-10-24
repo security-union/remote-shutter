@@ -12,6 +12,7 @@
                 <outlet property="acknowledgments" destination="70" id="76"/>
                 <outlet property="blackFireApps" destination="WqB-3j-XWk" id="DB2-Fs-BDi"/>
                 <outlet property="contactSupport" destination="gGB-dL-yzy" id="4Ll-V5-9mn"/>
+                <outlet property="disableAdsAndEnableVideoRecording" destination="9Er-uZ-O6r" id="AAq-al-fzc"/>
                 <outlet property="disableiAds" destination="59" id="62"/>
                 <outlet property="restorePurchases" destination="67" id="69"/>
                 <outlet property="sourceCode" destination="e0N-vY-xVS" id="G89-hb-vf9"/>
@@ -39,9 +40,9 @@
             <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
             <simulatedStatusBarMetrics key="simulatedStatusBarMetrics" statusBarStyle="lightContent"/>
             <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
-            <point key="canvasLocation" x="141" y="60"/>
+            <point key="canvasLocation" x="772" y="66"/>
         </view>
-        <tableViewCell contentMode="scaleToFill" selectionStyle="blue" indentationWidth="10" textLabel="60" detailTextLabel="61" style="IBUITableViewCellStyleValue1" id="59" userLabel="remove iAds">
+        <tableViewCell contentMode="scaleToFill" selectionStyle="blue" indentationWidth="10" textLabel="60" detailTextLabel="61" style="IBUITableViewCellStyleValue1" id="59" userLabel="remove Ads">
             <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
             <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="59" id="yO9-zl-N4e">
@@ -65,7 +66,33 @@
                 </subviews>
             </tableViewCellContentView>
             <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-            <point key="canvasLocation" x="141" y="-153"/>
+            <point key="canvasLocation" x="635" y="-299"/>
+        </tableViewCell>
+        <tableViewCell contentMode="scaleToFill" selectionStyle="blue" indentationWidth="10" textLabel="jt3-q1-t9h" detailTextLabel="B2U-uN-KY6" style="IBUITableViewCellStyleValue1" id="9Er-uZ-O6r" userLabel="record videos and remove Ads">
+            <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+            <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="9Er-uZ-O6r" id="msP-AS-31G">
+                <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <label opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="left" text="Tap to refresh from AppStore." lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="jt3-q1-t9h">
+                        <rect key="frame" x="16" y="12" width="242.5" height="20.5"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
+                        <color key="textColor" systemColor="darkTextColor"/>
+                        <color key="highlightedColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                    </label>
+                    <label opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="left" text="" textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="B2U-uN-KY6">
+                        <rect key="frame" x="264.5" y="12" width="39.5" height="20.5"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                        <color key="textColor" red="0.21960784310000001" green="0.3294117647" blue="0.52941176469999995" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="highlightedColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                    </label>
+                </subviews>
+            </tableViewCellContentView>
+            <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+            <point key="canvasLocation" x="350.72463768115944" y="-155.35714285714286"/>
         </tableViewCell>
         <tableViewCell contentMode="scaleToFill" selectionStyle="blue" indentationWidth="10" textLabel="68" style="IBUITableViewCellStyleDefault" id="67" userLabel="restorePurchases">
             <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
@@ -84,7 +111,7 @@
                 </subviews>
             </tableViewCellContentView>
             <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-            <point key="canvasLocation" x="-55" y="-226"/>
+            <point key="canvasLocation" x="-487" y="-192"/>
         </tableViewCell>
         <tableViewCell contentMode="scaleToFill" selectionStyle="blue" indentationWidth="10" textLabel="71" style="IBUITableViewCellStyleDefault" id="70" userLabel="Acknowledgments">
             <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
@@ -261,6 +288,9 @@
     <resources>
         <image name="securityUnion" width="164.5" height="164.5"/>
         <image name="theaterLogo" width="256" height="256"/>
+        <systemColor name="darkTextColor">
+            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
         <systemColor name="darkTextColor">
             <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

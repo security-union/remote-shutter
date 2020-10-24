@@ -1,0 +1,6 @@
+framework module Theater {
+  umbrella header "Theater-umbrella.h"
+
+  export *
+  module * { export * }
+}

@@ -11,6 +11,17 @@ import GoogleMobileAds
 import Theater
 import UserMessagingPlatform
 
+public func showError(_ error: String) {
+    ^{
+        let alert = UIAlertController(
+            title: NSLocalizedString("Error", comment: ""),
+            message: error
+        )
+        alert.simpleOkAction()
+        alert.show(true)
+    }
+}
+
 /**
 This UIViewController provides a preconfigured banner and some NSLayoutConstraints to show/hide the banner.
 Users must subclass to integrate this into their projects
@@ -30,25 +41,28 @@ public class iAdViewController: UIViewController, GADBannerViewDelegate {
         parameters.tagForUnderAgeOfConsent = false
 
         UMPConsentInformation.sharedInstance.requestConsentInfoUpdate(
-            with: parameters,
-            completionHandler: { [self] error in
-              if error == nil {
-                if UMPConsentInformation.sharedInstance.formStatus  == UMPFormStatus.available {
-                  loadForm()
-                } else {
-                    startShowingAds()
-                }
-              }
-        })
+                with: parameters,
+                completionHandler: { [self] error in
+                    if error == nil {
+                        if UMPConsentInformation.sharedInstance.formStatus == UMPFormStatus.available {
+                            loadForm()
+                        } else {
+                            startShowingAds()
+                        }
+                    }
+                })
     }
 
     override public func viewDidLoad() {
         super.viewDidLoad()
         self.shouldHideBanner()
-        if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() {
+    
+        if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() && !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeatureAndEnableVideo() {
             self.setupAdNetwork()
         }
+
         NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideAds(notification:)), name: NSNotification.Name(rawValue: Constants.removeAds()), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideAds(notification:)), name: NSNotification.Name(rawValue: Constants.removeAdsAndEnableVideo()), object: nil)
     }
 
     func shouldHideBanner() {
@@ -94,7 +108,6 @@ public class iAdViewController: UIViewController, GADBannerViewDelegate {
         return self.AdConstraints!
     }
 
-
     public required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
     }
@@ -104,7 +117,7 @@ public class iAdViewController: UIViewController, GADBannerViewDelegate {
     public func adViewDidReceiveAd(_ bannerView: GADBannerView) {
         self.shouldShowBanner()
     }
-    
+
     /// Tells the delegate that an ad request failed. The failure is normally due to network
     /// connectivity or ad availablility (i.e., no fill).
     public func adView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: GADRequestError) {
@@ -112,31 +125,31 @@ public class iAdViewController: UIViewController, GADBannerViewDelegate {
     }
 
     public func adViewWillPresentScreen(_ bannerView: GADBannerView) {
-        
+
     }
-    
+
     public func adViewDidDismissScreen(_ bannerView: GADBannerView) {
         self.shouldHideBanner()
     }
-    
+
     func loadForm() {
-      UMPConsentForm.load(
-        completionHandler: { form, loadError in
-            if loadError != nil {
-            } else {
-                form?.present(
-                    from: self,
-                    completionHandler: { [self] dismissError in
-                        if UMPConsentInformation.sharedInstance.consentStatus == UMPConsentStatus.obtained {
-                            self.startShowingAds()
-                      }
+        UMPConsentForm.load(
+                completionHandler: { form, loadError in
+                    if loadError != nil {
+                    } else {
+                        form?.present(
+                                from: self,
+                                completionHandler: { [self] dismissError in
+                                    if UMPConsentInformation.sharedInstance.consentStatus == UMPConsentStatus.obtained {
+                                        self.startShowingAds()
+                                    }
+                                })
+                    }
                 })
-            }
-          })
     }
-    
+
     func startShowingAds() {
-        self.AdBanner.adUnitID = "replace-me"
+        self.AdBanner.adUnitID = "ca-app-pub-4832821923197585/2168670673"
         self.AdBanner.rootViewController = self
         self.AdBanner.delegate = self
         self.AdBanner.adSize = GADAdSize(size: self.bannerView.frame.size, flags: 0)
@@ -146,5 +159,4 @@ public class iAdViewController: UIViewController, GADBannerViewDelegate {
         self.shouldHideBanner()
         self.AdBanner.isAutoloadEnabled = true
     }
-
 }
