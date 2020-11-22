@@ -9,7 +9,7 @@
 import XCTest
 
 class RemoteShutterUITests: XCTestCase {
-    
+
     var app: XCUIApplication!
 
     override func setUpWithError() throws {
@@ -30,7 +30,7 @@ class RemoteShutterUITests: XCTestCase {
         sleep(1)
         XCTAssertFalse(phonePickerLabel.exists)
     }
-    
+
     func testConnectButton() throws {
         app.buttons["Cancel"].tap()
         app.buttons["Connect"].tap()
@@ -38,7 +38,7 @@ class RemoteShutterUITests: XCTestCase {
         sleep(1)
         XCTAssertTrue(phonePickerLabel.exists)
     }
-    
+
     func testTapRemoteWithoutConnection() throws {
         app.buttons["Cancel"].tap()
         app.buttons["remote"].tap()
@@ -46,7 +46,7 @@ class RemoteShutterUITests: XCTestCase {
         sleep(1)
         XCTAssertTrue(phonePickerLabel.exists)
     }
-    
+
     func testTapCameraWithoutConnection() throws {
         app.buttons["Cancel"].tap()
         app.buttons["camera"].tap()

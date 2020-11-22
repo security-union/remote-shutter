@@ -12,7 +12,7 @@ import MultipeerConnectivity
 import Photos
 
 extension RemoteCamSession {
-    
+
     func savePicture(_ imageData: Data) {
         PHPhotoLibrary.requestAuthorization { status in
             guard status == .authorized else {
@@ -21,7 +21,7 @@ extension RemoteCamSession {
             PHPhotoLibrary.shared().performChanges({
                 let creationRequest = PHAssetCreationRequest.forAsset()
                 creationRequest.addResource(with: .photo, data: imageData, options: nil)
-            }) { (success: Bool, err: Error?) in
+            }) { (success: Bool, _: Error?) in
                 if success {
                     print("Saved photo!")
                 } else {
@@ -35,39 +35,39 @@ extension RemoteCamSession {
                          ctrl: CameraViewController,
                          lobby: RolePickerController) -> Receive {
         var alert: UIAlertController?
-        ^{
+        ^ {
             alert = UIAlertController(title: "Taking picture",
                 message: nil,
                 preferredStyle: .alert)
-        
+
             alert?.show(true)
         }
         return { [unowned self] (msg: Actor.Message) in
-            switch (msg) {
+            switch msg {
             case let t as UICmd.OnPicture:
                 if let imageData = t.pic {
                     savePicture(imageData)
                 }
-                ^{
+                ^ {
                     alert?.dismiss(animated: true, completion: nil)
                 }
-                if(self.sendMessage(
+                if self.sendMessage(
                     peer: [peer],
-                    msg: RemoteCmd.TakePicAck(sender: self.this)).isFailure()) {
+                    msg: RemoteCmd.TakePicAck(sender: self.this)).isFailure() {
                     self.popToState(name: self.states.scanning)
                     return
                 }
-                if(self.sendMessage(
+                if self.sendMessage(
                     peer: [peer],
-                    msg: RemoteCmd.TakePicResp(sender: self.this, pic: t.pic, error: t.error)).isFailure()) {
+                    msg: RemoteCmd.TakePicResp(sender: self.this, pic: t.pic, error: t.error)).isFailure() {
                     self.popToState(name: self.states.scanning)
                     return
                 }
                 self.unbecome()
             case let c as DisconnectPeer:
-                ^{
+                ^ {
                     alert?.dismiss(animated: true, completion: nil)
-                    if (c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0) {
+                    if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                         mailbox.addOperation {
                             self.popAndStartScanning()
                         }
@@ -75,7 +75,7 @@ extension RemoteCamSession {
                 }
 
             case is Disconnect:
-                ^{
+                ^ {
                     alert?.dismiss(animated: true)
                 }
                 self.popAndStartScanning()
@@ -90,7 +90,7 @@ extension RemoteCamSession {
                 ctrl: CameraViewController,
                 lobby: RolePickerController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
-            switch (msg) {
+            switch msg {
             case let m as UICmd.ToggleCameraResp:
                 self.sendCommandOrGoToScanning(
                     peer: [peer],
@@ -109,7 +109,7 @@ extension RemoteCamSession {
                                 ctrl: ctrl,
                                 lobby: lobby)
                 )
-                                    
+
             case is RemoteCmd.TakePic:
                 ctrl.takePicture()
                 self.become(name: self.states.cameraTakingPic,

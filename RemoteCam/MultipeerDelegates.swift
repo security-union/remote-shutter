@@ -10,7 +10,6 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 
-
 extension RemoteCamSession {
     public func browserViewControllerDidFinish(_ browserViewController: MCBrowserViewController) {
         browserViewController.dismiss(animated: true)
@@ -20,7 +19,7 @@ extension RemoteCamSession {
         //TODO: add dialog to force the person to connect with a phone
         browserViewController.dismiss(animated: true)
     }
-    
+
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         mailbox.addOperation {
             switch state {
@@ -42,7 +41,7 @@ extension RemoteCamSession {
 
     public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
         let inboundMessage = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data)
-        switch (inboundMessage) {
+        switch inboundMessage {
         case let frame as RemoteCmd.SendFrame:
             this ! RemoteCmd.OnFrame(data: frame.data,
                 sender: nil,

@@ -26,7 +26,7 @@ extension UIAlertController {
                 let windowScene = UIApplication.shared.connectedScenes.filter {
                     $0.activationState == .foregroundActive
                 }.first
-                
+
                 if let windowScene = windowScene as? UIWindowScene {
                     alertWindow = UIWindow(windowScene: windowScene)
                 } else {

@@ -18,16 +18,16 @@ extension MonitorVideoStates {
                  peer: MCPeerID,
                  lobby: RolePickerController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
-            switch (msg) {
+            switch msg {
             case is OnEnter:
                 monitor ! UICmd.RenderVideoMode()
-                
+
             case is RemoteCmd.OnFrame:
                 monitor ! msg
 
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: self.states.connected)
-                
+
             case let mode as UICmd.BecomeMonitor:
                 if mode.mode == RecordingMode.Photo {
                     self.become(name: states.monitorPhotoMode,
@@ -60,21 +60,21 @@ extension MonitorVideoStates {
             }
         }
     }
-    
+
     func monitorRecordingVideo(monitor: ActorRef,
                                peer: MCPeerID,
                                lobby: RolePickerController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
-            switch (msg) {
+            switch msg {
             case is OnEnter:
                 monitor ! UICmd.RenderVideoModeRecording()
-                
+
             case is RemoteCmd.OnFrame:
                 monitor ! msg
 
             case is UICmd.TakePicture:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this))
-                
+
             case is RemoteCmd.StopRecordingVideoAck:
                 self.become(
                     name: self.states.monitorWaitingForVideo,
@@ -87,7 +87,7 @@ extension MonitorVideoStates {
 
             case is Disconnect:
                 self.popAndStartScanning()
-                
+
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     self.popAndStartScanning()
@@ -98,46 +98,46 @@ extension MonitorVideoStates {
             }
         }
     }
-    
+
     func monitorWaitingForVideo(monitor: ActorRef,
                                peer: MCPeerID,
                                lobby: RolePickerController) -> Receive {
         var alert: UIAlertController?
-        ^{
+        ^ {
             alert = UIAlertController(title: "Waiting for video file...",
                     message: nil,
                     preferredStyle: .alert)
         }
         return { [unowned self] (msg: Actor.Message) in
-            switch (msg) {
+            switch msg {
             case is OnEnter:
-                ^{alert?.show(true)}
-                
+                ^ {alert?.show(true)}
+
             case is RemoteCmd.OnFrame:
                 monitor ! msg
 
             case let w as RemoteCmd.StopRecordingVideoResp:
                 saveVideo(w)
-                ^{alert?.dismiss(animated: true)}
+                ^ {alert?.dismiss(animated: true)}
                 self.popToState(name: self.states.monitorVideoMode)
 
             case is Disconnect:
-                ^{alert?.dismiss(animated: true)}
+                ^ {alert?.dismiss(animated: true)}
                 self.popAndStartScanning()
-                
+
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                    ^{alert?.dismiss(animated: true)}
+                    ^ {alert?.dismiss(animated: true)}
                     self.popAndStartScanning()
                 }
 
             default:
-                ^{alert?.dismiss(animated: true)}
+                ^ {alert?.dismiss(animated: true)}
                 self.receive(msg: msg)
             }
         }
     }
-    
+
     func saveVideo(_ videoResp: RemoteCmd.StopRecordingVideoResp) {
         if let error = videoResp.error {
             showError(error.localizedDescription)
@@ -152,7 +152,7 @@ extension MonitorVideoStates {
                         isDirectory: true).appendingPathComponent(tempFile)
                 cleanupFileAt(fileURL)
                 do {
-                    let _ = try video.write(to: fileURL, options: .atomic)
+                    _ = try video.write(to: fileURL, options: .atomic)
                 } catch {
                     showError(NSLocalizedString("Unable to save video", comment: ""))
                     return
@@ -164,7 +164,7 @@ extension MonitorVideoStates {
                     options.shouldMoveFile = true
                     PHAssetCreationRequest.forAsset()
                         .addResource(with: .video, fileURL: fileURL, options: options)
-                }, completionHandler: { success, error in
+                }, completionHandler: { success, _ in
 
                     // 3. If saving fails, then show an error.
                     if !success {

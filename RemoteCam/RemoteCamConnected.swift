@@ -11,13 +11,13 @@ import Theater
 import MultipeerConnectivity
 
 extension RemoteCamSession {
-    
+
     func connected(lobby: RolePickerController,
                    peer: MCPeerID) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
-            switch (msg) {
+            switch msg {
             case is OnEnter:
-                ^{
+                ^ {
                     lobby.navigationItem.rightBarButtonItem?.title = lobby.states.disconnect
                     lobby.navigationItem.prompt = lobby.connectedPrompt
                     lobby.remote.alpha = 1
@@ -42,16 +42,16 @@ extension RemoteCamSession {
                         name: self.states.monitor,
                         state: self.monitorPhotoMode(monitor: m.sender!, peer: peer, lobby: lobby))
                 }
-                
+
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.PeerBecameMonitor())
 
             case is RemoteCmd.PeerBecameCamera:
-                ^{
+                ^ {
                     lobby.becomeMonitor()
                 }
 
             case is RemoteCmd.PeerBecameMonitor:
-                ^{
+                ^ {
                     lobby.becomeCamera()
                 }
 

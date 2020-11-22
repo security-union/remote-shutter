@@ -9,7 +9,6 @@
 import Foundation
 import Theater
 import AVFoundation
-import AssetsLibrary
 import Photos
 
 func movieUrl() -> URL {

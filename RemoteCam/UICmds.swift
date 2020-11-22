@@ -16,11 +16,11 @@ enum RecordingMode {
 }
 
 public class UICmd {
-    
+
     public class RenderPhotoMode: Actor.Message {}
-        
+
     public class RenderVideoMode: Actor.Message {}
-        
+
     public class RenderVideoModeRecording: Actor.Message {}
 
     public class BecomeMonitorFailed: Actor.Message {}
@@ -28,14 +28,14 @@ public class UICmd {
     public class FailedToSaveImage: Actor.Message {
         let error: Error
 
-        init(sender: Optional<ActorRef>, error: Error) {
+        init(sender: ActorRef?, error: Error) {
             self.error = error
             super.init(sender: sender)
         }
     }
 
     public class AddMonitor: Actor.Message {
-        
+
     }
 
     public class AddImageView: Actor.Message {
@@ -61,8 +61,8 @@ public class UICmd {
 
     public class BecomeMonitor: Actor.Message {
         let mode: RecordingMode
-        
-        init(_ sender: Optional<ActorRef>, mode: RecordingMode) {
+
+        init(_ sender: ActorRef?, mode: RecordingMode) {
             self.mode = mode
             super.init(sender: sender)
         }
@@ -71,7 +71,7 @@ public class UICmd {
     public class BecomeCamera: Actor.Message {
         let ctrl: CameraViewController
 
-        public init(sender: Optional<ActorRef>, ctrl: CameraViewController) {
+        public init(sender: ActorRef?, ctrl: CameraViewController) {
             self.ctrl = ctrl
             super.init(sender: sender)
         }
@@ -82,16 +82,16 @@ public class UICmd {
 
     public class OnPicture: Actor.Message {
 
-        public let pic: Optional<Data>
-        public let error: Optional<Error>
+        public let pic: Data?
+        public let error: Error?
 
-        public init(sender: Optional<ActorRef>, pic: Data) {
+        public init(sender: ActorRef?, pic: Data) {
             self.pic = pic
             self.error = nil
             super.init(sender: sender)
         }
 
-        public init(sender: Optional<ActorRef>, error: Error) {
+        public init(sender: ActorRef?, error: Error) {
             self.pic = nil
             self.error = error
             super.init(sender: sender)

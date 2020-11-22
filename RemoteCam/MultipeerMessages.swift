@@ -18,7 +18,7 @@ public class Disconnect: Actor.Message {
 public class ConnectToDevice: Actor.Message {
     public let peer: MCPeerID
 
-    public init(peer: MCPeerID, sender: Optional<ActorRef>) {
+    public init(peer: MCPeerID, sender: ActorRef?) {
         self.peer = peer
         super.init(sender: sender)
     }
@@ -27,7 +27,7 @@ public class ConnectToDevice: Actor.Message {
 public class DisconnectPeer: Actor.Message {
     public let peer: MCPeerID
 
-    public init(peer: MCPeerID, sender: Optional<ActorRef>) {
+    public init(peer: MCPeerID, sender: ActorRef?) {
         self.peer = peer
         super.init(sender: sender)
     }
@@ -36,7 +36,7 @@ public class DisconnectPeer: Actor.Message {
 public class OnConnectToDevice: Actor.Message {
     public let peer: MCPeerID
 
-    public init(peer: MCPeerID, sender: Optional<ActorRef>) {
+    public init(peer: MCPeerID, sender: ActorRef?) {
         self.peer = peer
         super.init(sender: sender)
     }

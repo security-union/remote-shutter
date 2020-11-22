@@ -17,15 +17,15 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
     var session: MCSession!
 
     let service: String = "RemoteCam"
-    
+
     let userDefaultsPeerId = "peerID"
 
     var peerID: MCPeerID
 
     var mcAdvertiserAssistant: MCAdvertiserAssistant!
-    
+
     var browser: MCBrowserViewController?
-    
+
     public required init(context: ActorSystem, ref: ActorRef) {
         if let data = UserDefaults.standard.data(forKey: userDefaultsPeerId), let id = NSKeyedUnarchiver.unarchiveObject(with: data) as? MCPeerID {
               self.peerID = id
@@ -48,10 +48,10 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
             session.delegate = nil
         }
     }
-    
+
     override public func receiveWithCtrl(ctrl: RolePickerController) -> Receive {
         return { [unowned self](msg: Message) in
-            switch (msg) {
+            switch msg {
             case is UICmd.StartScanning,
                  is UICmd.ToggleConnect:
                 self.become(name: self.states.scanning, state: self.scanning(lobby: ctrl))
@@ -68,14 +68,14 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
 
     func startScanning(lobby: RolePickerController) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
-        ^{
+        ^ {
             CATransaction.begin()
             CATransaction.setCompletionBlock {
                 self.session = MCSession(peer: self.peerID)
                 self.session.delegate = self
                 self.browser = MCBrowserViewController(serviceType: self.service, session: self.session)
                 if let browser = self.browser {
-                    browser.delegate = self;
+                    browser.delegate = self
                     browser.minimumNumberOfPeers = 2
                     browser.maximumNumberOfPeers = 2
                     browser.modalPresentationStyle = UIModalPresentationStyle.formSheet
@@ -95,10 +95,10 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
     }
 
     override public func receive(msg: Actor.Message) {
-        switch (msg) {
+        switch msg {
 
         case let m as UICmd.BecomeCamera:
-            ^{
+            ^ {
                 m.ctrl.navigationController?.popViewController(animated: true)
             }
 
@@ -150,19 +150,19 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
             return Failure(error: error)
         }
     }
-    
+
     public func sendCommandOrGoToScanning(peer: [MCPeerID],
                                           msg: Actor.Message,
                                           mode: MCSessionSendDataMode = .reliable) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
-        if (self.sendMessage(peer: self.session.connectedPeers, msg: msg).isFailure()) {
+        if self.sendMessage(peer: self.session.connectedPeers, msg: msg).isFailure() {
             self.popToState(name: self.states.scanning)
-            ^{
+            ^ {
             let alert = UIAlertController(
                 title: NSLocalizedString("Connection error", comment: ""),
                 message: NSLocalizedString("Peer disconnected, please reconnect", comment: ""),
                 preferredStyle: .alert)
-            
+
                 alert.simpleOkAction()
                 alert.show(true)
             }
