@@ -55,7 +55,7 @@ extension RemoteCamSession {
                              ctrl: CameraViewController,
                              lobby: RolePickerController) -> Receive {
         var alert: UIAlertController?
-        ^ {
+        ^{
         alert = UIAlertController(title: "Sending video to Monitor",
                 message: nil,
                 preferredStyle: .alert)
@@ -63,12 +63,12 @@ extension RemoteCamSession {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
-                ^ {
+                ^{
                     alert?.show(true)
                 }
             case let c as RemoteCmd.StopRecordingVideoResp:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: c)
-                ^ {
+                ^{
                     alert?.dismiss(animated: true) {
                         mailbox.addOperation {
                             self.popToState(name: self.states.camera)
@@ -78,7 +78,7 @@ extension RemoteCamSession {
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                    ^ {
+                    ^{
                         alert?.dismiss(animated: true) {
                             mailbox.addOperation {
                                 self.popAndStartScanning()
@@ -88,7 +88,7 @@ extension RemoteCamSession {
                 }
 
             case is Disconnect:
-                ^ {
+                ^{
                     alert?.dismiss(animated: true) {
                         mailbox.addOperation {
                             self.popAndStartScanning()

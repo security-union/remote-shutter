@@ -33,16 +33,17 @@ class Decompressor {
     private var strm = z_stream()
     private var buffer = [UInt8](repeating: 0, count: 0x2000)
     private var inflateInitialized = false
-    private let windowBits: Int
+    private let windowBits:Int
 
-    init?(windowBits: Int) {
+    init?(windowBits:Int) {
         self.windowBits = windowBits
         guard initInflate() else { return nil }
     }
 
     private func initInflate() -> Bool {
         if Z_OK == inflateInit2_(&strm, -CInt(windowBits),
-                                 ZLIB_VERSION, CInt(MemoryLayout<z_stream>.size)) {
+                                 ZLIB_VERSION, CInt(MemoryLayout<z_stream>.size))
+        {
             inflateInitialized = true
             return true
         }
@@ -55,7 +56,7 @@ class Decompressor {
     }
 
     func decompress(_ data: Data, finish: Bool) throws -> Data {
-        return try data.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) -> Data in
+        return try data.withUnsafeBytes { (bytes:UnsafePointer<UInt8>) -> Data in
             return try decompress(bytes: bytes, count: data.count, finish: finish)
         }
     }
@@ -65,7 +66,7 @@ class Decompressor {
         try decompress(bytes: bytes, count: count, out: &decompressed)
 
         if finish {
-            let tail: [UInt8] = [0x00, 0x00, 0xFF, 0xFF]
+            let tail:[UInt8] = [0x00, 0x00, 0xFF, 0xFF]
             try decompress(bytes: tail, count: tail.count, out: &decompressed)
         }
 
@@ -74,7 +75,7 @@ class Decompressor {
     }
 
     private func decompress(bytes: UnsafePointer<UInt8>, count: Int, out:inout Data) throws {
-        var res: CInt = 0
+        var res:CInt = 0
         strm.next_in = UnsafeMutablePointer<UInt8>(mutating: bytes)
         strm.avail_in = CUnsignedInt(count)
 
@@ -110,7 +111,7 @@ class Compressor {
     private var strm = z_stream()
     private var buffer = [UInt8](repeating: 0, count: 0x2000)
     private var deflateInitialized = false
-    private let windowBits: Int
+    private let windowBits:Int
 
     init?(windowBits: Int) {
         self.windowBits = windowBits
@@ -120,7 +121,8 @@ class Compressor {
     private func initDeflate() -> Bool {
         if Z_OK == deflateInit2_(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
                                  -CInt(windowBits), 8, Z_DEFAULT_STRATEGY,
-                                 ZLIB_VERSION, CInt(MemoryLayout<z_stream>.size)) {
+                                 ZLIB_VERSION, CInt(MemoryLayout<z_stream>.size))
+        {
             deflateInitialized = true
             return true
         }
@@ -134,8 +136,8 @@ class Compressor {
 
     func compress(_ data: Data) throws -> Data {
         var compressed = Data()
-        var res: CInt = 0
-        data.withUnsafeBytes { (ptr: UnsafePointer<UInt8>) -> Void in
+        var res:CInt = 0
+        data.withUnsafeBytes { (ptr:UnsafePointer<UInt8>) -> Void in
             strm.next_in = UnsafeMutablePointer<UInt8>(mutating: ptr)
             strm.avail_in = CUnsignedInt(data.count)
 
@@ -172,3 +174,4 @@ class Compressor {
         teardownDeflate()
     }
 }
+
