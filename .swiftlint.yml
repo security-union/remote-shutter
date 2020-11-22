@@ -1,0 +1,5 @@
+line_length: 120
+disabled_rules: # rule identifiers to exclude from running
+excluded:
+  - Pods
+

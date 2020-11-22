@@ -9,7 +9,6 @@
 import UIKit
 import Theater
 import AVFoundation
-import AssetsLibrary
 import Photos
 
 /**
@@ -26,15 +25,15 @@ let streamingFPS = 5
 /**
   Camera UI
 */
-
-public class CameraViewController:
-        UIViewController,
+public class CameraViewController: UIViewController,
         AVCapturePhotoCaptureDelegate {
-    
+
     var captureSession: AVCaptureSession = AVCaptureSession()
     private let audioDataOutput = AVCaptureAudioDataOutput()
     private let audioDataOutputQueue = DispatchQueue(
         label: "recording audio data output queue", attributes: [], target: nil)
+    private let cameraConfigQueue = DispatchQueue(
+        label: "camera config queue", attributes: [], target: nil)
 
     private let videoDataOutput = AVCaptureVideoDataOutput()
     private let videoDataOutputQueue = DispatchQueue(
@@ -44,31 +43,30 @@ public class CameraViewController:
     var videoConnection: AVCaptureConnection?
     var audioConnection: AVCaptureConnection?
     var videoDeviceInput: AVCaptureDeviceInput!
-    
+
     var isRecording: Bool = false
     var recordingWillBeStarted: Bool = false
     var recordingWillBeStopped: Bool = false
     var readyToRecordVideo: Bool = false
     var readyToRecordAudio: Bool = false
-    var assetWriter: AVAssetWriter? = nil
-    
+    var assetWriter: AVAssetWriter?
+
     var captureVideoPreviewLayer: AVCaptureVideoPreviewLayer?
     var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
     var session: ActorRef = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")!
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
-    
+
     private var videoInput: AVAssetWriterInput!
     private var audioInput: AVAssetWriterInput!
-    
+
     // Variable used to downsample the camera preview, please use with care.
     private var frameCounter = 0
-    
+
     @IBOutlet weak var back: UIButton!
     @IBOutlet var recordingView: UIImageView!
 
     override public func viewDidLoad() {
         super.viewDidLoad()
-        self.setupCamera()
         recordingView.image = UIImage.gifImageWithName("recording")
         session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
         configureIdleMode()
@@ -80,6 +78,11 @@ public class CameraViewController:
         orientation = getOrientation()
     }
 
+    override public func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        self.setupCamera()
+    }
+
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         if self.isBeingDismissed || self.isMovingFromParent {
@@ -89,12 +92,19 @@ public class CameraViewController:
             session ! UICmd.UnbecomeCamera(sender: nil)
         }
     }
-    
+
+    public override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        if captureVideoPreviewLayer != nil {
+            captureVideoPreviewLayer!.frame = self.view.frame
+        }
+    }
+
     func configureIdleMode() {
         recordingView.isHidden = true
         back.isHidden = false
     }
-    
+
     func configureVideoModeRecording() {
         recordingView.isHidden = false
         back.isHidden = true
@@ -114,62 +124,76 @@ public class CameraViewController:
         self.navigationController?.popViewController(animated: true)
     }
 
-    func setupCamera() -> Void {
-        videoDataOutput.setSampleBufferDelegate(self, queue: videoDataOutputQueue)
-        videoDataOutput.videoSettings =
-            [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
-        videoDataOutput.alwaysDiscardsLateVideoFrames = true
-        if captureSession.isRunning {
-            captureSession.stopRunning()
-        }
-        self.captureSession.beginConfiguration()
-        captureSession.sessionPreset = .high
-        
-        guard let videoDevice = AVCaptureDevice.default(for: AVMediaType.video) else {
+    func setupCamera() {
+        if self.captureVideoPreviewLayer != nil {
             return
         }
-
-        self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-
-        captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
-        captureVideoPreviewLayer!.frame = self.view.frame
-
-        self.view.layer.insertSublayer(captureVideoPreviewLayer!, below: self.back.layer)
-
-        do {
-            videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
-            captureSession.addInput(videoDeviceInput)
-            captureSession.addOutput(videoDataOutput)
-
-            self.setFrameRate(framerate: fps, videoDevice: videoDevice)
-
-            session ! UICmd.ToggleCameraResp(
-                    flashMode: (videoDevice.hasFlash) ? self.cameraSettings.flashMode : nil,
-                    camPosition: videoDevice.position,
-                    error: nil
-            )
-
-            let audioDevice = AVCaptureDevice.default(for: .audio)
-            let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
-
-            if captureSession.canAddInput(audioDeviceInput) {
-                captureSession.addInput(audioDeviceInput)
-            } else {
-                print("Could not add audio device input to the session")
+        let alert = UIAlertController(title: NSLocalizedString("Initializing camera", comment: ""), message: "")
+        alert.show(true)
+        cameraConfigQueue.async {[weak self] in
+            guard let self = self else {
+                return
             }
-            
-            if captureSession.canAddOutput(audioDataOutput) {
-                captureSession.addOutput(audioDataOutput)
-                audioDataOutput.setSampleBufferDelegate(self, queue: audioDataOutputQueue)
+            self.videoDataOutput.setSampleBufferDelegate(self, queue: self.videoDataOutputQueue)
+            self.videoDataOutput.videoSettings =
+                [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
+            self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
+            if self.captureSession.isRunning {
+                self.captureSession.stopRunning()
             }
-            configSessionOutput()
+            self.captureSession.beginConfiguration()
+            self.captureSession.sessionPreset = .hd1920x1080
+
+            guard let videoDevice = AVCaptureDevice.default(for: AVMediaType.video) else {
+                return
+            }
+
+            self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
+
+            self.captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
             DispatchQueue.main.async {
-                self.rotateCameraToOrientation(orientation: self.orientation)
+                self.captureVideoPreviewLayer!.frame = self.view.frame
+                self.view.layer.insertSublayer(self.captureVideoPreviewLayer!, below: self.back.layer)
             }
-            self.captureSession.commitConfiguration()
-            self.captureSession.startRunning()
-        } catch let error as NSError {
-            print("error \(error)")
+
+            do {
+                self.videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
+                self.captureSession.addInput(self.videoDeviceInput)
+                self.captureSession.addOutput(self.videoDataOutput)
+
+                self.setFrameRate(framerate: fps, videoDevice: videoDevice)
+
+                self.session ! UICmd.ToggleCameraResp(
+                        flashMode: (videoDevice.hasFlash) ? self.cameraSettings.flashMode : nil,
+                        camPosition: videoDevice.position,
+                        error: nil
+                )
+
+                let audioDevice = AVCaptureDevice.default(for: .audio)
+                let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
+
+                if self.captureSession.canAddInput(audioDeviceInput) {
+                    self.captureSession.addInput(audioDeviceInput)
+                } else {
+                    print("Could not add audio device input to the session")
+                }
+
+                if self.captureSession.canAddOutput(self.audioDataOutput) {
+                    self.captureSession.addOutput(self.audioDataOutput)
+                    self.audioDataOutput.setSampleBufferDelegate(self, queue: self.audioDataOutputQueue)
+                }
+                self.configSessionOutput()
+                DispatchQueue.main.async {
+                    self.rotateCameraToOrientation(orientation: self.orientation)
+                }
+                self.captureSession.commitConfiguration()
+                self.captureSession.startRunning()
+            } catch let error as NSError {
+                print("error \(error)")
+            }
+            DispatchQueue.main.async {
+                alert.dismiss(animated: true)
+            }
         }
     }
 
@@ -198,7 +222,7 @@ public class CameraViewController:
             return Failure(error: error)
         }
     }
-    
+
     private func configSessionOutput() {
         self.captureSession.beginConfiguration()
         captureSession.removeOutput(videoDataOutput)
@@ -294,13 +318,13 @@ public class CameraViewController:
         return newSettings
     }
 
-    func takePicture() -> Void {
+    func takePicture() {
         OperationQueue.main.addOperation {
             let cameraSettings = self.cloneCameraSettings(self.cameraSettings)
             self.photoOutput.capturePhoto(with: cameraSettings, delegate: self)
         }
     }
-    
+
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         if error != nil {
             session ! UICmd.OnPicture(sender: nil, error: error!)
@@ -319,7 +343,7 @@ extension CameraViewController {
         writingQueue.async {[weak self] in
             guard let self = self else {return}
             if self.recordingWillBeStarted || self.isRecording {
-                return;
+                return
             }
 
             self.recordingWillBeStarted = true
@@ -330,7 +354,7 @@ extension CameraViewController {
             // Create an asset writer
             do {
                 self.assetWriter = try AVAssetWriter(outputURL: outputFilePath, fileType: .mov)
-            } catch  {
+            } catch {
                 showError(NSLocalizedString("Unable to start recording", comment: ""))
             }
             OperationQueue.main.addOperation {[weak self] in
@@ -345,7 +369,7 @@ extension CameraViewController {
             }
         }
     }
-    
+
     func stopRecordingVideo() {
         writingQueue.async {[weak self] in
             guard let self = self else { return }
@@ -353,11 +377,11 @@ extension CameraViewController {
                 return
             }
             self.isRecording = false
-            self.recordingWillBeStopped = true;
+            self.recordingWillBeStopped = true
             self.assetWriter?.finishWriting {[weak self] in
-                self?.assetWriter=nil;
-                self?.readyToRecordVideo = false;
-                self?.readyToRecordAudio = false;
+                self?.assetWriter=nil
+                self?.readyToRecordVideo = false
+                self?.readyToRecordAudio = false
                 self?.recordingWillBeStopped = false
                 self?.saveMovieToPhotosApp()
             }
@@ -386,7 +410,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             self.processFrame(captureOutput, didOutput: sampleBuffer, from: connection)
         }
     }
-    
+
     public func sendFrameToMonitor(_ captureOutput: AVCaptureOutput,
                               didOutput sampleBuffer: CMSampleBuffer,
                               from connection: AVCaptureConnection) {
@@ -405,11 +429,10 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                     camOrientation: self.orientation)
         }
     }
-    
+
     func saveMovieToPhotosApp() {
         let outputFileURL = movieUrl()
         if let data = try? Data(contentsOf: outputFileURL) {
-            print("md5 \(data.md5)")
             // Send video to the monitor
             session ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: data, error: nil)
             // Check the authorization status.
@@ -436,7 +459,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             cleanupFileAt(movieUrl())
         }
     }
-    
+
     func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
         var videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
@@ -448,24 +471,24 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             var bitsPerPixel: Float
             let numPixels = dimensions.width * dimensions.height
             var bitsPerSecond: Int
-            
+
             // Assume that lower-than-SD resolutions are intended for streaming, and use a lower bitrate
             if numPixels < 640 * 480 {
                 bitsPerPixel = 4.05 // This bitrate approximately matches the quality produced by AVCaptureSessionPresetMedium or Low.
             } else {
                 bitsPerPixel = 10.1 // This bitrate approximately matches the quality produced by AVCaptureSessionPresetHigh.
             }
-            
+
             bitsPerSecond = Int(Float(numPixels) * bitsPerPixel)
-            
-            let compressionProperties: NSDictionary = [AVVideoAverageBitRateKey : bitsPerSecond,
-                                                       AVVideoExpectedSourceFrameRateKey : 24,
-                                                       AVVideoMaxKeyFrameIntervalKey : 24]
-            
-            videoSettings = [AVVideoCodecKey : AVVideoCodecType.h264,
-                             AVVideoWidthKey : dimensions.width,
-                             AVVideoHeightKey : dimensions.height,
-                             AVVideoCompressionPropertiesKey : compressionProperties]
+
+            let compressionProperties: NSDictionary = [AVVideoAverageBitRateKey: bitsPerSecond,
+                                                       AVVideoExpectedSourceFrameRateKey: 24,
+                                                       AVVideoMaxKeyFrameIntervalKey: 24]
+
+            videoSettings = [AVVideoCodecKey: AVVideoCodecType.h264,
+                             AVVideoWidthKey: dimensions.width,
+                             AVVideoHeightKey: dimensions.height,
+                             AVVideoCompressionPropertiesKey: compressionProperties]
         }
 
         if assetWriter.canApply(outputSettings: videoSettings, forMediaType: .video) {
@@ -473,7 +496,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                 mediaType: .video,
                 outputSettings: videoSettings)
             videoInput.expectsMediaDataInRealTime = true
-            
+
             if assetWriter.canAdd(videoInput) {
                 assetWriter.add(videoInput)
             } else {
@@ -486,14 +509,14 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         }
         return true
     }
-    
+
     func setupAssetWriterAudioInput(_ formatDescription: CMFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
-        let audioSettings = [AVFormatIDKey : kAudioFormatMPEG4AAC]
+        let audioSettings = [AVFormatIDKey: kAudioFormatMPEG4AAC]
         if assetWriter.canApply(outputSettings: audioSettings, forMediaType: .audio) {
             audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings, sourceFormatHint: formatDescription)
             audioInput.expectsMediaDataInRealTime = true
-            
+
             if assetWriter.canAdd(audioInput) {
                 assetWriter.add(audioInput)
             } else {
@@ -506,28 +529,28 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         }
         return true
     }
-    
+
     public func processFrame(_ captureOutput: AVCaptureOutput,
                               didOutput sampleBuffer: CMSampleBuffer,
                               from connection: AVCaptureConnection) {
 
         if let assetWriter = self.assetWriter {
-            let wasReadyToRecord = (readyToRecordAudio && readyToRecordVideo);
-            if (connection == self.videoConnection) {
+            let wasReadyToRecord = (readyToRecordAudio && readyToRecordVideo)
+            if connection == self.videoConnection {
                 if let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer), !readyToRecordVideo {
                     readyToRecordVideo = self.setupAssetWriterVideoInput(formatDescription, assetWriter: assetWriter)
                 }
 
-                if(readyToRecordVideo && readyToRecordAudio) {
+                if readyToRecordVideo && readyToRecordAudio {
                     self.writeSampleBuffer(sampleBuffer: sampleBuffer, ofType: .video)
                 }
-            }else if(connection == self.audioConnection) {
+            } else if connection == self.audioConnection {
                 if let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer), !readyToRecordAudio {
                     readyToRecordAudio = self.setupAssetWriterAudioInput(formatDescription,
                                                                          assetWriter: assetWriter)
                 }
 
-                if (readyToRecordAudio && readyToRecordVideo) {
+                if readyToRecordAudio && readyToRecordVideo {
                     self.writeSampleBuffer(sampleBuffer: sampleBuffer, ofType: .audio)
                 }
             }
@@ -538,10 +561,10 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             }
         }
     }
-    
-    func writeSampleBuffer(sampleBuffer:CMSampleBuffer,
+
+    func writeSampleBuffer(sampleBuffer: CMSampleBuffer,
                            ofType mediaType: AVMediaType) {
-        if (!isRecording) {
+        if !isRecording {
             return
         }
         writingQueue.async { [weak self] in
@@ -550,13 +573,13 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                 return
             }
             if assetWriter.status == .unknown {
-                if (assetWriter.startWriting()) {
+                if assetWriter.startWriting() {
                     assetWriter.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
                 } else {
                     // TODO: Show error
                 }
             }
-            
+
             if let input = (mediaType == .video) ? self.videoInput : self.audioInput {
                 if input.isReadyForMoreMediaData {
                     let success = input.append(sampleBuffer)

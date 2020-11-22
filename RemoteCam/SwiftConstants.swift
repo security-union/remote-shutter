@@ -9,4 +9,3 @@
 import Foundation
 
 public let tempFile = "tempfile.mov"
-
