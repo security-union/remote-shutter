@@ -62,7 +62,7 @@ extension UIViewController {
         if PHPhotoLibrary.authorizationStatus() != .authorized {
             PHPhotoLibrary.requestAuthorization {
                 if $0 != .authorized {
-                    ^ {
+                    ^{
                         self.showNoCameraRollAccess()
                     }
                 }
