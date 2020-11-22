@@ -10,10 +10,9 @@ import UIKit
 import Theater
 import AVFoundation
 
-
 func setFlashMode(ctrl: MonitorViewController, flashMode: AVCaptureDevice.FlashMode?) {
     if let f = flashMode {
-        switch (f) {
+        switch f {
         case .off:
             ctrl.flashStatus.text = "Off"
         case .on:
@@ -37,24 +36,24 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
     public required init(context: ActorSystem, ref: ActorRef) {
         super.init(context: context, ref: ref)
         mailbox = OperationQueue()
-        let session: Optional<ActorRef> = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")
+        let session: ActorRef? = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")
         session! ! UICmd.BecomeMonitor(ref, mode: .Photo)
     }
 
     override public func receiveWithCtrl(ctrl: MonitorViewController) -> Receive {
-        
+
         return { [unowned self](msg: Message) in
-            switch (msg) {
+            switch msg {
             case is UICmd.RenderPhotoMode:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     ctrl?.configurePhotoMode()
                 }
-                
+
             case is UICmd.RenderVideoMode:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     ctrl?.configureVideoMode()
                 }
-                
+
             case is UICmd.RenderVideoModeRecording:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     ctrl?.configureVideoModeRecording()
@@ -80,7 +79,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                 }
 
             case is UICmd.UnbecomeMonitor:
-                let session: Optional<ActorRef> = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")
+                let session: ActorRef? = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")
                 session! ! msg
 
             case let f as RemoteCmd.OnFrame:
@@ -128,21 +127,21 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     @IBOutlet weak var timerLabel: UILabel!
 
     @IBOutlet weak var galleryButton: UIButton!
-    
+
     @IBOutlet weak var backButton: UIButton!
-    
+
     @IBOutlet weak var flashButton: UIButton!
-    
+
     @IBOutlet weak var settingsButton: UIButton!
-    
+
     @IBOutlet weak var toggleCamera: UIButton!
-    
+
     @IBOutlet weak var segmentedControl: UISegmentedControl!
-    
+
     @IBOutlet weak var recordingView: UIImageView!
-    
+
     var buttonPrompt: String = ""
-    
+
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = true
@@ -169,16 +168,16 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
             monitor ! Actor.Harakiri(sender: nil)
         }
     }
-    
+
     deinit {
         self.timer.cancel()
         self.soundManager.stopPlayer()
     }
-    
+
     let buttonPromptPhotoMode = NSLocalizedString("Taking picture", comment: "")
     let buttonPromptVideoMode = NSLocalizedString("Starting video", comment: "")
     let buttonPromptRecordingMode = NSLocalizedString("Stopping video", comment: "")
-    
+
     func configurePhotoMode() {
         takePicture.setImage(UIImage.init(named: "camera.png"), for: .normal)
         galleryButton.isEnabled = true
@@ -194,7 +193,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         toggleCamera.isHidden = false
         buttonPrompt = buttonPromptPhotoMode
     }
-    
+
     func configureVideoMode() {
         takePicture.setImage(UIImage.init(named: "record-button.png"), for: .normal)
         galleryButton.isEnabled = true
@@ -210,7 +209,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         toggleCamera.isHidden = false
         buttonPrompt = buttonPromptVideoMode
     }
-    
+
     func configureVideoModeRecording() {
         takePicture.setImage(UIImage.init(named: "stop-button.png"), for: .normal)
         galleryButton.isEnabled = false
@@ -282,7 +281,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                 message: nil,
                 preferredStyle: .alert)
 
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { (a) in
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { (_) in
             alert.dismiss(animated: true, completion: nil)
             self.timer.cancel()
         })
@@ -292,7 +291,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         self.present(alert, animated: true) { [unowned self] in
             self.timer.start(withDuration: Int(round(self.timerSlider.value)), withTickHandler: { [unowned self](t) in
                 alert.title = timerAlertTitle(seconds: t!.timeRemaining())
-                switch (t!.timeRemaining()) {
+                switch t!.timeRemaining() {
                 case let l where l > 3:
                     self.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
                 case 3:
@@ -300,9 +299,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                 default:
                     break
                 }
-            }, cancelHandler: { (t) in
+            }, cancelHandler: { (_) in
                     alert.dismiss(animated: true, completion: nil)
-            }, andCompletionHandler: { [unowned self] (t) in
+            }, andCompletionHandler: { [unowned self] (_) in
                 alert.dismiss(animated: true, completion: nil)
                 self.session ! UICmd.TakePicture(sender: nil)
             })
@@ -319,7 +318,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         self.timerSlider.maximumTrackTintColor = sliderColor2
         self.timerSlider.thumbTintColor = sliderColor1
     }
-    
+
     @objc func onSegmentedControlChanged(event: UIEvent) {
         if InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeatureAndEnableVideo() {
             var mode = RecordingMode.Photo

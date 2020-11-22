@@ -62,7 +62,7 @@ extension UIViewController {
         if PHPhotoLibrary.authorizationStatus() != .authorized {
             PHPhotoLibrary.requestAuthorization {
                 if $0 != .authorized {
-                    ^{
+                    ^ {
                         self.showNoCameraRollAccess()
                     }
                 }
@@ -101,6 +101,6 @@ extension UIViewController {
 }
 
 // Helper function inserted by Swift 4.2 migrator.
-fileprivate func convertFromAVMediaType(_ input: AVMediaType) -> String {
+private func convertFromAVMediaType(_ input: AVMediaType) -> String {
     return input.rawValue
 }
