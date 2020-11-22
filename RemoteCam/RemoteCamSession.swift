@@ -68,7 +68,7 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
 
     func startScanning(lobby: RolePickerController) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
-        ^ {
+        ^{
             CATransaction.begin()
             CATransaction.setCompletionBlock {
                 self.session = MCSession(peer: self.peerID)
@@ -98,7 +98,7 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
         switch msg {
 
         case let m as UICmd.BecomeCamera:
-            ^ {
+            ^{
                 m.ctrl.navigationController?.popViewController(animated: true)
             }
 
@@ -157,7 +157,7 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
         assert(Thread.isMainThread == false, "can't be called from the main thread")
         if self.sendMessage(peer: self.session.connectedPeers, msg: msg).isFailure() {
             self.popToState(name: self.states.scanning)
-            ^ {
+            ^{
             let alert = UIAlertController(
                 title: NSLocalizedString("Connection error", comment: ""),
                 message: NSLocalizedString("Peer disconnected, please reconnect", comment: ""),

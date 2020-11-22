@@ -32,7 +32,7 @@ prefix operator ^
  
  */
 
-public prefix func ^ (block : @escaping () -> Void) {
+public prefix func ^ (block : @escaping () -> (Void)) -> Void {
     OperationQueue.main.addOperations([BlockOperation(block: block)], waitUntilFinished: true)
 }
 
@@ -59,6 +59,6 @@ prefix operator ^^
  
  */
 
-public prefix func ^^ (block : @escaping () -> Void) {
+public prefix func ^^ (block : @escaping () -> (Void)) -> Void {
     OperationQueue.main.addOperations([BlockOperation(block: block)], waitUntilFinished: false)
 }
