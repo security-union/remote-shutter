@@ -21,7 +21,7 @@ extension RemoteCamSession {
                  is UICmd.ToggleConnect,
                  is UICmd.StartScanning:
                 self.startScanning(lobby: lobby)
-                ^ {
+                ^{
                     lobby.navigationItem.rightBarButtonItem?.title = lobby.states.connect
                     lobby.self.navigationItem.prompt = lobby.disconnectedPrompt
                     lobby.remote.alpha = 0.3
@@ -35,7 +35,7 @@ extension RemoteCamSession {
                     name: self.states.connected,
                     state: self.connected(lobby: lobby, peer: w.peer)
                 )
-                ^ {
+                ^{
                     if let c = self.browser {
                         c.dismiss(animated: true, completion: { [unowned self] in
                             self.browser = nil
