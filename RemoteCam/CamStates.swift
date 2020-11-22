@@ -35,7 +35,7 @@ extension RemoteCamSession {
                          ctrl: CameraViewController,
                          lobby: RolePickerController) -> Receive {
         var alert: UIAlertController?
-        ^ {
+        ^{
             alert = UIAlertController(title: "Taking picture",
                 message: nil,
                 preferredStyle: .alert)
@@ -48,7 +48,7 @@ extension RemoteCamSession {
                 if let imageData = t.pic {
                     savePicture(imageData)
                 }
-                ^ {
+                ^{
                     alert?.dismiss(animated: true, completion: nil)
                 }
                 if self.sendMessage(
@@ -65,7 +65,7 @@ extension RemoteCamSession {
                 }
                 self.unbecome()
             case let c as DisconnectPeer:
-                ^ {
+                ^{
                     alert?.dismiss(animated: true, completion: nil)
                     if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                         mailbox.addOperation {
@@ -75,7 +75,7 @@ extension RemoteCamSession {
                 }
 
             case is Disconnect:
-                ^ {
+                ^{
                     alert?.dismiss(animated: true)
                 }
                 self.popAndStartScanning()

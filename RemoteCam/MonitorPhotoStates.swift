@@ -70,7 +70,7 @@ extension RemoteCamSession {
                               peer: MCPeerID,
                               lobby: RolePickerController) -> Receive {
         var alert: UIAlertController?
-        ^ {
+        ^{
             alert = UIAlertController(title: "Requesting picture",
                 message: nil,
                 preferredStyle: .alert)
@@ -79,11 +79,11 @@ extension RemoteCamSession {
             switch msg {
 
             case is RemoteCmd.TakePicAck:
-                ^ {alert?.title = "Receiving picture"}
+                ^{alert?.title = "Receiving picture"}
                 self.sendCommandOrGoToScanning(peer: [peer], msg: msg)
 
             case is UICmd.TakePicture:
-                ^ {alert?.show(true) {
+                ^{alert?.show(true) {
                     mailbox.addOperation {
                         self.sendCommandOrGoToScanning(
                             peer: [peer],
@@ -95,9 +95,9 @@ extension RemoteCamSession {
             case let picResp as RemoteCmd.TakePicResp:
                 if let imageData = picResp.pic {
                     savePicture(imageData)
-                    ^ {alert?.dismiss(animated: true)}
+                    ^{alert?.dismiss(animated: true)}
                 } else if let error = picResp.error {
-                    ^ {alert?.dismiss(animated: true) { () in
+                    ^{alert?.dismiss(animated: true) { () in
                         let error = UIAlertController(title: error._domain, message: nil, preferredStyle: .alert)
                         error.simpleOkAction()
                         error.show(true)
@@ -106,7 +106,7 @@ extension RemoteCamSession {
                 self.unbecome()
 
             case is UICmd.UnbecomeMonitor:
-                ^ {alert?.dismiss(animated: true) {
+                ^{alert?.dismiss(animated: true) {
                     mailbox.addOperation {
                         self.popToState(name: self.states.connected)
                     }
@@ -114,7 +114,7 @@ extension RemoteCamSession {
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                    ^ {alert?.dismiss(animated: true) {
+                    ^{alert?.dismiss(animated: true) {
                         mailbox.addOperation {
                             self.popAndStartScanning()
                         }
@@ -122,14 +122,14 @@ extension RemoteCamSession {
                 }
 
             case is Disconnect:
-                ^ {alert?.dismiss(animated: true) {
+                ^{alert?.dismiss(animated: true) {
                     mailbox.addOperation {
                         self.popAndStartScanning()
                     }
                 }}
 
             default:
-                ^ {alert?.dismiss(animated: true, completion: nil)}
+                ^{alert?.dismiss(animated: true, completion: nil)}
                 print("ignoring message")
             }
         }
