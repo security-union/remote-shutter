@@ -14,7 +14,7 @@ import Theater
 import UserMessagingPlatform
 
 public func showError(_ error: String) {
-    ^ {
+    ^{
         let alert = UIAlertController(
             title: NSLocalizedString("Error", comment: ""),
             message: error
