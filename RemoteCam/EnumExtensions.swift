@@ -12,7 +12,7 @@ import Theater
 
 extension AVCaptureDevice.Position {
     public func toggle() -> Try<AVCaptureDevice.Position> {
-        switch (self) {
+        switch self {
         case .back:
             return Success(value: .front)
         case .front:
@@ -25,7 +25,7 @@ extension AVCaptureDevice.Position {
 
 extension AVCaptureDevice.FlashMode {
     public func next() -> AVCaptureDevice.FlashMode {
-        switch (self) {
+        switch self {
         case .off:
             return .on
         case .on:

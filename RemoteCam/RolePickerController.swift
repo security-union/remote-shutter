@@ -9,7 +9,6 @@
 import UIKit
 import Theater
 
-
 /**
      Role picker allows the user to select whether the current device want's to be the camera or the monitor.
     
@@ -68,7 +67,7 @@ public class RolePickerController: UIViewController {
 
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        if (self.isBeingDismissed || self.isMovingFromParent) {
+        if self.isBeingDismissed || self.isMovingFromParent {
             remoteCamSession ! Disconnect(sender: nil)
             remoteCamSession ! Actor.Harakiri(sender: nil)
         }

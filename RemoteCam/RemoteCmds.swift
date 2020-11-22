@@ -16,7 +16,7 @@ public class RemoteCmd: Actor.Message {
         public func encode(with aCoder: NSCoder) {
         }
 
-        public override init(sender: Optional<ActorRef>) {
+        public override init(sender: ActorRef?) {
             super.init(sender: sender)
         }
 
@@ -29,7 +29,7 @@ public class RemoteCmd: Actor.Message {
         public func encode(with aCoder: NSCoder) {
         }
 
-        public override init(sender: Optional<ActorRef>) {
+        public override init(sender: ActorRef?) {
             super.init(sender: sender)
         }
 
@@ -42,7 +42,7 @@ public class RemoteCmd: Actor.Message {
         public func encode(with aCoder: NSCoder) {
         }
 
-        public override init(sender: Optional<ActorRef>) {
+        public override init(sender: ActorRef?) {
             super.init(sender: sender)
         }
 
@@ -55,7 +55,7 @@ public class RemoteCmd: Actor.Message {
         public func encode(with aCoder: NSCoder) {
         }
 
-        public override init(sender: Optional<ActorRef> = nil) {
+        public override init(sender: ActorRef? = nil) {
             super.init(sender: sender)
         }
 
@@ -66,9 +66,8 @@ public class RemoteCmd: Actor.Message {
 
     @objc(_TtCC10ActorsDemo9RemoteCmd11StopRecordingVideo)public class StopRecordingVideoResp: Actor.Message, NSCoding {
 
-        let video: Optional<Data>
-        let error: Optional<Error>
-
+        let video: Data?
+        let error: Error?
 
         public func encode(with aCoder: NSCoder) {
             if let pic = self.video {
@@ -93,19 +92,19 @@ public class RemoteCmd: Actor.Message {
             super.init(sender: nil)
         }
 
-        public init(sender: Optional<ActorRef>, video: Data) {
+        public init(sender: ActorRef?, video: Data) {
             self.video = video
             self.error = nil
             super.init(sender: sender)
         }
 
-        public init(sender: Optional<ActorRef>, pic: Optional<Data>, error: Optional<Error>) {
+        public init(sender: ActorRef?, pic: Data?, error: Error?) {
             self.video = pic
             self.error = error
             super.init(sender: sender)
         }
 
-        public init(sender: Optional<ActorRef>, error: Error) {
+        public init(sender: ActorRef?, error: Error) {
             self.video = nil
             self.error = error
             super.init(sender: sender)
@@ -116,7 +115,7 @@ public class RemoteCmd: Actor.Message {
         public func encode(with aCoder: NSCoder) {
         }
 
-        public override init(sender: Optional<ActorRef>) {
+        public override init(sender: ActorRef?) {
             super.init(sender: sender)
         }
 
@@ -127,7 +126,7 @@ public class RemoteCmd: Actor.Message {
     }
 
     @objc(_TtCC10ActorsDemo9RemoteCmd10TakePicAck)public class TakePicAck: Actor.Message, NSCoding {
-        public override init(sender: Optional<ActorRef>) {
+        public override init(sender: ActorRef?) {
             super.init(sender: sender)
         }
 
@@ -141,9 +140,8 @@ public class RemoteCmd: Actor.Message {
 
     @objc(_TtCC10ActorsDemo9RemoteCmd11TakePicResp)public class TakePicResp: Actor.Message, NSCoding {
 
-        let pic: Optional<Data>
-        let error: Optional<Error>
-
+        let pic: Data?
+        let error: Error?
 
         public func encode(with aCoder: NSCoder) {
             if let pic = self.pic {
@@ -168,19 +166,19 @@ public class RemoteCmd: Actor.Message {
             super.init(sender: nil)
         }
 
-        public init(sender: Optional<ActorRef>, pic: Data) {
+        public init(sender: ActorRef?, pic: Data) {
             self.pic = pic
             self.error = nil
             super.init(sender: sender)
         }
 
-        public init(sender: Optional<ActorRef>, pic: Optional<Data>, error: Optional<Error>) {
+        public init(sender: ActorRef?, pic: Data?, error: Error?) {
             self.pic = pic
             self.error = error
             super.init(sender: sender)
         }
 
-        public init(sender: Optional<ActorRef>, error: Error) {
+        public init(sender: ActorRef?, error: Error) {
             self.pic = nil
             self.error = error
             super.init(sender: sender)
@@ -193,7 +191,7 @@ public class RemoteCmd: Actor.Message {
         public let camPosition: AVCaptureDevice.Position
         public let camOrientation: UIInterfaceOrientation
 
-        init(data: Data, sender: Optional<ActorRef>, fps: NSInteger, camPosition: AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation) {
+        init(data: Data, sender: ActorRef?, fps: NSInteger, camPosition: AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation) {
             self.data = data
             self.fps = fps
             self.camPosition = camPosition
@@ -224,7 +222,7 @@ public class RemoteCmd: Actor.Message {
         public let camPosition: AVCaptureDevice.Position
         public let camOrientation: UIInterfaceOrientation
 
-        init(data: Data, sender: Optional<ActorRef>, peerId: MCPeerID, fps: NSInteger, camPosition: AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation) {
+        init(data: Data, sender: ActorRef?, peerId: MCPeerID, fps: NSInteger, camPosition: AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation) {
             self.camPosition = camPosition
             self.data = data
             self.peerId = peerId

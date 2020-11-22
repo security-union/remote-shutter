@@ -7,7 +7,9 @@
 //
 
 import UIKit
+#if !targetEnvironment(macCatalyst)
 import GoogleMobileAds
+#endif
 import Photos
 
 @UIApplicationMain
@@ -16,11 +18,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        InAppPurchasesManager.shared().reloadProducts { (i, e) in
+        InAppPurchasesManager.shared().reloadProducts { (_, _) in
 
         }
         if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() {
+            #if !targetEnvironment(macCatalyst)
             GADMobileAds.sharedInstance().start(completionHandler: nil)
+            #endif
         }
 
         UIApplication.shared.isIdleTimerDisabled = true
@@ -44,14 +48,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 }
 
-
 // Helper function inserted by Swift 4.2 migrator.
-fileprivate func convertFromNSAttributedStringKey(_ input: NSAttributedString.Key) -> String {
+private func convertFromNSAttributedStringKey(_ input: NSAttributedString.Key) -> String {
     input.rawValue
 }
 
 // Helper function inserted by Swift 4.2 migrator.
-fileprivate func convertToOptionalNSAttributedStringKeyDictionary(_ input: [String: Any]?) -> [NSAttributedString.Key: Any]? {
+private func convertToOptionalNSAttributedStringKeyDictionary(_ input: [String: Any]?) -> [NSAttributedString.Key: Any]? {
     guard let input = input else {
         return nil
     }
