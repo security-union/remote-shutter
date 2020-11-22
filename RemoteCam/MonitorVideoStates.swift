@@ -103,7 +103,7 @@ extension MonitorVideoStates {
                                peer: MCPeerID,
                                lobby: RolePickerController) -> Receive {
         var alert: UIAlertController?
-        ^ {
+        ^{
             alert = UIAlertController(title: "Waiting for video file...",
                     message: nil,
                     preferredStyle: .alert)
@@ -111,28 +111,28 @@ extension MonitorVideoStates {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
-                ^ {alert?.show(true)}
+                ^{alert?.show(true)}
 
             case is RemoteCmd.OnFrame:
                 monitor ! msg
 
             case let w as RemoteCmd.StopRecordingVideoResp:
                 saveVideo(w)
-                ^ {alert?.dismiss(animated: true)}
+                ^{alert?.dismiss(animated: true)}
                 self.popToState(name: self.states.monitorVideoMode)
 
             case is Disconnect:
-                ^ {alert?.dismiss(animated: true)}
+                ^{alert?.dismiss(animated: true)}
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                    ^ {alert?.dismiss(animated: true)}
+                    ^{alert?.dismiss(animated: true)}
                     self.popAndStartScanning()
                 }
 
             default:
-                ^ {alert?.dismiss(animated: true)}
+                ^{alert?.dismiss(animated: true)}
                 self.receive(msg: msg)
             }
         }

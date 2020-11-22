@@ -17,7 +17,7 @@ extension RemoteCamSession {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
-                ^ {
+                ^{
                     lobby.navigationItem.rightBarButtonItem?.title = lobby.states.disconnect
                     lobby.navigationItem.prompt = lobby.connectedPrompt
                     lobby.remote.alpha = 1
@@ -46,12 +46,12 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.PeerBecameMonitor())
 
             case is RemoteCmd.PeerBecameCamera:
-                ^ {
+                ^{
                     lobby.becomeMonitor()
                 }
 
             case is RemoteCmd.PeerBecameMonitor:
-                ^ {
+                ^{
                     lobby.becomeCamera()
                 }
 
