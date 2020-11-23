@@ -68,6 +68,7 @@ public class CameraViewController: UIViewController,
     override public func viewDidLoad() {
         super.viewDidLoad()
         recordingView.image = UIImage.gifImageWithName("recording")
+        self.setupCamera()
         session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
         configureIdleMode()
     }
@@ -80,7 +81,6 @@ public class CameraViewController: UIViewController,
 
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        self.setupCamera()
     }
 
     override public func viewDidDisappear(_ animated: Bool) {
@@ -125,75 +125,62 @@ public class CameraViewController: UIViewController,
     }
 
     func setupCamera() {
-        if self.captureVideoPreviewLayer != nil {
+        self.videoDataOutput.setSampleBufferDelegate(self, queue: self.videoDataOutputQueue)
+        self.videoDataOutput.videoSettings =
+            [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
+        self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
+        if self.captureSession.isRunning {
+            self.captureSession.stopRunning()
+        }
+        self.captureSession.beginConfiguration()
+        self.captureSession.sessionPreset = .high
+
+        guard let videoDevice = AVCaptureDevice.default(for: AVMediaType.video) else {
             return
         }
-        let alert = UIAlertController(title: NSLocalizedString("Initializing camera", comment: ""), message: "")
-        alert.show(true)
-        cameraConfigQueue.async {[weak self] in
-            guard let self = self else {
-                return
-            }
-            self.videoDataOutput.setSampleBufferDelegate(self, queue: self.videoDataOutputQueue)
-            self.videoDataOutput.videoSettings =
-                [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
-            self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
-            if self.captureSession.isRunning {
-                self.captureSession.stopRunning()
-            }
-            self.captureSession.beginConfiguration()
-            self.captureSession.sessionPreset = .hd1920x1080
 
-            guard let videoDevice = AVCaptureDevice.default(for: AVMediaType.video) else {
-                return
+        self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
+
+        self.captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
+        DispatchQueue.main.async {
+            self.captureVideoPreviewLayer!.frame = self.view.frame
+            self.view.layer.insertSublayer(self.captureVideoPreviewLayer!, below: self.back.layer)
+        }
+
+        do {
+            self.videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
+            self.captureSession.addInput(self.videoDeviceInput)
+            self.captureSession.addOutput(self.videoDataOutput)
+
+            self.setFrameRate(framerate: fps, videoDevice: videoDevice)
+
+            self.session ! UICmd.ToggleCameraResp(
+                    flashMode: (videoDevice.hasFlash) ? self.cameraSettings.flashMode : nil,
+                    camPosition: videoDevice.position,
+                    error: nil
+            )
+
+            let audioDevice = AVCaptureDevice.default(for: .audio)
+            let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
+
+            if self.captureSession.canAddInput(audioDeviceInput) {
+                self.captureSession.addInput(audioDeviceInput)
+            } else {
+                print("Could not add audio device input to the session")
             }
 
-            self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
-
-            self.captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
+            if self.captureSession.canAddOutput(self.audioDataOutput) {
+                self.captureSession.addOutput(self.audioDataOutput)
+                self.audioDataOutput.setSampleBufferDelegate(self, queue: self.audioDataOutputQueue)
+            }
+            self.configSessionOutput()
             DispatchQueue.main.async {
-                self.captureVideoPreviewLayer!.frame = self.view.frame
-                self.view.layer.insertSublayer(self.captureVideoPreviewLayer!, below: self.back.layer)
+                self.rotateCameraToOrientation(orientation: self.orientation)
             }
-
-            do {
-                self.videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
-                self.captureSession.addInput(self.videoDeviceInput)
-                self.captureSession.addOutput(self.videoDataOutput)
-
-                self.setFrameRate(framerate: fps, videoDevice: videoDevice)
-
-                self.session ! UICmd.ToggleCameraResp(
-                        flashMode: (videoDevice.hasFlash) ? self.cameraSettings.flashMode : nil,
-                        camPosition: videoDevice.position,
-                        error: nil
-                )
-
-                let audioDevice = AVCaptureDevice.default(for: .audio)
-                let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
-
-                if self.captureSession.canAddInput(audioDeviceInput) {
-                    self.captureSession.addInput(audioDeviceInput)
-                } else {
-                    print("Could not add audio device input to the session")
-                }
-
-                if self.captureSession.canAddOutput(self.audioDataOutput) {
-                    self.captureSession.addOutput(self.audioDataOutput)
-                    self.audioDataOutput.setSampleBufferDelegate(self, queue: self.audioDataOutputQueue)
-                }
-                self.configSessionOutput()
-                DispatchQueue.main.async {
-                    self.rotateCameraToOrientation(orientation: self.orientation)
-                }
-                self.captureSession.commitConfiguration()
-                self.captureSession.startRunning()
-            } catch let error as NSError {
-                print("error \(error)")
-            }
-            DispatchQueue.main.async {
-                alert.dismiss(animated: true)
-            }
+            self.captureSession.commitConfiguration()
+            self.captureSession.startRunning()
+        } catch let error as NSError {
+            print("error \(error)")
         }
     }
 
