@@ -45,7 +45,7 @@ public class RolePickerController: UIViewController {
     let connectedInstructionsLabel = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
     let connectedPrompt = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
 
-    lazy var remoteCamSession: ActorRef = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
+    lazy var remoteCamSession: ActorRef! = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
 
     override public func viewDidLoad() {
         super.viewDidLoad()
