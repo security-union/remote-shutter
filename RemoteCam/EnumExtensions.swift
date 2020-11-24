@@ -14,9 +14,9 @@ extension AVCaptureDevice.Position {
     public func toggle() -> Try<AVCaptureDevice.Position> {
         switch self {
         case .back:
-            return Success(value: .front)
+            return Success(.front)
         case .front:
-            return Success(value: .back)
+            return Success(.back)
         default:
             return Failure(error: NSError(domain: "Unable to find camera position", code: 0, userInfo: nil))
         }

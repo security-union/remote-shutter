@@ -104,7 +104,7 @@ public class BLECentral : Actor, CBCentralManagerDelegate, WithListeners {
      Scanning state message handler
     */
     
-    private func scanning(services : Optional<[CBUUID]>) -> Receive {
+    private func scanning(services : [CBUUID]?) -> Receive {
         self.shouldWait = false
         
         return {[unowned self] (msg : Actor.Message) in
@@ -129,7 +129,7 @@ public class BLECentral : Actor, CBCentralManagerDelegate, WithListeners {
                     let id = m.peripheral.identifier
                     let c = self.context.actorOf(clz: BLEPeripheralConnection.self, name: id.uuidString)
                     self.connections[id] = c
-                    c ! BLEPeripheralConnection.SetPeripheral(sender: self.this, peripheral: m.peripheral)
+                    c! ! BLEPeripheralConnection.SetPeripheral(sender: self.this, peripheral: m.peripheral)
                     self.broadcast(msg: Peripheral.OnConnect(sender: self.this, peripheral: m.peripheral, peripheralConnection: c))
                 
                 case let m as Peripheral.OnDisconnect:
