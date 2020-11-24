@@ -77,11 +77,11 @@ public extension BLECentral {
         
         public class OnDisconnect : Actor.Message {
             
-            public let error : Optional<Error>
+            public let error : Error?
             
             public let peripheral : CBPeripheral
             
-            public init(sender: Optional<ActorRef>, peripheral: CBPeripheral, error : Optional<Error>) {
+            public init(sender: ActorRef?, peripheral: CBPeripheral, error : Optional<Error>) {
                 self.peripheral = peripheral
                 self.error = error
                 super.init(sender: sender)
@@ -111,7 +111,7 @@ public extension BLECentral {
         
         public let services : Optional<[CBUUID]>
         
-        public init(services : Optional<[CBUUID]>, sender : Optional<ActorRef>) {
+        public init(services : Optional<[CBUUID]>, sender : ActorRef?) {
             self.services = services
             super.init(sender: sender)
         }
@@ -155,7 +155,7 @@ public extension BLECentral {
     class DevicesObservationUpdate : Actor.Message {
         public let devices : [String : [BLEPeripheralObservation]]
         
-        init(sender : Optional<ActorRef>, devices : [String : [BLEPeripheralObservation]]) {
+        init(sender : ActorRef?, devices : [String : [BLEPeripheralObservation]]) {
             self.devices = devices
             super.init(sender: sender)
         }
@@ -177,7 +177,7 @@ public extension BLEPeripheral {
     class SubscriptionsChanged : Actor.Message {
         let subscriptions : Subscriptions
         
-        init(sender: Optional<ActorRef>, subscriptions : Subscriptions) {
+        init(sender: ActorRef?, subscriptions : Subscriptions) {
             self.subscriptions = subscriptions
             super.init(sender: sender)
         }
@@ -192,7 +192,7 @@ public extension BLEPeripheral {
         
         public let svcs : [CBMutableService]
         
-        public init(sender: Optional<ActorRef>, advertisementData : [String : AnyObject]?, svcs : [CBMutableService]) {
+        public init(sender: ActorRef?, advertisementData : [String : AnyObject]?, svcs : [CBMutableService]) {
             self.svcs = svcs
             self.advertisementData = advertisementData
             super.init(sender: sender)
@@ -212,7 +212,7 @@ public extension BLEPeripheral {
     class DidStartAdvertising : Actor.Message {
         public let svcs : [CBService]
         
-        public init(sender: Optional<ActorRef>, svcs : [CBService]) {
+        public init(sender: ActorRef?, svcs : [CBService]) {
             self.svcs = svcs
             super.init(sender: sender)
         }
@@ -230,7 +230,7 @@ public extension BLEPeripheral {
     
     class FailedToStartAdvertising : Actor.Message {
         public let error : Error
-        init(sender : Optional<ActorRef>, error : Error) {
+        init(sender : ActorRef?, error : Error) {
             self.error = error
             super.init(sender: sender)
         }
@@ -244,7 +244,7 @@ public extension BLEPeripheral {
         public let central: CBCentral
         public let characteristic: CBCharacteristic
         
-        public init(sender: Optional<ActorRef>, central : CBCentral, characteristic : CBCharacteristic) {
+        public init(sender: ActorRef?, central : CBCentral, characteristic : CBCharacteristic) {
             self.central = central
             self.characteristic = characteristic
             super.init(sender: sender)
@@ -259,7 +259,7 @@ public extension BLEPeripheral {
         public let central: CBCentral
         public let characteristic: CBCharacteristic
         
-        public init(sender: Optional<ActorRef>, central : CBCentral, characteristic : CBCharacteristic) {
+        public init(sender: ActorRef?, central : CBCentral, characteristic : CBCharacteristic) {
             self.central = central
             self.characteristic = characteristic
             super.init(sender: sender)
@@ -273,7 +273,7 @@ public extension BLEPeripheral {
     
     class DidReceiveReadRequest : Actor.Message {
         public let request: CBATTRequest
-        public init(sender: Optional<ActorRef>, request : CBATTRequest) {
+        public init(sender: ActorRef?, request : CBATTRequest) {
             self.request = request
             super.init(sender: sender)
         }
@@ -287,7 +287,7 @@ public extension BLEPeripheral {
         public let result : CBATTError.Code
         public let request: CBATTRequest
         
-        public init(sender: Optional<ActorRef>, request : CBATTRequest, result : CBATTError.Code) {
+        public init(sender: ActorRef?, request : CBATTRequest, result : CBATTError.Code) {
             self.result = result
             self.request = request
             super.init(sender: sender)
@@ -298,7 +298,7 @@ public extension BLEPeripheral {
     class DidAddService : Actor.Message {
         public let svc : CBService
         
-        public init(svc : CBService, sender: Optional<ActorRef>) {
+        public init(svc : CBService, sender: ActorRef?) {
             self.svc = svc
             super.init(sender: sender)
         }
@@ -311,7 +311,7 @@ public extension BLEPeripheral {
     class DidReceiveWriteRequests : Actor.Message {
         public let requests: [CBATTRequest]
         
-        public init(sender: Optional<ActorRef>, requests : [CBATTRequest]) {
+        public init(sender: ActorRef?, requests : [CBATTRequest]) {
             self.requests = requests
             super.init(sender: sender)
         }
@@ -325,7 +325,7 @@ public extension BLEPeripheral {
         
         public let state : CBManagerState
         
-        public init(sender: Optional<ActorRef>, state : CBManagerState) {
+        public init(sender: ActorRef?, state : CBManagerState) {
             self.state = state
             super.init(sender: sender)
         }
@@ -338,7 +338,7 @@ public extension BLEPeripheral {
     class RemoveServices : Actor.Message {
         public let svcs : [CBMutableService]
         
-        public init(sender: Optional<ActorRef>, svcs : [CBMutableService]) {
+        public init(sender: ActorRef?, svcs : [CBMutableService]) {
             self.svcs = svcs
             super.init(sender: sender)
         }
@@ -357,7 +357,7 @@ public extension BLEPeripheral {
     class SetServices : Actor.Message {
         public let svcs : [CBMutableService]
         
-        public init(sender: Optional<ActorRef>, svcs : [CBMutableService]) {
+        public init(sender: ActorRef?, svcs : [CBMutableService]) {
             self.svcs = svcs
             super.init(sender: sender)
         }
@@ -372,7 +372,7 @@ public extension BLEPeripheral {
         public let centrals : [CBCentral]?
         public let value : Data
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             char : CBMutableCharacteristic,
             centrals : [CBCentral]?,
             value : Data) {
@@ -396,7 +396,7 @@ public extension BLEPeripheralConnection {
     class SetPeripheral : Actor.Message {
         public let peripheral : CBPeripheral
         
-        public init(sender: Optional<ActorRef>, peripheral : CBPeripheral) {
+        public init(sender: ActorRef?, peripheral : CBPeripheral) {
             self.peripheral = peripheral
             super.init(sender: sender)
         }
@@ -410,7 +410,7 @@ public extension BLEPeripheralConnection {
         
         public let peripheral : CBPeripheral
         
-        public init(sender: Optional<ActorRef>, peripheral : CBPeripheral) {
+        public init(sender: ActorRef?, peripheral : CBPeripheral) {
             self.peripheral = peripheral
             super.init(sender: sender)
         }
@@ -426,7 +426,7 @@ public extension BLEPeripheralConnection {
         
         public let invalidatedServices : [CBService]
         
-        public init(sender: Optional<ActorRef>, peripheral : CBPeripheral, invalidatedServices:[CBService]) {
+        public init(sender: ActorRef?, peripheral : CBPeripheral, invalidatedServices:[CBService]) {
             self.peripheral = peripheral
             self.invalidatedServices = invalidatedServices
             super.init(sender: sender)
@@ -445,7 +445,7 @@ public extension BLEPeripheralConnection {
         
         public let RSSI : NSNumber
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral : CBPeripheral,
             error : Error?,
             RSSI : NSNumber) {
@@ -466,7 +466,7 @@ public extension BLEPeripheralConnection {
         
         public let error : Error?
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral : CBPeripheral,
             error : Error?) {
                 self.error = error
@@ -485,7 +485,7 @@ public extension BLEPeripheralConnection {
         
         public let error : Error?
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral : CBPeripheral,
             error : Error?) {
                 self.error = error
@@ -501,7 +501,7 @@ public extension BLEPeripheralConnection {
     class DiscoverServices : Actor.Message {
         public let services : [CBUUID]
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             services : [CBUUID]) {
                 self.services = services
                 super.init(sender: sender)
@@ -520,7 +520,7 @@ public extension BLEPeripheralConnection {
         
         public let service: CBService
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral : CBPeripheral,
             service : CBService,
             error : Error?) {
@@ -542,7 +542,7 @@ public extension BLEPeripheralConnection {
         
         public let service: CBService
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral : CBPeripheral,
             service : CBService,
             error : Error?) {
@@ -565,7 +565,7 @@ public extension BLEPeripheralConnection {
         
         public let characteristic: CBCharacteristic
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral : CBPeripheral,
             characteristic: CBCharacteristic,
             error : Error?) {
@@ -587,7 +587,7 @@ public extension BLEPeripheralConnection {
         
         public let characteristic: CBCharacteristic
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral : CBPeripheral,
             characteristic: CBCharacteristic,
             error : Error?) {
@@ -609,7 +609,7 @@ public extension BLEPeripheralConnection {
         
         public let characteristic: CBCharacteristic
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral : CBPeripheral,
             characteristic: CBCharacteristic,
             error : Error?) {
@@ -631,7 +631,7 @@ public extension BLEPeripheralConnection {
         
         public let characteristic: CBCharacteristic
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral : CBPeripheral,
             characteristic: CBCharacteristic,
             error : Error?) {
@@ -651,7 +651,7 @@ public extension BLEPeripheralConnection {
         public let descriptor: CBDescriptor
         public let error: Error?
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral: CBPeripheral,
             descriptor: CBDescriptor,
             error: Error?) {
@@ -671,7 +671,7 @@ public extension BLEPeripheralConnection {
         public let descriptor: CBDescriptor
         public let error: Error?
         
-        public init(sender: Optional<ActorRef>,
+        public init(sender: ActorRef?,
             peripheral: CBPeripheral,
             descriptor: CBDescriptor,
             error: Error?) {
