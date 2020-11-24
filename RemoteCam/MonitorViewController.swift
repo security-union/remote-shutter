@@ -105,7 +105,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     let session = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")!
 
-    let monitor = RemoteCamSystem.shared.actorOf(clz: MonitorActor.self, name: "MonitorActor")
+    let monitor = RemoteCamSystem.shared.actorOf(clz: MonitorActor.self, name: "MonitorActor")!
 
     let timer: RCTimer = RCTimer()
 
