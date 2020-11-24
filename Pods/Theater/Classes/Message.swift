@@ -20,13 +20,13 @@ extension Actor {
          The ActorRef of the Actor that sent this message
          */
         
-        public let sender : Optional<ActorRef>
+        public let sender : ActorRef?
         
         /**
-         The constuctor requires an Optional<ActorRef> to setup the sender
+         The constuctor requires an ActorRef? to setup the sender
          */
         
-        public init(sender : Optional<ActorRef> = nil) {
+        public init(sender : ActorRef? = nil) {
             self.sender = sender
         }
         
@@ -62,7 +62,7 @@ extension Actor {
          */
         public let operationId : UUID
         
-        public init(sender: Optional<ActorRef>, operationId : UUID) {
+        public init(sender: ActorRef?, operationId : UUID) {
             self.operationId = operationId
             super.init(sender : sender)
         }
@@ -76,7 +76,7 @@ extension Actor {
         
         public let message : Message
         
-        public init(message : Actor.Message, sender: Optional<ActorRef>) {
+        public init(message : Actor.Message, sender: ActorRef?) {
             self.message = message
             super.init(sender: sender)
         }

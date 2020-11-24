@@ -71,9 +71,9 @@ extension WebSocketClientWrapper {
      */
 
     public class OnDisconnect : Actor.Message {
-        public let error : Optional<Error>
+        public let error : String?
         
-        init(sender: Optional<ActorRef>, error :Optional<Error>) {
+        init(sender: ActorRef?, error :String?) {
             self.error = error
             super.init(sender: sender)
         }
@@ -105,36 +105,25 @@ public class WebSocketClientWrapper : Actor , WebSocketDelegate,  WithListeners 
     }
     
     /**
-    websocketDidConnect
-    */
-    
-    public func websocketDidConnect(socket: WebSocketClient) {
-        self.broadcast(msg: OnConnect(sender: this))
-        self.become(name: "connected", state: self.connected(socket: socket))
-    }
-    
-    /**
-     websocketDidDisconnect
+         Websocket events
      */
-    
-    public func websocketDidDisconnect(socket: WebSocketClient, error: Error?) {
-        self.broadcast(msg: OnDisconnect(sender: this, error: error))
-        self.become(name: "disconnected", state: disconnected)
-    }
-    
-    /**
-     websocketDidReceiveMessage
-     */
-    public func websocketDidReceiveMessage(socket: WebSocketClient, text: String) {
-        self.broadcast(msg: OnMessage(sender: this, message: text))
-    }
-    
-    /**
-     websocketDidReceiveData
-     */
-    
-    public func websocketDidReceiveData(socket: WebSocketClient, data: Data) {
-        self.broadcast(msg: OnData(sender: this, data: data))
+    public func didReceive(event: WebSocketEvent, client: WebSocket) {
+        switch event {
+        case .connected(_):
+            self.broadcast(msg: OnConnect(sender: this))
+            self.become(name: "connected", state: self.connected(socket: client))
+        
+        case .disconnected(let error, _):
+            self.broadcast(msg: OnDisconnect(sender: self.this, error: error))
+            self.become(name: "disconnected", state: disconnected)
+        case .text(let text):
+            self.broadcast(msg: OnMessage(sender: this, message: text))
+        case .binary(let data):
+            self.broadcast(msg: OnData(sender: this, data: data))
+            
+        default:
+            break
+        }
     }
     
     /**
@@ -172,7 +161,6 @@ public class WebSocketClientWrapper : Actor , WebSocketDelegate,  WithListeners 
                 
             case is Disconnect:
                 socket.disconnect()
-                socket.delegate = nil
                 self.unbecome()
                 
             default:

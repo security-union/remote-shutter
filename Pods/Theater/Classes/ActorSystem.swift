@@ -69,7 +69,7 @@ The first rule about actors is that you should not access them directly, you alw
 */
 
 public class TestActorSystem : ActorSystem {
-    public override func actorForRef(ref : ActorRef) -> Optional<Actor> {
+    public override func actorForRef(ref : ActorRef) -> Actor? {
         super.actorForRef(ref: ref)
     }
 }
@@ -114,23 +114,11 @@ open class ActorSystem  {
     */
     
     public func stop(actorRef : ActorRef) -> Void {
-        supervisor!.stop(actorRef: actorRef)
+        supervisor?.stop(actorRef: actorRef)
     }
     
     public func stop() {
-        supervisor!.stop()
-        //TODO: there must be a better way to wait for all actors to die...
-        func shutdown(){
-            // FIXME: This is a big hack.
-            OperationQueue.main.underlyingQueue?.asyncAfter(deadline: DispatchTime(uptimeNanoseconds: 5000), execute: {
-                if(self.supervisor!.children.count == 0) {
-                    self.supervisor = nil
-                }
-            })
-        }
-        shutdown()
-        
-        
+        supervisor?.stop()
     }
     
     /**
@@ -147,8 +135,8 @@ open class ActorSystem  {
      ```
     */
     
-    public func actorOf(clz : Actor.Type, name : String) -> ActorRef {
-        supervisor!.actorOf(clz: clz, name: name)
+    public func actorOf(clz : Actor.Type, name : String) -> ActorRef? {
+        supervisor?.actorOf(clz: clz, name: name).toOptional()
     }
     
     /**
@@ -165,7 +153,7 @@ open class ActorSystem  {
      
     */
     
-    public func actorOf(clz : Actor.Type) -> ActorRef {
+    public func actorOf(clz : Actor.Type) -> ActorRef? {
         actorOf(clz: clz, name: UUID.init().uuidString)
     }
     
@@ -175,7 +163,7 @@ open class ActorSystem  {
      - parameter ref: reference to resolve
     */
     
-    func actorForRef(ref : ActorRef) -> Optional<Actor> {
+    func actorForRef(ref : ActorRef) -> Actor? {
         self.supervisor?.actorForRef(ref: ref)
     }
     
@@ -186,8 +174,8 @@ open class ActorSystem  {
     - returns : an ActorRef or None
     */
     
-    public func selectActor(actorPath : String) -> Optional<ActorRef>{
-        self.supervisor!.children[actorPath].map({ (a : Actor) -> ActorRef in return a.this})
+    public func selectActor(actorPath : String) -> ActorRef? {
+        self.supervisor?.children[actorPath].map({  ($0 as! Actor).this })
     }
     
     /**

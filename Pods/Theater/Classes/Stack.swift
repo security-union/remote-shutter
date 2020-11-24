@@ -44,7 +44,7 @@ public class Stack<A> {
     Pop an element from the Stack, if the stack is empty, it returns None
     */
     
-    public func pop() -> Optional<A> {
+    public func pop() -> A? {
         if let first = self.array.first {
             self.array.removeFirst()
             return first
@@ -67,7 +67,7 @@ public class Stack<A> {
     Peek into the stack, handy when you want to determine what's left in the Stack without removing the element from the stack
     */
     
-    public func head() -> Optional<A> {
+    public func head() -> A? {
         return self.array.first
     }
     

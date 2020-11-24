@@ -7,8 +7,8 @@ platform :ios, '12.0'
 use_frameworks!
 
 target 'RemoteShutter' do    
-    pod 'Starscream', '~> 3.0.6'
-    pod 'Theater', '~> 0.11'
+    pod 'Starscream', '~> 4.0.4'
+    pod 'Theater', '~> 0.12'
     pod 'Google-Mobile-Ads-SDK', '~> 7.68.0'
     pod 'GoogleUserMessagingPlatform', '~> 1.3.0'
     pod 'SwiftLint', '~> 0.41.0'

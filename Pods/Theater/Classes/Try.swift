@@ -76,7 +76,7 @@ public class Try<T> : NSCoder {
     
     class func gen(r: T) -> Try<T> {
         do {
-            let s = Success(value : r)
+            let s = Success(r)
             return s
         } catch let error as Error {
             return Failure(error : error)
@@ -113,7 +113,7 @@ public class Success<T> : Try<T> {
     
     private let value : T
     
-    public init(value : T) {
+    public init( _ value : T) {
         self.value = value
         super.init()
     }
@@ -161,7 +161,7 @@ public class Success<T> : Try<T> {
          ```
     */
     
-    override public func toOptional() -> Optional<T> {
+    override public func toOptional() -> T? {
         return  Optional.some(self.value)
     }
     

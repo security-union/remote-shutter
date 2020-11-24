@@ -144,7 +144,7 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
             try self.session.send(serializedMessage,
                     toPeers: peer,
                     with: mode)
-            return Success(value: msg)
+            return Success(msg)
         } catch let error as NSError {
             print("sendMessage error \(error)")
             return Failure(error: error)
