@@ -203,7 +203,7 @@ public class CameraViewController: UIViewController,
                 }
                 let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
                 captureSession.commitConfiguration()
-                return Success(value: (newFlashMode, newInput.device.position))
+                return Success((newFlashMode, newInput.device.position))
             }
         } catch let error as NSError {
             return Failure(error: error)
@@ -238,7 +238,7 @@ public class CameraViewController: UIViewController,
         if let hasFlash = device?.hasFlash, hasFlash {
             let newFlashMode = self.cameraSettings.flashMode.next()
             self.cameraSettings.flashMode = newFlashMode
-            return Success(value: newFlashMode)
+            return Success(newFlashMode)
         } else {
             return Failure(error: NSError(domain: "Current camera does not support flash.", code: 0, userInfo: nil))
         }
@@ -256,7 +256,7 @@ public class CameraViewController: UIViewController,
                 return Failure(error: NSError(domain: "Unknown error", code: 0, userInfo: nil))
             }
         }
-        return Success(value: mode)
+        return Success(mode)
     }
 
     func cameraForPosition(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
@@ -291,7 +291,7 @@ public class CameraViewController: UIViewController,
             videoDevice.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: Int32(framerate))
             videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(framerate))
             videoDevice.unlockForConfiguration()
-            return Success(value: framerate)
+            return Success(framerate)
         } catch let error as NSError {
             return Failure(error: error)
         } catch {
