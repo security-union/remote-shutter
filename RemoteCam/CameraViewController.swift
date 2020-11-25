@@ -17,10 +17,6 @@ Default fps, it would be neat if we would adjust this based on network condition
 
 let fps = 30
 
-/**
- We downsample fps to streamFps because it is not possible for phones to keep up with the 30 fps.
- */
-let streamingFPS = 5
 
 /**
   Camera UI
@@ -60,15 +56,15 @@ public class CameraViewController: UIViewController,
     private var audioInput: AVAssetWriterInput!
 
     // Variable used to downsample the camera preview, please use with care.
-    private var frameCounter = 0
+    private var sendFrame = true
 
     @IBOutlet weak var back: UIButton!
     @IBOutlet var recordingView: UIImageView!
+    @IBOutlet var activityIndicator: UIActivityIndicatorView!
 
     override public func viewDidLoad() {
         super.viewDidLoad()
         recordingView.image = UIImage.gifImageWithName("recording")
-        self.setupCamera()
         session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
         configureIdleMode()
     }
@@ -81,7 +77,15 @@ public class CameraViewController: UIViewController,
 
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        let _ = self.didInitializeCamera
     }
+    
+    lazy var didInitializeCamera: Bool = {
+        activityIndicator.startAnimating()
+        self.setupCamera()
+        activityIndicator.stopAnimating()
+        return true
+    }()
 
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
@@ -103,6 +107,8 @@ public class CameraViewController: UIViewController,
     func configureIdleMode() {
         recordingView.isHidden = true
         back.isHidden = false
+        activityIndicator.style = .whiteLarge
+        activityIndicator.color = UIColor.white
     }
 
     func configureVideoModeRecording() {
@@ -401,11 +407,10 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
     public func sendFrameToMonitor(_ captureOutput: AVCaptureOutput,
                               didOutput sampleBuffer: CMSampleBuffer,
                               from connection: AVCaptureConnection) {
-        frameCounter = frameCounter + 1
-        if frameCounter < (fps / streamingFPS) {
+        sendFrame = !sendFrame
+        if !sendFrame {
             return
         }
-        frameCounter = 0
         if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
            let imageData = cgBackedImage.jpegData(compressionQuality: 0.1),
            let device = self.videoDeviceInput?.device {
