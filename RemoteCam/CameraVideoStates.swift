@@ -31,12 +31,6 @@ extension RemoteCamSession {
                     state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobby)
                 )
 
-            case let s as RemoteCmd.SendFrame:
-                frameSender ! s
-                
-            case let s as RemoteCmd.RequestFrame:
-                frameSender ! s
-
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     self.popAndStartScanning()
@@ -81,8 +75,6 @@ extension RemoteCamSession {
                         }
                     }
                 }
-            case let s as RemoteCmd.RequestFrame:
-                frameSender ! s
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
