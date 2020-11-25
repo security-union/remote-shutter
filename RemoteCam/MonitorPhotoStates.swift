@@ -12,6 +12,7 @@ import MultipeerConnectivity
 import Photos
 
 extension RemoteCamSession {
+
     func monitorPhotoMode(monitor: ActorRef,
                  peer: MCPeerID,
                  lobby: RolePickerController) -> Receive {
@@ -19,9 +20,11 @@ extension RemoteCamSession {
             switch msg {
             case is OnEnter:
                 monitor ! UICmd.RenderPhotoMode()
+                self.requestFrame([peer])
 
             case is RemoteCmd.OnFrame:
                 monitor ! msg
+                self.requestFrame([peer])
 
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: self.states.connected)
