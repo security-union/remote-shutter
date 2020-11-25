@@ -12,7 +12,11 @@ import MultipeerConnectivity
 import Photos
 
 extension RemoteCamSession {
-
+    
+    func requestFrame(_ peer : [MCPeerID]) {
+        self.sendCommandOrGoToScanning(peer: peer, msg: RemoteCmd.RequestFrame(sender: self.this))
+    }
+    
     func monitorTogglingFlash(monitor: ActorRef,
                               peer: MCPeerID,
                               lobby: RolePickerController) -> Receive {

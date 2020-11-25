@@ -214,6 +214,19 @@ public class RemoteCmd: Actor.Message {
             super.init(sender: nil)
         }
     }
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd9SendFrameAck)public class RequestFrame: Actor.Message, NSCoding {
+        public func encode(with aCoder: NSCoder) {
+        }
+
+        public override init(sender: ActorRef?) {
+            super.init(sender: sender)
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            super.init(sender: nil)
+        }
+    }
 
     public class OnFrame: Actor.Message {
         public let data: Data
