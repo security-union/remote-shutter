@@ -10,6 +10,16 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 
+
+func getDeviceInfo() -> (Int, String, String) {
+    if let bundleVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+       let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
+        return (Int(bundleVersion) ?? 0, shortVersion, UIDevice.current.model)
+    } else {
+        return (0, "0", "UNKNOWN")
+    }
+}
+
 public class RemoteCmd: Actor.Message {
 
     @objc(_TtCC10ActorsDemo9RemoteCmd7TStartRecordingVideo)public class StartRecordingVideo: RemoteCmd, NSCoding {
@@ -246,29 +256,62 @@ public class RemoteCmd: Actor.Message {
     }
 
     @objc(_TtCC10ActorsDemo9RemoteCmd16PeerBecameCamera)public class PeerBecameCamera: Actor.Message, NSCoding {
+        
+        let bundleVersion: Int, shortVersion: String, platform: String
+        
+        class func createWithDefaults() -> PeerBecameCamera {
+            let (bundleVersion, shortVersion, platform) = getDeviceInfo()
+            return PeerBecameCamera(bundleVersion: bundleVersion, shortVersion: shortVersion, platform: platform)
+        }
 
-        public init() {
+        public init(bundleVersion: Int, shortVersion: String, platform: String) {
+            self.bundleVersion = bundleVersion
+            self.shortVersion = shortVersion
+            self.platform = platform
             super.init(sender: nil)
         }
 
         public func encode(with aCoder: NSCoder) {
+            aCoder.encode(bundleVersion, forKey: "bundleVersion")
+            aCoder.encode(shortVersion, forKey: "shortVersion")
+            aCoder.encode(platform, forKey: "platform")
         }
 
         public required init?(coder aDecoder: NSCoder) {
+            self.bundleVersion = aDecoder.decodeInteger(forKey: "bundleVersion")
+            self.shortVersion = aDecoder.decodeObject(forKey: "shortVersion") as? String ?? "0"
+            self.platform = aDecoder.decodeObject(forKey: "platform") as? String ?? "0"
             super.init(sender: nil)
         }
+        
     }
 
     @objc(_TtCC10ActorsDemo9RemoteCmd17PeerBecameMonitor)public class PeerBecameMonitor: Actor.Message, NSCoding {
 
-        public init() {
+        let bundleVersion: Int, shortVersion: String, platform: String
+        
+        class func createWithDefaults() -> PeerBecameMonitor {
+            let (bundleVersion, shortVersion, platform) = getDeviceInfo()
+            return PeerBecameMonitor(bundleVersion: bundleVersion, shortVersion: shortVersion, platform: platform)
+        }
+
+        public init(bundleVersion: Int, shortVersion: String, platform: String) {
+            self.bundleVersion = bundleVersion
+            self.shortVersion = shortVersion
+            self.platform = platform
             super.init(sender: nil)
         }
 
         public func encode(with aCoder: NSCoder) {
+            aCoder.encode(bundleVersion, forKey: "bundleVersion")
+            aCoder.encode(shortVersion, forKey: "shortVersion")
+            aCoder.encode(platform, forKey: "platform")
         }
 
         public required init?(coder aDecoder: NSCoder) {
+            self.bundleVersion = aDecoder.decodeInteger(forKey: "bundleVersion")
+            self.shortVersion = aDecoder.decodeObject(forKey: "shortVersion") as? String ?? "0"
+            self.platform = aDecoder.decodeObject(forKey: "platform") as? String ?? "0"
             super.init(sender: nil)
         }
     }

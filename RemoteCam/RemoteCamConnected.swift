@@ -29,7 +29,7 @@ extension RemoteCamSession {
 
             case let m as UICmd.BecomeCamera:
                 self.become(name: self.states.camera, state: self.camera(peer: peer, ctrl: m.ctrl, lobby: lobby))
-                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.PeerBecameCamera())
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.PeerBecameCamera.createWithDefaults())
 
             case let m as UICmd.BecomeMonitor:
                 switch m.mode {
@@ -43,16 +43,24 @@ extension RemoteCamSession {
                         state: self.monitorPhotoMode(monitor: m.sender!, peer: peer, lobby: lobby))
                 }
 
-                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.PeerBecameMonitor())
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.PeerBecameMonitor.createWithDefaults())
 
-            case is RemoteCmd.PeerBecameCamera:
-                ^{
-                    lobby.becomeMonitor()
+            case let cmd as RemoteCmd.PeerBecameCamera:
+                if cmd.bundleVersion > 0 {
+                    ^{
+                        lobby.becomeMonitor()
+                    }
+                } else {
+                    showIncopatibilityMessage()
                 }
 
-            case is RemoteCmd.PeerBecameMonitor:
-                ^{
-                    lobby.becomeCamera()
+            case let cmd as RemoteCmd.PeerBecameMonitor:
+                if cmd.bundleVersion > 0 {
+                    ^{
+                        lobby.becomeCamera()
+                    }
+                } else {
+                    showIncopatibilityMessage()
                 }
 
             case is UICmd.ToggleConnect,
