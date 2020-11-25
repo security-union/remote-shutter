@@ -50,6 +50,7 @@ public class CameraViewController: UIViewController,
     var captureVideoPreviewLayer: AVCaptureVideoPreviewLayer?
     var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
     var session: ActorRef = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")!
+    let frameSender: ActorRef = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender")!
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
 
     private var videoInput: AVAssetWriterInput!
@@ -414,7 +415,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
            let imageData = cgBackedImage.jpegData(compressionQuality: 0.1),
            let device = self.videoDeviceInput?.device {
-            session ! RemoteCmd.SendFrame(data: imageData,
+            frameSender ! RemoteCmd.SendFrame(data: imageData,
                     sender: nil,
                     fps: fps,
                     camPosition: device.position,
