@@ -13,6 +13,8 @@ import MultipeerConnectivity
 public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDelegate, MCBrowserViewControllerDelegate {
 
     let states = RemoteCamStates()
+    
+    let frameSender = RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
 
     var session: MCSession!
 
@@ -36,7 +38,6 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
               self.peerID = peerID
             }
         super.init(context: context, ref: ref)
-        mailbox = OperationQueue()
     }
 
     override public func willStop() {
