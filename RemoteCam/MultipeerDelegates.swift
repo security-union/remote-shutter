@@ -10,7 +10,22 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 
+let AppStoreURL = URL(string: "https://apps.apple.com/us/app/remote-shutter/id633274861")!
+
 extension RemoteCamSession {
+    func showIncopatibilityMessage() {
+        self.popAndStartScanning()
+        ^{
+            let alert = UIAlertController(
+                title: "App is out of date",
+                message: "Please update Remote Shutter on both devices.")
+            alert.addAction(UIAlertAction.init(title: "Update", style: .default) {_ in
+                UIApplication.shared.open(AppStoreURL, options: [:], completionHandler: nil)
+                
+            })
+            alert.show(true)
+        }
+    }
     public func browserViewControllerDidFinish(_ browserViewController: MCBrowserViewController) {
         browserViewController.dismiss(animated: true)
     }
@@ -40,8 +55,16 @@ extension RemoteCamSession {
     }
 
     public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-        let inboundMessage = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data)
+        guard let inboundMessage = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) else {
+            showIncopatibilityMessage()
+            return
+        }
+        // TODO: Add logic to determine frame destination.
         switch inboundMessage {
+            
+        case let requestFrame as RemoteCmd.RequestFrame:
+            frameSender ! requestFrame
+
         case let frame as RemoteCmd.SendFrame:
             this ! RemoteCmd.OnFrame(data: frame.data,
                 sender: nil,

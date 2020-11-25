@@ -100,12 +100,6 @@ extension RemoteCamSession {
                                                     camPosition: m.camPosition,
                                                     error: nil))
 
-            case let s as RemoteCmd.SendFrame:
-                frameSender ! s
-                
-            case let s as RemoteCmd.RequestFrame:
-                frameSender ! s
-
             case is RemoteCmd.StartRecordingVideo:
                 ctrl.startRecordingVideo()
                 self.become(
