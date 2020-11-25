@@ -21,9 +21,11 @@ extension MonitorVideoStates {
             switch msg {
             case is OnEnter:
                 monitor ! UICmd.RenderVideoMode()
+                self.requestFrame([peer])
 
             case is RemoteCmd.OnFrame:
                 monitor ! msg
+                self.requestFrame([peer])
 
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: self.states.connected)
@@ -68,9 +70,11 @@ extension MonitorVideoStates {
             switch msg {
             case is OnEnter:
                 monitor ! UICmd.RenderVideoModeRecording()
+                self.requestFrame([peer])
 
             case is RemoteCmd.OnFrame:
                 monitor ! msg
+                self.requestFrame([peer])
 
             case is UICmd.TakePicture:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this))
@@ -80,11 +84,6 @@ extension MonitorVideoStates {
                     name: self.states.monitorWaitingForVideo,
                     state: self.monitorWaitingForVideo(monitor: monitor, peer: peer, lobby: lobby)
                 )
-
-            case let w as RemoteCmd.StopRecordingVideoResp:
-                saveVideo(w)
-                self.unbecome()
-
             case is Disconnect:
                 self.popAndStartScanning()
 
@@ -113,10 +112,8 @@ extension MonitorVideoStates {
             case is OnEnter:
                 ^{alert?.show(true)}
 
-            case is RemoteCmd.OnFrame:
-                monitor ! msg
-
             case let w as RemoteCmd.StopRecordingVideoResp:
+                ^{alert?.title = "Saving video..."}
                 saveVideo(w)
                 ^{alert?.dismiss(animated: true)}
                 self.popToState(name: self.states.monitorVideoMode)

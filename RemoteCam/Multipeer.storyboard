@@ -200,9 +200,19 @@
                                     <constraint firstAttribute="width" constant="45" id="jn3-Mb-J7Z"/>
                                 </constraints>
                             </imageView>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" animating="YES" style="large" translatesAutoresizingMaskIntoConstraints="NO" id="EEw-sa-xai">
+                                <rect key="frame" x="381" y="281" width="39" height="39"/>
+                                <color key="tintColor" systemColor="systemBackgroundColor"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="39" id="Sox-J8-1iD"/>
+                                    <constraint firstAttribute="width" constant="39" id="c1B-EX-6bk"/>
+                                </constraints>
+                                <color key="color" systemColor="systemGray6Color"/>
+                            </activityIndicatorView>
                         </subviews>
                         <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
+                            <constraint firstItem="EEw-sa-xai" firstAttribute="centerY" secondItem="dGC-7F-6cb" secondAttribute="centerY" id="8Y5-94-m48"/>
                             <constraint firstItem="6In-cm-wQH" firstAttribute="top" secondItem="dGC-7F-6cb" secondAttribute="topMargin" constant="124" id="BIX-mf-dMo"/>
                             <constraint firstItem="YDg-O6-vat" firstAttribute="centerX" secondItem="dGC-7F-6cb" secondAttribute="centerX" id="KPt-cr-SaC"/>
                             <constraint firstItem="YDg-O6-vat" firstAttribute="top" secondItem="5cr-Vb-2ff" secondAttribute="bottom" constant="17" id="OPi-n3-Syg"/>
@@ -211,6 +221,7 @@
                             <constraint firstItem="6In-cm-wQH" firstAttribute="top" secondItem="dGC-7F-6cb" secondAttribute="topMargin" constant="-16" id="cxJ-h3-MDf"/>
                             <constraint firstItem="6In-cm-wQH" firstAttribute="leading" secondItem="dGC-7F-6cb" secondAttribute="leadingMargin" constant="203" id="pD9-CX-wjT"/>
                             <constraint firstItem="6In-cm-wQH" firstAttribute="centerX" secondItem="dGC-7F-6cb" secondAttribute="centerX" id="re5-n2-ygJ"/>
+                            <constraint firstItem="EEw-sa-xai" firstAttribute="centerX" secondItem="dGC-7F-6cb" secondAttribute="centerX" id="wi1-iE-dcE"/>
                         </constraints>
                         <variation key="default">
                             <mask key="constraints">
@@ -223,6 +234,7 @@
                     </view>
                     <nil key="simulatedTopBarMetrics"/>
                     <connections>
+                        <outlet property="activityIndicator" destination="EEw-sa-xai" id="zJH-Nl-dPI"/>
                         <outlet property="back" destination="6In-cm-wQH" id="KyT-LB-F8i"/>
                         <outlet property="recordingView" destination="YDg-O6-vat" id="3LM-Y9-b3a"/>
                     </connections>
@@ -564,7 +576,10 @@
         <image name="remoteControlsiPn" width="705" height="339"/>
         <image name="timerLoFI" width="100" height="100"/>
         <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+            <color red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemGray6Color">
+            <color red="0.94901960784313721" green="0.94901960784313721" blue="0.96862745098039216" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemRedColor">
             <color red="1" green="0.23137254901960785" blue="0.18823529411764706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>

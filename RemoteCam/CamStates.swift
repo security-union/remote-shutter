@@ -91,6 +91,8 @@ extension RemoteCamSession {
                 lobby: RolePickerController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+            case is OnEnter:
+                frameSender ! SetSession(peer: peer, session: self)
             case let m as UICmd.ToggleCameraResp:
                 self.sendCommandOrGoToScanning(
                     peer: [peer],
@@ -99,7 +101,10 @@ extension RemoteCamSession {
                                                     error: nil))
 
             case let s as RemoteCmd.SendFrame:
-                self.sendCommandOrGoToScanning(peer: [peer], msg: s, mode: .unreliable)
+                frameSender ! s
+                
+            case let s as RemoteCmd.RequestFrame:
+                frameSender ! s
 
             case is RemoteCmd.StartRecordingVideo:
                 ctrl.startRecordingVideo()

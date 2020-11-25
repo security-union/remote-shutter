@@ -18,6 +18,9 @@ extension RemoteCamSession {
                              lobby: RolePickerController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+            
+            case is OnEnter:
+                frameSender ! SetSession(peer: peer, session: self)
 
             case is RemoteCmd.StopRecordingVideo:
                 ctrl.stopRecordingVideo()
@@ -29,7 +32,10 @@ extension RemoteCamSession {
                 )
 
             case let s as RemoteCmd.SendFrame:
-                self.sendCommandOrGoToScanning(peer: [peer], msg: s, mode: .unreliable)
+                frameSender ! s
+                
+            case let s as RemoteCmd.RequestFrame:
+                frameSender ! s
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
@@ -75,6 +81,8 @@ extension RemoteCamSession {
                         }
                     }
                 }
+            case let s as RemoteCmd.RequestFrame:
+                frameSender ! s
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
