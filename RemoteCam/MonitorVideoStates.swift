@@ -129,7 +129,6 @@ extension MonitorVideoStates {
                 }
 
             default:
-                ^{alert?.dismiss(animated: true)}
                 self.receive(msg: msg)
             }
         }
