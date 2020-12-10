@@ -132,6 +132,7 @@ public class CameraViewController: UIViewController,
     }
 
     func setupCamera() {
+        self.cameraSettings.isHighResolutionPhotoEnabled = true
         self.videoDataOutput.setSampleBufferDelegate(self, queue: self.videoDataOutputQueue)
         self.videoDataOutput.videoSettings =
             [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
@@ -229,6 +230,7 @@ public class CameraViewController: UIViewController,
 
         captureSession.removeOutput(photoOutput)
         if captureSession.canAddOutput(photoOutput) {
+            photoOutput.isHighResolutionCaptureEnabled = true
             captureSession.addOutput(photoOutput)
         } else {
             print("Could not add movie file output to the session")
@@ -309,6 +311,7 @@ public class CameraViewController: UIViewController,
     func cloneCameraSettings(_ settings: AVCapturePhotoSettings) -> AVCapturePhotoSettings {
         let newSettings = AVCapturePhotoSettings()
         newSettings.flashMode = settings.flashMode
+        newSettings.isHighResolutionPhotoEnabled = settings.isHighResolutionPhotoEnabled
         return newSettings
     }
 
