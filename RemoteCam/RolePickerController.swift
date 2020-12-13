@@ -9,7 +9,6 @@
 import UIKit
 import Theater
 
-
 /**
      Role picker allows the user to select whether the current device want's to be the camera or the monitor.
     
@@ -46,13 +45,7 @@ public class RolePickerController: UIViewController {
     let connectedInstructionsLabel = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
     let connectedPrompt = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
 
-    lazy var remoteCamSession: ActorRef! = {
-        if let session = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session") {
-            return session
-        } else {
-            return RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
-        }
-    }()
+    lazy var remoteCamSession: ActorRef! = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
 
     override public func viewDidLoad() {
         super.viewDidLoad()
