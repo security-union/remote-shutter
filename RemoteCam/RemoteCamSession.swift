@@ -14,7 +14,13 @@ public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDel
 
     let states = RemoteCamStates()
     
-    let frameSender = RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
+    lazy var frameSender: ActorRef! = {
+        if let sender = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender") {
+            return sender
+        } else {
+            return RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
+        }
+    }()
 
     var session: MCSession!
 
