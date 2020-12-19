@@ -9,5 +9,3 @@
 import Foundation
 
 public let tempFile = "tempfile.mov"
-public let disableAdsPID = "05"
-public let enableVideoPID = "06"

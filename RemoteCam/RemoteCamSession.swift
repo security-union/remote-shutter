@@ -10,23 +10,33 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 
-public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSessionDelegate {
+public class RemoteCamSession: ViewCtrlActor<RolePickerController>, MCSessionDelegate, MCBrowserViewControllerDelegate {
 
     let states = RemoteCamStates()
     
-    lazy var frameSender: ActorRef! = {
-        if let sender = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender") {
-            return sender
-        } else {
-            return RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
-        }
-    }()
+    let frameSender = RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
 
     var session: MCSession!
 
+    let service: String = "RemoteCam"
+
+    let userDefaultsPeerId = "peerID"
+
+    var peerID: MCPeerID
+
     var mcAdvertiserAssistant: MCAdvertiserAssistant!
 
+    var browser: MCBrowserViewController?
+
     public required init(context: ActorSystem, ref: ActorRef) {
+        if let data = UserDefaults.standard.data(forKey: userDefaultsPeerId), let id = NSKeyedUnarchiver.unarchiveObject(with: data) as? MCPeerID {
+              self.peerID = id
+            } else {
+              let peerID = MCPeerID(displayName: UIDevice.current.name)
+              let data = NSKeyedArchiver.archivedData(withRootObject: peerID)
+              UserDefaults.standard.set(data, forKey: userDefaultsPeerId)
+              self.peerID = peerID
+            }
         super.init(context: context, ref: ref)
     }
 
@@ -40,10 +50,11 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         }
     }
 
-    override public func receiveWithCtrl(ctrl: DeviceScannerViewController) -> Receive {
+    override public func receiveWithCtrl(ctrl: RolePickerController) -> Receive {
         return { [unowned self](msg: Message) in
             switch msg {
-            case is UICmd.StartScanning:
+            case is UICmd.StartScanning,
+                 is UICmd.ToggleConnect:
                 self.become(name: self.states.scanning, state: self.scanning(lobby: ctrl))
 
             default:
@@ -56,16 +67,23 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         self.popToState(name: self.states.scanning)
     }
 
-    func startScanning(lobby: DeviceScannerViewController) {
+    func startScanning(lobby: RolePickerController) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
         ^{
             CATransaction.begin()
             CATransaction.setCompletionBlock {
-                self.session = MCSession(peer: lobby.peerID)
+                self.session = MCSession(peer: self.peerID)
                 self.session.delegate = self
-                self.mcAdvertiserAssistant = MCAdvertiserAssistant(
-                    serviceType: service, discoveryInfo: nil, session: self.session)
-                self.mcAdvertiserAssistant.start()
+                self.browser = MCBrowserViewController(serviceType: self.service, session: self.session)
+                if let browser = self.browser {
+                    browser.delegate = self
+                    browser.minimumNumberOfPeers = 2
+                    browser.maximumNumberOfPeers = 2
+                    browser.modalPresentationStyle = UIModalPresentationStyle.formSheet
+                    self.mcAdvertiserAssistant = MCAdvertiserAssistant(serviceType: self.service, discoveryInfo: nil, session: self.session)
+                    self.mcAdvertiserAssistant.start()
+                    lobby.present(browser, animated: true, completion: nil)
+                }
             }
             lobby.navigationController?.popToViewController(lobby, animated: true)
             CATransaction.commit()
