@@ -53,9 +53,6 @@ public class UICmd {
     public class UnbecomeCamera: Actor.Message {
     }
 
-    public class ToggleConnect: Actor.Message {
-    }
-
     public class UnbecomeMonitor: Actor.Message {
     }
 
