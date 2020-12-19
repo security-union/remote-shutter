@@ -50,7 +50,13 @@ public class CameraViewController: UIViewController,
     var captureVideoPreviewLayer: AVCaptureVideoPreviewLayer?
     var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
     var session: ActorRef = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")!
-    let frameSender: ActorRef = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender")!
+    lazy var frameSender: ActorRef! = {
+        if let sender = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender") {
+            return sender
+        } else {
+            return RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
+        }
+    }()
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
 
     private var videoInput: AVAssetWriterInput!
