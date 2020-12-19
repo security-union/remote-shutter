@@ -33,7 +33,7 @@ extension RemoteCamSession {
 
     func cameraTakingPic(peer: MCPeerID,
                          ctrl: CameraViewController,
-                         lobby: DeviceScannerViewController) -> Receive {
+                         lobby: RolePickerController) -> Receive {
         var alert: UIAlertController?
         ^{
             alert = UIAlertController(title: "Taking picture",
@@ -88,7 +88,7 @@ extension RemoteCamSession {
 
     func camera(peer: MCPeerID,
                 ctrl: CameraViewController,
-                lobby: DeviceScannerViewController) -> Receive {
+                lobby: RolePickerController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
