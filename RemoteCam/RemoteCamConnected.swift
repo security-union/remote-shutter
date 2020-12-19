@@ -12,19 +12,13 @@ import MultipeerConnectivity
 
 extension RemoteCamSession {
 
-    func connected(lobby: RolePickerController,
+    func connected(lobby: DeviceScannerViewController,
                    peer: MCPeerID) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
                 ^{
-                    lobby.navigationItem.rightBarButtonItem?.title = lobby.states.disconnect
-                    lobby.navigationItem.prompt = lobby.connectedPrompt
-                    lobby.remote.alpha = 1
-                    lobby.camera.alpha = 1
-                    lobby.remote.isEnabled = true
-                    lobby.camera.isEnabled = true
-                    lobby.instructionLabel.text = lobby.connectedInstructionsLabel
+                    
                 }
 
             case let m as UICmd.BecomeCamera:
@@ -48,7 +42,7 @@ extension RemoteCamSession {
             case let cmd as RemoteCmd.PeerBecameCamera:
                 if cmd.bundleVersion > 0 {
                     ^{
-                        lobby.becomeMonitor()
+//                        lobby.becomeMonitor()
                     }
                 } else {
                     showIncopatibilityMessage()
@@ -57,14 +51,13 @@ extension RemoteCamSession {
             case let cmd as RemoteCmd.PeerBecameMonitor:
                 if cmd.bundleVersion > 0 {
                     ^{
-                        lobby.becomeCamera()
+//                        lobby.becomeCamera()
                     }
                 } else {
                     showIncopatibilityMessage()
                 }
 
-            case is UICmd.ToggleConnect,
-                 is Disconnect:
+            case is Disconnect:
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
