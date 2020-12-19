@@ -345,7 +345,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                 activityViewController.modalPresentationStyle = UIModalPresentationStyle.popover
                 activityViewController.popoverPresentationController?.sourceView = self.galleryButton
                 #endif
-
                 self.present(activityViewController, animated: true)
             }
         }
