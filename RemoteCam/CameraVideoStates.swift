@@ -15,7 +15,7 @@ extension RemoteCamSession {
 
     func cameraShootingVideo(peer: MCPeerID,
                              ctrl: CameraViewController,
-                             lobby: RolePickerController) -> Receive {
+                             lobby: DeviceScannerViewController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             
@@ -53,7 +53,7 @@ extension RemoteCamSession {
 
     func cameraTransmittingVideo(peer: MCPeerID,
                              ctrl: CameraViewController,
-                             lobby: RolePickerController) -> Receive {
+                             lobby: DeviceScannerViewController) -> Receive {
         var alert: UIAlertController?
         ^{
         alert = UIAlertController(title: "Sending video to Monitor",
