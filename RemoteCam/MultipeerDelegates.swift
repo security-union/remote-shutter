@@ -26,14 +26,6 @@ extension RemoteCamSession {
             alert.show(true)
         }
     }
-    public func browserViewControllerDidFinish(_ browserViewController: MCBrowserViewController) {
-        browserViewController.dismiss(animated: true)
-    }
-
-    public func browserViewControllerWasCancelled(_ browserViewController: MCBrowserViewController) {
-        //TODO: add dialog to force the person to connect with a phone
-        browserViewController.dismiss(animated: true)
-    }
 
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         mailbox.addOperation {
