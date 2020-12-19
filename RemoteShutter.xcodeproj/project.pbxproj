@@ -28,20 +28,14 @@
 		0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0631D182256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
-		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */; };
 		065024101BEA407F00311C8A /* AcknowledgmentsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */; };
 		065024121BEA407F00311C8A /* CMConfigurationsViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0650240B1BEA407F00311C8A /* CMConfigurationsViewController.mm */; };
 		065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0650240C1BEA407F00311C8A /* CMConfigurationsViewController.xib */; };
 		0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024161BEA413900311C8A /* PurchasesRestorer.m */; };
 		0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024181BEA413900311C8A /* InAppPurchasesManager.m */; };
-		065532EF258C4BE9000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
-		065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
-		065532F5258C4BF3000C2339 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
-		065532F8258C4BF4000C2339 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
 		065DE66C253A43BA0022193C /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */; platformFilter = ios; settings = {ATTRIBUTES = (Weak, ); }; };
 		066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066427741BE924DD003EDD41 /* EnumExtensions.swift */; };
-		066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066959602575F00200E8B579 /* WelcomeViewController.swift */; };
 		0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */; };
 		0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D21BE6E98A00F0B238 /* CamStates.swift */; };
 		0684A2D51BE6E9A000F0B238 /* MonitorStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */; };
@@ -110,15 +104,6 @@
 		06E9653F2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
-		85C11C052582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
-		85C11C062582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
-		85C11C072582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
-		85C11C0B2582F6FA00618F32 /* PKIAPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C0A2582F6FA00618F32 /* PKIAPHandler.swift */; };
-		85C11C0C2582F6FA00618F32 /* PKIAPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C0A2582F6FA00618F32 /* PKIAPHandler.swift */; };
-		85C11C0D2582F6FA00618F32 /* PKIAPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C0A2582F6FA00618F32 /* PKIAPHandler.swift */; };
-		85D3382E258D25D80091972B /* RolePickerOptionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D3382D258D25D80091972B /* RolePickerOptionController.swift */; };
-		85D33832258D489C0091972B /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33831258D489C0091972B /* UIView.swift */; };
-		85D33836258D48C30091972B /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33835258D48C30091972B /* UIViewController.swift */; };
 		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
 /* End PBXBuildFile section */
 
@@ -177,7 +162,6 @@
 		0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BFDeniedAccessToCameraView.xib; sourceTree = "<group>"; };
 		0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToCameraView~ipad.xib"; sourceTree = "<group>"; };
 		0631D180256DFC960006CAF3 /* FrameSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSender.swift; sourceTree = "<group>"; };
-		0634594925886387009F9BE0 /* DeviceScannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewController.swift; sourceTree = "<group>"; };
 		065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AcknowledgmentsViewController.h; sourceTree = "<group>"; };
 		065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AcknowledgmentsViewController.m; sourceTree = "<group>"; };
 		065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = AcknowledgmentsViewController.xib; sourceTree = "<group>"; };
@@ -190,7 +174,6 @@
 		065024181BEA413900311C8A /* InAppPurchasesManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = InAppPurchasesManager.m; sourceTree = "<group>"; };
 		065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppTrackingTransparency.framework; path = System/Library/Frameworks/AppTrackingTransparency.framework; sourceTree = SDKROOT; };
 		066427741BE924DD003EDD41 /* EnumExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EnumExtensions.swift; sourceTree = "<group>"; };
-		066959602575F00200E8B579 /* WelcomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeViewController.swift; sourceTree = "<group>"; };
 		0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OrientationUtils.swift; sourceTree = "<group>"; };
 		0684A2D21BE6E98A00F0B238 /* CamStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CamStates.swift; sourceTree = "<group>"; };
 		0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorStates.swift; sourceTree = "<group>"; };
@@ -243,11 +226,6 @@
 		852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteShutterUITests.swift; sourceTree = "<group>"; };
 		852E430A250D4B1D00F5151E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		85C11C042582F3FC00618F32 /* UIButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIButton.swift; sourceTree = "<group>"; };
-		85C11C0A2582F6FA00618F32 /* PKIAPHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PKIAPHandler.swift; sourceTree = "<group>"; };
-		85D3382D258D25D80091972B /* RolePickerOptionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RolePickerOptionController.swift; sourceTree = "<group>"; };
-		85D33831258D489C0091972B /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
-		85D33835258D48C30091972B /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
 		85F118E5250ACBE100B73E48 /* RemoteShutter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85F11911250ACD9500B73E48 /* RemoteShutterDemo copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "RemoteShutterDemo copy-Info.plist"; path = "/Users/griffin/workspace/securityunion/RemoteShutter/RemoteShutterDemo copy-Info.plist"; sourceTree = "<absolute>"; };
 		85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -382,12 +360,10 @@
 			isa = PBXGroup;
 			children = (
 				065024061BEA406B00311C8A /* Settings */,
-				066959602575F00200E8B579 /* WelcomeViewController.swift */,
-				0634594925886387009F9BE0 /* DeviceScannerViewController.swift */,
-				069284481BE5C0E600AF4678 /* RolePickerController.swift */,
 				069284421BE5C0E600AF4678 /* CameraViewController.swift */,
 				069284431BE5C0E600AF4678 /* MonitorViewController.swift */,
 				060B1E241BE710FE00077BCC /* BaseViewController.swift */,
+				069284481BE5C0E600AF4678 /* RolePickerController.swift */,
 				0624C0401BE8616E001CC738 /* CameraAccess.swift */,
 				0609A4DA251BFED80090DEB7 /* Photos.swift */,
 				06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */,
@@ -395,7 +371,6 @@
 				061596F5251FCFDA0032289B /* Constants.m */,
 				061596F2251FCFDA0032289B /* RemoteShutterTests-Bridging-Header.h */,
 				061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */,
-				85D3382D258D25D80091972B /* RolePickerOptionController.swift */,
 			);
 			name = Controllers;
 			sourceTree = "<group>";
@@ -411,7 +386,6 @@
 				060B1E141BE7079800077BCC /* Helpers */,
 				06E965202535199400E5A8B3 /* MediaProcessors.swift */,
 				06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */,
-				85C11C0A2582F6FA00618F32 /* PKIAPHandler.swift */,
 			);
 			name = Model;
 			sourceTree = "<group>";
@@ -453,9 +427,6 @@
 				06CDFB29252EC2C300EA56FB /* CGImage.swift */,
 				06E9653D2535754800E5A8B3 /* Data+MD5.swift */,
 				06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */,
-				85C11C042582F3FC00618F32 /* UIButton.swift */,
-				85D33831258D489C0091972B /* UIView.swift */,
-				85D33835258D48C30091972B /* UIViewController.swift */,
 			);
 			name = Extensions;
 			sourceTree = "<group>";
@@ -730,18 +701,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				0684A2DE1BE6F82D00F0B238 /* RCTimer.m in Sources */,
-				066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */,
 				069284511BE5C0E600AF4678 /* RemoteCamSession.swift in Sources */,
 				0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
-				85D33836258D48C30091972B /* UIViewController.swift in Sources */,
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */,
 				068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
 				06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */,
 				0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */,
-				85C11C052582F3FC00618F32 /* UIButton.swift in Sources */,
 				0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */,
 				068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
 				061596F6251FCFDA0032289B /* Constants.m in Sources */,
@@ -753,13 +721,10 @@
 				06CDFB2A252EC2C300EA56FB /* CGImage.swift in Sources */,
 				069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */,
 				06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
-				0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */,
 				0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */,
-				85D33832258D489C0091972B /* UIView.swift in Sources */,
 				06CDFB1E252E9CD200EA56FB /* UICmds.swift in Sources */,
 				068EF0B82531844B00A84DFA /* CameraVideoStates.swift in Sources */,
 				0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */,
-				85D3382E258D25D80091972B /* RolePickerOptionController.swift in Sources */,
 				0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */,
 				069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */,
 				0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */,
@@ -769,7 +734,6 @@
 				06D114CF2532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
 				0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */,
 				0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */,
-				85C11C0B2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */,
 				0684A2D51BE6E9A000F0B238 /* MonitorStates.swift in Sources */,
 				0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */,
@@ -782,10 +746,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				065532F5258C4BF3000C2339 /* RolePickerController.swift in Sources */,
 				0613BBD12530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
-				065532EF258C4BE9000C2339 /* DeviceScannerViewController.swift in Sources */,
-				85C11C0C2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C72531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
 				0631D182256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				06E9652825351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
@@ -799,7 +760,6 @@
 				06B1D8102536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */,
 				061596F7251FCFDA0032289B /* Constants.m in Sources */,
-				85C11C062582F3FC00618F32 /* UIButton.swift in Sources */,
 				06D114D02532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
 				06E965222535199400E5A8B3 /* MediaProcessors.swift in Sources */,
 				068EF0B92531844B00A84DFA /* CameraVideoStates.swift in Sources */,
@@ -811,10 +771,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				065532F8258C4BF4000C2339 /* RolePickerController.swift in Sources */,
 				0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
-				065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */,
-				85C11C0D2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
 				0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
@@ -828,7 +785,6 @@
 				06B1D8112536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */,
 				061596F8251FCFDA0032289B /* Constants.m in Sources */,
-				85C11C072582F3FC00618F32 /* UIButton.swift in Sources */,
 				06D114D12532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
 				06E965232535199400E5A8B3 /* MediaProcessors.swift in Sources */,
 				068EF0BA2531844B00A84DFA /* CameraVideoStates.swift in Sources */,
@@ -864,7 +820,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 26;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -877,7 +833,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.6;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -904,7 +860,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 26;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -917,7 +873,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.6;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
