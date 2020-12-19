@@ -15,7 +15,7 @@ extension RemoteCamSession {
 
     func monitorPhotoMode(monitor: ActorRef,
                  peer: MCPeerID,
-                 lobby: RolePickerController) -> Receive {
+                 lobby: DeviceScannerViewController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
@@ -71,7 +71,7 @@ extension RemoteCamSession {
 
     func monitorTakingPicture(monitor: ActorRef,
                               peer: MCPeerID,
-                              lobby: RolePickerController) -> Receive {
+                              lobby: DeviceScannerViewController) -> Receive {
         var alert: UIAlertController?
         ^{
             alert = UIAlertController(title: "Requesting picture",
