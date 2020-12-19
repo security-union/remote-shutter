@@ -16,7 +16,7 @@ private typealias MonitorVideoStates = RemoteCamSession
 extension MonitorVideoStates {
     func monitorVideoMode(monitor: ActorRef,
                  peer: MCPeerID,
-                 lobby: DeviceScannerViewController) -> Receive {
+                 lobby: RolePickerController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
@@ -65,7 +65,7 @@ extension MonitorVideoStates {
 
     func monitorRecordingVideo(monitor: ActorRef,
                                peer: MCPeerID,
-                               lobby: DeviceScannerViewController) -> Receive {
+                               lobby: RolePickerController) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
@@ -100,7 +100,7 @@ extension MonitorVideoStates {
 
     func monitorWaitingForVideo(monitor: ActorRef,
                                peer: MCPeerID,
-                               lobby: DeviceScannerViewController) -> Receive {
+                               lobby: RolePickerController) -> Receive {
         var alert: UIAlertController?
         ^{
             alert = UIAlertController(title: "Waiting for video file...",
