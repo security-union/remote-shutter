@@ -8,6 +8,13 @@
 
 import UIKit
 
+public class Weak<T: AnyObject> {
+  public weak var value : T?
+  init (_ value: T) {
+    self.value = value
+  }
+}
+
 
 /**
     This message is used to set the view controller to a subclass of ViewCtrlActor
@@ -66,7 +73,7 @@ open class ViewCtrlActor<A : UIViewController> : Actor {
         switch(msg) {
             case let a as SetViewCtrl<A>:
                 unowned let b = a.ctrl
-                self.become(name: self.withCtrlState, state:self.receiveWithCtrl(ctrl:b))
+                self.become(name: self.withCtrlState, state:self.receiveWithCtrl(ctrl:Weak(b)))
                 
             default:
                 self.receive(msg: msg)
@@ -103,7 +110,7 @@ open class ViewCtrlActor<A : UIViewController> : Actor {
      - parameter ctrl : controller that was set to this Actor
     */
     
-    open func receiveWithCtrl(ctrl : A) -> Receive {
+    open func receiveWithCtrl(ctrl : Weak<A>) -> Receive {
         return { (msg : Actor.Message) in }
     }
     
