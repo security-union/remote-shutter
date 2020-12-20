@@ -10,20 +10,20 @@ import UIKit
 import Theater
 import AVFoundation
 
-func setFlashMode(ctrl: MonitorViewController, flashMode: AVCaptureDevice.FlashMode?) {
+func setFlashMode(ctrl: Weak<MonitorViewController>, flashMode: AVCaptureDevice.FlashMode?) {
     if let f = flashMode {
         switch f {
         case .off:
-            ctrl.flashStatus.text = "Off"
+            ctrl.value?.flashStatus.text = "Off"
         case .on:
-            ctrl.flashStatus.text = "On"
+            ctrl.value?.flashStatus.text = "On"
         case .auto:
-            ctrl.flashStatus.text = "Auto"
+            ctrl.value?.flashStatus.text = "Auto"
         default:
-            ctrl.flashStatus.text = "None"
+            ctrl.value?.flashStatus.text = "None"
         }
     } else {
-        ctrl.flashStatus.text = "None"
+        ctrl.value?.flashStatus.text = "None"
     }
 }
 
@@ -40,28 +40,29 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
         session! ! UICmd.BecomeMonitor(ref, mode: .Photo)
     }
 
-    override public func receiveWithCtrl(ctrl: MonitorViewController) -> Receive {
+    override public func receiveWithCtrl(ctrl: Weak<MonitorViewController>) -> Receive {
 
         return { [unowned self](msg: Message) in
             switch msg {
+                
             case is UICmd.RenderPhotoMode:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    ctrl?.configurePhotoMode()
+                    ctrl?.value?.configurePhotoMode()
                 }
 
             case is UICmd.RenderVideoMode:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    ctrl?.configureVideoMode()
+                    ctrl?.value?.configureVideoMode()
                 }
 
             case is UICmd.RenderVideoModeRecording:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    ctrl?.configureVideoModeRecording()
+                    ctrl?.value?.configureVideoModeRecording()
                 }
 
             case is UICmd.BecomeMonitorFailed:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    ctrl?.navigationController?.popViewController(animated: true)
+                    ctrl?.value?.navigationController?.popViewController(animated: true)
                 }
 
             case let cam as UICmd.ToggleCameraResp:
@@ -86,7 +87,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                 if let cgImage = UIImage(data: f.data) {
                     OperationQueue.main.addOperation {[weak ctrl] in
                         if let ctrl = ctrl {
-                            ctrl.imageView.image = cgImage
+                            ctrl.value?.imageView.image = cgImage
                         }
                     }
                 }
@@ -161,17 +162,12 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         configurePhotoMode()
     }
 
-    override public func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        if self.isBeingDismissed || self.isMovingFromParent {
-            monitor ! UICmd.UnbecomeMonitor(sender: nil)
-            monitor ! Actor.Harakiri(sender: nil)
-        }
-    }
-
     deinit {
+        print("stop monitor")
         self.timer.cancel()
         self.soundManager.stopPlayer()
+        monitor ! UICmd.UnbecomeMonitor(sender: nil)
+        monitor ! Actor.Harakiri(sender: nil)
     }
 
     let buttonPromptPhotoMode = NSLocalizedString("Taking picture", comment: "")
@@ -345,7 +341,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                 activityViewController.modalPresentationStyle = UIModalPresentationStyle.popover
                 activityViewController.popoverPresentationController?.sourceView = self.galleryButton
                 #endif
-
                 self.present(activityViewController, animated: true)
             }
         }
