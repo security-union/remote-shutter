@@ -9,6 +9,7 @@
 import UIKit
 import Theater
 
+
 /**
      Role picker allows the user to select whether the current device want's to be the camera or the monitor.
     
@@ -21,42 +22,60 @@ public class RemoteCamSystem: ActorSystem {
     static let shared = ActorSystem(name: "RemoteCam")
 }
 
+let connectedPrompt = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
+
+public class RolePickerActor: ViewCtrlActor<RolePickerController> {
+    
+    override public func receiveWithCtrl(ctrl: Weak<RolePickerController>) -> Receive {
+        return {[unowned self] (msg: Message) in
+            switch msg {
+            
+            case is RemoteCmd.PeerBecameMonitor:
+                ^{
+                    ctrl.value?.becomeCamera()
+                }
+            case is RemoteCmd.PeerBecameCamera:
+                ^{
+                    ctrl.value?.becomeMonitor()
+                }
+            default:
+                self.receive(msg: msg)
+            }
+        }
+    }
+}
+
 public class RolePickerController: UIViewController {
-
-    let showCameraSegue: String = "showCamera"
-
-    let showRemoteSegue: String = "showRemote"
-
-    let presentPhonePickerSegue: String = "presentPhonePicker"
 
     public struct States {
         let connect = "Connect"
         let disconnect = "Disconnect"
     }
+    
+    enum Segues {
+        static let cameraRole = "cameraRole"
+        static let remoteRole = "remoteRole"
+        static let showCamera = "showCamera"
+        static let showRemote = "showRemote"
+        static let presentPhonePicker = "presentPhonePicker"
+    }
 
     public let states = States()
-
-    @IBOutlet weak var remote: UIButton!
-    @IBOutlet weak var camera: UIButton!
-    @IBOutlet weak var instructionLabel: UILabel!
-
-    let disconnectedInstructionsLabel = NSLocalizedString("1. Make sure Wifi is on.\n2. Connect to another iOS or macOS device.", comment: "")
-    let disconnectedPrompt = NSLocalizedString("Turn on Wifi and connect to an iOS or macOS device", comment: "")
-    let connectedInstructionsLabel = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
-    let connectedPrompt = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
-
-    lazy var remoteCamSession: ActorRef! = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
+    @IBOutlet var cameraButton: UIButton!
+    @IBOutlet var remoteButton: UIButton!
+    @IBOutlet var cameraView: UIView!
+    @IBOutlet var remoteView: UIView!
+    @IBOutlet var stackView: UIStackView!
+    
+    var rolePicker: ActorRef! = RemoteCamSystem.shared.actorOf(
+        clz: RolePickerActor.self,
+        name: "RolePickerActor"
+    )
 
     override public func viewDidLoad() {
         super.viewDidLoad()
-        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: states.connect, style: .done, target: self, action: #selector(RolePickerController.toggleConnect(button:)))
-        self.navigationItem.prompt = disconnectedPrompt
-        remote.alpha = 0.3
-        camera.alpha = 0.3
-        remote.isEnabled = false
-        camera.isEnabled = false
-        self.remoteCamSession ! SetViewCtrl(ctrl: self)
-        instructionLabel.text = disconnectedInstructionsLabel
+        setupStyle()
+        rolePicker ! SetViewCtrl(ctrl: self)
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -64,21 +83,33 @@ public class RolePickerController: UIViewController {
         self.navigationController?.isNavigationBarHidden = false
         self.verifyCameraAndCameraRollAccess()
     }
-
-    override public func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        if self.isBeingDismissed || self.isMovingFromParent {
-            remoteCamSession ! Disconnect(sender: nil)
-            remoteCamSession ! Actor.Harakiri(sender: nil)
+    
+    override public func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        stackView.axis = (size.width > size.height) ? .horizontal : .vertical
+    }
+    
+    func setupStyle() {
+        self.navigationItem.prompt = connectedPrompt
+        self.navigationItem.title = NSLocalizedString("Pick a role", comment: "")
+        
+        // Style buttons
+        cameraButton.styleButton(backgroundColor: UIColor.systemBlue, borderColor: UIColor.clear, textColor: UIColor.white)
+        remoteButton.styleButton(backgroundColor: UIColor.systemRed, borderColor: UIColor.clear, textColor: UIColor.white)
+        if #available(iOS 13.0, *) {
+            cameraView.backgroundColor = UIColor.tertiarySystemBackground
+            remoteView.backgroundColor = UIColor.tertiarySystemBackground
+        } else {
+            cameraView.backgroundColor = UIColor.lightGray
+            remoteView.backgroundColor = UIColor.lightGray
         }
+        cameraView.layer.cornerRadius = 10;
+        cameraView.layer.masksToBounds = true;
+        remoteView.layer.cornerRadius = 10;
+        remoteView.layer.masksToBounds = true;
     }
 
     public func showPhonePickerViewController() {
-        self.performSegue(withIdentifier: presentPhonePickerSegue, sender: self)
-    }
-
-    @IBAction public func becomeMonitor(button: UIButton) {
-        becomeMonitor()
+        self.performSegue(withIdentifier: Segues.presentPhonePicker, sender: self)
     }
 
     @IBAction func showSettings(sender: UIButton) {
@@ -86,20 +117,17 @@ public class RolePickerController: UIViewController {
         self.navigationController?.pushViewController(ctrl, animated: true)
     }
 
-    public func becomeMonitor() {
-        self.performSegue(withIdentifier: showRemoteSegue, sender: self)
+    @IBAction func becomeMonitor() {
+        self.performSegue(withIdentifier: Segues.showRemote, sender: self)
     }
 
-    @IBAction public func becomeCamera(button: UIButton) {
-        becomeCamera()
+    @IBAction func becomeCamera() {
+        self.performSegue(withIdentifier: Segues.showCamera, sender: self)
     }
-
-    public func becomeCamera() {
-        self.performSegue(withIdentifier: showCameraSegue, sender: self)
+    
+    deinit {
+        print("killing RolePickerController")
+        rolePicker ! Actor.Harakiri(sender: nil)
     }
-
-    @objc public func toggleConnect(button: UIButton) {
-        self.remoteCamSession ! UICmd.ToggleConnect(sender: nil)
-    }
-
+    
 }
