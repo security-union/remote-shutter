@@ -18,9 +18,11 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadData:) name:@"AppDidBecomeActive" object:nil];
-    [self setTitle:NSLocalizedString(@"Settings", nil)];
+    [[[self navigationController] navigationBar] setPrefersLargeTitles: TRUE];
     [[[self navigationController] navigationBar] setHidden:FALSE];
     self.tableViewCells = @[@[self.disableAdsAndEnableVideoRecording, self.disableiAds, self.restorePurchases], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.sourceCode, self.versionCell]];
+    self.navigationItem.title = NSLocalizedString(@"Configuration", comment: "");
+    
 }
 
 - (void)viewWillAppear:(BOOL)animated {

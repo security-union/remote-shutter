@@ -19,7 +19,7 @@ extension RemoteCamSession {
     
     func monitorTogglingFlash(monitor: ActorRef,
                               peer: MCPeerID,
-                              lobby: RolePickerController) -> Receive {
+                              lobby: DeviceScannerViewController) -> Receive {
         var alert: UIAlertController?
         ^{
         alert = UIAlertController(title: "Requesting flash toggle",
@@ -102,7 +102,7 @@ extension RemoteCamSession {
 
     func monitorTogglingCamera(monitor: ActorRef,
                                peer: MCPeerID,
-                               lobby: RolePickerController) -> Receive {
+                               lobby: DeviceScannerViewController) -> Receive {
         var alert: UIAlertController?
         ^{
             alert = UIAlertController(title: "Requesting camera toggle",
