@@ -10,17 +10,17 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 
+func getFrameSender() -> ActorRef? {
+    RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender")
+}
+
+func getRemoteCamSession() -> ActorRef? {
+    RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")
+}
+
 public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSessionDelegate {
 
     let states = RemoteCamStates()
-    
-    lazy var frameSender: ActorRef! = {
-        if let sender = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender") {
-            return sender
-        } else {
-            return RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
-        }
-    }()
 
     var session: MCSession!
 

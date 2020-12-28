@@ -15,12 +15,12 @@ extension RemoteCamSession {
 
     func cameraShootingVideo(peer: MCPeerID,
                              ctrl: CameraViewController,
-                             lobby: DeviceScannerViewController) -> Receive {
+                             lobby: Weak<DeviceScannerViewController>) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             
             case is OnEnter:
-                frameSender ! SetSession(peer: peer, session: self)
+                getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
 
             case is RemoteCmd.StopRecordingVideo:
                 ctrl.stopRecordingVideo()
@@ -53,7 +53,7 @@ extension RemoteCamSession {
 
     func cameraTransmittingVideo(peer: MCPeerID,
                              ctrl: CameraViewController,
-                             lobby: DeviceScannerViewController) -> Receive {
+                             lobby: Weak<DeviceScannerViewController>) -> Receive {
         var alert: UIAlertController?
         ^{
         alert = UIAlertController(title: "Sending video to Monitor",
