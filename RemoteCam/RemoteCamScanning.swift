@@ -46,7 +46,7 @@ extension RemoteCamSession {
                 }
                 self.become(
                     name: self.states.connected,
-                    state: self.connected(lobby: lobby, peer: w.peer)
+                    state: self.connected(lobbyWrapper: lobbyWrapper, peer: w.peer)
                 )
                 ^{
                     lobby.goToRolePicker()
