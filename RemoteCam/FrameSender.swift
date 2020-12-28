@@ -12,7 +12,7 @@ import MultipeerConnectivity
 
 class SetSession : Actor.Message {
     let peer: MCPeerID
-    let session: RemoteCamSession
+    unowned var session: RemoteCamSession?
     init(peer: MCPeerID, session: RemoteCamSession) {
         self.peer = peer
         self.session = session
@@ -51,7 +51,7 @@ class FrameSender: Actor {
                 self.become(name: readyToSendFrame, state: readyToSend(s), discardOld: true)
                 
             case let s as RemoteCmd.SendFrame:
-                data.session.sendCommandOrGoToScanning(peer: [data.peer], msg: s, mode: .unreliable)
+                data.session?.sendCommandOrGoToScanning(peer: [data.peer], msg: s, mode: .unreliable)
                 self.become(name: waitingForAckName, state: waitingForAck(data), discardOld: true)
             default:
                 self.receive(msg: msg)
