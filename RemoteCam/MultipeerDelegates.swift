@@ -55,7 +55,7 @@ extension RemoteCamSession {
         switch inboundMessage {
             
         case let requestFrame as RemoteCmd.RequestFrame:
-            frameSender ! requestFrame
+            getFrameSender()?.tell(msg: requestFrame)
 
         case let frame as RemoteCmd.SendFrame:
             this ! RemoteCmd.OnFrame(data: frame.data,

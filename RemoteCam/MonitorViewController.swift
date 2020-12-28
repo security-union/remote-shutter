@@ -10,6 +10,8 @@ import UIKit
 import Theater
 import AVFoundation
 
+let timerDefault = "timerDefault"
+
 func setFlashMode(ctrl: Weak<MonitorViewController>, flashMode: AVCaptureDevice.FlashMode?) {
     if let f = flashMode {
         switch f {
@@ -79,10 +81,6 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     }
                 }
 
-            case is UICmd.UnbecomeMonitor:
-                let session: ActorRef? = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")
-                session! ! msg
-
             case let f as RemoteCmd.OnFrame:
                 if let cgImage = UIImage(data: f.data) {
                     OperationQueue.main.addOperation {[weak ctrl] in
@@ -104,7 +102,7 @@ UI for the monitor.
 
 public class MonitorViewController: iAdViewController, UIImagePickerControllerDelegate & UINavigationControllerDelegate {
 
-    let session = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")!
+    let session = getRemoteCamSession()!
 
     let monitor = RemoteCamSystem.shared.actorOf(clz: MonitorActor.self, name: "MonitorActor")!
 
@@ -166,13 +164,23 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         print("stop monitor")
         self.timer.cancel()
         self.soundManager.stopPlayer()
-        monitor ! UICmd.UnbecomeMonitor(sender: nil)
+        session ! UICmd.UnbecomeMonitor(sender: nil)
         monitor ! Actor.Harakiri(sender: nil)
     }
 
     let buttonPromptPhotoMode = NSLocalizedString("Taking picture", comment: "")
     let buttonPromptVideoMode = NSLocalizedString("Starting video", comment: "")
     let buttonPromptRecordingMode = NSLocalizedString("Stopping video", comment: "")
+    var timerSliderValue: Int {
+        set {
+            UserDefaults.standard.set(newValue, forKey: timerDefault)
+            UserDefaults.standard.synchronize()
+        }
+        
+        get {
+            UserDefaults.standard.integer(forKey: timerDefault)
+        }
+    }
 
     func configurePhotoMode() {
         takePicture.setImage(UIImage.init(named: "camera.png"), for: .normal)
@@ -227,7 +235,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     }
 
     @IBAction func onSliderChange(sender: UISlider) {
-        self.timerLabel.text = "\(Int(sender.value))"
+        timerSliderValue = Int(round(sender.value))
+        self.timerLabel.text = "\(timerSliderValue)"
     }
 
     @IBAction func toggleFlash(sender: UIButton) {
@@ -273,39 +282,39 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
             "\(buttonPrompt) in \(seconds) seconds"
         }
 
-        let alert = UIAlertController(title: timerAlertTitle(seconds: Int(round(self.timerSlider.value))),
+        let alert = UIAlertController(title: timerAlertTitle(seconds: timerSliderValue),
                 message: nil,
                 preferredStyle: .alert)
 
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { (_) in
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self](_) in
             alert.dismiss(animated: true, completion: nil)
-            self.timer.cancel()
+            self?.timer.cancel()
         })
 
         self.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
 
-        self.present(alert, animated: true) { [unowned self] in
-            self.timer.start(withDuration: Int(round(self.timerSlider.value)), withTickHandler: { [unowned self](t) in
+        self.present(alert, animated: true) { [weak self] in
+            self?.timer.start(withDuration: Int(round(self?.timerSlider.value ?? 0)), withTickHandler: { [weak self](t) in
                 alert.title = timerAlertTitle(seconds: t!.timeRemaining())
                 switch t!.timeRemaining() {
                 case let l where l > 3:
-                    self.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
+                    self?.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
                 case 3:
-                    self.soundManager.playBeepSound(CPSoundManagerAudioTypeFast)
+                    self?.soundManager.playBeepSound(CPSoundManagerAudioTypeFast)
                 default:
                     break
                 }
-            }, cancelHandler: { (_) in
-                    alert.dismiss(animated: true, completion: nil)
-            }, andCompletionHandler: { [unowned self] (_) in
+            },
+            andCompletionHandler: { [weak self] (_) in
                 alert.dismiss(animated: true, completion: nil)
-                self.session ! UICmd.TakePicture(sender: nil)
+                self?.session.tell(msg:UICmd.TakePicture(sender: nil))
             })
         }
     }
 
     private func configureTimerUI() {
-        self.timerSlider.value = 5
+        self.timerSlider.value = Float(timerSliderValue)
+        self.timerLabel.text = "\(timerSliderValue)"
         self.sliderContainer.layer.cornerRadius = 30.0
         self.sliderContainer.clipsToBounds = true
         self.timerSlider.layer.anchorPoint = CGPoint.init(x: 1.0, y: 1.0)

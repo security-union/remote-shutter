@@ -33,7 +33,7 @@ extension RemoteCamSession {
 
     func cameraTakingPic(peer: MCPeerID,
                          ctrl: CameraViewController,
-                         lobby: DeviceScannerViewController) -> Receive {
+                         lobby: Weak<DeviceScannerViewController>) -> Receive {
         var alert: UIAlertController?
         ^{
             alert = UIAlertController(title: "Taking picture",
@@ -88,11 +88,15 @@ extension RemoteCamSession {
 
     func camera(peer: MCPeerID,
                 ctrl: CameraViewController,
-                lobby: DeviceScannerViewController) -> Receive {
+                lobbyWrapper: Weak<DeviceScannerViewController>) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
+            guard lobbyWrapper.value != nil else {
+                popAndStartScanning()
+                return
+            }
             switch msg {
             case is OnEnter:
-                frameSender ! SetSession(peer: peer, session: self)
+                getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
             case let m as UICmd.ToggleCameraResp:
                 self.sendCommandOrGoToScanning(
                     peer: [peer],
@@ -106,13 +110,13 @@ extension RemoteCamSession {
                         name: self.states.cameraRecordingVideo,
                         state: self.cameraShootingVideo(peer: peer,
                                 ctrl: ctrl,
-                                lobby: lobby)
+                                lobby: lobbyWrapper)
                 )
 
             case is RemoteCmd.TakePic:
                 ctrl.takePicture()
                 self.become(name: self.states.cameraTakingPic,
-                        state: self.cameraTakingPic(peer: peer, ctrl: ctrl, lobby: lobby))
+                        state: self.cameraTakingPic(peer: peer, ctrl: ctrl, lobby: lobbyWrapper))
 
             case is RemoteCmd.ToggleCamera:
                 let result = ctrl.toggleCamera()
