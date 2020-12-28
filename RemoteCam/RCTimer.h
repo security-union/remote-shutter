@@ -22,7 +22,7 @@ Neat timer that uses blocks instead of the delegate pattern
 
 - (void)cancel;
 
-- (void)startTimerWithDuration:(NSInteger)duration withTickHandler:(RCTimerTick)tick cancelHandler:(RCTimerTick)cancelHandler andCompletionHandler:(RCTimerCompletion)completionHandler;
+- (void)startTimerWithDuration:(NSInteger)duration withTickHandler:(RCTimerTick)tick  andCompletionHandler:(RCTimerCompletion)completionHandler;
 
 - (NSInteger)timeRemaining;
 
