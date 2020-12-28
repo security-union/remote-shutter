@@ -49,14 +49,9 @@ public class CameraViewController: UIViewController,
 
     var captureVideoPreviewLayer: AVCaptureVideoPreviewLayer?
     var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
-    var session: ActorRef = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")!
-    lazy var frameSender: ActorRef! = {
-        if let sender = RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender") {
-            return sender
-        } else {
-            return RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
-        }
-    }()
+    let session: ActorRef = getRemoteCamSession()!
+    let frameSender: ActorRef = getFrameSender()!
+    
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
 
     private var videoInput: AVAssetWriterInput!
@@ -212,9 +207,7 @@ public class CameraViewController: UIViewController,
             configSessionOutput()
             setFrameRate(framerate: fps, videoDevice: newDevice!)
             do {
-                DispatchQueue.main.async {
-                    self.rotateCameraToOrientation(orientation: self.orientation)
-                }
+                self.rotateCameraToOrientation(orientation: self.orientation)
                 let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
                 captureSession.commitConfiguration()
                 return Success((newFlashMode, newInput.device.position))
