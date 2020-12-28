@@ -9,30 +9,25 @@
 #import "RCTimer.h"
 
 @interface RCTimer ()
-@property(nonatomic, strong) NSTimer *tickTimer;
 @property(nonatomic, copy) RCTimerTick tickHandler;
-@property(nonatomic, copy) RCTimerTick cancelHandler;
 @property(nonatomic, copy) RCTimerCompletion completionHandler;
 @property(nonatomic, assign) NSInteger duration;
+@property(nonatomic, assign) BOOL isCanceled;
 @end
 
 @implementation RCTimer
 
 - (void)cancel {
-    if (self.cancelHandler) {
-        self.cancelHandler(self);
-    }
-    if (self.tickTimer) {
-        [self.tickTimer invalidate];
-        self.tickTimer = nil;
-    }
+    _isCanceled = true;
+    _completionHandler = nil;
+    _tickHandler = nil;
 }
 
 - (NSInteger)timeRemaining {
     return self.duration;
 }
 
-- (void)startTimerWithDuration:(NSInteger)duration withTickHandler:(RCTimerTick)tick cancelHandler:(RCTimerTick)cancelHandler andCompletionHandler:(RCTimerCompletion)completionHandler {
+- (void)startTimerWithDuration:(NSInteger)duration withTickHandler:(RCTimerTick)tick andCompletionHandler:(RCTimerCompletion)completionHandler {
     if (duration == 0) {
         completionHandler(self);
         return;
@@ -41,18 +36,26 @@
     self.duration = duration;
     self.tickHandler = tick;
     self.completionHandler = completionHandler;
-    self.cancelHandler = cancelHandler;
-    self.tickTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(timerTick:) userInfo:nil repeats:NO];
+    self.isCanceled = false;
+    [self scheduleTimer];
 }
 
-- (void)timerTick:(NSTimer *)timer {
-    self.duration--;
-    if (self.duration > 0) {
-        self.tickHandler(self);
-        self.tickTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(timerTick:) userInfo:nil repeats:NO];
-    } else {
-        self.completionHandler(self);
-    }
+- (void)scheduleTimer {
+    __weak typeof(self) weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        typeof(self) strongSelf = weakSelf;
+        if (strongSelf && !strongSelf.isCanceled) {
+            strongSelf.duration--;
+            if (strongSelf.duration > 0) {
+                strongSelf.tickHandler(strongSelf);
+                [strongSelf scheduleTimer];
+            } else {
+                strongSelf.completionHandler(self);
+                strongSelf.completionHandler = nil;
+                strongSelf.tickHandler = nil;
+            }
+        }
+    });
 }
 
 @end
