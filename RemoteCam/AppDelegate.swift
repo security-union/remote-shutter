@@ -7,9 +7,7 @@
 //
 
 import UIKit
-#if !targetEnvironment(macCatalyst)
 import GoogleMobileAds
-#endif
 import Photos
 
 @UIApplicationMain
@@ -21,10 +19,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         InAppPurchasesManager.shared().reloadProducts { (_, _) in
 
         }
-        if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() {
-            #if !targetEnvironment(macCatalyst)
+        if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() &&
+            !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeatureAndEnableVideo() {
             GADMobileAds.sharedInstance().start(completionHandler: nil)
-            #endif
         }
 
         UIApplication.shared.isIdleTimerDisabled = true
