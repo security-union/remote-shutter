@@ -7,11 +7,9 @@
 //
 
 import UIKit
-#if !targetEnvironment(macCatalyst)
 import GoogleMobileAds
-#endif
 import Theater
-import UserMessagingPlatform
+import AppTrackingTransparency
 
 public func showError(_ error: String) {
     ^{
@@ -29,34 +27,12 @@ This UIViewController provides a preconfigured banner and some NSLayoutConstrain
 Users must subclass to integrate this into their projects
 */
 public class iAdViewController: UIViewController {
-    #if !targetEnvironment(macCatalyst)
     let AdBanner: GADBannerView = GADBannerView()
-    #endif
     var AdConstraints: [NSLayoutConstraint]?
 
     @IBOutlet weak var bannerView: UIView!
     @IBOutlet weak var bottomBannerConstraint: NSLayoutConstraint?
     @IBOutlet weak var bannerHeight: NSLayoutConstraint?
-
-    private func setupAdNetwork() {
-        #if !targetEnvironment(macCatalyst)
-        let parameters = UMPRequestParameters()
-        // Set tag for under age of consent. Here NO means users are not under age.
-        parameters.tagForUnderAgeOfConsent = false
-
-        UMPConsentInformation.sharedInstance.requestConsentInfoUpdate(
-                with: parameters,
-                completionHandler: { [self] error in
-                    if error == nil {
-                        if UMPConsentInformation.sharedInstance.formStatus == UMPFormStatus.available {
-                            loadForm()
-                        } else {
-                            startShowingAds()
-                        }
-                    }
-                })
-        #endif
-    }
 
     override public func viewDidLoad() {
         super.viewDidLoad()
@@ -78,13 +54,11 @@ public class iAdViewController: UIViewController {
     }
 
     func shouldShowBanner() {
-        #if !targetEnvironment(macCatalyst)
         UIView.animate(withDuration: 0.3) { () -> Void in
             let value = 40 - self.AdBanner.frame.size.height
             self.bottomBannerConstraint!.constant = value
             self.view.layoutSubviews()
         }
-        #endif
     }
 
     @objc func ShouldHideAds(notification: NSNotification) {
@@ -94,16 +68,13 @@ public class iAdViewController: UIViewController {
     }
 
     func turnOffAds() {
-        #if !targetEnvironment(macCatalyst)
         self.bannerView.removeConstraints(self.iAdsLayoutConstrains())
         self.shouldHideBanner()
         self.AdBanner.removeFromSuperview()
         self.AdBanner.delegate = nil
-        #endif
     }
 
     func iAdsLayoutConstrains() -> [NSLayoutConstraint] {
-        #if !targetEnvironment(macCatalyst)
         if AdConstraints != nil {
             return AdConstraints!
         }
@@ -116,9 +87,6 @@ public class iAdViewController: UIViewController {
 
         self.AdConstraints = [top, width, leading]
         return self.AdConstraints!
-        #else
-        return []
-        #endif
     }
 
     public required init?(coder aDecoder: NSCoder) {
@@ -127,43 +95,39 @@ public class iAdViewController: UIViewController {
 
 }
 
-#if !targetEnvironment(macCatalyst)
 extension iAdViewController: GADBannerViewDelegate {
-    public func adViewDidReceiveAd(_ bannerView: GADBannerView) {
+    public func bannerViewDidReceiveAd(_ bannerView: GADBannerView) {
         self.shouldShowBanner()
     }
 
     /// Tells the delegate that an ad request failed. The failure is normally due to network
     /// connectivity or ad availablility (i.e., no fill).
-    public func adView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: GADRequestError) {
+    public func bannerView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: Error) {
         self.shouldHideBanner()
     }
 
-    public func adViewWillPresentScreen(_ bannerView: GADBannerView) {
+    public func bannerViewWillPresentScreen(_ bannerView: GADBannerView) {
 
     }
 
-    public func adViewDidDismissScreen(_ bannerView: GADBannerView) {
+    public func bannerViewDidDismissScreen(_ bannerView: GADBannerView) {
         self.shouldHideBanner()
     }
 
     /// Tells the delegate that an ad request successfully received an ad. The delegate may want to add
     /// the banner view to the view hierarchy if it hasn't been added yet.
 
-    func loadForm() {
-        UMPConsentForm.load(
-                completionHandler: { form, loadError in
-                    if loadError != nil {
-                    } else {
-                        form?.present(
-                                from: self,
-                                completionHandler: { [self] _ in
-                                    if UMPConsentInformation.sharedInstance.consentStatus == UMPConsentStatus.obtained {
-                                        self.startShowingAds()
-                                    }
-                                })
-                    }
-                })
+    func setupAdNetwork() {
+        if #available(iOS 14, *) {
+            ATTrackingManager.requestTrackingAuthorization(completionHandler: { status in
+                if status == .authorized {
+                    self.startShowingAds()
+                }
+            })
+        } else {
+            self.startShowingAds()
+        }
+        
     }
 
     func startShowingAds() {
@@ -178,4 +142,3 @@ extension iAdViewController: GADBannerViewDelegate {
         self.AdBanner.isAutoloadEnabled = true
     }
 }
-#endif

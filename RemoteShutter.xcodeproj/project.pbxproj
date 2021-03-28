@@ -253,7 +253,6 @@
 		85D33831258D489C0091972B /* UIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIView.swift; sourceTree = "<group>"; };
 		85D33835258D48C30091972B /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
 		85F118E5250ACBE100B73E48 /* RemoteShutter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutter.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		85F11911250ACD9500B73E48 /* RemoteShutterDemo copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "RemoteShutterDemo copy-Info.plist"; path = "/Users/griffin/workspace/securityunion/RemoteShutter/RemoteShutterDemo copy-Info.plist"; sourceTree = "<absolute>"; };
 		85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
 		BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -476,7 +475,6 @@
 				1FEBF1D32E8FD6506AAEDD87 /* Frameworks */,
 				6E71D580DBCCE813F82C1948 /* Pods */,
 				85F118E5250ACBE100B73E48 /* RemoteShutter.app */,
-				85F11911250ACD9500B73E48 /* RemoteShutterDemo copy-Info.plist */,
 				85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */,
 				852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */,
 			);
@@ -872,7 +870,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 32;
+				CURRENT_PROJECT_VERSION = 33;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -912,7 +910,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 32;
+				CURRENT_PROJECT_VERSION = 33;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -1032,6 +1030,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "-ObjC";
 				SDKROOT = iphoneos;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 3.0;
@@ -1085,6 +1084,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
+				OTHER_LDFLAGS = "-ObjC";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_VERSION = 3.0;
