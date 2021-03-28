@@ -121,7 +121,9 @@ extension iAdViewController: GADBannerViewDelegate {
         if #available(iOS 14, *) {
             ATTrackingManager.requestTrackingAuthorization(completionHandler: { status in
                 if status == .authorized {
-                    self.startShowingAds()
+                    DispatchQueue.main.async {
+                        self.startShowingAds()
+                    }
                 }
             })
         } else {
