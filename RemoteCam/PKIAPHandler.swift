@@ -32,17 +32,19 @@ class PKIAPHandler: NSObject {
     //MARK:- Shared Object
     //MARK:-
     static let shared = PKIAPHandler()
-    private override init() { }
+    private override init() {
+        super.init()
+    }
     
     //MARK:- Properties
     //MARK:- Private
     fileprivate var productIds = [String]()
     fileprivate var productID = ""
     fileprivate var productsRequest = SKProductsRequest()
-    fileprivate var fetchProductComplition: (([SKProduct])->Void)?
+    fileprivate var fetchProductCompletion: (([SKProduct])->Void)?
     
     fileprivate var productToPurchase: SKProduct?
-    fileprivate var purchaseProductComplition: ((PKIAPHandlerAlertType, SKProduct?, SKPaymentTransaction?)->Void)?
+    fileprivate var purchaseProductCompletion: ((PKIAPHandlerAlertType, SKProduct?, SKPaymentTransaction?)->Void)?
     
     //MARK:- Public
     var isLogEnabled: Bool = true
@@ -58,9 +60,9 @@ class PKIAPHandler: NSObject {
     //MAKE PURCHASE OF A PRODUCT
     func canMakePurchases() -> Bool {  return SKPaymentQueue.canMakePayments()  }
     
-    func purchase(product: SKProduct, complition: @escaping ((PKIAPHandlerAlertType, SKProduct?, SKPaymentTransaction?)->Void)) {
+    func purchase(product: SKProduct, completion: @escaping ((PKIAPHandlerAlertType, SKProduct?, SKPaymentTransaction?)->Void)) {
         
-        self.purchaseProductComplition = complition
+        self.purchaseProductCompletion = completion
         self.productToPurchase = product
 
         if self.canMakePurchases() {
@@ -72,21 +74,22 @@ class PKIAPHandler: NSObject {
             productID = product.productIdentifier
         }
         else {
-            complition(PKIAPHandlerAlertType.disabled, nil, nil)
+            completion(PKIAPHandlerAlertType.disabled, nil, nil)
         }
     }
     
     // RESTORE PURCHASE
-    func restorePurchase(){
+    func restorePurchase(_ completion: @escaping ((PKIAPHandlerAlertType, SKProduct?, SKPaymentTransaction?)->Void)) {
+        self.purchaseProductCompletion = completion
         SKPaymentQueue.default().add(self)
         SKPaymentQueue.default().restoreCompletedTransactions()
     }
     
     
     // FETCH AVAILABLE IAP PRODUCTS
-    func fetchAvailableProducts(complition: @escaping (([SKProduct])->Void)){
+    func fetchAvailableProducts(completion: @escaping (([SKProduct])->Void)){
         
-        self.fetchProductComplition = complition
+        self.fetchProductCompletion = completion
         // Put here your IAP Products ID's
         if self.productIds.isEmpty {
             log(PKIAPHandlerAlertType.setProductIds.message)
@@ -115,26 +118,30 @@ extension PKIAPHandler: SKProductsRequestDelegate, SKPaymentTransactionObserver{
     func productsRequest (_ request:SKProductsRequest, didReceive response:SKProductsResponse) {
         
         if (response.products.count > 0) {
-            if let complition = self.fetchProductComplition {
-                complition(response.products)
+            if let completion = self.fetchProductCompletion {
+                completion(response.products)
             }
         }
     }
     
     func paymentQueueRestoreCompletedTransactionsFinished(_ queue: SKPaymentQueue) {
-        if let complition = self.purchaseProductComplition {
-            complition(PKIAPHandlerAlertType.restored, nil, nil)
+        if let completion = self.purchaseProductCompletion {
+            completion(PKIAPHandlerAlertType.restored, nil, nil)
         }
+        self.paymentQueue(queue, updatedTransactions: queue.transactions)
+    }
+    
+    func paymentQueue(_ queue: SKPaymentQueue, restoreCompletedTransactionsFailedWithError error: Error) {
+        print("error \(error)")
     }
     
     // IAP PAYMENT QUEUE
     func paymentQueue(_ queue: SKPaymentQueue, updatedTransactions transactions: [SKPaymentTransaction]) {
-        for transaction:AnyObject in transactions {
-            if let trans = transaction as? SKPaymentTransaction {
-                switch trans.transactionState {
+        for transaction in transactions {
+                switch transaction.transactionState {
                 case .purchased:
                     log("Product purchase done")
-                    SKPaymentQueue.default().finishTransaction(transaction as! SKPaymentTransaction)
+                    SKPaymentQueue.default().finishTransaction(transaction)
                     if (self.productID == disableAdsPID) {
                         UserDefaults.standard.set(true, forKey: didBuyRemoveiAdsFeature)
                     } else if (self.productID == enableVideoPID) {
@@ -142,28 +149,32 @@ extension PKIAPHandler: SKProductsRequestDelegate, SKPaymentTransactionObserver{
                     } else {
                         UserDefaults.standard.set(true, forKey: self.productID)
                     }
-                    if let complition = self.purchaseProductComplition {
-                        complition(PKIAPHandlerAlertType.purchased, self.productToPurchase, trans)
+                    if let completion = self.purchaseProductCompletion {
+                        completion(PKIAPHandlerAlertType.purchased, self.productToPurchase, transaction)
                     }
                     break
                     
                 case .failed:
                     log("Product purchase failed")
-                    SKPaymentQueue.default().finishTransaction(transaction as! SKPaymentTransaction)
+                    SKPaymentQueue.default().finishTransaction(transaction)
                     break
                 case .restored:
                     log("Product restored")
-                    SKPaymentQueue.default().finishTransaction(transaction as! SKPaymentTransaction)
-                    if (self.productID == disableAdsPID) {
+                    SKPaymentQueue.default().finishTransaction(transaction)
+                    if (transaction.payment.productIdentifier == disableAdsPID) {
                         UserDefaults.standard.set(true, forKey: didBuyRemoveiAdsFeature)
-                    } else if (self.productID == enableVideoPID) {
+                    } else if (transaction.payment.productIdentifier == enableVideoPID) {
                         UserDefaults.standard.set(true, forKey: didBuyRemoveAdsAndEnableVideo)
                     } else {
                         UserDefaults.standard.set(true, forKey: self.productID)
                     }
+                    if let completion = self.purchaseProductCompletion {
+                        completion(PKIAPHandlerAlertType.purchased, self.productToPurchase, transaction)
+                    }
                     break
                     
                 default: break
-                }}}
+                }
+        }
     }
 }

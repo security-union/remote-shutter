@@ -70,7 +70,9 @@ class WelcomeViewController: UIViewController {
     }
     
     @IBAction func restorePurchases() {
-        PKIAPHandler.shared.restorePurchase()
+        PKIAPHandler.shared.restorePurchase { (alert, product, transaction) in
+            self.hidePurchased()
+        }
     }
     
     @IBAction func showHelp() {
