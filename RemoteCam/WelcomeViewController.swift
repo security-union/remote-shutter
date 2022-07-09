@@ -72,9 +72,11 @@ class WelcomeViewController: UIViewController {
     @IBAction func restorePurchases() {
         PKIAPHandler.shared.restorePurchase { (alert, product, transaction) in
             self.hidePurchased()
-            let controller = UIAlertController.init(title: NSLocalizedString("Purchases were successfully restored", comment: ""), message: NSLocalizedString("If you do not see your purchases, please ensure that the AppleId that this device is associated with, is correct.", comment: ""))
-            controller.simpleOkAction()
-            controller.show(true)
+            if alert == .restored {
+                let controller = UIAlertController.init(title: NSLocalizedString("Purchases were successfully restored", comment: ""), message: NSLocalizedString("If you do not see your purchases, please ensure that the AppleId that this device is associated with, is correct.", comment: ""))
+                controller.simpleOkAction()
+                controller.show(true)
+            }
         }
     }
     
