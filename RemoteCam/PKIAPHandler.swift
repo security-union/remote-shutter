@@ -125,10 +125,11 @@ extension PKIAPHandler: SKProductsRequestDelegate, SKPaymentTransactionObserver{
     }
     
     func paymentQueueRestoreCompletedTransactionsFinished(_ queue: SKPaymentQueue) {
+        self.paymentQueue(queue, updatedTransactions: queue.transactions)
         if let completion = self.purchaseProductCompletion {
             completion(PKIAPHandlerAlertType.restored, nil, nil)
         }
-        self.paymentQueue(queue, updatedTransactions: queue.transactions)
+
     }
     
     func paymentQueue(_ queue: SKPaymentQueue, restoreCompletedTransactionsFailedWithError error: Error) {

@@ -160,6 +160,7 @@ class WelcomeViewController: UIViewController {
         let enabledVideo = UserDefaults.standard.bool(forKey: didBuyRemoveAdsAndEnableVideo)
         if (enabledVideo) {
             enableVideoButton.isHidden = true
+            disableAdsButton.isHidden = true
         }
         
         if (disabledAds && enabledVideo) {
