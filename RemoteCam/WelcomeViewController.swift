@@ -72,6 +72,11 @@ class WelcomeViewController: UIViewController {
     @IBAction func restorePurchases() {
         PKIAPHandler.shared.restorePurchase { (alert, product, transaction) in
             self.hidePurchased()
+            if alert == .restored {
+                let controller = UIAlertController.init(title: NSLocalizedString("Purchases were successfully restored", comment: ""), message: NSLocalizedString("If you do not see your purchases, please ensure that the AppleId that this device is associated with, is correct.", comment: ""))
+                controller.simpleOkAction()
+                controller.show(true)
+            }
         }
     }
     
@@ -160,6 +165,7 @@ class WelcomeViewController: UIViewController {
         let enabledVideo = UserDefaults.standard.bool(forKey: didBuyRemoveAdsAndEnableVideo)
         if (enabledVideo) {
             enableVideoButton.isHidden = true
+            disableAdsButton.isHidden = true
         }
         
         if (disabledAds && enabledVideo) {
