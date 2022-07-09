@@ -68,7 +68,7 @@ extension RemoteCamSession {
                 ^{
                     alert?.dismiss(animated: true, completion: nil)
                     if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                        mailbox.addOperation {
+                        self.mailbox.addOperation {
                             self.popAndStartScanning()
                         }
                     }
