@@ -32,7 +32,7 @@ extension RemoteCamSession {
             case is UICmd.ToggleFlash:
                 ^{
                     alert?.show(true) {
-                        mailbox.addOperation {
+                        self.mailbox.addOperation {
                             if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleFlash()) as? Failure {
                                 self.this ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: f.error)
                             }
@@ -45,7 +45,7 @@ extension RemoteCamSession {
                     monitor ! t
                     ^{
                         alert?.dismiss(animated: true) {
-                            mailbox.addOperation {
+                            self.mailbox.addOperation {
                                 self.unbecome()
                             }
                         }
@@ -58,7 +58,7 @@ extension RemoteCamSession {
                                                                preferredStyle: .alert)
                             errorAlert.simpleOkAction()
                             errorAlert.show(true)
-                            mailbox.addOperation {
+                            self.mailbox.addOperation {
                                 self.unbecome()
                             }
                         }
@@ -69,7 +69,7 @@ extension RemoteCamSession {
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{
                         alert?.dismiss(animated: true) {
-                            mailbox.addOperation {
+                            self.mailbox.addOperation {
                                 self.popAndStartScanning()
                             }
                         }
@@ -79,7 +79,7 @@ extension RemoteCamSession {
             case is Disconnect:
                 ^{
                     alert?.dismiss(animated: true) {
-                        mailbox.addOperation {
+                        self.mailbox.addOperation {
                             self.popAndStartScanning()
                         }
                     }
@@ -88,7 +88,7 @@ extension RemoteCamSession {
             case is UICmd.UnbecomeMonitor:
                 ^{
                     alert?.dismiss(animated: true) {
-                        mailbox.addOperation {
+                        self.mailbox.addOperation {
                             self.popToState(name: self.states.connected)
                         }
                     }
@@ -114,7 +114,7 @@ extension RemoteCamSession {
             case is UICmd.ToggleCamera:
                 ^{
                     alert?.show(true) {
-                        mailbox.addOperation {
+                        self.mailbox.addOperation {
                             if let f = self.sendMessage(
                                 peer: [peer], msg: RemoteCmd.ToggleCamera()) as? Failure {
                                 self.this ! RemoteCmd.ToggleCameraResp(
@@ -132,7 +132,7 @@ extension RemoteCamSession {
                 ^{
                     if let _ = t.flashMode {
                         alert?.dismiss(animated: true) {
-                            mailbox.addOperation {
+                            self.mailbox.addOperation {
                                 self.unbecome()
                             }
                         }
@@ -141,7 +141,7 @@ extension RemoteCamSession {
                             let errorAlert = UIAlertController(title: error._domain, message: nil, preferredStyle: .alert)
                             errorAlert.simpleOkAction()
                             errorAlert.show(true)
-                            mailbox.addOperation {
+                            self.mailbox.addOperation {
                                 self.unbecome()
                             }
                         })
@@ -152,7 +152,7 @@ extension RemoteCamSession {
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{
                         alert?.dismiss(animated: true) {
-                            mailbox.addOperation {
+                            self.mailbox.addOperation {
                                 self.popAndStartScanning()
                             }
                         }
@@ -162,7 +162,7 @@ extension RemoteCamSession {
             case is Disconnect:
                 ^{
                     alert?.dismiss(animated: true) {
-                        mailbox.addOperation {
+                        self.mailbox.addOperation {
                             self.popAndStartScanning()
                         }
                     }
@@ -171,7 +171,7 @@ extension RemoteCamSession {
             case is UICmd.UnbecomeMonitor:
                 ^{
                     alert?.dismiss(animated: true) {
-                        mailbox.addOperation {
+                        self.mailbox.addOperation {
                             self.popToState(name: self.states.connected)
                         }
                     }
