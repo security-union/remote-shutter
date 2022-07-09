@@ -87,7 +87,7 @@ extension RemoteCamSession {
 
             case is UICmd.TakePicture:
                 ^{alert?.show(true) {
-                    mailbox.addOperation {
+                    self.mailbox.addOperation {
                         self.sendCommandOrGoToScanning(
                             peer: [peer],
                             msg: RemoteCmd.TakePic(sender: self.this)
@@ -110,7 +110,7 @@ extension RemoteCamSession {
 
             case is UICmd.UnbecomeMonitor:
                 ^{alert?.dismiss(animated: true) {
-                    mailbox.addOperation {
+                    self.mailbox.addOperation {
                         self.popToState(name: self.states.connected)
                     }
                 }}
@@ -118,7 +118,7 @@ extension RemoteCamSession {
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{alert?.dismiss(animated: true) {
-                        mailbox.addOperation {
+                        self.mailbox.addOperation {
                             self.popAndStartScanning()
                         }
                     }}
@@ -126,7 +126,7 @@ extension RemoteCamSession {
 
             case is Disconnect:
                 ^{alert?.dismiss(animated: true) {
-                    mailbox.addOperation {
+                    self.mailbox.addOperation {
                         self.popAndStartScanning()
                     }
                 }}
