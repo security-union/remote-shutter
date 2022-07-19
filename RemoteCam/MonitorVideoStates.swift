@@ -76,8 +76,8 @@ extension MonitorVideoStates {
                 monitor ! msg
                 self.requestFrame([peer])
 
-            case is UICmd.TakePicture:
-                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this))
+            case let cmd as UICmd.TakePicture:
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this,  sendMediaToPeer: cmd.sendMediaToRemote))
 
             case is RemoteCmd.StopRecordingVideoAck:
                 self.become(
