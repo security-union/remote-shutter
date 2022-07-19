@@ -273,8 +273,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     */
 
     @IBAction func onTakePicture(sender: UIBarButtonItem) {
+        let sendMediaToRemote = CMConfigurationsViewController.sendMediaToRemote();
         if buttonPrompt == buttonPromptRecordingMode {
-            self.session ! UICmd.TakePicture(sender: nil)
+            self.session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: sendMediaToRemote)
             return
         }
 
@@ -307,7 +308,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
             },
             andCompletionHandler: { [weak self] (_) in
                 alert.dismiss(animated: true, completion: nil)
-                self?.session.tell(msg:UICmd.TakePicture(sender: nil))
+                self?.session.tell(msg:UICmd.TakePicture(sender: nil, sendMediaToRemote: sendMediaToRemote))
             })
         }
     }

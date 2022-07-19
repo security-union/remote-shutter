@@ -3,6 +3,7 @@
 
 #define kiAdsFeatureInstalled NSLocalizedString(@"Ads Removed",nil);
 #define kiAdsRemovedANdVideoEnabledInstalled NSLocalizedString(@"Ads Removed and video enabled",nil);
+#define SendMediaToRemoteDefault @"sendMediaToRemote"
 
 #import "AcknowledgmentsViewController.h"
 
@@ -20,8 +21,9 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadData:) name:@"AppDidBecomeActive" object:nil];
     [[[self navigationController] navigationBar] setPrefersLargeTitles: TRUE];
     [[[self navigationController] navigationBar] setHidden:FALSE];
-    self.tableViewCells = @[@[self.disableAdsAndEnableVideoRecording, self.disableiAds, self.restorePurchases], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.sourceCode, self.versionCell]];
+    self.tableViewCells = @[@[self.disableAdsAndEnableVideoRecording, self.disableiAds, self.restorePurchases],@[self.toggleSendMediaToRemote], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.sourceCode, self.versionCell]];
     self.navigationItem.title = NSLocalizedString(@"Configuration", comment: "");
+    [self.toggleSendMediaToRemoteSwitch addTarget:self action:@selector(sendMediaSwitchValueChanged:) forControlEvents:UIControlEventValueChanged];
     
 }
 
@@ -49,6 +51,13 @@
 }
 
 #pragma mark -
+#pragma mark UISwitch stuff
+
+- (void)sendMediaSwitchValueChanged:(UISwitch *) control {
+    [CMConfigurationsViewController sendMediaToRemote:control.isOn];
+}
+
+#pragma mark -
 #pragma mark UITableView Stuff
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -59,6 +68,8 @@
     switch (section) {
         case 0:
             return NSLocalizedString(@"Upgrades", nil);
+        case 1:
+            return NSLocalizedString(@"Settings", nil);
         default:
             return NSLocalizedString(@"INFORMATION", nil);
     }
@@ -170,6 +181,8 @@
         NSString *bundle = [infoDictionary objectForKey:@"CFBundleVersion"];
         NSString *shortVersion = [infoDictionary objectForKey:@"CFBundleShortVersionString"];
         self.versionCell.detailTextLabel.text = [NSString stringWithFormat:@"%@ (%@) ", shortVersion, bundle];
+    } else if([cell isEqual:self.toggleSendMediaToRemote]) {
+        [self.toggleSendMediaToRemoteSwitch setOn:[CMConfigurationsViewController sendMediaToRemote]];
     }
 }
 
@@ -214,6 +227,20 @@
 
 #pragma mark -
 #pragma mark Local Storage.
+
++ (BOOL)sendMediaToRemote {
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    if ([userDefaults objectForKey:SendMediaToRemoteDefault]) {
+        return [userDefaults boolForKey:SendMediaToRemoteDefault];
+    }
+    return TRUE;
+}
+
++ (void)sendMediaToRemote:(BOOL)flag {
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    [userDefaults setBool:flag forKey:SendMediaToRemoteDefault];
+    [userDefaults synchronize];
+}
 
 + (BOOL)firstRun {
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
