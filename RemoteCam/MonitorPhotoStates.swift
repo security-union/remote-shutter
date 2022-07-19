@@ -85,12 +85,12 @@ extension RemoteCamSession {
                 ^{alert?.title = "Receiving picture"}
                 self.sendCommandOrGoToScanning(peer: [peer], msg: msg)
 
-            case is UICmd.TakePicture:
+            case let cmd as UICmd.TakePicture:
                 ^{alert?.show(true) {
                     self.mailbox.addOperation {
                         self.sendCommandOrGoToScanning(
                             peer: [peer],
-                            msg: RemoteCmd.TakePic(sender: self.this)
+                            msg: RemoteCmd.TakePic(sender: self.this, sendMediaToPeer:cmd.sendMediaToRemote)
                         )
                     }
                 }}

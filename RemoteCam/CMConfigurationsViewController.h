@@ -16,12 +16,18 @@
 @property(strong, nonatomic) IBOutlet UITableViewCell *theaterFramework;
 @property(strong, nonatomic) IBOutlet UITableViewCell *contactSupport;
 @property(strong, nonatomic) IBOutlet UITableViewCell *sourceCode;
+@property(strong, nonatomic) IBOutlet UITableViewCell *toggleSendMediaToRemote;
+@property(strong, nonatomic) IBOutlet UISwitch *toggleSendMediaToRemoteSwitch;
 
 @property(retain, nonatomic) IBOutlet UITableView *tableView;
 @property(nonatomic, retain) NSArray *tableViewCells;
 
 
 - (void)restoreThePurchases;
+
++ (BOOL)sendMediaToRemote;
+
++ (void)sendMediaToRemote:(BOOL)flag;
 
 + (void)setFirstRunFlag:(BOOL)flag;
 

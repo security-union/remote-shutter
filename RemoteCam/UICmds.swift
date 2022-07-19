@@ -75,6 +75,12 @@ public class UICmd {
     }
 
     public class TakePicture: Actor.Message {
+        let sendMediaToRemote: Bool
+        
+        public init(sender: ActorRef?, sendMediaToRemote: Bool) {
+            self.sendMediaToRemote = sendMediaToRemote
+            super.init(sender: sender)
+        }
     }
 
     public class OnPicture: Actor.Message {

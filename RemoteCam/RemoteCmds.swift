@@ -49,16 +49,27 @@ public class RemoteCmd: Actor.Message {
     }
 
     @objc(_TtCC10ActorsDemo9RemoteCmd7StopRecordingVideo)public class StopRecordingVideo: RemoteCmd, NSCoding {
+        let sendMediaToPeer: Bool;
+        
         public func encode(with aCoder: NSCoder) {
+            aCoder.encode(sendMediaToPeer, forKey: "sendMediaToPeer")
         }
 
         public override init(sender: ActorRef?) {
+            self.sendMediaToPeer = false;
+            super.init(sender: sender)
+        }
+        
+        public init(sender: ActorRef?, sendMediaToPeer: Bool) {
+            self.sendMediaToPeer = sendMediaToPeer;
             super.init(sender: sender)
         }
 
         public required init?(coder aDecoder: NSCoder) {
+            self.sendMediaToPeer = aDecoder.decodeBool(forKey: "sendMediaToPeer")
             super.init(sender: nil)
         }
+    
     }
 
     @objc(_TtCC10ActorsDemo9RemoteCmd7StopRecordingVideoAck)public class StopRecordingVideoAck: RemoteCmd, NSCoding {
@@ -122,14 +133,26 @@ public class RemoteCmd: Actor.Message {
     }
 
     @objc(_TtCC10ActorsDemo9RemoteCmd7TakePic)public class TakePic: RemoteCmd, NSCoding {
+        let sendMediaToPeer: Bool;
+
+        
         public func encode(with aCoder: NSCoder) {
+            aCoder.encode(sendMediaToPeer, forKey: "sendMediaToPeer")
+
         }
 
         public override init(sender: ActorRef?) {
+            self.sendMediaToPeer = false
             super.init(sender: sender)
         }
 
+        public init(sender: ActorRef?, sendMediaToPeer: Bool) {
+            self.sendMediaToPeer = sendMediaToPeer;
+            super.init(sender: sender)
+        }
+        
         public required init?(coder aDecoder: NSCoder) {
+            self.sendMediaToPeer = aDecoder.decodeBool(forKey: "sendMediaToPeer")
             super.init(sender: nil)
         }
 
@@ -146,6 +169,7 @@ public class RemoteCmd: Actor.Message {
         public required init?(coder aDecoder: NSCoder) {
             super.init(sender: nil)
         }
+        
     }
 
     @objc(_TtCC10ActorsDemo9RemoteCmd11TakePicResp)public class TakePicResp: Actor.Message, NSCoding {
