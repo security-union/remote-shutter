@@ -314,7 +314,7 @@ public class CameraViewController: UIViewController,
         return newSettings
     }
 
-    func takePicture() {
+    func takePicture(_ sendMediaToRemote: Bool) {
         OperationQueue.main.addOperation {
             let cameraSettings = self.cloneCameraSettings(self.cameraSettings)
             self.photoOutput.capturePhoto(with: cameraSettings, delegate: self)
@@ -366,7 +366,7 @@ extension CameraViewController {
         }
     }
 
-    func stopRecordingVideo() {
+    func stopRecordingVideo(_ shouldSendVideo:Bool) {
         writingQueue.async {[weak self] in
             guard let self = self else { return }
             if self.recordingWillBeStopped || !self.isRecording {
@@ -379,7 +379,7 @@ extension CameraViewController {
                 self?.readyToRecordVideo = false
                 self?.readyToRecordAudio = false
                 self?.recordingWillBeStopped = false
-                self?.saveMovieToPhotosApp()
+                self?.saveMovieToPhotosAppAndRemotePeer(shouldSendVideo)
             }
             OperationQueue.main.addOperation {[weak self] in
                 if let recordingWillBeStopped = self?.recordingWillBeStopped,
@@ -425,11 +425,12 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         }
     }
 
-    func saveMovieToPhotosApp() {
+    func saveMovieToPhotosAppAndRemotePeer(_ sendVideoToPeer:Bool) {
         let outputFileURL = movieUrl()
         if let data = try? Data(contentsOf: outputFileURL) {
             // Send video to the monitor
-            session ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: data, error: nil)
+            let data_if_needed = sendVideoToPeer ? data : nil
+            session ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: data_if_needed, error: nil)
             // Check the authorization status.
             PHPhotoLibrary.requestAuthorization { status in
                 if status == .authorized {
