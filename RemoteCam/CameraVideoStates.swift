@@ -22,10 +22,10 @@ extension RemoteCamSession {
             case is OnEnter:
                 getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
 
-            case is RemoteCmd.StopRecordingVideo:
-                ctrl.stopRecordingVideo()
+            case let stop as RemoteCmd.StopRecordingVideo:
+                ctrl.stopRecordingVideo(stop.sendMediaToPeer)
                 let ack = RemoteCmd.StopRecordingVideoAck()
-                self.sendCommandOrGoToScanning(peer: [peer], msg: ack, mode: .unreliable)
+                self.sendCommandOrGoToScanning(peer: [peer], msg: ack, mode: .reliable)
                 self.become(
                     name: self.states.cameraTransmittingVideo,
                     state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobby)
@@ -34,15 +34,15 @@ extension RemoteCamSession {
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     self.popAndStartScanning()
-                    ctrl.stopRecordingVideo()
+                    ctrl.stopRecordingVideo(false)
                 }
 
             case is Disconnect:
-                ctrl.stopRecordingVideo()
+                ctrl.stopRecordingVideo(false)
                 self.popAndStartScanning()
 
             case is UICmd.UnbecomeCamera:
-                ctrl.stopRecordingVideo()
+                ctrl.stopRecordingVideo(false)
                 self.popToState(name: self.states.connected)
 
             default:
@@ -75,7 +75,7 @@ extension RemoteCamSession {
                         }
                     }
                 }
-
+                
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{
