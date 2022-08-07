@@ -92,6 +92,9 @@
 		06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3D2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
+		06CD8E47289F541F007A269E /* delete.png in Resources */ = {isa = PBXBuildFile; fileRef = 06CD8E45289F541F007A269E /* delete.png */; };
+		06CD8E48289F541F007A269E /* check.png in Resources */ = {isa = PBXBuildFile; fileRef = 06CD8E46289F541F007A269E /* check.png */; };
+		06CD8E4A289F572D007A269E /* gallery2.png in Resources */ = {isa = PBXBuildFile; fileRef = 06CD8E49289F572D007A269E /* gallery2.png */; };
 		06CDFB17252E9A7900EA56FB /* RemoteCmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */; };
 		06CDFB18252E9A7900EA56FB /* RemoteCmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */; };
 		06CDFB1E252E9CD200EA56FB /* UICmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB1D252E9CD200EA56FB /* UICmds.swift */; };
@@ -232,6 +235,9 @@
 		06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+gif.swift"; sourceTree = "<group>"; };
 		06B1D8142536C3F90029CCB6 /* recording.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = recording.gif; sourceTree = "<group>"; };
 		06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamConnected.swift; sourceTree = "<group>"; };
+		06CD8E45289F541F007A269E /* delete.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = delete.png; path = Docs/delete.png; sourceTree = SOURCE_ROOT; };
+		06CD8E46289F541F007A269E /* check.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = check.png; path = Docs/check.png; sourceTree = SOURCE_ROOT; };
+		06CD8E49289F572D007A269E /* gallery2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = gallery2.png; path = Docs/gallery2.png; sourceTree = SOURCE_ROOT; };
 		06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCmds.swift; sourceTree = "<group>"; };
 		06CDFB1D252E9CD200EA56FB /* UICmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICmds.swift; sourceTree = "<group>"; };
 		06CDFB29252EC2C300EA56FB /* CGImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGImage.swift; sourceTree = "<group>"; };
@@ -423,6 +429,9 @@
 		069284751BE5C8F900AF4678 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				06CD8E49289F572D007A269E /* gallery2.png */,
+				06CD8E46289F541F007A269E /* check.png */,
+				06CD8E45289F541F007A269E /* delete.png */,
 				06B1D8142536C3F90029CCB6 /* recording.gif */,
 				0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */,
 				0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */,
@@ -646,11 +655,14 @@
 				0624C04B1BE8662D001CC738 /* BFDeniedAccessToCameraView.xib in Resources */,
 				069284691BE5C7DB00AF4678 /* Acknowledgments.html in Resources */,
 				0684A2E81BE7049800F0B238 /* beep.m4a in Resources */,
+				06CD8E48289F541F007A269E /* check.png in Resources */,
 				0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */,
 				069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */,
+				06CD8E47289F541F007A269E /* delete.png in Resources */,
 				069284661BE5C71800AF4678 /* Media.xcassets in Resources */,
 				06B1D8152536C3FA0029CCB6 /* recording.gif in Resources */,
 				065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */,
+				06CD8E4A289F572D007A269E /* gallery2.png in Resources */,
 				0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */,
 				069284561BE5C12000AF4678 /* Main.storyboard in Resources */,
 			);
