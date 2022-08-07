@@ -82,6 +82,28 @@ public class UICmd {
             super.init(sender: sender)
         }
     }
+    
+    public class AddVideoClip: Actor.Message {
+        let sendMediaToRemote: Bool
+        
+        public init(sender: ActorRef?, sendMediaToRemote: Bool) {
+            self.sendMediaToRemote = sendMediaToRemote
+            super.init(sender: sender)
+        }
+    }
+    
+    public class EndVideoClip: Actor.Message {
+        let sendMediaToRemote: Bool
+        
+        public init(sender: ActorRef?, sendMediaToRemote: Bool) {
+            self.sendMediaToRemote = sendMediaToRemote
+            super.init(sender: sender)
+        }
+    }
+    
+    public class DeleteLastVideoClip: Actor.Message {
+
+    }
 
     public class OnPicture: Actor.Message {
 

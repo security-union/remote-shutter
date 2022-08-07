@@ -37,7 +37,7 @@ extension MonitorVideoStates {
                                 discardOld: true)
                 }
 
-            case is UICmd.TakePicture:
+            case is UICmd.AddVideoClip:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this))
                 self.become(
                     name: self.states.monitorRecordingVideo,

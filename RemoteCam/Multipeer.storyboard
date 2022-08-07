@@ -457,6 +457,9 @@
                                         <state key="highlighted">
                                             <color key="titleColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                         </state>
+                                        <connections>
+                                            <action selector="deleteVideoWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="AgY-Md-RcN"/>
+                                        </connections>
                                     </button>
                                     <imageView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleAspectFit" image="RoundedCircle" translatesAutoresizingMaskIntoConstraints="NO" id="jhj-3b-gyB">
                                         <rect key="frame" x="148" y="68" width="60" height="60"/>
@@ -490,23 +493,8 @@
                                         <state key="highlighted">
                                             <color key="titleColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                         </state>
-                                    </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="EGp-xW-Dem" userLabel="gallery">
-                                        <rect key="frame" x="0.0" y="142" width="60" height="60"/>
-                                        <constraints>
-                                            <constraint firstAttribute="width" constant="60" id="tfa-gU-8BC"/>
-                                            <constraint firstAttribute="height" constant="60" id="xrr-mN-j8p"/>
-                                        </constraints>
-                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
-                                        <state key="normal" backgroundImage="RoundedCircle">
-                                            <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                            <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                        <state key="highlighted">
-                                            <color key="titleColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
                                         <connections>
-                                            <action selector="showGalleryWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="CPL-6u-YrZ"/>
+                                            <action selector="endVideoWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="VaX-4z-5pd"/>
                                         </connections>
                                     </button>
                                     <button opaque="NO" contentMode="scaleAspectFit" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ipA-69-mKl" userLabel="shutter">
@@ -526,18 +514,37 @@
                                             <color key="titleColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                         </state>
                                         <connections>
-                                            <action selector="onTakePictureWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="mLE-f5-kFj"/>
+                                            <action selector="onTriggerWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="YMW-9H-8dN"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="EGp-xW-Dem" userLabel="gallery">
+                                        <rect key="frame" x="0.0" y="68" width="60" height="60"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="60" id="tfa-gU-8BC"/>
+                                            <constraint firstAttribute="height" constant="60" id="xrr-mN-j8p"/>
+                                        </constraints>
+                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
+                                        <inset key="imageEdgeInsets" minX="15" minY="15" maxX="15" maxY="15"/>
+                                        <state key="normal" image="galleryIcon" backgroundImage="RoundedCircle">
+                                            <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                            <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <state key="highlighted">
+                                            <color key="titleColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="showGalleryWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="CPL-6u-YrZ"/>
                                         </connections>
                                     </button>
                                 </subviews>
                                 <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
                                 <constraints>
+                                    <constraint firstItem="EGp-xW-Dem" firstAttribute="leading" secondItem="f0H-Je-i1g" secondAttribute="leading" id="4ho-no-lb9"/>
                                     <constraint firstAttribute="height" constant="202" id="Aqr-Mq-vnP"/>
                                     <constraint firstItem="7CH-7P-OUj" firstAttribute="top" secondItem="f0H-Je-i1g" secondAttribute="top" constant="68" id="ED7-KV-AnX"/>
                                     <constraint firstItem="9HG-Of-EEv" firstAttribute="top" secondItem="f0H-Je-i1g" secondAttribute="top" constant="68" id="Gul-kL-fQw"/>
                                     <constraint firstAttribute="trailing" secondItem="7CH-7P-OUj" secondAttribute="trailing" id="I5O-jq-EOJ"/>
-                                    <constraint firstAttribute="bottom" secondItem="EGp-xW-Dem" secondAttribute="bottom" id="PQz-oc-zbi"/>
-                                    <constraint firstAttribute="bottom" secondItem="EGp-xW-Dem" secondAttribute="bottom" id="aRj-0k-IYf"/>
+                                    <constraint firstItem="EGp-xW-Dem" firstAttribute="top" secondItem="f0H-Je-i1g" secondAttribute="top" constant="68" id="YdL-AH-pcJ"/>
                                     <constraint firstItem="EGp-xW-Dem" firstAttribute="leading" secondItem="f0H-Je-i1g" secondAttribute="leading" id="aTW-0O-85O"/>
                                     <constraint firstItem="ipA-69-mKl" firstAttribute="top" secondItem="f0H-Je-i1g" secondAttribute="top" constant="62" id="fWd-VN-21C"/>
                                     <constraint firstItem="ipA-69-mKl" firstAttribute="centerX" secondItem="f0H-Je-i1g" secondAttribute="centerX" id="hrQ-u5-WRY"/>
@@ -764,6 +771,8 @@
                         <outlet property="bannerHeight" destination="O6q-eN-7zw" id="uJn-sx-A9V"/>
                         <outlet property="bannerView" destination="Bu2-yA-LPw" id="NQ4-H1-b8m"/>
                         <outlet property="bottomBannerConstraint" destination="nG7-sh-7ah" id="8bQ-t7-4V5"/>
+                        <outlet property="cancelVideoButton" destination="9HG-Of-EEv" id="w6s-Ti-t4d"/>
+                        <outlet property="endVideoButton" destination="7CH-7P-OUj" id="7xS-Mb-ypo"/>
                         <outlet property="flashButton" destination="25V-jV-Dep" id="ZOx-qN-GCK"/>
                         <outlet property="flashStatus" destination="wPR-EO-JjB" id="vAv-15-3KF"/>
                         <outlet property="galleryButton" destination="EGp-xW-Dem" id="1Ll-Vt-LCd"/>
@@ -906,6 +915,7 @@
         <image name="check.png" width="326.8800048828125" height="326.8800048828125"/>
         <image name="delete.png" width="48" height="27.840000152587891"/>
         <image name="flash" width="76" height="121"/>
+        <image name="galleryIcon" width="102" height="79"/>
         <image name="remote" width="27" height="40"/>
         <image name="timerLoFI" width="100" height="100"/>
         <systemColor name="systemBackgroundColor">

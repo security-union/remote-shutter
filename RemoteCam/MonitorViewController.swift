@@ -132,6 +132,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     @IBOutlet weak var flashButton: UIButton!
 
     @IBOutlet weak var settingsButton: UIButton!
+    
+    @IBOutlet weak var endVideoButton: UIButton!
+    
+    @IBOutlet weak var cancelVideoButton: UIButton!
 
     @IBOutlet weak var toggleCamera: UIButton!
 
@@ -196,6 +200,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         toggleCamera.isEnabled = true
         toggleCamera.isHidden = false
         buttonPrompt = buttonPromptPhotoMode
+        endVideoButton.isHidden = true
+        cancelVideoButton.isHidden = true
     }
 
     func configureVideoMode() {
@@ -212,6 +218,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         toggleCamera.isEnabled = true
         toggleCamera.isHidden = false
         buttonPrompt = buttonPromptVideoMode
+        endVideoButton.isHidden = true
+        cancelVideoButton.isHidden = true
     }
 
     func configureVideoModeRecording() {
@@ -272,10 +280,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
      Take picture contains the logic to kick off the Timer for the picture.
     */
 
-    @IBAction func onTakePicture(sender: UIBarButtonItem) {
+    @IBAction func onTrigger(sender: UIBarButtonItem) {
         let sendMediaToRemote = CMConfigurationsViewController.sendMediaToRemote();
         if buttonPrompt == buttonPromptRecordingMode {
-            self.session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: sendMediaToRemote)
+            self.session ! UICmd.AddVideoClip(sender: nil, sendMediaToRemote: sendMediaToRemote)
             return
         }
 
@@ -313,6 +321,38 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         }
     }
 
+    @IBAction func endVideo(sender: UIBarButtonItem) {
+        let sendMediaToRemote = CMConfigurationsViewController.sendMediaToRemote();
+        if buttonPrompt == buttonPromptRecordingMode {
+            self.session ! UICmd.EndVideoClip(sender: nil, sendMediaToRemote: sendMediaToRemote)
+            return
+        }
+    }
+    
+    @IBAction func deleteVideo(sender: UIBarButtonItem) {
+        let alert = UIAlertController(title: NSLocalizedString("Discard the last clip?", comment: ""),
+                message: nil,
+                preferredStyle: .alert)
+
+        alert.addAction(UIAlertAction(title:  NSLocalizedString("Keep", comment: ""), style: .cancel) { (_) in
+            alert.dismiss(animated: true, completion: nil)
+            
+        })
+        
+        alert.addAction(UIAlertAction(title:  NSLocalizedString("Discard", comment: ""), style: .cancel) { [weak self](_) in
+            // TODO: send discard clip command to camera
+            alert.dismiss(animated: true, completion: nil)
+            if let s = self {
+                s.session ! UICmd.DeleteLastVideoClip(sender: nil)
+            }
+        })
+
+        self.present(alert, animated: true) { [weak self] in
+            
+        }
+    }
+    
+    
     private func configureTimerUI() {
         self.timerSlider.value = Float(timerSliderValue)
         self.timerLabel.text = "\(timerSliderValue)"
