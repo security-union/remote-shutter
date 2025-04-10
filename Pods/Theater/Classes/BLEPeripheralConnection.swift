@@ -85,7 +85,7 @@ public class BLEPeripheralConnection : Actor, WithListeners, CBPeripheralDelegat
      
     */
     
-    override public func receive(msg: Actor.Message) {
+    public override func receive(msg: Actor.Message) {
         switch(msg) {
             
             case let p as SetPeripheral:

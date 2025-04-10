@@ -1,0 +1,1 @@
+Added switch in settings screen to disable sending video/pictures to the remote.
