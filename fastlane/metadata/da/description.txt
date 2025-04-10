@@ -1,0 +1,17 @@
+Med Remote Shutter bliver en af dine enheder kameraets skærm, mens anden enhed vil kan være opsat, hvor du ønsker det. Du sætter én af dine enheder op så du kan tage billedet, mens du følger med på den anden skærm, hvor du også kan vælge at tage billedet fra. Remote Shutter virker op til 15 meters afstand, og gør det nemt at tage billeder fra underlige vinkler, så du kan undgå at sidde i en ubehagelig position, når du skal have dit unikke billede. 
+
+Prøv Remote Shutter gratis! 
+
+Funktioner: 
+- Tag billeder fra op til 15 meter væk 
+- Skift kameraets retning 
+- Brug kamerablitz 
+- Justerbar kameratimer 
+- Optag video
+
+SÅDAN BRUGER DU APP’EN: 
+Når du først åbner app’en, begynder telefonen at søge efter enheder, den skal forbindes med. Kameraet opretter P2P-forbindelse (Peer-to-Peer) til den anden enhed du ønsker at forbinde med. Når enhederne er tilsluttet, skal du vælge, hvilken enhed der er kameraet, og hvilken der er fjernbetjeningen. 
+
+1. Tilslut dine enheder 
+2. Vælg hvilken rolle enhederne har (kamera og fjernbetjening) 
+3. Opsæt og start med at tage billeder!

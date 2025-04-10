@@ -77,7 +77,7 @@ public final class BLEPeripheral : Actor, CBPeripheralManagerDelegate, WithListe
     This is the fallback message handler in case that the message is not handled on the other states
     */
     
-    public override func receive(msg : Actor.Message) -> Void {
+    public override func receive(msg: Actor.Message) {
         switch(msg) {
             case is PeripheralManagerDidUpdateState:
                 self.broadcast(msg: msg)

@@ -1,0 +1,49 @@
+3.5 changes:
+Added toggle button on settings page so that users can enable/disable sending the recorded picture/video to the remote.
+
+3.4 changes:
+Fixed restore purchases button.
+
+3.3 changes:
+
+fixed the restore purchases button/
+
+Note: the provided video is from 3.2, but we did not touch the ui
+
+3.2 changes:
+
+New logo!
+
+Hi App Review team:
+
+Please follow the next video to locate the AppTrackTransparency permission request.
+
+Notice that you will need 2 iOS devices to pair them and get to the remote screen where we show the permission request
+
+3.1: 
+Bug fixes, no UI changes, now the slider value is persisted.
+
+3.0:
+
+New wizard to guide the user to connect the devices.
+
+AppTrackTransparency video attached to this message.
+
+2.6:
+
+Now pictures are taken in the max available resolution.
+
+Please note that the attached video is from version 2.5, but we did not touch the UI.
+
+
+2.5 Notes:
+We just added Mac Catalyst/Big Sur support, let us know what you think.
+
+
+In order to test this app, you require two devices, one to act as the remote shutter and the other one to act as the camera.
+
+We use Google Ad Mob, that is why IDFA is checked.
+
+You can take photos and videos from the camera using the monitor device.
+
+Please find attached a video of how the consent prompt looks like.It shows up after the user pairs her/his phone and selects the remote icon.
