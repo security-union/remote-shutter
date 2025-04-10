@@ -1,0 +1,1 @@
+Ajout d'un commutateur dans l'écran des paramètres pour désactiver l'envoi de vidéos/images à la télécommande.
