@@ -1,0 +1,1 @@
+Se agregó un interruptor en la pantalla de configuración para deshabilitar el envío de videos/imágenes al control remoto.

@@ -1,0 +1,18 @@
+Remote Shutter es una aplicación que requiere dos dispositivos. Funciona tanto en macOS como en iOS.
+
+Con el obturador remoto, uno de sus dispositivos es el control remoto de la cámara o el monitor de la cámara, y el otro dispositivo se configurará donde desee tomar una foto como la cámara. Con el teléfono conectado, puede tomar fotografías desde una distancia de hasta 50 pies.
+
+Remote Shutter hace que sea fácil tomar fotografías de cosas en ángulos extraños y eso lo pondría en una posición incómoda. ¡Prueba Remote Shutter gratis!
+
+caracteristicas:
+- Tome fotografías de hasta 15 metros de distancia
+- Alternar la orientación de la cámara
+- Usa el flash de la cámara
+- Temporizador de cámara ajustable
+
+CÓMO UTILIZAR
+
+Cuando abra la aplicación por primera vez, el teléfono comenzará a buscar dispositivos con los que conectarse. La cámara se conecta con una conexión P2P al otro dispositivo. Una vez que los dispositivos estén conectados, tendrá que elegir qué dispositivo es la cámara y qué teléfono es el control remoto.
+1. Conecte sus dispositivos
+2. Elija qué función tiene el dispositivo (cámara o control remoto)
+3. ¡Configure y tome fotografías!
