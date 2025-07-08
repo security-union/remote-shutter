@@ -655,9 +655,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
             zoomControlsContainer.widthAnchor.constraint(equalToConstant: 120),
             zoomControlsContainer.heightAnchor.constraint(equalToConstant: 80),
             
-            // Zoom label - positioned in top-right corner
-            programmaticZoomLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            programmaticZoomLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            // Zoom label - positioned below the settings button
+            programmaticZoomLabel.topAnchor.constraint(equalTo: settingsButton.bottomAnchor, constant: 10),
+            programmaticZoomLabel.centerXAnchor.constraint(equalTo: settingsButton.centerXAnchor),
             programmaticZoomLabel.widthAnchor.constraint(equalToConstant: 60),
             programmaticZoomLabel.heightAnchor.constraint(equalToConstant: 30),
             
