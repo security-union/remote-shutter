@@ -125,12 +125,43 @@ extension RemoteCamSession {
                 }
                 
             case let lensResp as RemoteCmd.SwitchLensResp:
-                ^{
-                    alert?.dismiss(animated: true) {
-                        self.mailbox.addOperation(BlockOperation {
-                            monitor ! lensResp
-                            self.popToState(name: self.states.monitorPhotoMode)
-                        })
+                print("✅ DEBUG: Monitor received SwitchLensResp - lensType: \(lensResp.lensType?.displayName ?? "nil"), error: \(lensResp.error?.localizedDescription ?? "nil")")
+                
+                if let lensType = lensResp.lensType {
+                    print("✅ DEBUG: Lens switch response success - lens: \(lensType.displayName)")
+                    monitor ! lensResp
+                    ^{
+                        alert?.dismiss(animated: true) {
+                            self.mailbox.addOperation(BlockOperation {
+                                print("🔍 DEBUG: Monitor lens switching state unbecoming")
+                                self.unbecome()
+                            })
+                        }
+                    }
+                } else if let error = lensResp.error {
+                    print("❌ DEBUG: Lens switch response error: \(error.localizedDescription)")
+                    ^{
+                        alert?.dismiss(animated: true) {
+                            let errorAlert = UIAlertController(title: error._domain,
+                                                               message: nil,
+                                                               preferredStyle: .alert)
+                            errorAlert.simpleOkAction()
+                            errorAlert.show(true)
+                            self.mailbox.addOperation(BlockOperation {
+                                self.unbecome()
+                            })
+                        }
+                    }
+                } else {
+                    print("❌ DEBUG: Received SwitchLensResp with no lensType and no error - this should not happen!")
+                    // Force dismiss the alert since we're stuck
+                    ^{
+                        alert?.dismiss(animated: true) {
+                            self.mailbox.addOperation(BlockOperation {
+                                print("🔍 DEBUG: Force unbecoming from stuck lens switching state")
+                                self.unbecome()
+                            })
+                        }
                     }
                 }
                 

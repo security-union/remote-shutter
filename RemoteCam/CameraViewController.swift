@@ -179,8 +179,8 @@ public class CameraViewController: UIViewController,
             self.updateAvailableLensTypes(for: videoDevice.position)
             self.currentZoomFactor = videoDevice.videoZoomFactor
 
-            // Send comprehensive camera capabilities
-            self.sendCameraCapabilities()
+            // Camera capabilities are now sent through peer-to-peer communication in CamStates.swift
+            // No need to send to session actor directly here
 
             let audioDevice = AVCaptureDevice.default(for: .audio)
             let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
@@ -341,25 +341,52 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Camera Capabilities Gathering
     func gatherAllCameraCapabilities() {
+        print("🔍 DEBUG: gatherAllCameraCapabilities called")
+        
         // Gather front camera capabilities
         frontCameraInfo = gatherCameraInfo(for: .front)
+        print("🔍 DEBUG: Front camera info: \(frontCameraInfo != nil ? "available" : "nil")")
         
         // Gather back camera capabilities  
         backCameraInfo = gatherCameraInfo(for: .back)
+        print("🔍 DEBUG: Back camera info: \(backCameraInfo != nil ? "available" : "nil")")
+        
+        if let backInfo = backCameraInfo {
+            print("🔍 DEBUG: - Back camera available lenses: \(backInfo.availableLenses)")
+            print("🔍 DEBUG: - Back camera has flash: \(backInfo.hasFlash)")
+        }
+        
+        if let frontInfo = frontCameraInfo {
+            print("🔍 DEBUG: - Front camera available lenses: \(frontInfo.availableLenses)")
+            print("🔍 DEBUG: - Front camera has flash: \(frontInfo.hasFlash)")
+        }
     }
     
     func gatherCameraInfo(for position: AVCaptureDevice.Position) -> RemoteCmd.CameraInfo? {
+        let positionName = position == .front ? "Front" : "Back"
+        print("🔍 DEBUG: gatherCameraInfo for \(positionName) camera")
+        
         let deviceTypes = getAllDeviceTypes()
         let videoDevices = AVCaptureDevice.DiscoverySession.init(
                 deviceTypes: deviceTypes,
                 mediaType: .video, position: position).devices
         
-        guard !videoDevices.isEmpty else { return nil }
+        print("🔍 DEBUG: - Found \(videoDevices.count) devices for \(positionName) position")
+        for device in videoDevices {
+            print("🔍 DEBUG: - \(device.localizedName) (\(device.deviceType.rawValue))")
+        }
+        
+        guard !videoDevices.isEmpty else { 
+            print("🔍 DEBUG: - No devices found for \(positionName) position")
+            return nil 
+        }
         
         // Find available lens types for this position
         let availableLenses = CameraLensType.allCases.filter { lensType in
             return videoDevices.contains { $0.deviceType == lensType.deviceType }
         }
+        
+        print("🔍 DEBUG: - Final available lenses: \(availableLenses.map { $0.displayName })")
         
         // Check if any camera on this position has flash
         let hasFlash = videoDevices.contains { $0.hasFlash }
@@ -406,9 +433,19 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Current Camera Capabilities for Toggle Response
     func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
-        guard let currentDevice = self.videoDeviceInput?.device else { return nil }
+        print("🔍 DEBUG: gatherCurrentCameraCapabilities called")
         
-        return RemoteCmd.CameraCapabilitiesResp(
+        guard let currentDevice = self.videoDeviceInput?.device else { 
+            print("❌ DEBUG: No videoDeviceInput.device available")
+            print("❌ DEBUG: videoDeviceInput is \(self.videoDeviceInput != nil ? "not nil" : "nil")")
+            return nil 
+        }
+        
+        print("🔍 DEBUG: Current device: \(currentDevice.localizedName)")
+        print("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
+        print("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
+        
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo,
             backCamera: backCameraInfo,
             currentCamera: currentDevice.position,
@@ -416,6 +453,9 @@ public class CameraViewController: UIViewController,
             currentZoom: currentZoomFactor,
             error: nil
         )
+        
+        print("🔍 DEBUG: Created capabilities response successfully")
+        return capabilities
     }
     
     // MARK: - Enhanced Zoom Control Methods

@@ -445,8 +445,13 @@ public class RemoteCmd: Actor.Message {
         }
 
         public required init?(coder aDecoder: NSCoder) {
-            let lensRawValue = aDecoder.decodeInteger(forKey: "lensType")
-            self.lensType = lensRawValue > 0 ? CameraLensType(rawValue: lensRawValue) : nil
+            // Fix: Don't exclude rawValue = 0, just check if decoding succeeds
+            if aDecoder.containsValue(forKey: "lensType") {
+                let lensRawValue = aDecoder.decodeInteger(forKey: "lensType")
+                self.lensType = CameraLensType(rawValue: lensRawValue)
+            } else {
+                self.lensType = nil
+            }
             
             if let lensRawValues = aDecoder.decodeObject(forKey: "availableLenses") as? [Int] {
                 self.availableLenses = lensRawValues.compactMap { CameraLensType(rawValue: $0) }
@@ -454,8 +459,13 @@ public class RemoteCmd: Actor.Message {
                 self.availableLenses = nil
             }
             
-            let zoomValue = aDecoder.decodeFloat(forKey: "currentZoom")
-            self.currentZoom = zoomValue > 0 ? CGFloat(zoomValue) : nil
+            // Fix: Don't exclude zoom = 1.0, just check if key exists
+            if aDecoder.containsValue(forKey: "currentZoom") {
+                let zoomValue = aDecoder.decodeFloat(forKey: "currentZoom")
+                self.currentZoom = CGFloat(zoomValue)
+            } else {
+                self.currentZoom = nil
+            }
             
             if let rangeData = aDecoder.decodeObject(forKey: "zoomRange") as? Data {
                 self.zoomRange = try? JSONDecoder().decode(ZoomRange.self, from: rangeData)

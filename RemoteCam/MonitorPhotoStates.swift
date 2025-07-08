@@ -48,6 +48,14 @@ extension RemoteCamSession {
                 self.monitorTakingPicture(monitor: monitor, peer: peer, lobby: lobby))
                 self.this ! msg
                 
+            // MARK: - Camera Capabilities Handling
+            case let capabilities as RemoteCmd.CameraCapabilitiesResp:
+                print("🔍 DEBUG: Monitor received camera capabilities")
+                if let cameraInfo = capabilities.getCurrentCameraInfo() {
+                    print("🔍 DEBUG: Available lenses: \(cameraInfo.availableLenses)")
+                }
+                monitor ! capabilities
+                
             // MARK: - Zoom and Lens Command Handling
             case let zoomCmd as UICmd.SetZoom:
                 // Send zoom command directly without showing alert for immediate feedback
