@@ -530,8 +530,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         
         // Setup lens controls container
         lensControlsContainer = UIView()
-        lensControlsContainer.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-        lensControlsContainer.layer.cornerRadius = 8
+        lensControlsContainer.backgroundColor = UIColor.black.withAlphaComponent(0.0)
         lensControlsContainer.translatesAutoresizingMaskIntoConstraints = false
         controlsView.addSubview(lensControlsContainer)
         
@@ -549,7 +548,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         setupZoomAndLensConstraints()
         
         // Setup programmatic camera toggle button
-        setupProgrammaticCameraToggle()
+        // setupProgrammaticCameraToggle()
         
         // Setup pinch gesture for zoom
         setupPinchGestureForZoom()

@@ -180,7 +180,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                 alert.show(true)
             }
         } else {
-            print("✅ DEBUG: sendCommandOrGoToScanning successfully sent message")
+//            print("✅ DEBUG: sendCommandOrGoToScanning successfully sent message")
         }
     }
 }
