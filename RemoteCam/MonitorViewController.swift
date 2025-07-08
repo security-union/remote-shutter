@@ -232,6 +232,11 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private var lensControlsContainer: UIView!
     private var programmaticToggleCameraButton: UIButton!
     
+    // Pinch Gesture for Zoom
+    private var pinchGestureRecognizer: UIPinchGestureRecognizer!
+    private var lastPinchScale: CGFloat = 1.0
+    private var zoomLabelTimer: Timer?
+    
     // MARK: - Zoom and Lens Properties
     private var currentZoomFactor: CGFloat = 1.0
     public var maxZoomFactor: CGFloat = 10.0
@@ -265,6 +270,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     deinit {
         print("stop monitor")
         self.timer.cancel()
+        self.zoomLabelTimer?.invalidate()
         self.soundManager.stopPlayer()
         session ! UICmd.UnbecomeMonitor(sender: nil)
         monitor ! Actor.Harakiri(sender: nil)
@@ -304,8 +310,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         // Enable programmatic controls
         programmaticZoomSlider.isEnabled = true
         programmaticLensSegmentedControl.isEnabled = true
-        zoomControlsContainer.isHidden = false
+        zoomControlsContainer.isHidden = true // Keep hidden - using pinch gesture
         lensControlsContainer.isHidden = false
+        pinchGestureRecognizer.isEnabled = true
         buttonPrompt = buttonPromptPhotoMode
     }
 
@@ -329,8 +336,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         // Enable programmatic controls
         programmaticZoomSlider.isEnabled = true
         programmaticLensSegmentedControl.isEnabled = true
-        zoomControlsContainer.isHidden = false
+        zoomControlsContainer.isHidden = true // Keep hidden - using pinch gesture
         lensControlsContainer.isHidden = false
+        pinchGestureRecognizer.isEnabled = true
         buttonPrompt = buttonPromptVideoMode
     }
 
@@ -356,6 +364,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         programmaticLensSegmentedControl.isEnabled = false
         zoomControlsContainer.isHidden = true
         lensControlsContainer.isHidden = true
+        pinchGestureRecognizer.isEnabled = false
         buttonPrompt = buttonPromptRecordingMode
     }
 
@@ -491,16 +500,21 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         zoomControlsContainer = UIView()
         zoomControlsContainer.backgroundColor = UIColor.clear
         zoomControlsContainer.translatesAutoresizingMaskIntoConstraints = false
+        zoomControlsContainer.isHidden = true // Hide slider since we're using pinch gesture
         view.addSubview(zoomControlsContainer)
         
-        // Setup zoom label
+        // Setup zoom label - now positioned on main view since we're using pinch gesture
         programmaticZoomLabel = UILabel()
         programmaticZoomLabel.text = "1.0x"
         programmaticZoomLabel.textColor = .white
-        programmaticZoomLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        programmaticZoomLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
         programmaticZoomLabel.textAlignment = .center
+        programmaticZoomLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        programmaticZoomLabel.layer.cornerRadius = 6
+        programmaticZoomLabel.clipsToBounds = true
+        programmaticZoomLabel.alpha = 0.3 // Start semi-transparent
         programmaticZoomLabel.translatesAutoresizingMaskIntoConstraints = false
-        zoomControlsContainer.addSubview(programmaticZoomLabel)
+        view.addSubview(programmaticZoomLabel)
         
         // Setup zoom slider
         programmaticZoomSlider = UISlider()
@@ -536,6 +550,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         
         // Setup programmatic camera toggle button
         setupProgrammaticCameraToggle()
+        
+        // Setup pinch gesture for zoom
+        setupPinchGestureForZoom()
     }
     
     private func setupProgrammaticCameraToggle() {
@@ -561,6 +578,75 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         toggleCamera.isHidden = true
     }
     
+    private func setupPinchGestureForZoom() {
+        // Create pinch gesture recognizer
+        pinchGestureRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
+        
+        // Add to the image view (camera feed area)
+        imageView.isUserInteractionEnabled = true
+        imageView.addGestureRecognizer(pinchGestureRecognizer)
+    }
+    
+    @objc private func handlePinchGesture(_ gesture: UIPinchGestureRecognizer) {
+        guard gesture.numberOfTouches == 2 else { return }
+        
+        switch gesture.state {
+        case .began:
+            lastPinchScale = 1.0
+            showZoomLabel()
+            
+        case .changed:
+            // Calculate the zoom change based on pinch scale
+            let scaleDelta = gesture.scale / lastPinchScale
+            let newZoomFactor = currentZoomFactor * scaleDelta
+            
+            // Clamp to min/max zoom range
+            let clampedZoomFactor = max(1.0, min(maxZoomFactor, newZoomFactor))
+            
+            // Only update if zoom actually changed
+            if abs(clampedZoomFactor - currentZoomFactor) > 0.01 {
+                currentZoomFactor = clampedZoomFactor
+                updateZoomLabel()
+                session ! UICmd.SetZoom(zoomFactor: currentZoomFactor)
+                
+                // Update any visible sliders to match
+                OperationQueue.main.addOperation { [weak self] in
+                    self?.zoomSlider?.value = Float(clampedZoomFactor)
+                    self?.programmaticZoomSlider.value = Float(clampedZoomFactor)
+                }
+            }
+            
+            lastPinchScale = gesture.scale
+            
+        case .ended, .cancelled:
+            lastPinchScale = 1.0
+            hideZoomLabelAfterDelay()
+            
+        default:
+            break
+        }
+    }
+    
+    private func showZoomLabel() {
+        zoomLabelTimer?.invalidate()
+        OperationQueue.main.addOperation { [weak self] in
+            UIView.animate(withDuration: 0.2) {
+                self?.programmaticZoomLabel.alpha = 1.0
+            }
+        }
+    }
+    
+    private func hideZoomLabelAfterDelay() {
+        zoomLabelTimer?.invalidate()
+        zoomLabelTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+            OperationQueue.main.addOperation {
+                UIView.animate(withDuration: 0.3) {
+                    self?.programmaticZoomLabel.alpha = 0.3
+                }
+            }
+        }
+    }
+    
     private func setupZoomAndLensConstraints() {
         NSLayoutConstraint.activate([
             // Zoom controls container - positioned on the right side
@@ -569,11 +655,11 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
             zoomControlsContainer.widthAnchor.constraint(equalToConstant: 120),
             zoomControlsContainer.heightAnchor.constraint(equalToConstant: 80),
             
-            // Zoom label
-            programmaticZoomLabel.topAnchor.constraint(equalTo: zoomControlsContainer.topAnchor, constant: 8),
-            programmaticZoomLabel.leadingAnchor.constraint(equalTo: zoomControlsContainer.leadingAnchor, constant: 8),
-            programmaticZoomLabel.trailingAnchor.constraint(equalTo: zoomControlsContainer.trailingAnchor, constant: -8),
-            programmaticZoomLabel.heightAnchor.constraint(equalToConstant: 20),
+            // Zoom label - positioned in top-right corner
+            programmaticZoomLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            programmaticZoomLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            programmaticZoomLabel.widthAnchor.constraint(equalToConstant: 60),
+            programmaticZoomLabel.heightAnchor.constraint(equalToConstant: 30),
             
             // Zoom slider
             programmaticZoomSlider.topAnchor.constraint(equalTo: programmaticZoomLabel.bottomAnchor, constant: 8),
