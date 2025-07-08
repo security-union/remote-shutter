@@ -213,12 +213,7 @@ extension RemoteCamSession {
                 if let (lensType, availableLenses, currentZoom, zoomRange) = result.toOptional() {
                     print("✅ DEBUG: Camera lens switch success - new lens: \(lensType.displayName)")
                     resp = RemoteCmd.SwitchLensResp(lensType: lensType, availableLenses: availableLenses, currentZoom: currentZoom, zoomRange: zoomRange, error: nil)
-                    print("🔍 DEBUG: Created success response:")
-                    print("🔍 DEBUG: - lensType: \(lensType.displayName)")
-                    print("🔍 DEBUG: - availableLenses: \(availableLenses.map { $0.displayName })")
-                    print("🔍 DEBUG: - currentZoom: \(currentZoom)")
-                    print("🔍 DEBUG: - zoomRange: min=\(zoomRange.minZoom), max=\(zoomRange.maxZoom)")
-                    print("🔍 DEBUG: - error: nil")
+
                 } else if let failure = result as? Failure {
                     print("❌ DEBUG: Camera lens switch failed: \(failure.tryError.localizedDescription)")
                     resp = RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: failure.error)
@@ -226,18 +221,7 @@ extension RemoteCamSession {
 //                    print("🔍 DEBUG: - error: \(failure.error.localizedDescription)")
                 }
                 
-                // Verify the response before sending
-                if let switchResp = resp as? RemoteCmd.SwitchLensResp {
-                    print("🔍 DEBUG: About to send SwitchLensResp:")
-                    print("🔍 DEBUG: - Final lensType: \(switchResp.lensType?.displayName ?? "nil")")
-                    print("🔍 DEBUG: - Final availableLenses: \(switchResp.availableLenses?.map { $0.displayName } ?? [])")
-                    print("🔍 DEBUG: - Final currentZoom: \(switchResp.currentZoom ?? -1)")
-                    print("🔍 DEBUG: - Final error: \(switchResp.error?.localizedDescription ?? "nil")")
-                } else {
-                    print("❌ DEBUG: Response is not a SwitchLensResp!")
-                }
-                
-                print("🔍 DEBUG: Sending SwitchLensResp back to monitor")
+
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
 
             case let c as DisconnectPeer:
