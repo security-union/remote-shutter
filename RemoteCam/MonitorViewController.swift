@@ -386,14 +386,21 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     // MARK: - Lens Control Actions
     @IBAction func onLensSegmentedControlChanged(sender: UISegmentedControl) {
-        guard sender.selectedSegmentIndex < availableLensTypes.count else { return }
-        let selectedLensType = availableLensTypes[sender.selectedSegmentIndex]
+        let orderedAvailableLenses = getOrderedAvailableLenses()
+        
+        guard sender.selectedSegmentIndex < orderedAvailableLenses.count else { return }
+        let selectedLensType = orderedAvailableLenses[sender.selectedSegmentIndex]
         currentLensType = selectedLensType
         session ! UICmd.SwitchLens(lensType: selectedLensType)
     }
     
     @objc func onProgrammaticLensSegmentedControlChanged(sender: UISegmentedControl) {
-        onLensSegmentedControlChanged(sender: sender)
+        let orderedAvailableLenses = getOrderedAvailableLenses()
+        
+        guard sender.selectedSegmentIndex < orderedAvailableLenses.count else { return }
+        let selectedLensType = orderedAvailableLenses[sender.selectedSegmentIndex]
+        currentLensType = selectedLensType
+        session ! UICmd.SwitchLens(lensType: selectedLensType)
     }
 
     @IBAction func showSettings(sender: UIButton) {
@@ -482,8 +489,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private func setupProgrammaticZoomAndLensControls() {
         // Setup zoom controls container
         zoomControlsContainer = UIView()
-        zoomControlsContainer.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-        zoomControlsContainer.layer.cornerRadius = 8
+        zoomControlsContainer.backgroundColor = UIColor.clear
         zoomControlsContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(zoomControlsContainer)
         
@@ -581,9 +587,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
             lensControlsContainer.topAnchor.constraint(equalTo: controlsView.topAnchor, constant: 8),
             lensControlsContainer.heightAnchor.constraint(equalToConstant: 40),
             
-            // Lens segmented control
-            programmaticLensSegmentedControl.leadingAnchor.constraint(equalTo: lensControlsContainer.leadingAnchor, constant: 8),
-            programmaticLensSegmentedControl.trailingAnchor.constraint(equalTo: lensControlsContainer.trailingAnchor, constant: -8),
+            // Lens segmented control - narrow and centered
+            programmaticLensSegmentedControl.centerXAnchor.constraint(equalTo: lensControlsContainer.centerXAnchor),
+            programmaticLensSegmentedControl.widthAnchor.constraint(equalToConstant: 180),
             programmaticLensSegmentedControl.topAnchor.constraint(equalTo: lensControlsContainer.topAnchor, constant: 8),
             programmaticLensSegmentedControl.bottomAnchor.constraint(equalTo: lensControlsContainer.bottomAnchor, constant: -8)
         ])
@@ -616,6 +622,13 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         programmaticZoomLabel.text = zoomText
     }
     
+    // MARK: - Lens Display Order Helper
+    private func getOrderedAvailableLenses() -> [CameraLensType] {
+        // Custom display order: 0.5, 1, 2x (ultraWide, wideAngle, telephoto)
+        let displayOrder: [CameraLensType] = [.ultraWide, .wideAngle, .telephoto, .dualCamera]
+        return displayOrder.filter { availableLensTypes.contains($0) }
+    }
+    
     private func updateLensSegmentedControl() {
         // Update both storyboard and programmatic controls
         updateSegmentedControl(programmaticLensSegmentedControl)
@@ -626,11 +639,14 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     private func updateSegmentedControl(_ control: UISegmentedControl) {
         control.removeAllSegments()
-        for (index, lensType) in availableLensTypes.enumerated() {
+        
+        let orderedAvailableLenses = getOrderedAvailableLenses()
+        
+        for (index, lensType) in orderedAvailableLenses.enumerated() {
             control.insertSegment(withTitle: lensType.displayName, at: index, animated: false)
         }
         
-        if let currentIndex = availableLensTypes.firstIndex(of: currentLensType) {
+        if let currentIndex = orderedAvailableLenses.firstIndex(of: currentLensType) {
             control.selectedSegmentIndex = currentIndex
         }
     }

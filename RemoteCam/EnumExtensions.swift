@@ -22,7 +22,7 @@ public enum CameraLensType: Int, CaseIterable, Codable {
         case .wideAngle:
             return "1"
         case .ultraWide:
-            return ".5"
+            return "0.5"
         case .telephoto:
             return "2x"
         case .dualCamera:
