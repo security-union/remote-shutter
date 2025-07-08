@@ -212,6 +212,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     @IBOutlet weak var settingsButton: UIButton!
 
     @IBOutlet weak var toggleCamera: UIButton!
+    
+    @IBOutlet weak var controlsView: UIView!
 
     @IBOutlet weak var segmentedControl: UISegmentedControl!
 
@@ -228,6 +230,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private var programmaticLensSegmentedControl: UISegmentedControl!
     private var zoomControlsContainer: UIView!
     private var lensControlsContainer: UIView!
+    private var programmaticToggleCameraButton: UIButton!
     
     // MARK: - Zoom and Lens Properties
     private var currentZoomFactor: CGFloat = 1.0
@@ -294,6 +297,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         recordingView.isHidden = true
         toggleCamera.isEnabled = true
         toggleCamera.isHidden = false
+        programmaticToggleCameraButton?.isEnabled = true
+        programmaticToggleCameraButton?.isHidden = false
         zoomSlider?.isEnabled = true
         lensSegmentedControl?.isEnabled = true
         // Enable programmatic controls
@@ -317,6 +322,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         recordingView.isHidden = true
         toggleCamera.isEnabled = true
         toggleCamera.isHidden = false
+        programmaticToggleCameraButton?.isEnabled = true
+        programmaticToggleCameraButton?.isHidden = false
         zoomSlider?.isEnabled = true
         lensSegmentedControl?.isEnabled = true
         // Enable programmatic controls
@@ -340,6 +347,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         recordingView.isHidden = false
         toggleCamera.isEnabled = false
         toggleCamera.isHidden = true
+        programmaticToggleCameraButton?.isEnabled = false
+        programmaticToggleCameraButton?.isHidden = true
         zoomSlider?.isEnabled = false
         lensSegmentedControl?.isEnabled = false
         // Disable programmatic controls
@@ -350,7 +359,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         buttonPrompt = buttonPromptRecordingMode
     }
 
-    @IBAction func toggleCamera(sender: UIButton) {
+    @IBAction func onToggleCamera(sender: UIButton) {
         session ! UICmd.ToggleCamera()
     }
 
@@ -518,6 +527,32 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         
         // Setup constraints
         setupZoomAndLensConstraints()
+        
+        // Setup programmatic camera toggle button
+        setupProgrammaticCameraToggle()
+    }
+    
+    private func setupProgrammaticCameraToggle() {
+        // Create the camera toggle button
+        programmaticToggleCameraButton = UIButton(type: .system)
+        programmaticToggleCameraButton.setImage(UIImage(named: "SwitchCamera"), for: .normal)
+        programmaticToggleCameraButton.tintColor = UIColor(red: 0.196, green: 0.310, blue: 0.522, alpha: 1.0)
+        programmaticToggleCameraButton.addTarget(self, action: #selector(onToggleCamera), for: .touchUpInside)
+        programmaticToggleCameraButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Add to controls view
+        controlsView.addSubview(programmaticToggleCameraButton)
+        
+        // Setup constraints
+        NSLayoutConstraint.activate([
+            programmaticToggleCameraButton.centerXAnchor.constraint(equalTo: controlsView.centerXAnchor),
+            programmaticToggleCameraButton.topAnchor.constraint(equalTo: controlsView.topAnchor, constant: 10),
+            programmaticToggleCameraButton.widthAnchor.constraint(equalToConstant: 60),
+            programmaticToggleCameraButton.heightAnchor.constraint(equalToConstant: 35)
+        ])
+        
+        // Hide the original storyboard toggle camera button
+        toggleCamera.isHidden = true
     }
     
     private func setupZoomAndLensConstraints() {
@@ -540,10 +575,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
             programmaticZoomSlider.trailingAnchor.constraint(equalTo: zoomControlsContainer.trailingAnchor, constant: -8),
             programmaticZoomSlider.bottomAnchor.constraint(equalTo: zoomControlsContainer.bottomAnchor, constant: -8),
             
-            // Lens controls container - positioned at the bottom
+            // Lens controls container - positioned above the banner view
             lensControlsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             lensControlsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            lensControlsContainer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -60),
+            lensControlsContainer.bottomAnchor.constraint(equalTo: bannerView.topAnchor, constant: -20),
             lensControlsContainer.heightAnchor.constraint(equalToConstant: 50),
             
             // Lens segmented control

@@ -20,11 +20,11 @@ public enum CameraLensType: Int, CaseIterable, Codable {
     public var displayName: String {
         switch self {
         case .wideAngle:
-            return "Wide"
+            return "1"
         case .ultraWide:
-            return "Ultra Wide"
+            return ".5"
         case .telephoto:
-            return "Telephoto"
+            return "2x"
         case .dualCamera:
             return "Dual"
         }
