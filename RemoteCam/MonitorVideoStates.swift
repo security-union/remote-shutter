@@ -50,12 +50,19 @@ extension MonitorVideoStates {
                 self.this ! msg
                 
             // MARK: - Zoom and Lens Command Handling
-            case is UICmd.SetZoom:
-                self.become(
-                    name: self.states.monitorSettingZoom,
-                    state: self.monitorSettingZoom(monitor: monitor, peer: peer, lobby: lobby)
-                )
-                self.this ! msg
+            case let zoomCmd as UICmd.SetZoom:
+                // Send zoom command directly without showing alert for immediate feedback
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SetZoom(zoomFactor: zoomCmd.zoomFactor)) as? Failure {
+                    print("❌ DEBUG: Failed to send zoom command in video mode: \(f.tryError.localizedDescription)")
+                }
+                
+            case let zoomResp as RemoteCmd.SetZoomResp:
+                // Handle zoom response directly without alert
+                if let error = zoomResp.error {
+                    print("❌ DEBUG: Video mode zoom response error: \(error.localizedDescription)")
+                }
+                monitor ! zoomResp
                 
             case is UICmd.SwitchLens:
                 self.become(

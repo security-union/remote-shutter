@@ -11,7 +11,7 @@ import AVFoundation
 import Theater
 
 // MARK: - Camera Lens Types
-public enum CameraLensType: Int, CaseIterable {
+public enum CameraLensType: Int, CaseIterable, Codable {
     case wideAngle = 0
     case ultraWide = 1
     case telephoto = 2

@@ -16,6 +16,7 @@ struct RemoteCamStates {
     let monitor = "monitor"
     let cameraTakingPic = "cameraTakingPic"
     let cameraRecordingVideo = "cameraRecordingVideo"
+    let cameraTransmittingVideo = "cameraTransmittingVideo"
     let monitorTakingPicture = "monitorTakingPicture"
     let monitorTogglingFlash = "monitorTogglingFlash"
     let monitorTogglingCamera = "monitorTogglingCamera"
@@ -23,9 +24,6 @@ struct RemoteCamStates {
     let monitorPhotoMode = "monitorPhotoMode"
     let monitorVideoMode = "monitorVideoMode"
     let monitorWaitingForVideo = "monitorWaitingForVideo"
-    let cameraTransmittingVideo = "cameraTransmittingVideo"
-    
-    // MARK: - New Zoom and Lens States
-    let monitorSettingZoom = "monitorSettingZoom"
+    // Removed monitorSettingZoom - zoom now works immediately without alerts
     let monitorSwitchingLens = "monitorSwitchingLens"
 }

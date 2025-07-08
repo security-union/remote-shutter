@@ -69,9 +69,9 @@ extension RemoteCamSession {
                 ^{
                     alert?.dismiss(animated: true, completion: nil)
                     if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                        self.mailbox.addOperation {
+                        self.mailbox.addOperation(BlockOperation {
                             self.popAndStartScanning()
-                        }
+                        })
                     }
                 }
 
@@ -101,9 +101,8 @@ extension RemoteCamSession {
             case let m as UICmd.ToggleCameraResp:
                 self.sendCommandOrGoToScanning(
                     peer: [peer],
-                    msg: RemoteCmd.ToggleCameraResp(flashMode: m.flashMode,
-                                                    camPosition: m.camPosition,
-                                                    error: nil))
+                    msg: RemoteCmd.ToggleCameraResp(cameraCapabilities: nil,
+                                                    error: m.error))
 
             case is RemoteCmd.StartRecordingVideo:
                 ctrl.startRecordingVideo()
@@ -136,12 +135,14 @@ extension RemoteCamSession {
                 
             // MARK: - Zoom Command Handling
             case let zoomCmd as RemoteCmd.SetZoom:
+                print("🔍 DEBUG: Camera received SetZoom: \(zoomCmd.zoomFactor)")
                 let result = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
                 var resp: Message?
                 if let (zoomFactor, currentLens, zoomRange) = result.toOptional() {
                     resp = RemoteCmd.SetZoomResp(zoomFactor: zoomFactor, currentLens: currentLens, zoomRange: zoomRange, error: nil)
                 } else if let failure = result as? Failure {
-                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: failure.error)
+                    print("❌ DEBUG: Camera zoom failed: \(failure.tryError.localizedDescription)")
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: failure.tryError)
                 }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
                 

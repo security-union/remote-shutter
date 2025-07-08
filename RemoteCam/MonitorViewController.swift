@@ -231,7 +231,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     // MARK: - Zoom and Lens Properties
     private var currentZoomFactor: CGFloat = 1.0
-    private var maxZoomFactor: CGFloat = 10.0
+    public var maxZoomFactor: CGFloat = 10.0
     private var availableLensTypes: [CameraLensType] = [.wideAngle]
     private var currentLensType: CameraLensType = .wideAngle
 

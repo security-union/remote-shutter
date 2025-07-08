@@ -307,7 +307,7 @@ public class RemoteCmd: Actor.Message {
         public init(availableLenses: [CameraLensType], hasFlash: Bool, zoomCapabilities: [CameraLensType: ZoomRange]) {
             self.availableLenses = availableLenses
             self.hasFlash = hasFlash
-            self.zoomCapabilities = Dictionary(uniqueKeysWithValues: zoomCapabilities.map { (key.rawValue, value) })
+            self.zoomCapabilities = Dictionary(uniqueKeysWithValues: zoomCapabilities.map { key, value in (key.rawValue, value) })
         }
         
         public func getZoomCapabilities() -> [CameraLensType: ZoomRange] {

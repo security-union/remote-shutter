@@ -406,9 +406,16 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Enhanced Zoom Control Methods
     func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
+        print("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
+        
         guard let device = self.videoDeviceInput?.device else {
+            print("❌ DEBUG: No camera device available")
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
+        
+        print("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
+        print("🔍 DEBUG: Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
+        print("🔍 DEBUG: Current zoom: \(device.videoZoomFactor)")
         
         do {
             try device.lockForConfiguration()
@@ -416,10 +423,13 @@ public class CameraViewController: UIViewController,
             let clampedZoom = max(device.minAvailableVideoZoomFactor, 
                                  min(zoomFactor, device.maxAvailableVideoZoomFactor))
             
+            print("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
             device.videoZoomFactor = clampedZoom
             currentZoomFactor = clampedZoom
             
             device.unlockForConfiguration()
+            
+            print("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor)")
             
             let zoomRange = RemoteCmd.ZoomRange(
                 minZoom: device.minAvailableVideoZoomFactor,
@@ -428,6 +438,7 @@ public class CameraViewController: UIViewController,
             
             return Success((clampedZoom, currentLensType, zoomRange))
         } catch let error as NSError {
+            print("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
             return Failure(error: error)
         }
     }
