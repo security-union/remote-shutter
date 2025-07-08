@@ -547,34 +547,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         // Setup constraints
         setupZoomAndLensConstraints()
         
-        // Setup programmatic camera toggle button
-        // setupProgrammaticCameraToggle()
-        
         // Setup pinch gesture for zoom
         setupPinchGestureForZoom()
-    }
-    
-    private func setupProgrammaticCameraToggle() {
-        // Create the camera toggle button
-        programmaticToggleCameraButton = UIButton(type: .system)
-        programmaticToggleCameraButton.setImage(UIImage(named: "SwitchCamera"), for: .normal)
-        programmaticToggleCameraButton.tintColor = UIColor(red: 0.196, green: 0.310, blue: 0.522, alpha: 1.0)
-        programmaticToggleCameraButton.addTarget(self, action: #selector(onToggleCamera), for: .touchUpInside)
-        programmaticToggleCameraButton.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Add to controls view
-        controlsView.addSubview(programmaticToggleCameraButton)
-        
-        // Setup constraints
-        NSLayoutConstraint.activate([
-            programmaticToggleCameraButton.centerXAnchor.constraint(equalTo: controlsView.centerXAnchor),
-            programmaticToggleCameraButton.topAnchor.constraint(equalTo: controlsView.topAnchor, constant: 10),
-            programmaticToggleCameraButton.widthAnchor.constraint(equalToConstant: 60),
-            programmaticToggleCameraButton.heightAnchor.constraint(equalToConstant: 35)
-        ])
-        
-        // Hide the original storyboard toggle camera button
-        toggleCamera.isHidden = true
     }
     
     private func setupPinchGestureForZoom() {
