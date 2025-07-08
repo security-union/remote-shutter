@@ -513,7 +513,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         lensControlsContainer.backgroundColor = UIColor.black.withAlphaComponent(0.6)
         lensControlsContainer.layer.cornerRadius = 8
         lensControlsContainer.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(lensControlsContainer)
+        controlsView.addSubview(lensControlsContainer)
         
         // Setup lens segmented control
         programmaticLensSegmentedControl = UISegmentedControl()
@@ -575,11 +575,11 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
             programmaticZoomSlider.trailingAnchor.constraint(equalTo: zoomControlsContainer.trailingAnchor, constant: -8),
             programmaticZoomSlider.bottomAnchor.constraint(equalTo: zoomControlsContainer.bottomAnchor, constant: -8),
             
-            // Lens controls container - positioned above the banner view
-            lensControlsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            lensControlsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            lensControlsContainer.bottomAnchor.constraint(equalTo: bannerView.topAnchor, constant: -20),
-            lensControlsContainer.heightAnchor.constraint(equalToConstant: 50),
+            // Lens controls container - positioned at the bottom of the controls view
+            lensControlsContainer.leadingAnchor.constraint(equalTo: controlsView.leadingAnchor, constant: 8),
+            lensControlsContainer.trailingAnchor.constraint(equalTo: controlsView.trailingAnchor, constant: -8),
+            lensControlsContainer.topAnchor.constraint(equalTo: controlsView.topAnchor, constant: 8),
+            lensControlsContainer.heightAnchor.constraint(equalToConstant: 40),
             
             // Lens segmented control
             programmaticLensSegmentedControl.leadingAnchor.constraint(equalTo: lensControlsContainer.leadingAnchor, constant: 8),
