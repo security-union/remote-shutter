@@ -119,9 +119,19 @@ extension RemoteCamSession {
                             state: self.cameraTakingPic(peer: peer, ctrl: ctrl, lobby: lobbyWrapper, sendMediaToPeer: cmd.sendMediaToPeer))
 
             case is RemoteCmd.ToggleCamera:
+                print("🔍 DEBUG: Camera received ToggleCamera command")
                 let result = ctrl.toggleCamera()
-                // Note: Camera capabilities are now sent automatically in CameraViewController.toggleCamera()
-                // We don't need to send a separate response here as the capabilities are sent via sendCameraCapabilities()
+                var resp: Message?
+                if let (flashMode, position) = result.toOptional() {
+                    print("✅ DEBUG: Camera toggle success - new position: \(position)")
+                    // Send camera capabilities as part of the response
+                    let capabilities = ctrl.gatherCurrentCameraCapabilities()
+                    resp = RemoteCmd.ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
+                } else if let failure = result as? Failure {
+                    print("❌ DEBUG: Camera toggle failed: \(failure.tryError.localizedDescription)")
+                    resp = RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: failure.tryError)
+                }
+                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
                 
             case is RemoteCmd.ToggleFlash:
                 let result = ctrl.toggleFlash()

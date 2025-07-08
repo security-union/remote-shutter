@@ -228,8 +228,8 @@ public class CameraViewController: UIViewController,
                 let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
                 captureSession.commitConfiguration()
                 
-                // Send updated camera capabilities after toggle
-                self.sendCameraCapabilities()
+                // Camera capabilities are now sent via RemoteCmd.ToggleCameraResp in CamStates.swift
+                // No need to send separate capabilities message here
                 
                 return Success((newFlashMode, newInput.device.position))
             }
@@ -404,6 +404,20 @@ public class CameraViewController: UIViewController,
         session ! capabilities
     }
 
+    // MARK: - Current Camera Capabilities for Toggle Response
+    func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
+        guard let currentDevice = self.videoDeviceInput?.device else { return nil }
+        
+        return RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: frontCameraInfo,
+            backCamera: backCameraInfo,
+            currentCamera: currentDevice.position,
+            currentLens: currentLensType,
+            currentZoom: currentZoomFactor,
+            error: nil
+        )
+    }
+    
     // MARK: - Enhanced Zoom Control Methods
     func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
         print("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
