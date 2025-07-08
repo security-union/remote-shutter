@@ -15,6 +15,17 @@ enum RecordingMode {
     case Video
 }
 
+// MARK: - Shared Types (matching RemoteCmds.swift)
+public struct ZoomRange: Codable {
+    public let minZoom: CGFloat
+    public let maxZoom: CGFloat
+    
+    public init(minZoom: CGFloat, maxZoom: CGFloat) {
+        self.minZoom = minZoom
+        self.maxZoom = maxZoom
+    }
+}
+
 public class UICmd {
 
     public class RenderPhotoMode: Actor.Message {}
@@ -122,10 +133,14 @@ public class UICmd {
 
     @objc(_TtCC10ActorsDemo5UICmd12SetZoomResp)public class SetZoomResp: Actor.Message, NSCoding {
         public let zoomFactor: CGFloat?
+        public let currentLens: CameraLensType?
+        public let zoomRange: ZoomRange?
         public let error: Error?
 
-        public init(zoomFactor: CGFloat?, error: Error?) {
+        public init(zoomFactor: CGFloat?, currentLens: CameraLensType?, zoomRange: ZoomRange?, error: Error?) {
             self.zoomFactor = zoomFactor
+            self.currentLens = currentLens
+            self.zoomRange = zoomRange
             self.error = error
             super.init(sender: nil)
         }
@@ -133,6 +148,12 @@ public class UICmd {
         public func encode(with aCoder: NSCoder) {
             if let zoom = self.zoomFactor {
                 aCoder.encode(Float(zoom), forKey: "zoomFactor")
+            }
+            if let lens = self.currentLens {
+                aCoder.encode(lens.rawValue, forKey: "currentLens")
+            }
+            if let range = self.zoomRange, let rangeData = try? JSONEncoder().encode(range) {
+                aCoder.encode(rangeData, forKey: "zoomRange")
             }
             if let e = self.error {
                 aCoder.encode(e, forKey: "error")
@@ -142,6 +163,16 @@ public class UICmd {
         public required init?(coder aDecoder: NSCoder) {
             let zoomValue = aDecoder.decodeFloat(forKey: "zoomFactor")
             self.zoomFactor = zoomValue > 0 ? CGFloat(zoomValue) : nil
+            
+            let lensRaw = aDecoder.decodeInteger(forKey: "currentLens")
+            self.currentLens = lensRaw > 0 ? CameraLensType(rawValue: lensRaw) : nil
+            
+            if let rangeData = aDecoder.decodeObject(forKey: "zoomRange") as? Data {
+                self.zoomRange = try? JSONDecoder().decode(ZoomRange.self, from: rangeData)
+            } else {
+                self.zoomRange = nil
+            }
+            
             self.error = aDecoder.decodeObject(forKey: "error") as? Error
             super.init(sender: nil)
         }
@@ -170,11 +201,16 @@ public class UICmd {
     @objc(_TtCC10ActorsDemo5UICmd14SwitchLensResp)public class SwitchLensResp: Actor.Message, NSCoding {
         public let lensType: CameraLensType?
         public let availableLenses: [CameraLensType]?
+        public let currentZoom: CGFloat?
+        public let zoomRange: ZoomRange?
         public let error: Error?
 
-        public init(lensType: CameraLensType?, availableLenses: [CameraLensType]?, error: Error?) {
+        public init(lensType: CameraLensType?, availableLenses: [CameraLensType]?, 
+                   currentZoom: CGFloat?, zoomRange: ZoomRange?, error: Error?) {
             self.lensType = lensType
             self.availableLenses = availableLenses
+            self.currentZoom = currentZoom
+            self.zoomRange = zoomRange
             self.error = error
             super.init(sender: nil)
         }
@@ -185,6 +221,12 @@ public class UICmd {
             }
             if let lenses = self.availableLenses {
                 aCoder.encode(lenses.map { $0.rawValue }, forKey: "availableLenses")
+            }
+            if let zoom = self.currentZoom {
+                aCoder.encode(Float(zoom), forKey: "currentZoom")
+            }
+            if let range = self.zoomRange, let rangeData = try? JSONEncoder().encode(range) {
+                aCoder.encode(rangeData, forKey: "zoomRange")
             }
             if let e = self.error {
                 aCoder.encode(e, forKey: "error")
@@ -199,6 +241,15 @@ public class UICmd {
                 self.availableLenses = lensRawValues.compactMap { CameraLensType(rawValue: $0) }
             } else {
                 self.availableLenses = nil
+            }
+            
+            let zoomValue = aDecoder.decodeFloat(forKey: "currentZoom")
+            self.currentZoom = zoomValue > 0 ? CGFloat(zoomValue) : nil
+            
+            if let rangeData = aDecoder.decodeObject(forKey: "zoomRange") as? Data {
+                self.zoomRange = try? JSONDecoder().decode(ZoomRange.self, from: rangeData)
+            } else {
+                self.zoomRange = nil
             }
             
             self.error = aDecoder.decodeObject(forKey: "error") as? Error

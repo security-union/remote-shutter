@@ -57,6 +57,10 @@ public class CameraViewController: UIViewController,
     private var currentLensType: CameraLensType = .wideAngle
     private var availableLensTypes: [CameraLensType] = []
     
+    // MARK: - Camera Capabilities
+    private var frontCameraInfo: RemoteCmd.CameraInfo?
+    private var backCameraInfo: RemoteCmd.CameraInfo?
+    
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
 
     private var videoInput: AVAssetWriterInput!
@@ -168,15 +172,15 @@ public class CameraViewController: UIViewController,
 
             self.setFrameRate(framerate: fps, videoDevice: videoDevice)
             
-            // Initialize available lens types and current zoom
+            // Gather complete camera capabilities for both front and back cameras
+            self.gatherAllCameraCapabilities()
+            
+            // Initialize current state
             self.updateAvailableLensTypes(for: videoDevice.position)
             self.currentZoomFactor = videoDevice.videoZoomFactor
 
-            self.session ! UICmd.ToggleCameraResp(
-                    flashMode: (videoDevice.hasFlash) ? self.cameraSettings.flashMode : nil,
-                    camPosition: videoDevice.position,
-                    error: nil
-            )
+            // Send comprehensive camera capabilities
+            self.sendCameraCapabilities()
 
             let audioDevice = AVCaptureDevice.default(for: .audio)
             let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
@@ -223,6 +227,10 @@ public class CameraViewController: UIViewController,
                 self.rotateCameraToOrientation(orientation: self.orientation)
                 let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
                 captureSession.commitConfiguration()
+                
+                // Send updated camera capabilities after toggle
+                self.sendCameraCapabilities()
+                
                 return Success((newFlashMode, newInput.device.position))
             }
         } catch let error as NSError {
@@ -331,8 +339,73 @@ public class CameraViewController: UIViewController,
         }
     }
 
-    // MARK: - Zoom Control Methods
-    func setZoom(zoomFactor: CGFloat) -> Try<CGFloat> {
+    // MARK: - Camera Capabilities Gathering
+    func gatherAllCameraCapabilities() {
+        // Gather front camera capabilities
+        frontCameraInfo = gatherCameraInfo(for: .front)
+        
+        // Gather back camera capabilities  
+        backCameraInfo = gatherCameraInfo(for: .back)
+    }
+    
+    func gatherCameraInfo(for position: AVCaptureDevice.Position) -> RemoteCmd.CameraInfo? {
+        let deviceTypes = getAllDeviceTypes()
+        let videoDevices = AVCaptureDevice.DiscoverySession.init(
+                deviceTypes: deviceTypes,
+                mediaType: .video, position: position).devices
+        
+        guard !videoDevices.isEmpty else { return nil }
+        
+        // Find available lens types for this position
+        let availableLenses = CameraLensType.allCases.filter { lensType in
+            return videoDevices.contains { $0.deviceType == lensType.deviceType }
+        }
+        
+        // Check if any camera on this position has flash
+        let hasFlash = videoDevices.contains { $0.hasFlash }
+        
+        // Gather zoom capabilities for each lens type
+        var zoomCapabilities: [CameraLensType: RemoteCmd.ZoomRange] = [:]
+        
+        for lensType in availableLenses {
+            if let device = videoDevices.first(where: { $0.deviceType == lensType.deviceType }) {
+                let zoomRange = RemoteCmd.ZoomRange(
+                    minZoom: device.minAvailableVideoZoomFactor,
+                    maxZoom: device.maxAvailableVideoZoomFactor
+                )
+                zoomCapabilities[lensType] = zoomRange
+            }
+        }
+        
+        return RemoteCmd.CameraInfo(
+            availableLenses: availableLenses,
+            hasFlash: hasFlash,
+            zoomCapabilities: zoomCapabilities
+        )
+    }
+    
+    func sendCameraCapabilities() {
+        guard let currentDevice = self.videoDeviceInput?.device else { return }
+        
+        let currentZoomRange = RemoteCmd.ZoomRange(
+            minZoom: currentDevice.minAvailableVideoZoomFactor,
+            maxZoom: currentDevice.maxAvailableVideoZoomFactor
+        )
+        
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: frontCameraInfo,
+            backCamera: backCameraInfo,
+            currentCamera: currentDevice.position,
+            currentLens: currentLensType,
+            currentZoom: currentZoomFactor,
+            error: nil
+        )
+        
+        session ! capabilities
+    }
+
+    // MARK: - Enhanced Zoom Control Methods
+    func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
         guard let device = self.videoDeviceInput?.device else {
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
@@ -347,7 +420,13 @@ public class CameraViewController: UIViewController,
             currentZoomFactor = clampedZoom
             
             device.unlockForConfiguration()
-            return Success(clampedZoom)
+            
+            let zoomRange = RemoteCmd.ZoomRange(
+                minZoom: device.minAvailableVideoZoomFactor,
+                maxZoom: device.maxAvailableVideoZoomFactor
+            )
+            
+            return Success((clampedZoom, currentLensType, zoomRange))
         } catch let error as NSError {
             return Failure(error: error)
         }
@@ -365,8 +444,8 @@ public class CameraViewController: UIViewController,
         return videoDeviceInput?.device.minAvailableVideoZoomFactor ?? 1.0
     }
 
-    // MARK: - Lens Switching Methods
-    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType])> {
+    // MARK: - Enhanced Lens Switching Methods
+    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)> {
         guard let currentDevice = self.videoDeviceInput?.device else {
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
@@ -397,7 +476,13 @@ public class CameraViewController: UIViewController,
             }
             
             captureSession.commitConfiguration()
-            return Success((lensType, availableLensTypes))
+            
+            let zoomRange = RemoteCmd.ZoomRange(
+                minZoom: newDevice.minAvailableVideoZoomFactor,
+                maxZoom: newDevice.maxAvailableVideoZoomFactor
+            )
+            
+            return Success((lensType, availableLensTypes, currentZoomFactor, zoomRange))
         } catch let error as NSError {
             return Failure(error: error)
         }

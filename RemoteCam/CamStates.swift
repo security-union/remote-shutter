@@ -121,14 +121,9 @@ extension RemoteCamSession {
 
             case is RemoteCmd.ToggleCamera:
                 let result = ctrl.toggleCamera()
-                var resp: Message?
-                if let (flashMode, camPosition) = result.toOptional() {
-                    resp = RemoteCmd.ToggleCameraResp(flashMode: flashMode, camPosition: camPosition, error: nil)
-                } else if let failure = result as? Failure {
-                    resp = RemoteCmd.ToggleCameraResp(flashMode: nil, camPosition: nil, error: failure.error)
-                }
-                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
-
+                // Note: Camera capabilities are now sent automatically in CameraViewController.toggleCamera()
+                // We don't need to send a separate response here as the capabilities are sent via sendCameraCapabilities()
+                
             case is RemoteCmd.ToggleFlash:
                 let result = ctrl.toggleFlash()
                 var resp: Message?
@@ -143,10 +138,10 @@ extension RemoteCamSession {
             case let zoomCmd as RemoteCmd.SetZoom:
                 let result = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
                 var resp: Message?
-                if let zoomFactor = result.toOptional() {
-                    resp = RemoteCmd.SetZoomResp(zoomFactor: zoomFactor, error: nil)
+                if let (zoomFactor, currentLens, zoomRange) = result.toOptional() {
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: zoomFactor, currentLens: currentLens, zoomRange: zoomRange, error: nil)
                 } else if let failure = result as? Failure {
-                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, error: failure.error)
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: failure.error)
                 }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
                 
@@ -154,10 +149,10 @@ extension RemoteCamSession {
             case let lensCmd as RemoteCmd.SwitchLens:
                 let result = ctrl.switchLens(to: lensCmd.lensType)
                 var resp: Message?
-                if let (lensType, availableLenses) = result.toOptional() {
-                    resp = RemoteCmd.SwitchLensResp(lensType: lensType, availableLenses: availableLenses, error: nil)
+                if let (lensType, availableLenses, currentZoom, zoomRange) = result.toOptional() {
+                    resp = RemoteCmd.SwitchLensResp(lensType: lensType, availableLenses: availableLenses, currentZoom: currentZoom, zoomRange: zoomRange, error: nil)
                 } else if let failure = result as? Failure {
-                    resp = RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, error: failure.error)
+                    resp = RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: failure.error)
                 }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
 

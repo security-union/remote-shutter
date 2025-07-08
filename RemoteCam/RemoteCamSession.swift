@@ -94,7 +94,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
         case is RemoteCmd.ToggleCamera:
             let l = RemoteCmd.ToggleCameraResp(
-                flashMode: nil, camPosition: nil, error: self.unableToProcessError(msg: msg)
+                cameraCapabilities: nil, error: self.unableToProcessError(msg: msg)
             )
             self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
 
@@ -107,13 +107,13 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         // MARK: - Zoom and Lens Command Handling
         case is RemoteCmd.SetZoom:
             let l = RemoteCmd.SetZoomResp(
-                zoomFactor: nil, error: self.unableToProcessError(msg: msg)
+                zoomFactor: nil, currentLens: nil, zoomRange: nil, error: self.unableToProcessError(msg: msg)
             )
             self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
             
         case is RemoteCmd.SwitchLens:
             let l = RemoteCmd.SwitchLensResp(
-                lensType: nil, availableLenses: nil, error: self.unableToProcessError(msg: msg)
+                lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: self.unableToProcessError(msg: msg)
             )
             self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
 

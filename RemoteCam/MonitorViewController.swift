@@ -90,18 +90,49 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     }
                 }
                 
+            // MARK: - Camera Capabilities Response Handling
+            case let capabilities as RemoteCmd.CameraCapabilitiesResp:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    if let ctrl = ctrl, let cameraInfo = capabilities.getCurrentCameraInfo() {
+                        // Update flash mode display
+                        if cameraInfo.hasFlash {
+                            // We'd need to get the actual flash mode from somewhere
+                            // For now, we'll just indicate flash is available
+                            ctrl.value?.flashButton.isHidden = false
+                        } else {
+                            ctrl.value?.flashButton.isHidden = true
+                        }
+                        
+                        // Update lens controls
+                        ctrl.value?.updateLensControls(
+                            lensType: capabilities.currentLens,
+                            availableLenses: cameraInfo.availableLenses
+                        )
+                        
+                        // Update zoom controls
+                        if let zoomRange = cameraInfo.getZoomCapabilities()[capabilities.currentLens] {
+                            ctrl.value?.updateZoomControls(
+                                zoomFactor: capabilities.currentZoom,
+                                maxZoom: zoomRange.maxZoom
+                            )
+                        }
+                    }
+                }
+                
             // MARK: - Zoom Response Handling
             case let zoom as UICmd.SetZoomResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl, let zoomFactor = zoom.zoomFactor {
-                        ctrl.value?.updateZoomControls(zoomFactor: zoomFactor, maxZoom: ctrl.value?.maxZoomFactor ?? 10.0)
+                        let maxZoom = zoom.zoomRange?.maxZoom ?? ctrl.value?.maxZoomFactor ?? 10.0
+                        ctrl.value?.updateZoomControls(zoomFactor: zoomFactor, maxZoom: maxZoom)
                     }
                 }
                 
             case let zoomRemote as RemoteCmd.SetZoomResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl, let zoomFactor = zoomRemote.zoomFactor {
-                        ctrl.value?.updateZoomControls(zoomFactor: zoomFactor, maxZoom: ctrl.value?.maxZoomFactor ?? 10.0)
+                        let maxZoom = zoomRemote.zoomRange?.maxZoom ?? ctrl.value?.maxZoomFactor ?? 10.0
+                        ctrl.value?.updateZoomControls(zoomFactor: zoomFactor, maxZoom: maxZoom)
                     }
                 }
                 
@@ -112,6 +143,12 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                        let lensType = lens.lensType,
                        let availableLenses = lens.availableLenses {
                         ctrl.value?.updateLensControls(lensType: lensType, availableLenses: availableLenses)
+                        
+                        // Update zoom controls if we have the new zoom info
+                        if let currentZoom = lens.currentZoom,
+                           let zoomRange = lens.zoomRange {
+                            ctrl.value?.updateZoomControls(zoomFactor: currentZoom, maxZoom: zoomRange.maxZoom)
+                        }
                     }
                 }
                 
@@ -121,6 +158,12 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                        let lensType = lensRemote.lensType,
                        let availableLenses = lensRemote.availableLenses {
                         ctrl.value?.updateLensControls(lensType: lensType, availableLenses: availableLenses)
+                        
+                        // Update zoom controls if we have the new zoom info
+                        if let currentZoom = lensRemote.currentZoom,
+                           let zoomRange = lensRemote.zoomRange {
+                            ctrl.value?.updateZoomControls(zoomFactor: currentZoom, maxZoom: zoomRange.maxZoom)
+                        }
                     }
                 }
                 
