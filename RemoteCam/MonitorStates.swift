@@ -215,12 +215,20 @@ extension RemoteCamSession {
                     }
                 }
             case let t as RemoteCmd.ToggleCameraResp:
- 
-                // Extract camera position from capabilities, flashMode is not available in the new structure
+                print("🔍 DEBUG: Monitor received ToggleCameraResp with capabilities: \(t.cameraCapabilities != nil)")
+                
+                // Extract camera position from capabilities
                 let camPosition = t.cameraCapabilities?.currentCamera
                 monitor ! UICmd.ToggleCameraResp(
                     flashMode: nil, // Flash mode is no longer provided in ToggleCameraResp
                     camPosition: camPosition, error: t.error)
+                
+                // IMPORTANT: Forward the new camera capabilities to update the UI
+                if let capabilities = t.cameraCapabilities {
+                    print("🔍 DEBUG: Forwarding new camera capabilities after toggle")
+                    monitor ! capabilities
+                }
+                
                 ^{
                     if t.cameraCapabilities != nil {
                         alert?.dismiss(animated: true) {
