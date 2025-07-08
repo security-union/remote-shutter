@@ -101,6 +101,111 @@ public class UICmd {
         }
     }
 
+    // MARK: - Zoom Commands
+    @objc(_TtCC10ActorsDemo5UICmd8SetZoom)public class SetZoom: Actor.Message, NSCoding {
+        public let zoomFactor: CGFloat
+        
+        public init(zoomFactor: CGFloat) {
+            self.zoomFactor = zoomFactor
+            super.init(sender: nil)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+            aCoder.encode(Float(zoomFactor), forKey: "zoomFactor")
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            self.zoomFactor = CGFloat(aDecoder.decodeFloat(forKey: "zoomFactor"))
+            super.init(sender: nil)
+        }
+    }
+
+    @objc(_TtCC10ActorsDemo5UICmd12SetZoomResp)public class SetZoomResp: Actor.Message, NSCoding {
+        public let zoomFactor: CGFloat?
+        public let error: Error?
+
+        public init(zoomFactor: CGFloat?, error: Error?) {
+            self.zoomFactor = zoomFactor
+            self.error = error
+            super.init(sender: nil)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+            if let zoom = self.zoomFactor {
+                aCoder.encode(Float(zoom), forKey: "zoomFactor")
+            }
+            if let e = self.error {
+                aCoder.encode(e, forKey: "error")
+            }
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            let zoomValue = aDecoder.decodeFloat(forKey: "zoomFactor")
+            self.zoomFactor = zoomValue > 0 ? CGFloat(zoomValue) : nil
+            self.error = aDecoder.decodeObject(forKey: "error") as? Error
+            super.init(sender: nil)
+        }
+    }
+
+    // MARK: - Lens Switching Commands
+    @objc(_TtCC10ActorsDemo5UICmd10SwitchLens)public class SwitchLens: Actor.Message, NSCoding {
+        public let lensType: CameraLensType
+        
+        public init(lensType: CameraLensType) {
+            self.lensType = lensType
+            super.init(sender: nil)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+            aCoder.encode(lensType.rawValue, forKey: "lensType")
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            let rawValue = aDecoder.decodeInteger(forKey: "lensType")
+            self.lensType = CameraLensType(rawValue: rawValue) ?? .wideAngle
+            super.init(sender: nil)
+        }
+    }
+
+    @objc(_TtCC10ActorsDemo5UICmd14SwitchLensResp)public class SwitchLensResp: Actor.Message, NSCoding {
+        public let lensType: CameraLensType?
+        public let availableLenses: [CameraLensType]?
+        public let error: Error?
+
+        public init(lensType: CameraLensType?, availableLenses: [CameraLensType]?, error: Error?) {
+            self.lensType = lensType
+            self.availableLenses = availableLenses
+            self.error = error
+            super.init(sender: nil)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+            if let lens = self.lensType {
+                aCoder.encode(lens.rawValue, forKey: "lensType")
+            }
+            if let lenses = self.availableLenses {
+                aCoder.encode(lenses.map { $0.rawValue }, forKey: "availableLenses")
+            }
+            if let e = self.error {
+                aCoder.encode(e, forKey: "error")
+            }
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            let lensRawValue = aDecoder.decodeInteger(forKey: "lensType")
+            self.lensType = lensRawValue > 0 ? CameraLensType(rawValue: lensRawValue) : nil
+            
+            if let lensRawValues = aDecoder.decodeObject(forKey: "availableLenses") as? [Int] {
+                self.availableLenses = lensRawValues.compactMap { CameraLensType(rawValue: $0) }
+            } else {
+                self.availableLenses = nil
+            }
+            
+            self.error = aDecoder.decodeObject(forKey: "error") as? Error
+            super.init(sender: nil)
+        }
+    }
+
     @objc(_TtCC10ActorsDemo5UICmd11ToggleFlash)public class ToggleFlash: Actor.Message, NSCoding {
         public func encode(with aCoder: NSCoder) {
         }

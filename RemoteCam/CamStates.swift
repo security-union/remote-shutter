@@ -138,9 +138,28 @@ extension RemoteCamSession {
                     resp = RemoteCmd.ToggleFlashResp(flashMode: nil, error: failure.error)
                 }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
-
-            case is UICmd.UnbecomeCamera:
-                self.popToState(name: self.states.connected)
+                
+            // MARK: - Zoom Command Handling
+            case let zoomCmd as RemoteCmd.SetZoom:
+                let result = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
+                var resp: Message?
+                if let zoomFactor = result.toOptional() {
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: zoomFactor, error: nil)
+                } else if let failure = result as? Failure {
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, error: failure.error)
+                }
+                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
+                
+            // MARK: - Lens Switching Command Handling  
+            case let lensCmd as RemoteCmd.SwitchLens:
+                let result = ctrl.switchLens(to: lensCmd.lensType)
+                var resp: Message?
+                if let (lensType, availableLenses) = result.toOptional() {
+                    resp = RemoteCmd.SwitchLensResp(lensType: lensType, availableLenses: availableLenses, error: nil)
+                } else if let failure = result as? Failure {
+                    resp = RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, error: failure.error)
+                }
+                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
@@ -149,6 +168,9 @@ extension RemoteCamSession {
 
             case is Disconnect:
                 self.popAndStartScanning()
+
+            case is UICmd.UnbecomeCamera:
+                self.popToState(name: self.states.connected)
 
             default:
                 self.receive(msg: msg)

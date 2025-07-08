@@ -48,6 +48,21 @@ extension MonitorVideoStates {
                 self.become(name: self.states.monitorTogglingCamera, state:
                 self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
                 self.this ! msg
+                
+            // MARK: - Zoom and Lens Command Handling
+            case is UICmd.SetZoom:
+                self.become(
+                    name: self.states.monitorSettingZoom,
+                    state: self.monitorSettingZoom(monitor: monitor, peer: peer, lobby: lobby)
+                )
+                self.this ! msg
+                
+            case is UICmd.SwitchLens:
+                self.become(
+                    name: self.states.monitorSwitchingLens,
+                    state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
+                )
+                self.this ! msg
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {

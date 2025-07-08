@@ -24,4 +24,8 @@ struct RemoteCamStates {
     let monitorVideoMode = "monitorVideoMode"
     let monitorWaitingForVideo = "monitorWaitingForVideo"
     let cameraTransmittingVideo = "cameraTransmittingVideo"
+    
+    // MARK: - New Zoom and Lens States
+    let monitorSettingZoom = "monitorSettingZoom"
+    let monitorSwitchingLens = "monitorSwitchingLens"
 }

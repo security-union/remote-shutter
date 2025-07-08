@@ -52,6 +52,11 @@ public class CameraViewController: UIViewController,
     let session: ActorRef = getRemoteCamSession()!
     let frameSender: ActorRef = getFrameSender()!
     
+    // MARK: - Zoom and Lens Properties
+    private var currentZoomFactor: CGFloat = 1.0
+    private var currentLensType: CameraLensType = .wideAngle
+    private var availableLensTypes: [CameraLensType] = []
+    
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
 
     private var videoInput: AVAssetWriterInput!
@@ -162,6 +167,10 @@ public class CameraViewController: UIViewController,
             self.captureSession.addOutput(self.videoDataOutput)
 
             self.setFrameRate(framerate: fps, videoDevice: videoDevice)
+            
+            // Initialize available lens types and current zoom
+            self.updateAvailableLensTypes(for: videoDevice.position)
+            self.currentZoomFactor = videoDevice.videoZoomFactor
 
             self.session ! UICmd.ToggleCameraResp(
                     flashMode: (videoDevice.hasFlash) ? self.cameraSettings.flashMode : nil,
@@ -206,6 +215,10 @@ public class CameraViewController: UIViewController,
             self.videoDeviceInput = newInput
             configSessionOutput()
             setFrameRate(framerate: fps, videoDevice: newDevice!)
+            
+            // Update available lens types for new camera position
+            self.updateAvailableLensTypes(for: newPosition!)
+            
             do {
                 self.rotateCameraToOrientation(orientation: self.orientation)
                 let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
@@ -268,13 +281,134 @@ public class CameraViewController: UIViewController,
     }
 
     func cameraForPosition(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        return cameraForPositionAndLens(position: position, lensType: currentLensType)
+    }
+    
+    func cameraForPositionAndLens(position: AVCaptureDevice.Position, lensType: CameraLensType) -> AVCaptureDevice? {
+        let deviceTypes = getAllDeviceTypes()
         let videoDevices = AVCaptureDevice.DiscoverySession.init(
-                deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera],
+                deviceTypes: deviceTypes,
                 mediaType: .video, position: position).devices
-        let filtered: [AVCaptureDevice] = videoDevices.filter {
-            return $0.position == position
+        
+        // First try to find the specific lens type
+        var filteredDevices = videoDevices.filter {
+            return $0.position == position && $0.deviceType == lensType.deviceType
         }
-        return filtered.first
+        
+        // If no specific lens found, fall back to wide angle
+        if filteredDevices.isEmpty {
+            filteredDevices = videoDevices.filter {
+                return $0.position == position && $0.deviceType == .builtInWideAngleCamera
+            }
+        }
+        
+        return filteredDevices.first
+    }
+    
+    func getAllDeviceTypes() -> [AVCaptureDevice.DeviceType] {
+        var deviceTypes: [AVCaptureDevice.DeviceType] = [
+            .builtInWideAngleCamera,
+            .builtInDualCamera,
+            .builtInTelephotoCamera
+        ]
+        
+        if #available(iOS 13.0, *) {
+            deviceTypes.append(.builtInUltraWideCamera)
+            deviceTypes.append(.builtInTripleCamera)
+        }
+        
+        return deviceTypes
+    }
+    
+    func updateAvailableLensTypes(for position: AVCaptureDevice.Position) {
+        let deviceTypes = getAllDeviceTypes()
+        let videoDevices = AVCaptureDevice.DiscoverySession.init(
+                deviceTypes: deviceTypes,
+                mediaType: .video, position: position).devices
+        
+        availableLensTypes = CameraLensType.allCases.filter { lensType in
+            return videoDevices.contains { $0.deviceType == lensType.deviceType }
+        }
+    }
+
+    // MARK: - Zoom Control Methods
+    func setZoom(zoomFactor: CGFloat) -> Try<CGFloat> {
+        guard let device = self.videoDeviceInput?.device else {
+            return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
+        }
+        
+        do {
+            try device.lockForConfiguration()
+            
+            let clampedZoom = max(device.minAvailableVideoZoomFactor, 
+                                 min(zoomFactor, device.maxAvailableVideoZoomFactor))
+            
+            device.videoZoomFactor = clampedZoom
+            currentZoomFactor = clampedZoom
+            
+            device.unlockForConfiguration()
+            return Success(clampedZoom)
+        } catch let error as NSError {
+            return Failure(error: error)
+        }
+    }
+    
+    func getCurrentZoomFactor() -> CGFloat {
+        return videoDeviceInput?.device.videoZoomFactor ?? 1.0
+    }
+    
+    func getMaxZoomFactor() -> CGFloat {
+        return videoDeviceInput?.device.maxAvailableVideoZoomFactor ?? 1.0
+    }
+    
+    func getMinZoomFactor() -> CGFloat {
+        return videoDeviceInput?.device.minAvailableVideoZoomFactor ?? 1.0
+    }
+
+    // MARK: - Lens Switching Methods
+    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType])> {
+        guard let currentDevice = self.videoDeviceInput?.device else {
+            return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
+        }
+        
+        let position = currentDevice.position
+        guard let newDevice = cameraForPositionAndLens(position: position, lensType: lensType) else {
+            return Failure(error: NSError(domain: "Requested lens type not available", code: 0, userInfo: nil))
+        }
+        
+        do {
+            let captureSession = self.captureSession
+            captureSession.beginConfiguration()
+            
+            let newInput = try AVCaptureDeviceInput(device: newDevice)
+            captureSession.removeInput(self.videoDeviceInput)
+            captureSession.addInput(newInput)
+            self.videoDeviceInput = newInput
+            self.currentLensType = lensType
+            
+            // Reset zoom to 1.0 when switching lenses
+            currentZoomFactor = 1.0
+            
+            configSessionOutput()
+            setFrameRate(framerate: fps, videoDevice: newDevice)
+            
+            DispatchQueue.main.async {
+                self.rotateCameraToOrientation(orientation: self.orientation)
+            }
+            
+            captureSession.commitConfiguration()
+            return Success((lensType, availableLensTypes))
+        } catch let error as NSError {
+            return Failure(error: error)
+        }
+    }
+    
+    func getAvailableLensTypes() -> [CameraLensType] {
+        return availableLensTypes
+    }
+    
+    func getCurrentLensType() -> CameraLensType {
+        return currentLensType
     }
 
     private func rotateCameraToOrientation(orientation: UIInterfaceOrientation) {

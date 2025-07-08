@@ -47,6 +47,21 @@ extension RemoteCamSession {
                 self.become(name: self.states.monitorTakingPicture, state:
                 self.monitorTakingPicture(monitor: monitor, peer: peer, lobby: lobby))
                 self.this ! msg
+                
+            // MARK: - Zoom and Lens Command Handling
+            case is UICmd.SetZoom:
+                self.become(
+                    name: self.states.monitorSettingZoom,
+                    state: self.monitorSettingZoom(monitor: monitor, peer: peer, lobby: lobby)
+                )
+                self.this ! msg
+                
+            case is UICmd.SwitchLens:
+                self.become(
+                    name: self.states.monitorSwitchingLens,
+                    state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
+                )
+                self.this ! msg
 
             case let mode as UICmd.BecomeMonitor:
                 if mode.mode == RecordingMode.Video {
