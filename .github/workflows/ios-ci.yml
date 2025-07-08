@@ -1,0 +1,88 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.2'
+        
+    - name: Show Xcode version
+      run: xcodebuild -version
+      
+    - name: Show available simulators
+      run: xcrun simctl list devicetypes
+      
+    - name: Cache CocoaPods
+      uses: actions/cache@v4
+      with:
+        path: Pods
+        key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pods-
+          
+    - name: Install CocoaPods
+      run: |
+        sudo gem install cocoapods
+        pod --version
+        
+    - name: Install Pod Dependencies
+      run: |
+        pod install --repo-update
+        
+    - name: Build for iOS Simulator
+      run: |
+        xcodebuild \
+          -workspace RemoteShutter.xcworkspace \
+          -scheme RemoteCam \
+          -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.2' \
+          -configuration Debug \
+          clean build \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+          
+    - name: Run Tests (if available)
+      run: |
+        xcodebuild \
+          -workspace RemoteShutter.xcworkspace \
+          -scheme RemoteCam \
+          -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.2' \
+          -configuration Debug \
+          test \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+      continue-on-error: true
+      
+    - name: Archive for Release (if main branch)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        xcodebuild \
+          -workspace RemoteShutter.xcworkspace \
+          -scheme RemoteCam \
+          -configuration Release \
+          -archivePath RemoteShutter.xcarchive \
+          archive \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+          
+    - name: Upload Build Artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs
+        path: |
+          ~/Library/Developer/Xcode/DerivedData/**/Logs/**
+        retention-days: 5 
