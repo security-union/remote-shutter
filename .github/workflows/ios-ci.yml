@@ -26,22 +26,23 @@ jobs:
     - name: Show available simulators
       run: xcrun simctl list devicetypes
       
-    - name: Cache CocoaPods
-      uses: actions/cache@v4
-      with:
-        path: Pods
-        key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-pods-
-          
-    - name: Install CocoaPods
-      run: |
-        sudo gem install cocoapods
-        pod --version
+    # TODO: Remove this once we have a way to install CocoaPods
+    # - name: Cache CocoaPods
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: Pods
+    #     key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-pods-
+
+    # - name: Install CocoaPods
+    #   run: |
+    #     sudo gem install cocoapods
+    #     pod --version
         
-    - name: Install Pod Dependencies
-      run: |
-        pod install --repo-update
+    # - name: Install Pod Dependencies
+    #   run: |
+    #     pod install --repo-update
         
     - name: Build for iOS Simulator
       run: |
