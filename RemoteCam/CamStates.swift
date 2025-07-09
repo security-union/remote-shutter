@@ -13,6 +13,28 @@ import Photos
 
 extension RemoteCamSession {
 
+    // MARK: - Camera Capabilities Retry Helper
+    private func attemptToSendCapabilities(ctrl: CameraViewController, peer: MCPeerID, attempt: Int, maxAttempts: Int) {
+        print("🔍 DEBUG: Attempt \(attempt)/\(maxAttempts) to gather camera capabilities")
+        
+        ctrl.gatherAllCameraCapabilities()
+        if let capabilities = ctrl.gatherCurrentCameraCapabilities() {
+            print("✅ DEBUG: Successfully gathered capabilities on attempt \(attempt)")
+            print("🔍 DEBUG: Sending camera capabilities - Available lenses: \(capabilities.getCurrentCameraInfo()?.availableLenses ?? [])")
+            self.mailbox.addOperation(BlockOperation {
+                self.sendCommandOrGoToScanning(peer: [peer], msg: capabilities)
+            })
+        } else if attempt < maxAttempts {
+            let delay = Double(attempt) * 0.2 // 0.2s, 0.4s, 0.6s, 0.8s delays
+            print("⏳ DEBUG: Attempt \(attempt) failed, retrying in \(delay)s")
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.attemptToSendCapabilities(ctrl: ctrl, peer: peer, attempt: attempt + 1, maxAttempts: maxAttempts)
+            }
+        } else {
+            print("❌ DEBUG: Failed to gather camera capabilities after \(maxAttempts) attempts")
+        }
+    }
+
     func savePicture(_ imageData: Data) {
         PHPhotoLibrary.requestAuthorization { status in
             guard status == .authorized else {
@@ -90,7 +112,6 @@ extension RemoteCamSession {
     func camera(peer: MCPeerID,
                 ctrl: CameraViewController,
                 lobbyWrapper: Weak<DeviceScannerViewController>) -> Receive {
-        var capabilitiesSent = false
         
         return { [unowned self] (msg: Actor.Message) in
             guard lobbyWrapper.value != nil else {
@@ -98,61 +119,25 @@ extension RemoteCamSession {
                 return
             }
             
-            // Helper function to send capabilities if not already sent
-            func sendCapabilitiesIfNeeded() {
-                if !capabilitiesSent {
-                    print("🔍 DEBUG: First command received - gathering camera capabilities")
-                    ctrl.gatherAllCameraCapabilities()
-                    if let capabilities = ctrl.gatherCurrentCameraCapabilities() {
-                        print("🔍 DEBUG: Sending camera capabilities to monitor")
-                        print("🔍 DEBUG: Available lenses: \(capabilities.getCurrentCameraInfo()?.availableLenses ?? [])")
-                        self.sendCommandOrGoToScanning(peer: [peer], msg: capabilities)
-                        capabilitiesSent = true
-                    }
-                }
-            }
-            
             switch msg {
             case is OnEnter:
                 print("🔍 DEBUG: Camera starting up")
                 getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
-                // Send capabilities after a brief delay to ensure camera is fully initialized
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    print("🔍 DEBUG: Camera entered - gathering and sending capabilities (delayed)")
-                    ctrl.gatherAllCameraCapabilities()
-                    if let capabilities = ctrl.gatherCurrentCameraCapabilities() {
-                        print("🔍 DEBUG: Sending camera capabilities to monitor")
-                        print("🔍 DEBUG: Available lenses: \(capabilities.getCurrentCameraInfo()?.availableLenses ?? [])")
-                        self.mailbox.addOperation(BlockOperation {
-                            self.sendCommandOrGoToScanning(peer: [peer], msg: capabilities)
-                            capabilitiesSent = true
-                        })
-                    } else {
-                        print("❌ DEBUG: Failed to gather current camera capabilities in OnEnter")
-                    }    
-                }
                 
-            // MARK: - Monitor Join Handling
             case is RemoteCmd.PeerBecameMonitor:
                 // When a new monitor joins, immediately send camera capabilities
-                print("🔍 DEBUG: Camera received PeerBecameMonitor - sending capabilities immediately")
-                ctrl.gatherAllCameraCapabilities()
-                if let capabilities = ctrl.gatherCurrentCameraCapabilities() {
-                    print("🔍 DEBUG: Sending camera capabilities to new monitor")
-                    print("🔍 DEBUG: Available lenses: \(capabilities.getCurrentCameraInfo()?.availableLenses ?? [])")
-                    self.sendCommandOrGoToScanning(peer: [peer], msg: capabilities)
-                } else {
-                    print("❌ DEBUG: Failed to gather current camera capabilities for new monitor")
-                }
+                print("🔍 DEBUG: Camera received PeerBecameMonitor - attempting to send capabilities")
+                self.attemptToSendCapabilities(ctrl: ctrl, peer: peer, attempt: 1, maxAttempts: 5)
+                
+            case is RemoteCmd.RequestCameraCapabilities:
+                // When monitor explicitly requests capabilities
+                print("🔍 DEBUG: Camera received RequestCameraCapabilities - attempting to gather capabilities")
+                self.attemptToSendCapabilities(ctrl: ctrl, peer: peer, attempt: 1, maxAttempts: 5)
                 
             case is RemoteCmd.RequestFrame:
-                // Send capabilities on first frame request, then handle normally
-                sendCapabilitiesIfNeeded()
                 self.receive(msg: msg)
                 
             case is RemoteCmd.SendFrame:
-                // Send capabilities on first frame send, then handle normally
-                sendCapabilitiesIfNeeded()
                 self.receive(msg: msg)
                 
             case let m as UICmd.ToggleCameraResp:
@@ -179,7 +164,7 @@ extension RemoteCamSession {
                 print("🔍 DEBUG: Camera received ToggleCamera command")
                 let result = ctrl.toggleCamera()
                 var resp: Message?
-                if let (flashMode, position) = result.toOptional() {
+                if let (_, position) = result.toOptional() {
                     print("✅ DEBUG: Camera toggle success - new position: \(position)")
                     // Send camera capabilities as part of the response
                     let capabilities = ctrl.gatherCurrentCameraCapabilities()
@@ -191,7 +176,6 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
                 
             case is RemoteCmd.ToggleFlash:
-                sendCapabilitiesIfNeeded() // Ensure capabilities are sent
                 let result = ctrl.toggleFlash()
                 var resp: Message?
                 if let flashMode = result.toOptional() {
@@ -203,7 +187,6 @@ extension RemoteCamSession {
                 
             // MARK: - Zoom Command Handling
             case let zoomCmd as RemoteCmd.SetZoom:
-                sendCapabilitiesIfNeeded() // Ensure capabilities are sent
                 print("🔍 DEBUG: Camera received SetZoom: \(zoomCmd.zoomFactor)")
                 let result = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
                 var resp: Message?
@@ -217,7 +200,6 @@ extension RemoteCamSession {
                 
             // MARK: - Lens Switching Command Handling  
             case let lensCmd as RemoteCmd.SwitchLens:
-                sendCapabilitiesIfNeeded() // Ensure capabilities are sent
                 print("🔍 DEBUG: Camera received SwitchLens command to \(lensCmd.lensType.displayName)")
                 let result = ctrl.switchLens(to: lensCmd.lensType)
                 var resp: Message?
