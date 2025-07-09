@@ -112,6 +112,12 @@ public class UICmd {
         }
     }
 
+    public class RequestCameraCapabilities: Actor.Message {
+        public init() {
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Zoom Commands
     @objc(_TtCC10ActorsDemo5UICmd8SetZoom)public class SetZoom: Actor.Message, NSCoding {
         public let zoomFactor: CGFloat
