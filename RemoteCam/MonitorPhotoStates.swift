@@ -47,6 +47,36 @@ extension RemoteCamSession {
                 self.become(name: self.states.monitorTakingPicture, state:
                 self.monitorTakingPicture(monitor: monitor, peer: peer, lobby: lobby))
                 self.this ! msg
+                
+            // MARK: - Camera Capabilities Handling
+            case let capabilities as RemoteCmd.CameraCapabilitiesResp:
+                print("🔍 DEBUG: Monitor received camera capabilities")
+                if let cameraInfo = capabilities.getCurrentCameraInfo() {
+                    print("🔍 DEBUG: Available lenses: \(cameraInfo.availableLenses)")
+                }
+                monitor ! capabilities
+                
+            // MARK: - Zoom and Lens Command Handling
+            case let zoomCmd as UICmd.SetZoom:
+                // Send zoom command directly without showing alert for immediate feedback
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SetZoom(zoomFactor: zoomCmd.zoomFactor)) as? Failure {
+                    print("❌ DEBUG: Failed to send zoom command: \(f.tryError.localizedDescription)")
+                }
+                
+            case let zoomResp as RemoteCmd.SetZoomResp:
+                // Handle zoom response directly without alert
+                if let error = zoomResp.error {
+                    print("❌ DEBUG: Zoom response error: \(error.localizedDescription)")
+                }
+                monitor ! zoomResp
+                
+            case is UICmd.SwitchLens:
+                self.become(
+                    name: self.states.monitorSwitchingLens,
+                    state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
+                )
+                self.this ! msg
 
             case let mode as UICmd.BecomeMonitor:
                 if mode.mode == RecordingMode.Video {
@@ -87,12 +117,12 @@ extension RemoteCamSession {
 
             case let cmd as UICmd.TakePicture:
                 ^{alert?.show(true) {
-                    self.mailbox.addOperation {
+                    self.mailbox.addOperation(BlockOperation {
                         self.sendCommandOrGoToScanning(
                             peer: [peer],
                             msg: RemoteCmd.TakePic(sender: self.this, sendMediaToPeer:cmd.sendMediaToRemote)
                         )
-                    }
+                    })
                 }}
 
             case let picResp as RemoteCmd.TakePicResp:
@@ -110,25 +140,25 @@ extension RemoteCamSession {
 
             case is UICmd.UnbecomeMonitor:
                 ^{alert?.dismiss(animated: true) {
-                    self.mailbox.addOperation {
+                    self.mailbox.addOperation(BlockOperation {
                         self.popToState(name: self.states.connected)
-                    }
+                    })
                 }}
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{alert?.dismiss(animated: true) {
-                        self.mailbox.addOperation {
+                        self.mailbox.addOperation(BlockOperation {
                             self.popAndStartScanning()
-                        }
+                        })
                     }}
                 }
 
             case is Disconnect:
                 ^{alert?.dismiss(animated: true) {
-                    self.mailbox.addOperation {
+                    self.mailbox.addOperation(BlockOperation {
                         self.popAndStartScanning()
-                    }
+                    })
                 }}
 
             default:
