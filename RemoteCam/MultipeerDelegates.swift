@@ -28,7 +28,7 @@ extension RemoteCamSession {
     }
 
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
-        mailbox.addOperation {
+        mailbox.addOperation(BlockOperation {
             switch state {
             case MCSessionState.connected:
                 self.this ! OnConnectToDevice(peer: peerID, sender: self.this)
@@ -43,7 +43,7 @@ extension RemoteCamSession {
             @unknown default:
                 fatalError()
             }
-        }
+        })
     }
 
     public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {

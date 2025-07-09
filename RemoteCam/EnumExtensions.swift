@@ -10,6 +10,44 @@ import Foundation
 import AVFoundation
 import Theater
 
+// MARK: - Camera Lens Types
+public enum CameraLensType: Int, CaseIterable, Codable {
+    case wideAngle = 0
+    case ultraWide = 1
+    case telephoto = 2
+    case dualCamera = 3
+    
+    public var displayName: String {
+        switch self {
+        case .wideAngle:
+            return "1"
+        case .ultraWide:
+            return "0.5"
+        case .telephoto:
+            return "2x"
+        case .dualCamera:
+            return "Dual"
+        }
+    }
+    
+    public var deviceType: AVCaptureDevice.DeviceType {
+        switch self {
+        case .wideAngle:
+            return .builtInWideAngleCamera
+        case .ultraWide:
+            if #available(iOS 13.0, *) {
+                return .builtInUltraWideCamera
+            } else {
+                return .builtInWideAngleCamera
+            }
+        case .telephoto:
+            return .builtInTelephotoCamera
+        case .dualCamera:
+            return .builtInDualCamera
+        }
+    }
+}
+
 extension AVCaptureDevice.Position {
     public func toggle() -> Try<AVCaptureDevice.Position> {
         switch self {

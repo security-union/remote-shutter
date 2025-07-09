@@ -16,6 +16,7 @@ struct RemoteCamStates {
     let monitor = "monitor"
     let cameraTakingPic = "cameraTakingPic"
     let cameraRecordingVideo = "cameraRecordingVideo"
+    let cameraTransmittingVideo = "cameraTransmittingVideo"
     let monitorTakingPicture = "monitorTakingPicture"
     let monitorTogglingFlash = "monitorTogglingFlash"
     let monitorTogglingCamera = "monitorTogglingCamera"
@@ -23,5 +24,5 @@ struct RemoteCamStates {
     let monitorPhotoMode = "monitorPhotoMode"
     let monitorVideoMode = "monitorVideoMode"
     let monitorWaitingForVideo = "monitorWaitingForVideo"
-    let cameraTransmittingVideo = "cameraTransmittingVideo"
+    let monitorSwitchingLens = "monitorSwitchingLens"
 }
