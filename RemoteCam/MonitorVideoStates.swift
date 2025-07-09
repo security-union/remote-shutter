@@ -48,6 +48,36 @@ extension MonitorVideoStates {
                 self.become(name: self.states.monitorTogglingCamera, state:
                 self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
                 self.this ! msg
+                
+            // MARK: - Camera Capabilities Handling
+            case let capabilities as RemoteCmd.CameraCapabilitiesResp:
+                print("🔍 DEBUG: Monitor video mode received camera capabilities")
+                if let cameraInfo = capabilities.getCurrentCameraInfo() {
+                    print("🔍 DEBUG: Video mode available lenses: \(cameraInfo.availableLenses)")
+                }
+                monitor ! capabilities
+                
+            // MARK: - Zoom and Lens Command Handling
+            case let zoomCmd as UICmd.SetZoom:
+                // Send zoom command directly without showing alert for immediate feedback
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SetZoom(zoomFactor: zoomCmd.zoomFactor)) as? Failure {
+                    print("❌ DEBUG: Failed to send zoom command in video mode: \(f.tryError.localizedDescription)")
+                }
+                
+            case let zoomResp as RemoteCmd.SetZoomResp:
+                // Handle zoom response directly without alert
+                if let error = zoomResp.error {
+                    print("❌ DEBUG: Video mode zoom response error: \(error.localizedDescription)")
+                }
+                monitor ! zoomResp
+                
+            case is UICmd.SwitchLens:
+                self.become(
+                    name: self.states.monitorSwitchingLens,
+                    state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
+                )
+                self.this ! msg
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
