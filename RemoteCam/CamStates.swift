@@ -116,7 +116,6 @@ extension RemoteCamSession {
             case is OnEnter:
                 print("🔍 DEBUG: Camera starting up")
                 getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
-                
                 // Send capabilities after a brief delay to ensure camera is fully initialized
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     print("🔍 DEBUG: Camera entered - gathering and sending capabilities (delayed)")
@@ -130,7 +129,20 @@ extension RemoteCamSession {
                         })
                     } else {
                         print("❌ DEBUG: Failed to gather current camera capabilities in OnEnter")
-                    }
+                    }    
+                }
+                
+            // MARK: - Monitor Join Handling
+            case is RemoteCmd.PeerBecameMonitor:
+                // When a new monitor joins, immediately send camera capabilities
+                print("🔍 DEBUG: Camera received PeerBecameMonitor - sending capabilities immediately")
+                ctrl.gatherAllCameraCapabilities()
+                if let capabilities = ctrl.gatherCurrentCameraCapabilities() {
+                    print("🔍 DEBUG: Sending camera capabilities to new monitor")
+                    print("🔍 DEBUG: Available lenses: \(capabilities.getCurrentCameraInfo()?.availableLenses ?? [])")
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: capabilities)
+                } else {
+                    print("❌ DEBUG: Failed to gather current camera capabilities for new monitor")
                 }
                 
             case is RemoteCmd.RequestFrame:
@@ -164,7 +176,6 @@ extension RemoteCamSession {
                             state: self.cameraTakingPic(peer: peer, ctrl: ctrl, lobby: lobbyWrapper, sendMediaToPeer: cmd.sendMediaToPeer))
 
             case is RemoteCmd.ToggleCamera:
-                sendCapabilitiesIfNeeded() // Ensure capabilities are sent
                 print("🔍 DEBUG: Camera received ToggleCamera command")
                 let result = ctrl.toggleCamera()
                 var resp: Message?
