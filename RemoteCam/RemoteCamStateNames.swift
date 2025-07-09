@@ -24,6 +24,5 @@ struct RemoteCamStates {
     let monitorPhotoMode = "monitorPhotoMode"
     let monitorVideoMode = "monitorVideoMode"
     let monitorWaitingForVideo = "monitorWaitingForVideo"
-    // Removed monitorSettingZoom - zoom now works immediately without alerts
     let monitorSwitchingLens = "monitorSwitchingLens"
 }
