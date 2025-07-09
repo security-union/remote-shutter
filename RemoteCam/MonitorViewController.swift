@@ -220,7 +220,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     @IBOutlet weak var recordingView: UIImageView!
     
     // MARK: - Zoom and Lens Controls
-    @IBOutlet weak var zoomSlider: UISlider?
     @IBOutlet weak var zoomLabel: UILabel?
     @IBOutlet weak var lensSegmentedControl: UISegmentedControl?
     
@@ -305,7 +304,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         toggleCamera.isHidden = false
         programmaticToggleCameraButton?.isEnabled = true
         programmaticToggleCameraButton?.isHidden = false
-        zoomSlider?.isEnabled = true
         lensSegmentedControl?.isEnabled = true
         // Enable programmatic controls
         programmaticZoomSlider.isEnabled = true
@@ -331,7 +329,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         toggleCamera.isHidden = false
         programmaticToggleCameraButton?.isEnabled = true
         programmaticToggleCameraButton?.isHidden = false
-        zoomSlider?.isEnabled = true
         lensSegmentedControl?.isEnabled = true
         // Enable programmatic controls
         programmaticZoomSlider.isEnabled = true
@@ -357,7 +354,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         toggleCamera.isHidden = true
         programmaticToggleCameraButton?.isEnabled = false
         programmaticToggleCameraButton?.isHidden = true
-        zoomSlider?.isEnabled = false
         lensSegmentedControl?.isEnabled = false
         // Disable programmatic controls
         programmaticZoomSlider.isEnabled = false
@@ -381,16 +377,11 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         session ! UICmd.ToggleFlash()
     }
     
-    // MARK: - Zoom Control Actions
-    @IBAction func onZoomSliderChange(sender: UISlider) {
+    @objc func onProgrammaticZoomSliderChange(sender: UISlider) {
         let zoomFactor = CGFloat(sender.value)
         currentZoomFactor = zoomFactor
         updateZoomLabel()
         session ! UICmd.SetZoom(zoomFactor: zoomFactor)
-    }
-    
-    @objc func onProgrammaticZoomSliderChange(sender: UISlider) {
-        onZoomSliderChange(sender: sender)
     }
     
     // MARK: - Lens Control Actions
@@ -584,7 +575,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                 
                 // Update any visible sliders to match
                 OperationQueue.main.addOperation { [weak self] in
-                    self?.zoomSlider?.value = Float(clampedZoomFactor)
                     self?.programmaticZoomSlider.value = Float(clampedZoomFactor)
                 }
             }
@@ -656,14 +646,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     // MARK: - Zoom UI Configuration
     private func configureZoomUI() {
-        // Configure both storyboard and programmatic controls
-        if let zoomSlider = self.zoomSlider {
-            zoomSlider.minimumValue = 1.0
-            zoomSlider.maximumValue = Float(maxZoomFactor)
-            zoomSlider.value = Float(currentZoomFactor)
-            zoomSlider.addTarget(self, action: #selector(onZoomSliderChange), for: .valueChanged)
-        }
-        
+        // Configure programmatic controls
         programmaticZoomSlider.minimumValue = 1.0
         programmaticZoomSlider.maximumValue = Float(maxZoomFactor)
         programmaticZoomSlider.value = Float(currentZoomFactor)
@@ -716,8 +699,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         maxZoomFactor = maxZoom
         
         OperationQueue.main.addOperation { [weak self] in
-            self?.zoomSlider?.maximumValue = Float(maxZoom)
-            self?.zoomSlider?.value = Float(zoomFactor)
             self?.programmaticZoomSlider.maximumValue = Float(maxZoom)
             self?.programmaticZoomSlider.value = Float(zoomFactor)
             self?.updateZoomLabel()

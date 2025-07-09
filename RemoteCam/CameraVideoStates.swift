@@ -70,9 +70,9 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: c)
                 ^{
                     alert?.dismiss(animated: true) {
-                        self.mailbox.addOperation(BlockOperation {
+                        self.mailbox.addOperation {
                             self.popToState(name: self.states.camera)
-                        })
+                        }
                     }
                 }
                 
@@ -80,9 +80,9 @@ extension RemoteCamSession {
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{
                         alert?.dismiss(animated: true) {
-                            self.mailbox.addOperation(BlockOperation {
+                            self.mailbox.addOperation {
                                 self.popAndStartScanning()
-                            })
+                            }
                         }
                     }
                 }
@@ -90,9 +90,9 @@ extension RemoteCamSession {
             case is Disconnect:
                 ^{
                     alert?.dismiss(animated: true) {
-                        self.mailbox.addOperation(BlockOperation {
+                        self.mailbox.addOperation {
                             self.popAndStartScanning()
-                        })
+                        }
                     }
                 }
 
