@@ -675,4 +675,17 @@ public class RemoteCmd: Actor.Message {
             super.init(sender: nil)
         }
     }
+
+    @objc(_TtCC10ActorsDemo9RemoteCmd23RequestCameraCapabilities)public class RequestCameraCapabilities: Actor.Message, NSCoding {
+        public init() {
+            super.init(sender: nil)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            super.init(sender: nil)
+        }
+    }
 }
