@@ -77,6 +77,15 @@ extension RemoteCamSession {
                     state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
                 )
                 self.this ! msg
+                
+            case is UICmd.RequestCameraCapabilities:
+                // Request capabilities from camera
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
+                
+            case is RemoteCmd.PeerBecameCamera:
+                // When peer becomes camera, request fresh capabilities
+                print("🔍 DEBUG: Monitor detected peer became camera - requesting fresh capabilities")
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
 
             case let mode as UICmd.BecomeMonitor:
                 if mode.mode == RecordingMode.Video {
