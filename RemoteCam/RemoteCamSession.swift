@@ -94,7 +94,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
         case is RemoteCmd.ToggleCamera:
             let l = RemoteCmd.ToggleCameraResp(
-                flashMode: nil, camPosition: nil, error: self.unableToProcessError(msg: msg)
+                cameraCapabilities: nil, error: self.unableToProcessError(msg: msg)
             )
             self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
 
@@ -103,6 +103,26 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                 flashMode: nil, error: self.unableToProcessError(msg: msg)
             )
             self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            
+        // MARK: - Zoom and Lens Command Handling
+        case is RemoteCmd.SetZoom:
+            let l = RemoteCmd.SetZoomResp(
+                zoomFactor: nil, currentLens: nil, zoomRange: nil, error: self.unableToProcessError(msg: msg)
+            )
+            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            
+        case is RemoteCmd.SwitchLens:
+            print("❌ DEBUG: Session default handler received SwitchLens - NOT in camera state!")
+            let l = RemoteCmd.SwitchLensResp(
+                lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: self.unableToProcessError(msg: msg)
+            )
+            print("🔍 DEBUG: Default handler sending empty SwitchLensResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
+            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            
+        case let capabilities as RemoteCmd.CameraCapabilitiesResp:
+            // Forward capabilities to connected peers (monitor)
+            print("🔍 DEBUG: Base session forwarding capabilities to peers")
+            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: capabilities)
 
         default:
             super.receive(msg: msg)
@@ -139,7 +159,16 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                                           msg: Actor.Message,
                                           mode: MCSessionSendDataMode = .reliable) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
+        
+        // Debug log for SwitchLensResp
+        if let switchResp = msg as? RemoteCmd.SwitchLensResp {
+            print("🔍 DEBUG: sendCommandOrGoToScanning - SwitchLensResp being sent:")
+            print("🔍 DEBUG: - Transmission lensType: \(switchResp.lensType?.displayName ?? "nil")")
+            print("🔍 DEBUG: - Transmission error: \(switchResp.error?.localizedDescription ?? "nil")")
+        }
+        
         if self.sendMessage(peer: self.session.connectedPeers, msg: msg).isFailure() {
+            print("❌ DEBUG: sendCommandOrGoToScanning failed to send message")
             self.popToState(name: self.states.scanning)
             ^{
             let alert = UIAlertController(
@@ -150,6 +179,8 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                 alert.simpleOkAction()
                 alert.show(true)
             }
+        } else {
+//            print("✅ DEBUG: sendCommandOrGoToScanning successfully sent message")
         }
     }
 }
