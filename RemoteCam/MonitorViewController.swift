@@ -246,11 +246,13 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        print("🔍 DEBUG: MonitorViewController viewWillAppear - \(ObjectIdentifier(self))")
         self.navigationController?.isNavigationBarHidden = true
     }
 
     override public func viewDidLoad() {
         super.viewDidLoad()
+        print("🔍 DEBUG: MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
         monitor ! SetViewCtrl(ctrl: self)
         self.configureTimerUI()
         self.setupProgrammaticZoomAndLensControls()
@@ -264,15 +266,30 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         self.imageView.contentMode = .scaleAspectFit
         recordingView.image = UIImage.gifImageWithName("recording")
         configurePhotoMode()
+        
+        // Request camera capabilities after MonitorActor is fully set up
+        // This handles the race condition where capabilities arrive before viewDidLoad
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            print("🔍 DEBUG: Requesting camera capabilities after MonitorActor setup")
+            if let session = self?.session {
+                session ! UICmd.RequestCameraCapabilities()
+            }
+            
+        }
     }
 
     deinit {
+        print("🔍 DEBUG: MonitorViewController deinit - \(ObjectIdentifier(self))")
         print("stop monitor")
         self.timer.cancel()
         self.zoomLabelTimer?.invalidate()
         self.soundManager.stopPlayer()
         session ! UICmd.UnbecomeMonitor(sender: nil)
-        monitor ! Actor.Harakiri(sender: nil)
+        
+        // Delay actor destruction to allow pending messages to arrive
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [monitor] in
+            monitor ! Actor.Harakiri(sender: nil)
+        }
     }
 
     let buttonPromptPhotoMode = NSLocalizedString("Taking picture", comment: "")
