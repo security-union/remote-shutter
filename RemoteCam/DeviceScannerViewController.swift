@@ -15,6 +15,7 @@ import dnssd
 let goToRolePickerController = "goToRolePickerController"
 let service: String = "RemoteCam"
 let userDefaultsPeerId = "peerID"
+let userDefaultsSpeedRunScanning = "speedrunscanning"
 let remoteShutterUrl = "https://apps.apple.com/us/app/remote-shutter/id633274861"
 
 func generateQRCode(_ string: String) -> UIImage? {
@@ -52,6 +53,21 @@ public class DeviceScannerViewController: UIViewController {
     // Add state tracking
     var isScanning: Bool = false
     var hasLocalNetworkAccess: Bool = true
+    var hasScanningError: Bool = false
+    
+    // Modern Swift UserDefaults property
+    var speedRunScanning: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: userDefaultsSpeedRunScanning)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: userDefaultsSpeedRunScanning)
+            // Update UI when flag changes
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
+    }
     
     lazy var splash = {
         CoolActivityIndicator(currentController: self)
@@ -97,8 +113,18 @@ public class DeviceScannerViewController: UIViewController {
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         self.remoteCamSession ! Disconnect()
-        // Remove automatic scanning - let user initiate
-        // self.remoteCamSession ! UICmd.StartScanning(sender: nil)
+        
+        // Reload table data in case user returned from system permission dialog
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+        }
+        
+        // Check if user has successfully found peers before (speed run mode)
+        if speedRunScanning {
+            // Auto-start scanning for experienced users
+            checkLocalNetworkAccessAndStartScanning()
+        }
+        // First-time users will see the button and educational flow
     }
     
     public override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -117,6 +143,7 @@ public class DeviceScannerViewController: UIViewController {
         splash.stopAnimating()
         connectedPeers.removeAll()
         isScanning = true
+        hasScanningError = false  // Clear error state when starting new scan
         DispatchQueue.main.async {
             self.tableView.reloadData()
         }
@@ -148,7 +175,12 @@ public class DeviceScannerViewController: UIViewController {
         alert.addAction(UIAlertAction(
             title: NSLocalizedString("Not Now", comment: ""),
             style: .cancel,
-            handler: nil
+            handler: { _ in
+                // Reload table when "Not Now" is tapped
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                }
+            }
         ))
         
         alert.addAction(UIAlertAction(
@@ -156,10 +188,19 @@ public class DeviceScannerViewController: UIViewController {
             style: .default,
             handler: { _ in
                 self.checkLocalNetworkAccessAndStartScanning()
+                // Reload table when "Start Scanning" is tapped
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                }
             }
         ))
         
-        present(alert, animated: true, completion: nil)
+        present(alert, animated: true) {
+            // Reload table after scanning permission alert is presented
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
     }
     
     func checkLocalNetworkAccessAndStartScanning() {
@@ -181,21 +222,27 @@ public class DeviceScannerViewController: UIViewController {
                     if case .dns(let dnsError) = error {
                         let dnsCode = Int(dnsError)
                         if dnsCode == Int(kDNSServiceErr_PolicyDenied) {
-                            // No local network access
+                            // No local network access - reset speed run mode and set error state
+                            self?.speedRunScanning = false
                             self?.hasLocalNetworkAccess = false
+                            self?.hasScanningError = true
                             self?.showLocalNetworkAccessDeniedAlert()
                             return
                         }
                     }
-                    // Other waiting states - continue with scanning
+                    // Other waiting states - continue with scanning, clear error state
                     self?.hasLocalNetworkAccess = true
+                    self?.hasScanningError = false
                     self?.startActualScanning()
                 case .ready:
-                    // Network access is available
+                    // Network access is available - clear error state
                     self?.hasLocalNetworkAccess = true
+                    self?.hasScanningError = false
                     self?.startActualScanning()
                 case .failed(let error):
                     print("Network browser failed: \(error)")
+                    // Reset speed run mode on network errors
+                    self?.speedRunScanning = false
                     // Try to start scanning anyway
                     self?.hasLocalNetworkAccess = true
                     self?.startActualScanning()
@@ -228,7 +275,12 @@ public class DeviceScannerViewController: UIViewController {
         alert.addAction(UIAlertAction(
             title: NSLocalizedString("Cancel", comment: ""),
             style: .cancel,
-            handler: nil
+            handler: { _ in
+                // Reload table when "Cancel" is tapped
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                }
+            }
         ))
         
         alert.addAction(UIAlertAction(
@@ -239,7 +291,12 @@ public class DeviceScannerViewController: UIViewController {
             }
         ))
         
-        present(alert, animated: true, completion: nil)
+        present(alert, animated: true) {
+            // Reload table after local network access alert is presented
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
+        }
     }
     
     @IBAction func goToRolePicker() {
@@ -285,40 +342,49 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
             let cell = tableView.dequeueReusableCell(withIdentifier: "instructions") as! DeviceScannerPlaceholder
             cell.qrCode.image = qrCodeImage
             
-            // Configure start scanning button
-            if !isScanning {
-                cell.shareButton.setTitle(NSLocalizedString("Start Scanning Devices", comment: ""), for: .normal)
-                cell.shareButton.removeTarget(nil, action: nil, for: .allEvents)
-                cell.shareButton.addTarget(self, action: #selector(startScanningDevices), for: .touchUpInside)
-                cell.shareButton.styleButton(
-                    backgroundColor: UIColor.systemGreen,
-                    borderColor: UIColor.clear,
-                    textColor: UIColor.white
-                )
+            // If no local network access, hide scanning buttons and only show settings
+            if !hasLocalNetworkAccess {
+                cell.shareButton.isHidden = true
+                cell.goToSettings.isHidden = false
             } else {
-                cell.shareButton.setTitle(NSLocalizedString("Stop Scanning", comment: ""), for: .normal)
-                cell.shareButton.removeTarget(nil, action: nil, for: .allEvents)
-                cell.shareButton.addTarget(self, action: #selector(stopScanningDevices), for: .touchUpInside)
-                cell.shareButton.styleButton(
-                    backgroundColor: UIColor.systemRed,
-                    borderColor: UIColor.clear,
-                    textColor: UIColor.white
-                )
+                // Configure start scanning button when network access is available
+                cell.shareButton.isHidden = false
+                if !isScanning {
+                    cell.shareButton.setTitle(NSLocalizedString("Start Scanning Devices", comment: ""), for: .normal)
+                    cell.shareButton.removeTarget(nil, action: nil, for: .allEvents)
+                    cell.shareButton.addTarget(self, action: #selector(startScanningDevices), for: .touchUpInside)
+                    cell.shareButton.styleButton(
+                        backgroundColor: UIColor.systemGreen,
+                        borderColor: UIColor.clear,
+                        textColor: UIColor.white
+                    )
+                } else {
+                    cell.shareButton.setTitle(NSLocalizedString("Stop Scanning", comment: ""), for: .normal)
+                    cell.shareButton.removeTarget(nil, action: nil, for: .allEvents)
+                    cell.shareButton.addTarget(self, action: #selector(stopScanningDevices), for: .touchUpInside)
+                    cell.shareButton.styleButton(
+                        backgroundColor: UIColor.systemRed,
+                        borderColor: UIColor.clear,
+                        textColor: UIColor.white
+                    )
+                }
+                cell.shareButton.setNeedsDisplay()
+                
+                // Configure settings button - only show when there's a scanning error
+                if #available(iOS 14.0, *) {
+                    cell.goToSettings.isHidden = !hasScanningError
+                } else {
+                    cell.goToSettings.isHidden = true
+                }
             }
-            cell.shareButton.setNeedsDisplay()
             
-            // Configure settings button
+            // Always configure settings button styling when visible
             cell.goToSettings.styleButton(
                 backgroundColor: UIColor.systemGray,
                 borderColor: UIColor.clear,
                 textColor: UIColor.white
             )
             cell.goToSettings.setNeedsDisplay()
-            if #available(iOS 14.0, *) {
-                cell.goToSettings.isHidden = false
-            } else {
-                cell.goToSettings.isHidden = true
-            }
             return cell
         }
     }
@@ -339,8 +405,8 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
     
     public func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         if !isScanning {
-            if !hasLocalNetworkAccess {
-                return NSLocalizedString("LOCAL NETWORK ACCESS REQUIRED", comment: "")
+            if hasScanningError {
+                return NSLocalizedString("SCANNING ERROR - CHECK NETWORK SETTINGS", comment: "")
             } else {
                 return NSLocalizedString("TAP THE GREEN BUTTON TO GET STARTED", comment: "")
             }
@@ -353,6 +419,10 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
 extension DeviceScannerViewController: MCNearbyServiceBrowserDelegate {
     public func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String : String]?) {
         connectedPeers.append(peerID)
+        
+        // Enable speed run scanning for future visits - user has successfully found a peer
+        speedRunScanning = true
+        
         DispatchQueue.main.async {
             self.tableView.reloadData()
         }
@@ -362,6 +432,38 @@ extension DeviceScannerViewController: MCNearbyServiceBrowserDelegate {
         connectedPeers = connectedPeers.filter { (peer) -> Bool in peer != peerID }
         DispatchQueue.main.async {
             self.tableView.reloadData()
+        }
+    }
+    
+    public func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
+        print("Browser failed to start browsing: \(error.localizedDescription)")
+        
+        // Reset speed run mode and set error state when scanning fails
+        speedRunScanning = false
+        hasScanningError = true
+        
+        DispatchQueue.main.async {
+            self.stopScanning()
+            
+            // Show error alert to user
+            let alert = UIAlertController(
+                title: NSLocalizedString("Scanning Error", comment: ""),
+                message: NSLocalizedString("Unable to scan for nearby devices. Please check your network settings and try again.", comment: ""),
+                preferredStyle: .alert
+            )
+            
+            alert.addAction(UIAlertAction(
+                title: NSLocalizedString("OK", comment: ""),
+                style: .default,
+                handler: nil
+            ))
+            
+            self.present(alert, animated: true) {
+                // Reload table after scanning error alert is presented
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                }
+            }
         }
     }
 }
