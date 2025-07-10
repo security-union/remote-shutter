@@ -219,8 +219,10 @@ public class DeviceScannerViewController: UIViewController {
             DispatchQueue.main.async {
                 switch state {
                 case .waiting(let error):
+                    print("Network browser waiting with error: \(error)")
                     if case .dns(let dnsError) = error {
                         let dnsCode = Int(dnsError)
+                        print("DNS error code: \(dnsCode)")
                         if dnsCode == Int(kDNSServiceErr_PolicyDenied) {
                             // No local network access - reset speed run mode and set error state
                             self?.speedRunScanning = false
@@ -235,18 +237,20 @@ public class DeviceScannerViewController: UIViewController {
                     self?.hasScanningError = false
                     self?.startActualScanning()
                 case .ready:
+                    print("Network browser ready")
                     // Network access is available - clear error state
                     self?.hasLocalNetworkAccess = true
                     self?.hasScanningError = false
                     self?.startActualScanning()
                 case .failed(let error):
                     print("Network browser failed: \(error)")
-                    // Reset speed run mode on network errors
+                    // Permission denied - likely local network access denied
                     self?.speedRunScanning = false
-                    // Try to start scanning anyway
-                    self?.hasLocalNetworkAccess = true
-                    self?.startActualScanning()
+                    self?.hasLocalNetworkAccess = false
+                    self?.hasScanningError = true
+                    self?.showLocalNetworkAccessDeniedAlert()
                 default:
+                    print("Network browser state: \(state)")
                     break
                 }
             }
