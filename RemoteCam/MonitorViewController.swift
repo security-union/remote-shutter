@@ -29,6 +29,23 @@ func setFlashMode(ctrl: Weak<MonitorViewController>, flashMode: AVCaptureDevice.
     }
 }
 
+func setTorchMode(ctrl: Weak<MonitorViewController>, torchMode: AVCaptureDevice.TorchMode?) {
+    if let t = torchMode {
+        switch t {
+        case .off:
+            ctrl.value?.torchStatus.text = "Off"
+        case .on:
+            ctrl.value?.torchStatus.text = "On"
+        case .auto:
+            ctrl.value?.torchStatus.text = "Auto"
+        @unknown default:
+            ctrl.value?.torchStatus.text = "Unknown"
+        }
+    } else {
+        ctrl.value?.torchStatus.text = "None"
+    }
+}
+
 /**
 Monitor actor has a reference to the session actor and to the monitorViewController, it acts as the connection between the model and the controller from an MVC perspective.
 */
@@ -81,6 +98,20 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     }
                 }
 
+            case let torch as RemoteCmd.ToggleTorchResp:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    if let ctrl = ctrl {
+                        setTorchMode(ctrl: ctrl, torchMode: torch.torchMode)
+                    }
+                }
+                
+            case let torchSet as RemoteCmd.SetTorchResp:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    if let ctrl = ctrl {
+                        setTorchMode(ctrl: ctrl, torchMode: torchSet.torchMode)
+                    }
+                }
+
             case let f as RemoteCmd.OnFrame:
                 if let cgImage = UIImage(data: f.data) {
                     OperationQueue.main.addOperation {[weak ctrl] in
@@ -101,6 +132,14 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                             ctrl.value?.flashButton.isHidden = false
                         } else {
                             ctrl.value?.flashButton.isHidden = true
+                        }
+                        
+                        // Update torch mode display - only show in video mode if available
+                        if cameraInfo.hasTorch {
+                            // Torch button visibility depends on current mode
+                            // It will be managed by configurePhotoMode/configureVideoMode
+                        } else {
+                            ctrl.value?.torchButton.isHidden = true
                         }
                         
                         // Update lens controls
@@ -193,6 +232,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     @IBOutlet weak var flashStatus: UILabel!
 
+    @IBOutlet weak var torchStatus: UILabel!
+
     @IBOutlet weak var imageView: UIImageView!
 
     @IBOutlet weak var takePicture: UIButton!
@@ -208,6 +249,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     @IBOutlet weak var backButton: UIButton!
 
     @IBOutlet weak var flashButton: UIButton!
+
+    @IBOutlet weak var torchButton: UIButton!
 
     @IBOutlet weak var settingsButton: UIButton!
 
@@ -313,6 +356,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = true
         flashButton.isHidden = false
         flashStatus.isHidden = false
+        torchButton.isEnabled = false
+        torchButton.isHidden = true
+        torchStatus.isHidden = true
         timerSlider.isEnabled = true
         settingsButton.isEnabled = true
         segmentedControl.isEnabled = true
@@ -338,6 +384,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = false
         flashButton.isHidden = true
         flashStatus.isHidden = true
+        torchButton.isEnabled = true
+        torchButton.isHidden = false
+        torchStatus.isHidden = false
         timerSlider.isEnabled = true
         settingsButton.isEnabled = true
         segmentedControl.isEnabled = true
@@ -363,6 +412,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = false
         flashButton.isHidden = true
         flashStatus.isHidden = true
+        torchButton.isEnabled = false
+        torchButton.isHidden = true
+        torchStatus.isHidden = true
         timerSlider.isEnabled = false
         settingsButton.isEnabled = false
         segmentedControl.isEnabled = false
@@ -392,6 +444,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     @IBAction func toggleFlash(sender: UIButton) {
         session ! UICmd.ToggleFlash()
+    }
+    
+    @IBAction func toggleTorch(sender: UIButton) {
+        session ! UICmd.ToggleTorch()
     }
     
     @objc func onProgrammaticZoomSliderChange(sender: UISlider) {

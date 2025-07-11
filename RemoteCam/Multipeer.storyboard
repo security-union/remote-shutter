@@ -488,6 +488,25 @@
                                             <action selector="toggleFlashWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="Tpx-iM-Cq0"/>
                                         </connections>
                                     </button>
+                                    <button opaque="NO" contentMode="redraw" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="torch-button" userLabel="torch" hidden="YES">
+                                        <rect key="frame" x="253" y="92" width="73" height="73"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="73" id="torch-width"/>
+                                            <constraint firstAttribute="height" constant="73" id="torch-height"/>
+                                        </constraints>
+                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
+                                        <inset key="contentEdgeInsets" minX="8" minY="4" maxX="10" maxY="10"/>
+                                        <state key="normal" image="flash">
+                                            <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                            <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <state key="highlighted">
+                                            <color key="titleColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="toggleTorchWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="torch-action"/>
+                                        </connections>
+                                    </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="EGp-xW-Dem" userLabel="gallery">
                                         <rect key="frame" x="33" y="94" width="73" height="73"/>
                                         <constraints>
@@ -511,6 +530,16 @@
                                         <constraints>
                                             <constraint firstAttribute="width" constant="50" id="5XK-na-3zc"/>
                                             <constraint firstAttribute="height" constant="21" id="F41-Qq-WkH"/>
+                                        </constraints>
+                                        <fontDescription key="fontDescription" type="system" pointSize="20"/>
+                                        <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="--" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="torch-status" userLabel="torchStatus" hidden="YES">
+                                        <rect key="frame" x="286" y="138" width="50" height="21"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="50" id="torch-status-width"/>
+                                            <constraint firstAttribute="height" constant="21" id="torch-status-height"/>
                                         </constraints>
                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                         <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
@@ -542,6 +571,10 @@
                                     <constraint firstItem="k0B-Hz-dNJ" firstAttribute="trailing" secondItem="f0H-Je-i1g" secondAttribute="trailing" id="sBG-d1-2IW"/>
                                     <constraint firstAttribute="bottom" secondItem="25V-jV-Dep" secondAttribute="bottom" constant="37" id="uaV-15-QbZ"/>
                                     <constraint firstAttribute="width" constant="356" id="yAT-cK-0SP"/>
+                                    <constraint firstItem="torch-button" firstAttribute="centerX" secondItem="25V-jV-Dep" secondAttribute="centerX" id="torch-center-x"/>
+                                    <constraint firstItem="torch-button" firstAttribute="top" secondItem="25V-jV-Dep" secondAttribute="bottom" constant="10" id="torch-center-y"/>
+                                    <constraint firstItem="torch-status" firstAttribute="centerX" secondItem="wPR-EO-JjB" secondAttribute="centerX" id="torch-status-center-x"/>
+                                    <constraint firstItem="torch-status" firstAttribute="top" secondItem="wPR-EO-JjB" secondAttribute="bottom" constant="5" id="torch-status-center-y"/>
                                 </constraints>
                             </view>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="3wP-23-M5p" userLabel="Settings">
@@ -716,6 +749,8 @@
                         <outlet property="controlsView" destination="f0H-Je-i1g" id="CEz-WY-ow9"/>
                         <outlet property="flashButton" destination="25V-jV-Dep" id="ZOx-qN-GCK"/>
                         <outlet property="flashStatus" destination="wPR-EO-JjB" id="vAv-15-3KF"/>
+                        <outlet property="torchButton" destination="torch-button" id="torch-button-outlet"/>
+                        <outlet property="torchStatus" destination="torch-status" id="torch-status-outlet"/>
                         <outlet property="galleryButton" destination="EGp-xW-Dem" id="1Ll-Vt-LCd"/>
                         <outlet property="imageView" destination="rc6-hX-T3o" id="Db7-D8-rXh"/>
                         <outlet property="recordingView" destination="gfL-ja-qQ8" id="6ev-Bx-saJ"/>
