@@ -18,4 +18,12 @@
     return @"RemoveAdsAndEnableVideo";
 }
 
++(NSString *)EnableTorch {
+    return @"EnableTorch";
+}
+
++(NSString *)EnableVideoOnly {
+    return @"EnableVideoOnly";
+}
+
 @end

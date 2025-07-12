@@ -52,7 +52,7 @@ extension RemoteCamSession {
             }
         }
     }
-
+    
     func cameraTakingPic(peer: MCPeerID,
                          ctrl: CameraViewController,
                          lobby: Weak<DeviceScannerViewController>,
@@ -182,6 +182,27 @@ extension RemoteCamSession {
                     resp = RemoteCmd.ToggleFlashResp(flashMode: flashMode, error: nil)
                 } else if let failure = result as? Failure {
                     resp = RemoteCmd.ToggleFlashResp(flashMode: nil, error: failure.error)
+                }
+                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
+                
+            // MARK: - Torch Command Handling
+            case is RemoteCmd.ToggleTorch:
+                let result = ctrl.toggleTorch()
+                var resp: Message?
+                if let torchMode = result.toOptional() {
+                    resp = RemoteCmd.ToggleTorchResp(torchMode: torchMode, error: nil)
+                } else if let failure = result as? Failure {
+                    resp = RemoteCmd.ToggleTorchResp(torchMode: nil, error: failure.error)
+                }
+                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
+                
+            case let torchCmd as RemoteCmd.SetTorch:
+                let result = ctrl.setTorchMode(mode: torchCmd.torchMode)
+                var resp: Message?
+                if let torchMode = result.toOptional() {
+                    resp = RemoteCmd.SetTorchResp(torchMode: torchMode, error: nil)
+                } else if let failure = result as? Failure {
+                    resp = RemoteCmd.SetTorchResp(torchMode: nil, error: failure.error)
                 }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
                 
