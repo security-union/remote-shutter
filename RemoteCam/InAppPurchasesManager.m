@@ -111,8 +111,17 @@ static InAppPurchasesManager *_manager = nil;
     return didBuyVideoOnly;
 };
 
+- (BOOL)didUserBuyProBundle {
+    return [self didUserBuyRemoveiAdsFeatureAndEnableVideo];
+};
+
 - (void)setDidUserBuyRemoveiAdsAndEnableVideoFeatures:(BOOL)feature {
     if (feature) {
+        // Pro bundle unlocks all features
+        [self setDidUserBuyRemoveiAdsFeatures:TRUE];
+        [self setDidUserBuyEnableTorchFeature:TRUE];
+        [self setDidUserBuyEnableVideoOnlyFeature:TRUE];
+        
         [[NSNotificationCenter defaultCenter] postNotificationName:Constants.RemoveAdsAndEnableVideo
                                                             object:nil];
     }

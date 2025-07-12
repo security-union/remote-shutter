@@ -10,6 +10,7 @@ import UIKit
 import Theater
 import AVFoundation
 import Photos
+import StoreKit
 
 /**
 Default fps, it would be neat if we would adjust this based on network conditions.

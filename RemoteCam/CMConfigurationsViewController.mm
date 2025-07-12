@@ -2,7 +2,7 @@
 #import "InAppPurchasesManager.h"
 
 #define kiAdsFeatureInstalled NSLocalizedString(@"Ads Removed",nil);
-#define kiAdsRemovedANdVideoEnabledInstalled NSLocalizedString(@"Ads Removed and video enabled",nil);
+#define kiAdsRemovedANdVideoEnabledInstalled NSLocalizedString(@"Pro: All features enabled",nil);
 #define SendMediaToRemoteDefault @"sendMediaToRemote"
 
 #import "AcknowledgmentsViewController.h"
@@ -250,7 +250,8 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
         NSArray *products = [manager products];
-        if ([manager didUserBuyRemoveiAdsFeature]) {
+    
+        if ([manager didUserBuyProBundle] || [manager didUserBuyRemoveiAdsFeature]) {
             self.disableiAds.textLabel.text = kiAdsFeatureInstalled;
             self.disableiAds.detailTextLabel.text = @"";
             [self.disableiAds setNeedsDisplay];
@@ -290,8 +291,10 @@
         InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
         NSArray *products = [manager products];
         UITableViewCell * enableTorchFeature = self.enableTorchFeature;
-        if ([manager didUserBuyEnableTorchFeature]) {
-            enableTorchFeature.textLabel.text = @"Torch Feature Enabled";
+        
+        
+        if ([manager didUserBuyProBundle] || [manager didUserBuyEnableTorchFeature]) {
+            enableTorchFeature.textLabel.text = NSLocalizedString(@"Torch Feature Enabled", nil);
             enableTorchFeature.detailTextLabel.text = @"";
         } else if ([products count] > 0) {
             SKProduct *enableTorchFeatureProduct = [manager productWithIdentifier:EnableTorchFeatureIdentifier];
@@ -311,8 +314,9 @@
         InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
         NSArray *products = [manager products];
         UITableViewCell * enableVideoOnlyFeature = self.enableVideoOnlyFeature;
-        if ([manager didUserBuyEnableVideoOnlyFeature]) {
-            enableVideoOnlyFeature.textLabel.text = @"Video Only Feature Enabled";
+        
+        if ([manager didUserBuyProBundle] || [manager didUserBuyEnableVideoOnlyFeature]) {
+            enableVideoOnlyFeature.textLabel.text = @"Video Feature Enabled";
             enableVideoOnlyFeature.detailTextLabel.text = @"";
         } else if ([products count] > 0) {
             SKProduct *enableVideoOnlyFeatureProduct = [manager productWithIdentifier:EnableVideoOnlyFeatureIdentifier];

@@ -52,7 +52,7 @@ extension RemoteCamSession {
             }
         }
     }
-
+    
     func cameraTakingPic(peer: MCPeerID,
                          ctrl: CameraViewController,
                          lobby: Weak<DeviceScannerViewController>,

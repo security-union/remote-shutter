@@ -44,6 +44,8 @@ typedef void(^InAppPurchasesManagerHandler)(InAppPurchasesManager *purchasesMana
 
 - (BOOL)didUserBuyEnableVideoOnlyFeature;
 
+- (BOOL)didUserBuyProBundle;
+
 - (void)setDidUserBuyRemoveiAdsAndEnableVideoFeatures:(BOOL)feature;
 
 - (void)setDidUserBuyEnableTorchFeature:(BOOL)feature;

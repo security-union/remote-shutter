@@ -10,9 +10,40 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 import Photos
+import StoreKit
 
 extension RemoteCamSession {
 
+    // MARK: - Monitor-side Picture Saving (with review prompt)
+    func savePictureOnMonitor(_ imageData: Data) {
+        PHPhotoLibrary.requestAuthorization { status in
+            guard status == .authorized else {
+                return
+            }
+            PHPhotoLibrary.shared().performChanges({
+                let creationRequest = PHAssetCreationRequest.forAsset()
+                creationRequest.addResource(with: .photo, data: imageData, options: nil)
+            }) { (success: Bool, _: Error?) in
+                if success {
+                    print("Saved photo on monitor!")
+                    // Increment media capture counter for review prompt (monitor side only)
+                    var count = UserDefaults.standard.integer(forKey: mediaCaptureCounterKey)
+                    count += 1
+                    UserDefaults.standard.set(count, forKey: mediaCaptureCounterKey)
+                    
+                    // Show review prompt after 10 captures
+                    if count >= 10 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            showReviewPromptIfAppropriate()
+                        }
+                    }
+                } else {
+                    print("Failed to save photo on monitor!")
+                }
+            }
+        }
+    }
+    
     func monitorPhotoMode(monitor: ActorRef,
                  peer: MCPeerID,
                  lobby: Weak<DeviceScannerViewController>) -> Receive {
@@ -149,7 +180,7 @@ extension RemoteCamSession {
 
             case let picResp as RemoteCmd.TakePicResp:
                 if let imageData = picResp.pic {
-                    savePicture(imageData)
+                    savePictureOnMonitor(imageData)
                     ^{alert?.dismiss(animated: true)}
                 } else if let error = picResp.error {
                     ^{alert?.dismiss(animated: true) { () in

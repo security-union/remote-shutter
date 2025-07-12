@@ -55,13 +55,13 @@
                                             <action selector="goToConnectViewController" destination="sPQ-fg-kee" eventType="touchUpInside" id="kMW-lH-OsW"/>
                                         </connections>
                                     </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vD0-lr-f8K">
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vD0-lr-f8K" userLabel="Buy Pro $9.95">
                                         <rect key="frame" x="0.0" y="136" width="300" height="60"/>
                                         <constraints>
                                             <constraint firstAttribute="width" constant="300" id="2qZ-3M-5bc"/>
                                             <constraint firstAttribute="height" constant="60" id="McT-U0-rS9" userLabel="height = 48"/>
                                         </constraints>
-                                        <state key="normal" title="Enable Video $4.99">
+                                        <state key="normal" title="Pro: All features $9.95">
                                             <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         </state>
                                         <connections>
@@ -140,10 +140,10 @@
                         </barButtonItem>
                     </navigationItem>
                     <connections>
+                        <outlet property="buyProButton" destination="vD0-lr-f8K" id="GbB-GG-6iK"/>
                         <outlet property="continueButton" destination="06U-aj-5Z8" id="4Dt-gQ-E3Y"/>
                         <outlet property="disableAdsButton" destination="JXd-Ji-86C" id="Ecj-a5-JFd"/>
                         <outlet property="enableTorchButton" destination="xT8-Zz-9fK" id="9qZ-7M-8tH"/>
-                        <outlet property="enableVideoButton" destination="vD0-lr-f8K" id="Or7-Y9-eBH"/>
                         <outlet property="enableVideoOnlyButton" destination="mV4-Hf-8pL" id="Bp9-Qr-LdS"/>
                         <outlet property="restorePurchaseButton" destination="ESz-3y-esL" id="3Hj-95-A37"/>
                         <outlet property="reviewAppButton" destination="Nll-te-ydA" id="H7s-UR-ozG"/>
