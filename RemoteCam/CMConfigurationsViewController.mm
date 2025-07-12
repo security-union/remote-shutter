@@ -1,8 +1,10 @@
 #import "CMConfigurationsViewController.h"
 #import "InAppPurchasesManager.h"
 
-#define kiAdsFeatureInstalled NSLocalizedString(@"Ads Removed",nil);
-#define kiAdsRemovedANdVideoEnabledInstalled NSLocalizedString(@"Pro: All features enabled",nil);
+#define kiAdsFeatureInstalled NSLocalizedString(@"✅ Ads Removed",nil);
+#define kiAdsRemovedANdVideoEnabledInstalled NSLocalizedString(@"✅ Pro: All features enabled",nil);
+#define kTorchFeatureInstalled NSLocalizedString(@"✅ Torch Feature Enabled",nil);
+#define kVideoFeatureEnabled NSLocalizedString(@"✅ Video Feature Enabled",nil);
 #define SendMediaToRemoteDefault @"sendMediaToRemote"
 
 #import "AcknowledgmentsViewController.h"
@@ -93,7 +95,7 @@
     UITableViewCell *cell = [tableView cellForRowAtIndexPath:indexPath];
     InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
     if ([cell isEqual:self.disableiAds]) {
-        if ([manager didUserBuyRemoveiAdsFeature])
+        if ([manager hasAdRemovalFeature])
             return;
         if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
             [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
@@ -115,14 +117,14 @@
             }];
         }
     } else if ([cell isEqual:self.disableAdsAndEnableVideoRecording]) {
-        if ([manager didUserBuyRemoveiAdsFeatureAndEnableVideo])
+        if ([manager hasProMode])
             return;
         if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
             [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
-                if (!error) [self fillRestoreRemoveAdsAndEnableVideoRow];
+                if (!error) [self fillRestoreProModeAquiredRow];
             }];
         } else {
-            [manager userWantsToBuyFeature:RemoveAdsAndEnableVideoIdentifier withHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+            [manager userWantsToBuyFeature:ProModeAquiredIdentifier withHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
                 if (error) {
                     UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"InApp Purchases:", nil) message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
                     [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"Ok", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction *_Nonnull action) {
@@ -131,13 +133,13 @@
 
                     [self presentViewController:alert animated:TRUE completion:NULL];
                 } else {
-                    [self fillRestoreRemoveAdsAndEnableVideoRow];
-                    [[NSNotificationCenter defaultCenter] postNotificationName:Constants.RemoveAdsAndEnableVideo object:nil];
+                    [self fillRestoreProModeAquiredRow];
+                    [[NSNotificationCenter defaultCenter] postNotificationName:Constants.ProModeAquired object:nil];
                 }
             }];
         }
     } else if ([cell isEqual:self.enableTorchFeature]) {
-        if ([manager didUserBuyEnableTorchFeature])
+        if ([manager hasTorchFeature])
             return;
         if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
             [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
@@ -155,7 +157,7 @@
             }];
         }
     } else if ([cell isEqual:self.enableVideoOnlyFeature]) {
-        if ([manager didUserBuyEnableVideoOnlyFeature])
+        if ([manager hasVideoRecordingFeature])
             return;
         if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
             [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
@@ -204,11 +206,11 @@
         InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
         NSArray *products = [manager products];
         if ([products count] > 0) {
-            [self fillRestoreRemoveAdsAndEnableVideoRow];
+            [self fillRestoreProModeAquiredRow];
         } else {
             [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
                 if (!error) {
-                    [self fillRestoreRemoveAdsAndEnableVideoRow];
+                    [self fillRestoreProModeAquiredRow];
                 }
             }];
         }
@@ -251,7 +253,7 @@
         InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
         NSArray *products = [manager products];
     
-        if ([manager didUserBuyProBundle] || [manager didUserBuyRemoveiAdsFeature]) {
+        if ([manager hasAdRemovalFeature]) {
             self.disableiAds.textLabel.text = kiAdsFeatureInstalled;
             self.disableiAds.detailTextLabel.text = @"";
             [self.disableiAds setNeedsDisplay];
@@ -265,16 +267,16 @@
     });
 }
     
-- (void)fillRestoreRemoveAdsAndEnableVideoRow {
+- (void)fillRestoreProModeAquiredRow {
     dispatch_async(dispatch_get_main_queue(), ^{
         InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
         NSArray *products = [manager products];
         UITableViewCell * disableAdsAndEnableVideo = self.disableAdsAndEnableVideoRecording;
-        if ([manager didUserBuyRemoveiAdsFeatureAndEnableVideo]) {
+        if ([manager hasProMode]) {
             disableAdsAndEnableVideo.textLabel.text = kiAdsRemovedANdVideoEnabledInstalled;
             disableAdsAndEnableVideo.detailTextLabel.text = @"";
         } else if ([products count] > 0) {
-            SKProduct *disableAdsAndEnableVideoProduct = [manager productWithIdentifier:RemoveAdsAndEnableVideoIdentifier];
+            SKProduct *disableAdsAndEnableVideoProduct = [manager productWithIdentifier:ProModeAquiredIdentifier];
             if (disableAdsAndEnableVideoProduct == nil) {
                 return;
             }
@@ -293,8 +295,8 @@
         UITableViewCell * enableTorchFeature = self.enableTorchFeature;
         
         
-        if ([manager didUserBuyProBundle] || [manager didUserBuyEnableTorchFeature]) {
-            enableTorchFeature.textLabel.text = NSLocalizedString(@"Torch Feature Enabled", nil);
+        if ([manager hasTorchFeature]) {
+            enableTorchFeature.textLabel.text = kTorchFeatureInstalled;
             enableTorchFeature.detailTextLabel.text = @"";
         } else if ([products count] > 0) {
             SKProduct *enableTorchFeatureProduct = [manager productWithIdentifier:EnableTorchFeatureIdentifier];
@@ -315,8 +317,8 @@
         NSArray *products = [manager products];
         UITableViewCell * enableVideoOnlyFeature = self.enableVideoOnlyFeature;
         
-        if ([manager didUserBuyProBundle] || [manager didUserBuyEnableVideoOnlyFeature]) {
-            enableVideoOnlyFeature.textLabel.text = @"Video Feature Enabled";
+        if ([manager hasVideoRecordingFeature]) {
+            enableVideoOnlyFeature.textLabel.text = kVideoFeatureEnabled;
             enableVideoOnlyFeature.detailTextLabel.text = @"";
         } else if ([products count] > 0) {
             SKProduct *enableVideoOnlyFeatureProduct = [manager productWithIdentifier:EnableVideoOnlyFeatureIdentifier];
@@ -370,7 +372,7 @@
     [[InAppPurchasesManager sharedManager] restorePurchasesWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
         if (!error) {
             [self fillRestoreiAdsRow];
-            [self fillRestoreRemoveAdsAndEnableVideoRow];
+            [self fillRestoreProModeAquiredRow];
             [self fillRestoreEnableTorchFeatureRow];
             [self fillRestoreEnableVideoOnlyFeatureRow];
         }

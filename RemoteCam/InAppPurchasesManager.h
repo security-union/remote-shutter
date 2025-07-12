@@ -36,9 +36,22 @@ typedef void(^InAppPurchasesManagerHandler)(InAppPurchasesManager *purchasesMana
 
 - (SKProduct *)productWithIdentifier:(NSString *)identifier;
 
+#pragma mark - Centralized Feature Availability (Recommended API)
+// These methods check both Pro bundle and individual purchases
+// Use these instead of checking individual purchase methods directly
+
+- (BOOL)hasAdRemovalFeature;
+- (BOOL)hasVideoRecordingFeature;
+- (BOOL)hasTorchFeature;
+- (BOOL)hasProMode;
+
+#pragma mark - Individual Purchase Status (Internal Use)
+// These methods check specific purchases only
+// Use centralized feature methods above instead
+
 - (BOOL)didUserBuyRemoveiAdsFeature;
 
-- (BOOL)didUserBuyRemoveiAdsFeatureAndEnableVideo;
+- (BOOL)didUserBuyProMode;
 
 - (BOOL)didUserBuyEnableTorchFeature;
 
@@ -46,7 +59,7 @@ typedef void(^InAppPurchasesManagerHandler)(InAppPurchasesManager *purchasesMana
 
 - (BOOL)didUserBuyProBundle;
 
-- (void)setDidUserBuyRemoveiAdsAndEnableVideoFeatures:(BOOL)feature;
+- (void)setDidYserBuyProMode:(BOOL)feature;
 
 - (void)setDidUserBuyEnableTorchFeature:(BOOL)feature;
 

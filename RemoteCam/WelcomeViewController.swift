@@ -35,12 +35,66 @@ class WelcomeViewController: UIViewController {
            sSelf.productsArray = products
            sSelf.updateButtonTitlesAndPrices()
         }
+        
+        // Listen to purchase notifications to keep UI in sync
+        setupPurchaseNotifications()
     }
     
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = false
+        
+        // Always refresh UI when returning to this screen (e.g., from settings)
         self.updateButtonTitlesAndPrices()
+        self.hidePurchased()
+    }
+    
+    deinit {
+        // Clean up notification observers
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - Purchase Notification Setup
+    
+    private func setupPurchaseNotifications() {
+        let notificationCenter = NotificationCenter.default
+        
+        // Listen for all purchase-related notifications
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(purchaseStatusChanged),
+            name: NSNotification.Name(rawValue: Constants.removeAds()),
+            object: nil
+        )
+        
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(purchaseStatusChanged),
+            name: NSNotification.Name(rawValue: Constants.proModeAquired()),
+            object: nil
+        )
+        
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(purchaseStatusChanged),
+            name: NSNotification.Name(rawValue: Constants.enableTorch()),
+            object: nil
+        )
+        
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(purchaseStatusChanged),
+            name: NSNotification.Name(rawValue: Constants.enableVideoOnly()),
+            object: nil
+        )
+    }
+    
+    @objc private func purchaseStatusChanged() {
+        // Refresh UI on main thread when any purchase status changes
+        DispatchQueue.main.async { [weak self] in
+            self?.hidePurchased()
+            self?.updateButtonTitlesAndPrices()
+        }
     }
     
     override var supportedInterfaceOrientations : UIInterfaceOrientationMask {
@@ -197,13 +251,14 @@ class WelcomeViewController: UIViewController {
     }
     
     private func hidePurchased() {
-        let hasProBundle = UserDefaults.standard.bool(forKey: didBuyRemoveAdsAndEnableVideo)
-        let disabledAds = UserDefaults.standard.bool(forKey: didBuyRemoveiAdsFeature)
-        let enabledTorch = UserDefaults.standard.bool(forKey: didBuyEnableTorchFeature)
-        let enabledVideoOnly = UserDefaults.standard.bool(forKey: didBuyEnableVideoOnlyFeature)
+        let manager = InAppPurchasesManager.shared()!;
+        let hasProMode = manager.hasProMode()
+        let hasAdRemoval = manager.hasAdRemovalFeature()
+        let hasTorch = manager.hasTorchFeature()
+        let hasVideo = manager.hasVideoRecordingFeature()
         
         // If user has Pro bundle (Product 06), hide all other purchase buttons
-        if hasProBundle {
+        if hasProMode {
             disableAdsButton.isHidden = true
             enableTorchButton.isHidden = true
             enableVideoOnlyButton.isHidden = true
@@ -216,20 +271,20 @@ class WelcomeViewController: UIViewController {
         }
         
         // Individual feature hiding
-        if disabledAds {
+        if hasAdRemoval {
             disableAdsButton.isHidden = true
         }
         
-        if enabledTorch {
+        if hasTorch {
             enableTorchButton.isHidden = true
         }
         
-        if enabledVideoOnly {
+        if hasVideo {
             enableVideoOnlyButton.isHidden = true
         }
         
         // Show thank you message and review button if user bought ANY feature
-        if disabledAds || enabledTorch || enabledVideoOnly || hasProBundle {
+        if hasAdRemoval || hasTorch || hasVideo || hasProMode {
             welcomeDescLabel.text = "Thanks for your support! We are working on new features for you!"
             showReviewButtonIfAppropriate()
         } else {

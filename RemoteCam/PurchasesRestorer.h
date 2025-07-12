@@ -2,14 +2,14 @@
 #import <StoreKit/StoreKit.h>
 
 static NSString *const didBuyRemoveiAdsFeature = @"didBuyRemoveiAdsFeature";
-static NSString *const didBuyRemoveAdsAndEnableVideo = @"didBuyRemoveAdsAndEnableVideo";
+static NSString *const didBuyProMode = @"didBuyProMode";
 static NSString *const didBuyEnableTorchFeature = @"didBuyEnableTorchFeature";
 static NSString *const didBuyEnableVideoOnlyFeature = @"didBuyEnableVideoOnlyFeature";
 static NSString *const didBuyFlashAndFrontCamera = @"didBuyFlashAndFrontCamera";
 static NSString *const DidRestoredPurchasesInDevice = @"DidRestoredPurchasesInDevice";
 
 static NSString *const RemoveiAdsFeatureIdentifier = @"05";
-static NSString *const RemoveAdsAndEnableVideoIdentifier = @"06";
+static NSString *const ProModeAquiredIdentifier = @"06";
 static NSString *const EnableTorchFeatureIdentifier = @"07";
 static NSString *const EnableVideoOnlyFeatureIdentifier = @"08";
 

@@ -456,7 +456,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     }
     
     @IBAction func toggleTorch(sender: UIButton) {
-        if InAppPurchasesManager.shared().didUserBuyEnableTorchFeature() {
+        if InAppPurchasesManager.shared().hasTorchFeature() {
             session ! UICmd.ToggleTorch()
         } else {
             showSettings(sender: settingsButton)
@@ -664,7 +664,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     
     @objc private func onProgrammaticTorchButtonTapped() {
-        if InAppPurchasesManager.shared().didUserBuyEnableTorchFeature() {
+        if InAppPurchasesManager.shared().hasTorchFeature() {
             session ! UICmd.ToggleTorch()
         } else {
             showSettings(sender: settingsButton)
@@ -843,7 +843,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     }
 
     @objc func onSegmentedControlChanged(event: UIEvent) {
-        if InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeatureAndEnableVideo() || InAppPurchasesManager.shared().didUserBuyEnableVideoOnlyFeature() {
+        if InAppPurchasesManager.shared().hasVideoRecordingFeature() {
             var mode = RecordingMode.Photo
             switch segmentedControl.selectedSegmentIndex {
             case 0:
