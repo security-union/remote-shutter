@@ -1,0 +1,16 @@
+/* Local Network Permission - Spanish (Mexico) */
+"local_network_explanation_title" = "Conectar a Dispositivos Cercanos";
+
+"local_network_explanation_message" = "Remote Shutter permite que un dispositivo actúe como cámara mientras otro lo controla remotamente. Para descubrir y conectar estos dispositivos, la aplicación necesita acceso a la red local. Sin este permiso, Remote Shutter no puede funcionar.";
+
+"enable_local_network_access_title" = "Habilitar Acceso a Red Local";
+
+"enable_local_network_access_message" = "Para usar Remote Shutter, por favor habilita el acceso a red local en Configuración > Privacidad y Seguridad > Red Local. La aplicación no puede funcionar sin este permiso.";
+
+"Continue" = "Continuar";
+
+"Not Now" = "Ahora No";
+
+"Open Settings" = "Abrir Configuración";
+
+"Cancel" = "Cancelar"; 

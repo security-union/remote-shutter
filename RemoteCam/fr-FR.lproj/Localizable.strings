@@ -1,0 +1,16 @@
+/* Local Network Permission - French (France) */
+"local_network_explanation_title" = "Se Connecter aux Appareils Proches";
+
+"local_network_explanation_message" = "Remote Shutter permet à un appareil d'agir comme caméra tandis qu'un autre le contrôle à distance. Pour découvrir et connecter ces appareils, l'application a besoin de l'accès au réseau local. Sans cette autorisation, Remote Shutter ne peut pas fonctionner.";
+
+"enable_local_network_access_title" = "Activer l'Accès au Réseau Local";
+
+"enable_local_network_access_message" = "Pour utiliser Remote Shutter, veuillez activer l'accès au réseau local dans Réglages > Confidentialité et sécurité > Réseau local. L'application ne peut pas fonctionner sans cette autorisation.";
+
+"Continue" = "Continuer";
+
+"Not Now" = "Pas Maintenant";
+
+"Open Settings" = "Ouvrir les Réglages";
+
+"Cancel" = "Annuler"; 
