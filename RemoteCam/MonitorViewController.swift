@@ -33,16 +33,35 @@ func setTorchMode(ctrl: Weak<MonitorViewController>, torchMode: AVCaptureDevice.
     if let t = torchMode {
         switch t {
         case .off:
-            ctrl.value?.programmaticTorchLabel?.text = "Off"
+            if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate)  {
+                ctrl.value?.programmaticTorchButton?.setImage(torchOffImage, for: .normal)
+                ctrl.value?.programmaticTorchButton?.tintColor = UIColor(red: 78/255, green: 168/255, blue: 201/255, alpha: 1);
+                ctrl.value?.programmaticTorchButton?.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+            }
         case .on:
-            ctrl.value?.programmaticTorchLabel?.text = "On"
+            if let torchOnImage = UIImage(named: "torch_on")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate) {
+                ctrl.value?.programmaticTorchButton?.setImage(torchOnImage, for: .normal)
+                ctrl.value?.programmaticTorchButton?.tintColor = UIColor.white
+                ctrl.value?.programmaticTorchButton?.backgroundColor = UIColor(red: 78/255, green: 168/255, blue: 201/255, alpha: 0.6);
+            }
         case .auto:
-            ctrl.value?.programmaticTorchLabel?.text = "Auto"
+            if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate)  {
+                ctrl.value?.programmaticTorchButton?.setImage(torchOffImage, for: .normal)
+                ctrl.value?.programmaticTorchButton?.tintColor = UIColor.orange
+                ctrl.value?.programmaticTorchButton?.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+            }
         @unknown default:
-            ctrl.value?.programmaticTorchLabel?.text = "Unknown"
+            if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate) {
+                ctrl.value?.programmaticTorchButton?.setImage(torchOffImage, for: .normal)
+                ctrl.value?.programmaticTorchButton?.tintColor = UIColor.red
+                ctrl.value?.programmaticTorchButton?.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+            }
         }
     } else {
-        ctrl.value?.programmaticTorchLabel?.text = "None"
+        if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate)  {
+            ctrl.value?.programmaticTorchButton?.setImage(torchOffImage, for: .normal)
+            ctrl.value?.programmaticTorchButton?.tintColor = UIColor.white
+        }
     }
 }
 
@@ -251,7 +270,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     @IBOutlet weak var recordingView: UIImageView!
     
     // MARK: - Zoom and Lens Controls
-    @IBOutlet weak var zoomLabel: UILabel?
     @IBOutlet weak var lensSegmentedControl: UISegmentedControl?
     
     // Programmatic UI Controls
@@ -261,8 +279,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private var zoomControlsContainer: UIView!
     private var lensControlsContainer: UIView!
     private var programmaticToggleCameraButton: UIButton!
-    private var programmaticTorchButton: UIButton!
-    var programmaticTorchLabel: UILabel!
+    var programmaticTorchButton: UIButton!
     
     // Pinch Gesture for Zoom
     private var pinchGestureRecognizer: UIPinchGestureRecognizer!
@@ -312,6 +329,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         }
     }
 
+    override public func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+    }
+
     deinit {
         print("🔍 DEBUG: MonitorViewController deinit - \(ObjectIdentifier(self))")
         print("stop monitor")
@@ -347,9 +368,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = true
         flashButton.isHidden = false
         flashStatus.isHidden = false
-        programmaticTorchButton?.isEnabled = InAppPurchasesManager.shared().didUserBuyEnableTorchFeature()
+        programmaticTorchButton?.isEnabled = true
         programmaticTorchButton?.isHidden = false
-        programmaticTorchLabel?.isHidden = false
         timerSlider.isEnabled = true
         settingsButton.isEnabled = true
         segmentedControl.isEnabled = true
@@ -375,9 +395,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = false
         flashButton.isHidden = true
         flashStatus.isHidden = true
-        programmaticTorchButton?.isEnabled = InAppPurchasesManager.shared().didUserBuyEnableTorchFeature()
+        programmaticTorchButton?.isEnabled = true
         programmaticTorchButton?.isHidden = false
-        programmaticTorchLabel?.isHidden = false
         timerSlider.isEnabled = true
         settingsButton.isEnabled = true
         segmentedControl.isEnabled = true
@@ -405,7 +424,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashStatus.isHidden = true
         programmaticTorchButton?.isEnabled = false
         programmaticTorchButton?.isHidden = true
-        programmaticTorchLabel?.isHidden = true
         timerSlider.isEnabled = false
         settingsButton.isEnabled = false
         segmentedControl.isEnabled = false
@@ -613,39 +631,37 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private func setupProgrammaticTorchButton() {
         // Create torch button
         programmaticTorchButton = UIButton(type: .custom)
-        programmaticTorchButton.setImage(UIImage(named: "flash"), for: .normal)
+        
+        // Set initial image with template rendering mode
+        if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate) {
+            programmaticTorchButton.setImage(torchOffImage, for: .normal)
+        }
+        
+        if #available(iOS 15.0, *) {
+            var config = programmaticTorchButton.configuration ?? UIButton.Configuration.plain()
+            config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 6, bottom: 6, trailing: 6)
+
+            programmaticTorchButton.configuration = config
+            programmaticTorchButton.imageView?.contentMode = .scaleAspectFit
+        } else {
+            programmaticTorchButton.imageEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
+        }
+        
+        programmaticTorchButton.tintColor = UIColor(red: 78/255, green: 168/255, blue: 201/255, alpha: 1);
         programmaticTorchButton.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-        programmaticTorchButton.layer.cornerRadius = 25
+        programmaticTorchButton.layer.cornerRadius = 30
         programmaticTorchButton.clipsToBounds = true
         programmaticTorchButton.translatesAutoresizingMaskIntoConstraints = false
         programmaticTorchButton.addTarget(self, action: #selector(onProgrammaticTorchButtonTapped), for: .touchUpInside)
         view.addSubview(programmaticTorchButton)
-        
-        // Create torch label
-        programmaticTorchLabel = UILabel()
-        programmaticTorchLabel.text = "Off"
-        programmaticTorchLabel.textColor = .white
-        programmaticTorchLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
-        programmaticTorchLabel.textAlignment = .center
-        programmaticTorchLabel.backgroundColor = UIColor.clear
-        programmaticTorchLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(programmaticTorchLabel)
-        
-        // Setup constraints for torch button and label (positioned under timer slider on the left)
         NSLayoutConstraint.activate([
-            // Torch button - positioned below the timer slider on the left
-            programmaticTorchButton.topAnchor.constraint(equalTo: timerSlider.bottomAnchor, constant: 20),
-            programmaticTorchButton.centerXAnchor.constraint(equalTo: timerSlider.centerXAnchor),
-            programmaticTorchButton.widthAnchor.constraint(equalToConstant: 50),
-            programmaticTorchButton.heightAnchor.constraint(equalToConstant: 50),
-            
-            // Torch label - positioned below the torch button
-            programmaticTorchLabel.topAnchor.constraint(equalTo: programmaticTorchButton.bottomAnchor, constant: 4),
-            programmaticTorchLabel.centerXAnchor.constraint(equalTo: programmaticTorchButton.centerXAnchor),
-            programmaticTorchLabel.widthAnchor.constraint(equalToConstant: 60),
-            programmaticTorchLabel.heightAnchor.constraint(equalToConstant: 16)
+            programmaticTorchButton.bottomAnchor.constraint(equalTo: settingsButton.topAnchor, constant: -20),
+            programmaticTorchButton.centerXAnchor.constraint(equalTo: settingsButton.centerXAnchor),
+            programmaticTorchButton.widthAnchor.constraint(equalToConstant: 60),
+            programmaticTorchButton.heightAnchor.constraint(equalToConstant: 60)
         ])
     }
+    
     
     @objc private func onProgrammaticTorchButtonTapped() {
         if InAppPurchasesManager.shared().didUserBuyEnableTorchFeature() {
@@ -732,7 +748,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
             zoomControlsContainer.heightAnchor.constraint(equalToConstant: 80),
             
             // Zoom label - positioned below the settings button
-            programmaticZoomLabel.topAnchor.constraint(equalTo: settingsButton.bottomAnchor, constant: 10),
+            programmaticZoomLabel.topAnchor.constraint(equalTo: settingsButton.bottomAnchor, constant: 20),
             programmaticZoomLabel.centerXAnchor.constraint(equalTo: settingsButton.centerXAnchor),
             programmaticZoomLabel.widthAnchor.constraint(equalToConstant: 60),
             programmaticZoomLabel.heightAnchor.constraint(equalToConstant: 30),
@@ -773,7 +789,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     private func updateZoomLabel() {
         let zoomText = String(format: "%.1fx", currentZoomFactor)
-        zoomLabel?.text = zoomText
         programmaticZoomLabel.text = zoomText
     }
     

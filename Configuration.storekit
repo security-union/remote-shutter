@@ -15,7 +15,7 @@
   ],
   "products" : [
     {
-      "displayPrice" : "4.99",
+      "displayPrice" : "3.99",
       "familyShareable" : false,
       "internalID" : "E468C833",
       "localizations" : [
@@ -41,7 +41,7 @@
         }
       ],
       "productID" : "06",
-      "referenceName" : "Pro: All features forever",
+      "referenceName" : "Pro: All features",
       "type" : "NonConsumable"
     },
     {
