@@ -276,6 +276,19 @@ public class UICmd {
         }
     }
 
+    @objc(_TtCC10ActorsDemo5UICmd11ToggleTorch)public class ToggleTorch: Actor.Message, NSCoding {
+        public func encode(with aCoder: NSCoder) {
+        }
+
+        public init() {
+            super.init(sender: nil)
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            super.init(sender: nil)
+        }
+    }
+
     @objc(_TtCC10ActorsDemo5UICmd15ToggleFlashResp)public class ToggleFlashResp: Actor.Message, NSCoding {
 
         public let error: Error?

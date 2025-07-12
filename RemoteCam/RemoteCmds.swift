@@ -302,11 +302,13 @@ public class RemoteCmd: Actor.Message {
     public struct CameraInfo: Codable {
         public let availableLenses: [CameraLensType]
         public let hasFlash: Bool
+        public let hasTorch: Bool
         public let zoomCapabilities: [Int: ZoomRange] // CameraLensType.rawValue -> ZoomRange
         
-        public init(availableLenses: [CameraLensType], hasFlash: Bool, zoomCapabilities: [CameraLensType: ZoomRange]) {
+        public init(availableLenses: [CameraLensType], hasFlash: Bool, hasTorch: Bool, zoomCapabilities: [CameraLensType: ZoomRange]) {
             self.availableLenses = availableLenses
             self.hasFlash = hasFlash
+            self.hasTorch = hasTorch
             self.zoomCapabilities = Dictionary(uniqueKeysWithValues: zoomCapabilities.map { key, value in (key.rawValue, value) })
         }
         
@@ -579,6 +581,102 @@ public class RemoteCmd: Actor.Message {
                 self.flashMode = nil
             } else {
                 self.flashMode = AVCaptureDevice.FlashMode(rawValue: aDecoder.decodeInteger(forKey: "flashMode"))!
+            }
+            super.init(sender: nil)
+        }
+    }
+
+    // MARK: - Torch Commands for Video Recording
+    @objc(_TtCC10ActorsDemo9RemoteCmd10ToggleTorch)public class ToggleTorch: Actor.Message, NSCoding {
+        public init() {
+            super.init(sender: nil)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            super.init(sender: nil)
+        }
+    }
+
+    @objc(_TtCC10ActorsDemo9RemoteCmd14ToggleTorchResp)public class ToggleTorchResp: Actor.Message, NSCoding {
+
+        public let error: Error?
+        public let torchMode: AVCaptureDevice.TorchMode?
+
+        public init(torchMode: AVCaptureDevice.TorchMode?, error: Error?) {
+            self.torchMode = torchMode
+            self.error = error
+            super.init(sender: nil)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+            if let t = self.torchMode {
+                aCoder.encode(t.rawValue, forKey: "torchMode")
+            }
+
+            if let e = self.error {
+                aCoder.encode(e, forKey: "error")
+            }
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            self.error = aDecoder.decodeObject(forKey: "error") as? Error
+            if let _ = self.error {
+                self.torchMode = nil
+            } else {
+                self.torchMode = AVCaptureDevice.TorchMode(rawValue: aDecoder.decodeInteger(forKey: "torchMode"))!
+            }
+            super.init(sender: nil)
+        }
+    }
+
+    @objc(_TtCC10ActorsDemo9RemoteCmd8SetTorch)public class SetTorch: Actor.Message, NSCoding {
+        public let torchMode: AVCaptureDevice.TorchMode
+        
+        public init(torchMode: AVCaptureDevice.TorchMode) {
+            self.torchMode = torchMode
+            super.init(sender: nil)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+            aCoder.encode(torchMode.rawValue, forKey: "torchMode")
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            self.torchMode = AVCaptureDevice.TorchMode(rawValue: aDecoder.decodeInteger(forKey: "torchMode"))!
+            super.init(sender: nil)
+        }
+    }
+
+    @objc(_TtCC10ActorsDemo9RemoteCmd12SetTorchResp)public class SetTorchResp: Actor.Message, NSCoding {
+
+        public let error: Error?
+        public let torchMode: AVCaptureDevice.TorchMode?
+
+        public init(torchMode: AVCaptureDevice.TorchMode?, error: Error?) {
+            self.torchMode = torchMode
+            self.error = error
+            super.init(sender: nil)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+            if let t = self.torchMode {
+                aCoder.encode(t.rawValue, forKey: "torchMode")
+            }
+
+            if let e = self.error {
+                aCoder.encode(e, forKey: "error")
+            }
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            self.error = aDecoder.decodeObject(forKey: "error") as? Error
+            if let _ = self.error {
+                self.torchMode = nil
+            } else {
+                self.torchMode = AVCaptureDevice.TorchMode(rawValue: aDecoder.decodeInteger(forKey: "torchMode"))!
             }
             super.init(sender: nil)
         }

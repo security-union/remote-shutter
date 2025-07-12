@@ -13,6 +13,8 @@ NS_ASSUME_NONNULL_BEGIN
 @interface Constants : NSObject
 + (NSString *)RemoveAds;
 + (NSString *)RemoveAdsAndEnableVideo; 
++ (NSString *)EnableTorch;
++ (NSString *)EnableVideoOnly;
 @end
 
 NS_ASSUME_NONNULL_END
