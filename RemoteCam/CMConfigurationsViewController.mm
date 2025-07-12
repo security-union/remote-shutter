@@ -21,7 +21,7 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadData:) name:@"AppDidBecomeActive" object:nil];
     [[[self navigationController] navigationBar] setPrefersLargeTitles: TRUE];
     [[[self navigationController] navigationBar] setHidden:FALSE];
-    self.tableViewCells = @[@[self.disableAdsAndEnableVideoRecording, self.disableiAds, self.restorePurchases],@[self.toggleSendMediaToRemote], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.sourceCode, self.versionCell]];
+    self.tableViewCells = @[@[self.disableAdsAndEnableVideoRecording, self.disableiAds, self.enableTorchFeature, self.enableVideoOnlyFeature, self.restorePurchases],@[self.toggleSendMediaToRemote], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.sourceCode, self.versionCell]];
     self.navigationItem.title = NSLocalizedString(@"Configuration", comment: "");
     [self.toggleSendMediaToRemoteSwitch addTarget:self action:@selector(sendMediaSwitchValueChanged:) forControlEvents:UIControlEventValueChanged];
     
@@ -136,6 +136,42 @@
                 }
             }];
         }
+    } else if ([cell isEqual:self.enableTorchFeature]) {
+        if ([manager didUserBuyEnableTorchFeature])
+            return;
+        if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) [self fillRestoreEnableTorchFeatureRow];
+            }];
+        } else {
+            [manager userWantsToBuyFeature:EnableTorchFeatureIdentifier withHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (error) {
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"InApp Purchases:", nil) message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:nil]];
+                    [self presentViewController:alert animated:YES completion:nil];
+                } else {
+                    [self fillRestoreEnableTorchFeatureRow];
+                }
+            }];
+        }
+    } else if ([cell isEqual:self.enableVideoOnlyFeature]) {
+        if ([manager didUserBuyEnableVideoOnlyFeature])
+            return;
+        if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) [self fillRestoreEnableVideoOnlyFeatureRow];
+            }];
+        } else {
+            [manager userWantsToBuyFeature:EnableVideoOnlyFeatureIdentifier withHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (error) {
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"InApp Purchases:", nil) message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:nil]];
+                    [self presentViewController:alert animated:YES completion:nil];
+                } else {
+                    [self fillRestoreEnableVideoOnlyFeatureRow];
+                }
+            }];
+        }
     } else if ([cell isEqual:self.restorePurchases]) {
         [self restoreThePurchases];
     } else if ([cell isEqual:self.acknowledgments]) {
@@ -173,6 +209,30 @@
             [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
                 if (!error) {
                     [self fillRestoreRemoveAdsAndEnableVideoRow];
+                }
+            }];
+        }
+    } else if ([cell isEqual:self.enableTorchFeature]) {
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        if ([products count] > 0) {
+            [self fillRestoreEnableTorchFeatureRow];
+        } else {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) {
+                    [self fillRestoreEnableTorchFeatureRow];
+                }
+            }];
+        }
+    } else if ([cell isEqual:self.enableVideoOnlyFeature]) {
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        if ([products count] > 0) {
+            [self fillRestoreEnableVideoOnlyFeatureRow];
+        } else {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) {
+                    [self fillRestoreEnableVideoOnlyFeatureRow];
                 }
             }];
         }
@@ -225,6 +285,48 @@
     });
 }
 
+- (void)fillRestoreEnableTorchFeatureRow {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        UITableViewCell * enableTorchFeature = self.enableTorchFeature;
+        if ([manager didUserBuyEnableTorchFeature]) {
+            enableTorchFeature.textLabel.text = @"Torch Feature Enabled";
+            enableTorchFeature.detailTextLabel.text = @"";
+        } else if ([products count] > 0) {
+            SKProduct *enableTorchFeatureProduct = [manager productWithIdentifier:EnableTorchFeatureIdentifier];
+            if (enableTorchFeatureProduct == nil) {
+                return;
+            }
+            [[enableTorchFeature textLabel] setText:[enableTorchFeatureProduct localizedTitle]];
+            NSString *localizedPrice = [[[InAppPurchasesManager sharedManager] currencyFormatter] stringFromNumber:enableTorchFeatureProduct.price];
+            [[enableTorchFeature detailTextLabel] setText:localizedPrice];
+        }
+        [enableTorchFeature setNeedsDisplay];
+    });
+}
+
+- (void)fillRestoreEnableVideoOnlyFeatureRow {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        UITableViewCell * enableVideoOnlyFeature = self.enableVideoOnlyFeature;
+        if ([manager didUserBuyEnableVideoOnlyFeature]) {
+            enableVideoOnlyFeature.textLabel.text = @"Video Only Feature Enabled";
+            enableVideoOnlyFeature.detailTextLabel.text = @"";
+        } else if ([products count] > 0) {
+            SKProduct *enableVideoOnlyFeatureProduct = [manager productWithIdentifier:EnableVideoOnlyFeatureIdentifier];
+            if (enableVideoOnlyFeatureProduct == nil) {
+                return;
+            }
+            [[enableVideoOnlyFeature textLabel] setText:[enableVideoOnlyFeatureProduct localizedTitle]];
+            NSString *localizedPrice = [[[InAppPurchasesManager sharedManager] currencyFormatter] stringFromNumber:enableVideoOnlyFeatureProduct.price];
+            [[enableVideoOnlyFeature detailTextLabel] setText:localizedPrice];
+        }
+        [enableVideoOnlyFeature setNeedsDisplay];
+    });
+}
+
 #pragma mark -
 #pragma mark Local Storage.
 
@@ -264,6 +366,9 @@
     [[InAppPurchasesManager sharedManager] restorePurchasesWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
         if (!error) {
             [self fillRestoreiAdsRow];
+            [self fillRestoreRemoveAdsAndEnableVideoRow];
+            [self fillRestoreEnableTorchFeatureRow];
+            [self fillRestoreEnableVideoOnlyFeatureRow];
         }
     }];
 }

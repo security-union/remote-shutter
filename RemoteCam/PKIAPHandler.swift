@@ -147,6 +147,10 @@ extension PKIAPHandler: SKProductsRequestDelegate, SKPaymentTransactionObserver{
                         UserDefaults.standard.set(true, forKey: didBuyRemoveiAdsFeature)
                     } else if (self.productID == enableVideoPID) {
                         UserDefaults.standard.set(true, forKey: didBuyRemoveAdsAndEnableVideo)
+                    } else if (self.productID == enableTorchPID) {
+                        UserDefaults.standard.set(true, forKey: didBuyEnableTorchFeature)
+                    } else if (self.productID == enableVideoOnlyPID) {
+                        UserDefaults.standard.set(true, forKey: didBuyEnableVideoOnlyFeature)
                     } else {
                         UserDefaults.standard.set(true, forKey: self.productID)
                     }
@@ -166,6 +170,8 @@ extension PKIAPHandler: SKProductsRequestDelegate, SKPaymentTransactionObserver{
                         UserDefaults.standard.set(true, forKey: didBuyRemoveiAdsFeature)
                     } else if (transaction.payment.productIdentifier == enableVideoPID) {
                         UserDefaults.standard.set(true, forKey: didBuyRemoveAdsAndEnableVideo)
+                    } else if (transaction.payment.productIdentifier == enableTorchPID) {
+                        UserDefaults.standard.set(true, forKey: didBuyEnableTorchFeature)
                     } else {
                         UserDefaults.standard.set(true, forKey: self.productID)
                     }

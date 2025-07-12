@@ -93,6 +93,24 @@ static InAppPurchasesManager *_manager = nil;
     return didBuyiAds;
 };
 
+- (BOOL)didUserBuyEnableTorchFeature {
+    BOOL didBuyTorch = FALSE;
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    if ([defaults objectForKey:didBuyEnableTorchFeature]) {
+        didBuyTorch = [defaults boolForKey:didBuyEnableTorchFeature];
+    }
+    return didBuyTorch;
+};
+
+- (BOOL)didUserBuyEnableVideoOnlyFeature {
+    BOOL didBuyVideoOnly = FALSE;
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    if ([defaults objectForKey:didBuyEnableVideoOnlyFeature]) {
+        didBuyVideoOnly = [defaults boolForKey:didBuyEnableVideoOnlyFeature];
+    }
+    return didBuyVideoOnly;
+};
+
 - (void)setDidUserBuyRemoveiAdsAndEnableVideoFeatures:(BOOL)feature {
     if (feature) {
         [[NSNotificationCenter defaultCenter] postNotificationName:Constants.RemoveAdsAndEnableVideo
@@ -103,13 +121,29 @@ static InAppPurchasesManager *_manager = nil;
     [defaults synchronize];
 }
 
+- (void)setDidUserBuyEnableTorchFeature:(BOOL)feature {
+    if (feature) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:[Constants EnableTorch] object:nil userInfo:nil];
+    }
+    [[NSUserDefaults standardUserDefaults] setBool:feature forKey:didBuyEnableTorchFeature];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+};
+
+- (void)setDidUserBuyEnableVideoOnlyFeature:(BOOL)feature {
+    if (feature) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:[Constants EnableVideoOnly] object:nil userInfo:nil];
+    }
+    [[NSUserDefaults standardUserDefaults] setBool:feature forKey:didBuyEnableVideoOnlyFeature];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+};
+
 - (void)reloadProductsWithHandler:(InAppPurchasesManagerHandler)handler {
     if (req) {
         req.delegate = nil;
         req = nil;
     }
     self.productRefreshHandler = handler;
-    NSSet *_products = [NSSet setWithObjects:RemoveiAdsFeatureIdentifier, RemoveAdsAndEnableVideoIdentifier, nil];
+    NSSet *_products = [NSSet setWithObjects:RemoveiAdsFeatureIdentifier, RemoveAdsAndEnableVideoIdentifier, EnableTorchFeatureIdentifier, EnableVideoOnlyFeatureIdentifier, nil];
     req = [[SKProductsRequest alloc] initWithProductIdentifiers:_products];
     [req setDelegate:self];
     [req start];
@@ -166,6 +200,16 @@ static InAppPurchasesManager *_manager = nil;
                     if (self.buyProductHandler)
                         self.buyProductHandler(self, nil);
                 }
+                if ([[[transaction payment] productIdentifier] isEqualToString:EnableTorchFeatureIdentifier]) {
+                    [self setDidUserBuyEnableTorchFeature:TRUE];
+                    if (self.buyProductHandler)
+                        self.buyProductHandler(self, nil);
+                }
+                if ([[[transaction payment] productIdentifier] isEqualToString:EnableVideoOnlyFeatureIdentifier]) {
+                    [self setDidUserBuyEnableVideoOnlyFeature:TRUE];
+                    if (self.buyProductHandler)
+                        self.buyProductHandler(self, nil);
+                }
             }
                 break;
             case SKPaymentTransactionStateFailed:
@@ -175,6 +219,14 @@ static InAppPurchasesManager *_manager = nil;
                         self.buyProductHandler(self, transaction.error);
                 }
                 if ([[[transaction payment] productIdentifier] isEqualToString:RemoveAdsAndEnableVideoIdentifier]) {
+                    if (self.buyProductHandler)
+                        self.buyProductHandler(self, transaction.error);
+                }
+                if ([[[transaction payment] productIdentifier] isEqualToString:EnableTorchFeatureIdentifier]) {
+                    if (self.buyProductHandler)
+                        self.buyProductHandler(self, transaction.error);
+                }
+                if ([[[transaction payment] productIdentifier] isEqualToString:EnableVideoOnlyFeatureIdentifier]) {
                     if (self.buyProductHandler)
                         self.buyProductHandler(self, transaction.error);
                 }

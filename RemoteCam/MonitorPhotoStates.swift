@@ -43,6 +43,12 @@ extension RemoteCamSession {
                 )
                 self.this ! msg
 
+            case is UICmd.ToggleTorch:
+                // Handle torch toggle directly in photo mode
+                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
+                    print("❌ DEBUG: Failed to send torch toggle command in photo mode: \(f.tryError.localizedDescription)")
+                }
+
             case is UICmd.TakePicture:
                 self.become(name: self.states.monitorTakingPicture, state:
                 self.monitorTakingPicture(monitor: monitor, peer: peer, lobby: lobby))
@@ -70,6 +76,13 @@ extension RemoteCamSession {
                     print("❌ DEBUG: Zoom response error: \(error.localizedDescription)")
                 }
                 monitor ! zoomResp
+                
+            case let torchResp as RemoteCmd.ToggleTorchResp:
+                // Handle torch response directly without alert
+                if let error = torchResp.error {
+                    print("❌ DEBUG: Photo mode torch response error: \(error.localizedDescription)")
+                }
+                monitor ! torchResp
                 
             case is UICmd.SwitchLens:
                 self.become(

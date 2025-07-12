@@ -13,11 +13,13 @@ let goToConnectViewControllerSegue = "goToConnectViewControllerSegue"
 class WelcomeViewController: UIViewController {
     
     private var productsArray: [SKProduct] = []
-    private var productIds: [String] = [disableAdsPID, enableVideoPID]
+    private var productIds: [String] = [disableAdsPID, enableVideoPID, enableTorchPID, enableVideoOnlyPID]
 
     @IBOutlet weak var continueButton: UIButton!
     @IBOutlet weak var disableAdsButton: UIButton!
     @IBOutlet weak var enableVideoButton: UIButton!
+    @IBOutlet weak var enableTorchButton: UIButton!
+    @IBOutlet weak var enableVideoOnlyButton: UIButton!
     @IBOutlet weak var restorePurchaseButton: UIButton!
     @IBOutlet weak var reviewAppButton: UIButton!
     @IBOutlet weak var welcomeDescLabel: UILabel!
@@ -65,6 +67,18 @@ class WelcomeViewController: UIViewController {
     
     @IBAction func enableVideo() {
         purchaseProduct(productId: enableVideoPID) { (_) in
+            self.hidePurchased()
+        }
+    }
+    
+    @IBAction func enableTorch() {
+        purchaseProduct(productId: enableTorchPID) { (_) in
+            self.hidePurchased()
+        }
+    }
+    
+    @IBAction func enableVideoOnly() {
+        purchaseProduct(productId: enableVideoOnlyPID) { (_) in
             self.hidePurchased()
         }
     }
@@ -152,6 +166,16 @@ class WelcomeViewController: UIViewController {
             borderColor: UIColor.clear,
             textColor: UIColor.white
         )
+        enableTorchButton.styleButton(
+            backgroundColor: UIColor.systemGreen,
+            borderColor: UIColor.clear,
+            textColor: UIColor.white
+        )
+        enableVideoOnlyButton.styleButton(
+            backgroundColor: UIColor.systemBlue,
+            borderColor: UIColor.clear,
+            textColor: UIColor.white
+        )
         navigationController?.navigationBar.prefersLargeTitles = true
         self.navigationItem.title = "Welcome"
     }
@@ -168,7 +192,17 @@ class WelcomeViewController: UIViewController {
             disableAdsButton.isHidden = true
         }
         
-        if (disabledAds && enabledVideo) {
+        let enabledTorch = UserDefaults.standard.bool(forKey: didBuyEnableTorchFeature)
+        if (enabledTorch) {
+            enableTorchButton.isHidden = true
+        }
+        
+        let enabledVideoOnly = UserDefaults.standard.bool(forKey: didBuyEnableVideoOnlyFeature)
+        if (enabledVideoOnly) {
+            enableVideoOnlyButton.isHidden = true
+        }
+        
+        if (disabledAds && enabledVideo && enabledTorch && enabledVideoOnly) {
             restorePurchaseButton.isHidden = true
             welcomeDescLabel.text = "Thanks for your support! We are working on new features for you!"
             

@@ -11,5 +11,7 @@ import Foundation
 public let tempFile = "tempfile.mov"
 public let disableAdsPID = "05"
 public let enableVideoPID = "06"
+public let enableTorchPID = "07"
+public let enableVideoOnlyPID = "08"
 public let reviewCounterKey = "reviewCounter"
 public let lastVersionPromptedForReviewKey = "lastVersionPromptedForReview"

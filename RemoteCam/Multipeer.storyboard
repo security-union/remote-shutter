@@ -27,7 +27,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" distribution="fillEqually" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="d6N-Ux-Es7">
-                                <rect key="frame" x="250" y="252" width="300" height="332"/>
+                                <rect key="frame" x="250" y="116" width="300" height="468"/>
                                 <subviews>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Nll-te-ydA">
                                         <rect key="frame" x="0.0" y="0.0" width="300" height="60"/>
@@ -68,8 +68,34 @@
                                             <action selector="enableVideo" destination="sPQ-fg-kee" eventType="touchUpInside" id="npQ-D2-8s5"/>
                                         </connections>
                                     </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="JXd-Ji-86C">
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="xT8-Zz-9fK">
                                         <rect key="frame" x="0.0" y="204" width="300" height="60"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="300" id="8qZ-4M-6bc"/>
+                                            <constraint firstAttribute="height" constant="60" id="9cT-V1-rS9" userLabel="height = 48"/>
+                                        </constraints>
+                                        <state key="normal" title="Enable Torch $5.00">
+                                            <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="enableTorch" destination="sPQ-fg-kee" eventType="touchUpInside" id="tP9-E3-8s6"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="mV4-Hf-8pL">
+                                        <rect key="frame" x="0.0" y="272" width="300" height="60"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="300" id="bNv-Hg-LmN"/>
+                                            <constraint firstAttribute="height" constant="60" id="yTr-PQ-dGh" userLabel="height = 48"/>
+                                        </constraints>
+                                        <state key="normal" title="Enable Video $4.99">
+                                            <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="enableVideoOnly" destination="sPQ-fg-kee" eventType="touchUpInside" id="dP8-Nw-oVG"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="JXd-Ji-86C">
+                                        <rect key="frame" x="0.0" y="340" width="300" height="60"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="60" id="4dm-ij-re7" userLabel="height = 48"/>
                                             <constraint firstAttribute="width" constant="300" id="ZdA-8s-cJQ"/>
@@ -82,7 +108,7 @@
                                         </connections>
                                     </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ESz-3y-esL">
-                                        <rect key="frame" x="0.0" y="272" width="300" height="60"/>
+                                        <rect key="frame" x="0.0" y="408" width="300" height="60"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="60" id="UAa-kO-N5V" userLabel="height = 48"/>
                                             <constraint firstAttribute="width" constant="300" id="uXO-QN-LcB"/>
@@ -116,7 +142,9 @@
                     <connections>
                         <outlet property="continueButton" destination="06U-aj-5Z8" id="4Dt-gQ-E3Y"/>
                         <outlet property="disableAdsButton" destination="JXd-Ji-86C" id="Ecj-a5-JFd"/>
+                        <outlet property="enableTorchButton" destination="xT8-Zz-9fK" id="9qZ-7M-8tH"/>
                         <outlet property="enableVideoButton" destination="vD0-lr-f8K" id="Or7-Y9-eBH"/>
+                        <outlet property="enableVideoOnlyButton" destination="mV4-Hf-8pL" id="Bp9-Qr-LdS"/>
                         <outlet property="restorePurchaseButton" destination="ESz-3y-esL" id="3Hj-95-A37"/>
                         <outlet property="reviewAppButton" destination="Nll-te-ydA" id="H7s-UR-ozG"/>
                         <outlet property="welcomeDescLabel" destination="oye-ao-kSI" id="Qqs-3z-3e1"/>
@@ -488,25 +516,6 @@
                                             <action selector="toggleFlashWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="Tpx-iM-Cq0"/>
                                         </connections>
                                     </button>
-                                    <button opaque="NO" contentMode="redraw" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="torch-button" userLabel="torch" hidden="YES">
-                                        <rect key="frame" x="253" y="92" width="73" height="73"/>
-                                        <constraints>
-                                            <constraint firstAttribute="width" constant="73" id="torch-width"/>
-                                            <constraint firstAttribute="height" constant="73" id="torch-height"/>
-                                        </constraints>
-                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
-                                        <inset key="contentEdgeInsets" minX="8" minY="4" maxX="10" maxY="10"/>
-                                        <state key="normal" image="flash">
-                                            <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                            <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                        <state key="highlighted">
-                                            <color key="titleColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                        <connections>
-                                            <action selector="toggleTorchWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="torch-action"/>
-                                        </connections>
-                                    </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="EGp-xW-Dem" userLabel="gallery">
                                         <rect key="frame" x="33" y="94" width="73" height="73"/>
                                         <constraints>
@@ -530,16 +539,6 @@
                                         <constraints>
                                             <constraint firstAttribute="width" constant="50" id="5XK-na-3zc"/>
                                             <constraint firstAttribute="height" constant="21" id="F41-Qq-WkH"/>
-                                        </constraints>
-                                        <fontDescription key="fontDescription" type="system" pointSize="20"/>
-                                        <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        <nil key="highlightedColor"/>
-                                    </label>
-                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="--" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="torch-status" userLabel="torchStatus" hidden="YES">
-                                        <rect key="frame" x="286" y="138" width="50" height="21"/>
-                                        <constraints>
-                                            <constraint firstAttribute="width" constant="50" id="torch-status-width"/>
-                                            <constraint firstAttribute="height" constant="21" id="torch-status-height"/>
                                         </constraints>
                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                         <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
@@ -571,10 +570,6 @@
                                     <constraint firstItem="k0B-Hz-dNJ" firstAttribute="trailing" secondItem="f0H-Je-i1g" secondAttribute="trailing" id="sBG-d1-2IW"/>
                                     <constraint firstAttribute="bottom" secondItem="25V-jV-Dep" secondAttribute="bottom" constant="37" id="uaV-15-QbZ"/>
                                     <constraint firstAttribute="width" constant="356" id="yAT-cK-0SP"/>
-                                    <constraint firstItem="torch-button" firstAttribute="centerX" secondItem="25V-jV-Dep" secondAttribute="centerX" id="torch-center-x"/>
-                                    <constraint firstItem="torch-button" firstAttribute="top" secondItem="25V-jV-Dep" secondAttribute="bottom" constant="10" id="torch-center-y"/>
-                                    <constraint firstItem="torch-status" firstAttribute="centerX" secondItem="wPR-EO-JjB" secondAttribute="centerX" id="torch-status-center-x"/>
-                                    <constraint firstItem="torch-status" firstAttribute="top" secondItem="wPR-EO-JjB" secondAttribute="bottom" constant="5" id="torch-status-center-y"/>
                                 </constraints>
                             </view>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="3wP-23-M5p" userLabel="Settings">
@@ -749,8 +744,6 @@
                         <outlet property="controlsView" destination="f0H-Je-i1g" id="CEz-WY-ow9"/>
                         <outlet property="flashButton" destination="25V-jV-Dep" id="ZOx-qN-GCK"/>
                         <outlet property="flashStatus" destination="wPR-EO-JjB" id="vAv-15-3KF"/>
-                        <outlet property="torchButton" destination="torch-button" id="torch-button-outlet"/>
-                        <outlet property="torchStatus" destination="torch-status" id="torch-status-outlet"/>
                         <outlet property="galleryButton" destination="EGp-xW-Dem" id="1Ll-Vt-LCd"/>
                         <outlet property="imageView" destination="rc6-hX-T3o" id="Db7-D8-rXh"/>
                         <outlet property="recordingView" destination="gfL-ja-qQ8" id="6ev-Bx-saJ"/>
