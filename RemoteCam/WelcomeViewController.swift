@@ -15,6 +15,9 @@ class WelcomeViewController: UIViewController {
     
     private var productsArray: [SKProduct] = []
     private var productIds: [String] = [disableAdsPID, enableVideoPID, enableTorchPID, enableVideoOnlyPID]
+    
+    // Instance property to track if this is the initial app launch
+    private var isInitialAppLaunch: Bool = true
 
     @IBOutlet weak var continueButton: UIButton!
     @IBOutlet weak var disableAdsButton: UIButton!
@@ -47,11 +50,31 @@ class WelcomeViewController: UIViewController {
         // Always refresh UI when returning to this screen (e.g., from settings)
         self.updateButtonTitlesAndPrices()
         self.hidePurchased()
+        
+        // Check if we should auto-skip to next screen on initial launch
+        if isInitialAppLaunch {
+            isInitialAppLaunch = false
+            checkAndAutoSkipIfProUser()
+        }
     }
     
     deinit {
         // Clean up notification observers
         NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - Auto-Skip Logic
+    
+    private func checkAndAutoSkipIfProUser() {
+        let manager = InAppPurchasesManager.shared()!
+        let hasProMode = manager.hasProMode()
+        
+        // If user has Pro mode and this is the initial app launch, auto-skip to next screen
+        if hasProMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.goToConnectViewController()
+            }
+        }
     }
     
     // MARK: - Purchase Notification Setup

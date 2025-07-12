@@ -133,7 +133,7 @@ static InAppPurchasesManager *_manager = nil;
     return [self didUserBuyProBundle];
 }
 
-- (void)setDidYserBuyProMode:(BOOL)feature {
+- (void)setDidUserBuyProMode:(BOOL)feature {
     if (feature) {
         [[NSNotificationCenter defaultCenter] postNotificationName:Constants.ProModeAquired
                                                             object:nil];
@@ -218,7 +218,7 @@ static InAppPurchasesManager *_manager = nil;
                         self.buyProductHandler(self, nil);
                 }
                 if ([[[transaction payment] productIdentifier] isEqualToString:ProModeAquiredIdentifier]) {
-                    [self setDidYserBuyProMode:TRUE];
+                    [self setDidUserBuyProMode:TRUE];
                     if (self.buyProductHandler)
                         self.buyProductHandler(self, nil);
                 }

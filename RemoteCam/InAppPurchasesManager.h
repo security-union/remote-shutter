@@ -59,7 +59,7 @@ typedef void(^InAppPurchasesManagerHandler)(InAppPurchasesManager *purchasesMana
 
 - (BOOL)didUserBuyProBundle;
 
-- (void)setDidYserBuyProMode:(BOOL)feature;
+- (void)setDidUserBuyProMode:(BOOL)feature;
 
 - (void)setDidUserBuyEnableTorchFeature:(BOOL)feature;
 

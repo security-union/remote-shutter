@@ -26,16 +26,8 @@ extension RemoteCamSession {
             }) { (success: Bool, _: Error?) in
                 if success {
                     print("Saved photo on monitor!")
-                    // Increment media capture counter for review prompt (monitor side only)
-                    var count = UserDefaults.standard.integer(forKey: mediaCaptureCounterKey)
-                    count += 1
-                    UserDefaults.standard.set(count, forKey: mediaCaptureCounterKey)
-                    
-                    // Show review prompt after 10 captures
-                    if count >= 10 {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            showReviewPromptIfAppropriate()
-                        }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        showReviewPromptIfAppropriate()
                     }
                 } else {
                     print("Failed to save photo on monitor!")

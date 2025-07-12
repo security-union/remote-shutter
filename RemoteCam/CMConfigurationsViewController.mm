@@ -133,7 +133,24 @@
 
                     [self presentViewController:alert animated:TRUE completion:NULL];
                 } else {
+                    InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+                    
+                    // Always refresh the Pro mode row
                     [self fillRestoreProModeAquiredRow];
+                    
+                    // Check each feature and refresh if now available
+                    if ([manager hasAdRemovalFeature]) {
+                        [self fillRestoreiAdsRow];
+                    }
+                    
+                    if ([manager hasTorchFeature]) {
+                        [self fillRestoreEnableTorchFeatureRow];
+                    }
+                    
+                    if ([manager hasVideoRecordingFeature]) {
+                        [self fillRestoreEnableVideoOnlyFeatureRow];
+                    }
+                    
                     [[NSNotificationCenter defaultCenter] postNotificationName:Constants.ProModeAquired object:nil];
                 }
             }];
