@@ -30,18 +30,48 @@
       "type" : "NonConsumable"
     },
     {
-      "displayPrice" : "4.99",
+      "displayPrice" : "9.99",
       "familyShareable" : false,
       "internalID" : "2D9566A3",
       "localizations" : [
         {
           "description" : "",
-          "displayName" : "Remove ads + enable video",
+          "displayName" : "Pro: All features",
           "locale" : "en_US"
         }
       ],
       "productID" : "06",
-      "referenceName" : "Remove ads enable video",
+      "referenceName" : "Pro: All features",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "E72F2CDA",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "Enable Torch Mode",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "07",
+      "referenceName" : "Enable Torch Mode",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "944E1E0C",
+      "localizations" : [
+        {
+          "description" : "Unlock video recording functionality while keeping ads",
+          "displayName" : "Enable Video",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "08",
+      "referenceName" : "Enable Video Only",
       "type" : "NonConsumable"
     }
   ],

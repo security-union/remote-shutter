@@ -2,7 +2,7 @@
 #import "InAppPurchasesManager.h"
 
 #define kiAdsFeatureInstalled NSLocalizedString(@"Ads Removed",nil);
-#define kiAdsRemovedANdVideoEnabledInstalled NSLocalizedString(@"Ads Removed and video enabled",nil);
+#define kiAdsRemovedANdVideoEnabledInstalled NSLocalizedString(@"Pro: All features enabled",nil);
 #define SendMediaToRemoteDefault @"sendMediaToRemote"
 
 #import "AcknowledgmentsViewController.h"
@@ -21,7 +21,7 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadData:) name:@"AppDidBecomeActive" object:nil];
     [[[self navigationController] navigationBar] setPrefersLargeTitles: TRUE];
     [[[self navigationController] navigationBar] setHidden:FALSE];
-    self.tableViewCells = @[@[self.disableAdsAndEnableVideoRecording, self.disableiAds, self.restorePurchases],@[self.toggleSendMediaToRemote], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.sourceCode, self.versionCell]];
+    self.tableViewCells = @[@[self.disableAdsAndEnableVideoRecording, self.disableiAds, self.enableTorchFeature, self.enableVideoOnlyFeature, self.restorePurchases],@[self.toggleSendMediaToRemote], @[self.contactSupport, self.blackFireApps, self.theaterFramework, self.acknowledgments, self.sourceCode, self.versionCell]];
     self.navigationItem.title = NSLocalizedString(@"Configuration", comment: "");
     [self.toggleSendMediaToRemoteSwitch addTarget:self action:@selector(sendMediaSwitchValueChanged:) forControlEvents:UIControlEventValueChanged];
     
@@ -136,6 +136,42 @@
                 }
             }];
         }
+    } else if ([cell isEqual:self.enableTorchFeature]) {
+        if ([manager didUserBuyEnableTorchFeature])
+            return;
+        if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) [self fillRestoreEnableTorchFeatureRow];
+            }];
+        } else {
+            [manager userWantsToBuyFeature:EnableTorchFeatureIdentifier withHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (error) {
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"InApp Purchases:", nil) message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:nil]];
+                    [self presentViewController:alert animated:YES completion:nil];
+                } else {
+                    [self fillRestoreEnableTorchFeatureRow];
+                }
+            }];
+        }
+    } else if ([cell isEqual:self.enableVideoOnlyFeature]) {
+        if ([manager didUserBuyEnableVideoOnlyFeature])
+            return;
+        if ([[[cell textLabel] text] isEqualToString:NSLocalizedString(@"Tap to refresh from AppStore.", nil)]) {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) [self fillRestoreEnableVideoOnlyFeatureRow];
+            }];
+        } else {
+            [manager userWantsToBuyFeature:EnableVideoOnlyFeatureIdentifier withHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (error) {
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"InApp Purchases:", nil) message:[error localizedDescription] preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:nil]];
+                    [self presentViewController:alert animated:YES completion:nil];
+                } else {
+                    [self fillRestoreEnableVideoOnlyFeatureRow];
+                }
+            }];
+        }
     } else if ([cell isEqual:self.restorePurchases]) {
         [self restoreThePurchases];
     } else if ([cell isEqual:self.acknowledgments]) {
@@ -176,6 +212,30 @@
                 }
             }];
         }
+    } else if ([cell isEqual:self.enableTorchFeature]) {
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        if ([products count] > 0) {
+            [self fillRestoreEnableTorchFeatureRow];
+        } else {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) {
+                    [self fillRestoreEnableTorchFeatureRow];
+                }
+            }];
+        }
+    } else if ([cell isEqual:self.enableVideoOnlyFeature]) {
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        if ([products count] > 0) {
+            [self fillRestoreEnableVideoOnlyFeatureRow];
+        } else {
+            [manager reloadProductsWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
+                if (!error) {
+                    [self fillRestoreEnableVideoOnlyFeatureRow];
+                }
+            }];
+        }
     } else if ([cell isEqual:self.versionCell]) {
         NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
         NSString *bundle = [infoDictionary objectForKey:@"CFBundleVersion"];
@@ -190,7 +250,8 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
         NSArray *products = [manager products];
-        if ([manager didUserBuyRemoveiAdsFeature]) {
+    
+        if ([manager didUserBuyProBundle] || [manager didUserBuyRemoveiAdsFeature]) {
             self.disableiAds.textLabel.text = kiAdsFeatureInstalled;
             self.disableiAds.detailTextLabel.text = @"";
             [self.disableiAds setNeedsDisplay];
@@ -222,6 +283,51 @@
             [[disableAdsAndEnableVideo detailTextLabel] setText:localizedPrice];
         }
         [disableAdsAndEnableVideo setNeedsDisplay];
+    });
+}
+
+- (void)fillRestoreEnableTorchFeatureRow {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        UITableViewCell * enableTorchFeature = self.enableTorchFeature;
+        
+        
+        if ([manager didUserBuyProBundle] || [manager didUserBuyEnableTorchFeature]) {
+            enableTorchFeature.textLabel.text = NSLocalizedString(@"Torch Feature Enabled", nil);
+            enableTorchFeature.detailTextLabel.text = @"";
+        } else if ([products count] > 0) {
+            SKProduct *enableTorchFeatureProduct = [manager productWithIdentifier:EnableTorchFeatureIdentifier];
+            if (enableTorchFeatureProduct == nil) {
+                return;
+            }
+            [[enableTorchFeature textLabel] setText:[enableTorchFeatureProduct localizedTitle]];
+            NSString *localizedPrice = [[[InAppPurchasesManager sharedManager] currencyFormatter] stringFromNumber:enableTorchFeatureProduct.price];
+            [[enableTorchFeature detailTextLabel] setText:localizedPrice];
+        }
+        [enableTorchFeature setNeedsDisplay];
+    });
+}
+
+- (void)fillRestoreEnableVideoOnlyFeatureRow {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        InAppPurchasesManager *manager = [InAppPurchasesManager sharedManager];
+        NSArray *products = [manager products];
+        UITableViewCell * enableVideoOnlyFeature = self.enableVideoOnlyFeature;
+        
+        if ([manager didUserBuyProBundle] || [manager didUserBuyEnableVideoOnlyFeature]) {
+            enableVideoOnlyFeature.textLabel.text = @"Video Feature Enabled";
+            enableVideoOnlyFeature.detailTextLabel.text = @"";
+        } else if ([products count] > 0) {
+            SKProduct *enableVideoOnlyFeatureProduct = [manager productWithIdentifier:EnableVideoOnlyFeatureIdentifier];
+            if (enableVideoOnlyFeatureProduct == nil) {
+                return;
+            }
+            [[enableVideoOnlyFeature textLabel] setText:[enableVideoOnlyFeatureProduct localizedTitle]];
+            NSString *localizedPrice = [[[InAppPurchasesManager sharedManager] currencyFormatter] stringFromNumber:enableVideoOnlyFeatureProduct.price];
+            [[enableVideoOnlyFeature detailTextLabel] setText:localizedPrice];
+        }
+        [enableVideoOnlyFeature setNeedsDisplay];
     });
 }
 
@@ -264,6 +370,9 @@
     [[InAppPurchasesManager sharedManager] restorePurchasesWithHandler:^(InAppPurchasesManager *purchasesManager, NSError *error) {
         if (!error) {
             [self fillRestoreiAdsRow];
+            [self fillRestoreRemoveAdsAndEnableVideoRow];
+            [self fillRestoreEnableTorchFeatureRow];
+            [self fillRestoreEnableVideoOnlyFeatureRow];
         }
     }];
 }

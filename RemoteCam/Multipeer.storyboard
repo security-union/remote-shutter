@@ -27,7 +27,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" distribution="fillEqually" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="d6N-Ux-Es7">
-                                <rect key="frame" x="250" y="252" width="300" height="332"/>
+                                <rect key="frame" x="250" y="116" width="300" height="468"/>
                                 <subviews>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Nll-te-ydA">
                                         <rect key="frame" x="0.0" y="0.0" width="300" height="60"/>
@@ -55,21 +55,47 @@
                                             <action selector="goToConnectViewController" destination="sPQ-fg-kee" eventType="touchUpInside" id="kMW-lH-OsW"/>
                                         </connections>
                                     </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vD0-lr-f8K">
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vD0-lr-f8K" userLabel="Buy Pro $9.95">
                                         <rect key="frame" x="0.0" y="136" width="300" height="60"/>
                                         <constraints>
                                             <constraint firstAttribute="width" constant="300" id="2qZ-3M-5bc"/>
                                             <constraint firstAttribute="height" constant="60" id="McT-U0-rS9" userLabel="height = 48"/>
                                         </constraints>
-                                        <state key="normal" title="Enable Video $4.99">
+                                        <state key="normal" title="Pro: All features $9.95">
                                             <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         </state>
                                         <connections>
                                             <action selector="enableVideo" destination="sPQ-fg-kee" eventType="touchUpInside" id="npQ-D2-8s5"/>
                                         </connections>
                                     </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="JXd-Ji-86C">
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="xT8-Zz-9fK">
                                         <rect key="frame" x="0.0" y="204" width="300" height="60"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="300" id="8qZ-4M-6bc"/>
+                                            <constraint firstAttribute="height" constant="60" id="9cT-V1-rS9" userLabel="height = 48"/>
+                                        </constraints>
+                                        <state key="normal" title="Enable Torch $5.00">
+                                            <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="enableTorch" destination="sPQ-fg-kee" eventType="touchUpInside" id="tP9-E3-8s6"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="mV4-Hf-8pL">
+                                        <rect key="frame" x="0.0" y="272" width="300" height="60"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="300" id="bNv-Hg-LmN"/>
+                                            <constraint firstAttribute="height" constant="60" id="yTr-PQ-dGh" userLabel="height = 48"/>
+                                        </constraints>
+                                        <state key="normal" title="Enable Video $4.99">
+                                            <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="enableVideoOnly" destination="sPQ-fg-kee" eventType="touchUpInside" id="dP8-Nw-oVG"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="JXd-Ji-86C">
+                                        <rect key="frame" x="0.0" y="340" width="300" height="60"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="60" id="4dm-ij-re7" userLabel="height = 48"/>
                                             <constraint firstAttribute="width" constant="300" id="ZdA-8s-cJQ"/>
@@ -82,7 +108,7 @@
                                         </connections>
                                     </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ESz-3y-esL">
-                                        <rect key="frame" x="0.0" y="272" width="300" height="60"/>
+                                        <rect key="frame" x="0.0" y="408" width="300" height="60"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="60" id="UAa-kO-N5V" userLabel="height = 48"/>
                                             <constraint firstAttribute="width" constant="300" id="uXO-QN-LcB"/>
@@ -114,9 +140,11 @@
                         </barButtonItem>
                     </navigationItem>
                     <connections>
+                        <outlet property="buyProButton" destination="vD0-lr-f8K" id="GbB-GG-6iK"/>
                         <outlet property="continueButton" destination="06U-aj-5Z8" id="4Dt-gQ-E3Y"/>
                         <outlet property="disableAdsButton" destination="JXd-Ji-86C" id="Ecj-a5-JFd"/>
-                        <outlet property="enableVideoButton" destination="vD0-lr-f8K" id="Or7-Y9-eBH"/>
+                        <outlet property="enableTorchButton" destination="xT8-Zz-9fK" id="9qZ-7M-8tH"/>
+                        <outlet property="enableVideoOnlyButton" destination="mV4-Hf-8pL" id="Bp9-Qr-LdS"/>
                         <outlet property="restorePurchaseButton" destination="ESz-3y-esL" id="3Hj-95-A37"/>
                         <outlet property="reviewAppButton" destination="Nll-te-ydA" id="H7s-UR-ozG"/>
                         <outlet property="welcomeDescLabel" destination="oye-ao-kSI" id="Qqs-3z-3e1"/>
@@ -544,43 +572,6 @@
                                     <constraint firstAttribute="width" constant="356" id="yAT-cK-0SP"/>
                                 </constraints>
                             </view>
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="3wP-23-M5p" userLabel="Settings">
-                                <rect key="frame" x="730" y="97" width="60" height="60"/>
-                                <subviews>
-                                    <imageView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleAspectFit" image="RoundedCircle" translatesAutoresizingMaskIntoConstraints="NO" id="4QJ-4k-g9u">
-                                        <rect key="frame" x="0.0" y="0.0" width="60" height="60"/>
-                                    </imageView>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="BdQ-7b-j0J">
-                                        <rect key="frame" x="10" y="10" width="40" height="40"/>
-                                        <constraints>
-                                            <constraint firstAttribute="width" constant="40" id="TQd-IW-yTU"/>
-                                            <constraint firstAttribute="height" constant="40" id="jBP-zh-1cE"/>
-                                        </constraints>
-                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
-                                        <state key="normal" image="Settings">
-                                            <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                            <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                        <state key="highlighted">
-                                            <color key="titleColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                        </state>
-                                        <connections>
-                                            <action selector="showSettingsWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="2BG-ef-BPd"/>
-                                        </connections>
-                                    </button>
-                                </subviews>
-                                <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
-                                <constraints>
-                                    <constraint firstItem="BdQ-7b-j0J" firstAttribute="centerY" secondItem="4QJ-4k-g9u" secondAttribute="centerY" id="91k-V9-PX6"/>
-                                    <constraint firstItem="4QJ-4k-g9u" firstAttribute="top" secondItem="3wP-23-M5p" secondAttribute="top" id="A9Y-Dl-uk6"/>
-                                    <constraint firstItem="4QJ-4k-g9u" firstAttribute="trailing" secondItem="3wP-23-M5p" secondAttribute="trailing" id="B2E-6o-fEM"/>
-                                    <constraint firstItem="4QJ-4k-g9u" firstAttribute="bottom" secondItem="3wP-23-M5p" secondAttribute="bottom" id="KZZ-Vf-TLV"/>
-                                    <constraint firstAttribute="width" constant="60" id="KdG-dv-ifi"/>
-                                    <constraint firstAttribute="height" constant="60" id="fh6-ry-iMf"/>
-                                    <constraint firstItem="4QJ-4k-g9u" firstAttribute="leading" secondItem="3wP-23-M5p" secondAttribute="leading" id="k2X-4l-DI4"/>
-                                    <constraint firstItem="BdQ-7b-j0J" firstAttribute="leading" secondItem="3wP-23-M5p" secondAttribute="leading" constant="10" id="vTM-nC-qT5"/>
-                                </constraints>
-                            </view>
                             <button opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5eT-gB-J9n" userLabel="changeDevice">
                                 <rect key="frame" x="-16" y="-16" width="110" height="110"/>
                                 <constraints>
@@ -675,17 +666,56 @@
                                     <constraint firstAttribute="height" constant="25" id="gRn-Ra-Sho"/>
                                 </constraints>
                             </imageView>
+                            <view contentMode="scaleToFill" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3wP-23-M5p" userLabel="Settings">
+                                <rect key="frame" x="732" y="421" width="60" height="60"/>
+                                <subviews>
+                                    <imageView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleAspectFit" image="RoundedCircle" translatesAutoresizingMaskIntoConstraints="NO" id="4QJ-4k-g9u">
+                                        <rect key="frame" x="0.0" y="0.0" width="60" height="60"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="60" id="5VN-Oo-CoC"/>
+                                            <constraint firstAttribute="width" constant="60" id="NFE-v8-YWb"/>
+                                        </constraints>
+                                    </imageView>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="BdQ-7b-j0J">
+                                        <rect key="frame" x="10" y="10" width="40" height="40"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="40" id="TQd-IW-yTU"/>
+                                            <constraint firstAttribute="height" constant="40" id="jBP-zh-1cE"/>
+                                        </constraints>
+                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="15"/>
+                                        <state key="normal" image="Settings">
+                                            <color key="titleColor" red="0.19607843459999999" green="0.30980393290000002" blue="0.52156865600000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                            <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <state key="highlighted">
+                                            <color key="titleColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <connections>
+                                            <action selector="showSettingsWithSender:" destination="fzh-OB-Afg" eventType="touchUpInside" id="2BG-ef-BPd"/>
+                                        </connections>
+                                    </button>
+                                </subviews>
+                                <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstItem="BdQ-7b-j0J" firstAttribute="centerY" secondItem="4QJ-4k-g9u" secondAttribute="centerY" id="91k-V9-PX6"/>
+                                    <constraint firstItem="4QJ-4k-g9u" firstAttribute="top" secondItem="3wP-23-M5p" secondAttribute="top" id="A9Y-Dl-uk6"/>
+                                    <constraint firstItem="4QJ-4k-g9u" firstAttribute="trailing" secondItem="3wP-23-M5p" secondAttribute="trailing" id="B2E-6o-fEM"/>
+                                    <constraint firstItem="4QJ-4k-g9u" firstAttribute="bottom" secondItem="3wP-23-M5p" secondAttribute="bottom" id="KZZ-Vf-TLV"/>
+                                    <constraint firstAttribute="width" constant="60" id="KdG-dv-ifi"/>
+                                    <constraint firstAttribute="height" constant="60" id="fh6-ry-iMf"/>
+                                    <constraint firstItem="4QJ-4k-g9u" firstAttribute="leading" secondItem="3wP-23-M5p" secondAttribute="leading" id="k2X-4l-DI4"/>
+                                    <constraint firstItem="BdQ-7b-j0J" firstAttribute="leading" secondItem="3wP-23-M5p" secondAttribute="leading" constant="10" id="vTM-nC-qT5"/>
+                                </constraints>
+                            </view>
                         </subviews>
                         <color key="backgroundColor" red="0.072984814643859863" green="0.13994456827640533" blue="0.26697003841400146" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="3wP-23-M5p" firstAttribute="top" secondItem="QeB-Y1-TPW" secondAttribute="top" constant="97" id="08O-fb-5VF"/>
                             <constraint firstItem="Wry-iT-YVg" firstAttribute="centerX" secondItem="f0H-Je-i1g" secondAttribute="centerX" id="7kr-NA-Kfg"/>
                             <constraint firstItem="Bu2-yA-LPw" firstAttribute="top" secondItem="f0H-Je-i1g" secondAttribute="bottom" constant="8" symbolic="YES" id="AWW-7e-gT5"/>
                             <constraint firstAttribute="trailing" secondItem="kC2-0J-DET" secondAttribute="trailing" constant="-17" id="BiJ-9s-w7W"/>
                             <constraint firstItem="gfL-ja-qQ8" firstAttribute="centerX" secondItem="Mhh-yx-IbA" secondAttribute="centerX" id="DS5-DK-1Rf"/>
                             <constraint firstItem="rc6-hX-T3o" firstAttribute="trailing" secondItem="QeB-Y1-TPW" secondAttribute="trailing" id="EqV-qA-gLe"/>
                             <constraint firstItem="Wry-iT-YVg" firstAttribute="centerX" secondItem="QeB-Y1-TPW" secondAttribute="centerX" id="Hjh-hE-D02"/>
-                            <constraint firstItem="3wP-23-M5p" firstAttribute="top" secondItem="kC2-0J-DET" secondAttribute="bottom" constant="3" id="I7C-wg-h3A"/>
                             <constraint firstItem="Bu2-yA-LPw" firstAttribute="leading" secondItem="QeB-Y1-TPW" secondAttribute="leading" id="RuG-U1-Z8g"/>
                             <constraint firstItem="Mhh-yx-IbA" firstAttribute="leading" secondItem="QeB-Y1-TPW" secondAttribute="leading" constant="13" id="St0-eo-8fL"/>
                             <constraint firstItem="kC2-0J-DET" firstAttribute="bottom" secondItem="5eT-gB-J9n" secondAttribute="bottom" id="TLG-7w-kCZ"/>
@@ -730,7 +760,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="2eq-5e-rvD" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1894" y="51"/>
+            <point key="canvasLocation" x="1893.75" y="51"/>
         </scene>
         <!--Device Scanner View Controller-->
         <scene sceneID="vbD-r1-Exh">

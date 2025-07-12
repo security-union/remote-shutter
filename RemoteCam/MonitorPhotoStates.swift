@@ -10,9 +10,40 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 import Photos
+import StoreKit
 
 extension RemoteCamSession {
 
+    // MARK: - Monitor-side Picture Saving (with review prompt)
+    func savePictureOnMonitor(_ imageData: Data) {
+        PHPhotoLibrary.requestAuthorization { status in
+            guard status == .authorized else {
+                return
+            }
+            PHPhotoLibrary.shared().performChanges({
+                let creationRequest = PHAssetCreationRequest.forAsset()
+                creationRequest.addResource(with: .photo, data: imageData, options: nil)
+            }) { (success: Bool, _: Error?) in
+                if success {
+                    print("Saved photo on monitor!")
+                    // Increment media capture counter for review prompt (monitor side only)
+                    var count = UserDefaults.standard.integer(forKey: mediaCaptureCounterKey)
+                    count += 1
+                    UserDefaults.standard.set(count, forKey: mediaCaptureCounterKey)
+                    
+                    // Show review prompt after 10 captures
+                    if count >= 10 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            showReviewPromptIfAppropriate()
+                        }
+                    }
+                } else {
+                    print("Failed to save photo on monitor!")
+                }
+            }
+        }
+    }
+    
     func monitorPhotoMode(monitor: ActorRef,
                  peer: MCPeerID,
                  lobby: Weak<DeviceScannerViewController>) -> Receive {
@@ -43,6 +74,12 @@ extension RemoteCamSession {
                 )
                 self.this ! msg
 
+            case is UICmd.ToggleTorch:
+                // Handle torch toggle directly in photo mode
+                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
+                    print("❌ DEBUG: Failed to send torch toggle command in photo mode: \(f.tryError.localizedDescription)")
+                }
+
             case is UICmd.TakePicture:
                 self.become(name: self.states.monitorTakingPicture, state:
                 self.monitorTakingPicture(monitor: monitor, peer: peer, lobby: lobby))
@@ -70,6 +107,13 @@ extension RemoteCamSession {
                     print("❌ DEBUG: Zoom response error: \(error.localizedDescription)")
                 }
                 monitor ! zoomResp
+                
+            case let torchResp as RemoteCmd.ToggleTorchResp:
+                // Handle torch response directly without alert
+                if let error = torchResp.error {
+                    print("❌ DEBUG: Photo mode torch response error: \(error.localizedDescription)")
+                }
+                monitor ! torchResp
                 
             case is UICmd.SwitchLens:
                 self.become(
@@ -136,7 +180,7 @@ extension RemoteCamSession {
 
             case let picResp as RemoteCmd.TakePicResp:
                 if let imageData = picResp.pic {
-                    savePicture(imageData)
+                    savePictureOnMonitor(imageData)
                     ^{alert?.dismiss(animated: true)}
                 } else if let error = picResp.error {
                     ^{alert?.dismiss(animated: true) { () in

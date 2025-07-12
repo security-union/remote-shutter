@@ -9,6 +9,8 @@
 }
 @property(strong, nonatomic) IBOutlet UITableViewCell *disableAdsAndEnableVideoRecording;
 @property(strong, nonatomic) IBOutlet UITableViewCell *disableiAds;
+@property(strong, nonatomic) IBOutlet UITableViewCell *enableTorchFeature;
+@property(strong, nonatomic) IBOutlet UITableViewCell *enableVideoOnlyFeature;
 @property(nonatomic, strong) IBOutlet UITableViewCell *restorePurchases;
 @property(nonatomic, strong) IBOutlet UITableViewCell *acknowledgments;
 @property(strong, nonatomic) IBOutlet UITableViewCell *versionCell;

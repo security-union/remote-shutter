@@ -10,6 +10,7 @@ import UIKit
 import Theater
 import AVFoundation
 import Photos
+import StoreKit
 
 /**
 Default fps, it would be neat if we would adjust this based on network conditions.
@@ -273,6 +274,63 @@ public class CameraViewController: UIViewController,
         }
     }
 
+    // MARK: - Torch Methods for Video Recording
+    func toggleTorch() -> Try<AVCaptureDevice.TorchMode> {
+        let genericDevice = self.videoDeviceInput
+        let device = genericDevice?.device
+        if let hasTorch = device?.hasTorch, hasTorch {
+            do {
+                try device?.lockForConfiguration()
+                let currentTorchMode = device?.torchMode ?? .off
+                let newTorchMode: AVCaptureDevice.TorchMode
+                
+                switch currentTorchMode {
+                case .off:
+                    newTorchMode = .on
+                case .on:
+                    newTorchMode = .off
+                case .auto:
+                    newTorchMode = .off
+                @unknown default:
+                    newTorchMode = .off
+                }
+                
+                device?.torchMode = newTorchMode
+                device?.unlockForConfiguration()
+                return Success(newTorchMode)
+            } catch let error as NSError {
+                return Failure(error: error)
+            }
+        } else {
+            return Failure(error: NSError(domain: "Current camera does not support torch.", code: 0, userInfo: nil))
+        }
+    }
+    
+    func setTorchMode(mode: AVCaptureDevice.TorchMode) -> Try<AVCaptureDevice.TorchMode> {
+        let genericDevice = self.videoDeviceInput
+        let device = genericDevice?.device
+        if let hasTorch = device?.hasTorch, hasTorch {
+            do {
+                try device?.lockForConfiguration()
+                device?.torchMode = mode
+                device?.unlockForConfiguration()
+                return Success(mode)
+            } catch let error as NSError {
+                return Failure(error: error)
+            }
+        } else {
+            return Failure(error: NSError(domain: "Current camera does not support torch.", code: 0, userInfo: nil))
+        }
+    }
+    
+    func getCurrentTorchMode() -> AVCaptureDevice.TorchMode {
+        return videoDeviceInput?.device.torchMode ?? .off
+    }
+    
+    func hasTorch() -> Bool {
+        return videoDeviceInput?.device.hasTorch ?? false
+    }
+
     func setFlashMode(mode: AVCaptureDevice.FlashMode, device: AVCaptureDevice) -> Try<AVCaptureDevice.FlashMode> {
         if device.hasFlash {
             do {
@@ -391,6 +449,9 @@ public class CameraViewController: UIViewController,
         // Check if any camera on this position has flash
         let hasFlash = videoDevices.contains { $0.hasFlash }
         
+        // Check if any camera on this position has torch
+        let hasTorch = videoDevices.contains { $0.hasTorch }
+        
         // Gather zoom capabilities for each lens type
         var zoomCapabilities: [CameraLensType: RemoteCmd.ZoomRange] = [:]
         
@@ -407,6 +468,7 @@ public class CameraViewController: UIViewController,
         return RemoteCmd.CameraInfo(
             availableLenses: availableLenses,
             hasFlash: hasFlash,
+            hasTorch: hasTorch,
             zoomCapabilities: zoomCapabilities
         )
     }

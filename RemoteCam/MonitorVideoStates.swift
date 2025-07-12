@@ -10,6 +10,7 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 import Photos
+import StoreKit
 
 private typealias MonitorVideoStates = RemoteCamSession
 
@@ -48,6 +49,12 @@ extension MonitorVideoStates {
                 self.become(name: self.states.monitorTogglingCamera, state:
                 self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
                 self.this ! msg
+
+            case is UICmd.ToggleTorch:
+                // Handle torch toggle directly in video mode
+                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
+                    print("❌ DEBUG: Failed to send torch toggle command in video mode: \(f.tryError.localizedDescription)")
+                }
                 
             // MARK: - Camera Capabilities Handling
             case let capabilities as RemoteCmd.CameraCapabilitiesResp:
@@ -71,6 +78,13 @@ extension MonitorVideoStates {
                     print("❌ DEBUG: Video mode zoom response error: \(error.localizedDescription)")
                 }
                 monitor ! zoomResp
+                
+            case let torchResp as RemoteCmd.ToggleTorchResp:
+                // Handle torch response directly without alert
+                if let error = torchResp.error {
+                    print("❌ DEBUG: Video mode torch response error: \(error.localizedDescription)")
+                }
+                monitor ! torchResp
                 
             case is UICmd.SwitchLens:
                 self.become(
@@ -204,6 +218,18 @@ extension MonitorVideoStates {
                     // 3. If saving fails, then show an error.
                     if !success {
                         showError(NSLocalizedString("Unable to save video to Photos app", comment: ""))
+                    } else {
+                        // Increment media capture counter for review prompt
+                        var count = UserDefaults.standard.integer(forKey: mediaCaptureCounterKey)
+                        count += 1
+                        UserDefaults.standard.set(count, forKey: mediaCaptureCounterKey)
+                        
+                        // Show review prompt after 10 captures
+                        if count >= 10 {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                showReviewPromptIfAppropriate()
+                            }
+                        }
                     }
 
                     // 4. Delete temp file.
