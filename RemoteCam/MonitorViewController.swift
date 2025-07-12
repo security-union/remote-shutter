@@ -33,20 +33,15 @@ func setTorchMode(ctrl: Weak<MonitorViewController>, torchMode: AVCaptureDevice.
     if let t = torchMode {
         switch t {
         case .off:
-            ctrl.value?.torchStatus.text = "Off"
             ctrl.value?.programmaticTorchLabel?.text = "Off"
         case .on:
-            ctrl.value?.torchStatus.text = "On"
             ctrl.value?.programmaticTorchLabel?.text = "On"
         case .auto:
-            ctrl.value?.torchStatus.text = "Auto"
             ctrl.value?.programmaticTorchLabel?.text = "Auto"
         @unknown default:
-            ctrl.value?.torchStatus.text = "Unknown"
             ctrl.value?.programmaticTorchLabel?.text = "Unknown"
         }
     } else {
-        ctrl.value?.torchStatus.text = "None"
         ctrl.value?.programmaticTorchLabel?.text = "None"
     }
 }
@@ -139,14 +134,6 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                             ctrl.value?.flashButton.isHidden = true
                         }
                         
-                        // Update torch mode display - only show in video mode if available
-                        if cameraInfo.hasTorch {
-                            // Torch button visibility depends on current mode
-                            // It will be managed by configurePhotoMode/configureVideoMode
-                        } else {
-                            ctrl.value?.torchButton.isHidden = true
-                        }
-                        
                         // Update lens controls
                         ctrl.value?.updateLensControls(
                             lensType: capabilities.currentLens,
@@ -237,8 +224,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     @IBOutlet weak var flashStatus: UILabel!
 
-    @IBOutlet weak var torchStatus: UILabel!
-
     @IBOutlet weak var imageView: UIImageView!
 
     @IBOutlet weak var takePicture: UIButton!
@@ -254,8 +239,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     @IBOutlet weak var backButton: UIButton!
 
     @IBOutlet weak var flashButton: UIButton!
-
-    @IBOutlet weak var torchButton: UIButton!
 
     @IBOutlet weak var settingsButton: UIButton!
 
@@ -364,9 +347,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = true
         flashButton.isHidden = false
         flashStatus.isHidden = false
-        torchButton.isEnabled = InAppPurchasesManager.shared().didUserBuyEnableTorchFeature()
-        torchButton.isHidden = false
-        torchStatus.isHidden = false
         programmaticTorchButton?.isEnabled = InAppPurchasesManager.shared().didUserBuyEnableTorchFeature()
         programmaticTorchButton?.isHidden = false
         programmaticTorchLabel?.isHidden = false
@@ -395,9 +375,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = false
         flashButton.isHidden = true
         flashStatus.isHidden = true
-        torchButton.isEnabled = InAppPurchasesManager.shared().didUserBuyEnableTorchFeature()
-        torchButton.isHidden = false
-        torchStatus.isHidden = false
         programmaticTorchButton?.isEnabled = InAppPurchasesManager.shared().didUserBuyEnableTorchFeature()
         programmaticTorchButton?.isHidden = false
         programmaticTorchLabel?.isHidden = false
@@ -426,9 +403,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = false
         flashButton.isHidden = true
         flashStatus.isHidden = true
-        torchButton.isEnabled = false
-        torchButton.isHidden = true
-        torchStatus.isHidden = true
         programmaticTorchButton?.isEnabled = false
         programmaticTorchButton?.isHidden = true
         programmaticTorchLabel?.isHidden = true
