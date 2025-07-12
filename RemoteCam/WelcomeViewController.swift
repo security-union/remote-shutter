@@ -7,17 +7,20 @@
 //
 
 import UIKit
+import StoreKit
 
 let goToConnectViewControllerSegue = "goToConnectViewControllerSegue"
 
 class WelcomeViewController: UIViewController {
     
     private var productsArray: [SKProduct] = []
-    private var productIds: [String] = [disableAdsPID, enableVideoPID]
+    private var productIds: [String] = [disableAdsPID, enableVideoPID, enableTorchPID, enableVideoOnlyPID]
 
     @IBOutlet weak var continueButton: UIButton!
     @IBOutlet weak var disableAdsButton: UIButton!
-    @IBOutlet weak var enableVideoButton: UIButton!
+    @IBOutlet weak var buyProButton: UIButton!
+    @IBOutlet weak var enableTorchButton: UIButton!
+    @IBOutlet weak var enableVideoOnlyButton: UIButton!
     @IBOutlet weak var restorePurchaseButton: UIButton!
     @IBOutlet weak var reviewAppButton: UIButton!
     @IBOutlet weak var welcomeDescLabel: UILabel!
@@ -30,12 +33,14 @@ class WelcomeViewController: UIViewController {
         PKIAPHandler.shared.fetchAvailableProducts { [weak self](products)   in
            guard let sSelf = self else {return}
            sSelf.productsArray = products
+           sSelf.updateButtonTitlesAndPrices()
         }
     }
     
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = false
+        self.updateButtonTitlesAndPrices()
     }
     
     override var supportedInterfaceOrientations : UIInterfaceOrientationMask {
@@ -65,6 +70,18 @@ class WelcomeViewController: UIViewController {
     
     @IBAction func enableVideo() {
         purchaseProduct(productId: enableVideoPID) { (_) in
+            self.hidePurchased()
+        }
+    }
+    
+    @IBAction func enableTorch() {
+        purchaseProduct(productId: enableTorchPID) { (_) in
+            self.hidePurchased()
+        }
+    }
+    
+    @IBAction func enableVideoOnly() {
+        purchaseProduct(productId: enableVideoOnlyPID) { (_) in
             self.hidePurchased()
         }
     }
@@ -126,68 +143,143 @@ class WelcomeViewController: UIViewController {
     }
     
     private func setupStyle() {
-        // Styling
+        // Styling with improved visual hierarchy
+        
+        // Review button - keep existing pink
         reviewAppButton.styleButton(
             backgroundColor: UIColor.systemPink,
             borderColor: UIColor.clear,
             textColor: UIColor.white
         )
+        
+        // Continue button - most prominent as primary action
         continueButton.styleButton(
             backgroundColor: UIColor.systemBlue,
             borderColor: UIColor.clear,
             textColor: UIColor.white
         )
+        
+        // Restore purchases - utility function, not a product
         restorePurchaseButton.styleButton(
-            backgroundColor: UIColor.systemOrange,
+            backgroundColor: UIColor.systemGray,
             borderColor: UIColor.clear,
             textColor: UIColor.white
         )
+        
+        // Individual purchase buttons - standard green, less prominent
         disableAdsButton.styleButton(
             backgroundColor: UIColor.systemGreen,
             borderColor: UIColor.clear,
             textColor: UIColor.white
         )
-        enableVideoButton.styleButton(
+        
+        // Pro button - premium purple to highlight best value
+        buyProButton.styleButton(
+            backgroundColor: UIColor.systemPurple,
+            borderColor: UIColor.clear,
+            textColor: UIColor.white
+        )
+        
+        enableTorchButton.styleButton(
             backgroundColor: UIColor.systemGreen,
             borderColor: UIColor.clear,
             textColor: UIColor.white
         )
+        
+        enableVideoOnlyButton.styleButton(
+            backgroundColor: UIColor.systemGreen,
+            borderColor: UIColor.clear,
+            textColor: UIColor.white
+        )
+        
         navigationController?.navigationBar.prefersLargeTitles = true
         self.navigationItem.title = "Welcome"
     }
     
     private func hidePurchased() {
+        let hasProBundle = UserDefaults.standard.bool(forKey: didBuyRemoveAdsAndEnableVideo)
         let disabledAds = UserDefaults.standard.bool(forKey: didBuyRemoveiAdsFeature)
-        if (disabledAds) {
-            disableAdsButton.isHidden = true
-        }
+        let enabledTorch = UserDefaults.standard.bool(forKey: didBuyEnableTorchFeature)
+        let enabledVideoOnly = UserDefaults.standard.bool(forKey: didBuyEnableVideoOnlyFeature)
         
-        let enabledVideo = UserDefaults.standard.bool(forKey: didBuyRemoveAdsAndEnableVideo)
-        if (enabledVideo) {
-            enableVideoButton.isHidden = true
+        // If user has Pro bundle (Product 06), hide all other purchase buttons
+        if hasProBundle {
             disableAdsButton.isHidden = true
-        }
-        
-        if (disabledAds && enabledVideo) {
+            enableTorchButton.isHidden = true
+            enableVideoOnlyButton.isHidden = true
+            buyProButton.isHidden = true
             restorePurchaseButton.isHidden = true
+            
             welcomeDescLabel.text = "Thanks for your support! We are working on new features for you!"
-            
-            // Only show the review button if the user has not reviewed this version yet
-            // And they have reviewed 4 times or less.
-            let count = UserDefaults.standard.integer(forKey: reviewCounterKey)
-            let infoDictionaryKey = kCFBundleVersionKey as String
-            guard let currentVersion = Bundle.main.object(forInfoDictionaryKey: infoDictionaryKey) as? String
-                else { fatalError("Expected to find a bundle version in the info dictionary") }
-            
-            let lastVersionPromptedForReview = UserDefaults.standard.string(forKey: lastVersionPromptedForReviewKey)
-
-            if count <= 4 && currentVersion != lastVersionPromptedForReview {
-                reviewAppButton.isHidden = false
-            } else {
-                reviewAppButton.isHidden = true
-            }
+            showReviewButtonIfAppropriate()
+            return
+        }
+        
+        // Individual feature hiding
+        if disabledAds {
+            disableAdsButton.isHidden = true
+        }
+        
+        if enabledTorch {
+            enableTorchButton.isHidden = true
+        }
+        
+        if enabledVideoOnly {
+            enableVideoOnlyButton.isHidden = true
+        }
+        
+        // Show thank you message and review button if user bought ANY feature
+        if disabledAds || enabledTorch || enabledVideoOnly || hasProBundle {
+            welcomeDescLabel.text = "Thanks for your support! We are working on new features for you!"
+            showReviewButtonIfAppropriate()
         } else {
             reviewAppButton.isHidden = true
         }
+    }
+    
+    private func showReviewButtonIfAppropriate() {
+        let count = UserDefaults.standard.integer(forKey: reviewCounterKey)
+        let infoDictionaryKey = kCFBundleVersionKey as String
+        guard let currentVersion = Bundle.main.object(forInfoDictionaryKey: infoDictionaryKey) as? String
+            else { fatalError("Expected to find a bundle version in the info dictionary") }
+        
+        let lastVersionPromptedForReview = UserDefaults.standard.string(forKey: lastVersionPromptedForReviewKey)
+
+        if count <= 4 && currentVersion != lastVersionPromptedForReview {
+            reviewAppButton.isHidden = false
+        } else {
+            reviewAppButton.isHidden = true
+        }
+    }
+    
+    private func updateButtonTitlesAndPrices() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            for product in self.productsArray {
+                let price = self.formatPrice(product.price, locale: product.priceLocale)
+                let title = "\(product.localizedTitle) \(price)"
+                
+                switch product.productIdentifier {
+                case disableAdsPID:
+                    self.disableAdsButton.setTitle(title, for: .normal)
+                case enableVideoPID:
+                    self.buyProButton.setTitle(title, for: .normal)
+                case enableTorchPID:
+                    self.enableTorchButton.setTitle(title, for: .normal)
+                case enableVideoOnlyPID:
+                    self.enableVideoOnlyButton.setTitle(title, for: .normal)
+                default:
+                    break
+                }
+            }
+        }
+    }
+    
+    private func formatPrice(_ price: NSDecimalNumber, locale: Locale) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = locale
+        return formatter.string(from: price) ?? "$0.00"
     }
 }
