@@ -221,9 +221,8 @@ extension RemoteCamSession {
             this ! legacyCommand
             
         case .setflashmode:
-            // SetFlashMode doesn't exist in legacy system, use ToggleFlash instead
-            let legacyCommand = RemoteCmd.ToggleFlash()
-            this ! legacyCommand
+            // Handle directly with FlatBuffers (no legacy conversion needed)
+            this ! FlatBuffersCameraCommand(command: command)
         }
     }
     

@@ -53,6 +53,15 @@ class FrameSender: Actor {
             case let s as RemoteCmd.SendFrame:
                 data.session?.sendCommandOrGoToScanning(peer: [data.peer], msg: s, mode: .unreliable)
                 self.become(name: waitingForAckName, state: waitingForAck(data), discardOld: true)
+                
+            case let fbCommand as FlatBuffersCameraCommand:
+                // Handle FlatBuffers frame request
+                if fbCommand.command.action == .requestframe {
+                    print("📹 FrameSender handling FlatBuffers frame request")
+                    // Transition to ready state to send frame data
+                    self.become(name: readyToSendFrame, state: readyToSend(data), discardOld: true)
+                }
+                
             default:
                 self.receive(msg: msg)
             }
@@ -71,6 +80,13 @@ class FrameSender: Actor {
 
             case is RemoteCmd.RequestFrame:
                 self.become(name: readyToSendFrame, state: readyToSend(session), discardOld: true)
+                
+            case let fbCommand as FlatBuffersCameraCommand:
+                // Handle FlatBuffers frame request
+                if fbCommand.command.action == .requestframe {
+                    print("📹 FrameSender handling FlatBuffers frame request in waitingForAck state")
+                    self.become(name: readyToSendFrame, state: readyToSend(session), discardOld: true)
+                }
 
             default:
                 self.receive(msg: msg)

@@ -229,12 +229,16 @@ extension RemoteCamSession {
                 
                 // Convert FlatBuffers response to legacy TakePicResp format
                 if fbResponse.response.success {
-                    // For photo capture, we don't have the image data in the state response
-                    // The camera should send the image data separately or we need to handle it differently
-                    // For now, we'll simulate a successful response without image data
+                    // Extract media data from FlatBuffers response
+                    var imageData: Data? = nil
+                    if let mediaData = fbResponse.response.mediaData {
+                        imageData = Data(mediaData.data)
+                        print("🔍 DEBUG: Extracted image data: \(imageData?.count ?? 0) bytes")
+                    }
+                    
                     let legacyResponse = RemoteCmd.TakePicResp(
                         sender: nil, // No sender in FlatBuffers response
-                        pic: nil, // Image data not included in state response
+                        pic: imageData, // Image data extracted from FlatBuffers response
                         error: nil
                     )
                     self.this ! legacyResponse

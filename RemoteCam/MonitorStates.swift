@@ -14,7 +14,8 @@ import Photos
 extension RemoteCamSession {
     
     func requestFrame(_ peer : [MCPeerID]) {
-        self.sendCommandOrGoToScanning(peer: peer, msg: RemoteCmd.RequestFrame(sender: self.this))
+        // Use FlatBuffers for frame requests
+        self.sendFlatBuffersFrameRequest(peer: peer)
     }
     
     func monitorTogglingFlash(monitor: ActorRef,
@@ -38,9 +39,22 @@ extension RemoteCamSession {
                     }
                 }
 
-            case let t as RemoteCmd.ToggleFlashResp:
-                if let _ = t.flashMode {
-                    monitor ! t
+            case let fbResponse as FlatBuffersCameraStateResponse:
+                print("🔍 DEBUG: Monitor toggling flash received FlatBuffers camera state response")
+                print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
+                
+                if fbResponse.response.success {
+                    print("✅ Flash toggle success via FlatBuffers")
+                    
+                    // Create a legacy response for the UI
+                    // For flash toggle, we'll create a ToggleFlashResp with a default flash mode
+                    let legacyResponse = RemoteCmd.ToggleFlashResp(
+                        flashMode: .auto, // Default flash mode since FlatBuffers doesn't include specific mode
+                        error: nil
+                    )
+                    
+                    monitor ! legacyResponse
+                    
                     ^{
                         alert?.dismiss(animated: true) {
                             self.mailbox.addOperation(BlockOperation {
@@ -48,11 +62,12 @@ extension RemoteCamSession {
                             })
                         }
                     }
-                } else if let error = t.error {
+                } else {
+                    let error = NSError(domain: "FlashError", code: 1, userInfo: [NSLocalizedDescriptionKey: fbResponse.response.error ?? "Flash toggle failed"])
                     ^{
                         alert?.dismiss(animated: true) {
-                            let errorAlert = UIAlertController(title: error._domain,
-                                                               message: nil,
+                            let errorAlert = UIAlertController(title: error.domain,
+                                                               message: error.localizedDescription,
                                                                preferredStyle: .alert)
                             errorAlert.simpleOkAction()
                             errorAlert.show(true)

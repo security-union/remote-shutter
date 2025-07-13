@@ -19,7 +19,8 @@ enum CommandAction : byte {
     StopRecording = 7,
     RequestCapabilities = 8,
     SetTorchMode = 9,
-    SetFlashMode = 10
+    SetFlashMode = 10,
+    RequestFrame = 11
 }
 
 enum CameraPosition : byte {
@@ -139,6 +140,7 @@ table CameraStateResponse {
     error: string;
     current_state: CameraState;
     capabilities: CameraCapabilities;
+    media_data: MediaData;
 }
 
 // MARK: - Media Data Structures

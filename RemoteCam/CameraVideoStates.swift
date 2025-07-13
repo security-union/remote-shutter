@@ -38,6 +38,28 @@ extension RemoteCamSession {
                 ctrl.stopRecordingVideo(false)
                 self.popToState(name: self.states.connected)
 
+            case let fbCommand as FlatBuffersCameraCommand:
+                // Handle FlatBuffers commands while recording video
+                print("🎯 Camera shooting video received FlatBuffers command: \(fbCommand.command.action)")
+                
+                switch fbCommand.command.action {
+                case .stoprecording:
+                    print("🛑 Camera shooting video handling FlatBuffers stop recording")
+                    let sendToRemote = fbCommand.command.parameters?.sendToRemote ?? true
+                    
+                    // Trigger video recording stop
+                    ctrl.stopRecordingVideo(sendToRemote)
+                    
+                    // Transition to video transmitting state to wait for video data
+                    self.become(
+                        name: self.states.cameraTransmittingVideo,
+                        state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobby)
+                    )
+                    
+                default:
+                    print("⚠️ Camera shooting video received unhandled FlatBuffers command: \(fbCommand.command.action)")
+                }
+
             default:
                 self.receive(msg: msg)
             }

@@ -520,17 +520,27 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         let senderOffset = builder.create(string: UIDevice.current.name)
         let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
         
+        // Create media data if photo data exists
+        var mediaDataOffset = Offset()
+        if let photoData = photoData {
+            let dataVector = builder.createVector(bytes: photoData)
+            mediaDataOffset = RemoteShutter_MediaData.createMediaData(
+                &builder,
+                dataVectorOffset: dataVector,
+                type: .photo,
+                timestamp: timestamp
+            )
+        }
+        
         // Create camera state response
         let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &builder,
             commandIdOffset: commandIdOffset,
             success: error == nil,
             errorOffset: error != nil ? builder.create(string: error!.localizedDescription) : Offset(),
-            capabilitiesOffset: Offset() // TODO: Implement capabilities serialization
+            capabilitiesOffset: Offset(), // TODO: Implement capabilities serialization
+            mediaDataOffset: mediaDataOffset
         )
-        
-        // TODO: Handle media data separately - it might need to be sent as a separate message
-        // For now, we'll handle media transfer through the existing legacy system
         
         // Create P2P message envelope
         let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
@@ -676,17 +686,27 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         let senderOffset = builder.create(string: UIDevice.current.name)
         let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
         
+        // Create media data if video data exists
+        var mediaDataOffset = Offset()
+        if let videoData = videoData {
+            let dataVector = builder.createVector(bytes: videoData)
+            mediaDataOffset = RemoteShutter_MediaData.createMediaData(
+                &builder,
+                dataVectorOffset: dataVector,
+                type: .video,
+                timestamp: timestamp
+            )
+        }
+        
         // Create camera state response
         let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &builder,
             commandIdOffset: commandIdOffset,
             success: error == nil,
             errorOffset: error != nil ? builder.create(string: error!.localizedDescription) : Offset(),
-            capabilitiesOffset: Offset() // TODO: Implement capabilities serialization
+            capabilitiesOffset: Offset(), // TODO: Implement capabilities serialization
+            mediaDataOffset: mediaDataOffset
         )
-        
-        // TODO: Handle media data separately - it might need to be sent as a separate message
-        // For now, we'll handle media transfer through the existing legacy system
         
         // Create P2P message envelope
         let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
@@ -700,6 +720,115 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         
         // Finish and return
         RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        return builder.data
+    }
+    
+    // MARK: - FlatBuffers Frame Request Methods
+    
+    /// Send FlatBuffers frame request command
+    public func sendFlatBuffersFrameRequest(peer: [MCPeerID]) {
+        let commandData = buildFlatBuffersFrameRequestCommand()
+        
+        do {
+            try session.send(commandData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers frame request command")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers frame request command: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers frame request command
+    private func buildFlatBuffersFrameRequestCommand() -> Data {
+        var builder = FlatBufferBuilder(initialSize: 256)
+        
+        // Create command ID and timestamp
+        let commandId = UUID().uuidString
+        let idOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create camera command
+        let commandOffset = RemoteShutter_CameraCommand.createCameraCommand(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            action: .requestframe,
+            parametersOffset: Offset() // No parameters needed for frame request
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .cameracommand,
+            senderOffset: senderOffset,
+            commandOffset: commandOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        
+        print("📦 Building FlatBuffers frame request command")
+        print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
+        
+        return builder.data
+    }
+    
+    /// Send FlatBuffers frame data response
+    public func sendFlatBuffersFrameData(peer: [MCPeerID], frameData: Data, fps: Int, cameraPosition: AVCaptureDevice.Position, orientation: UIInterfaceOrientation) {
+        let responseData = buildFlatBuffersFrameDataResponse(frameData: frameData, fps: fps, cameraPosition: cameraPosition, orientation: orientation)
+        
+        do {
+            try session.send(responseData, toPeers: peer, with: .unreliable) // Use unreliable for frame data for better performance
+            print("📦 ✅ Successfully sent FlatBuffers frame data response")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers frame data response: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers frame data response
+    private func buildFlatBuffersFrameDataResponse(frameData: Data, fps: Int, cameraPosition: AVCaptureDevice.Position, orientation: UIInterfaceOrientation) -> Data {
+        var builder = FlatBufferBuilder(initialSize: Int32(frameData.count + 1024)) // Extra space for frame data
+        
+        // Create strings
+        let idOffset = builder.create(string: UUID().uuidString)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let orientationOffset = builder.create(string: orientation.rawValue.description)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create byte vector for image data
+        let imageDataOffset = builder.createVector(bytes: frameData)
+        
+        // Convert camera position
+        let flatBuffersPosition: RemoteShutter_CameraPosition = cameraPosition == .back ? .back : .front
+        
+        // Create frame data
+        let frameDataOffset = RemoteShutter_FrameData.createFrameData(
+            &builder,
+            imageDataOffset: imageDataOffset,
+            fps: Int32(fps),
+            cameraPosition: flatBuffersPosition,
+            orientationOffset: orientationOffset,
+            timestamp: timestamp
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .framedata,
+            senderOffset: senderOffset,
+            frameDataOffset: frameDataOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        
+        print("📦 Building FlatBuffers frame data response (\(frameData.count) bytes)")
+        print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
+        
         return builder.data
     }
     
@@ -775,13 +904,14 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         let senderOffset = builder.create(string: UIDevice.current.name)
         let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
         
-        // Create camera state response
+        // Create camera state response (no media data for generic responses)
         let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &builder,
             commandIdOffset: commandIdOffset,
             success: error == nil,
             errorOffset: error != nil ? builder.create(string: error!.localizedDescription) : Offset(),
-            capabilitiesOffset: Offset() // TODO: Implement capabilities serialization
+            capabilitiesOffset: Offset(), // TODO: Implement capabilities serialization
+            mediaDataOffset: Offset() // No media data for generic responses
         )
         
         // Create P2P message envelope

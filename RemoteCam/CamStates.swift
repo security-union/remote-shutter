@@ -212,7 +212,7 @@ extension RemoteCamSession {
             // MARK: - FlatBuffers Command Handling
             case let fbCommand as FlatBuffersCameraCommand:
                 print("🔍 DEBUG: Camera received FlatBuffers command: \(fbCommand.command.action)")
-                self.handleFlatBuffersCameraCommand(fbCommand.command, ctrl: ctrl, peer: peer)
+                self.handleFlatBuffersCameraCommand(fbCommand.command, ctrl: ctrl, peer: peer, lobbyWrapper: lobbyWrapper)
 
             default:
                 self.receive(msg: msg)
@@ -223,7 +223,7 @@ extension RemoteCamSession {
     // MARK: - FlatBuffers Command Handling
     
     /// Handle FlatBuffers camera commands
-    private func handleFlatBuffersCameraCommand(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+    private func handleFlatBuffersCameraCommand(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID, lobbyWrapper: Weak<DeviceScannerViewController>) {
         print("🎯 Camera processing FlatBuffers command: \(command.action)")
         
         switch command.action {
@@ -240,10 +240,13 @@ extension RemoteCamSession {
             handleFlatBuffersPhotoCapture(command, ctrl: ctrl, peer: peer)
             
         case .startrecording:
-            handleFlatBuffersStartRecording(command, ctrl: ctrl, peer: peer)
+            handleFlatBuffersStartRecording(command, ctrl: ctrl, peer: peer, lobbyWrapper: lobbyWrapper)
             
         case .stoprecording:
-            handleFlatBuffersStopRecording(command, ctrl: ctrl, peer: peer)
+            handleFlatBuffersStopRecording(command, ctrl: ctrl, peer: peer, lobbyWrapper: lobbyWrapper)
+            
+        case .requestframe:
+            handleFlatBuffersFrameRequest(command, ctrl: ctrl, peer: peer)
             
         default:
             print("⚠️ Camera received unhandled FlatBuffers command: \(command.action)")
@@ -353,7 +356,7 @@ extension RemoteCamSession {
     }
     
     /// Handle FlatBuffers start recording command
-    private func handleFlatBuffersStartRecording(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+    private func handleFlatBuffersStartRecording(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID, lobbyWrapper: Weak<DeviceScannerViewController>) {
         print("🎬 Camera handling FlatBuffers start recording")
         
         let commandId = command.id ?? UUID().uuidString
@@ -361,8 +364,13 @@ extension RemoteCamSession {
         // Trigger video recording start
         ctrl.startRecordingVideo()
         
-        // Note: Response will be sent from video recording states
-        // For now, we'll send a simple success response
+        // Transition to video recording state
+        self.become(
+            name: self.states.cameraRecordingVideo,
+            state: self.cameraShootingVideo(peer: peer, ctrl: ctrl, lobby: lobbyWrapper)
+        )
+        
+        // Send acknowledgment that recording has started
         let _ = self.sendFlatBuffersVideoRecordingResponse(
             peer: [peer],
             commandId: commandId,
@@ -372,7 +380,7 @@ extension RemoteCamSession {
     }
     
     /// Handle FlatBuffers stop recording command
-    private func handleFlatBuffersStopRecording(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+    private func handleFlatBuffersStopRecording(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID, lobbyWrapper: Weak<DeviceScannerViewController>) {
         print("🛑 Camera handling FlatBuffers stop recording")
         
         let sendToRemote = command.parameters?.sendToRemote ?? true
@@ -381,14 +389,22 @@ extension RemoteCamSession {
         // Trigger video recording stop
         ctrl.stopRecordingVideo(sendToRemote)
         
-        // Note: Response will be sent from video recording states
-        // For now, we'll send a simple success response
-        let _ = self.sendFlatBuffersVideoRecordingResponse(
-            peer: [peer],
-            commandId: commandId,
-            videoData: nil,
-            error: nil
+        // Transition to video transmitting state to wait for video data
+        self.become(
+            name: self.states.cameraTransmittingVideo,
+            state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobbyWrapper)
         )
+        
+        // The actual response with video data will be sent from cameraTransmittingVideo state
+        // when CameraViewController calls back with the video data
+    }
+    
+    /// Handle FlatBuffers frame request command
+    private func handleFlatBuffersFrameRequest(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        print("📹 Camera handling FlatBuffers frame request")
+        
+        // Send frame request to FrameSender
+        getFrameSender()?.tell(msg: FlatBuffersCameraCommand(command: command))
     }
     
     // MARK: - FlatBuffers Command State Tracking

@@ -209,12 +209,16 @@ extension MonitorVideoStates {
                 
                 // Convert FlatBuffers response to legacy StopRecordingVideoResp format
                 if fbResponse.response.success {
-                    // For video recording, we don't have the video data in the state response
-                    // The camera should send the video data separately or we need to handle it differently
-                    // For now, we'll simulate a successful response without video data
+                    // Extract media data from FlatBuffers response
+                    var videoData: Data? = nil
+                    if let mediaData = fbResponse.response.mediaData {
+                        videoData = Data(mediaData.data)
+                        print("🔍 DEBUG: Extracted video data: \(videoData?.count ?? 0) bytes")
+                    }
+                    
                     let legacyResponse = RemoteCmd.StopRecordingVideoResp(
                         sender: nil, // No sender in FlatBuffers response
-                        pic: nil, // Video data not included in state response
+                        pic: videoData, // Video data extracted from FlatBuffers response
                         error: nil
                     )
                     self.this ! legacyResponse

@@ -19,8 +19,9 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case requestcapabilities = 8
   case settorchmode = 9
   case setflashmode = 10
+  case requestframe = 11
 
-  public static var max: RemoteShutter_CommandAction { return .setflashmode }
+  public static var max: RemoteShutter_CommandAction { return .requestframe }
   public static var min: RemoteShutter_CommandAction { return .takepicture }
 }
 
@@ -593,6 +594,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     case error = 10
     case currentState = 12
     case capabilities = 14
+    case mediaData = 16
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -605,7 +607,8 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public var errorSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.error.v) }
   public var currentState: RemoteShutter_CameraState? { let o = _accessor.offset(VTOFFSET.currentState.v); return o == 0 ? nil : RemoteShutter_CameraState(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
   public var capabilities: RemoteShutter_CameraCapabilities? { let o = _accessor.offset(VTOFFSET.capabilities.v); return o == 0 ? nil : RemoteShutter_CameraCapabilities(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
-  public static func startCameraStateResponse(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 6) }
+  public var mediaData: RemoteShutter_MediaData? { let o = _accessor.offset(VTOFFSET.mediaData.v); return o == 0 ? nil : RemoteShutter_MediaData(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
+  public static func startCameraStateResponse(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 7) }
   public static func add(commandId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: commandId, at: VTOFFSET.commandId.p) }
   public static func add(timestamp: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: timestamp, def: 0, at: VTOFFSET.timestamp.p) }
   public static func add(success: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: success, def: false,
@@ -613,6 +616,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public static func add(error: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: error, at: VTOFFSET.error.p) }
   public static func add(currentState: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: currentState, at: VTOFFSET.currentState.p) }
   public static func add(capabilities: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: capabilities, at: VTOFFSET.capabilities.p) }
+  public static func add(mediaData: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: mediaData, at: VTOFFSET.mediaData.p) }
   public static func endCameraStateResponse(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraStateResponse(
     _ fbb: inout FlatBufferBuilder,
@@ -621,7 +625,8 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     success: Bool = false,
     errorOffset error: Offset = Offset(),
     currentStateOffset currentState: Offset = Offset(),
-    capabilitiesOffset capabilities: Offset = Offset()
+    capabilitiesOffset capabilities: Offset = Offset(),
+    mediaDataOffset mediaData: Offset = Offset()
   ) -> Offset {
     let __start = RemoteShutter_CameraStateResponse.startCameraStateResponse(&fbb)
     RemoteShutter_CameraStateResponse.add(commandId: commandId, &fbb)
@@ -630,6 +635,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     RemoteShutter_CameraStateResponse.add(error: error, &fbb)
     RemoteShutter_CameraStateResponse.add(currentState: currentState, &fbb)
     RemoteShutter_CameraStateResponse.add(capabilities: capabilities, &fbb)
+    RemoteShutter_CameraStateResponse.add(mediaData: mediaData, &fbb)
     return RemoteShutter_CameraStateResponse.endCameraStateResponse(&fbb, start: __start)
   }
 
@@ -641,6 +647,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.error.p, fieldName: "error", required: false, type: ForwardOffset<String>.self)
     try _v.visit(field: VTOFFSET.currentState.p, fieldName: "currentState", required: false, type: ForwardOffset<RemoteShutter_CameraState>.self)
     try _v.visit(field: VTOFFSET.capabilities.p, fieldName: "capabilities", required: false, type: ForwardOffset<RemoteShutter_CameraCapabilities>.self)
+    try _v.visit(field: VTOFFSET.mediaData.p, fieldName: "mediaData", required: false, type: ForwardOffset<RemoteShutter_MediaData>.self)
     _v.finish()
   }
 }
