@@ -246,8 +246,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         print("📦 Building FlatBuffers torch toggle command")
         print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
         
-        let data = builder.data
-        return data
+        return builder.data
       
     }
 
