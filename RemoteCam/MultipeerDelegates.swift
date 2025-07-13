@@ -198,7 +198,7 @@ extension RemoteCamSession {
     
     /// Handle FlatBuffers camera state response (send directly to monitor)
     private func handleFlatBuffersCameraStateResponse(_ response: RemoteShutter_CameraStateResponse, from peerID: MCPeerID) {
-        print("📥 Processing FlatBuffers camera state response")
+//        print("📥 Processing FlatBuffers camera state response")
         
         // Send FlatBuffers response directly to monitor states
         this ! FlatBuffersCameraStateResponse(response: response)

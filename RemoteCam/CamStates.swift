@@ -481,7 +481,6 @@ extension RemoteCamSession {
             // Send FlatBuffers data directly
             do {
                 try self.session.send(responseData, toPeers: [peer], with: .reliable)
-                print("📤 ✅ Successfully sent FlatBuffers zoom response")
             } catch {
                 print("📤 ❌ Failed to send FlatBuffers zoom response: \(error)")
             }
