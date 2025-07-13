@@ -131,11 +131,7 @@ extension RemoteCamSession {
                 print("🔍 DEBUG: Camera received RequestCameraCapabilities - attempting to gather capabilities")
                 self.attemptToSendCapabilities(ctrl: ctrl, peer: peer, attempt: 1, maxAttempts: 5)
                 
-            case is RemoteCmd.RequestFrame:
-                self.receive(msg: msg)
-                
-            case is RemoteCmd.SendFrame:
-                self.receive(msg: msg)
+
                 
             case let m as UICmd.ToggleCameraResp:
                 self.sendCommandOrGoToScanning(
@@ -211,7 +207,7 @@ extension RemoteCamSession {
                 
             // MARK: - FlatBuffers Command Handling
             case let fbCommand as FlatBuffersCameraCommand:
-                print("🔍 DEBUG: Camera received FlatBuffers command: \(fbCommand.command.action)")
+//                print("🔍 DEBUG: Camera received FlatBuffers command: \(fbCommand.command.action)")
                 self.handleFlatBuffersCameraCommand(fbCommand.command, ctrl: ctrl, peer: peer, lobbyWrapper: lobbyWrapper)
 
             default:
@@ -224,7 +220,7 @@ extension RemoteCamSession {
     
     /// Handle FlatBuffers camera commands
     private func handleFlatBuffersCameraCommand(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID, lobbyWrapper: Weak<DeviceScannerViewController>) {
-        print("🎯 Camera processing FlatBuffers command: \(command.action)")
+//        print("🎯 Camera processing FlatBuffers command: \(command.action)")
         
         switch command.action {
         case .toggletorch:
@@ -401,7 +397,6 @@ extension RemoteCamSession {
     
     /// Handle FlatBuffers frame request command
     private func handleFlatBuffersFrameRequest(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
-        print("📹 Camera handling FlatBuffers frame request")
         
         // Send frame request to FrameSender
         getFrameSender()?.tell(msg: FlatBuffersCameraCommand(command: command))

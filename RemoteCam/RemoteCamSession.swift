@@ -731,7 +731,6 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         
         do {
             try session.send(commandData, toPeers: peer, with: .reliable)
-            print("📦 ✅ Successfully sent FlatBuffers frame request command")
         } catch {
             print("📦 ❌ Failed to send FlatBuffers frame request command: \(error)")
         }
@@ -769,9 +768,6 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         // Finish and return
         RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
         
-        print("📦 Building FlatBuffers frame request command")
-        print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
-        
         return builder.data
     }
     
@@ -781,7 +777,6 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         
         do {
             try session.send(responseData, toPeers: peer, with: .unreliable) // Use unreliable for frame data for better performance
-            print("📦 ✅ Successfully sent FlatBuffers frame data response")
         } catch {
             print("📦 ❌ Failed to send FlatBuffers frame data response: \(error)")
         }
@@ -806,7 +801,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         // Create frame data
         let frameDataOffset = RemoteShutter_FrameData.createFrameData(
             &builder,
-            imageDataOffset: imageDataOffset,
+            imageDataVectorOffset: imageDataOffset,
             fps: Int32(fps),
             cameraPosition: flatBuffersPosition,
             orientationOffset: orientationOffset,
@@ -825,9 +820,6 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         
         // Finish and return
         RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
-        
-        print("📦 Building FlatBuffers frame data response (\(frameData.count) bytes)")
-        print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
         
         return builder.data
     }
