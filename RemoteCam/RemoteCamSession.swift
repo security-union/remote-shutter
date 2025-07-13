@@ -87,23 +87,10 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                 m.ctrl.navigationController?.popViewController(animated: true)
             }
 
-        case let m as UICmd.BecomeMonitor:
+                case let m as UICmd.BecomeMonitor:
             m.sender! ! UICmd.BecomeMonitorFailed(sender: this)
 
-        case is RemoteCmd.TakePic:
-            let l = RemoteCmd.TakePicResp(sender: this, error: self.unableToProcessError(msg: msg))
-            sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
-        case is RemoteCmd.ToggleCamera:
-            let l = RemoteCmd.ToggleCameraResp(
-                cameraCapabilities: nil, error: self.unableToProcessError(msg: msg)
-            )
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
 
-        case is RemoteCmd.ToggleFlash:
-            let l = RemoteCmd.ToggleFlashResp(
-                flashMode: nil, error: self.unableToProcessError(msg: msg)
-            )
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
             
         // MARK: - Zoom and Lens Command Handling
         case is RemoteCmd.SetZoom:
@@ -340,6 +327,461 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             success: success,
             errorOffset: errorOffset,
             currentStateOffset: cameraStateOffset
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: commandIdOffset,
+            timestamp: timestamp,
+            type: .camerastateresponse,
+            senderOffset: senderOffset,
+            responseOffset: responseOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        return builder.data
+    }
+    
+    // MARK: - FlatBuffers Flash Toggle Methods
+    
+    /// Send FlatBuffers flash toggle command
+    public func sendFlatBuffersFlashToggle(peer: [MCPeerID]) {
+        let commandData = buildFlatBuffersFlashToggleCommand()
+        
+        do {
+            try session.send(commandData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers flash toggle command")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers flash toggle command: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers flash toggle command
+    private func buildFlatBuffersFlashToggleCommand() -> Data {
+        var builder = FlatBufferBuilder(initialSize: 256)
+        
+        // Create command ID and timestamp
+        let commandId = UUID().uuidString
+        let idOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create camera command
+        let commandOffset = RemoteShutter_CameraCommand.createCameraCommand(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            action: .toggleflash,
+            parametersOffset: Offset() // No parameters needed for flash toggle
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .cameracommand,
+            senderOffset: senderOffset,
+            commandOffset: commandOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        
+        print("📦 Building FlatBuffers flash toggle command")
+        print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
+        
+        return builder.data
+    }
+    
+    /// Send FlatBuffers flash state response
+    public func sendFlatBuffersFlashStateResponse(peer: [MCPeerID], commandId: String, flashMode: AVCaptureDevice.FlashMode?, error: Error?) {
+        let responseData = buildFlatBuffersFlashStateResponse(commandId: commandId, flashMode: flashMode, error: error)
+        
+        do {
+            try session.send(responseData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers flash state response")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers flash state response: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers flash state response
+    private func buildFlatBuffersFlashStateResponse(commandId: String, flashMode: AVCaptureDevice.FlashMode?, error: Error?) -> Data {
+        var builder = FlatBufferBuilder(initialSize: 256)
+        
+        // Create command ID and timestamp
+        let commandIdOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create camera state response
+        let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &builder,
+            commandIdOffset: commandIdOffset,
+            success: error == nil,
+            errorOffset: error != nil ? builder.create(string: error!.localizedDescription) : Offset(),
+            capabilitiesOffset: Offset() // TODO: Implement capabilities serialization
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: commandIdOffset,
+            timestamp: timestamp,
+            type: .camerastateresponse,
+            senderOffset: senderOffset,
+            responseOffset: responseOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        return builder.data
+    }
+    
+    // MARK: - FlatBuffers Photo Capture Methods
+    
+    /// Send FlatBuffers photo capture command
+    public func sendFlatBuffersPhotoCapture(peer: [MCPeerID], sendToRemote: Bool) {
+        let commandData = buildFlatBuffersPhotoCaptureCommand(sendToRemote: sendToRemote)
+        
+        do {
+            try session.send(commandData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers photo capture command")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers photo capture command: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers photo capture command
+    private func buildFlatBuffersPhotoCaptureCommand(sendToRemote: Bool) -> Data {
+        var builder = FlatBufferBuilder(initialSize: 256)
+        
+        // Create command ID and timestamp
+        let commandId = UUID().uuidString
+        let idOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create parameters with sendToRemote flag
+        let parametersOffset = RemoteShutter_CommandParameters.createCommandParameters(
+            &builder,
+            sendToRemote: sendToRemote
+        )
+        
+        // Create camera command
+        let commandOffset = RemoteShutter_CameraCommand.createCameraCommand(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            action: .takepicture,
+            parametersOffset: parametersOffset
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .cameracommand,
+            senderOffset: senderOffset,
+            commandOffset: commandOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        
+        print("📦 Building FlatBuffers photo capture command (sendToRemote: \(sendToRemote))")
+        print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
+        
+        return builder.data
+    }
+    
+    /// Send FlatBuffers photo capture response
+    public func sendFlatBuffersPhotoCaptureResponse(peer: [MCPeerID], commandId: String, photoData: Data?, error: Error?) {
+        let responseData = buildFlatBuffersPhotoCaptureResponse(commandId: commandId, photoData: photoData, error: error)
+        
+        do {
+            try session.send(responseData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers photo capture response")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers photo capture response: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers photo capture response
+    private func buildFlatBuffersPhotoCaptureResponse(commandId: String, photoData: Data?, error: Error?) -> Data {
+        var builder = FlatBufferBuilder(initialSize: Int32(photoData?.count ?? 256 + 1024)) // Extra space for photo data
+        
+        // Create command ID and timestamp
+        let commandIdOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create camera state response
+        let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &builder,
+            commandIdOffset: commandIdOffset,
+            success: error == nil,
+            errorOffset: error != nil ? builder.create(string: error!.localizedDescription) : Offset(),
+            capabilitiesOffset: Offset() // TODO: Implement capabilities serialization
+        )
+        
+        // TODO: Handle media data separately - it might need to be sent as a separate message
+        // For now, we'll handle media transfer through the existing legacy system
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: commandIdOffset,
+            timestamp: timestamp,
+            type: .camerastateresponse,
+            senderOffset: senderOffset,
+            responseOffset: responseOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        return builder.data
+    }
+    
+    // MARK: - FlatBuffers Video Recording Methods
+    
+    /// Send FlatBuffers start recording command
+    public func sendFlatBuffersStartRecording(peer: [MCPeerID]) {
+        let commandData = buildFlatBuffersStartRecordingCommand()
+        
+        do {
+            try session.send(commandData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers start recording command")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers start recording command: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers start recording command
+    private func buildFlatBuffersStartRecordingCommand() -> Data {
+        var builder = FlatBufferBuilder(initialSize: 256)
+        
+        // Create command ID and timestamp
+        let commandId = UUID().uuidString
+        let idOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create camera command
+        let commandOffset = RemoteShutter_CameraCommand.createCameraCommand(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            action: .startrecording,
+            parametersOffset: Offset() // No parameters needed for start recording
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .cameracommand,
+            senderOffset: senderOffset,
+            commandOffset: commandOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        
+        print("📦 Building FlatBuffers start recording command")
+        print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
+        
+        return builder.data
+    }
+    
+    /// Send FlatBuffers stop recording command
+    public func sendFlatBuffersStopRecording(peer: [MCPeerID], sendToRemote: Bool) {
+        let commandData = buildFlatBuffersStopRecordingCommand(sendToRemote: sendToRemote)
+        
+        do {
+            try session.send(commandData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers stop recording command")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers stop recording command: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers stop recording command
+    private func buildFlatBuffersStopRecordingCommand(sendToRemote: Bool) -> Data {
+        var builder = FlatBufferBuilder(initialSize: 256)
+        
+        // Create command ID and timestamp
+        let commandId = UUID().uuidString
+        let idOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create parameters with sendToRemote flag
+        let parametersOffset = RemoteShutter_CommandParameters.createCommandParameters(
+            &builder,
+            sendToRemote: sendToRemote
+        )
+        
+        // Create camera command
+        let commandOffset = RemoteShutter_CameraCommand.createCameraCommand(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            action: .stoprecording,
+            parametersOffset: parametersOffset
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .cameracommand,
+            senderOffset: senderOffset,
+            commandOffset: commandOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        
+        print("📦 Building FlatBuffers stop recording command (sendToRemote: \(sendToRemote))")
+        print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
+        
+        return builder.data
+    }
+    
+    /// Send FlatBuffers video recording response
+    public func sendFlatBuffersVideoRecordingResponse(peer: [MCPeerID], commandId: String, videoData: Data?, error: Error?) {
+        let responseData = buildFlatBuffersVideoRecordingResponse(commandId: commandId, videoData: videoData, error: error)
+        
+        do {
+            try session.send(responseData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers video recording response")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers video recording response: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers video recording response
+    private func buildFlatBuffersVideoRecordingResponse(commandId: String, videoData: Data?, error: Error?) -> Data {
+        var builder = FlatBufferBuilder(initialSize: Int32(videoData?.count ?? 256 + 1024)) // Extra space for video data
+        
+        // Create command ID and timestamp
+        let commandIdOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create camera state response
+        let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &builder,
+            commandIdOffset: commandIdOffset,
+            success: error == nil,
+            errorOffset: error != nil ? builder.create(string: error!.localizedDescription) : Offset(),
+            capabilitiesOffset: Offset() // TODO: Implement capabilities serialization
+        )
+        
+        // TODO: Handle media data separately - it might need to be sent as a separate message
+        // For now, we'll handle media transfer through the existing legacy system
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: commandIdOffset,
+            timestamp: timestamp,
+            type: .camerastateresponse,
+            senderOffset: senderOffset,
+            responseOffset: responseOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        return builder.data
+    }
+    
+    // MARK: - FlatBuffers Camera Toggle Methods
+    
+    /// Send FlatBuffers camera toggle command
+    public func sendFlatBuffersCameraToggle(peer: [MCPeerID]) {
+        let commandData = buildFlatBuffersCameraToggleCommand()
+        
+        do {
+            try session.send(commandData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers camera toggle command")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers camera toggle command: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers camera toggle command
+    private func buildFlatBuffersCameraToggleCommand() -> Data {
+        var builder = FlatBufferBuilder(initialSize: 256)
+        
+        // Create command ID and timestamp
+        let commandId = UUID().uuidString
+        let idOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create camera command
+        let commandOffset = RemoteShutter_CameraCommand.createCameraCommand(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            action: .togglecamera,
+            parametersOffset: Offset() // No parameters needed for camera toggle
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .cameracommand,
+            senderOffset: senderOffset,
+            commandOffset: commandOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        
+        print("📦 Building FlatBuffers camera toggle command")
+        print("📦 Builder sizedBuffer size: \(builder.sizedBuffer.size)")
+        
+        return builder.data
+    }
+    
+    /// Send FlatBuffers camera state response
+    public func sendFlatBuffersCameraStateResponse(peer: [MCPeerID], commandId: String, capabilities: RemoteCmd.CameraCapabilitiesResp?, error: Error?) {
+        let responseData = buildFlatBuffersCameraStateResponse(commandId: commandId, capabilities: capabilities, error: error)
+        
+        do {
+            try session.send(responseData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers camera state response")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers camera state response: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers camera state response
+    private func buildFlatBuffersCameraStateResponse(commandId: String, capabilities: RemoteCmd.CameraCapabilitiesResp?, error: Error?) -> Data {
+        var builder = FlatBufferBuilder(initialSize: 512)
+        
+        let commandIdOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create camera state response
+        let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &builder,
+            commandIdOffset: commandIdOffset,
+            success: error == nil,
+            errorOffset: error != nil ? builder.create(string: error!.localizedDescription) : Offset(),
+            capabilitiesOffset: Offset() // TODO: Implement capabilities serialization
         )
         
         // Create P2P message envelope

@@ -19,17 +19,10 @@ extension RemoteCamSession {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             
-            case is OnEnter:
+                        case is OnEnter:
                 getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
 
-            case let stop as RemoteCmd.StopRecordingVideo:
-                ctrl.stopRecordingVideo(stop.sendMediaToPeer)
-                let ack = RemoteCmd.StopRecordingVideoAck()
-                self.sendCommandOrGoToScanning(peer: [peer], msg: ack, mode: .reliable)
-                self.become(
-                    name: self.states.cameraTransmittingVideo,
-                    state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobby)
-                )
+
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
@@ -67,7 +60,14 @@ extension RemoteCamSession {
                     alert?.show(true)
                 }
             case let c as RemoteCmd.StopRecordingVideoResp:
-                self.sendCommandOrGoToScanning(peer: [peer], msg: c)
+                // Send FlatBuffers response
+                let _ = self.sendFlatBuffersVideoRecordingResponse(
+                    peer: [peer],
+                    commandId: UUID().uuidString,
+                    videoData: c.video,
+                    error: c.error
+                )
+                
                 ^{
                     alert?.dismiss(animated: true) {
                         self.mailbox.addOperation {

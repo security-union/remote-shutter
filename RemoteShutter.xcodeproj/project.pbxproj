@@ -124,6 +124,8 @@
 		06F2FF912E23662C00A2328E /* AcknowledgmentsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */; };
 		06F2FF932E2368E000A2328E /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06F2FF922E2368E000A2328E /* AppTrackingTransparency.framework */; };
 		06F2FF942E2368E900A2328E /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06F2FF922E2368E000A2328E /* AppTrackingTransparency.framework */; };
+		06F2FF992E2394B700A2328E /* FlatBuffersMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F2FF982E2394B700A2328E /* FlatBuffersMessages.swift */; };
+		06F2FF9A2E2394B700A2328E /* FlatBuffersMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F2FF982E2394B700A2328E /* FlatBuffersMessages.swift */; };
 		26D5661947602CBFAB1B0D63 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F6300C45695E5CA755F48665 /* Pods_RemoteShutterTests.framework */; };
 		5A14E9C579DA70E65E5E4824 /* Pods_RemoteShutterUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74C1A0BBDFB53492EACD1990 /* Pods_RemoteShutterUITests.framework */; };
 		6BA90316271C2267AC2FED3D /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D301D96F4A10D5AE55BFC9F /* Pods_RemoteShutter.framework */; };
@@ -256,6 +258,7 @@
 		06F2FF672E235FEA00A2328E /* FlatBuffersSetupTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatBuffersSetupTest.swift; sourceTree = "<group>"; };
 		06F2FF692E235FFE00A2328E /* FlatBufferSchemas_generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatBufferSchemas_generated.swift; sourceTree = "<group>"; };
 		06F2FF922E2368E000A2328E /* AppTrackingTransparency.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppTrackingTransparency.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/System/Library/Frameworks/AppTrackingTransparency.framework; sourceTree = DEVELOPER_DIR; };
+		06F2FF982E2394B700A2328E /* FlatBuffersMessages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlatBuffersMessages.swift; sourceTree = "<group>"; };
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
 		0D301D96F4A10D5AE55BFC9F /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -438,6 +441,7 @@
 				06F2FF692E235FFE00A2328E /* FlatBufferSchemas_generated.swift */,
 				06CDFB1D252E9CD200EA56FB /* UICmds.swift */,
 				06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */,
+				06F2FF982E2394B700A2328E /* FlatBuffersMessages.swift */,
 				069284451BE5C0E600AF4678 /* MultipeerMessages.swift */,
 				0684A2D81BE6E9D400F0B238 /* RemoteCamSession */,
 				0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */,
@@ -900,6 +904,7 @@
 				066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */,
 				069284511BE5C0E600AF4678 /* RemoteCamSession.swift in Sources */,
 				0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */,
+				06F2FF9A2E2394B700A2328E /* FlatBuffersMessages.swift in Sources */,
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
 				85D33836258D48C30091972B /* UIViewController.swift in Sources */,
@@ -964,6 +969,7 @@
 				06F2FF6D2E2365E000A2328E /* OrientationUtils.swift in Sources */,
 				06F2FF6E2E2365E000A2328E /* RemoteCamScanning.swift in Sources */,
 				06F2FF6F2E2365E000A2328E /* CameraVideoStates.swift in Sources */,
+				06F2FF992E2394B700A2328E /* FlatBuffersMessages.swift in Sources */,
 				06F2FF702E2365E000A2328E /* UIImage+ImageProcessing.m in Sources */,
 				06F2FF712E2365E000A2328E /* FrameSender.swift in Sources */,
 				06F2FF722E2365E000A2328E /* UIOrientationHelpers.swift in Sources */,

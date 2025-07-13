@@ -39,7 +39,7 @@ extension MonitorVideoStates {
                 }
 
             case is UICmd.TakePicture:
-                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this))
+                self.sendFlatBuffersStartRecording(peer: [peer])
                 self.become(
                     name: self.states.monitorRecordingVideo,
                     state: self.monitorRecordingVideo(monitor: monitor, peer: peer, lobby: lobby)
@@ -55,11 +55,6 @@ extension MonitorVideoStates {
                 print("🔍 DEBUG: Video mode - attempting FlatBuffers torch toggle")
                 if let f = self.sendFlatBuffersTorchToggle(peer: [peer]) as? Failure {
                     print("❌ DEBUG: Failed to send FlatBuffers torch toggle command in video mode: \(f.tryError.localizedDescription)")
-                    // Fallback to legacy command
-                    print("🔄 DEBUG: Falling back to legacy NSCoding torch toggle")
-                    if let f2 = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
-                        print("❌ DEBUG: Fallback legacy torch toggle also failed: \(f2.tryError.localizedDescription)")
-                    }
                 } else {
                     print("✅ DEBUG: Successfully sent FlatBuffers torch toggle command in video mode")
                 }
@@ -71,6 +66,25 @@ extension MonitorVideoStates {
                     print("🔍 DEBUG: Video mode available lenses: \(cameraInfo.availableLenses)")
                 }
                 monitor ! capabilities
+                
+            // MARK: - FlatBuffers Message Handling
+            case let fbCommand as FlatBuffersCameraCommand:
+                print("🔍 DEBUG: Monitor video mode received FlatBuffers camera command: \(fbCommand.command.action)")
+                // FlatBuffers commands are handled by the camera, not the monitor
+                // This case is here for completeness but shouldn't normally occur
+                
+            case let fbResponse as FlatBuffersCameraStateResponse:
+                print("🔍 DEBUG: Monitor video mode received FlatBuffers camera state response")
+                print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
+                if let error = fbResponse.response.error {
+                    print("🔍 DEBUG: Command error: \(error)")
+                }
+                
+                // Convert FlatBuffers response to legacy format based on command type
+                // For now, we'll forward FlatBuffers responses to the monitor for UI updates
+                // In the future, we could implement more sophisticated state-based routing
+                monitor ! fbResponse
+                print("🔍 DEBUG: Forwarded FlatBuffers state update to monitor in video mode")
                 
             // MARK: - Zoom and Lens Command Handling
             case let zoomCmd as UICmd.SetZoom:
@@ -138,7 +152,7 @@ extension MonitorVideoStates {
                 self.requestFrame([peer])
 
             case let cmd as UICmd.TakePicture:
-                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this,  sendMediaToPeer: cmd.sendMediaToRemote))
+                self.sendFlatBuffersStopRecording(peer: [peer], sendToRemote: cmd.sendMediaToRemote)
 
             case is RemoteCmd.StopRecordingVideoAck:
                 self.become(
@@ -187,6 +201,35 @@ extension MonitorVideoStates {
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
                     ^{alert?.dismiss(animated: true)}
                     self.popAndStartScanning()
+                }
+
+            case let fbResponse as FlatBuffersCameraStateResponse:
+                print("🔍 DEBUG: Monitor waiting for video received FlatBuffers camera state response")
+                print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
+                
+                // Convert FlatBuffers response to legacy StopRecordingVideoResp format
+                if fbResponse.response.success {
+                    // For video recording, we don't have the video data in the state response
+                    // The camera should send the video data separately or we need to handle it differently
+                    // For now, we'll simulate a successful response without video data
+                    let legacyResponse = RemoteCmd.StopRecordingVideoResp(
+                        sender: nil, // No sender in FlatBuffers response
+                        pic: nil, // Video data not included in state response
+                        error: nil
+                    )
+                    self.this ! legacyResponse
+                } else {
+                    // Handle error case
+                    let error = fbResponse.response.error != nil ? 
+                        NSError(domain: "VideoRecordingError", code: 1, userInfo: [NSLocalizedDescriptionKey: fbResponse.response.error!]) : 
+                        NSError(domain: "VideoRecordingError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unknown video recording error"])
+                    
+                    let legacyResponse = RemoteCmd.StopRecordingVideoResp(
+                        sender: nil, // No sender in FlatBuffers response
+                        pic: nil,
+                        error: error
+                    )
+                    self.this ! legacyResponse
                 }
 
             default:

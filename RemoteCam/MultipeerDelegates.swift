@@ -98,8 +98,6 @@ extension RemoteCamSession {
             // FlatBuffers file ID is typically at the end of the buffer
             let lastFourBytes = data.suffix(4)
             let fileIdString = String(data: lastFourBytes, encoding: .ascii) ?? "N/A"
-            print("🔍 Last 4 bytes as ASCII: '\(fileIdString)'")
-            print("🔍 Last 4 bytes as hex: \(lastFourBytes.map { String(format: "%02x", $0) }.joined(separator: " "))")
         }
         
         // Quick heuristic: FlatBuffers messages should be at least 8 bytes and have proper alignment
@@ -113,7 +111,6 @@ extension RemoteCamSession {
         if firstBytes.starts(with: [0x62, 0x70, 0x6c, 0x69]) || // "bpli" - binary plist
            firstBytes.starts(with: [0x4e, 0x53, 0x4b, 0x65]) // "NSKe" - NSKeyedArchiver
             { // Common NSCoding indicator
-            print("🔍 Data appears to be NSCoding format, skipping FlatBuffers")
             return nil
         }
         
@@ -123,10 +120,7 @@ extension RemoteCamSession {
             print("🔍 Successfully created P2PMessage")
             
             // Basic validation
-            print("🔍 Message timestamp: \(message.timestamp)")
-            print("🔍 Message type: \(message.type)")
-            print("🔍 Message id: \(message.id ?? "nil")")
-            print("🔍 Message sender: \(message.sender ?? "nil")")
+
             
             guard message.timestamp > 0 else { 
                 print("🔍 Invalid timestamp, rejecting message")
@@ -172,9 +166,8 @@ extension RemoteCamSession {
         
         switch command.action {
         case .toggletorch:
-            // Convert to legacy command for now
-            let legacyCommand = RemoteCmd.ToggleTorch()
-            this ! legacyCommand
+            // Handle directly with FlatBuffers (no legacy conversion needed)
+            handleFlatBuffersTorchToggle(command, from: peerID)
             
         case .settorchmode:
             // Convert to legacy command
@@ -191,17 +184,16 @@ extension RemoteCamSession {
             }
             
         case .takepicture:
-            let sendToRemote = command.parameters?.sendToRemote ?? true
-            let legacyCommand = RemoteCmd.TakePic(sender: nil, sendMediaToPeer: sendToRemote)
-            this ! legacyCommand
+            // Handle directly with FlatBuffers (no legacy conversion needed)
+            handleFlatBuffersPhotoCapture(command, from: peerID)
             
         case .togglecamera:
-            let legacyCommand = RemoteCmd.ToggleCamera()
-            this ! legacyCommand
+            // Handle directly with FlatBuffers (no legacy conversion needed)
+            handleFlatBuffersCameraToggle(command, from: peerID)
             
         case .toggleflash:
-            let legacyCommand = RemoteCmd.ToggleFlash()
-            this ! legacyCommand
+            // Handle directly with FlatBuffers (no legacy conversion needed)
+            handleFlatBuffersFlashToggle(command, from: peerID)
             
         case .setzoom:
             if let params = command.parameters {
@@ -217,13 +209,12 @@ extension RemoteCamSession {
             }
             
         case .startrecording:
-            let legacyCommand = RemoteCmd.StartRecordingVideo(sender: nil)
-            this ! legacyCommand
+            // Handle directly with FlatBuffers (no legacy conversion needed)
+            handleFlatBuffersStartRecording(command, from: peerID)
             
         case .stoprecording:
-            let sendToRemote = command.parameters?.sendToRemote ?? true
-            let legacyCommand = RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: sendToRemote)
-            this ! legacyCommand
+            // Handle directly with FlatBuffers (no legacy conversion needed)
+            handleFlatBuffersStopRecording(command, from: peerID)
             
         case .requestcapabilities:
             let legacyCommand = RemoteCmd.RequestCameraCapabilities()
@@ -236,28 +227,12 @@ extension RemoteCamSession {
         }
     }
     
-    /// Handle FlatBuffers camera state response (convert to legacy response)
+    /// Handle FlatBuffers camera state response (send directly to monitor)
     private func handleFlatBuffersCameraStateResponse(_ response: RemoteShutter_CameraStateResponse, from peerID: MCPeerID) {
         print("📥 Processing FlatBuffers camera state response")
         
-        // For now, we'll focus on torch responses
-        if let _ = response.commandId,
-           let currentState = response.currentState {
-            
-            // Convert torch mode response
-            let torchMode = currentState.torchMode
-            let avTorchMode: AVCaptureDevice.TorchMode
-            switch torchMode {
-            case .off: avTorchMode = .off
-            case .on: avTorchMode = .on
-            case .auto: avTorchMode = .auto
-            }
-            
-            // Create legacy response
-            let error = response.success ? nil : NSError(domain: response.error ?? "Unknown error", code: 0, userInfo: nil)
-            let legacyResponse = RemoteCmd.ToggleTorchResp(torchMode: avTorchMode, error: error)
-            this ! legacyResponse
-        }
+        // Send FlatBuffers response directly to monitor states
+        this ! FlatBuffersCameraStateResponse(response: response)
     }
     
     /// Handle FlatBuffers frame data
@@ -310,5 +285,31 @@ extension RemoteCamSession {
 
     @nonobjc public func session(session: MCSession, didReceiveCertificate certificate: [AnyObject]?, fromPeer peerID: MCPeerID, certificateHandler: @escaping (Bool) -> Void) {
         certificateHandler(true)
+    }
+    
+    // MARK: - Direct FlatBuffers Command Handlers
+    
+    private func handleFlatBuffersTorchToggle(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
+        this ! FlatBuffersCameraCommand(command: command)
+    }
+    
+    private func handleFlatBuffersPhotoCapture(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
+        this ! FlatBuffersCameraCommand(command: command)
+    }
+    
+    private func handleFlatBuffersCameraToggle(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
+        this ! FlatBuffersCameraCommand(command: command)
+    }
+    
+    private func handleFlatBuffersFlashToggle(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
+        this ! FlatBuffersCameraCommand(command: command)
+    }
+    
+    private func handleFlatBuffersStartRecording(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
+        this ! FlatBuffersCameraCommand(command: command)
+    }
+    
+    private func handleFlatBuffersStopRecording(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
+        this ! FlatBuffersCameraCommand(command: command)
     }
 }

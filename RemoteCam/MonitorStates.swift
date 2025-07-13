@@ -33,9 +33,7 @@ extension RemoteCamSession {
                 ^{
                     alert?.show(true) {
                         self.mailbox.addOperation(BlockOperation {
-                            if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleFlash()) as? Failure {
-                                self.this ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: f.error)
-                            }
+                            self.sendFlatBuffersFlashToggle(peer: [peer])
                         })
                     }
                 }
@@ -205,12 +203,7 @@ extension RemoteCamSession {
                 ^{
                     alert?.show(true) {
                         self.mailbox.addOperation(BlockOperation {
-                            if let f = self.sendMessage(
-                                peer: [peer], msg: RemoteCmd.ToggleCamera()) as? Failure {
-                                self.this ! RemoteCmd.ToggleCameraResp(
-                                    cameraCapabilities: nil, error: f.error
-                                )
-                            }
+                            self.sendFlatBuffersCameraToggle(peer: [peer])
                         })
                     }
                 }
@@ -239,6 +232,55 @@ extension RemoteCamSession {
                     } else if let error = t.error {
                         alert?.dismiss(animated: true, completion: {
                             let errorAlert = UIAlertController(title: error._domain, message: nil, preferredStyle: .alert)
+                            errorAlert.simpleOkAction()
+                            errorAlert.show(true)
+                            self.mailbox.addOperation(BlockOperation {
+                                self.unbecome()
+                            })
+                        })
+                    }
+                }
+
+            case let fbResponse as FlatBuffersCameraStateResponse:
+                print("🔍 DEBUG: Monitor toggling camera received FlatBuffers camera state response")
+                print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
+                
+                if fbResponse.response.success {
+                    print("✅ Camera toggle success via FlatBuffers")
+                    
+                    // Create a legacy response for the UI
+                    // Since FlatBuffers doesn't include full capabilities, we'll request them separately
+                    monitor ! UICmd.ToggleCameraResp(
+                        flashMode: nil, // Flash mode not included in FlatBuffers response
+                        camPosition: nil, // Camera position not included in FlatBuffers response
+                        error: nil
+                    )
+                    
+                    // Request fresh capabilities after successful toggle
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
+                    
+                    ^{
+                        alert?.dismiss(animated: true) {
+                            self.mailbox.addOperation(BlockOperation {
+                                self.unbecome()
+                            })
+                        }
+                    }
+                } else {
+                    print("❌ Camera toggle failed via FlatBuffers")
+                    let error = fbResponse.response.error != nil ? 
+                        NSError(domain: "CameraError", code: 1, userInfo: [NSLocalizedDescriptionKey: fbResponse.response.error!]) : 
+                        NSError(domain: "CameraError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"])
+                    
+                    monitor ! UICmd.ToggleCameraResp(
+                        flashMode: nil,
+                        camPosition: nil,
+                        error: error
+                    )
+                    
+                    ^{
+                        alert?.dismiss(animated: true, completion: {
+                            let errorAlert = UIAlertController(title: error.domain, message: error.localizedDescription, preferredStyle: .alert)
                             errorAlert.simpleOkAction()
                             errorAlert.show(true)
                             self.mailbox.addOperation(BlockOperation {

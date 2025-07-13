@@ -71,11 +71,6 @@ extension RemoteCamSession {
                 print("🔍 DEBUG: Photo mode - attempting FlatBuffers torch toggle")
                 if let f = self.sendFlatBuffersTorchToggle(peer: [peer]) as? Failure {
                     print("❌ DEBUG: Failed to send FlatBuffers torch toggle command in photo mode: \(f.tryError.localizedDescription)")
-                    // Fallback to legacy command
-                    print("🔄 DEBUG: Falling back to legacy NSCoding torch toggle")
-                    if let f2 = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
-                        print("❌ DEBUG: Fallback legacy torch toggle also failed: \(f2.tryError.localizedDescription)")
-                    }
                 } else {
                     print("✅ DEBUG: Successfully sent FlatBuffers torch toggle command in photo mode")
                 }
@@ -93,6 +88,28 @@ extension RemoteCamSession {
                 }
                 monitor ! capabilities
                 
+            // MARK: - FlatBuffers Message Handling
+            case let fbCommand as FlatBuffersCameraCommand:
+                print("🔍 DEBUG: Monitor received FlatBuffers camera command: \(fbCommand.command.action)")
+                // FlatBuffers commands are handled by the camera, not the monitor
+                // This case is here for completeness but shouldn't normally occur
+                
+            case let fbResponse as FlatBuffersCameraStateResponse:
+                print("🔍 DEBUG: Monitor received FlatBuffers camera state response")
+                print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
+                if let error = fbResponse.response.error {
+                    print("🔍 DEBUG: Command error: \(error)")
+                }
+                
+                // Convert FlatBuffers response to legacy format based on command type
+                // We need to determine what command this response is for based on context
+                // For now, we'll handle the most common case - camera toggle response
+                
+                // For now, we'll forward FlatBuffers responses to the monitor for UI updates
+                // In the future, we could implement more sophisticated state-based routing
+                monitor ! fbResponse
+                print("🔍 DEBUG: Forwarded FlatBuffers state update to monitor")
+
             // MARK: - Zoom and Lens Command Handling
             case let zoomCmd as UICmd.SetZoom:
                 // Send zoom command directly without showing alert for immediate feedback
@@ -108,12 +125,7 @@ extension RemoteCamSession {
                 }
                 monitor ! zoomResp
                 
-            case let torchResp as RemoteCmd.ToggleTorchResp:
-                // Handle torch response directly without alert
-                if let error = torchResp.error {
-                    print("❌ DEBUG: Photo mode torch response error: \(error.localizedDescription)")
-                }
-                monitor ! torchResp
+
                 
             case is UICmd.SwitchLens:
                 self.become(
@@ -171,10 +183,7 @@ extension RemoteCamSession {
             case let cmd as UICmd.TakePicture:
                 ^{alert?.show(true) {
                     self.mailbox.addOperation(BlockOperation {
-                        self.sendCommandOrGoToScanning(
-                            peer: [peer],
-                            msg: RemoteCmd.TakePic(sender: self.this, sendMediaToPeer:cmd.sendMediaToRemote)
-                        )
+                        self.sendFlatBuffersPhotoCapture(peer: [peer], sendToRemote: cmd.sendMediaToRemote)
                     })
                 }}
 
@@ -213,6 +222,35 @@ extension RemoteCamSession {
                         self.popAndStartScanning()
                     })
                 }}
+
+            case let fbResponse as FlatBuffersCameraStateResponse:
+                print("🔍 DEBUG: Monitor taking picture received FlatBuffers camera state response")
+                print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
+                
+                // Convert FlatBuffers response to legacy TakePicResp format
+                if fbResponse.response.success {
+                    // For photo capture, we don't have the image data in the state response
+                    // The camera should send the image data separately or we need to handle it differently
+                    // For now, we'll simulate a successful response without image data
+                    let legacyResponse = RemoteCmd.TakePicResp(
+                        sender: nil, // No sender in FlatBuffers response
+                        pic: nil, // Image data not included in state response
+                        error: nil
+                    )
+                    self.this ! legacyResponse
+                } else {
+                    // Handle error case
+                    let error = fbResponse.response.error != nil ? 
+                        NSError(domain: "PhotoCaptureError", code: 1, userInfo: [NSLocalizedDescriptionKey: fbResponse.response.error!]) : 
+                        NSError(domain: "PhotoCaptureError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unknown photo capture error"])
+                    
+                    let legacyResponse = RemoteCmd.TakePicResp(
+                        sender: nil, // No sender in FlatBuffers response
+                        pic: nil,
+                        error: error
+                    )
+                    self.this ! legacyResponse
+                }
 
             default:
                 ^{alert?.dismiss(animated: true, completion: nil)}

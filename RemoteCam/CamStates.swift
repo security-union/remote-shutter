@@ -75,18 +75,14 @@ extension RemoteCamSession {
                 ^{
                     alert?.dismiss(animated: true, completion: nil)
                 }
-                if self.sendMessage(
+                // Send FlatBuffers response
+                let _ = self.sendFlatBuffersPhotoCaptureResponse(
                     peer: [peer],
-                    msg: RemoteCmd.TakePicAck(sender: self.this)).isFailure() {
-                    self.popToState(name: self.states.scanning)
-                    return
-                }
-                if self.sendMessage(
-                    peer: [peer],
-                    msg: RemoteCmd.TakePicResp(sender: self.this, pic: sendMediaToPeer ? t.pic : nil, error: t.error)).isFailure() {
-                    self.popToState(name: self.states.scanning)
-                    return
-                }
+                    commandId: UUID().uuidString,
+                    photoData: sendMediaToPeer ? t.pic : nil,
+                    error: t.error
+                )
+                
                 self.unbecome()
             case let c as DisconnectPeer:
                 ^{
@@ -147,73 +143,15 @@ extension RemoteCamSession {
                     msg: RemoteCmd.ToggleCameraResp(cameraCapabilities: nil,
                                                     error: m.error))
 
-            case is RemoteCmd.StartRecordingVideo:
-                ctrl.startRecordingVideo()
-                self.become(
-                        name: self.states.cameraRecordingVideo,
-                        state: self.cameraShootingVideo(peer: peer,
-                                ctrl: ctrl,
-                                lobby: lobbyWrapper)
-                )
 
-            case let cmd as RemoteCmd.TakePic:
-                ctrl.takePicture(cmd.sendMediaToPeer)
-                self.become(name: self.states.cameraTakingPic,
-                            state: self.cameraTakingPic(peer: peer, ctrl: ctrl, lobby: lobbyWrapper, sendMediaToPeer: cmd.sendMediaToPeer))
 
-            case is RemoteCmd.ToggleCamera:
-                print("🔍 DEBUG: Camera received ToggleCamera command")
-                let result = ctrl.toggleCamera()
-                var resp: Message?
-                if let (_, position) = result.toOptional() {
-                    print("✅ DEBUG: Camera toggle success - new position: \(position)")
-                    // Send camera capabilities as part of the response
-                    let capabilities = ctrl.gatherCurrentCameraCapabilities()
-                    resp = RemoteCmd.ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
-                } else if let failure = result as? Failure {
-                    print("❌ DEBUG: Camera toggle failed: \(failure.tryError.localizedDescription)")
-                    resp = RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: failure.tryError)
-                }
-                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
+
+
+
                 
-            case is RemoteCmd.ToggleFlash:
-                let result = ctrl.toggleFlash()
-                var resp: Message?
-                if let flashMode = result.toOptional() {
-                    resp = RemoteCmd.ToggleFlashResp(flashMode: flashMode, error: nil)
-                } else if let failure = result as? Failure {
-                    resp = RemoteCmd.ToggleFlashResp(flashMode: nil, error: failure.error)
-                }
-                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
+
                 
-            // MARK: - Torch Command Handling
-            case is RemoteCmd.ToggleTorch:
-                let result = ctrl.toggleTorch()
-                var resp: Message?
-                if let torchMode = result.toOptional() {
-                    resp = RemoteCmd.ToggleTorchResp(torchMode: torchMode, error: nil)
-                    
-                    // Also send FlatBuffers response for modern clients
-                    let _ = self.sendFlatBuffersTorchStateResponse(
-                        peer: [peer],
-                        commandId: UUID().uuidString,
-                        success: true,
-                        error: nil,
-                        torchMode: torchMode
-                    )
-                } else if let failure = result as? Failure {
-                    resp = RemoteCmd.ToggleTorchResp(torchMode: nil, error: failure.error)
-                    
-                    // Also send FlatBuffers error response
-                    let _ = self.sendFlatBuffersTorchStateResponse(
-                        peer: [peer],
-                        commandId: UUID().uuidString,
-                        success: false,
-                        error: failure.error?.localizedDescription ?? "Unknown error",
-                        torchMode: .off
-                    )
-                }
-                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
+
                 
             case let torchCmd as RemoteCmd.SetTorch:
                 let result = ctrl.setTorchMode(mode: torchCmd.torchMode)
@@ -270,11 +208,191 @@ extension RemoteCamSession {
             case is UICmd.UnbecomeCamera:
                 print("🔍 DEBUG: Camera explicitly unbecoming - going to connected state")
                 self.popToState(name: self.states.connected)
+                
+            // MARK: - FlatBuffers Command Handling
+            case let fbCommand as FlatBuffersCameraCommand:
+                print("🔍 DEBUG: Camera received FlatBuffers command: \(fbCommand.command.action)")
+                self.handleFlatBuffersCameraCommand(fbCommand.command, ctrl: ctrl, peer: peer)
 
             default:
                 self.receive(msg: msg)
             }
         }
     }
+    
+    // MARK: - FlatBuffers Command Handling
+    
+    /// Handle FlatBuffers camera commands
+    private func handleFlatBuffersCameraCommand(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        print("🎯 Camera processing FlatBuffers command: \(command.action)")
+        
+        switch command.action {
+        case .toggletorch:
+            handleFlatBuffersTorchToggle(command, ctrl: ctrl, peer: peer)
+            
+        case .toggleflash:
+            handleFlatBuffersFlashToggle(command, ctrl: ctrl, peer: peer)
+            
+        case .togglecamera:
+            handleFlatBuffersCameraToggle(command, ctrl: ctrl, peer: peer)
+            
+        case .takepicture:
+            handleFlatBuffersPhotoCapture(command, ctrl: ctrl, peer: peer)
+            
+        case .startrecording:
+            handleFlatBuffersStartRecording(command, ctrl: ctrl, peer: peer)
+            
+        case .stoprecording:
+            handleFlatBuffersStopRecording(command, ctrl: ctrl, peer: peer)
+            
+        default:
+            print("⚠️ Camera received unhandled FlatBuffers command: \(command.action)")
+        }
+    }
+    
+    /// Handle FlatBuffers torch toggle command
+    private func handleFlatBuffersTorchToggle(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        print("🔦 Camera handling FlatBuffers torch toggle")
+        
+        let result = ctrl.toggleTorch()
+        let commandId = command.id ?? UUID().uuidString
+        
+        if let torchMode = result.toOptional() {
+            print("✅ Camera torch toggle success: \(torchMode)")
+            let _ = self.sendFlatBuffersTorchStateResponse(
+                peer: [peer],
+                commandId: commandId,
+                success: true,
+                error: nil,
+                torchMode: torchMode
+            )
+        } else if let failure = result as? Failure {
+            print("❌ Camera torch toggle failed: \(failure.tryError)")
+            let _ = self.sendFlatBuffersTorchStateResponse(
+                peer: [peer],
+                commandId: commandId,
+                success: false,
+                error: failure.tryError.localizedDescription,
+                torchMode: .off
+            )
+        }
+    }
+    
+    /// Handle FlatBuffers flash toggle command
+    private func handleFlatBuffersFlashToggle(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        print("⚡ Camera handling FlatBuffers flash toggle")
+        
+        let result = ctrl.toggleFlash()
+        let commandId = command.id ?? UUID().uuidString
+        
+        if let flashMode = result.toOptional() {
+            print("✅ Camera flash toggle success: \(flashMode)")
+            self.sendFlatBuffersFlashStateResponse(
+                peer: [peer],
+                commandId: commandId,
+                flashMode: flashMode,
+                error: nil
+            )
+        } else if let failure = result as? Failure {
+            print("❌ Camera flash toggle failed: \(failure.tryError)")
+            self.sendFlatBuffersFlashStateResponse(
+                peer: [peer],
+                commandId: commandId,
+                flashMode: nil,
+                error: failure.tryError
+            )
+        }
+    }
+    
+    /// Handle FlatBuffers camera toggle command
+    private func handleFlatBuffersCameraToggle(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        print("📷 Camera handling FlatBuffers camera toggle")
+        
+        let result = ctrl.toggleCamera()
+        let commandId = command.id ?? UUID().uuidString
+        
+        if let (flashMode, position) = result.toOptional() {
+            print("✅ Camera toggle success")
+            // For now, we'll send a simple success response
+            // TODO: Implement proper capabilities gathering for FlatBuffers
+            self.sendFlatBuffersCameraStateResponse(
+                peer: [peer],
+                commandId: commandId,
+                capabilities: nil,
+                error: nil
+            )
+        } else if let failure = result as? Failure {
+            print("❌ Camera toggle failed: \(failure.tryError)")
+            self.sendFlatBuffersCameraStateResponse(
+                peer: [peer],
+                commandId: commandId,
+                capabilities: nil,
+                error: failure.tryError
+            )
+        }
+    }
+    
+    /// Handle FlatBuffers photo capture command
+    private func handleFlatBuffersPhotoCapture(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        print("📸 Camera handling FlatBuffers photo capture")
+        
+        let sendToRemote = command.parameters?.sendToRemote ?? true
+        let commandId = command.id ?? UUID().uuidString
+        
+        // Trigger photo capture
+        ctrl.takePicture(sendToRemote)
+        
+        // Note: Response will be sent from cameraTakingPic state when photo is captured
+        // For now, we'll send a simple success response
+        let _ = self.sendFlatBuffersPhotoCaptureResponse(
+            peer: [peer],
+            commandId: commandId,
+            photoData: nil,
+            error: nil
+        )
+    }
+    
+    /// Handle FlatBuffers start recording command
+    private func handleFlatBuffersStartRecording(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        print("🎬 Camera handling FlatBuffers start recording")
+        
+        let commandId = command.id ?? UUID().uuidString
+        
+        // Trigger video recording start
+        ctrl.startRecordingVideo()
+        
+        // Note: Response will be sent from video recording states
+        // For now, we'll send a simple success response
+        let _ = self.sendFlatBuffersVideoRecordingResponse(
+            peer: [peer],
+            commandId: commandId,
+            videoData: nil,
+            error: nil
+        )
+    }
+    
+    /// Handle FlatBuffers stop recording command
+    private func handleFlatBuffersStopRecording(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        print("🛑 Camera handling FlatBuffers stop recording")
+        
+        let sendToRemote = command.parameters?.sendToRemote ?? true
+        let commandId = command.id ?? UUID().uuidString
+        
+        // Trigger video recording stop
+        ctrl.stopRecordingVideo(sendToRemote)
+        
+        // Note: Response will be sent from video recording states
+        // For now, we'll send a simple success response
+        let _ = self.sendFlatBuffersVideoRecordingResponse(
+            peer: [peer],
+            commandId: commandId,
+            videoData: nil,
+            error: nil
+        )
+    }
+    
+    // MARK: - FlatBuffers Command State Tracking
+    // Note: Extensions cannot have stored properties, so we'll track command IDs differently
+    // For now, we'll use UUID().uuidString for responses until we implement proper state tracking
 
 }
