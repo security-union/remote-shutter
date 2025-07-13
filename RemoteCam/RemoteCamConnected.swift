@@ -31,7 +31,7 @@ extension RemoteCamSession {
 
             case let m as UICmd.BecomeCamera:
                 self.become(name: self.states.camera, state: self.camera(peer: peer, ctrl: m.ctrl, lobbyWrapper: lobbyWrapper))
-                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.PeerBecameCamera.createWithDefaults())
+                self.sendFlatBuffersPeerBecameCamera(peer: [peer])
 
             case let m as UICmd.BecomeMonitor:
                 switch m.mode {
@@ -45,21 +45,33 @@ extension RemoteCamSession {
                         state: self.monitorPhotoMode(monitor: m.sender!, peer: peer, lobby: lobbyWrapper))
                 }
 
-                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.PeerBecameMonitor.createWithDefaults())
+                self.sendFlatBuffersPeerBecameMonitor(peer: [peer])
 
-            case let cmd as RemoteCmd.PeerBecameCamera:
-                if cmd.bundleVersion > 0 {
-                    if let rolePicker = rolePicker() {
-                        rolePicker ! cmd
+            case let cmd as FlatBuffersPeerBecameCamera:
+                // Extract version info from FlatBuffers command
+                if let parameters = cmd.command.parameters {
+                    let bundleVersion = parameters.bundleVersion
+                    if bundleVersion > 0 {
+                        if let rolePicker = rolePicker() {
+                            rolePicker ! cmd
+                        }
+                    } else {
+                        showIncopatibilityMessage()
                     }
                 } else {
                     showIncopatibilityMessage()
                 }
 
-            case let cmd as RemoteCmd.PeerBecameMonitor:
-                if cmd.bundleVersion > 0 {
-                    if let rolePicker = rolePicker() {
-                        rolePicker ! cmd
+            case let cmd as FlatBuffersPeerBecameMonitor:
+                // Extract version info from FlatBuffers command
+                if let parameters = cmd.command.parameters {
+                    let bundleVersion = parameters.bundleVersion
+                    if bundleVersion > 0 {
+                        if let rolePicker = rolePicker() {
+                            rolePicker ! cmd
+                        }
+                    } else {
+                        showIncopatibilityMessage()
                     }
                 } else {
                     showIncopatibilityMessage()

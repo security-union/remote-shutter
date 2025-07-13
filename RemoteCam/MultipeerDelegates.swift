@@ -187,6 +187,14 @@ extension RemoteCamSession {
         case .requestframe:
             // Handle directly with FlatBuffers (no legacy conversion needed)
             this ! FlatBuffersCameraCommand(command: command)
+            
+        case .peerbecamecamera:
+            // Handle peer became camera with FlatBuffers
+            this ! FlatBuffersPeerBecameCamera(command: command)
+            
+        case .peerbecamemonitor:
+            // Handle peer became monitor with FlatBuffers
+            this ! FlatBuffersPeerBecameMonitor(command: command)
         }
     }
     

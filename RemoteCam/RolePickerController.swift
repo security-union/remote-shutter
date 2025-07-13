@@ -30,11 +30,11 @@ public class RolePickerActor: ViewCtrlActor<RolePickerController> {
         return {[unowned self] (msg: Message) in
             switch msg {
             
-            case is RemoteCmd.PeerBecameMonitor:
+            case is FlatBuffersPeerBecameMonitor:
                 ^{
                     ctrl.value?.becomeCamera()
                 }
-            case is RemoteCmd.PeerBecameCamera:
+            case is FlatBuffersPeerBecameCamera:
                 ^{
                     ctrl.value?.becomeMonitor()
                 }

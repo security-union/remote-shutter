@@ -105,21 +105,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     ctrl?.value?.navigationController?.popViewController(animated: true)
                 }
 
-            case let cam as UICmd.ToggleCameraResp:
-                OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl {
-                        setFlashMode(ctrl: ctrl, flashMode: cam.flashMode)
-                    }
-                }
-
-            case let flash as RemoteCmd.ToggleFlashResp:
-                OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl {
-                        setFlashMode(ctrl: ctrl, flashMode: flash.flashMode)
-                    }
-                }
-
-                        case let fbResponse as FlatBuffersCameraStateResponse:
+            case let fbResponse as FlatBuffersCameraStateResponse:
                 // Handle FlatBuffers camera state response - update UI based on current state
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl {
@@ -136,6 +122,20 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                             torchMode = nil
                         }
                         setTorchMode(ctrl: ctrl, torchMode: torchMode)
+                        
+                        // Extract flash mode from FlatBuffers response current state
+                        let flashMode: AVCaptureDevice.FlashMode?
+                        if let state = fbResponse.response.currentState {
+                            switch state.flashMode {
+                            case .off: flashMode = .off
+                            case .on: flashMode = .on
+                            case .auto: flashMode = .auto
+                            default: flashMode = .off
+                            }
+                        } else {
+                            flashMode = nil
+                        }
+                        setFlashMode(ctrl: ctrl, flashMode: flashMode)
                     }
                 }
 
@@ -454,7 +454,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     }
 
     @IBAction func onToggleCamera(sender: UIButton) {
-        session ! UICmd.ToggleCamera()
+        session ! UICmd.FlatBuffersCameraToggle()
     }
 
     @IBAction func onSliderChange(sender: UISlider) {
@@ -463,7 +463,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     }
 
     @IBAction func toggleFlash(sender: UIButton) {
-        session ! UICmd.ToggleFlash()
+        session ! UICmd.FlatBuffersFlashToggle()
     }
     
     @IBAction func toggleTorch(sender: UIButton) {

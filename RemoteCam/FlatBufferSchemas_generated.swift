@@ -20,8 +20,10 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case settorchmode = 9
   case setflashmode = 10
   case requestframe = 11
+  case peerbecamecamera = 12
+  case peerbecamemonitor = 13
 
-  public static var max: RemoteShutter_CommandAction { return .requestframe }
+  public static var max: RemoteShutter_CommandAction { return .peerbecamemonitor }
   public static var min: RemoteShutter_CommandAction { return .takepicture }
 }
 
@@ -138,6 +140,9 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     case lensType = 8
     case torchMode = 10
     case flashMode = 12
+    case bundleVersion = 14
+    case shortVersion = 16
+    case platform = 18
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -147,13 +152,21 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public var lensType: RemoteShutter_CameraLensType { let o = _accessor.offset(VTOFFSET.lensType.v); return o == 0 ? .wideangle : RemoteShutter_CameraLensType(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .wideangle }
   public var torchMode: RemoteShutter_TorchMode { let o = _accessor.offset(VTOFFSET.torchMode.v); return o == 0 ? .off : RemoteShutter_TorchMode(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .off }
   public var flashMode: RemoteShutter_FlashMode { let o = _accessor.offset(VTOFFSET.flashMode.v); return o == 0 ? .off : RemoteShutter_FlashMode(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .off }
-  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 5) }
+  public var bundleVersion: Int32 { let o = _accessor.offset(VTOFFSET.bundleVersion.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
+  public var shortVersion: String? { let o = _accessor.offset(VTOFFSET.shortVersion.v); return o == 0 ? nil : _accessor.string(at: o) }
+  public var shortVersionSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.shortVersion.v) }
+  public var platform: String? { let o = _accessor.offset(VTOFFSET.platform.v); return o == 0 ? nil : _accessor.string(at: o) }
+  public var platformSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.platform.v) }
+  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 8) }
   public static func add(sendToRemote: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: sendToRemote, def: false,
    at: VTOFFSET.sendToRemote.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
   public static func add(lensType: RemoteShutter_CameraLensType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: lensType.rawValue, def: 0, at: VTOFFSET.lensType.p) }
   public static func add(torchMode: RemoteShutter_TorchMode, _ fbb: inout FlatBufferBuilder) { fbb.add(element: torchMode.rawValue, def: 0, at: VTOFFSET.torchMode.p) }
   public static func add(flashMode: RemoteShutter_FlashMode, _ fbb: inout FlatBufferBuilder) { fbb.add(element: flashMode.rawValue, def: 0, at: VTOFFSET.flashMode.p) }
+  public static func add(bundleVersion: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: bundleVersion, def: 0, at: VTOFFSET.bundleVersion.p) }
+  public static func add(shortVersion: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: shortVersion, at: VTOFFSET.shortVersion.p) }
+  public static func add(platform: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: platform, at: VTOFFSET.platform.p) }
   public static func endCommandParameters(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCommandParameters(
     _ fbb: inout FlatBufferBuilder,
@@ -161,7 +174,10 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     zoomFactor: Double = 0.0,
     lensType: RemoteShutter_CameraLensType = .wideangle,
     torchMode: RemoteShutter_TorchMode = .off,
-    flashMode: RemoteShutter_FlashMode = .off
+    flashMode: RemoteShutter_FlashMode = .off,
+    bundleVersion: Int32 = 0,
+    shortVersionOffset shortVersion: Offset = Offset(),
+    platformOffset platform: Offset = Offset()
   ) -> Offset {
     let __start = RemoteShutter_CommandParameters.startCommandParameters(&fbb)
     RemoteShutter_CommandParameters.add(sendToRemote: sendToRemote, &fbb)
@@ -169,6 +185,9 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     RemoteShutter_CommandParameters.add(lensType: lensType, &fbb)
     RemoteShutter_CommandParameters.add(torchMode: torchMode, &fbb)
     RemoteShutter_CommandParameters.add(flashMode: flashMode, &fbb)
+    RemoteShutter_CommandParameters.add(bundleVersion: bundleVersion, &fbb)
+    RemoteShutter_CommandParameters.add(shortVersion: shortVersion, &fbb)
+    RemoteShutter_CommandParameters.add(platform: platform, &fbb)
     return RemoteShutter_CommandParameters.endCommandParameters(&fbb, start: __start)
   }
 
@@ -179,6 +198,9 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.lensType.p, fieldName: "lensType", required: false, type: RemoteShutter_CameraLensType.self)
     try _v.visit(field: VTOFFSET.torchMode.p, fieldName: "torchMode", required: false, type: RemoteShutter_TorchMode.self)
     try _v.visit(field: VTOFFSET.flashMode.p, fieldName: "flashMode", required: false, type: RemoteShutter_FlashMode.self)
+    try _v.visit(field: VTOFFSET.bundleVersion.p, fieldName: "bundleVersion", required: false, type: Int32.self)
+    try _v.visit(field: VTOFFSET.shortVersion.p, fieldName: "shortVersion", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.platform.p, fieldName: "platform", required: false, type: ForwardOffset<String>.self)
     _v.finish()
   }
 }

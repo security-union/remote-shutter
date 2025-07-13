@@ -132,9 +132,9 @@ extension RemoteCamSession {
                     orientation: frameMsg.orientation
                 )
                 
-            case is RemoteCmd.PeerBecameMonitor:
+            case is FlatBuffersPeerBecameMonitor:
                 // When a new monitor joins, immediately send camera capabilities
-                print("🔍 DEBUG: Camera received PeerBecameMonitor - attempting to send capabilities")
+                print("🔍 DEBUG: Camera received FlatBuffers PeerBecameMonitor - attempting to send capabilities")
                 self.attemptToSendCapabilities(ctrl: ctrl, peer: peer, attempt: 1, maxAttempts: 5)
                 
             case is RemoteCmd.RequestCameraCapabilities:
@@ -144,11 +144,7 @@ extension RemoteCamSession {
                 
 
                 
-            case let m as UICmd.ToggleCameraResp:
-                self.sendCommandOrGoToScanning(
-                    peer: [peer],
-                    msg: RemoteCmd.ToggleCameraResp(cameraCapabilities: nil,
-                                                    error: m.error))
+
 
 
 
@@ -330,13 +326,17 @@ extension RemoteCamSession {
         let result = ctrl.toggleFlash()
         let commandId = command.id ?? UUID().uuidString
         
+        // Gather current camera capabilities to include in response
+        let capabilities = ctrl.gatherCurrentCameraCapabilities()
+        
         if let flashMode = result.toOptional() {
             print("✅ Camera flash toggle success: \(flashMode)")
             self.sendFlatBuffersFlashStateResponse(
                 peer: [peer],
                 commandId: commandId,
                 flashMode: flashMode,
-                error: nil
+                error: nil,
+                capabilities: capabilities
             )
         } else if let failure = result as? Failure {
             print("❌ Camera flash toggle failed: \(failure.tryError)")
@@ -344,7 +344,8 @@ extension RemoteCamSession {
                 peer: [peer],
                 commandId: commandId,
                 flashMode: nil,
-                error: failure.tryError
+                error: failure.tryError,
+                capabilities: capabilities
             )
         }
     }
@@ -356,14 +357,15 @@ extension RemoteCamSession {
         let result = ctrl.toggleCamera()
         let commandId = command.id ?? UUID().uuidString
         
+        // Gather current camera capabilities to include in response
+        let capabilities = ctrl.gatherCurrentCameraCapabilities()
+        
         if let (flashMode, position) = result.toOptional() {
             print("✅ Camera toggle success")
-            // For now, we'll send a simple success response
-            // TODO: Implement proper capabilities gathering for FlatBuffers
             self.sendFlatBuffersCameraStateResponse(
                 peer: [peer],
                 commandId: commandId,
-                capabilities: nil,
+                capabilities: capabilities,
                 error: nil
             )
         } else if let failure = result as? Failure {
@@ -371,7 +373,7 @@ extension RemoteCamSession {
             self.sendFlatBuffersCameraStateResponse(
                 peer: [peer],
                 commandId: commandId,
-                capabilities: nil,
+                capabilities: capabilities,
                 error: failure.tryError
             )
         }

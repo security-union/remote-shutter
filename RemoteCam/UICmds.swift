@@ -159,6 +159,36 @@ public class UICmd {
         }
     }
 
+    /// FlatBuffers Flash Toggle UI Command
+    @objc(_TtCC10ActorsDemo5UICmd20FlatBuffersFlashToggle)public class FlatBuffersFlashToggle: Actor.Message, NSCoding {
+        public init() {
+            super.init(sender: nil)
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            super.init(sender: nil)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+            // No properties to encode
+        }
+    }
+
+    /// FlatBuffers Camera Toggle UI Command
+    @objc(_TtCC10ActorsDemo5UICmd21FlatBuffersCameraToggle)public class FlatBuffersCameraToggle: Actor.Message, NSCoding {
+        public init() {
+            super.init(sender: nil)
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            super.init(sender: nil)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+            // No properties to encode
+        }
+    }
+
     // MARK: - Zoom Commands
     @objc(_TtCC10ActorsDemo5UICmd8SetZoom)public class SetZoom: Actor.Message, NSCoding {
         public let zoomFactor: CGFloat
@@ -304,99 +334,5 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd11ToggleFlash)public class ToggleFlash: Actor.Message, NSCoding {
-        public func encode(with aCoder: NSCoder) {
-        }
 
-        public init() {
-            super.init(sender: nil)
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            super.init(sender: nil)
-        }
-    }
-
-
-
-    @objc(_TtCC10ActorsDemo5UICmd15ToggleFlashResp)public class ToggleFlashResp: Actor.Message, NSCoding {
-
-        public let error: Error?
-        public let flashMode: AVCaptureDevice.FlashMode?
-
-        public init(flashMode: AVCaptureDevice.FlashMode?, error: Error?) {
-            self.flashMode = flashMode
-            self.error = error
-            super.init(sender: nil)
-        }
-
-        public func encode(with aCoder: NSCoder) {
-            if let f = self.flashMode {
-                aCoder.encode(f.rawValue, forKey: "flashMode")
-            }
-
-            if let e = self.error {
-                aCoder.encode(e, forKey: "error")
-            }
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            self.flashMode = AVCaptureDevice.FlashMode(rawValue: aDecoder.decodeInteger(forKey: "flashMode"))!
-            self.error = aDecoder.decodeObject(forKey: "error") as? Error
-            super.init(sender: nil)
-        }
-    }
-
-    @objc(_TtCC10ActorsDemo5UICmd12ToggleCamera)public class ToggleCamera: Actor.Message, NSCoding {
-
-        public init() {
-            super.init(sender: nil)
-        }
-
-        public func encode(with aCoder: NSCoder) {
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            super.init(sender: nil)
-        }
-
-    }
-
-    @objc(_TtCC10ActorsDemo5UICmd16ToggleCameraResp)public class ToggleCameraResp: Actor.Message, NSCoding {
-
-        public let error: Error?
-        public let flashMode: AVCaptureDevice.FlashMode?
-        public let camPosition: AVCaptureDevice.Position?
-
-        public init(flashMode: AVCaptureDevice.FlashMode?,
-                    camPosition: AVCaptureDevice.Position?,
-                    error: Error?) {
-            self.flashMode = flashMode
-            self.camPosition = camPosition
-            self.error = error
-            super.init(sender: nil)
-        }
-
-        public func encode(with aCoder: NSCoder) {
-            if let flashMode = self.flashMode {
-                aCoder.encode(flashMode.rawValue, forKey: "flashMode")
-            }
-
-            if let camPosition = self.camPosition {
-                aCoder.encode(camPosition.rawValue, forKey: "camPosition")
-            }
-
-            if let e = self.error {
-                aCoder.encode(e, forKey: "error")
-            }
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            self.flashMode = AVCaptureDevice.FlashMode(rawValue: aDecoder.decodeInteger(forKey: "flashMode"))
-            self.camPosition = AVCaptureDevice.Position(rawValue: aDecoder.decodeInteger(forKey: "camPosition"))
-            self.error = aDecoder.decodeObject(forKey: "error") as? Error
-
-            super.init(sender: nil)
-        }
-    }
 }

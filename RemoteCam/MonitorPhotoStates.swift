@@ -57,14 +57,14 @@ extension RemoteCamSession {
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: self.states.connected)
 
-            case is UICmd.ToggleCamera:
+            case is UICmd.FlatBuffersCameraToggle:
                 self.become(
                     name: self.states.monitorTogglingCamera,
                     state: self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby)
                 )
                 self.this ! msg
 
-            case is UICmd.ToggleFlash:
+            case is UICmd.FlatBuffersFlashToggle:
                 self.become(
                     name: self.states.monitorTogglingFlash,
                     state: self.monitorTogglingFlash(monitor: monitor, peer: peer, lobby: lobby)
@@ -143,9 +143,9 @@ extension RemoteCamSession {
                 // Request capabilities from camera
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
                 
-            case is RemoteCmd.PeerBecameCamera:
+            case is FlatBuffersPeerBecameCamera:
                 // When peer becomes camera, request fresh capabilities
-                print("🔍 DEBUG: Monitor detected peer became camera - requesting fresh capabilities")
+                print("🔍 DEBUG: Monitor detected FlatBuffers peer became camera - requesting fresh capabilities")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
 
             case let mode as UICmd.BecomeMonitor:

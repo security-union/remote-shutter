@@ -397,33 +397,69 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
     }
     
     /// Send FlatBuffers flash state response
-    public func sendFlatBuffersFlashStateResponse(peer: [MCPeerID], commandId: String, flashMode: AVCaptureDevice.FlashMode?, error: Error?) {
-        let responseData = buildFlatBuffersFlashStateResponse(commandId: commandId, flashMode: flashMode, error: error)
+    public func sendFlatBuffersFlashStateResponse(peer: [MCPeerID], commandId: String, flashMode: AVCaptureDevice.FlashMode?, error: Error?, capabilities: RemoteCmd.CameraCapabilitiesResp?) {
+        let responseData = buildFlatBuffersFlashStateResponse(commandId: commandId, flashMode: flashMode, error: error, capabilities: capabilities)
         
         do {
             try session.send(responseData, toPeers: peer, with: .reliable)
-            print("📦 ✅ Successfully sent FlatBuffers flash state response")
+            print("📦 ✅ Successfully sent FlatBuffers flash state response with capabilities")
         } catch {
             print("📦 ❌ Failed to send FlatBuffers flash state response: \(error)")
         }
     }
     
     /// Build FlatBuffers flash state response
-    private func buildFlatBuffersFlashStateResponse(commandId: String, flashMode: AVCaptureDevice.FlashMode?, error: Error?) -> Data {
-        var builder = FlatBufferBuilder(initialSize: 256)
+    private func buildFlatBuffersFlashStateResponse(commandId: String, flashMode: AVCaptureDevice.FlashMode?, error: Error?, capabilities: RemoteCmd.CameraCapabilitiesResp?) -> Data {
+        var builder = FlatBufferBuilder(initialSize: 512)
         
         // Create command ID and timestamp
         let commandIdOffset = builder.create(string: commandId)
         let senderOffset = builder.create(string: UIDevice.current.name)
         let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
         
+        // Create current state with flash mode
+        var currentStateOffset = Offset()
+        if let flashMode = flashMode {
+            let flatBuffersFlashMode: RemoteShutter_FlashMode
+            switch flashMode {
+            case .off: flatBuffersFlashMode = .off
+            case .on: flatBuffersFlashMode = .on
+            case .auto: flatBuffersFlashMode = .auto
+            @unknown default: flatBuffersFlashMode = .off
+            }
+            
+            // Get current camera info for state
+            let currentCamera: RemoteShutter_CameraPosition = capabilities?.currentCamera == .front ? .front : .back
+            let currentLens: RemoteShutter_CameraLensType = convertLensTypeToFlatBuffers(capabilities?.currentLens ?? .wideAngle)
+            let zoomFactor = capabilities?.currentZoom ?? 1.0
+            
+            currentStateOffset = RemoteShutter_CameraState.createCameraState(
+                &builder,
+                currentCamera: currentCamera,
+                currentLens: currentLens,
+                zoomFactor: zoomFactor,
+                torchMode: .off, // Default torch mode
+                flashMode: flatBuffersFlashMode,
+                isRecording: false, // Default recording state
+                connectionStatus: .connected
+            )
+        }
+        
+        // Create capabilities if available
+        var capabilitiesOffset = Offset()
+        if let capabilities = capabilities {
+            capabilitiesOffset = buildFlatBuffersCameraCapabilities(builder: &builder, capabilities: capabilities)
+        }
+        
         // Create camera state response
         let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &builder,
             commandIdOffset: commandIdOffset,
+            timestamp: timestamp,
             success: error == nil,
             errorOffset: error != nil ? builder.create(string: error!.localizedDescription) : Offset(),
-            capabilitiesOffset: Offset() // TODO: Implement capabilities serialization
+            currentStateOffset: currentStateOffset,
+            capabilitiesOffset: capabilitiesOffset
         )
         
         // Create P2P message envelope
@@ -439,6 +475,110 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         // Finish and return
         RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
         return builder.data
+    }
+    
+    /// Helper method to build FlatBuffers camera capabilities from legacy capabilities
+    private func buildFlatBuffersCameraCapabilities(builder: inout FlatBufferBuilder, capabilities: RemoteCmd.CameraCapabilitiesResp) -> Offset {
+        // Create front camera info if available
+        var frontCameraOffset = Offset()
+        if let frontCamera = capabilities.frontCamera {
+            frontCameraOffset = buildFlatBuffersCameraInfo(builder: &builder, cameraInfo: frontCamera)
+        }
+        
+        // Create back camera info if available
+        var backCameraOffset = Offset()
+        if let backCamera = capabilities.backCamera {
+            backCameraOffset = buildFlatBuffersCameraInfo(builder: &builder, cameraInfo: backCamera)
+        }
+        
+        // Create available actions vector
+        let availableActions: [RemoteShutter_CommandAction] = [
+            .takepicture, .toggleflash, .togglecamera, .toggletorch,
+            .startrecording, .stoprecording, .requestcapabilities,
+            .setzoom, .switchlens, .settorchmode, .setflashmode, .requestframe
+        ]
+        let availableActionsOffset = builder.createVector(availableActions)
+        
+        // Create current limits
+        let currentCameraInfo = capabilities.getCurrentCameraInfo()
+        let currentLimits = buildFlatBuffersCameraLimits(builder: &builder, cameraInfo: currentCameraInfo, currentLens: capabilities.currentLens, currentZoom: capabilities.currentZoom)
+        
+        // Create camera capabilities
+        return RemoteShutter_CameraCapabilities.createCameraCapabilities(
+            &builder,
+            frontCameraOffset: frontCameraOffset,
+            backCameraOffset: backCameraOffset,
+            availableActionsVectorOffset: availableActionsOffset,
+            currentLimitsOffset: currentLimits
+        )
+    }
+    
+    /// Helper method to build FlatBuffers camera info from legacy camera info
+    private func buildFlatBuffersCameraInfo(builder: inout FlatBufferBuilder, cameraInfo: RemoteCmd.CameraInfo) -> Offset {
+        // Create available lenses vector
+        let availableLenses = cameraInfo.availableLenses.map { convertLensTypeToFlatBuffers($0) }
+        let availableLensesOffset = builder.createVector(availableLenses)
+        
+        // Create zoom capabilities vector
+        var zoomCapabilityOffsets: [Offset] = []
+        for (lensType, zoomRange) in cameraInfo.getZoomCapabilities() {
+            let zoomRangeOffset = RemoteShutter_ZoomRange.createZoomRange(
+                &builder,
+                minZoom: zoomRange.minZoom,
+                maxZoom: zoomRange.maxZoom
+            )
+            
+            let zoomCapabilityOffset = RemoteShutter_ZoomCapability.createZoomCapability(
+                &builder,
+                lensType: convertLensTypeToFlatBuffers(lensType),
+                zoomRangeOffset: zoomRangeOffset
+            )
+            zoomCapabilityOffsets.append(zoomCapabilityOffset)
+        }
+        let zoomCapabilitiesOffset = builder.createVector(ofOffsets: zoomCapabilityOffsets)
+        
+        // Create camera info
+        return RemoteShutter_CameraInfo.createCameraInfo(
+            &builder,
+            availableLensesVectorOffset: availableLensesOffset,
+            hasFlash: cameraInfo.hasFlash,
+            hasTorch: cameraInfo.hasTorch,
+            zoomCapabilitiesVectorOffset: zoomCapabilitiesOffset
+        )
+    }
+    
+    /// Helper method to build FlatBuffers camera limits
+    private func buildFlatBuffersCameraLimits(builder: inout FlatBufferBuilder, cameraInfo: RemoteCmd.CameraInfo?, currentLens: CameraLensType, currentZoom: CGFloat) -> Offset {
+        // Create zoom range for current lens
+        let zoomRange = cameraInfo?.getZoomCapabilities()[currentLens] ?? RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 1.0)
+        let zoomRangeOffset = RemoteShutter_ZoomRange.createZoomRange(
+            &builder,
+            minZoom: zoomRange.minZoom,
+            maxZoom: zoomRange.maxZoom
+        )
+        
+        // Create available lenses vector
+        let availableLenses = cameraInfo?.availableLenses.map { convertLensTypeToFlatBuffers($0) } ?? []
+        let availableLensesOffset = builder.createVector(availableLenses)
+        
+        // Create camera limits
+        return RemoteShutter_CameraLimits.createCameraLimits(
+            &builder,
+            zoomRangeOffset: zoomRangeOffset,
+            availableLensesVectorOffset: availableLensesOffset,
+            supportsFlash: cameraInfo?.hasFlash ?? false,
+            supportsTorch: cameraInfo?.hasTorch ?? false
+        )
+    }
+    
+    /// Helper method to convert legacy lens type to FlatBuffers lens type
+    private func convertLensTypeToFlatBuffers(_ lensType: CameraLensType) -> RemoteShutter_CameraLensType {
+        switch lensType {
+        case .wideAngle: return .wideangle
+        case .ultraWide: return .ultrawide
+        case .telephoto: return .telephoto
+        case .dualCamera: return .dualcamera
+        }
     }
     
     // MARK: - FlatBuffers Photo Capture Methods
@@ -898,13 +1038,40 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         let senderOffset = builder.create(string: UIDevice.current.name)
         let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
         
+        // Create current state from capabilities if available
+        var currentStateOffset = Offset()
+        if let capabilities = capabilities {
+            let currentCamera: RemoteShutter_CameraPosition = capabilities.currentCamera == .front ? .front : .back
+            let currentLens: RemoteShutter_CameraLensType = convertLensTypeToFlatBuffers(capabilities.currentLens)
+            let zoomFactor = capabilities.currentZoom
+            
+            currentStateOffset = RemoteShutter_CameraState.createCameraState(
+                &builder,
+                currentCamera: currentCamera,
+                currentLens: currentLens,
+                zoomFactor: zoomFactor,
+                torchMode: .off, // Default torch mode
+                flashMode: .off, // Default flash mode
+                isRecording: false, // Default recording state
+                connectionStatus: .connected
+            )
+        }
+        
+        // Create capabilities if available
+        var capabilitiesOffset = Offset()
+        if let capabilities = capabilities {
+            capabilitiesOffset = buildFlatBuffersCameraCapabilities(builder: &builder, capabilities: capabilities)
+        }
+        
         // Create camera state response (no media data for generic responses)
         let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &builder,
             commandIdOffset: commandIdOffset,
+            timestamp: timestamp,
             success: error == nil,
             errorOffset: error != nil ? builder.create(string: error!.localizedDescription) : Offset(),
-            capabilitiesOffset: Offset(), // TODO: Implement capabilities serialization
+            currentStateOffset: currentStateOffset,
+            capabilitiesOffset: capabilitiesOffset,
             mediaDataOffset: Offset() // No media data for generic responses
         )
         
@@ -950,5 +1117,131 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         } else {
 //            print("✅ DEBUG: sendCommandOrGoToScanning successfully sent message")
         }
+    }
+    
+    // MARK: - FlatBuffers Peer Role Commands
+    
+    /// Send FlatBuffers peer became camera command
+    public func sendFlatBuffersPeerBecameCamera(peer: [MCPeerID]) {
+        let commandData = buildFlatBuffersPeerBecameCameraCommand()
+        
+        do {
+            try session.send(commandData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers peer became camera command")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers peer became camera command: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers peer became camera command
+    private func buildFlatBuffersPeerBecameCameraCommand() -> Data {
+        var builder = FlatBufferBuilder(initialSize: 512)
+        
+        // Create command ID and timestamp
+        let commandId = UUID().uuidString
+        let idOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create version information
+        let bundleVersion = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
+        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let platform = UIDevice.current.systemName
+        
+        let shortVersionOffset = builder.create(string: shortVersion)
+        let platformOffset = builder.create(string: platform)
+        
+        // Create command parameters with version info
+        let parametersOffset = RemoteShutter_CommandParameters.createCommandParameters(
+            &builder,
+            bundleVersion: Int32(bundleVersion) ?? 0,
+            shortVersionOffset: shortVersionOffset,
+            platformOffset: platformOffset
+        )
+        
+        // Create camera command
+        let commandOffset = RemoteShutter_CameraCommand.createCameraCommand(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            action: .peerbecamecamera,
+            parametersOffset: parametersOffset
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .cameracommand,
+            senderOffset: senderOffset,
+            commandOffset: commandOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        return builder.data
+    }
+    
+    /// Send FlatBuffers peer became monitor command
+    public func sendFlatBuffersPeerBecameMonitor(peer: [MCPeerID]) {
+        let commandData = buildFlatBuffersPeerBecameMonitorCommand()
+        
+        do {
+            try session.send(commandData, toPeers: peer, with: .reliable)
+            print("📦 ✅ Successfully sent FlatBuffers peer became monitor command")
+        } catch {
+            print("📦 ❌ Failed to send FlatBuffers peer became monitor command: \(error)")
+        }
+    }
+    
+    /// Build FlatBuffers peer became monitor command
+    private func buildFlatBuffersPeerBecameMonitorCommand() -> Data {
+        var builder = FlatBufferBuilder(initialSize: 512)
+        
+        // Create command ID and timestamp
+        let commandId = UUID().uuidString
+        let idOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create version information
+        let bundleVersion = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
+        let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let platform = UIDevice.current.systemName
+        
+        let shortVersionOffset = builder.create(string: shortVersion)
+        let platformOffset = builder.create(string: platform)
+        
+        // Create command parameters with version info
+        let parametersOffset = RemoteShutter_CommandParameters.createCommandParameters(
+            &builder,
+            bundleVersion: Int32(bundleVersion) ?? 0,
+            shortVersionOffset: shortVersionOffset,
+            platformOffset: platformOffset
+        )
+        
+        // Create camera command
+        let commandOffset = RemoteShutter_CameraCommand.createCameraCommand(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            action: .peerbecamemonitor,
+            parametersOffset: parametersOffset
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .cameracommand,
+            senderOffset: senderOffset,
+            commandOffset: commandOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        return builder.data
     }
 }

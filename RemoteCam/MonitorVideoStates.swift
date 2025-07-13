@@ -43,7 +43,7 @@ extension MonitorVideoStates {
                     state: self.monitorRecordingVideo(monitor: monitor, peer: peer, lobby: lobby)
                 )
 
-            case is UICmd.ToggleCamera:
+            case is UICmd.FlatBuffersCameraToggle:
                 self.become(name: self.states.monitorTogglingCamera, state:
                 self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
                 self.this ! msg
@@ -123,9 +123,9 @@ extension MonitorVideoStates {
                 // Request capabilities from camera
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
                 
-            case is RemoteCmd.PeerBecameCamera:
+            case is FlatBuffersPeerBecameCamera:
                 // When peer becomes camera, request fresh capabilities
-                print("🔍 DEBUG: Monitor detected peer became camera - requesting fresh capabilities")
+                print("🔍 DEBUG: Monitor detected FlatBuffers peer became camera - requesting fresh capabilities")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
 
             case let c as DisconnectPeer:

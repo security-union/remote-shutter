@@ -20,7 +20,9 @@ enum CommandAction : byte {
     RequestCapabilities = 8,
     SetTorchMode = 9,
     SetFlashMode = 10,
-    RequestFrame = 11
+    RequestFrame = 11,
+    PeerBecameCamera = 12,
+    PeerBecameMonitor = 13
 }
 
 enum CameraPosition : byte {
@@ -77,6 +79,10 @@ table CommandParameters {
     lens_type: CameraLensType;
     torch_mode: TorchMode;
     flash_mode: FlashMode;
+    // Peer role change parameters
+    bundle_version: int;
+    short_version: string;
+    platform: string;
 }
 
 // MARK: - Command Structure

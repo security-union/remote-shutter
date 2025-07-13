@@ -32,7 +32,7 @@ extension RemoteCamSession {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
 
-            case is UICmd.ToggleFlash:
+            case is UICmd.FlatBuffersFlashToggle:
                 ^{
                     alert?.show(true) {
                         self.mailbox.addOperation(BlockOperation {
@@ -48,14 +48,20 @@ extension RemoteCamSession {
                 if fbResponse.response.success {
                     print("✅ Flash toggle success via FlatBuffers")
                     
-                    // Create a legacy response for the UI
-                    // For flash toggle, we'll create a ToggleFlashResp with a default flash mode
-                    let legacyResponse = RemoteCmd.ToggleFlashResp(
-                        flashMode: .auto, // Default flash mode since FlatBuffers doesn't include specific mode
-                        error: nil
-                    )
+                    // Extract flash mode from current state if available
+                    let flashMode: AVCaptureDevice.FlashMode
+                    if let currentState = fbResponse.response.currentState {
+                        switch currentState.flashMode {
+                        case .off: flashMode = .off
+                        case .on: flashMode = .on
+                        case .auto: flashMode = .auto
+                        }
+                    } else {
+                        flashMode = .auto // Default fallback
+                    }
                     
-                    monitor ! legacyResponse
+                    // Send flash state directly to monitor
+                    monitor ! FlatBuffersCameraStateResponse(response: fbResponse.response)
                     
                     ^{
                         alert?.dismiss(animated: true) {
@@ -216,44 +222,11 @@ extension RemoteCamSession {
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
-            case is UICmd.ToggleCamera:
+            case is UICmd.FlatBuffersCameraToggle:
                 ^{
                     alert?.show(true) {
                         self.mailbox.addOperation(BlockOperation {
                             self.sendFlatBuffersCameraToggle(peer: [peer])
-                        })
-                    }
-                }
-            case let t as RemoteCmd.ToggleCameraResp:
-                print("🔍 DEBUG: Monitor received ToggleCameraResp with capabilities: \(t.cameraCapabilities != nil)")
-                
-                // Extract camera position from capabilities
-                let camPosition = t.cameraCapabilities?.currentCamera
-                monitor ! UICmd.ToggleCameraResp(
-                    flashMode: nil, // Flash mode is no longer provided in ToggleCameraResp
-                    camPosition: camPosition, error: t.error)
-                
-                // IMPORTANT: Forward the new camera capabilities to update the UI
-                if let capabilities = t.cameraCapabilities {
-                    print("🔍 DEBUG: Forwarding new camera capabilities after toggle")
-                    monitor ! capabilities
-                }
-                
-                ^{
-                    if t.cameraCapabilities != nil {
-                        alert?.dismiss(animated: true) {
-                            self.mailbox.addOperation(BlockOperation {
-                                self.unbecome()
-                            })
-                        }
-                    } else if let error = t.error {
-                        alert?.dismiss(animated: true, completion: {
-                            let errorAlert = UIAlertController(title: error._domain, message: nil, preferredStyle: .alert)
-                            errorAlert.simpleOkAction()
-                            errorAlert.show(true)
-                            self.mailbox.addOperation(BlockOperation {
-                                self.unbecome()
-                            })
                         })
                     }
                 }
@@ -265,13 +238,19 @@ extension RemoteCamSession {
                 if fbResponse.response.success {
                     print("✅ Camera toggle success via FlatBuffers")
                     
-                    // Create a legacy response for the UI
-                    // Since FlatBuffers doesn't include full capabilities, we'll request them separately
-                    monitor ! UICmd.ToggleCameraResp(
-                        flashMode: nil, // Flash mode not included in FlatBuffers response
-                        camPosition: nil, // Camera position not included in FlatBuffers response
-                        error: nil
-                    )
+                    // Extract camera position from current state if available
+                    let camPosition: AVCaptureDevice.Position?
+                    if let currentState = fbResponse.response.currentState {
+                        switch currentState.currentCamera {
+                        case .back: camPosition = .back
+                        case .front: camPosition = .front
+                        }
+                    } else {
+                        camPosition = nil
+                    }
+                    
+                    // Send camera state directly to monitor
+                    monitor ! FlatBuffersCameraStateResponse(response: fbResponse.response)
                     
                     // Request fresh capabilities after successful toggle
                     self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
@@ -289,11 +268,8 @@ extension RemoteCamSession {
                         NSError(domain: "CameraError", code: 1, userInfo: [NSLocalizedDescriptionKey: fbResponse.response.error!]) : 
                         NSError(domain: "CameraError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"])
                     
-                    monitor ! UICmd.ToggleCameraResp(
-                        flashMode: nil,
-                        camPosition: nil,
-                        error: error
-                    )
+                    // Send error response directly to monitor
+                    monitor ! FlatBuffersCameraStateResponse(response: fbResponse.response)
                     
                     ^{
                         alert?.dismiss(animated: true, completion: {

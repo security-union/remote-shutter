@@ -79,4 +79,26 @@ public class FlatBuffersErrorMessage: Actor.Message {
         self.errorMessage = errorMessage
         super.init()
     }
+}
+
+// MARK: - FlatBuffers Peer Role Messages
+
+/// Actor.Message wrapper for FlatBuffers peer became camera command
+public class FlatBuffersPeerBecameCamera: Actor.Message {
+    public let command: RemoteShutter_CameraCommand
+    
+    public init(command: RemoteShutter_CameraCommand) {
+        self.command = command
+        super.init()
+    }
+}
+
+/// Actor.Message wrapper for FlatBuffers peer became monitor command
+public class FlatBuffersPeerBecameMonitor: Actor.Message {
+    public let command: RemoteShutter_CameraCommand
+    
+    public init(command: RemoteShutter_CameraCommand) {
+        self.command = command
+        super.init()
+    }
 } 
