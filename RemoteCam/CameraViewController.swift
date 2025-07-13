@@ -494,17 +494,12 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Current Camera Capabilities for Toggle Response
     func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
-        print("🔍 DEBUG: gatherCurrentCameraCapabilities called")
         
         guard let currentDevice = self.videoDeviceInput?.device else { 
             print("❌ DEBUG: No videoDeviceInput.device available")
             print("❌ DEBUG: videoDeviceInput is \(self.videoDeviceInput != nil ? "not nil" : "nil")")
             return nil 
         }
-        
-        print("🔍 DEBUG: Current device: \(currentDevice.localizedName)")
-        print("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
-        print("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
         
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo,
@@ -515,36 +510,27 @@ public class CameraViewController: UIViewController,
             error: nil
         )
         
-        print("🔍 DEBUG: Created capabilities response successfully")
         return capabilities
     }
     
     // MARK: - Enhanced Zoom Control Methods
     func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
-        print("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
-        
+        0
         guard let device = self.videoDeviceInput?.device else {
             print("❌ DEBUG: No camera device available")
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
-        
-        print("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
-        print("🔍 DEBUG: Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
-        print("🔍 DEBUG: Current zoom: \(device.videoZoomFactor)")
-        
+
         do {
             try device.lockForConfiguration()
             
             let clampedZoom = max(device.minAvailableVideoZoomFactor, 
                                  min(zoomFactor, device.maxAvailableVideoZoomFactor))
             
-            print("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
             device.videoZoomFactor = clampedZoom
             currentZoomFactor = clampedZoom
             
             device.unlockForConfiguration()
-            
-            print("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor)")
             
             let zoomRange = RemoteCmd.ZoomRange(
                 minZoom: device.minAvailableVideoZoomFactor,

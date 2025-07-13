@@ -182,23 +182,6 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     }
                 }
                 
-            // MARK: - Zoom Response Handling
-            case let zoom as UICmd.SetZoomResp:
-                OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl, let zoomFactor = zoom.zoomFactor {
-                        let maxZoom = zoom.zoomRange?.maxZoom ?? ctrl.value?.maxZoomFactor ?? 10.0
-                        ctrl.value?.updateZoomControls(zoomFactor: zoomFactor, maxZoom: maxZoom)
-                    }
-                }
-                
-            case let zoomRemote as RemoteCmd.SetZoomResp:
-                OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl, let zoomFactor = zoomRemote.zoomFactor {
-                        let maxZoom = zoomRemote.zoomRange?.maxZoom ?? ctrl.value?.maxZoomFactor ?? 10.0
-                        ctrl.value?.updateZoomControls(zoomFactor: zoomFactor, maxZoom: maxZoom)
-                    }
-                }
-                
             // MARK: - Lens Response Handling
             case let lens as UICmd.SwitchLensResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
@@ -479,11 +462,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         }
     }
     
-    @objc func onProgrammaticZoomSliderChange(sender: UISlider) {
-        let zoomFactor = CGFloat(sender.value)
-        currentZoomFactor = zoomFactor
+    @objc private func onZoomSliderChange(_ sender: UISlider) {
+        currentZoomFactor = CGFloat(sender.value)
         updateZoomLabel()
-        session ! UICmd.SetZoom(zoomFactor: zoomFactor)
+        session ! UICmd.FlatBuffersSetZoom(zoomFactor: currentZoomFactor)
     }
     
     // MARK: - Lens Control Actions
@@ -617,7 +599,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         programmaticZoomSlider.minimumTrackTintColor = sliderColor1
         programmaticZoomSlider.maximumTrackTintColor = sliderColor2
         programmaticZoomSlider.thumbTintColor = sliderColor1
-        programmaticZoomSlider.addTarget(self, action: #selector(onProgrammaticZoomSliderChange), for: .valueChanged)
+        programmaticZoomSlider.addTarget(self, action: #selector(onZoomSliderChange), for: .valueChanged)
         programmaticZoomSlider.translatesAutoresizingMaskIntoConstraints = false
         zoomControlsContainer.addSubview(programmaticZoomSlider)
         
@@ -689,49 +671,31 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     private func setupPinchGestureForZoom() {
         // Create pinch gesture recognizer
-        pinchGestureRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
+        pinchGestureRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(onPinchGesture(_:)))
         
         // Add to the image view (camera feed area)
         imageView.isUserInteractionEnabled = true
         imageView.addGestureRecognizer(pinchGestureRecognizer)
     }
     
-    @objc private func handlePinchGesture(_ gesture: UIPinchGestureRecognizer) {
-        guard gesture.numberOfTouches == 2 else { return }
-        
-        switch gesture.state {
-        case .began:
-            lastPinchScale = 1.0
-            showZoomLabel()
+    @objc private func onPinchGesture(_ gesture: UIPinchGestureRecognizer) {
+        if gesture.state == .changed {
+            let scale = gesture.scale
+            let scaleChange = scale / lastPinchScale
+            lastPinchScale = scale
             
-        case .changed:
-            // Calculate the zoom change based on pinch scale
-            let scaleDelta = gesture.scale / lastPinchScale
-            let newZoomFactor = currentZoomFactor * scaleDelta
+            let newZoom = currentZoomFactor * scaleChange
+            let clampedZoom = max(1.0, min(newZoom, maxZoomFactor))
             
-            // Clamp to min/max zoom range
-            let clampedZoomFactor = max(1.0, min(maxZoomFactor, newZoomFactor))
-            
-            // Only update if zoom actually changed
-            if abs(clampedZoomFactor - currentZoomFactor) > 0.01 {
-                currentZoomFactor = clampedZoomFactor
+            if clampedZoom != currentZoomFactor {
+                currentZoomFactor = clampedZoom
+                programmaticZoomSlider.value = Float(currentZoomFactor)
                 updateZoomLabel()
-                session ! UICmd.SetZoom(zoomFactor: currentZoomFactor)
-                
-                // Update any visible sliders to match
-                OperationQueue.main.addOperation { [weak self] in
-                    self?.programmaticZoomSlider.value = Float(clampedZoomFactor)
-                }
+                session ! UICmd.FlatBuffersSetZoom(zoomFactor: currentZoomFactor)
             }
-            
-            lastPinchScale = gesture.scale
-            
-        case .ended, .cancelled:
+        } else if gesture.state == .ended || gesture.state == .cancelled {
             lastPinchScale = 1.0
             hideZoomLabelAfterDelay()
-            
-        default:
-            break
         }
     }
     

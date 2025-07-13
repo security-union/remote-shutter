@@ -189,6 +189,26 @@ public class UICmd {
         }
     }
 
+    /// FlatBuffers Set Zoom UI Command
+    @objc(_TtCC10ActorsDemo5UICmd18FlatBuffersSetZoom)public class FlatBuffersSetZoom: Actor.Message, NSCoding {
+        public let zoomFactor: CGFloat
+        
+        public init(zoomFactor: CGFloat) {
+            self.zoomFactor = zoomFactor
+            super.init(sender: nil)
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            let zoomValue = aDecoder.decodeFloat(forKey: "zoomFactor")
+            self.zoomFactor = CGFloat(zoomValue)
+            super.init(sender: nil)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+            aCoder.encode(Float(zoomFactor), forKey: "zoomFactor")
+        }
+    }
+
     // MARK: - Zoom Commands
     @objc(_TtCC10ActorsDemo5UICmd8SetZoom)public class SetZoom: Actor.Message, NSCoding {
         public let zoomFactor: CGFloat

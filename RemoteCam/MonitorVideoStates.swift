@@ -82,33 +82,24 @@ extension MonitorVideoStates {
                 // For now, we'll forward FlatBuffers responses to the monitor for UI updates
                 // In the future, we could implement more sophisticated state-based routing
                 monitor ! fbResponse
-                print("🔍 DEBUG: Forwarded FlatBuffers state update to monitor in video mode")
                 
             case let fbFrameData as FlatBuffersFrameData:
                 // Handle FlatBuffers frame data - send directly to monitor
                 monitor ! fbFrameData
                 self.requestFrame([peer])
                 
-            // MARK: - Zoom and Lens Command Handling
+            // MARK: - Zoom and Lens Command Handling (FlatBuffers)
             case let zoomCmd as UICmd.SetZoom:
-                // Send zoom command directly without showing alert for immediate feedback
-                if let f = self.sendMessage(
-                    peer: [peer], msg: RemoteCmd.SetZoom(zoomFactor: zoomCmd.zoomFactor)) as? Failure {
-                    print("❌ DEBUG: Failed to send zoom command in video mode: \(f.tryError.localizedDescription)")
-                }
-                
-            case let zoomResp as RemoteCmd.SetZoomResp:
-                // Handle zoom response directly without alert
-                if let error = zoomResp.error {
-                    print("❌ DEBUG: Video mode zoom response error: \(error.localizedDescription)")
-                }
-                monitor ! zoomResp
+                // Send FlatBuffers zoom command directly without showing alert for immediate feedback
+                self.sendFlatBuffersSetZoom(peer: [peer], zoomFactor: zoomCmd.zoomFactor)
                 
             case let fbResponse as FlatBuffersCameraStateResponse:
                 // Handle FlatBuffers camera state response - forward all responses to monitor
                 print("🔍 DEBUG: Video mode received FlatBuffers camera state response")
-                if !fbResponse.response.success {
-                    print("❌ DEBUG: Video mode response error: \(fbResponse.response.error ?? "Unknown error")")
+                if fbResponse.response.success {
+                    print("✅ DEBUG: Video mode received successful FlatBuffers response")
+                } else {
+                    print("❌ DEBUG: Video mode FlatBuffers response error: \(fbResponse.response.error ?? "Unknown error")")
                 }
                 monitor ! fbResponse
                 

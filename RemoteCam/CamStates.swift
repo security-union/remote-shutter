@@ -158,18 +158,7 @@ extension RemoteCamSession {
                 
 
                 
-            // MARK: - Zoom Command Handling
-            case let zoomCmd as RemoteCmd.SetZoom:
-                print("🔍 DEBUG: Camera received SetZoom: \(zoomCmd.zoomFactor)")
-                let result = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
-                var resp: Message?
-                if let (zoomFactor, currentLens, zoomRange) = result.toOptional() {
-                    resp = RemoteCmd.SetZoomResp(zoomFactor: zoomFactor, currentLens: currentLens, zoomRange: zoomRange, error: nil)
-                } else if let failure = result as? Failure {
-                    print("❌ DEBUG: Camera zoom failed: \(failure.tryError.localizedDescription)")
-                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: failure.tryError)
-                }
-                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
+            // MARK: - Legacy zoom command handling removed - now handled via FlatBuffers
                 
             // MARK: - Lens Switching Command Handling  
             case let lensCmd as RemoteCmd.SwitchLens:
@@ -245,6 +234,9 @@ extension RemoteCamSession {
             
         case .requestframe:
             handleFlatBuffersFrameRequest(command, ctrl: ctrl, peer: peer)
+            
+        case .setzoom:
+            handleFlatBuffersSetZoom(command, ctrl: ctrl, peer: peer)
             
         default:
             print("⚠️ Camera received unhandled FlatBuffers command: \(command.action)")
@@ -360,7 +352,7 @@ extension RemoteCamSession {
         // Gather current camera capabilities to include in response
         let capabilities = ctrl.gatherCurrentCameraCapabilities()
         
-        if let (flashMode, position) = result.toOptional() {
+        if let (_, _) = result.toOptional() {
             print("✅ Camera toggle success")
             self.sendFlatBuffersCameraStateResponse(
                 peer: [peer],
@@ -456,5 +448,164 @@ extension RemoteCamSession {
     // MARK: - FlatBuffers Command State Tracking
     // Note: Extensions cannot have stored properties, so we'll track command IDs differently
     // For now, we'll use UUID().uuidString for responses until we implement proper state tracking
+    
+    private func handleFlatBuffersSetZoom(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        guard let params = command.parameters else {
+            print("❌ DEBUG: FlatBuffers SetZoom command missing parameters")
+            return
+        }
+        
+        let result = ctrl.setZoom(zoomFactor: CGFloat(params.zoomFactor))
+        
+        if let (zoomFactor, currentLens, zoomRange) = result.toOptional() {
+            
+            // Get real camera capabilities
+            let capabilities = ctrl.gatherCurrentCameraCapabilities()
+            let currentCamera = capabilities?.currentCamera ?? .back
+            let actualCurrentLens = capabilities?.currentLens ?? currentLens
+            let actualCurrentZoom = capabilities?.currentZoom ?? zoomFactor
+            
+            // Create successful response with real camera data
+            let responseData = buildFlatBuffersZoomResponse(
+                commandId: command.id ?? "",
+                success: true,
+                zoomFactor: Float(actualCurrentZoom),
+                currentLens: actualCurrentLens,
+                currentCamera: currentCamera,
+                zoomRange: zoomRange,
+                capabilities: capabilities
+            )
+            
+            // Parse the response data to get the FlatBuffers object
+            let responseObj = parseFlatBuffersResponse(data: responseData)
+            // Send FlatBuffers data directly
+            do {
+                try self.session.send(responseData, toPeers: [peer], with: .reliable)
+                print("📤 ✅ Successfully sent FlatBuffers zoom response")
+            } catch {
+                print("📤 ❌ Failed to send FlatBuffers zoom response: \(error)")
+            }
+        } else if let failure = result as? Failure {
+            print("❌ DEBUG: Camera zoom failed: \(failure.tryError.localizedDescription)")
+            
+            // Create error response with real camera data
+            let capabilities = ctrl.gatherCurrentCameraCapabilities()
+            let responseData = buildFlatBuffersZoomResponse(
+                commandId: command.id ?? "",
+                success: false,
+                errorMessage: failure.tryError.localizedDescription,
+                capabilities: capabilities
+            )
+            
+            // Parse the response data to get the FlatBuffers object
+            let responseObj = parseFlatBuffersResponse(data: responseData)
+            self.sendCommandOrGoToScanning(peer: [peer], msg: FlatBuffersCameraStateResponse(response: responseObj))
+        }
+    }
+    
+    /// Build FlatBuffers zoom response using real camera data
+    private func buildFlatBuffersZoomResponse(
+        commandId: String, 
+        success: Bool, 
+        zoomFactor: Float = 0.0, 
+        currentLens: CameraLensType = .wideAngle,
+        currentCamera: AVCaptureDevice.Position = .back,
+        zoomRange: RemoteCmd.ZoomRange = RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 1.0), 
+        errorMessage: String = "",
+        capabilities: RemoteCmd.CameraCapabilitiesResp? = nil
+    ) -> Data {
+        var builder = FlatBufferBuilder(initialSize: 512)
+        
+        let commandIdOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create current state with real camera data
+        var currentStateOffset = Offset()
+        if let capabilities = capabilities {
+            // Use real camera data from capabilities
+            let realCurrentCamera: RemoteShutter_CameraPosition = capabilities.currentCamera == .front ? .front : .back
+            let realCurrentLens = convertLensTypeToFlatBuffers(capabilities.currentLens)
+            let realZoomFactor = success ? Double(zoomFactor) : Double(capabilities.currentZoom)
+            
+            // Get real camera info for current camera
+            let currentCameraInfo = capabilities.currentCamera == .front ? capabilities.frontCamera : capabilities.backCamera
+            let _ = currentCameraInfo?.hasFlash ?? false  // TODO: Use for flash capability in response
+            let _ = currentCameraInfo?.hasTorch ?? false  // TODO: Use for torch capability in response
+            
+            currentStateOffset = RemoteShutter_CameraState.createCameraState(
+                &builder,
+                currentCamera: realCurrentCamera,
+                currentLens: realCurrentLens,
+                zoomFactor: realZoomFactor,
+                torchMode: .off, // TODO: Get real torch mode from camera
+                flashMode: .off, // TODO: Get real flash mode from camera 
+                isRecording: false, // TODO: Get real recording state from camera
+                connectionStatus: .connected
+            )
+        } else if success {
+            // Fallback with limited real data when capabilities unavailable
+            let fbLensType = convertLensTypeToFlatBuffers(currentLens)
+            let fbCamera: RemoteShutter_CameraPosition = currentCamera == .front ? .front : .back
+            
+            currentStateOffset = RemoteShutter_CameraState.createCameraState(
+                &builder,
+                currentCamera: fbCamera,
+                currentLens: fbLensType,
+                zoomFactor: Double(zoomFactor),
+                torchMode: .off,
+                flashMode: .off,
+                isRecording: false,
+                connectionStatus: .connected
+            )
+        }
+        
+        // Create error message if failed
+        let errorOffset = builder.create(string: errorMessage)
+        
+        // Create response
+        let responseOffset = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &builder,
+            commandIdOffset: commandIdOffset,
+            timestamp: timestamp,
+            success: success,
+            errorOffset: errorOffset,
+            currentStateOffset: success ? currentStateOffset : Offset()
+        )
+        
+        // Create message
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: Offset(),
+            timestamp: timestamp,
+            type: .camerastateresponse,
+            senderOffset: senderOffset,
+            responseOffset: responseOffset
+        )
+        
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        return builder.data
+    }
+    
+    /// Parse FlatBuffers response data back to RemoteShutter_CameraStateResponse
+    private func parseFlatBuffersResponse(data: Data) -> RemoteShutter_CameraStateResponse {
+        let buffer = ByteBuffer(data: data)
+        let message = RemoteShutter_P2PMessage(buffer, o: Int32(buffer.read(def: UOffset.self, position: buffer.reader)) + Int32(buffer.reader))
+        return message.response!
+    }
+    
+    /// Convert lens type to FlatBuffers format
+    private func convertLensTypeToFlatBuffers(_ lensType: CameraLensType) -> RemoteShutter_CameraLensType {
+        switch lensType {
+        case .wideAngle:
+            return .wideangle
+        case .telephoto:
+            return .telephoto
+        case .ultraWide:
+            return .ultrawide
+        case .dualCamera:
+            return .dualcamera
+        }
+    }
 
 }

@@ -156,10 +156,8 @@ extension RemoteCamSession {
             handleFlatBuffersFlashToggle(command, from: peerID)
             
         case .setzoom:
-            if let params = command.parameters {
-                let legacyCommand = RemoteCmd.SetZoom(zoomFactor: CGFloat(params.zoomFactor))
-                this ! legacyCommand
-            }
+            // Handle directly with FlatBuffers (no legacy conversion needed)
+            handleFlatBuffersSetZoom(command, from: peerID)
             
         case .switchlens:
             if let params = command.parameters {
@@ -276,6 +274,10 @@ extension RemoteCamSession {
     }
     
     private func handleFlatBuffersSetTorchMode(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
+        this ! FlatBuffersCameraCommand(command: command)
+    }
+    
+    private func handleFlatBuffersSetZoom(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
         this ! FlatBuffersCameraCommand(command: command)
     }
 }

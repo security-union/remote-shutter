@@ -100,8 +100,6 @@ extension RemoteCamSession {
                 // This case is here for completeness but shouldn't normally occur
                 
             case let fbResponse as FlatBuffersCameraStateResponse:
-                print("🔍 DEBUG: Monitor received FlatBuffers camera state response")
-                print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
                 if let error = fbResponse.response.error {
                     print("🔍 DEBUG: Command error: \(error)")
                 }
@@ -113,24 +111,15 @@ extension RemoteCamSession {
                 // For now, we'll forward FlatBuffers responses to the monitor for UI updates
                 // In the future, we could implement more sophisticated state-based routing
                 monitor ! fbResponse
-                print("🔍 DEBUG: Forwarded FlatBuffers state update to monitor")
 
             // MARK: - Zoom and Lens Command Handling
             case let zoomCmd as UICmd.SetZoom:
-                // Send zoom command directly without showing alert for immediate feedback
-                if let f = self.sendMessage(
-                    peer: [peer], msg: RemoteCmd.SetZoom(zoomFactor: zoomCmd.zoomFactor)) as? Failure {
-                    print("❌ DEBUG: Failed to send zoom command: \(f.tryError.localizedDescription)")
-                }
+                // Send FlatBuffers zoom command for immediate feedback
+                self.sendFlatBuffersSetZoom(peer: [peer], zoomFactor: zoomCmd.zoomFactor)
                 
-            case let zoomResp as RemoteCmd.SetZoomResp:
-                // Handle zoom response directly without alert
-                if let error = zoomResp.error {
-                    print("❌ DEBUG: Zoom response error: \(error.localizedDescription)")
-                }
-                monitor ! zoomResp
-                
-
+            case let fbZoomCmd as UICmd.FlatBuffersSetZoom:
+                // Send FlatBuffers zoom command for immediate feedback
+                self.sendFlatBuffersSetZoom(peer: [peer], zoomFactor: fbZoomCmd.zoomFactor)
                 
             case is UICmd.SwitchLens:
                 self.become(

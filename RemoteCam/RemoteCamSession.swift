@@ -93,12 +93,6 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
 
             
         // MARK: - Zoom and Lens Command Handling
-        case is RemoteCmd.SetZoom:
-            let l = RemoteCmd.SetZoomResp(
-                zoomFactor: nil, currentLens: nil, zoomRange: nil, error: self.unableToProcessError(msg: msg)
-            )
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
-            
         case is RemoteCmd.SwitchLens:
             print("❌ DEBUG: Session default handler received SwitchLens - NOT in camera state!")
             let l = RemoteCmd.SwitchLensResp(
@@ -158,6 +152,19 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         } catch let error as NSError {
             print("❌ Failed to send FlatBuffers torch toggle: \(error)")
             return Failure(error: error)
+        }
+    }
+    
+    /// Send FlatBuffers set zoom command
+    public func sendFlatBuffersSetZoom(peer: [MCPeerID], zoomFactor: CGFloat) {
+        assert(Thread.isMainThread == false, "can't be called from the main thread")
+        
+        do {
+            let data = buildFlatBuffersSetZoomCommand(zoomFactor: zoomFactor)
+            try self.session.send(data, toPeers: peer, with: .reliable)
+            
+        } catch let error as NSError {
+            print("❌ Failed to send FlatBuffers set zoom: \(error)")
         }
     }
     
@@ -270,6 +277,46 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             idOffset: idOffset,
             timestamp: timestamp,
             action: .settorchmode,
+            parametersOffset: parametersOffset
+        )
+        
+        // Create P2P message envelope
+        let messageOffset = RemoteShutter_P2PMessage.createP2PMessage(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            type: .cameracommand,
+            senderOffset: senderOffset,
+            commandOffset: commandOffset
+        )
+        
+        // Finish and return
+        RemoteShutter_P2PMessage.finish(&builder, end: messageOffset)
+        return builder.data
+    }
+    
+    /// Build FlatBuffers set zoom command
+    private func buildFlatBuffersSetZoomCommand(zoomFactor: CGFloat) -> Data {
+        var builder = FlatBufferBuilder(initialSize: 256)
+        
+        // Create command ID and timestamp
+        let commandId = UUID().uuidString
+        let idOffset = builder.create(string: commandId)
+        let senderOffset = builder.create(string: UIDevice.current.name)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        
+        // Create parameters with zoom factor
+        let parametersOffset = RemoteShutter_CommandParameters.createCommandParameters(
+            &builder,
+            zoomFactor: Double(zoomFactor)
+        )
+        
+        // Create camera command
+        let commandOffset = RemoteShutter_CameraCommand.createCameraCommand(
+            &builder,
+            idOffset: idOffset,
+            timestamp: timestamp,
+            action: .setzoom,
             parametersOffset: parametersOffset
         )
         
