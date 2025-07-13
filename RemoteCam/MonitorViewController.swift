@@ -145,8 +145,12 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     OperationQueue.main.addOperation {[weak ctrl] in
                         if let ctrl = ctrl {
                             ctrl.value?.imageView.image = cgImage
+                        } else {
+                            print("🖼️ DEBUG: ctrl is nil, cannot update imageView")
                         }
                     }
+                } else {
+                    print("🖼️ DEBUG: Failed to create UIImage from frame data")
                 }
                 
             // MARK: - Camera Capabilities Response Handling

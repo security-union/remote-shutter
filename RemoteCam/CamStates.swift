@@ -450,7 +450,7 @@ extension RemoteCamSession {
     private func handleFlatBuffersFrameRequest(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
         // Frame requests are handled automatically by the continuous frame sending in CameraViewController
         // No specific action needed - frames are sent continuously to all connected peers
-//        print("📸 Camera received frame request - frames ar/*e*/ sent continuously")
+//        print("📸 Camera received frame request - frames are sent continuously")
     }
     
     // MARK: - FlatBuffers Command State Tracking

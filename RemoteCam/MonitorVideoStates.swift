@@ -222,56 +222,24 @@ extension MonitorVideoStates {
                         let videoData = Data(mediaData.data)
                         print("🔍 DEBUG: Extracted video data: \(videoData.count) bytes")
                         print("🔍 DEBUG: Media data type: \(mediaData.type)")
-                        
+                        ^{alert?.title = "Saving video..."}
                         // Save video directly without legacy conversion
                         saveVideoDataWithCompletion(videoData) { [weak self, alert] in
-                            // Transition back to video mode after saving is complete
-                            print("🔍 DEBUG: Video saving completion handler called")
-                            
-                            // Dismiss alert on main thread
-                            DispatchQueue.main.async {
-                                alert?.dismiss(animated: true)
-                                print("🔍 DEBUG: Alert dismissed, transitioning back to video mode")
-                            }
-                            
-                            guard let self = self else { 
-                                print("🔍 DEBUG: Self is nil in completion handler")
-                                return 
-                            }
-                            
-                            // Transition back to video mode on actor's mailbox thread
-                            self.mailbox.addOperation {
-                                self.become(
-                                    name: self.states.monitorVideoMode,
-                                    state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
-                                )
-                                print("🔍 DEBUG: State transition to monitorVideoMode completed")
-                            }
                         }
+                         ^{alert?.dismiss(animated: true)}
                     } else {
                         print("🔍 DEBUG: No media data found in FlatBuffers response")
                         ^{alert?.dismiss(animated: true)}
                         showError("No video data received")
-                        self.mailbox.addOperation {
-                            self.become(
-                                name: self.states.monitorVideoMode,
-                                state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
-                            )
-                        }
                     }
                 } else {
                     // Handle error case
                     let errorMessage = fbResponse.response.error ?? "Unknown video recording error"
                     print("🔍 DEBUG: Video recording failed: \(errorMessage)")
                     ^{alert?.dismiss(animated: true)}
-                    showError(errorMessage)
-                    self.mailbox.addOperation {
-                        self.become(
-                            name: self.states.monitorVideoMode,
-                            state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
-                        )
-                    }
+                    showError(errorMessage)    
                 }
+                self.popToState(name: self.states.monitorVideoMode)
 
             default:
                 self.receive(msg: msg)
