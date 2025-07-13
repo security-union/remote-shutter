@@ -53,7 +53,7 @@ extension RemoteCamSession {
                     // Transition to video transmitting state to wait for video data
                     self.become(
                         name: self.states.cameraTransmittingVideo,
-                        state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobby)
+                        state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobby, commandId: fbCommand.command.id)
                     )
                     
                 default:
@@ -68,7 +68,8 @@ extension RemoteCamSession {
 
     func cameraTransmittingVideo(peer: MCPeerID,
                              ctrl: CameraViewController,
-                             lobby: Weak<DeviceScannerViewController>) -> Receive {
+                             lobby: Weak<DeviceScannerViewController>,
+                             commandId: String? = nil) -> Receive {
         var alert: UIAlertController?
         ^{
         alert = UIAlertController(title: "Sending video to Monitor",
@@ -82,10 +83,14 @@ extension RemoteCamSession {
                     alert?.show(true)
                 }
             case let c as RemoteCmd.StopRecordingVideoResp:
-                // Send FlatBuffers response
+                // Send FlatBuffers response with correct command ID
+                print("🎬 DEBUG: Camera sending FlatBuffers video recording response")
+                print("🎬 DEBUG: Video data size: \(c.video?.count ?? 0) bytes")
+                print("🎬 DEBUG: Error: \(c.error?.localizedDescription ?? "none")")
+                
                 let _ = self.sendFlatBuffersVideoRecordingResponse(
                     peer: [peer],
-                    commandId: UUID().uuidString,
+                    commandId: commandId ?? UUID().uuidString,
                     videoData: c.video,
                     error: c.error
                 )

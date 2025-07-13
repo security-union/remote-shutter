@@ -153,8 +153,14 @@ extension MonitorVideoStates {
 
             case let cmd as UICmd.TakePicture:
                 self.sendFlatBuffersStopRecording(peer: [peer], sendToRemote: cmd.sendMediaToRemote)
+                // Immediately transition to waiting state after sending stop command
+                self.become(
+                    name: self.states.monitorWaitingForVideo,
+                    state: self.monitorWaitingForVideo(monitor: monitor, peer: peer, lobby: lobby)
+                )
 
             case is RemoteCmd.StopRecordingVideoAck:
+                // Legacy handler - should not be used with FlatBuffers
                 self.become(
                     name: self.states.monitorWaitingForVideo,
                     state: self.monitorWaitingForVideo(monitor: monitor, peer: peer, lobby: lobby)
@@ -187,11 +193,7 @@ extension MonitorVideoStates {
             case is OnEnter:
                 ^{alert?.show(true)}
 
-            case let w as RemoteCmd.StopRecordingVideoResp:
-                ^{alert?.title = "Saving video..."}
-                saveVideo(w)
-                ^{alert?.dismiss(animated: true)}
-                self.popToState(name: self.states.monitorVideoMode)
+
 
             case is Disconnect:
                 ^{alert?.dismiss(animated: true)}
@@ -207,33 +209,43 @@ extension MonitorVideoStates {
                 print("🔍 DEBUG: Monitor waiting for video received FlatBuffers camera state response")
                 print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
                 
-                // Convert FlatBuffers response to legacy StopRecordingVideoResp format
+                // Handle FlatBuffers response directly without legacy conversion
                 if fbResponse.response.success {
                     // Extract media data from FlatBuffers response
-                    var videoData: Data? = nil
                     if let mediaData = fbResponse.response.mediaData {
-                        videoData = Data(mediaData.data)
-                        print("🔍 DEBUG: Extracted video data: \(videoData?.count ?? 0) bytes")
+                        let videoData = Data(mediaData.data)
+                        print("🔍 DEBUG: Extracted video data: \(videoData.count) bytes")
+                        print("🔍 DEBUG: Media data type: \(mediaData.type)")
+                        
+                        // Save video directly without legacy conversion
+                        saveVideoDataWithCompletion(videoData) { [weak self] in
+                            // Transition back to video mode after saving is complete
+                            ^{alert?.dismiss(animated: true)}
+                            guard let self = self else { return }
+                            self.become(
+                                name: self.states.monitorVideoMode,
+                                state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
+                            )
+                        }
+                    } else {
+                        print("🔍 DEBUG: No media data found in FlatBuffers response")
+                        ^{alert?.dismiss(animated: true)}
+                        showError("No video data received")
+                        self.become(
+                            name: self.states.monitorVideoMode,
+                            state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
+                        )
                     }
-                    
-                    let legacyResponse = RemoteCmd.StopRecordingVideoResp(
-                        sender: nil, // No sender in FlatBuffers response
-                        pic: videoData, // Video data extracted from FlatBuffers response
-                        error: nil
-                    )
-                    self.this ! legacyResponse
                 } else {
                     // Handle error case
-                    let error = fbResponse.response.error != nil ? 
-                        NSError(domain: "VideoRecordingError", code: 1, userInfo: [NSLocalizedDescriptionKey: fbResponse.response.error!]) : 
-                        NSError(domain: "VideoRecordingError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unknown video recording error"])
-                    
-                    let legacyResponse = RemoteCmd.StopRecordingVideoResp(
-                        sender: nil, // No sender in FlatBuffers response
-                        pic: nil,
-                        error: error
+                    let errorMessage = fbResponse.response.error ?? "Unknown video recording error"
+                    print("🔍 DEBUG: Video recording failed: \(errorMessage)")
+                    ^{alert?.dismiss(animated: true)}
+                    showError(errorMessage)
+                    self.become(
+                        name: self.states.monitorVideoMode,
+                        state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
                     )
-                    self.this ! legacyResponse
                 }
 
             default:
@@ -249,16 +261,31 @@ extension MonitorVideoStates {
         guard let video = videoResp.video else {
             return
         }
+        saveVideoData(video)
+    }
+    
+    func saveVideoData(_ videoData: Data) {
+        saveVideoDataWithCompletion(videoData) { }
+    }
+    
+    func saveVideoDataWithCompletion(_ videoData: Data, completion: @escaping () -> Void) {
+        print("🔍 DEBUG: Saving video to monitor with \(videoData.count) bytes")
         PHPhotoLibrary.requestAuthorization { status in
+            print("🔍 DEBUG: Video library authorization status: \(status.rawValue)")
             if status == .authorized {
                 // 1. Save inbound video to a temp file.
                 let fileURL = URL(fileURLWithPath: NSTemporaryDirectory(),
                         isDirectory: true).appendingPathComponent(tempFile)
                 cleanupFileAt(fileURL)
                 do {
-                    _ = try video.write(to: fileURL, options: .atomic)
+                    _ = try videoData.write(to: fileURL, options: .atomic)
+                    print("🔍 DEBUG: Video written to temp file: \(fileURL)")
                 } catch {
+                    print("🔍 DEBUG: Failed to write video to temp file: \(error)")
                     showError(NSLocalizedString("Unable to save video", comment: ""))
+                    DispatchQueue.main.async {
+                        completion()
+                    }
                     return
                 }
 
@@ -268,12 +295,15 @@ extension MonitorVideoStates {
                     options.shouldMoveFile = true
                     PHAssetCreationRequest.forAsset()
                         .addResource(with: .video, fileURL: fileURL, options: options)
-                }, completionHandler: { success, _ in
+                    print("🔍 DEBUG: Video asset creation request created")
+                }, completionHandler: { success, error in
 
                     // 3. If saving fails, then show an error.
                     if !success {
+                        print("🔍 DEBUG: Failed to save video to Photos app! Error: \(error?.localizedDescription ?? "Unknown error")")
                         showError(NSLocalizedString("Unable to save video to Photos app", comment: ""))
                     } else {
+                        print("🔍 DEBUG: Successfully saved video to Photos app!")
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                             showReviewPromptIfAppropriate()
                         }
@@ -281,9 +311,18 @@ extension MonitorVideoStates {
 
                     // 4. Delete temp file.
                     cleanupFileAt(fileURL)
+                    
+                    // 5. Call completion handler on main thread
+                    DispatchQueue.main.async {
+                        completion()
+                    }
                 })
             } else {
+                print("🔍 DEBUG: Video library access not authorized")
                 showError(NSLocalizedString("Remote Shutter has not access to the camera roll", comment: ""))
+                DispatchQueue.main.async {
+                    completion()
+                }
             }
         }
     }

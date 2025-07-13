@@ -16,21 +16,25 @@ extension RemoteCamSession {
 
     // MARK: - Monitor-side Picture Saving (with review prompt)
     func savePictureOnMonitor(_ imageData: Data) {
+        print("🔍 DEBUG: savePictureOnMonitor called with \(imageData.count) bytes")
         PHPhotoLibrary.requestAuthorization { status in
+            print("🔍 DEBUG: Photo library authorization status: \(status.rawValue)")
             guard status == .authorized else {
+                print("🔍 DEBUG: Photo library access not authorized")
                 return
             }
             PHPhotoLibrary.shared().performChanges({
                 let creationRequest = PHAssetCreationRequest.forAsset()
                 creationRequest.addResource(with: .photo, data: imageData, options: nil)
-            }) { (success: Bool, _: Error?) in
+                print("🔍 DEBUG: Photo asset creation request created")
+            }) { (success: Bool, error: Error?) in
                 if success {
-                    print("Saved photo on monitor!")
+                    print("🔍 DEBUG: Successfully saved photo on monitor!")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                         showReviewPromptIfAppropriate()
                     }
                 } else {
-                    print("Failed to save photo on monitor!")
+                    print("🔍 DEBUG: Failed to save photo on monitor! Error: \(error?.localizedDescription ?? "Unknown error")")
                 }
             }
         }
@@ -187,18 +191,7 @@ extension RemoteCamSession {
                     })
                 }}
 
-            case let picResp as RemoteCmd.TakePicResp:
-                if let imageData = picResp.pic {
-                    savePictureOnMonitor(imageData)
-                    ^{alert?.dismiss(animated: true)}
-                } else if let error = picResp.error {
-                    ^{alert?.dismiss(animated: true) { () in
-                        let error = UIAlertController(title: error._domain, message: nil, preferredStyle: .alert)
-                        error.simpleOkAction()
-                        error.show(true)
-                    }}
-                }
-                self.unbecome()
+
 
             case is UICmd.UnbecomeMonitor:
                 ^{alert?.dismiss(animated: true) {
@@ -227,34 +220,33 @@ extension RemoteCamSession {
                 print("🔍 DEBUG: Monitor taking picture received FlatBuffers camera state response")
                 print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
                 
-                // Convert FlatBuffers response to legacy TakePicResp format
+                // Handle FlatBuffers response directly without legacy conversion
                 if fbResponse.response.success {
                     // Extract media data from FlatBuffers response
-                    var imageData: Data? = nil
                     if let mediaData = fbResponse.response.mediaData {
-                        imageData = Data(mediaData.data)
-                        print("🔍 DEBUG: Extracted image data: \(imageData?.count ?? 0) bytes")
+                        let imageData = Data(mediaData.data)
+                        print("🔍 DEBUG: Extracted image data: \(imageData.count) bytes")
+                        print("🔍 DEBUG: Media data type: \(mediaData.type)")
+                        
+                        // Save photo directly without legacy conversion
+                        savePictureOnMonitor(imageData)
+                        ^{alert?.dismiss(animated: true)}
+                    } else {
+                        print("🔍 DEBUG: No media data found in FlatBuffers response")
+                        ^{alert?.dismiss(animated: true)}
                     }
-                    
-                    let legacyResponse = RemoteCmd.TakePicResp(
-                        sender: nil, // No sender in FlatBuffers response
-                        pic: imageData, // Image data extracted from FlatBuffers response
-                        error: nil
-                    )
-                    self.this ! legacyResponse
                 } else {
                     // Handle error case
-                    let error = fbResponse.response.error != nil ? 
-                        NSError(domain: "PhotoCaptureError", code: 1, userInfo: [NSLocalizedDescriptionKey: fbResponse.response.error!]) : 
-                        NSError(domain: "PhotoCaptureError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unknown photo capture error"])
+                    let errorMessage = fbResponse.response.error ?? "Unknown photo capture error"
+                    print("🔍 DEBUG: Photo capture failed: \(errorMessage)")
                     
-                    let legacyResponse = RemoteCmd.TakePicResp(
-                        sender: nil, // No sender in FlatBuffers response
-                        pic: nil,
-                        error: error
-                    )
-                    self.this ! legacyResponse
+                    ^{alert?.dismiss(animated: true) { () in
+                        let error = UIAlertController(title: "Photo Capture Error", message: errorMessage, preferredStyle: .alert)
+                        error.simpleOkAction()
+                        error.show(true)
+                    }}
                 }
+                self.unbecome()
 
             default:
                 ^{alert?.dismiss(animated: true, completion: nil)}

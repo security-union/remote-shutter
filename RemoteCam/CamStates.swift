@@ -57,7 +57,8 @@ extension RemoteCamSession {
     func cameraTakingPic(peer: MCPeerID,
                          ctrl: CameraViewController,
                          lobby: Weak<DeviceScannerViewController>,
-                         sendMediaToPeer: Bool) -> Receive {
+                         sendMediaToPeer: Bool,
+                         commandId: String? = nil) -> Receive {
         var alert: UIAlertController?
         ^{
             alert = UIAlertController(title: "Taking picture",
@@ -75,10 +76,10 @@ extension RemoteCamSession {
                 ^{
                     alert?.dismiss(animated: true, completion: nil)
                 }
-                // Send FlatBuffers response
+                // Send FlatBuffers response with correct command ID
                 let _ = self.sendFlatBuffersPhotoCaptureResponse(
                     peer: [peer],
-                    commandId: UUID().uuidString,
+                    commandId: commandId ?? UUID().uuidString,
                     photoData: sendMediaToPeer ? t.pic : nil,
                     error: t.error
                 )
@@ -233,7 +234,7 @@ extension RemoteCamSession {
             handleFlatBuffersCameraToggle(command, ctrl: ctrl, peer: peer)
             
         case .takepicture:
-            handleFlatBuffersPhotoCapture(command, ctrl: ctrl, peer: peer)
+            handleFlatBuffersPhotoCapture(command, ctrl: ctrl, peer: peer, lobbyWrapper: lobbyWrapper)
             
         case .startrecording:
             handleFlatBuffersStartRecording(command, ctrl: ctrl, peer: peer, lobbyWrapper: lobbyWrapper)
@@ -332,23 +333,26 @@ extension RemoteCamSession {
     }
     
     /// Handle FlatBuffers photo capture command
-    private func handleFlatBuffersPhotoCapture(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+    private func handleFlatBuffersPhotoCapture(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID, lobbyWrapper: Weak<DeviceScannerViewController>) {
         print("📸 Camera handling FlatBuffers photo capture")
         
         let sendToRemote = command.parameters?.sendToRemote ?? true
         let commandId = command.id ?? UUID().uuidString
         
+        // Transition to taking picture state with FlatBuffers command context
+        self.become(
+            name: self.states.cameraTakingPic,
+            state: self.cameraTakingPic(
+                peer: peer,
+                ctrl: ctrl,
+                lobby: lobbyWrapper,
+                sendMediaToPeer: sendToRemote,
+                commandId: commandId  // Pass the command ID for FlatBuffers response
+            )
+        )
+        
         // Trigger photo capture
         ctrl.takePicture(sendToRemote)
-        
-        // Note: Response will be sent from cameraTakingPic state when photo is captured
-        // For now, we'll send a simple success response
-        let _ = self.sendFlatBuffersPhotoCaptureResponse(
-            peer: [peer],
-            commandId: commandId,
-            photoData: nil,
-            error: nil
-        )
     }
     
     /// Handle FlatBuffers start recording command
@@ -388,7 +392,7 @@ extension RemoteCamSession {
         // Transition to video transmitting state to wait for video data
         self.become(
             name: self.states.cameraTransmittingVideo,
-            state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobbyWrapper)
+            state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobbyWrapper, commandId: commandId)
         )
         
         // The actual response with video data will be sent from cameraTransmittingVideo state
