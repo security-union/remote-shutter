@@ -93,6 +93,10 @@ extension MonitorVideoStates {
                 // Send FlatBuffers zoom command directly without showing alert for immediate feedback
                 self.sendFlatBuffersSetZoom(peer: [peer], zoomFactor: zoomCmd.zoomFactor)
                 
+            case let fbZoomCmd as UICmd.FlatBuffersSetZoom:
+                // Send FlatBuffers zoom command directly without showing alert for immediate feedback
+                self.sendFlatBuffersSetZoom(peer: [peer], zoomFactor: fbZoomCmd.zoomFactor)
+                
             case let fbResponse as FlatBuffersCameraStateResponse:
                 // Handle FlatBuffers camera state response - forward all responses to monitor
                 print("🔍 DEBUG: Video mode received FlatBuffers camera state response")
@@ -149,6 +153,15 @@ extension MonitorVideoStates {
                     name: self.states.monitorWaitingForVideo,
                     state: self.monitorWaitingForVideo(monitor: monitor, peer: peer, lobby: lobby)
                 )
+
+            // MARK: - Zoom Command Handling (FlatBuffers)
+            case let zoomCmd as UICmd.SetZoom:
+                // Send FlatBuffers zoom command directly without showing alert for immediate feedback
+                self.sendFlatBuffersSetZoom(peer: [peer], zoomFactor: zoomCmd.zoomFactor)
+                
+            case let fbZoomCmd as UICmd.FlatBuffersSetZoom:
+                // Send FlatBuffers zoom command directly without showing alert for immediate feedback
+                self.sendFlatBuffersSetZoom(peer: [peer], zoomFactor: fbZoomCmd.zoomFactor)
 
 
             case let fbFrameData as FlatBuffersFrameData:
