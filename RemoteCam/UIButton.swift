@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 extension UIButton {
     func styleButton(backgroundColor: UIColor, borderColor: UIColor, textColor: UIColor) {

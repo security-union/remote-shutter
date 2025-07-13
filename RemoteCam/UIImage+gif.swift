@@ -8,6 +8,7 @@
 
 import Foundation
 import ImageIO
+import UIKit
 
 private func < <T: Comparable>(lhs: T?, rhs: T?) -> Bool {
   switch (lhs, rhs) {

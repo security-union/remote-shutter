@@ -9,6 +9,7 @@
 import Foundation
 import Theater
 import MultipeerConnectivity
+import AVFoundation
 
 
 func getDeviceInfo() -> (Int, String, String) {

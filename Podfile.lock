@@ -1,4 +1,5 @@
 PODS:
+  - FlatBuffers (25.2.10)
   - Google-Mobile-Ads-SDK (11.13.0):
     - GoogleUserMessagingPlatform (>= 1.1)
   - GoogleUserMessagingPlatform (2.7.0)
@@ -8,6 +9,7 @@ PODS:
     - Starscream (~> 4.0.8)
 
 DEPENDENCIES:
+  - FlatBuffers (from `https://github.com/google/flatbuffers.git`, tag `v25.2.10`)
   - Google-Mobile-Ads-SDK (~> 11.0)
   - GoogleUserMessagingPlatform (~> 2.0)
   - Starscream (~> 4.0.8)
@@ -22,13 +24,24 @@ SPEC REPOS:
     - SwiftLint
     - Theater
 
+EXTERNAL SOURCES:
+  FlatBuffers:
+    :git: https://github.com/google/flatbuffers.git
+    :tag: v25.2.10
+
+CHECKOUT OPTIONS:
+  FlatBuffers:
+    :git: https://github.com/google/flatbuffers.git
+    :tag: v25.2.10
+
 SPEC CHECKSUMS:
+  FlatBuffers: 59bb5c77a4ead6390a01999e19d48acabac10925
   Google-Mobile-Ads-SDK: 14f57f2dc33532a24db288897e26494640810407
   GoogleUserMessagingPlatform: a8b56893477f67212fbc8411c139e61d463349f5
   Starscream: 19b5533ddb925208db698f0ac508a100b884a1b9
   SwiftLint: c585ebd615d9520d7fbdbe151f527977b0534f1e
   Theater: 79836e00fb7f66bfc40552b873671a3126ad9056
 
-PODFILE CHECKSUM: a7452a93fdd14bc3e2e5006a00c3979f3ce42ea6
+PODFILE CHECKSUM: b06e2b722837050b10bbeff8cfe9f5de3cc4e00a
 
 COCOAPODS: 1.16.2

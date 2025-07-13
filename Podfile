@@ -12,6 +12,20 @@ target 'RemoteShutter' do
     pod 'Google-Mobile-Ads-SDK', '~> 11.0'
     pod 'GoogleUserMessagingPlatform', '~> 2.0'
     pod 'SwiftLint', '~> 0.41.0'
+    pod 'FlatBuffers',  :git => 'https://github.com/google/flatbuffers.git', :tag => 'v25.2.10'
+    
+    # Add test targets with Theater framework access
+    target 'RemoteShutterTests' do
+        inherit! :search_paths
+        pod 'Theater', '1.1'
+    end
+    
+    target 'RemoteShutterUITests' do
+        inherit! :search_paths
+        pod 'Theater', '1.1'
+        pod 'Google-Mobile-Ads-SDK', '~> 11.0'
+        pod 'GoogleUserMessagingPlatform', '~> 2.0'
+    end
 end
 
 post_install do |installer|
