@@ -17,9 +17,10 @@ public struct FlatBuffersMessage {
     public let buffer: ByteBuffer
     public let message: RemoteShutter_P2PMessage
     
-    public init(buffer: ByteBuffer) {
+    public init(buffer: ByteBuffer) throws {
+        var mutableBuffer = buffer
         self.buffer = buffer
-        self.message = RemoteShutter_P2PMessage.getRootAs(bb: buffer)
+        self.message = try getCheckedRoot(byteBuffer: &mutableBuffer)
     }
     
     public var id: String { return message.id ?? "" }

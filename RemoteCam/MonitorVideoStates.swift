@@ -51,9 +51,17 @@ extension MonitorVideoStates {
                 self.this ! msg
 
             case is UICmd.ToggleTorch:
-                // Handle torch toggle directly in video mode
-                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
-                    print("❌ DEBUG: Failed to send torch toggle command in video mode: \(f.tryError.localizedDescription)")
+                // Handle torch toggle directly in video mode using FlatBuffers
+                print("🔍 DEBUG: Video mode - attempting FlatBuffers torch toggle")
+                if let f = self.sendFlatBuffersTorchToggle(peer: [peer]) as? Failure {
+                    print("❌ DEBUG: Failed to send FlatBuffers torch toggle command in video mode: \(f.tryError.localizedDescription)")
+                    // Fallback to legacy command
+                    print("🔄 DEBUG: Falling back to legacy NSCoding torch toggle")
+                    if let f2 = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
+                        print("❌ DEBUG: Fallback legacy torch toggle also failed: \(f2.tryError.localizedDescription)")
+                    }
+                } else {
+                    print("✅ DEBUG: Successfully sent FlatBuffers torch toggle command in video mode")
                 }
                 
             // MARK: - Camera Capabilities Handling

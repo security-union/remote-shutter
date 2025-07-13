@@ -72,7 +72,7 @@ public class FlatBuffersPerformanceComparison {
         let flatBuffersTime = measureTime {
             for _ in 0..<iterations {
                 let buffer = ByteBuffer(data: flatBuffersData)
-                let _ = FlatBuffersMessage(buffer: buffer)
+                let _ = try? FlatBuffersMessage(buffer: buffer)
             }
         }
         
@@ -116,7 +116,7 @@ public class FlatBuffersPerformanceComparison {
             for _ in 0..<iterations {
                 // Simulate network transmission + deserialization
                 let buffer = ByteBuffer(data: flatBuffersData)
-                let _ = FlatBuffersMessage(buffer: buffer)
+                let _ = try? FlatBuffersMessage(buffer: buffer)
             }
         }
         

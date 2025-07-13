@@ -10,6 +10,7 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 import Photos
+import FlatBuffers
 
 extension RemoteCamSession {
 
@@ -191,8 +192,26 @@ extension RemoteCamSession {
                 var resp: Message?
                 if let torchMode = result.toOptional() {
                     resp = RemoteCmd.ToggleTorchResp(torchMode: torchMode, error: nil)
+                    
+                    // Also send FlatBuffers response for modern clients
+                    let _ = self.sendFlatBuffersTorchStateResponse(
+                        peer: [peer],
+                        commandId: UUID().uuidString,
+                        success: true,
+                        error: nil,
+                        torchMode: torchMode
+                    )
                 } else if let failure = result as? Failure {
                     resp = RemoteCmd.ToggleTorchResp(torchMode: nil, error: failure.error)
+                    
+                    // Also send FlatBuffers error response
+                    let _ = self.sendFlatBuffersTorchStateResponse(
+                        peer: [peer],
+                        commandId: UUID().uuidString,
+                        success: false,
+                        error: failure.error?.localizedDescription ?? "Unknown error",
+                        torchMode: .off
+                    )
                 }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
                 
