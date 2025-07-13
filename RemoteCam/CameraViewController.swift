@@ -51,7 +51,6 @@ public class CameraViewController: UIViewController,
     var captureVideoPreviewLayer: AVCaptureVideoPreviewLayer?
     var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
     let session: ActorRef = getRemoteCamSession()!
-    let frameSender: ActorRef = getFrameSender()!
     
     // MARK: - Zoom and Lens Properties
     private var currentZoomFactor: CGFloat = 1.0
@@ -763,11 +762,14 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
            let imageData = cgBackedImage.jpegData(compressionQuality: 0.1),
            let device = self.videoDeviceInput?.device {
-            frameSender ! RemoteCmd.SendFrame(data: imageData,
-                    sender: nil,
-                    fps: fps,
-                    camPosition: device.position,
-                    camOrientation: self.orientation)
+            // Send frame data to session actor
+            session ! UICmd.OnFrame(
+                sender: nil,
+                frameData: imageData,
+                fps: fps,
+                cameraPosition: device.position,
+                orientation: self.orientation
+            )
         }
     }
 
@@ -776,7 +778,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         if let data = try? Data(contentsOf: outputFileURL) {
             // Send video to the monitor
             let data_if_needed = sendVideoToPeer ? data : nil
-            session ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: data_if_needed, error: nil)
+            session ! UICmd.OnVideo(sender: nil, video: data_if_needed ?? Data())
             // Check the authorization status.
             PHPhotoLibrary.requestAuthorization { status in
                 if status == .authorized {
@@ -798,6 +800,9 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                 }
             }
         } else {
+            // Send error to the monitor
+            let error = NSError(domain: "CameraViewController", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to read video data"])
+            session ! UICmd.OnVideo(sender: nil, error: error)
             cleanupFileAt(movieUrl())
         }
     }

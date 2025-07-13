@@ -154,7 +154,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             try self.session.send(data, toPeers: peer, with: .reliable)
             
             print("📤 Sent FlatBuffers torch toggle command (\(data.count) bytes)")
-            return Success(RemoteCmd.ToggleTorch()) // Return equivalent legacy command for compatibility
+            return Success(Actor.Message())
         } catch let error as NSError {
             print("❌ Failed to send FlatBuffers torch toggle: \(error)")
             return Failure(error: error)
@@ -170,7 +170,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             try self.session.send(data, toPeers: peer, with: .reliable)
             
             print("📤 Sent FlatBuffers torch mode command (\(data.count) bytes)")
-            return Success(RemoteCmd.SetTorch(torchMode: mode)) // Return equivalent legacy command
+            return Success(Actor.Message())
         } catch let error as NSError {
             print("❌ Failed to send FlatBuffers torch mode: \(error)")
             return Failure(error: error)
@@ -191,7 +191,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             try self.session.send(data, toPeers: peer, with: .reliable)
             
             print("📤 Sent FlatBuffers torch state response (\(data.count) bytes)")
-            return Success(RemoteCmd.ToggleTorchResp(torchMode: torchMode, error: error != nil ? NSError(domain: error!, code: 0, userInfo: nil) : nil))
+            return Success(Actor.Message())
         } catch let error as NSError {
             print("❌ Failed to send FlatBuffers torch state response: \(error)")
             return Failure(error: error)
@@ -727,12 +727,14 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
     
     /// Send FlatBuffers frame request command
     public func sendFlatBuffersFrameRequest(peer: [MCPeerID]) {
+//        print("🔍 DEBUG: sendFlatBuffersFrameRequest called for peers: \(peer.map { $0.displayName })")
         let commandData = buildFlatBuffersFrameRequestCommand()
         
         do {
             try session.send(commandData, toPeers: peer, with: .reliable)
+//            print("🔍 DEBUG: Successfully sent FlatBuffers frame request")
         } catch {
-            print("📦 ❌ Failed to send FlatBuffers frame request command: \(error)")
+//            print("📦 ❌ Failed to send FlatBuffers frame request command: \(error)")
         }
     }
     

@@ -89,7 +89,9 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                 }
 
             case is UICmd.RenderVideoMode:
+                print("🔍 DEBUG: MonitorActor received UICmd.RenderVideoMode")
                 OperationQueue.main.addOperation {[weak ctrl] in
+                    print("🔍 DEBUG: Executing configureVideoMode on main thread")
                     ctrl?.value?.configureVideoMode()
                 }
 
@@ -117,22 +119,29 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     }
                 }
 
-            case let torch as RemoteCmd.ToggleTorchResp:
+                        case let fbResponse as FlatBuffersCameraStateResponse:
+                // Handle FlatBuffers camera state response - update UI based on current state
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl {
-                        setTorchMode(ctrl: ctrl, torchMode: torch.torchMode)
-                    }
-                }
-                
-            case let torchSet as RemoteCmd.SetTorchResp:
-                OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl {
-                        setTorchMode(ctrl: ctrl, torchMode: torchSet.torchMode)
+                        // Extract torch mode from FlatBuffers response current state
+                        let torchMode: AVCaptureDevice.TorchMode?
+                        if let state = fbResponse.response.currentState {
+                            switch state.torchMode {
+                            case .off: torchMode = .off
+                            case .on: torchMode = .on
+                            case .auto: torchMode = .auto
+                            default: torchMode = .off
+                            }
+                        } else {
+                            torchMode = nil
+                        }
+                        setTorchMode(ctrl: ctrl, torchMode: torchMode)
                     }
                 }
 
-            case let f as RemoteCmd.OnFrame:
-                if let cgImage = UIImage(data: f.data) {
+            case let fbFrameData as FlatBuffersFrameData:
+                let imageData = Data(fbFrameData.frameData.imageData)
+                if let cgImage = UIImage(data: imageData) {
                     OperationQueue.main.addOperation {[weak ctrl] in
                         if let ctrl = ctrl {
                             ctrl.value?.imageView.image = cgImage
@@ -389,6 +398,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     }
 
     func configureVideoMode() {
+        print("🔍 DEBUG: MonitorViewController configureVideoMode() called")
         takePicture.setImage(UIImage.init(named: "record-button.png"), for: .normal)
         galleryButton.isEnabled = true
         backButton.isEnabled = true
@@ -413,6 +423,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         lensControlsContainer.isHidden = false
         pinchGestureRecognizer.isEnabled = true
         buttonPrompt = buttonPromptVideoMode
+        print("🔍 DEBUG: MonitorViewController configureVideoMode() completed")
     }
 
     func configureVideoModeRecording() {
@@ -457,7 +468,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     @IBAction func toggleTorch(sender: UIButton) {
         if InAppPurchasesManager.shared().hasTorchFeature() {
-            session ! UICmd.ToggleTorch()
+            // Send FlatBuffers torch toggle command via existing UI command
+            session ! UICmd.FlatBuffersTorchToggle()
         } else {
             showSettings(sender: settingsButton)
         }
@@ -665,7 +677,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     @objc private func onProgrammaticTorchButtonTapped() {
         if InAppPurchasesManager.shared().hasTorchFeature() {
-            session ! UICmd.ToggleTorch()
+            session ! UICmd.FlatBuffersTorchToggle()
         } else {
             showSettings(sender: settingsButton)
         }

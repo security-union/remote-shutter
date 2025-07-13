@@ -92,9 +92,7 @@ public class DeviceScannerViewController: UIViewController {
         return browser
     }()
     
-    
-    let frameSender: ActorRef! = RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
-    
+        
     let remoteCamSession: ActorRef! = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
 
     public override func viewDidLoad() {
@@ -327,7 +325,6 @@ public class DeviceScannerViewController: UIViewController {
     deinit {
         print("deinit DeviceScanners")
         networkBrowser?.cancel()
-        frameSender ! Actor.Harakiri(sender: nil)
         remoteCamSession ! Actor.Harakiri(sender: nil)
     }
 }

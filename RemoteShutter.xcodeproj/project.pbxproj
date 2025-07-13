@@ -23,7 +23,6 @@
 		0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */; };
 		0624C04B1BE8662D001CC738 /* BFDeniedAccessToCameraView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */; };
 		0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */; };
-		0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */; };
 		065024101BEA407F00311C8A /* AcknowledgmentsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */; };
@@ -89,7 +88,6 @@
 		06F2FF6E2E2365E000A2328E /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
 		06F2FF6F2E2365E000A2328E /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
 		06F2FF702E2365E000A2328E /* UIImage+ImageProcessing.m in Sources */ = {isa = PBXBuildFile; fileRef = 0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */; };
-		06F2FF712E2365E000A2328E /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		06F2FF722E2365E000A2328E /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
 		06F2FF732E2365E000A2328E /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
 		06F2FF742E2365E000A2328E /* MonitorPhotoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */; };
@@ -194,7 +192,6 @@
 		0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToAssetsView~ipad.xib"; sourceTree = "<group>"; };
 		0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BFDeniedAccessToCameraView.xib; sourceTree = "<group>"; };
 		0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToCameraView~ipad.xib"; sourceTree = "<group>"; };
-		0631D180256DFC960006CAF3 /* FrameSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSender.swift; sourceTree = "<group>"; };
 		0634594925886387009F9BE0 /* DeviceScannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewController.swift; sourceTree = "<group>"; };
 		065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AcknowledgmentsViewController.h; sourceTree = "<group>"; };
 		065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AcknowledgmentsViewController.m; sourceTree = "<group>"; };
@@ -375,7 +372,6 @@
 			children = (
 				0684A2D21BE6E98A00F0B238 /* CamStates.swift */,
 				068EF0B72531844B00A84DFA /* CameraVideoStates.swift */,
-				0631D180256DFC960006CAF3 /* FrameSender.swift */,
 			);
 			name = CameraStates;
 			sourceTree = "<group>";
@@ -903,7 +899,6 @@
 				0684A2DE1BE6F82D00F0B238 /* RCTimer.m in Sources */,
 				066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */,
 				069284511BE5C0E600AF4678 /* RemoteCamSession.swift in Sources */,
-				0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				06F2FF9A2E2394B700A2328E /* FlatBuffersMessages.swift in Sources */,
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
@@ -971,7 +966,6 @@
 				06F2FF6F2E2365E000A2328E /* CameraVideoStates.swift in Sources */,
 				06F2FF992E2394B700A2328E /* FlatBuffersMessages.swift in Sources */,
 				06F2FF702E2365E000A2328E /* UIImage+ImageProcessing.m in Sources */,
-				06F2FF712E2365E000A2328E /* FrameSender.swift in Sources */,
 				06F2FF722E2365E000A2328E /* UIOrientationHelpers.swift in Sources */,
 				06F2FF732E2365E000A2328E /* MultipeerDelegates.swift in Sources */,
 				06F2FF852E23662C00A2328E /* CameraViewController.swift in Sources */,

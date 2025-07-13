@@ -140,18 +140,8 @@ extension RemoteCamSession {
             handleFlatBuffersTorchToggle(command, from: peerID)
             
         case .settorchmode:
-            // Convert to legacy command
-            if let params = command.parameters {
-                let torchMode = params.torchMode
-                let avMode: AVCaptureDevice.TorchMode
-                switch torchMode {
-                case .off: avMode = .off
-                case .on: avMode = .on
-                case .auto: avMode = .auto
-                }
-                let legacyCommand = RemoteCmd.SetTorch(torchMode: avMode)
-                this ! legacyCommand
-            }
+            // Handle directly with FlatBuffers (no legacy conversion needed)
+            handleFlatBuffersSetTorchMode(command, from: peerID)
             
         case .takepicture:
             // Handle directly with FlatBuffers (no legacy conversion needed)
@@ -210,17 +200,8 @@ extension RemoteCamSession {
     
     /// Handle FlatBuffers frame data
     private func handleFlatBuffersFrameData(_ frameData: RemoteShutter_FrameData, from peerID: MCPeerID) {
-        let data = Data(frameData.imageData)
-        let position = frameData.cameraPosition == .back ? AVCaptureDevice.Position.back : AVCaptureDevice.Position.front
-        
-        this ! RemoteCmd.OnFrame(
-            data: data,
-            sender: nil,
-            peerId: peerID,
-            fps: Int(frameData.fps),
-            camPosition: position,
-            camOrientation: .portrait // Default orientation for now
-        )
+        // Send FlatBuffers frame data directly to monitor states
+        this ! FlatBuffersFrameData(frameData: frameData)
     }
     
     /// Convert FlatBuffers lens type to legacy lens type
@@ -283,6 +264,10 @@ extension RemoteCamSession {
     }
     
     private func handleFlatBuffersStopRecording(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
+        this ! FlatBuffersCameraCommand(command: command)
+    }
+    
+    private func handleFlatBuffersSetTorchMode(_ command: RemoteShutter_CameraCommand, from peerID: MCPeerID) {
         this ! FlatBuffersCameraCommand(command: command)
     }
 }

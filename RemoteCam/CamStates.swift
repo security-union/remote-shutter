@@ -120,7 +120,17 @@ extension RemoteCamSession {
             switch msg {
             case is OnEnter:
                 print("🔍 DEBUG: Camera starting up")
-                getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
+                // FrameSender no longer needed - frames are sent directly from CameraViewController
+                
+            case let frameMsg as UICmd.OnFrame:
+                // Handle frame data from CameraViewController and send to all connected peers
+                self.sendFlatBuffersFrameData(
+                    peer: self.session.connectedPeers,
+                    frameData: frameMsg.frameData,
+                    fps: frameMsg.fps,
+                    cameraPosition: frameMsg.cameraPosition,
+                    orientation: frameMsg.orientation
+                )
                 
             case is RemoteCmd.PeerBecameMonitor:
                 // When a new monitor joins, immediately send camera capabilities
@@ -150,15 +160,7 @@ extension RemoteCamSession {
                 
 
                 
-            case let torchCmd as RemoteCmd.SetTorch:
-                let result = ctrl.setTorchMode(mode: torchCmd.torchMode)
-                var resp: Message?
-                if let torchMode = result.toOptional() {
-                    resp = RemoteCmd.SetTorchResp(torchMode: torchMode, error: nil)
-                } else if let failure = result as? Failure {
-                    resp = RemoteCmd.SetTorchResp(torchMode: nil, error: failure.error)
-                }
-                self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
+
                 
             // MARK: - Zoom Command Handling
             case let zoomCmd as RemoteCmd.SetZoom:
@@ -227,6 +229,9 @@ extension RemoteCamSession {
         case .toggletorch:
             handleFlatBuffersTorchToggle(command, ctrl: ctrl, peer: peer)
             
+        case .settorchmode:
+            handleFlatBuffersSetTorchMode(command, ctrl: ctrl, peer: peer)
+            
         case .toggleflash:
             handleFlatBuffersFlashToggle(command, ctrl: ctrl, peer: peer)
             
@@ -268,6 +273,46 @@ extension RemoteCamSession {
             )
         } else if let failure = result as? Failure {
             print("❌ Camera torch toggle failed: \(failure.tryError)")
+            let _ = self.sendFlatBuffersTorchStateResponse(
+                peer: [peer],
+                commandId: commandId,
+                success: false,
+                error: failure.tryError.localizedDescription,
+                torchMode: .off
+            )
+        }
+    }
+    
+    /// Handle FlatBuffers set torch mode command
+    private func handleFlatBuffersSetTorchMode(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
+        print("🔦 Camera handling FlatBuffers set torch mode")
+        
+        guard let params = command.parameters else {
+            print("❌ Camera set torch mode failed: missing parameters")
+            return
+        }
+        
+        let torchMode: AVCaptureDevice.TorchMode
+        switch params.torchMode {
+        case .off: torchMode = .off
+        case .on: torchMode = .on
+        case .auto: torchMode = .auto
+        }
+        
+        let result = ctrl.setTorchMode(mode: torchMode)
+        let commandId = command.id ?? UUID().uuidString
+        
+        if let resultTorchMode = result.toOptional() {
+            print("✅ Camera set torch mode success: \(resultTorchMode)")
+            let _ = self.sendFlatBuffersTorchStateResponse(
+                peer: [peer],
+                commandId: commandId,
+                success: true,
+                error: nil,
+                torchMode: resultTorchMode
+            )
+        } else if let failure = result as? Failure {
+            print("❌ Camera set torch mode failed: \(failure.tryError)")
             let _ = self.sendFlatBuffersTorchStateResponse(
                 peer: [peer],
                 commandId: commandId,
@@ -401,9 +446,9 @@ extension RemoteCamSession {
     
     /// Handle FlatBuffers frame request command
     private func handleFlatBuffersFrameRequest(_ command: RemoteShutter_CameraCommand, ctrl: CameraViewController, peer: MCPeerID) {
-        
-        // Send frame request to FrameSender
-        getFrameSender()?.tell(msg: FlatBuffersCameraCommand(command: command))
+        // Frame requests are handled automatically by the continuous frame sending in CameraViewController
+        // No specific action needed - frames are sent continuously to all connected peers
+//        print("📸 Camera received frame request - frames ar/*e*/ sent continuously")
     }
     
     // MARK: - FlatBuffers Command State Tracking

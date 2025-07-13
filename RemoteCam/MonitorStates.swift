@@ -15,7 +15,9 @@ extension RemoteCamSession {
     
     func requestFrame(_ peer : [MCPeerID]) {
         // Use FlatBuffers for frame requests
+//        print("🔍 DEBUG: requestFrame called for peers: \(peer.map { $0.displayName })")
         self.sendFlatBuffersFrameRequest(peer: peer)
+//        print("🔍 DEBUG: sendFlatBuffersFrameRequest completed")
     }
     
     func monitorTogglingFlash(monitor: ActorRef,

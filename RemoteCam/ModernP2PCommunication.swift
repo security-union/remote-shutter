@@ -623,12 +623,7 @@ public extension ModernP2PCommunicationManager {
         // Convert specific legacy message types to modern equivalents
         // This is a simplified example - full implementation would handle all RemoteCmd types
         
-        if legacyMessage is RemoteCmd.ToggleTorch {
-            let command = CameraCommand.toggleTorch()
-            if let data = try? encoder.encode(command) {
-                return P2PMessage(type: .cameraCommand, sender: "legacy", data: data)
-            }
-        }
+        // Legacy torch commands have been removed - now using FlatBuffers directly
         
         // Add more conversions as needed...
         

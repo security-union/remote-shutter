@@ -21,12 +21,10 @@ extension MonitorVideoStates {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
+                print("🔍 DEBUG: Entering monitorVideoMode - sending RenderVideoMode and requesting frame")
                 monitor ! UICmd.RenderVideoMode()
                 self.requestFrame([peer])
-
-            case is RemoteCmd.OnFrame:
-                monitor ! msg
-                self.requestFrame([peer])
+                print("🔍 DEBUG: monitorVideoMode OnEnter completed")
 
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: self.states.connected)
@@ -50,7 +48,7 @@ extension MonitorVideoStates {
                 self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
                 self.this ! msg
 
-            case is UICmd.ToggleTorch:
+            case is UICmd.FlatBuffersTorchToggle:
                 // Handle torch toggle directly in video mode using FlatBuffers
                 print("🔍 DEBUG: Video mode - attempting FlatBuffers torch toggle")
                 if let f = self.sendFlatBuffersTorchToggle(peer: [peer]) as? Failure {
@@ -86,6 +84,11 @@ extension MonitorVideoStates {
                 monitor ! fbResponse
                 print("🔍 DEBUG: Forwarded FlatBuffers state update to monitor in video mode")
                 
+            case let fbFrameData as FlatBuffersFrameData:
+                // Handle FlatBuffers frame data - send directly to monitor
+                monitor ! fbFrameData
+                self.requestFrame([peer])
+                
             // MARK: - Zoom and Lens Command Handling
             case let zoomCmd as UICmd.SetZoom:
                 // Send zoom command directly without showing alert for immediate feedback
@@ -101,12 +104,13 @@ extension MonitorVideoStates {
                 }
                 monitor ! zoomResp
                 
-            case let torchResp as RemoteCmd.ToggleTorchResp:
-                // Handle torch response directly without alert
-                if let error = torchResp.error {
-                    print("❌ DEBUG: Video mode torch response error: \(error.localizedDescription)")
+            case let fbResponse as FlatBuffersCameraStateResponse:
+                // Handle FlatBuffers camera state response - forward all responses to monitor
+                print("🔍 DEBUG: Video mode received FlatBuffers camera state response")
+                if !fbResponse.response.success {
+                    print("❌ DEBUG: Video mode response error: \(fbResponse.response.error ?? "Unknown error")")
                 }
-                monitor ! torchResp
+                monitor ! fbResponse
                 
             case is UICmd.SwitchLens:
                 self.become(
@@ -147,10 +151,6 @@ extension MonitorVideoStates {
                 monitor ! UICmd.RenderVideoModeRecording()
                 self.requestFrame([peer])
 
-            case is RemoteCmd.OnFrame:
-                monitor ! msg
-                self.requestFrame([peer])
-
             case let cmd as UICmd.TakePicture:
                 self.sendFlatBuffersStopRecording(peer: [peer], sendToRemote: cmd.sendMediaToRemote)
                 // Immediately transition to waiting state after sending stop command
@@ -159,12 +159,12 @@ extension MonitorVideoStates {
                     state: self.monitorWaitingForVideo(monitor: monitor, peer: peer, lobby: lobby)
                 )
 
-            case is RemoteCmd.StopRecordingVideoAck:
-                // Legacy handler - should not be used with FlatBuffers
-                self.become(
-                    name: self.states.monitorWaitingForVideo,
-                    state: self.monitorWaitingForVideo(monitor: monitor, peer: peer, lobby: lobby)
-                )
+
+            case let fbFrameData as FlatBuffersFrameData:
+                // Handle FlatBuffers frame data - send directly to monitor
+                monitor ! fbFrameData
+                self.requestFrame([peer])
+
             case is Disconnect:
                 self.popAndStartScanning()
 
@@ -205,6 +205,12 @@ extension MonitorVideoStates {
                     self.popAndStartScanning()
                 }
 
+            case let fbFrameData as FlatBuffersFrameData:
+                // Handle FlatBuffers frame data while waiting for video
+                // We still want to show the preview while waiting
+                monitor ! fbFrameData
+                self.requestFrame([peer])
+
             case let fbResponse as FlatBuffersCameraStateResponse:
                 print("🔍 DEBUG: Monitor waiting for video received FlatBuffers camera state response")
                 print("🔍 DEBUG: Command success: \(fbResponse.response.success)")
@@ -218,23 +224,40 @@ extension MonitorVideoStates {
                         print("🔍 DEBUG: Media data type: \(mediaData.type)")
                         
                         // Save video directly without legacy conversion
-                        saveVideoDataWithCompletion(videoData) { [weak self] in
+                        saveVideoDataWithCompletion(videoData) { [weak self, alert] in
                             // Transition back to video mode after saving is complete
-                            ^{alert?.dismiss(animated: true)}
-                            guard let self = self else { return }
-                            self.become(
-                                name: self.states.monitorVideoMode,
-                                state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
-                            )
+                            print("🔍 DEBUG: Video saving completion handler called")
+                            
+                            // Dismiss alert on main thread
+                            DispatchQueue.main.async {
+                                alert?.dismiss(animated: true)
+                                print("🔍 DEBUG: Alert dismissed, transitioning back to video mode")
+                            }
+                            
+                            guard let self = self else { 
+                                print("🔍 DEBUG: Self is nil in completion handler")
+                                return 
+                            }
+                            
+                            // Transition back to video mode on actor's mailbox thread
+                            self.mailbox.addOperation {
+                                self.become(
+                                    name: self.states.monitorVideoMode,
+                                    state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
+                                )
+                                print("🔍 DEBUG: State transition to monitorVideoMode completed")
+                            }
                         }
                     } else {
                         print("🔍 DEBUG: No media data found in FlatBuffers response")
                         ^{alert?.dismiss(animated: true)}
                         showError("No video data received")
-                        self.become(
-                            name: self.states.monitorVideoMode,
-                            state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
-                        )
+                        self.mailbox.addOperation {
+                            self.become(
+                                name: self.states.monitorVideoMode,
+                                state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
+                            )
+                        }
                     }
                 } else {
                     // Handle error case
@@ -242,10 +265,12 @@ extension MonitorVideoStates {
                     print("🔍 DEBUG: Video recording failed: \(errorMessage)")
                     ^{alert?.dismiss(animated: true)}
                     showError(errorMessage)
-                    self.become(
-                        name: self.states.monitorVideoMode,
-                        state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
-                    )
+                    self.mailbox.addOperation {
+                        self.become(
+                            name: self.states.monitorVideoMode,
+                            state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby)
+                        )
+                    }
                 }
 
             default:
@@ -254,15 +279,7 @@ extension MonitorVideoStates {
         }
     }
 
-    func saveVideo(_ videoResp: RemoteCmd.StopRecordingVideoResp) {
-        if let error = videoResp.error {
-            showError(error.localizedDescription)
-        }
-        guard let video = videoResp.video else {
-            return
-        }
-        saveVideoData(video)
-    }
+
     
     func saveVideoData(_ videoData: Data) {
         saveVideoDataWithCompletion(videoData) { }
@@ -284,6 +301,7 @@ extension MonitorVideoStates {
                     print("🔍 DEBUG: Failed to write video to temp file: \(error)")
                     showError(NSLocalizedString("Unable to save video", comment: ""))
                     DispatchQueue.main.async {
+                        print("🔍 DEBUG: Calling video saving completion handler (write error)")
                         completion()
                     }
                     return
@@ -314,6 +332,7 @@ extension MonitorVideoStates {
                     
                     // 5. Call completion handler on main thread
                     DispatchQueue.main.async {
+                        print("🔍 DEBUG: Calling video saving completion handler")
                         completion()
                     }
                 })
@@ -321,6 +340,7 @@ extension MonitorVideoStates {
                 print("🔍 DEBUG: Video library access not authorized")
                 showError(NSLocalizedString("Remote Shutter has not access to the camera roll", comment: ""))
                 DispatchQueue.main.async {
+                    print("🔍 DEBUG: Calling video saving completion handler (unauthorized)")
                     completion()
                 }
             }

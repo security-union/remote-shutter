@@ -112,7 +112,48 @@ public class UICmd {
         }
     }
 
+    public class OnVideo: Actor.Message {
+
+        public let video: Data?
+        public let error: Error?
+
+        public init(sender: ActorRef?, video: Data) {
+            self.video = video
+            self.error = nil
+            super.init(sender: sender)
+        }
+
+        public init(sender: ActorRef?, error: Error) {
+            self.video = nil
+            self.error = error
+            super.init(sender: sender)
+        }
+    }
+
+    public class OnFrame: Actor.Message {
+
+        public let frameData: Data
+        public let fps: Int
+        public let cameraPosition: AVCaptureDevice.Position
+        public let orientation: UIInterfaceOrientation
+
+        public init(sender: ActorRef?, frameData: Data, fps: Int, cameraPosition: AVCaptureDevice.Position, orientation: UIInterfaceOrientation) {
+            self.frameData = frameData
+            self.fps = fps
+            self.cameraPosition = cameraPosition
+            self.orientation = orientation
+            super.init(sender: sender)
+        }
+    }
+
     public class RequestCameraCapabilities: Actor.Message {
+        public init() {
+            super.init(sender: nil)
+        }
+    }
+
+    // MARK: - FlatBuffers Torch Commands
+    public class FlatBuffersTorchToggle: Actor.Message {
         public init() {
             super.init(sender: nil)
         }
@@ -276,18 +317,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd11ToggleTorch)public class ToggleTorch: Actor.Message, NSCoding {
-        public func encode(with aCoder: NSCoder) {
-        }
 
-        public init() {
-            super.init(sender: nil)
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            super.init(sender: nil)
-        }
-    }
 
     @objc(_TtCC10ActorsDemo5UICmd15ToggleFlashResp)public class ToggleFlashResp: Actor.Message, NSCoding {
 

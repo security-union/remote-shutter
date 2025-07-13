@@ -49,8 +49,9 @@ extension RemoteCamSession {
                 monitor ! UICmd.RenderPhotoMode()
                 self.requestFrame([peer])
 
-            case is RemoteCmd.OnFrame:
-                monitor ! msg
+            case let fbFrameData as FlatBuffersFrameData:
+                // Handle FlatBuffers frame data - send directly to monitor
+                monitor ! fbFrameData
                 self.requestFrame([peer])
 
             case is UICmd.UnbecomeMonitor:
@@ -70,7 +71,7 @@ extension RemoteCamSession {
                 )
                 self.this ! msg
 
-            case is UICmd.ToggleTorch:
+            case is UICmd.FlatBuffersTorchToggle:
                 // Handle torch toggle directly in photo mode using FlatBuffers
                 print("🔍 DEBUG: Photo mode - attempting FlatBuffers torch toggle")
                 if let f = self.sendFlatBuffersTorchToggle(peer: [peer]) as? Failure {
@@ -179,10 +180,6 @@ extension RemoteCamSession {
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
-
-            case is RemoteCmd.TakePicAck:
-                ^{alert?.title = "Receiving picture"}
-                self.sendCommandOrGoToScanning(peer: [peer], msg: msg)
 
             case let cmd as UICmd.TakePicture:
                 ^{alert?.show(true) {

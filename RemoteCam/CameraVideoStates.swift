@@ -20,7 +20,8 @@ extension RemoteCamSession {
             switch msg {
             
                         case is OnEnter:
-                getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
+                // FrameSender no longer needed - frames are sent directly from CameraViewController
+                break
 
 
 
@@ -82,7 +83,7 @@ extension RemoteCamSession {
                 ^{
                     alert?.show(true)
                 }
-            case let c as RemoteCmd.StopRecordingVideoResp:
+            case let c as UICmd.OnVideo:
                 // Send FlatBuffers response with correct command ID
                 print("🎬 DEBUG: Camera sending FlatBuffers video recording response")
                 print("🎬 DEBUG: Video data size: \(c.video?.count ?? 0) bytes")
