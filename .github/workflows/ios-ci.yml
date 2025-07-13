@@ -65,7 +65,6 @@ jobs:
           test \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO
-      continue-on-error: true
       
     - name: Archive for Release (if main branch)
       if: github.ref == 'refs/heads/main'
