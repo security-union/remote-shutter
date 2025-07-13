@@ -257,7 +257,8 @@ extension RemoteCamSession {
                 commandId: commandId,
                 success: true,
                 error: nil,
-                torchMode: torchMode
+                torchMode: torchMode,
+                ctrl: ctrl
             )
         } else if let failure = result as? Failure {
             print("❌ Camera torch toggle failed: \(failure.tryError)")
@@ -266,7 +267,8 @@ extension RemoteCamSession {
                 commandId: commandId,
                 success: false,
                 error: failure.tryError.localizedDescription,
-                torchMode: .off
+                torchMode: .off,
+                ctrl: ctrl
             )
         }
     }
@@ -297,7 +299,8 @@ extension RemoteCamSession {
                 commandId: commandId,
                 success: true,
                 error: nil,
-                torchMode: resultTorchMode
+                torchMode: resultTorchMode,
+                ctrl: ctrl
             )
         } else if let failure = result as? Failure {
             print("❌ Camera set torch mode failed: \(failure.tryError)")
@@ -306,7 +309,8 @@ extension RemoteCamSession {
                 commandId: commandId,
                 success: false,
                 error: failure.tryError.localizedDescription,
-                torchMode: .off
+                torchMode: .off,
+                ctrl: ctrl
             )
         }
     }
@@ -358,7 +362,8 @@ extension RemoteCamSession {
                 peer: [peer],
                 commandId: commandId,
                 capabilities: capabilities,
-                error: nil
+                error: nil,
+                cameraController: ctrl
             )
         } else if let failure = result as? Failure {
             print("❌ Camera toggle failed: \(failure.tryError)")
@@ -366,7 +371,8 @@ extension RemoteCamSession {
                 peer: [peer],
                 commandId: commandId,
                 capabilities: capabilities,
-                error: failure.tryError
+                error: failure.tryError,
+                cameraController: ctrl
             )
         }
     }
@@ -473,7 +479,8 @@ extension RemoteCamSession {
                 currentLens: actualCurrentLens,
                 currentCamera: currentCamera,
                 zoomRange: zoomRange,
-                capabilities: capabilities
+                capabilities: capabilities,
+                cameraController: ctrl
             )
             
             // Parse the response data to get the FlatBuffers object
@@ -493,7 +500,8 @@ extension RemoteCamSession {
                 commandId: command.id ?? "",
                 success: false,
                 errorMessage: failure.tryError.localizedDescription,
-                capabilities: capabilities
+                capabilities: capabilities,
+                cameraController: ctrl
             )
             
             // Parse the response data to get the FlatBuffers object
@@ -511,7 +519,8 @@ extension RemoteCamSession {
         currentCamera: AVCaptureDevice.Position = .back,
         zoomRange: RemoteCmd.ZoomRange = RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 1.0), 
         errorMessage: String = "",
-        capabilities: RemoteCmd.CameraCapabilitiesResp? = nil
+        capabilities: RemoteCmd.CameraCapabilitiesResp? = nil,
+        cameraController: CameraViewController? = nil
     ) -> Data {
         var builder = FlatBufferBuilder(initialSize: 512)
         
@@ -532,14 +541,47 @@ extension RemoteCamSession {
             let _ = currentCameraInfo?.hasFlash ?? false  // TODO: Use for flash capability in response
             let _ = currentCameraInfo?.hasTorch ?? false  // TODO: Use for torch capability in response
             
+            // Get real values from camera controller if available
+            let realTorchMode: RemoteShutter_TorchMode
+            let realFlashMode: RemoteShutter_FlashMode
+            let realIsRecording: Bool
+            
+            if let cameraController = cameraController {
+                // Get real torch mode
+                let avTorchMode = cameraController.getCurrentTorchMode()
+                switch avTorchMode {
+                case .off: realTorchMode = .off
+                case .on: realTorchMode = .on
+                case .auto: realTorchMode = .auto
+                @unknown default: realTorchMode = .off
+                }
+                
+                // Get real flash mode
+                let avFlashMode = cameraController.cameraSettings.flashMode
+                switch avFlashMode {
+                case .off: realFlashMode = .off
+                case .on: realFlashMode = .on
+                case .auto: realFlashMode = .auto
+                @unknown default: realFlashMode = .off
+                }
+                
+                // Get real recording state
+                realIsRecording = cameraController.isRecording
+            } else {
+                // Fallback to defaults if no camera controller available
+                realTorchMode = .off
+                realFlashMode = .off
+                realIsRecording = false
+            }
+            
             currentStateOffset = RemoteShutter_CameraState.createCameraState(
                 &builder,
                 currentCamera: realCurrentCamera,
                 currentLens: realCurrentLens,
                 zoomFactor: realZoomFactor,
-                torchMode: .off, // TODO: Get real torch mode from camera
-                flashMode: .off, // TODO: Get real flash mode from camera 
-                isRecording: false, // TODO: Get real recording state from camera
+                torchMode: realTorchMode,
+                flashMode: realFlashMode,
+                isRecording: realIsRecording,
                 connectionStatus: .connected
             )
         } else if success {

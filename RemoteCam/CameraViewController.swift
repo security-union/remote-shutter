@@ -515,7 +515,6 @@ public class CameraViewController: UIViewController,
     
     // MARK: - Enhanced Zoom Control Methods
     func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
-        0
         guard let device = self.videoDeviceInput?.device else {
             print("❌ DEBUG: No camera device available")
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))

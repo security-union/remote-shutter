@@ -185,7 +185,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
     }
     
     /// Send FlatBuffers torch state response
-    public func sendFlatBuffersTorchStateResponse(peer: [MCPeerID], commandId: String, success: Bool, error: String?, torchMode: AVCaptureDevice.TorchMode) -> Try<Message> {
+    public func sendFlatBuffersTorchStateResponse(peer: [MCPeerID], commandId: String, success: Bool, error: String?, torchMode: AVCaptureDevice.TorchMode, ctrl: CameraViewController) -> Try<Message> {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
         
         do {
@@ -193,7 +193,8 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                 commandId: commandId,
                 success: success,
                 error: error,
-                torchMode: torchMode
+                torchMode: torchMode,
+                ctrl: ctrl
             )
             try self.session.send(data, toPeers: peer, with: .reliable)
             
@@ -336,7 +337,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
     }
     
     /// Build FlatBuffers torch state response
-    private func buildFlatBuffersTorchStateResponse(commandId: String, success: Bool, error: String?, torchMode: AVCaptureDevice.TorchMode) -> Data {
+    private func buildFlatBuffersTorchStateResponse(commandId: String, success: Bool, error: String?, torchMode: AVCaptureDevice.TorchMode, ctrl: CameraViewController) -> Data {
         var builder = FlatBufferBuilder(initialSize: 512)
         
         // Create strings
@@ -354,12 +355,21 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         @unknown default: flatBuffersTorchMode = .off
         }
         
+        let capabilities = ctrl.gatherCurrentCameraCapabilities()
+        
+        let currentCamera: RemoteShutter_CameraPosition = capabilities?.currentCamera == .front ? .front : .back
+        let currentLens: RemoteShutter_CameraLensType = convertLensTypeToFlatBuffers(capabilities?.currentLens ?? .wideAngle)
+        let zoomFactor = capabilities?.currentZoom;
+        
+        print("Current camera: \(currentCamera)")
+        print("Current lents type: \(currentLens)")
+        
         // Create simplified camera state with just torch info
         let cameraStateOffset = RemoteShutter_CameraState.createCameraState(
             &builder,
-            currentCamera: .back, // Default for now
-            currentLens: .wideangle, // Default for now
-            zoomFactor: 1.0, // Default for now
+            currentCamera: currentCamera,
+            currentLens: currentLens,
+            zoomFactor: zoomFactor ?? 1.0, // Default for now
             torchMode: flatBuffersTorchMode,
             flashMode: .off, // Default for now
             isRecording: false, // Default for now
@@ -373,7 +383,8 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             timestamp: timestamp,
             success: success,
             errorOffset: errorOffset,
-            currentStateOffset: cameraStateOffset
+            currentStateOffset: cameraStateOffset,
+            capabilitiesOffset: buildFlatBuffersCameraCapabilities(builder: &builder, capabilities: capabilities!)
         )
         
         // Create P2P message envelope
@@ -1066,8 +1077,8 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
     }
     
     /// Send FlatBuffers camera state response
-    public func sendFlatBuffersCameraStateResponse(peer: [MCPeerID], commandId: String, capabilities: RemoteCmd.CameraCapabilitiesResp?, error: Error?) {
-        let responseData = buildFlatBuffersCameraStateResponse(commandId: commandId, capabilities: capabilities, error: error)
+    public func sendFlatBuffersCameraStateResponse(peer: [MCPeerID], commandId: String, capabilities: RemoteCmd.CameraCapabilitiesResp?, error: Error?, cameraController: CameraViewController? = nil) {
+        let responseData = buildFlatBuffersCameraStateResponse(commandId: commandId, capabilities: capabilities, error: error, cameraController: cameraController)
         
         do {
             try session.send(responseData, toPeers: peer, with: .reliable)
@@ -1078,7 +1089,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
     }
     
     /// Build FlatBuffers camera state response
-    private func buildFlatBuffersCameraStateResponse(commandId: String, capabilities: RemoteCmd.CameraCapabilitiesResp?, error: Error?) -> Data {
+    private func buildFlatBuffersCameraStateResponse(commandId: String, capabilities: RemoteCmd.CameraCapabilitiesResp?, error: Error?, cameraController: CameraViewController? = nil) -> Data {
         var builder = FlatBufferBuilder(initialSize: 512)
         
         let commandIdOffset = builder.create(string: commandId)
@@ -1092,14 +1103,47 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             let currentLens: RemoteShutter_CameraLensType = convertLensTypeToFlatBuffers(capabilities.currentLens)
             let zoomFactor = capabilities.currentZoom
             
+            // Get real values from camera controller if available
+            let realTorchMode: RemoteShutter_TorchMode
+            let realFlashMode: RemoteShutter_FlashMode
+            let realIsRecording: Bool
+            
+            if let cameraController = cameraController {
+                // Get real torch mode
+                let avTorchMode = cameraController.getCurrentTorchMode()
+                switch avTorchMode {
+                case .off: realTorchMode = .off
+                case .on: realTorchMode = .on
+                case .auto: realTorchMode = .auto
+                @unknown default: realTorchMode = .off
+                }
+                
+                // Get real flash mode
+                let avFlashMode = cameraController.cameraSettings.flashMode
+                switch avFlashMode {
+                case .off: realFlashMode = .off
+                case .on: realFlashMode = .on
+                case .auto: realFlashMode = .auto
+                @unknown default: realFlashMode = .off
+                }
+                
+                // Get real recording state
+                realIsRecording = cameraController.isRecording
+            } else {
+                // Fallback to defaults if no camera controller available
+                realTorchMode = .off
+                realFlashMode = .off
+                realIsRecording = false
+            }
+            
             currentStateOffset = RemoteShutter_CameraState.createCameraState(
                 &builder,
                 currentCamera: currentCamera,
                 currentLens: currentLens,
                 zoomFactor: zoomFactor,
-                torchMode: .off, // Default torch mode
-                flashMode: .off, // Default flash mode
-                isRecording: false, // Default recording state
+                torchMode: realTorchMode,
+                flashMode: realFlashMode,
+                isRecording: realIsRecording,
                 connectionStatus: .connected
             )
         }

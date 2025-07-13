@@ -29,6 +29,82 @@ func setFlashMode(ctrl: Weak<MonitorViewController>, flashMode: AVCaptureDevice.
     }
 }
 
+// MARK: - Generic Camera Configuration Refresh
+func refreshCameraConfiguration(ctrl: Weak<MonitorViewController>, capabilities: RemoteShutter_CameraCapabilities?, currentState: RemoteShutter_CameraState?) {
+    guard let ctrl = ctrl.value else { return }
+    
+    // Determine which camera info to use based on current camera position
+    let cameraPosition = currentState?.currentCamera ?? .back
+    let cameraInfo: RemoteShutter_CameraInfo?
+    
+    switch cameraPosition {
+    case .front:
+        cameraInfo = capabilities?.frontCamera
+    case .back:
+        cameraInfo = capabilities?.backCamera
+    }
+    
+    // Update flash and torch button visibility based on camera capabilities
+    print("updating camera controls for \(cameraPosition)")
+    if let cameraInfo = cameraInfo {
+        print("has torch \(cameraInfo.hasTorch)")
+        ctrl.flashButton.isHidden = !cameraInfo.hasFlash
+        ctrl.programmaticTorchButton.isHidden = !cameraInfo.hasTorch
+    } else {
+        // If no camera info available, hide both buttons
+        print( "No camera info available")
+        ctrl.flashButton.isHidden = true
+        ctrl.programmaticTorchButton.isHidden = true
+    }
+    
+    // Update lens controls if we have available lenses
+    if let cameraInfo = cameraInfo, cameraInfo.hasAvailableLenses {
+        let availableLenses = Array(0..<cameraInfo.availableLensesCount).compactMap { index in
+            cameraInfo.availableLenses(at: index)
+        }
+        
+        // Convert FlatBuffers lens types to CameraLensType
+        let lensTypes: [CameraLensType] = availableLenses.compactMap { lensType in
+            switch lensType {
+            case .ultrawide: return .ultraWide
+            case .wideangle: return .wideAngle
+            case .telephoto: return .telephoto
+            case .dualcamera: return .dualCamera
+            }
+        }
+        
+        let currentLensType: CameraLensType
+        if let currentLens = currentState?.currentLens {
+            switch currentLens {
+            case .ultrawide: currentLensType = .ultraWide
+            case .wideangle: currentLensType = .wideAngle
+            case .telephoto: currentLensType = .telephoto
+            case .dualcamera: currentLensType = .dualCamera
+            }
+        } else {
+            currentLensType = .wideAngle // Default
+        }
+        
+        ctrl.updateLensControls(lensType: currentLensType, availableLenses: lensTypes)
+    }
+    
+    // Update zoom controls if we have zoom capabilities
+    if let cameraInfo = cameraInfo, cameraInfo.hasZoomCapabilities {
+        let currentLens = currentState?.currentLens ?? .wideangle
+        let currentZoom = currentState?.zoomFactor ?? 1.0
+        
+        // Find zoom capability for current lens
+        for i in 0..<cameraInfo.zoomCapabilitiesCount {
+            if let zoomCapability = cameraInfo.zoomCapabilities(at: i),
+               zoomCapability.lensType == currentLens,
+               let zoomRange = zoomCapability.zoomRange {
+                ctrl.updateZoomControls(zoomFactor: CGFloat(currentZoom), maxZoom: CGFloat(zoomRange.maxZoom))
+                break
+            }
+        }
+    }
+}
+
 func setTorchMode(ctrl: Weak<MonitorViewController>, torchMode: AVCaptureDevice.TorchMode?) {
     if let t = torchMode {
         switch t {
@@ -111,12 +187,12 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     if let ctrl = ctrl {
                         // Extract torch mode from FlatBuffers response current state
                         let torchMode: AVCaptureDevice.TorchMode?
+                        
                         if let state = fbResponse.response.currentState {
                             switch state.torchMode {
                             case .off: torchMode = .off
                             case .on: torchMode = .on
                             case .auto: torchMode = .auto
-                            default: torchMode = .off
                             }
                         } else {
                             torchMode = nil
@@ -130,12 +206,14 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                             case .off: flashMode = .off
                             case .on: flashMode = .on
                             case .auto: flashMode = .auto
-                            default: flashMode = .off
                             }
                         } else {
                             flashMode = nil
                         }
                         setFlashMode(ctrl: ctrl, flashMode: flashMode)
+                        
+                        // Refresh camera configuration based on capabilities and current state
+                        refreshCameraConfiguration(ctrl: ctrl, capabilities: fbResponse.response.capabilities, currentState: fbResponse.response.currentState)
                     }
                 }
 
@@ -155,32 +233,8 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                 
             // MARK: - Camera Capabilities Response Handling
             case let capabilities as RemoteCmd.CameraCapabilitiesResp:
-                OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl, let cameraInfo = capabilities.getCurrentCameraInfo() {
-                        // Update flash mode display
-                        if cameraInfo.hasFlash {
-                            // We'd need to get the actual flash mode from somewhere
-                            // For now, we'll just indicate flash is available
-                            ctrl.value?.flashButton.isHidden = false
-                        } else {
-                            ctrl.value?.flashButton.isHidden = true
-                        }
-                        
-                        // Update lens controls
-                        ctrl.value?.updateLensControls(
-                            lensType: capabilities.currentLens,
-                            availableLenses: cameraInfo.availableLenses
-                        )
-                        
-                        // Update zoom controls
-                        if let zoomRange = cameraInfo.getZoomCapabilities()[capabilities.currentLens] {
-                            ctrl.value?.updateZoomControls(
-                                zoomFactor: capabilities.currentZoom,
-                                maxZoom: zoomRange.maxZoom
-                            )
-                        }
-                    }
-                }
+                break
+                
                 
             // MARK: - Lens Response Handling
             case let lens as UICmd.SwitchLensResp:
@@ -364,8 +418,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = true
         flashButton.isHidden = false
         flashStatus.isHidden = false
-        programmaticTorchButton?.isEnabled = true
-        programmaticTorchButton?.isHidden = false
         timerSlider.isEnabled = true
         settingsButton.isEnabled = true
         segmentedControl.isEnabled = true
@@ -392,8 +444,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = false
         flashButton.isHidden = true
         flashStatus.isHidden = true
-        programmaticTorchButton?.isEnabled = true
-        programmaticTorchButton?.isHidden = false
         timerSlider.isEnabled = true
         settingsButton.isEnabled = true
         segmentedControl.isEnabled = true
@@ -420,8 +470,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         flashButton.isEnabled = false
         flashButton.isHidden = true
         flashStatus.isHidden = true
-        programmaticTorchButton?.isEnabled = false
-        programmaticTorchButton?.isHidden = true
         timerSlider.isEnabled = false
         settingsButton.isEnabled = false
         segmentedControl.isEnabled = false
