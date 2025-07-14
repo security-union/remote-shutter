@@ -84,11 +84,11 @@ static InAppPurchasesManager *_manager = nil;
     [defaults synchronize];
 }
 
-- (BOOL)didUserBuyRemoveiAdsFeatureAndEnableVideo {
+- (BOOL)didUserBuyProMode {
     BOOL didBuyiAds = FALSE;
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    if ([defaults objectForKey:didBuyRemoveAdsAndEnableVideo]) {
-        didBuyiAds = [defaults boolForKey:didBuyRemoveAdsAndEnableVideo];
+    if ([defaults objectForKey:didBuyProMode]) {
+        didBuyiAds = [defaults boolForKey:didBuyProMode];
     }
     return didBuyiAds;
 };
@@ -112,21 +112,34 @@ static InAppPurchasesManager *_manager = nil;
 };
 
 - (BOOL)didUserBuyProBundle {
-    return [self didUserBuyRemoveiAdsFeatureAndEnableVideo];
+    return [self didUserBuyProMode];
 };
 
-- (void)setDidUserBuyRemoveiAdsAndEnableVideoFeatures:(BOOL)feature {
+#pragma mark - Centralized Feature Availability
+
+- (BOOL)hasAdRemovalFeature {
+    return [self didUserBuyProBundle] || [self didUserBuyRemoveiAdsFeature];
+}
+
+- (BOOL)hasVideoRecordingFeature {
+    return [self didUserBuyProBundle] || [self didUserBuyEnableVideoOnlyFeature];
+}
+
+- (BOOL)hasTorchFeature {
+    return [self didUserBuyProBundle] || [self didUserBuyEnableTorchFeature];
+}
+
+- (BOOL)hasProMode {
+    return [self didUserBuyProBundle];
+}
+
+- (void)setDidUserBuyProMode:(BOOL)feature {
     if (feature) {
-        // Pro bundle unlocks all features
-        [self setDidUserBuyRemoveiAdsFeatures:TRUE];
-        [self setDidUserBuyEnableTorchFeature:TRUE];
-        [self setDidUserBuyEnableVideoOnlyFeature:TRUE];
-        
-        [[NSNotificationCenter defaultCenter] postNotificationName:Constants.RemoveAdsAndEnableVideo
+        [[NSNotificationCenter defaultCenter] postNotificationName:Constants.ProModeAquired
                                                             object:nil];
     }
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    [defaults setBool:feature forKey:didBuyRemoveAdsAndEnableVideo];
+    [defaults setBool:feature forKey:didBuyProMode];
     [defaults synchronize];
 }
 
@@ -152,7 +165,7 @@ static InAppPurchasesManager *_manager = nil;
         req = nil;
     }
     self.productRefreshHandler = handler;
-    NSSet *_products = [NSSet setWithObjects:RemoveiAdsFeatureIdentifier, RemoveAdsAndEnableVideoIdentifier, EnableTorchFeatureIdentifier, EnableVideoOnlyFeatureIdentifier, nil];
+    NSSet *_products = [NSSet setWithObjects:RemoveiAdsFeatureIdentifier, ProModeAquiredIdentifier, EnableTorchFeatureIdentifier, EnableVideoOnlyFeatureIdentifier, nil];
     req = [[SKProductsRequest alloc] initWithProductIdentifiers:_products];
     [req setDelegate:self];
     [req start];
@@ -204,8 +217,8 @@ static InAppPurchasesManager *_manager = nil;
                     if (self.buyProductHandler)
                         self.buyProductHandler(self, nil);
                 }
-                if ([[[transaction payment] productIdentifier] isEqualToString:RemoveAdsAndEnableVideoIdentifier]) {
-                    [self setDidUserBuyRemoveiAdsAndEnableVideoFeatures:TRUE];
+                if ([[[transaction payment] productIdentifier] isEqualToString:ProModeAquiredIdentifier]) {
+                    [self setDidUserBuyProMode:TRUE];
                     if (self.buyProductHandler)
                         self.buyProductHandler(self, nil);
                 }
@@ -227,7 +240,7 @@ static InAppPurchasesManager *_manager = nil;
                     if (self.buyProductHandler)
                         self.buyProductHandler(self, transaction.error);
                 }
-                if ([[[transaction payment] productIdentifier] isEqualToString:RemoveAdsAndEnableVideoIdentifier]) {
+                if ([[[transaction payment] productIdentifier] isEqualToString:ProModeAquiredIdentifier]) {
                     if (self.buyProductHandler)
                         self.buyProductHandler(self, transaction.error);
                 }
