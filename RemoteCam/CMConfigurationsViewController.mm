@@ -196,11 +196,11 @@
     } else if ([cell isEqual:self.acknowledgments]) {
         [self showAcknowledgments];
     } else if ([cell isEqual:self.blackFireApps]) {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://securityunion.dev"] options:@{} completionHandler:nil];
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://discord.gg/vJ7EqZCmJ7"] options:@{} completionHandler:nil];
     } else if ([cell isEqual:self.theaterFramework]) {
         [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/security-union/Theater"] options:@{} completionHandler:nil];
     } else if ([cell isEqual:self.contactSupport]) {
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"mailto:support@securityunion.dev"] options:@{} completionHandler:nil];
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"mailto:remoteshutter@securityunion.dev"] options:@{} completionHandler:nil];
     } else if ([cell isEqual:self.sourceCode]) {
         [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/security-union/remote-shutter"] options:@{} completionHandler:nil];
     }
