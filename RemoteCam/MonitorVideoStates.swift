@@ -219,16 +219,8 @@ extension MonitorVideoStates {
                     if !success {
                         showError(NSLocalizedString("Unable to save video to Photos app", comment: ""))
                     } else {
-                        // Increment media capture counter for review prompt
-                        var count = UserDefaults.standard.integer(forKey: mediaCaptureCounterKey)
-                        count += 1
-                        UserDefaults.standard.set(count, forKey: mediaCaptureCounterKey)
-                        
-                        // Show review prompt after 10 captures
-                        if count >= 10 {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                showReviewPromptIfAppropriate()
-                            }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            showReviewPromptIfAppropriate()
                         }
                     }
 

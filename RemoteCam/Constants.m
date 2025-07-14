@@ -14,8 +14,8 @@
     return @"RemoveAds";
 }
 
-+(NSString *)RemoveAdsAndEnableVideo {
-    return @"RemoveAdsAndEnableVideo";
++(NSString *)ProModeAquired {
+    return @"ProModeAquired";
 }
 
 +(NSString *)EnableTorch {
