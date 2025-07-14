@@ -38,12 +38,12 @@ public class iAdViewController: UIViewController {
         super.viewDidLoad()
         self.shouldHideBanner()
 
-        if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() && !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeatureAndEnableVideo() {
+        if !InAppPurchasesManager.shared().hasAdRemovalFeature() {
             self.setupAdNetwork()
         }
 
         NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideAds(notification:)), name: NSNotification.Name(rawValue: Constants.removeAds()), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideAds(notification:)), name: NSNotification.Name(rawValue: Constants.removeAdsAndEnableVideo()), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideAds(notification:)), name: NSNotification.Name(rawValue: Constants.proModeAquired()), object: nil)
     }
 
     func shouldHideBanner() {

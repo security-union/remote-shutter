@@ -19,8 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         InAppPurchasesManager.shared().reloadProducts { (_, _) in
 
         }
-        if !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeature() &&
-            !InAppPurchasesManager.shared().didUserBuyRemoveiAdsFeatureAndEnableVideo() {
+        if !InAppPurchasesManager.shared().hasAdRemovalFeature() {
             GADMobileAds.sharedInstance().start(completionHandler: nil)
         }
 

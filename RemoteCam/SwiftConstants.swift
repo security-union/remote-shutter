@@ -17,9 +17,10 @@ public let enableVideoOnlyPID = "08"
 public let reviewCounterKey = "reviewCounter"
 public let lastVersionPromptedForReviewKey = "lastVersionPromptedForReview"
 public let mediaCaptureCounterKey = "mediaCaptureCounter"
+public let mediaCapturedBeforeRequestingReview = 10
 
 // MARK: - Shared Review Prompt Utility
-public func showReviewPromptIfAppropriate() {
+func privateShowReviewPromptIfAppropriate() {
     let reviewCount = UserDefaults.standard.integer(forKey: reviewCounterKey)
     let infoDictionaryKey = kCFBundleVersionKey as String
     guard let currentVersion = Bundle.main.object(forInfoDictionaryKey: infoDictionaryKey) as? String
@@ -41,6 +42,19 @@ public func showReviewPromptIfAppropriate() {
                 count += 1
                 UserDefaults.standard.set(count, forKey: reviewCounterKey)
             }
+        }
+    }
+}
+
+public func showReviewPromptIfAppropriate() {
+    var count = UserDefaults.standard.integer(forKey: mediaCaptureCounterKey)
+    count += 1
+    UserDefaults.standard.set(count, forKey: mediaCaptureCounterKey)
+    
+    // Show review prompt after 10 captures
+    if count >= mediaCapturedBeforeRequestingReview {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            privateShowReviewPromptIfAppropriate()
         }
     }
 }
