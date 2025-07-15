@@ -13,4 +13,12 @@
 
 "Open Settings" = "Ouvrir les Réglages";
 
-"Cancel" = "Annuler"; 
+"Cancel" = "Annuler";
+
+/* Permissions Primer */
+"Camera Access Required" = "Accès à la Caméra Requis";
+"Remote Shutter needs camera access to function. Please enable it in Settings to continue." = "Remote Shutter a besoin de l'accès à la caméra pour fonctionner. Veuillez l'activer dans les Réglages pour continuer.";
+"Photo Library Access Required" = "Accès à la Bibliothèque de Photos Requis";
+"Remote Shutter needs photo library access to save your photos and videos. Please enable it in Settings to continue." = "Remote Shutter a besoin de l'accès à la bibliothèque de photos pour sauvegarder vos photos et vidéos. Veuillez l'activer dans les Réglages pour continuer.";
+"Silent Video Recording" = "Enregistrement Vidéo Silencieux";
+"Video will be recorded without audio because microphone access was not granted. You can enable it in Settings to record with audio." = "La vidéo sera enregistrée sans audio car l'accès au microphone n'a pas été accordé. Vous pouvez l'activer dans les Réglages pour enregistrer avec audio."; 

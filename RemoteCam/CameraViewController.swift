@@ -183,13 +183,18 @@ public class CameraViewController: UIViewController,
             // Camera capabilities are now sent through peer-to-peer communication in CamStates.swift
             // No need to send to session actor directly here
 
-            let audioDevice = AVCaptureDevice.default(for: .audio)
-            let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
-
-            if self.captureSession.canAddInput(audioDeviceInput) {
-                self.captureSession.addInput(audioDeviceInput)
-            } else {
-                print("Could not add audio device input to the session")
+            // Add audio input if available
+            if let audioDevice = AVCaptureDevice.default(for: .audio) {
+                do {
+                    let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
+                    if self.captureSession.canAddInput(audioDeviceInput) {
+                        self.captureSession.addInput(audioDeviceInput)
+                    } else {
+                        print("Could not add audio device input to the session")
+                    }
+                } catch {
+                    print("Error creating audio device input: \(error.localizedDescription)")
+                }
             }
 
             if self.captureSession.canAddOutput(self.audioDataOutput) {

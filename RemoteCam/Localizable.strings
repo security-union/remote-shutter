@@ -93,3 +93,14 @@
 "iAds Removed"="iAds Removed";
 
 "call_to_download" = "Download Remote Shutter today %@";
+
+/* Permissions Primer */
+"Camera Access Required" = "Camera Access Required";
+"Remote Shutter needs camera access to function. Please enable it in Settings to continue." = "Remote Shutter needs camera access to function. Please enable it in Settings to continue.";
+"Photo Library Access Required" = "Photo Library Access Required";
+"Remote Shutter needs photo library access to save your photos and videos. Please enable it in Settings to continue." = "Remote Shutter needs photo library access to save your photos and videos. Please enable it in Settings to continue.";
+"Open Settings" = "Open Settings";
+"Cancel" = "Cancel";
+"Continue" = "Continue";
+"Silent Video Recording" = "Silent Video Recording";
+"Video will be recorded without audio because microphone access was not granted. You can enable it in Settings to record with audio." = "Video will be recorded without audio because microphone access was not granted. You can enable it in Settings to record with audio.";

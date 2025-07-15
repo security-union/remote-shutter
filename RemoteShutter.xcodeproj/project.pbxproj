@@ -112,6 +112,10 @@
 		06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		06E9653F2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
+		06F2FF9C2E26047200A2328E /* PermissionsPrimerHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F2FF9B2E26047200A2328E /* PermissionsPrimerHelper.swift */; };
+		06F2FF9D2E26047200A2328E /* PermissionsPrimerHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F2FF9B2E26047200A2328E /* PermissionsPrimerHelper.swift */; };
+		06F2FF9F2E26048F00A2328E /* PermissionsPrimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F2FF9E2E26048F00A2328E /* PermissionsPrimerView.swift */; };
+		06F2FFA02E26048F00A2328E /* PermissionsPrimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F2FF9E2E26048F00A2328E /* PermissionsPrimerView.swift */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		85C11C052582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
 		85C11C062582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
@@ -240,6 +244,8 @@
 		06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftConstants.swift; sourceTree = "<group>"; };
 		06E9653D2535754800E5A8B3 /* Data+MD5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+MD5.swift"; sourceTree = "<group>"; };
 		06EEA7DB1BBB87EE005787AE /* Starscream.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Starscream.framework; path = "Pods/../build/Debug-iphoneos/Starscream.framework"; sourceTree = "<group>"; };
+		06F2FF9B2E26047200A2328E /* PermissionsPrimerHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsPrimerHelper.swift; sourceTree = "<group>"; };
+		06F2FF9E2E26048F00A2328E /* PermissionsPrimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsPrimerView.swift; sourceTree = "<group>"; };
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.debug.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.debug.xcconfig"; sourceTree = "<group>"; };
@@ -384,6 +390,8 @@
 		069284601BE5C1A700AF4678 /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				06F2FF9B2E26047200A2328E /* PermissionsPrimerHelper.swift */,
+				06F2FF9E2E26048F00A2328E /* PermissionsPrimerView.swift */,
 				065024061BEA406B00311C8A /* Settings */,
 				066959602575F00200E8B579 /* WelcomeViewController.swift */,
 				0634594925886387009F9BE0 /* DeviceScannerViewController.swift */,
@@ -753,6 +761,7 @@
 				0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
+				06F2FF9F2E26048F00A2328E /* PermissionsPrimerView.swift in Sources */,
 				85D33836258D48C30091972B /* UIViewController.swift in Sources */,
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */,
@@ -782,6 +791,7 @@
 				069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */,
 				0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */,
 				068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
+				06F2FF9D2E26047200A2328E /* PermissionsPrimerHelper.swift in Sources */,
 				06E965212535199400E5A8B3 /* MediaProcessors.swift in Sources */,
 				065024121BEA407F00311C8A /* CMConfigurationsViewController.mm in Sources */,
 				06D114CF2532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
@@ -842,6 +852,8 @@
 				06CDFB2C252EC2C300EA56FB /* CGImage.swift in Sources */,
 				06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */,
 				06CDFB20252E9CD200EA56FB /* UICmds.swift in Sources */,
+				06F2FF9C2E26047200A2328E /* PermissionsPrimerHelper.swift in Sources */,
+				06F2FFA02E26048F00A2328E /* PermissionsPrimerView.swift in Sources */,
 				06AEE43625333B4A00C2ED90 /* UIAlertController.swift in Sources */,
 				068EF0D02531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
 				06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */,

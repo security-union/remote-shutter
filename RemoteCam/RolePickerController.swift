@@ -81,7 +81,26 @@ public class RolePickerController: UIViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = false
-        self.verifyCameraAndCameraRollAccess()
+        
+        // Show permissions primer if needed, otherwise verify existing permissions
+        if shouldShowPermissionsPrimer() {
+            presentPermissionsPrimer { [weak self] cameraGranted, microphoneGranted, photoLibraryGranted in
+                if cameraGranted && photoLibraryGranted {
+                    // Continue with app flow - camera and photo library are essential
+                    print("✅ Permissions granted - Camera: \(cameraGranted), Microphone: \(microphoneGranted), Photo Library: \(photoLibraryGranted)")
+                } else {
+                    // Essential permissions were denied, show helpful message
+                    if !cameraGranted {
+                        PermissionsPrimerHelper.showCameraPermissionDeniedAlert(from: self!)
+                    } else if !photoLibraryGranted {
+                        PermissionsPrimerHelper.showPhotoLibraryPermissionDeniedAlert(from: self!)
+                    }
+                }
+            }
+        } else {
+            // Permissions already determined, verify they're still granted
+            self.verifyExistingPermissions()
+        }
     }
     
     override public func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -128,6 +147,26 @@ public class RolePickerController: UIViewController {
     deinit {
         print("killing RolePickerController")
         rolePicker ! Actor.Harakiri(sender: nil)
+    }
+    
+    // MARK: - Permission Handling
+    
+    /// Verifies existing permissions when they're already determined
+    private func verifyExistingPermissions() {
+        // Check if camera permission is still granted
+        if !PermissionsPrimerHelper.hasCameraPermission() {
+            PermissionsPrimerHelper.showCameraPermissionDeniedAlert(from: self)
+            return
+        }
+        
+        // Check if photo library permission is still granted
+        if !PermissionsPrimerHelper.hasPhotoLibraryPermission() {
+            PermissionsPrimerHelper.showPhotoLibraryPermissionDeniedAlert(from: self)
+            return
+        }
+        
+        // Essential permissions are good, continue with app flow
+        print("✅ Essential permissions verified - continuing with app flow")
     }
     
 }
