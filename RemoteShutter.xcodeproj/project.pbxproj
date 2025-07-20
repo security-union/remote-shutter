@@ -38,6 +38,7 @@
 		065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0650240C1BEA407F00311C8A /* CMConfigurationsViewController.xib */; };
 		0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024161BEA413900311C8A /* PurchasesRestorer.m */; };
 		0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024181BEA413900311C8A /* InAppPurchasesManager.m */; };
+		06503C552E2CDB55003DEAFA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 06503C542E2CDB55003DEAFA /* Localizable.strings */; };
 		065532EF258C4BE9000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		065532F5258C4BF3000C2339 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
@@ -45,6 +46,7 @@
 		065DE66C253A43BA0022193C /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */; platformFilter = ios; settings = {ATTRIBUTES = (Weak, ); }; };
 		066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066427741BE924DD003EDD41 /* EnumExtensions.swift */; };
 		066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066959602575F00200E8B579 /* WelcomeViewController.swift */; };
+		067BEFCC2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */; };
 		0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */; };
 		0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D21BE6E98A00F0B238 /* CamStates.swift */; };
 		0684A2D51BE6E9A000F0B238 /* MonitorStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */; };
@@ -77,7 +79,6 @@
 		069284561BE5C12000AF4678 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 069284551BE5C12000AF4678 /* Main.storyboard */; };
 		069284661BE5C71800AF4678 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284651BE5C71800AF4678 /* Media.xcassets */; };
 		069284691BE5C7DB00AF4678 /* Acknowledgments.html in Resources */ = {isa = PBXBuildFile; fileRef = 069284671BE5C7DB00AF4678 /* Acknowledgments.html */; };
-		069284721BE5C82E00AF4678 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0692846F1BE5C82E00AF4678 /* Localizable.strings */; };
 		069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 069284701BE5C82E00AF4678 /* InfoPlist.strings */; };
 		06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */; };
 		06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AEE43325333B4A00C2ED90 /* UIAlertController.swift */; };
@@ -192,9 +193,15 @@
 		065024161BEA413900311C8A /* PurchasesRestorer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PurchasesRestorer.m; sourceTree = "<group>"; };
 		065024171BEA413900311C8A /* InAppPurchasesManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InAppPurchasesManager.h; sourceTree = "<group>"; };
 		065024181BEA413900311C8A /* InAppPurchasesManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = InAppPurchasesManager.m; sourceTree = "<group>"; };
+		06503C532E2CDB55003DEAFA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		06503C562E2CDB93003DEAFA /* fr-FR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "fr-FR"; path = "fr-FR.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		06503C572E2CDBA7003DEAFA /* es-MX */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "es-MX"; path = "es-MX.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		06503C582E2CDBAE003DEAFA /* da */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = da; path = da.lproj/Localizable.strings; sourceTree = "<group>"; };
+		06503C592E2CDBB9003DEAFA /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/Localizable.strings; sourceTree = "<group>"; };
 		065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppTrackingTransparency.framework; path = System/Library/Frameworks/AppTrackingTransparency.framework; sourceTree = SDKROOT; };
 		066427741BE924DD003EDD41 /* EnumExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EnumExtensions.swift; sourceTree = "<group>"; };
 		066959602575F00200E8B579 /* WelcomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeViewController.swift; sourceTree = "<group>"; };
+		067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNetworkPermissionView.swift; sourceTree = "<group>"; };
 		0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OrientationUtils.swift; sourceTree = "<group>"; };
 		0684A2D21BE6E98A00F0B238 /* CamStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CamStates.swift; sourceTree = "<group>"; };
 		0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorStates.swift; sourceTree = "<group>"; };
@@ -225,7 +232,6 @@
 		069284551BE5C12000AF4678 /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
 		069284651BE5C71800AF4678 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
 		069284671BE5C7DB00AF4678 /* Acknowledgments.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Acknowledgments.html; sourceTree = "<group>"; };
-		0692846F1BE5C82E00AF4678 /* Localizable.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
 		069284701BE5C82E00AF4678 /* InfoPlist.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = InfoPlist.strings; sourceTree = "<group>"; };
 		06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorViewController.swift; sourceTree = "<group>"; };
 		06AEE43325333B4A00C2ED90 /* UIAlertController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIAlertController.swift; sourceTree = "<group>"; };
@@ -304,6 +310,7 @@
 		065024061BEA406B00311C8A /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */,
 				0650241D1BEA414200311C8A /* InAppPurchases */,
 				065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */,
 				065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */,
@@ -434,7 +441,7 @@
 				069284651BE5C71800AF4678 /* Media.xcassets */,
 				069284671BE5C7DB00AF4678 /* Acknowledgments.html */,
 				069284551BE5C12000AF4678 /* Main.storyboard */,
-				0692846F1BE5C82E00AF4678 /* Localizable.strings */,
+				06503C542E2CDB55003DEAFA /* Localizable.strings */,
 				069284701BE5C82E00AF4678 /* InfoPlist.strings */,
 				069284441BE5C0E600AF4678 /* Multipeer.storyboard */,
 			);
@@ -619,6 +626,10 @@
 			knownRegions = (
 				en,
 				Base,
+				"fr-FR",
+				"es-MX",
+				da,
+				it,
 			);
 			mainGroup = 06E1D4E91BB7699700E07321;
 			productRefGroup = 06E1D4E91BB7699700E07321;
@@ -642,7 +653,7 @@
 				0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */,
 				0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */,
 				069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */,
-				069284721BE5C82E00AF4678 /* Localizable.strings in Resources */,
+				06503C552E2CDB55003DEAFA /* Localizable.strings in Resources */,
 				065024101BEA407F00311C8A /* AcknowledgmentsViewController.xib in Resources */,
 				0624C04B1BE8662D001CC738 /* BFDeniedAccessToCameraView.xib in Resources */,
 				069284691BE5C7DB00AF4678 /* Acknowledgments.html in Resources */,
@@ -771,6 +782,7 @@
 				06CDFB2A252EC2C300EA56FB /* CGImage.swift in Sources */,
 				069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */,
 				06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
+				067BEFCC2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift in Sources */,
 				0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */,
 				0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */,
 				85D33832258D489C0091972B /* UIView.swift in Sources */,
@@ -872,6 +884,21 @@
 		};
 /* End PBXTargetDependency section */
 
+/* Begin PBXVariantGroup section */
+		06503C542E2CDB55003DEAFA /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				06503C532E2CDB55003DEAFA /* en */,
+				06503C562E2CDB93003DEAFA /* fr-FR */,
+				06503C572E2CDBA7003DEAFA /* es-MX */,
+				06503C582E2CDBAE003DEAFA /* da */,
+				06503C592E2CDBB9003DEAFA /* it */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
 /* Begin XCBuildConfiguration section */
 		069284371BE5BF5C00AF4678 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -885,7 +912,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 52;
+				CURRENT_PROJECT_VERSION = 53;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -897,7 +924,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.4;
+				MARKETING_VERSION = 4.5;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -924,7 +951,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 52;
+				CURRENT_PROJECT_VERSION = 53;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -936,7 +963,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.4;
+				MARKETING_VERSION = 4.5;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";

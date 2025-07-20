@@ -1,0 +1,20 @@
+/* Local Network Permission Modal - Danish */
+"local_network_permission_title" = "Anmod om Lokalt Netværksadgang";
+"local_network_permission_subtitle" = "Remote Shutter har brug for adgang til det lokale netværk for at opdage og forbinde dine enheder ved hjælp af Apples peer-to-peer framework.";
+
+"local_network_access_required_title" = "Lokalt Netværksadgang Påkrævet";
+"local_network_access_required_subtitle" = "Remote Shutter har brug for adgang til det lokale netværk for at fungere. Venligst aktiver det i Indstillinger for at fortsætte.";
+
+"local_network_feature_title" = "Peer-to-Peer Forbindelse";
+"local_network_feature_description" = "Bruger Apples MultipeerConnectivity framework til at opdage og forbinde enheder på dit lokale netværk for problemfri fjernbetjening.";
+
+"local_network_privacy_title" = "Beskyttet Privatliv";
+"local_network_privacy_description" = "Din forbindelse forbliver helt privat inden for dit lokale netværk. Ingen data sendes til eksterne servere eller tredjeparter.";
+
+"local_network_benefits_title" = "Øjeblikkelig og Pålidelig";
+"local_network_benefits_description" = "Direkte enhed-til-enhed kommunikation sikrer hurtige svartider og fungerer uden internetforbindelse.";
+
+"local_network_allow" = "Tillad Adgang";
+"local_network_not_now" = "Ikke Nu";
+"local_network_cancel" = "Annuller";
+"local_network_open_settings" = "Åbn Indstillinger"; 
