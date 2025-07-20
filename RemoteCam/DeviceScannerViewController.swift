@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import SwiftUI
 import Theater
 import MultipeerConnectivity
 import Network
@@ -77,17 +78,33 @@ public class DeviceScannerViewController: UIViewController {
     var networkBrowser: NWBrowser?
     
     lazy var scanner: MCNearbyServiceBrowser = {
+        let currentDeviceName = UIDevice.current.name
+        
+        // Check if we have a cached peer ID and if the device name has changed
         if let data = UserDefaults.standard.data(forKey: userDefaultsPeerId),
-           let id = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? MCPeerID {
-              self.peerID = id
+           let cachedPeerID = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? MCPeerID {
+            
+            // If the cached peer's display name matches current device name, use it
+            if cachedPeerID.displayName == currentDeviceName {
+                self.peerID = cachedPeerID
+            } else {
+                // Device name has changed, create new peer ID with current name
+                let newPeerID = MCPeerID(displayName: currentDeviceName)
+                let newData = try? NSKeyedArchiver.archivedData(
+                      withRootObject: newPeerID, requiringSecureCoding: false)
+                UserDefaults.standard.set(newData, forKey: userDefaultsPeerId)
+                self.peerID = newPeerID
+            }
         } else {
-          let peerID = MCPeerID(displayName: UIDevice.current.name)
-          let data = try? NSKeyedArchiver.archivedData(
-                withRootObject: peerID, requiringSecureCoding: false)
-          UserDefaults.standard.set(data, forKey: userDefaultsPeerId)
-          self.peerID = peerID
+            // No cached peer ID, create new one
+            let peerID = MCPeerID(displayName: currentDeviceName)
+            let data = try? NSKeyedArchiver.archivedData(
+                  withRootObject: peerID, requiringSecureCoding: false)
+            UserDefaults.standard.set(data, forKey: userDefaultsPeerId)
+            self.peerID = peerID
         }
-        let browser =  MCNearbyServiceBrowser(peer: self.peerID, serviceType: service)
+        
+        let browser = MCNearbyServiceBrowser(peer: self.peerID, serviceType: service)
         browser.delegate = self
         return browser
     }()
@@ -166,41 +183,33 @@ public class DeviceScannerViewController: UIViewController {
     }
     
     func showScanningPermissionAlert() {
-        let alert = UIAlertController(
-            title: NSLocalizedString("Scan for Nearby Devices", comment: ""),
-            message: NSLocalizedString("Remote Shutter needs to scan for other devices on your local network to establish a connection. This allows you to use one device as a camera and another as a remote control.", comment: ""),
-            preferredStyle: .alert
+        let permissionView = LocalNetworkPermissionView(
+            permissionType: LocalNetworkPermissionView.PermissionType.initial,
+            onAllow: { [weak self] in
+                self?.dismiss(animated: true) {
+                    self?.checkLocalNetworkAccessAndStartScanning()
+                    DispatchQueue.main.async {
+                        self?.tableView.reloadData()
+                    }
+                }
+            },
+            onNotNow: { [weak self] in
+                self?.dismiss(animated: true) {
+                    DispatchQueue.main.async {
+                        self?.tableView.reloadData()
+                    }
+                }
+            },
+            onOpenSettings: { [weak self] in
+                self?.dismiss(animated: true) {
+                    self?.goToAppSettings()
+                }
+            }
         )
         
-        alert.addAction(UIAlertAction(
-            title: NSLocalizedString("Not Now", comment: ""),
-            style: .cancel,
-            handler: { _ in
-                // Reload table when "Not Now" is tapped
-                DispatchQueue.main.async {
-                    self.tableView.reloadData()
-                }
-            }
-        ))
-        
-        alert.addAction(UIAlertAction(
-            title: NSLocalizedString("Start Scanning", comment: ""),
-            style: .default,
-            handler: { _ in
-                self.checkLocalNetworkAccessAndStartScanning()
-                // Reload table when "Start Scanning" is tapped
-                DispatchQueue.main.async {
-                    self.tableView.reloadData()
-                }
-            }
-        ))
-        
-        present(alert, animated: true) {
-            // Reload table after scanning permission alert is presented
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
-        }
+        let hostingController = UIHostingController(rootView: permissionView)
+        hostingController.modalPresentationStyle = UIModalPresentationStyle.fullScreen
+        present(hostingController, animated: true)
     }
     
     func checkLocalNetworkAccessAndStartScanning() {
@@ -270,37 +279,31 @@ public class DeviceScannerViewController: UIViewController {
     }
     
     func showLocalNetworkAccessDeniedAlert() {
-        let alert = UIAlertController(
-            title: NSLocalizedString("Local Network Access Required", comment: ""),
-            message: NSLocalizedString("Remote Shutter needs access to your local network to find other devices. Please grant access in Settings.", comment: ""),
-            preferredStyle: .alert
-        )
-        
-        alert.addAction(UIAlertAction(
-            title: NSLocalizedString("Cancel", comment: ""),
-            style: .cancel,
-            handler: { _ in
-                // Reload table when "Cancel" is tapped
-                DispatchQueue.main.async {
-                    self.tableView.reloadData()
+        let permissionView = LocalNetworkPermissionView(
+            permissionType: LocalNetworkPermissionView.PermissionType.denied,
+            onAllow: { [weak self] in
+                // This won't be called for denied type, but keeping for consistency
+                self?.dismiss(animated: true) {
+                    self?.goToAppSettings()
+                }
+            },
+            onNotNow: { [weak self] in
+                self?.dismiss(animated: true) {
+                    DispatchQueue.main.async {
+                        self?.tableView.reloadData()
+                    }
+                }
+            },
+            onOpenSettings: { [weak self] in
+                self?.dismiss(animated: true) {
+                    self?.goToAppSettings()
                 }
             }
-        ))
+        )
         
-        alert.addAction(UIAlertAction(
-            title: NSLocalizedString("Open Settings", comment: ""),
-            style: .default,
-            handler: { _ in
-                self.goToAppSettings()
-            }
-        ))
-        
-        present(alert, animated: true) {
-            // Reload table after local network access alert is presented
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
-        }
+        let hostingController = UIHostingController(rootView: permissionView)
+        hostingController.modalPresentationStyle = UIModalPresentationStyle.fullScreen
+        present(hostingController, animated: true)
     }
     
     @IBAction func goToRolePicker() {
