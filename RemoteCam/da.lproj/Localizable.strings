@@ -17,4 +17,98 @@
 "local_network_allow" = "Tillad Adgang";
 "local_network_not_now" = "Ikke Nu";
 "local_network_cancel" = "Annuller";
-"local_network_open_settings" = "Åbn Indstillinger"; 
+"local_network_open_settings" = "Åbn Indstillinger";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "Scan denne QR-kode med din Kamera-app på en anden enhed for at downloade Remote Shutter fra App Store";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "Tillad Kamera og Foto Adgang";
+"camera_permissions_subtitle" = "Remote Shutter har brug for adgang til dit kamera og fotos for at tage og gemme billeder når den forbinder med andre enheder.";
+"camera_permissions_required_title" = "Kamera og Foto Adgang Påkrævet";
+"camera_permissions_required_subtitle" = "Remote Shutter kræver kamera og foto adgang for at fungere. Venligst aktiver dem i Indstillinger for at fortsætte.";
+"camera_permission_feature_title" = "Kamera Adgang";
+"camera_permission_feature_description" = "Tag fotos på afstand ved at bruge en enhed som kamera og en anden som fjernbetjening til perfekte optagelser.";
+"photos_permission_feature_title" = "Gem Fotos";
+"photos_permission_feature_description" = "Gem automatisk tagne fotos i dit fotobibliotek for nem adgang og deling.";
+"remote_control_feature_title" = "Fjernbetjening";
+"remote_control_feature_description" = "Brug en enhed til at styre kameraet på en anden enhed til gruppefotos, selfies og kreative optagelser.";
+"camera_permissions_allow" = "Tillad Adgang";
+"camera_permissions_not_now" = "Ikke Nu";
+"camera_permissions_cancel" = "Annuller";
+"camera_permissions_open_settings" = "Åbn Indstillinger";
+
+/* Camera Error View */
+"camera_error_title" = "Kamera Adgang Påkrævet";
+"camera_error_subtitle" = "Remote Shutter har brug for adgang til dit kamera og fotos for at fungere. Venligst aktiver tilladelser i Indstillinger.";
+"camera_error_open_settings" = "Åbn Indstillinger";
+"camera_error_go_back" = "Gå Tilbage";
+"camera_access_required" = "Kamera Adgang";
+"photos_access_required" = "Foto Adgang";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "Mikrofon Adgang Påkrævet";
+"mic_required_subtitle" = "For at optage video med lyd har Remote Shutter brug for adgang til din mikrofon. Venligst aktiver det i Indstillinger.";
+"video_recording_feature_title" = "Video Optagelse";
+"video_recording_feature_description" = "Optag høj-kvalitets videoer med lyd ved at bruge din enheds mikrofon for en komplet optagelsesoplevelse.";
+"mic_open_settings" = "Åbn Indstillinger";
+"mic_cancel_recording" = "Annuller Optagelse";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "Kan ikke optage video: Mikrofon adgang blev nægtet. Venligst aktiver mikrofon adgang i Indstillinger for at optage videoer med lyd.";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "Kan Ikke Gemme Foto";
+"photos_access_denied_photo_subtitle" = "Remote Shutter har brug for adgang til dit Foto bibliotek for at gemme det tagne billede. Venligst aktiver Foto adgang i Indstillinger.";
+"photos_access_denied_video_title" = "Kan Ikke Gemme Video";
+"photos_access_denied_video_subtitle" = "Remote Shutter har brug for adgang til dit Foto bibliotek for at gemme den optagne video. Venligst aktiver Foto adgang i Indstillinger.";
+"photos_privacy_feature_title" = "Dit Privatliv Betyder Noget";
+"photos_privacy_feature_description" = "Fotos gemmes direkte i din enheds bibliotek. Ingen data uploades til eksterne servere eller deles uden din tilladelse.";
+"photos_sharing_feature_title" = "Nem Deling";
+"photos_sharing_feature_description" = "Få adgang til dine tagne fotos og videoer fra Foto-appen for nemt at dele med venner og familie eller bruge i andre apps.";
+"photos_open_settings" = "Åbn Indstillinger";
+"photos_dismiss" = "Luk";
+
+/* Help Modal */
+"help_title" = "Sådan Fungerer Remote Shutter";
+"help_subtitle" = "Tag perfekte fotos og videoer ved at bruge to enheder";
+"help_got_it" = "Forstået!";
+"help_done" = "Færdig";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "1. Forbind Enheder";
+"help_connect_description" = "Sørg for at begge enheder har Wi-Fi og Bluetooth aktiveret, tryk derefter på 'Start Scanning af Enheder' for at finde enheder i nærheden som kører Remote Shutter.";
+"help_quick_setup_title" = "Hurtig Opsætning";
+"help_quick_setup_description" = "Brug QR-koden til at downloade Remote Shutter på din anden enhed fra App Store";
+"help_same_network_title" = "Direkte Forbindelse";
+"help_same_network_description" = "Enheder forbinder direkte til hinanden ved hjælp af Wi-Fi og Bluetooth, ligesom AirDrop - ingen internet påkrævet";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "2. Vælg Enhedsroller";
+"help_roles_description" = "Når de er forbundet, vælger hver enhed sin rolle. Den ene bliver kameraet, den anden bliver fjernbetjeningen.";
+"help_camera_device_title" = "Kamera Enhed";
+"help_camera_device_description" = "Tager fotos og videoer, viser kamera forhåndsvisning";
+"help_remote_device_title" = "Fjernbetjenings Enhed";
+"help_remote_device_description" = "Styrer kameraet, viser live forhåndsvisning, justerer indstillinger";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. Fang Perfekte Øjeblikke";
+"help_capture_description" = "Brug fjernbetjeningsenheden til at styre kameraet, justere indstillinger og tage fotos eller videoer på afstand.";
+"help_remote_shutter_title" = "Fjern Udløser";
+"help_remote_shutter_description" = "Tag fotos uden at røre kameraenheden";
+"help_video_recording_title" = "Video Optagelse";
+"help_video_recording_description" = "Start og stop video optagelse på afstand";
+"help_camera_controls_title" = "Kamera Kontroller";
+"help_camera_controls_description" = "Juster blitz, lommelygte, timer og kamera indstillinger";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "Tips og Tricks";
+"help_tips_description" = "Få det mest ud af Remote Shutter med disse nyttige tips";
+"help_group_photos_title" = "Gruppe Fotos";
+"help_group_photos_description" = "Perfekt til gruppe selfies - sæt kameraet op og brug fjernbetjeningen til at fange alle i billedet";
+"help_timer_feature_title" = "Timer Funktion";
+"help_timer_feature_description" = "Brug timeren på fjernbetjeningsenheden til at gøre dig klar før billedet tages";
+"help_switch_cameras_title" = "Skift Kameraer";
+"help_switch_cameras_description" = "Skift mellem front- og bagkameraer direkte fra fjernbetjeningsenheden";
+"help_auto_save_title" = "Automatisk Gem";
+"help_auto_save_description" = "Fotos og videoer gemmes automatisk i begge enheders fotobiblioteker"; 

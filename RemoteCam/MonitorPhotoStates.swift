@@ -11,6 +11,7 @@ import Theater
 import MultipeerConnectivity
 import Photos
 import StoreKit
+import SwiftUI
 
 extension RemoteCamSession {
 
@@ -18,6 +19,9 @@ extension RemoteCamSession {
     func savePictureOnMonitor(_ imageData: Data) {
         PHPhotoLibrary.requestAuthorization { status in
             guard status == .authorized else {
+                DispatchQueue.main.async {
+                    showPhotosAccessDeniedModal(for: .photo)
+                }
                 return
             }
             PHPhotoLibrary.shared().performChanges({

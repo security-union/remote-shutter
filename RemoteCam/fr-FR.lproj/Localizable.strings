@@ -34,4 +34,98 @@
 "local_network_allow" = "Autoriser l'Accès";
 "local_network_not_now" = "Pas Maintenant";
 "local_network_cancel" = "Annuler";
-"local_network_open_settings" = "Ouvrir les Réglages"; 
+"local_network_open_settings" = "Ouvrir les Réglages";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "Scannez ce QR code avec votre app Appareil photo sur un autre appareil pour télécharger Remote Shutter depuis l'App Store";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "Autoriser l'Accès Appareil Photo et Photos";
+"camera_permissions_subtitle" = "Remote Shutter a besoin d'accéder à votre appareil photo et à vos photos pour capturer et sauvegarder des images lors de la connexion avec d'autres appareils.";
+"camera_permissions_required_title" = "Accès Appareil Photo et Photos Requis";
+"camera_permissions_required_subtitle" = "Remote Shutter nécessite l'accès à l'appareil photo et aux photos pour fonctionner. Veuillez les activer dans les Réglages pour continuer.";
+"camera_permission_feature_title" = "Accès Appareil Photo";
+"camera_permission_feature_description" = "Prenez des photos à distance en utilisant un appareil comme caméra et un autre comme télécommande pour des clichés parfaits.";
+"photos_permission_feature_title" = "Sauvegarder Photos";
+"photos_permission_feature_description" = "Sauvegardez automatiquement les photos capturées dans votre photothèque pour un accès et partage faciles.";
+"remote_control_feature_title" = "Contrôle à Distance";
+"remote_control_feature_description" = "Utilisez un appareil pour contrôler l'appareil photo sur un autre appareil pour des photos de groupe, selfies et prises créatives.";
+"camera_permissions_allow" = "Autoriser l'Accès";
+"camera_permissions_not_now" = "Pas Maintenant";
+"camera_permissions_cancel" = "Annuler";
+"camera_permissions_open_settings" = "Ouvrir les Réglages";
+
+/* Camera Error View */
+"camera_error_title" = "Accès Appareil Photo Requis";
+"camera_error_subtitle" = "Remote Shutter a besoin d'accéder à votre appareil photo et à vos photos pour fonctionner. Veuillez activer les autorisations dans les Réglages.";
+"camera_error_open_settings" = "Ouvrir les Réglages";
+"camera_error_go_back" = "Retour";
+"camera_access_required" = "Accès Appareil Photo";
+"photos_access_required" = "Accès Photos";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "Accès Microphone Requis";
+"mic_required_subtitle" = "Pour enregistrer des vidéos avec audio, Remote Shutter a besoin d'accéder à votre microphone. Veuillez l'activer dans les Réglages.";
+"video_recording_feature_title" = "Enregistrement Vidéo";
+"video_recording_feature_description" = "Enregistrez des vidéos haute qualité avec audio en utilisant le microphone de votre appareil pour une expérience d'enregistrement complète.";
+"mic_open_settings" = "Ouvrir les Réglages";
+"mic_cancel_recording" = "Annuler l'Enregistrement";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "Impossible d'enregistrer la vidéo : L'accès au microphone a été refusé. Veuillez activer l'accès au microphone dans les Réglages pour enregistrer des vidéos avec audio.";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "Impossible de Sauvegarder la Photo";
+"photos_access_denied_photo_subtitle" = "Remote Shutter a besoin d'accéder à votre photothèque pour sauvegarder l'image capturée. Veuillez activer l'accès Photos dans les Réglages.";
+"photos_access_denied_video_title" = "Impossible de Sauvegarder la Vidéo";
+"photos_access_denied_video_subtitle" = "Remote Shutter a besoin d'accéder à votre photothèque pour sauvegarder la vidéo enregistrée. Veuillez activer l'accès Photos dans les Réglages.";
+"photos_privacy_feature_title" = "Votre Confidentialité Compte";
+"photos_privacy_feature_description" = "Les photos sont sauvegardées directement dans la photothèque de votre appareil. Aucune donnée n'est téléchargée vers des serveurs externes ou partagée sans votre permission.";
+"photos_sharing_feature_title" = "Partage Facile";
+"photos_sharing_feature_description" = "Accédez à vos photos et vidéos capturées depuis l'app Photos pour les partager facilement avec vos amis et famille ou les utiliser dans d'autres apps.";
+"photos_open_settings" = "Ouvrir les Réglages";
+"photos_dismiss" = "Fermer";
+
+/* Help Modal */
+"help_title" = "Comment Fonctionne Remote Shutter";
+"help_subtitle" = "Prenez des photos et vidéos parfaites en utilisant deux appareils";
+"help_got_it" = "Compris !";
+"help_done" = "Terminé";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "1. Connecter les Appareils";
+"help_connect_description" = "Assurez-vous que les deux appareils ont le Wi-Fi et le Bluetooth activés, puis appuyez sur 'Commencer la Recherche d'Appareils' pour trouver les appareils proches qui utilisent Remote Shutter.";
+"help_quick_setup_title" = "Configuration Rapide";
+"help_quick_setup_description" = "Utilisez le QR code pour télécharger Remote Shutter sur votre deuxième appareil depuis l'App Store";
+"help_same_network_title" = "Connexion Directe";
+"help_same_network_description" = "Les appareils se connectent directement entre eux via Wi-Fi et Bluetooth, comme AirDrop - aucune connexion internet requise";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "2. Choisir les Rôles des Appareils";
+"help_roles_description" = "Une fois connectés, chaque appareil choisit son rôle. L'un devient la caméra, l'autre devient la télécommande.";
+"help_camera_device_title" = "Appareil Caméra";
+"help_camera_device_description" = "Prend des photos et vidéos, affiche l'aperçu de la caméra";
+"help_remote_device_title" = "Appareil Télécommande";
+"help_remote_device_description" = "Contrôle la caméra, affiche l'aperçu en direct, ajuste les paramètres";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. Capturer des Moments Parfaits";
+"help_capture_description" = "Utilisez l'appareil télécommande pour contrôler la caméra, ajuster les paramètres et capturer des photos ou vidéos à distance.";
+"help_remote_shutter_title" = "Déclencheur à Distance";
+"help_remote_shutter_description" = "Prenez des photos sans toucher l'appareil caméra";
+"help_video_recording_title" = "Enregistrement Vidéo";
+"help_video_recording_description" = "Démarrez et arrêtez l'enregistrement vidéo à distance";
+"help_camera_controls_title" = "Contrôles Caméra";
+"help_camera_controls_description" = "Ajustez le flash, la torche, la minuterie et les paramètres de la caméra";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "Astuces et Conseils";
+"help_tips_description" = "Tirez le meilleur parti de Remote Shutter avec ces conseils utiles";
+"help_group_photos_title" = "Photos de Groupe";
+"help_group_photos_description" = "Parfait pour les selfies de groupe - installez la caméra et utilisez la télécommande pour capturer tout le monde dans la photo";
+"help_timer_feature_title" = "Fonction Minuterie";
+"help_timer_feature_description" = "Utilisez la minuterie sur l'appareil télécommande pour vous préparer avant que la photo ne soit prise";
+"help_switch_cameras_title" = "Changer de Caméra";
+"help_switch_cameras_description" = "Basculez entre les caméras avant et arrière directement depuis l'appareil télécommande";
+"help_auto_save_title" = "Sauvegarde Automatique";
+"help_auto_save_description" = "Les photos et vidéos sont automatiquement sauvegardées dans les photothèques des deux appareils"; 

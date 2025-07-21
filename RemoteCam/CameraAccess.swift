@@ -35,7 +35,7 @@ extension UIViewController {
         verifyCameraRollAccess()
         verifyCameraAccess()
         verifyNetworkAccess()
-        verifyMicrophoneAccess()
+        // Microphone access is now requested only when recording video
     }
 
     public func verifyCameraAccess() {
@@ -75,7 +75,9 @@ extension UIViewController {
     }
 
     public func showNoAccessToCamera() {
-        showErrorNibWithName("BFDeniedAccessToCameraView")
+        // Legacy method - now handled by new permission system in RolePickerController
+        // This method is kept for compatibility but should not be used
+        print("⚠️ showNoAccessToCamera called - this should be handled by the new permission system")
     }
 
     public func addErrorView(view: UIView) {
@@ -87,15 +89,14 @@ extension UIViewController {
     }
 
     public func showNoCameraRollAccess() {
-        showErrorNibWithName("BFDeniedAccessToAssetsView")
+        // Legacy method - now handled by new permission system in RolePickerController
+        // This method is kept for compatibility but should not be used
+        print("⚠️ showNoCameraRollAccess called - this should be handled by the new permission system")
     }
 
     private func showErrorNibWithName(_ fileName: String) {
-        DispatchQueue.main.async {
-            let errorViewController = ErrorViewController(nibName: fileName, bundle: Bundle.main)
-            self.setErrorViewController(errorViewController)
-            self.addErrorView(view: errorViewController.view)
-        }
+        // Legacy method - now handled by new permission system
+        print("⚠️ showErrorNibWithName called with: \(fileName) - this should be handled by the new permission system")
     }
 
 }

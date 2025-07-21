@@ -37,6 +37,7 @@ class DeviceScannerPlaceholder: UITableViewCell {
     @IBOutlet weak var shareButton: UIButton!
     @IBOutlet weak var goToSettings: UIButton!
     @IBOutlet weak var qrCode: UIImageView!
+    @IBOutlet weak var qrCodeInstructionLabel: UILabel!
 }
 
 public class DeviceScannerViewController: UIViewController {
@@ -118,8 +119,37 @@ public class DeviceScannerViewController: UIViewController {
         super.viewDidLoad()
         self.remoteCamSession ! SetViewCtrl(ctrl: self)
         self.setupStyle()
+        setupHelpButton()
         tableView.delegate = self
         tableView.dataSource = self
+    }
+    
+    private func setupHelpButton() {
+        let helpButton = UIBarButtonItem(
+            image: UIImage(systemName: "questionmark.circle"),
+            style: .plain,
+            target: self,
+            action: #selector(showHelpModal)
+        )
+        helpButton.tintColor = UIColor.systemBlue
+        navigationItem.rightBarButtonItem = helpButton
+    }
+    
+    @objc private func showHelpModal() {
+        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
+            self?.dismiss(animated: true)
+        })
+        
+        let hostingController = UIHostingController(rootView: helpView)
+        hostingController.modalPresentationStyle = .pageSheet
+        
+        if let sheet = hostingController.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+        }
+        
+        present(hostingController, animated: true)
     }
     
     public override func viewWillAppear(_ animated: Bool) {
@@ -348,6 +378,7 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
         } else {
             let cell = tableView.dequeueReusableCell(withIdentifier: "instructions") as! DeviceScannerPlaceholder
             cell.qrCode.image = qrCodeImage
+            cell.qrCodeInstructionLabel?.text = NSLocalizedString("qr_code_download_instruction", comment: "")
             
             // If no local network access, hide scanning buttons and only show settings
             if !hasLocalNetworkAccess {

@@ -11,6 +11,7 @@ import Theater
 import AVFoundation
 import Photos
 import StoreKit
+import SwiftUI
 
 /**
 Default fps, it would be neat if we would adjust this based on network conditions.
@@ -24,6 +25,10 @@ let fps = 30
 */
 public class CameraViewController: UIViewController,
         AVCapturePhotoCaptureDelegate {
+    
+    private struct AssociatedKeys {
+        static var microphonePromptController = "microphonePromptController"
+    }
 
     var captureSession: AVCaptureSession = AVCaptureSession()
     private let audioDataOutput = AVCaptureAudioDataOutput()
@@ -89,7 +94,38 @@ public class CameraViewController: UIViewController,
 
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        let _ = self.didInitializeCamera
+        checkPermissionsAndSetupCamera()
+    }
+    
+    private func checkPermissionsAndSetupCamera() {
+        let permissionManager = PermissionManager.shared
+        permissionManager.updatePermissionStatuses()
+        
+        if permissionManager.areCameraAndPhotosGranted {
+            let _ = self.didInitializeCamera
+        } else {
+            showPermissionErrorView()
+        }
+    }
+    
+    private func showPermissionErrorView() {
+        let errorView = CameraPermissionErrorView(
+            onOpenSettings: { [weak self] in
+                PermissionManager.shared.openAppSettings()
+            },
+            onGoBack: { [weak self] in
+                self?.navigationController?.popViewController(animated: true)
+            }
+        )
+        
+        let hostingController = UIHostingController(rootView: errorView)
+        hostingController.view.backgroundColor = UIColor.black
+        
+        addChild(hostingController)
+        view.addSubview(hostingController.view)
+        hostingController.view.frame = view.bounds
+        hostingController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        hostingController.didMove(toParent: self)
     }
     
     lazy var didInitializeCamera: Bool = {
@@ -183,19 +219,8 @@ public class CameraViewController: UIViewController,
             // Camera capabilities are now sent through peer-to-peer communication in CamStates.swift
             // No need to send to session actor directly here
 
-            let audioDevice = AVCaptureDevice.default(for: .audio)
-            let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
-
-            if self.captureSession.canAddInput(audioDeviceInput) {
-                self.captureSession.addInput(audioDeviceInput)
-            } else {
-                print("Could not add audio device input to the session")
-            }
-
-            if self.captureSession.canAddOutput(self.audioDataOutput) {
-                self.captureSession.addOutput(self.audioDataOutput)
-                self.audioDataOutput.setSampleBufferDelegate(self, queue: self.audioDataOutputQueue)
-            }
+            // Audio setup will be done only when starting video recording
+            // This prevents requesting microphone permission upfront
             self.configSessionOutput()
             DispatchQueue.main.async {
                 self.rotateCameraToOrientation(orientation: self.orientation)
@@ -682,31 +707,131 @@ public class CameraViewController: UIViewController,
 extension CameraViewController {
 
     func startRecordingVideo() {
-        writingQueue.async {[weak self] in
-            guard let self = self else {return}
+        // Check microphone permission before starting video recording
+        PermissionManager.shared.requestMicrophonePermission { [weak self] granted in
+            DispatchQueue.main.async {
+                if granted {
+                    self?.setupAudioAndStartRecording()
+                } else {
+                    // Microphone denied - show prompt and send error to remote
+                    self?.handleMicrophoneDenied()
+                }
+            }
+        }
+    }
+    
+    private func handleMicrophoneDenied() {
+        // Store the error to be handled by the state machine
+        let microphoneError = NSError(
+            domain: "RemoteShutterError",
+            code: 1001,
+            userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("microphone_access_denied_error", comment: "")]
+        )
+        
+        // Send the error through the session actor using a custom message
+        session ! UICmd.MicrophoneAccessDenied(error: microphoneError)
+        
+        // Show microphone permission prompt to user
+        showMicrophonePermissionPrompt()
+    }
+    
+    private func showMicrophonePermissionPrompt() {
+        let promptView = MicrophonePermissionPromptView(
+            onOpenSettings: { [weak self] in
+                self?.dismissMicrophonePrompt()
+                PermissionManager.shared.openAppSettings()
+            },
+            onCancel: { [weak self] in
+                self?.dismissMicrophonePrompt()
+            }
+        )
+        
+        let hostingController = UIHostingController(rootView: promptView)
+        hostingController.modalPresentationStyle = .overFullScreen
+        hostingController.view.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        
+        present(hostingController, animated: true)
+        
+        // Store reference to dismiss later
+        objc_setAssociatedObject(self, &AssociatedKeys.microphonePromptController, hostingController, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    }
+    
+    private func dismissMicrophonePrompt() {
+        if let promptController = objc_getAssociatedObject(self, &AssociatedKeys.microphonePromptController) as? UIViewController {
+            promptController.dismiss(animated: true)
+            objc_setAssociatedObject(self, &AssociatedKeys.microphonePromptController, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+    
+    private func setupAudioAndStartRecording() {
+        writingQueue.async { [weak self] in
+            guard let self = self else { return }
             if self.recordingWillBeStarted || self.isRecording {
                 return
             }
-
-            self.recordingWillBeStarted = true
-
-            // Remove the file if one with the same name already exists
-            let outputFilePath = movieUrl()
-            cleanupFileAt(outputFilePath)
-            // Create an asset writer
+            
+            // Setup audio input for video recording
             do {
-                self.assetWriter = try AVAssetWriter(outputURL: outputFilePath, fileType: .mov)
+                let audioDevice = AVCaptureDevice.default(for: .audio)
+                let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
+                
+                self.captureSession.beginConfiguration()
+                
+                if self.captureSession.canAddInput(audioDeviceInput) {
+                    self.captureSession.addInput(audioDeviceInput)
+                } else {
+                    print("Could not add audio device input to the session")
+                }
+                
+                if self.captureSession.canAddOutput(self.audioDataOutput) {
+                    self.captureSession.addOutput(self.audioDataOutput)
+                    self.audioDataOutput.setSampleBufferDelegate(self, queue: self.audioDataOutputQueue)
+                }
+                
+                self.captureSession.commitConfiguration()
+                
+                // Update audio connection
+                self.audioConnection = self.audioDataOutput.connection(with: .audio)
+                
+                self.startVideoRecordingProcess()
+                
             } catch {
-                showError(NSLocalizedString("Unable to start recording", comment: ""))
+                print("Error setting up audio for video recording: \(error)")
+                // Start recording without audio
+                self.startVideoRecordingWithoutAudio()
             }
-            OperationQueue.main.addOperation {[weak self] in
-                if let recordingWillBeStarted = self?.recordingWillBeStarted,
-                   let isRecording = self?.isRecording {
-                    if !recordingWillBeStarted && !isRecording {
-                        self?.configureIdleMode()
-                    } else {
-                        self?.configureVideoModeRecording()
-                    }
+        }
+    }
+    
+    private func startVideoRecordingWithoutAudio() {
+        writingQueue.async { [weak self] in
+            self?.startVideoRecordingProcess()
+        }
+    }
+    
+    private func startVideoRecordingProcess() {
+        if self.recordingWillBeStarted || self.isRecording {
+            return
+        }
+
+        self.recordingWillBeStarted = true
+
+        // Remove the file if one with the same name already exists
+        let outputFilePath = movieUrl()
+        cleanupFileAt(outputFilePath)
+        // Create an asset writer
+        do {
+            self.assetWriter = try AVAssetWriter(outputURL: outputFilePath, fileType: .mov)
+        } catch {
+            showError(NSLocalizedString("Unable to start recording", comment: ""))
+        }
+        OperationQueue.main.addOperation {[weak self] in
+            if let recordingWillBeStarted = self?.recordingWillBeStarted,
+               let isRecording = self?.isRecording {
+                if !recordingWillBeStarted && !isRecording {
+                    self?.configureIdleMode()
+                } else {
+                    self?.configureVideoModeRecording()
                 }
             }
         }
@@ -794,6 +919,9 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                     }
                     )
                 } else {
+                    DispatchQueue.main.async {[weak self] in
+                        self?.showPhotosAccessDeniedModal(for: .video)
+                    }
                     cleanupFileAt(outputFileURL)
                 }
             }
