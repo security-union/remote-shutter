@@ -19,9 +19,6 @@ struct LocalNetworkPermissionView: View {
                     VStack(spacing: 0) {
                         // Header section with icon and title
                         VStack(spacing: 24) {
-                            Spacer()
-                                .frame(height: max(60, geometry.safeAreaInsets.top + 40))
-                            
                             // Network icon
                             ZStack {
                                 Circle()
