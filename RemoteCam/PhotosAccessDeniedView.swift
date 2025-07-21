@@ -5,6 +5,8 @@ struct PhotosAccessDeniedView: View {
     let onOpenSettings: () -> Void
     let onDismiss: () -> Void
     
+    @State private var canDismiss = false
+    
     enum ContentType {
         case photo
         case video
@@ -100,12 +102,40 @@ struct PhotosAccessDeniedView: View {
                         .background(Color.red)
                         .cornerRadius(12)
                     }
+                    .disabled(!canDismiss)
+                    .opacity(canDismiss ? 1.0 : 0.7)
                     
-                    Button(action: onDismiss) {
-                        Text(NSLocalizedString("photos_dismiss", comment: ""))
-                            .font(.body)
-                            .foregroundColor(.red)
-                            .frame(height: 44)
+                    Button(action: {
+                        print("📱 DISMISS BUTTON TAPPED - canDismiss: \(canDismiss)")
+                        if canDismiss {
+                            print("📱 Calling onDismiss callback...")
+                            onDismiss()
+                        } else {
+                            print("📱 Button disabled, not calling onDismiss")
+                        }
+                    }) {
+                        HStack {
+                            Text(NSLocalizedString("photos_dismiss", comment: ""))
+                                .font(.body)
+                                .foregroundColor(.red)
+                            
+                            // Debug indicator
+                            if canDismiss {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                    .font(.caption)
+                            } else {
+                                Image(systemName: "clock.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+                            }
+                        }
+                        .frame(height: 44)
+                    }
+                    .disabled(!canDismiss)
+                    .opacity(canDismiss ? 1.0 : 0.7)
+                    .onChange(of: canDismiss) { newValue in
+                        print("📱 canDismiss changed to: \(newValue)")
                     }
                 }
                 .padding(.horizontal, 24)
@@ -113,6 +143,18 @@ struct PhotosAccessDeniedView: View {
             }
         }
         .background(Color(.systemBackground))
+        .onAppear {
+            print("📱 PhotosAccessDeniedView appeared")
+            // Enable dismissal after a short delay to prevent accidental auto-dismissal
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                print("📱 Setting canDismiss = true")
+                canDismiss = true
+                print("📱 PhotosAccessDeniedView buttons enabled - canDismiss is now: \(canDismiss)")
+            }
+        }
+        .onDisappear {
+            print("📱 PhotosAccessDeniedView disappeared")
+        }
     }
 }
 
