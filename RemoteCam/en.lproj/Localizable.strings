@@ -189,3 +189,47 @@
 
 "photos_open_settings" = "Open Settings";
 "photos_dismiss" = "Dismiss";
+
+/* Help Modal */
+"help_title" = "How Remote Shutter Works";
+"help_subtitle" = "Take perfect photos and videos using two devices";
+"help_got_it" = "Got It!";
+"help_done" = "Done";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "1. Connect Devices";
+"help_connect_description" = "Make sure both devices have Wi-Fi and Bluetooth enabled, then tap 'Start Scanning Devices' to find nearby devices running Remote Shutter.";
+"help_quick_setup_title" = "Quick Setup";
+"help_quick_setup_description" = "Use the QR code to download Remote Shutter on your second device from the App Store";
+"help_same_network_title" = "Peer-to-Peer Connection";
+"help_same_network_description" = "Devices connect directly to each other using Wi-Fi and Bluetooth, just like AirDrop - no internet required";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "2. Choose Device Roles";
+"help_roles_description" = "Once connected, each device chooses its role. One becomes the camera, the other becomes the remote control.";
+"help_camera_device_title" = "Camera Device";
+"help_camera_device_description" = "Takes photos and videos, shows camera preview";
+"help_remote_device_title" = "Remote Device";
+"help_remote_device_description" = "Controls the camera, shows live preview, adjusts settings";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. Capture Perfect Moments";
+"help_capture_description" = "Use the remote device to control the camera, adjust settings, and capture photos or videos from a distance.";
+"help_remote_shutter_title" = "Remote Shutter";
+"help_remote_shutter_description" = "Take photos without touching the camera device";
+"help_video_recording_title" = "Video Recording";
+"help_video_recording_description" = "Start and stop video recording remotely";
+"help_camera_controls_title" = "Camera Controls";
+"help_camera_controls_description" = "Adjust flash, torch, timer, and camera settings";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "Tips & Tricks";
+"help_tips_description" = "Get the most out of Remote Shutter with these helpful tips";
+"help_group_photos_title" = "Group Photos";
+"help_group_photos_description" = "Perfect for group selfies - set up the camera and use the remote to capture everyone in the shot";
+"help_timer_feature_title" = "Timer Feature";
+"help_timer_feature_description" = "Use the timer on the remote device to get ready before the photo is taken";
+"help_switch_cameras_title" = "Switch Cameras";
+"help_switch_cameras_description" = "Toggle between front and back cameras directly from the remote device";
+"help_auto_save_title" = "Auto Save";
+"help_auto_save_description" = "Photos and videos are automatically saved to both devices' photo libraries";

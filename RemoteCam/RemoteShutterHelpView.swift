@@ -20,12 +20,12 @@ struct RemoteShutterHelpView: View {
                         )
                     
                     VStack(spacing: 8) {
-                        Text("How Remote Shutter Works")
+                        Text(NSLocalizedString("help_title", comment: "Help modal title"))
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
                         
-                        Text("Take perfect photos and videos using two devices")
+                        Text(NSLocalizedString("help_subtitle", comment: "Help modal subtitle"))
                             .font(.title3)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -62,7 +62,7 @@ struct RemoteShutterHelpView: View {
                         }
                     }
                     
-                    Button("Got It!") {
+                    Button(NSLocalizedString("help_got_it", comment: "Help modal Got It button")) {
                         onDismiss()
                     }
                     .font(.headline)
@@ -80,14 +80,14 @@ struct RemoteShutterHelpView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if #available(iOS 16.0, *) {
-                        Button("Done") {
+                        Button(NSLocalizedString("help_done", comment: "Help modal Done button")) {
                             onDismiss()
                         }
                         .font(.body)
                         .fontWeight(.medium)
                     } else {
                         // Fallback on earlier versions
-                        Button("Done") {
+                        Button(NSLocalizedString("help_done", comment: "Help modal Done button")) {
                             onDismiss()
                         }.font(.body)
                     }
@@ -112,11 +112,11 @@ struct ConnectDevicesPage: View {
                         .foregroundColor(.blue)
                     
                     VStack(spacing: 12) {
-                        Text("1. Connect Devices")
+                        Text(NSLocalizedString("help_connect_title", comment: "Connect devices step title"))
                             .font(.title2)
                             .fontWeight(.bold)
                         
-                        Text("Make sure both devices are on the same Wi-Fi network, then tap 'Start Scanning Devices' to find nearby devices running Remote Shutter.")
+                        Text(NSLocalizedString("help_connect_description", comment: "Connect devices step description"))
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -127,14 +127,14 @@ struct ConnectDevicesPage: View {
                 VStack(spacing: 16) {
                     HelpTipCard(
                         icon: "qrcode",
-                        title: "Quick Setup",
-                        description: "Use the QR code to download Remote Shutter on your second device from the App Store"
+                        title: NSLocalizedString("help_quick_setup_title", comment: "Quick setup tip title"),
+                        description: NSLocalizedString("help_quick_setup_description", comment: "Quick setup tip description")
                     )
                     
                     HelpTipCard(
                         icon: "network",
-                        title: "Same Network",
-                        description: "Both devices must be connected to the same Wi-Fi network to discover each other"
+                        title: NSLocalizedString("help_same_network_title", comment: "Same network tip title"),
+                        description: NSLocalizedString("help_same_network_description", comment: "Same network tip description")
                     )
                 }
                 
@@ -168,11 +168,11 @@ struct ChooseRolePage: View {
                     }
                     
                     VStack(spacing: 12) {
-                        Text("2. Choose Device Roles")
+                        Text(NSLocalizedString("help_roles_title", comment: "Choose roles step title"))
                             .font(.title2)
                             .fontWeight(.bold)
                         
-                        Text("Once connected, each device chooses its role. One becomes the camera, the other becomes the remote control.")
+                        Text(NSLocalizedString("help_roles_description", comment: "Choose roles step description"))
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -183,15 +183,15 @@ struct ChooseRolePage: View {
                 VStack(spacing: 16) {
                     RoleCard(
                         icon: "camera.fill",
-                        title: "Camera Device",
-                        description: "Takes photos and videos, shows camera preview",
+                        title: NSLocalizedString("help_camera_device_title", comment: "Camera device title"),
+                        description: NSLocalizedString("help_camera_device_description", comment: "Camera device description"),
                         color: .blue
                     )
                     
                     RoleCard(
                         icon: "remote.fill",
-                        title: "Remote Device",
-                        description: "Controls the camera, shows live preview, adjusts settings",
+                        title: NSLocalizedString("help_remote_device_title", comment: "Remote device title"),
+                        description: NSLocalizedString("help_remote_device_description", comment: "Remote device description"),
                         color: .green
                     )
                 }
@@ -216,11 +216,11 @@ struct CaptureMediaPage: View {
                         .foregroundColor(.purple)
                     
                     VStack(spacing: 12) {
-                        Text("3. Capture Perfect Moments")
+                        Text(NSLocalizedString("help_capture_title", comment: "Capture moments step title"))
                             .font(.title2)
                             .fontWeight(.bold)
                         
-                        Text("Use the remote device to control the camera, adjust settings, and capture photos or videos from a distance.")
+                        Text(NSLocalizedString("help_capture_description", comment: "Capture moments step description"))
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -231,20 +231,20 @@ struct CaptureMediaPage: View {
                 VStack(spacing: 16) {
                     FeatureCard(
                         icon: "camera.shutter.button",
-                        title: "Remote Shutter",
-                        description: "Take photos without touching the camera device"
+                        title: NSLocalizedString("help_remote_shutter_title", comment: "Remote shutter feature title"),
+                        description: NSLocalizedString("help_remote_shutter_description", comment: "Remote shutter feature description")
                     )
                     
                     FeatureCard(
                         icon: "video.fill",
-                        title: "Video Recording",
-                        description: "Start and stop video recording remotely"
+                        title: NSLocalizedString("help_video_recording_title", comment: "Video recording feature title"),
+                        description: NSLocalizedString("help_video_recording_description", comment: "Video recording feature description")
                     )
                     
                     FeatureCard(
                         icon: "flashlight.on.fill",
-                        title: "Camera Controls",
-                        description: "Adjust flash, torch, timer, and camera settings"
+                        title: NSLocalizedString("help_camera_controls_title", comment: "Camera controls feature title"),
+                        description: NSLocalizedString("help_camera_controls_description", comment: "Camera controls feature description")
                     )
                 }
                 
@@ -268,11 +268,11 @@ struct TipsAndTricksPage: View {
                         .foregroundColor(.orange)
                     
                     VStack(spacing: 12) {
-                        Text("Tips & Tricks")
+                        Text(NSLocalizedString("help_tips_title", comment: "Tips and tricks page title"))
                             .font(.title2)
                             .fontWeight(.bold)
                         
-                        Text("Get the most out of Remote Shutter with these helpful tips")
+                        Text(NSLocalizedString("help_tips_description", comment: "Tips and tricks page description"))
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -283,26 +283,26 @@ struct TipsAndTricksPage: View {
                 VStack(spacing: 16) {
                     TipCard(
                         icon: "person.2.fill",
-                        title: "Group Photos",
-                        description: "Perfect for group selfies - set up the camera and use the remote to capture everyone in the shot"
+                        title: NSLocalizedString("help_group_photos_title", comment: "Group photos tip title"),
+                        description: NSLocalizedString("help_group_photos_description", comment: "Group photos tip description")
                     )
                     
                     TipCard(
                         icon: "timer",
-                        title: "Timer Feature",
-                        description: "Use the timer on the remote device to get ready before the photo is taken"
+                        title: NSLocalizedString("help_timer_feature_title", comment: "Timer feature tip title"),
+                        description: NSLocalizedString("help_timer_feature_description", comment: "Timer feature tip description")
                     )
                     
                     TipCard(
                         icon: "camera.rotate",
-                        title: "Switch Cameras",
-                        description: "Toggle between front and back cameras directly from the remote device"
+                        title: NSLocalizedString("help_switch_cameras_title", comment: "Switch cameras tip title"),
+                        description: NSLocalizedString("help_switch_cameras_description", comment: "Switch cameras tip description")
                     )
                     
                     TipCard(
                         icon: "photo.stack",
-                        title: "Auto Save",
-                        description: "Photos and videos are automatically saved to both devices' photo libraries"
+                        title: NSLocalizedString("help_auto_save_title", comment: "Auto save tip title"),
+                        description: NSLocalizedString("help_auto_save_description", comment: "Auto save tip description")
                     )
                 }
                 
