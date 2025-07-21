@@ -167,7 +167,6 @@
 "video_recording_feature_title" = "Video Recording";
 "video_recording_feature_description" = "Record high-quality videos with audio using your device's microphone for a complete recording experience.";
 "mic_open_settings" = "Open Settings";
-"mic_try_again" = "Try Again";
 "mic_cancel_recording" = "Cancel Recording";
 
 /* Microphone Error Messages */

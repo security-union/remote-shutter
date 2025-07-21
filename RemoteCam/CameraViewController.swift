@@ -743,10 +743,6 @@ extension CameraViewController {
             },
             onCancel: { [weak self] in
                 self?.dismissMicrophonePrompt()
-            },
-            onRetry: { [weak self] in
-                self?.dismissMicrophonePrompt()
-                self?.startRecordingVideo() // Retry the recording
             }
         )
         

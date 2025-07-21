@@ -3,7 +3,6 @@ import SwiftUI
 struct MicrophonePermissionPromptView: View {
     let onOpenSettings: () -> Void
     let onCancel: () -> Void
-    let onRetry: (() -> Void)?
     
     var body: some View {
         GeometryReader { geometry in
@@ -69,22 +68,6 @@ struct MicrophonePermissionPromptView: View {
                         .cornerRadius(12)
                     }
                     
-                    if let retryAction = onRetry {
-                        Button(action: retryAction) {
-                            HStack {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 16, weight: .medium))
-                                Text(NSLocalizedString("mic_try_again", comment: ""))
-                                    .font(.headline)
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.blue)
-                            .cornerRadius(12)
-                        }
-                    }
-                    
                     Button(action: onCancel) {
                         Text(NSLocalizedString("mic_cancel_recording", comment: ""))
                             .font(.body)
@@ -106,8 +89,7 @@ struct MicrophonePermissionPromptView_Previews: PreviewProvider {
     static var previews: some View {
         MicrophonePermissionPromptView(
             onOpenSettings: {},
-            onCancel: {},
-            onRetry: {}
+            onCancel: {}
         )
     }
 } 
