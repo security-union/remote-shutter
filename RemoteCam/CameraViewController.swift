@@ -25,6 +25,10 @@ let fps = 30
 */
 public class CameraViewController: UIViewController,
         AVCapturePhotoCaptureDelegate {
+    
+    private struct AssociatedKeys {
+        static var microphonePromptController = "microphonePromptController"
+    }
 
     var captureSession: AVCaptureSession = AVCaptureSession()
     private let audioDataOutput = AVCaptureAudioDataOutput()
@@ -709,11 +713,57 @@ extension CameraViewController {
                 if granted {
                     self?.setupAudioAndStartRecording()
                 } else {
-                    // Microphone denied, but still allow video recording without audio
-                    showError(NSLocalizedString("microphone_denied_video_without_audio", comment: ""))
-                    self?.startVideoRecordingWithoutAudio()
+                    // Microphone denied - show prompt and send error to remote
+                    self?.handleMicrophoneDenied()
                 }
             }
+        }
+    }
+    
+    private func handleMicrophoneDenied() {
+        // Store the error to be handled by the state machine
+        let microphoneError = NSError(
+            domain: "RemoteShutterError",
+            code: 1001,
+            userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("microphone_access_denied_error", comment: "")]
+        )
+        
+        // Send the error through the session actor using a custom message
+        session ! UICmd.MicrophoneAccessDenied(error: microphoneError)
+        
+        // Show microphone permission prompt to user
+        showMicrophonePermissionPrompt()
+    }
+    
+    private func showMicrophonePermissionPrompt() {
+        let promptView = MicrophonePermissionPromptView(
+            onOpenSettings: { [weak self] in
+                self?.dismissMicrophonePrompt()
+                PermissionManager.shared.openAppSettings()
+            },
+            onCancel: { [weak self] in
+                self?.dismissMicrophonePrompt()
+            },
+            onRetry: { [weak self] in
+                self?.dismissMicrophonePrompt()
+                self?.startRecordingVideo() // Retry the recording
+            }
+        )
+        
+        let hostingController = UIHostingController(rootView: promptView)
+        hostingController.modalPresentationStyle = .overFullScreen
+        hostingController.view.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        
+        present(hostingController, animated: true)
+        
+        // Store reference to dismiss later
+        objc_setAssociatedObject(self, &AssociatedKeys.microphonePromptController, hostingController, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    }
+    
+    private func dismissMicrophonePrompt() {
+        if let promptController = objc_getAssociatedObject(self, &AssociatedKeys.microphonePromptController) as? UIViewController {
+            promptController.dismiss(animated: true)
+            objc_setAssociatedObject(self, &AssociatedKeys.microphonePromptController, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
     
@@ -873,6 +923,9 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                     }
                     )
                 } else {
+                    DispatchQueue.main.async {[weak self] in
+                        self?.showPhotosAccessDeniedModal(for: .video)
+                    }
                     cleanupFileAt(outputFileURL)
                 }
             }

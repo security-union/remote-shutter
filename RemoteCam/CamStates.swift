@@ -10,6 +10,7 @@ import Foundation
 import Theater
 import MultipeerConnectivity
 import Photos
+import SwiftUI
 
 extension RemoteCamSession {
 
@@ -38,6 +39,9 @@ extension RemoteCamSession {
     func savePicture(_ imageData: Data) {
         PHPhotoLibrary.requestAuthorization { status in
             guard status == .authorized else {
+                DispatchQueue.main.async {
+                    showPhotosAccessDeniedModal(for: .photo)
+                }
                 return
             }
             PHPhotoLibrary.shared().performChanges({
@@ -154,6 +158,12 @@ extension RemoteCamSession {
                                 ctrl: ctrl,
                                 lobby: lobbyWrapper)
                 )
+            
+            case let micError as UICmd.MicrophoneAccessDenied:
+                // Handle microphone access denied during recording setup
+                let ack = RemoteCmd.StopRecordingVideoAck()
+                self.sendCommandOrGoToScanning(peer: [peer], msg: ack, mode: .reliable)
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideoResp(sender: nil, error: micError.error), mode: .reliable)
 
             case let cmd as RemoteCmd.TakePic:
                 ctrl.takePicture(cmd.sendMediaToPeer)
