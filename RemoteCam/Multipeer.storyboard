@@ -785,7 +785,7 @@
                                             <rect key="frame" x="0.0" y="0.0" width="800" height="560"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Scan the QR Code on another device" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="3" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="85j-Ih-IVJ">
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Scan this QR code with your Camera app on another device to download Remote Shutter from the App Store" textAlignment="center" lineBreakMode="wordWrap" numberOfLines="3" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="85j-Ih-IVJ">
                                                     <rect key="frame" x="21" y="11" width="758" height="80"/>
                                                     <constraints>
                                                         <constraint firstAttribute="height" constant="80" id="7Tb-5H-88h"/>

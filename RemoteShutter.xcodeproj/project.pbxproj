@@ -46,6 +46,14 @@
 		065DE66C253A43BA0022193C /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */; platformFilter = ios; settings = {ATTRIBUTES = (Weak, ); }; };
 		066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066427741BE924DD003EDD41 /* EnumExtensions.swift */; };
 		066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066959602575F00200E8B579 /* WelcomeViewController.swift */; };
+		067327582E2DF11F003E5F94 /* CameraPermissionErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067327572E2DF11F003E5F94 /* CameraPermissionErrorView.swift */; };
+		0673275C2E2DF142003E5F94 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0673275B2E2DF142003E5F94 /* PermissionManager.swift */; };
+		0673275D2E2DF142003E5F94 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0673275B2E2DF142003E5F94 /* PermissionManager.swift */; };
+		0673275F2E2DF163003E5F94 /* CameraPermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0673275E2E2DF163003E5F94 /* CameraPermissionsView.swift */; };
+		067327612E2DF49B003E5F94 /* MicrophonePermissionPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067327602E2DF49B003E5F94 /* MicrophonePermissionPromptView.swift */; };
+		067327652E2DF82A003E5F94 /* PhotosAccessDeniedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067327642E2DF82A003E5F94 /* PhotosAccessDeniedView.swift */; };
+		067327672E2DF85B003E5F94 /* PhotosAccessHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067327662E2DF85B003E5F94 /* PhotosAccessHelper.swift */; };
+		067327692E2E0293003E5F94 /* RemoteShutterHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067327682E2E0293003E5F94 /* RemoteShutterHelpView.swift */; };
 		067BEFCC2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */; };
 		0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */; };
 		0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D21BE6E98A00F0B238 /* CamStates.swift */; };
@@ -201,6 +209,13 @@
 		065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppTrackingTransparency.framework; path = System/Library/Frameworks/AppTrackingTransparency.framework; sourceTree = SDKROOT; };
 		066427741BE924DD003EDD41 /* EnumExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EnumExtensions.swift; sourceTree = "<group>"; };
 		066959602575F00200E8B579 /* WelcomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeViewController.swift; sourceTree = "<group>"; };
+		067327572E2DF11F003E5F94 /* CameraPermissionErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPermissionErrorView.swift; sourceTree = "<group>"; };
+		0673275B2E2DF142003E5F94 /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
+		0673275E2E2DF163003E5F94 /* CameraPermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPermissionsView.swift; sourceTree = "<group>"; };
+		067327602E2DF49B003E5F94 /* MicrophonePermissionPromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophonePermissionPromptView.swift; sourceTree = "<group>"; };
+		067327642E2DF82A003E5F94 /* PhotosAccessDeniedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosAccessDeniedView.swift; sourceTree = "<group>"; };
+		067327662E2DF85B003E5F94 /* PhotosAccessHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosAccessHelper.swift; sourceTree = "<group>"; };
+		067327682E2E0293003E5F94 /* RemoteShutterHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteShutterHelpView.swift; sourceTree = "<group>"; };
 		067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNetworkPermissionView.swift; sourceTree = "<group>"; };
 		0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OrientationUtils.swift; sourceTree = "<group>"; };
 		0684A2D21BE6E98A00F0B238 /* CamStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CamStates.swift; sourceTree = "<group>"; };
@@ -310,7 +325,6 @@
 		065024061BEA406B00311C8A /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */,
 				0650241D1BEA414200311C8A /* InAppPurchases */,
 				065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */,
 				065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */,
@@ -391,6 +405,8 @@
 		069284601BE5C1A700AF4678 /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				067327662E2DF85B003E5F94 /* PhotosAccessHelper.swift */,
+				067327642E2DF82A003E5F94 /* PhotosAccessDeniedView.swift */,
 				065024061BEA406B00311C8A /* Settings */,
 				066959602575F00200E8B579 /* WelcomeViewController.swift */,
 				0634594925886387009F9BE0 /* DeviceScannerViewController.swift */,
@@ -407,6 +423,11 @@
 				061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */,
 				85D3382D258D25D80091972B /* RolePickerOptionController.swift */,
 				06184D40258EF4C500F63172 /* CoolActivityIndicator.swift */,
+				0673275E2E2DF163003E5F94 /* CameraPermissionsView.swift */,
+				067327572E2DF11F003E5F94 /* CameraPermissionErrorView.swift */,
+				067327682E2E0293003E5F94 /* RemoteShutterHelpView.swift */,
+				067327602E2DF49B003E5F94 /* MicrophonePermissionPromptView.swift */,
+				067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */,
 			);
 			name = Controllers;
 			sourceTree = "<group>";
@@ -423,6 +444,7 @@
 				06E965202535199400E5A8B3 /* MediaProcessors.swift */,
 				06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */,
 				85C11C0A2582F6FA00618F32 /* PKIAPHandler.swift */,
+				0673275B2E2DF142003E5F94 /* PermissionManager.swift */,
 			);
 			name = Model;
 			sourceTree = "<group>";
@@ -775,12 +797,14 @@
 				068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
 				061596F6251FCFDA0032289B /* Constants.m in Sources */,
 				06CDFB17252E9A7900EA56FB /* RemoteCmds.swift in Sources */,
+				0673275D2E2DF142003E5F94 /* PermissionManager.swift in Sources */,
 				06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */,
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
 				0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */,
 				0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */,
 				06CDFB2A252EC2C300EA56FB /* CGImage.swift in Sources */,
 				069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */,
+				067327692E2E0293003E5F94 /* RemoteShutterHelpView.swift in Sources */,
 				06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
 				067BEFCC2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift in Sources */,
 				0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */,
@@ -790,7 +814,10 @@
 				068EF0B82531844B00A84DFA /* CameraVideoStates.swift in Sources */,
 				0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */,
 				85D3382E258D25D80091972B /* RolePickerOptionController.swift in Sources */,
+				067327612E2DF49B003E5F94 /* MicrophonePermissionPromptView.swift in Sources */,
 				0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */,
+				067327652E2DF82A003E5F94 /* PhotosAccessDeniedView.swift in Sources */,
+				067327672E2DF85B003E5F94 /* PhotosAccessHelper.swift in Sources */,
 				069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */,
 				0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */,
 				068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
@@ -799,8 +826,10 @@
 				06D114CF2532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
 				06184D41258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */,
 				0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */,
+				067327582E2DF11F003E5F94 /* CameraPermissionErrorView.swift in Sources */,
 				0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */,
 				85C11C0B2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
+				0673275F2E2DF163003E5F94 /* CameraPermissionsView.swift in Sources */,
 				06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */,
 				0684A2D51BE6E9A000F0B238 /* MonitorStates.swift in Sources */,
 				0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */,
@@ -857,6 +886,7 @@
 				06AEE43625333B4A00C2ED90 /* UIAlertController.swift in Sources */,
 				068EF0D02531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
 				06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */,
+				0673275C2E2DF142003E5F94 /* PermissionManager.swift in Sources */,
 				0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */,
 				06B1D8112536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */,
@@ -912,7 +942,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 54;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -924,7 +954,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.5;
+				MARKETING_VERSION = 4.6;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -951,7 +981,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 54;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -963,7 +993,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.5;
+				MARKETING_VERSION = 4.6;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";

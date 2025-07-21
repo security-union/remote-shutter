@@ -8,6 +8,7 @@
 
 import UIKit
 import StoreKit
+import SwiftUI
 
 let goToConnectViewControllerSegue = "goToConnectViewControllerSegue"
 
@@ -175,9 +176,20 @@ class WelcomeViewController: UIViewController {
     }
     
     @IBAction func showHelp() {
-        let alert = UIAlertController(title: NSLocalizedString("Remote Shutter lets you take pictures from a distance. Keep these few things in mind:\n\n1. Requires 2 apple devices.\n2. You must have Wi-Fi on, but don't need to be connected.", comment: ""), message: "")
-        alert.simpleOkAction()
-        alert.show(true)
+        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
+            self?.dismiss(animated: true)
+        })
+        
+        let hostingController = UIHostingController(rootView: helpView)
+        hostingController.modalPresentationStyle = .pageSheet
+        
+        if let sheet = hostingController.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+        }
+        
+        present(hostingController, animated: true)
     }
 
     @IBAction func reviewApp(_ sender: Any) {
