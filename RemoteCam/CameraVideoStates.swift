@@ -44,6 +44,13 @@ extension RemoteCamSession {
             case is UICmd.UnbecomeCamera:
                 ctrl.stopRecordingVideo(false)
                 self.popToState(name: self.states.connected)
+            
+            case let micError as UICmd.MicrophoneAccessDenied:
+                // Handle microphone access denied during recording
+                let ack = RemoteCmd.StopRecordingVideoAck()
+                self.sendCommandOrGoToScanning(peer: [peer], msg: ack, mode: .reliable)
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideoResp(sender: nil, error: micError.error), mode: .reliable)
+                self.popToState(name: self.states.camera)
 
             default:
                 self.receive(msg: msg)

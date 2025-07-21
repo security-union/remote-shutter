@@ -1,6 +1,8 @@
 import SwiftUI
+import AVFoundation
+import Photos
 
-struct LocalNetworkPermissionView: View {
+struct CameraPermissionsView: View {
     @Environment(\.dismiss) private var dismiss
     let permissionType: PermissionType
     let onAllow: () -> Void
@@ -19,13 +21,16 @@ struct LocalNetworkPermissionView: View {
                     VStack(spacing: 0) {
                         // Header section with icon and title
                         VStack(spacing: 24) {
-                            // Network icon
+                            Spacer()
+                                .frame(height: max(60, geometry.safeAreaInsets.top + 40))
+                            
+                            // Camera icon
                             ZStack {
                                 Circle()
                                     .fill(Color.blue.opacity(0.1))
                                     .frame(width: 88, height: 88)
                                 
-                                Image(systemName: "network")
+                                Image(systemName: "camera.fill")
                                     .font(.system(size: 36, weight: .medium))
                                     .foregroundColor(.blue)
                             }
@@ -54,21 +59,21 @@ struct LocalNetworkPermissionView: View {
                             // Feature explanation cards
                             VStack(spacing: 16) {
                                 FeatureCard(
+                                    icon: "camera.circle",
+                                    title: NSLocalizedString("camera_permission_feature_title", comment: ""),
+                                    description: NSLocalizedString("camera_permission_feature_description", comment: "")
+                                )
+                                
+                                FeatureCard(
+                                    icon: "photo.on.rectangle",
+                                    title: NSLocalizedString("photos_permission_feature_title", comment: ""),
+                                    description: NSLocalizedString("photos_permission_feature_description", comment: "")
+                                )
+                                
+                                FeatureCard(
                                     icon: "iphone.and.arrow.forward",
-                                    title: NSLocalizedString("local_network_feature_title", comment: ""),
-                                    description: NSLocalizedString("local_network_feature_description", comment: "")
-                                )
-                                
-                                FeatureCard(
-                                    icon: "lock.shield",
-                                    title: NSLocalizedString("local_network_privacy_title", comment: ""),
-                                    description: NSLocalizedString("local_network_privacy_description", comment: "")
-                                )
-                                
-                                FeatureCard(
-                                    icon: "bolt.circle",
-                                    title: NSLocalizedString("local_network_benefits_title", comment: ""),
-                                    description: NSLocalizedString("local_network_benefits_description", comment: "")
+                                    title: NSLocalizedString("remote_control_feature_title", comment: ""),
+                                    description: NSLocalizedString("remote_control_feature_description", comment: "")
                                 )
                             }
                             
@@ -91,14 +96,14 @@ struct LocalNetworkPermissionView: View {
                                 
                                 if permissionType == .initial {
                                     Button(action: onNotNow) {
-                                        Text(NSLocalizedString("local_network_not_now", comment: ""))
+                                        Text(NSLocalizedString("camera_permissions_not_now", comment: ""))
                                             .font(.body)
                                             .foregroundColor(.blue)
                                             .frame(height: 44)
                                     }
                                 } else {
                                     Button(action: dismissAction) {
-                                        Text(NSLocalizedString("local_network_cancel", comment: ""))
+                                        Text(NSLocalizedString("camera_permissions_cancel", comment: ""))
                                             .font(.body)
                                             .foregroundColor(.blue)
                                             .frame(height: 44)
@@ -124,27 +129,27 @@ struct LocalNetworkPermissionView: View {
     private var localizedTitle: String {
         switch permissionType {
         case .initial:
-            return NSLocalizedString("local_network_permission_title", comment: "")
+            return NSLocalizedString("camera_permissions_title", comment: "")
         case .denied:
-            return NSLocalizedString("local_network_access_required_title", comment: "")
+            return NSLocalizedString("camera_permissions_required_title", comment: "")
         }
     }
     
     private var localizedSubtitle: String {
         switch permissionType {
         case .initial:
-            return NSLocalizedString("local_network_permission_subtitle", comment: "")
+            return NSLocalizedString("camera_permissions_subtitle", comment: "")
         case .denied:
-            return NSLocalizedString("local_network_access_required_subtitle", comment: "")
+            return NSLocalizedString("camera_permissions_required_subtitle", comment: "")
         }
     }
     
     private var primaryButtonTitle: String {
         switch permissionType {
         case .initial:
-            return NSLocalizedString("local_network_allow", comment: "")
+            return NSLocalizedString("camera_permissions_allow", comment: "")
         case .denied:
-            return NSLocalizedString("local_network_open_settings", comment: "")
+            return NSLocalizedString("camera_permissions_open_settings", comment: "")
         }
     }
     
@@ -164,49 +169,14 @@ struct LocalNetworkPermissionView: View {
     }
 }
 
-// MARK: - Feature Card Component
-
-struct FeatureCard: View {
-    let icon: String
-    let title: String
-    let description: String
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 24, weight: .medium))
-                .foregroundColor(.blue)
-                .frame(width: 32, height: 32)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.leading)
-                
-                Text(description)
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
-    }
-}
+// MARK: - Feature Card Component (reusing from LocalNetworkPermissionView)
 
 // MARK: - Preview
 
-struct LocalNetworkPermissionView_Previews: PreviewProvider {
+struct CameraPermissionsView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            LocalNetworkPermissionView(
+            CameraPermissionsView(
                 permissionType: .initial,
                 onAllow: {},
                 onNotNow: {},
@@ -214,7 +184,7 @@ struct LocalNetworkPermissionView_Previews: PreviewProvider {
             )
             .previewDisplayName("Initial Permission")
             
-            LocalNetworkPermissionView(
+            CameraPermissionsView(
                 permissionType: .denied,
                 onAllow: {},
                 onNotNow: {},

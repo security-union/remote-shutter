@@ -11,6 +11,7 @@ import Theater
 import MultipeerConnectivity
 import Photos
 import StoreKit
+import SwiftUI
 
 private typealias MonitorVideoStates = RemoteCamSession
 
@@ -137,6 +138,14 @@ extension MonitorVideoStates {
                     name: self.states.monitorWaitingForVideo,
                     state: self.monitorWaitingForVideo(monitor: monitor, peer: peer, lobby: lobby)
                 )
+            
+            case let errorResp as RemoteCmd.StopRecordingVideoResp:
+                // Handle immediate error response (e.g., microphone access denied)
+                if errorResp.error != nil {
+                    saveVideo(errorResp)
+                    self.popToState(name: self.states.monitorVideoMode)
+                }
+                
             case is Disconnect:
                 self.popAndStartScanning()
 
@@ -228,7 +237,9 @@ extension MonitorVideoStates {
                     cleanupFileAt(fileURL)
                 })
             } else {
-                showError(NSLocalizedString("Remote Shutter has not access to the camera roll", comment: ""))
+                DispatchQueue.main.async {
+                    showPhotosAccessDeniedModal(for: .video)
+                }
             }
         }
     }

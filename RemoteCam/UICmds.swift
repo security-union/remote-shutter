@@ -44,6 +44,15 @@ public class UICmd {
             super.init(sender: sender)
         }
     }
+    
+    public class MicrophoneAccessDenied: Actor.Message {
+        let error: Error
+
+        init(error: Error) {
+            self.error = error
+            super.init(sender: nil)
+        }
+    }
 
     public class AddMonitor: Actor.Message {
 

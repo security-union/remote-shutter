@@ -114,3 +114,122 @@
 "local_network_not_now" = "Not Now";
 "local_network_cancel" = "Cancel";
 "local_network_open_settings" = "Open Settings";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "Allow Camera & Photos Access";
+"camera_permissions_subtitle" = "Remote Shutter needs access to your camera and photos to capture and save images when connected with other devices.";
+
+"camera_permissions_required_title" = "Camera & Photos Access Required";
+"camera_permissions_required_subtitle" = "Remote Shutter requires camera and photos access to function. Please enable them in Settings to continue.";
+
+"camera_permission_feature_title" = "Camera Access";
+"camera_permission_feature_description" = "Take photos remotely using one device as a camera and another as a remote control for perfect shots.";
+
+"photos_permission_feature_title" = "Save Photos";
+"photos_permission_feature_description" = "Automatically save captured photos to your photo library for easy access and sharing.";
+
+"remote_control_feature_title" = "Remote Control";
+"remote_control_feature_description" = "Use one device to control the camera on another device for group photos, selfies, and creative shots.";
+
+"camera_permissions_allow" = "Allow Access";
+"camera_permissions_not_now" = "Not Now";
+"camera_permissions_cancel" = "Cancel";
+"camera_permissions_open_settings" = "Open Settings";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "Camera permission not requested yet";
+"camera_permission_denied" = "Camera access denied";
+"camera_permission_restricted" = "Camera access restricted";
+"camera_permission_authorized" = "Camera access granted";
+"camera_permission_unknown" = "Unknown camera permission status";
+
+"photos_permission_not_determined" = "Photos permission not requested yet";
+"photos_permission_denied" = "Photos access denied";
+"photos_permission_restricted" = "Photos access restricted";
+"photos_permission_authorized" = "Full photos access granted";
+"photos_permission_limited" = "Limited photos access granted";
+"photos_permission_unknown" = "Unknown photos permission status";
+
+/* Camera Error View */
+"camera_error_title" = "Camera Access Required";
+"camera_error_subtitle" = "Remote Shutter needs access to your camera and photos to function. Please enable permissions in Settings.";
+"camera_error_open_settings" = "Open Settings";
+"camera_error_go_back" = "Go Back";
+"camera_access_required" = "Camera Access";
+"photos_access_required" = "Photos Access";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "Microphone access denied. Video will be recorded without audio.";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "Microphone Access Required";
+"mic_required_subtitle" = "To record video with audio, Remote Shutter needs access to your microphone. Please enable it in Settings.";
+"video_recording_feature_title" = "Video Recording";
+"video_recording_feature_description" = "Record high-quality videos with audio using your device's microphone for a complete recording experience.";
+"mic_open_settings" = "Open Settings";
+"mic_cancel_recording" = "Cancel Recording";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "Cannot record video: Microphone access was denied. Please enable microphone access in Settings to record videos with audio.";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "Scan this QR code with your Camera app on another device to download Remote Shutter from the App Store";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "Cannot Save Photo";
+"photos_access_denied_photo_subtitle" = "Remote Shutter needs access to your Photos library to save the captured image. Please enable Photos access in Settings.";
+"photos_access_denied_video_title" = "Cannot Save Video";
+"photos_access_denied_video_subtitle" = "Remote Shutter needs access to your Photos library to save the recorded video. Please enable Photos access in Settings.";
+
+"photos_privacy_feature_title" = "Your Privacy Matters";
+"photos_privacy_feature_description" = "Photos are saved directly to your device's library. No data is uploaded to external servers or shared without your permission.";
+
+"photos_sharing_feature_title" = "Easy Sharing";
+"photos_sharing_feature_description" = "Access your captured photos and videos from the Photos app to easily share with friends and family or use in other apps.";
+
+"photos_open_settings" = "Open Settings";
+"photos_dismiss" = "Dismiss";
+
+/* Help Modal */
+"help_title" = "How Remote Shutter Works";
+"help_subtitle" = "Take perfect photos and videos using two devices";
+"help_got_it" = "Got It!";
+"help_done" = "Done";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "1. Connect Devices";
+"help_connect_description" = "Make sure both devices have Wi-Fi and Bluetooth enabled, then tap 'Start Scanning Devices' to find nearby devices running Remote Shutter.";
+"help_quick_setup_title" = "Quick Setup";
+"help_quick_setup_description" = "Use the QR code to download Remote Shutter on your second device from the App Store";
+"help_same_network_title" = "Peer-to-Peer Connection";
+"help_same_network_description" = "Devices connect directly to each other using Wi-Fi and Bluetooth, just like AirDrop - no internet required";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "2. Choose Device Roles";
+"help_roles_description" = "Once connected, each device chooses its role. One becomes the camera, the other becomes the remote control.";
+"help_camera_device_title" = "Camera Device";
+"help_camera_device_description" = "Takes photos and videos, shows camera preview";
+"help_remote_device_title" = "Remote Device";
+"help_remote_device_description" = "Controls the camera, shows live preview, adjusts settings";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. Capture Perfect Moments";
+"help_capture_description" = "Use the remote device to control the camera, adjust settings, and capture photos or videos from a distance.";
+"help_remote_shutter_title" = "Remote Shutter";
+"help_remote_shutter_description" = "Take photos without touching the camera device";
+"help_video_recording_title" = "Video Recording";
+"help_video_recording_description" = "Start and stop video recording remotely";
+"help_camera_controls_title" = "Camera Controls";
+"help_camera_controls_description" = "Adjust flash, torch, timer, and camera settings";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "Tips & Tricks";
+"help_tips_description" = "Get the most out of Remote Shutter with these helpful tips";
+"help_group_photos_title" = "Group Photos";
+"help_group_photos_description" = "Perfect for group selfies - set up the camera and use the remote to capture everyone in the shot";
+"help_timer_feature_title" = "Timer Feature";
+"help_timer_feature_description" = "Use the timer on the remote device to get ready before the photo is taken";
+"help_switch_cameras_title" = "Switch Cameras";
+"help_switch_cameras_description" = "Toggle between front and back cameras directly from the remote device";
+"help_auto_save_title" = "Auto Save";
+"help_auto_save_description" = "Photos and videos are automatically saved to both devices' photo libraries";
