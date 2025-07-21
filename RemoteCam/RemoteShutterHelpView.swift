@@ -48,8 +48,7 @@ struct RemoteShutterHelpView: View {
                     TipsAndTricksPage()
                         .tag(3)
                 }
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
-                .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 
                 // Footer
                 VStack(spacing: 16) {
