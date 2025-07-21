@@ -172,6 +172,9 @@
 /* Microphone Error Messages */
 "microphone_access_denied_error" = "Cannot record video: Microphone access was denied. Please enable microphone access in Settings to record videos with audio.";
 
+/* QR Code Instructions */
+"qr_code_download_instruction" = "Scan this QR code with your Camera app on another device to download Remote Shutter from the App Store";
+
 /* Photos Access Denied Modal */
 "photos_access_denied_photo_title" = "Cannot Save Photo";
 "photos_access_denied_photo_subtitle" = "Remote Shutter needs access to your Photos library to save the captured image. Please enable Photos access in Settings.";
