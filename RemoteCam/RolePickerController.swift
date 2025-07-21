@@ -8,6 +8,7 @@
 
 import UIKit
 import Theater
+import SwiftUI
 
 
 /**
@@ -81,7 +82,8 @@ public class RolePickerController: UIViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = false
-        self.verifyCameraAndCameraRollAccess()
+        // Don't request permissions immediately - let user choose role first
+        // Permissions will be requested when they select Camera role
     }
     
     override public func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -122,7 +124,60 @@ public class RolePickerController: UIViewController {
     }
 
     @IBAction func becomeCamera() {
-        self.performSegue(withIdentifier: Segues.showCamera, sender: self)
+        checkCameraPermissionsAndProceed()
+    }
+    
+    private func checkCameraPermissionsAndProceed() {
+        let permissionManager = PermissionManager.shared
+        permissionManager.updatePermissionStatuses()
+        
+        if permissionManager.areCameraAndPhotosGranted {
+            // Permissions already granted, proceed to camera
+            self.performSegue(withIdentifier: Segues.showCamera, sender: self)
+        } else if permissionManager.areCameraAndPhotosDenied {
+            // Permissions were denied, show denied modal
+            showCameraPermissionsModal(permissionType: .denied)
+        } else {
+            // Permissions not determined, show initial request modal
+            showCameraPermissionsModal(permissionType: .initial)
+        }
+    }
+    
+    private func showCameraPermissionsModal(permissionType: CameraPermissionsView.PermissionType) {
+        let permissionView = CameraPermissionsView(
+            permissionType: permissionType,
+            onAllow: { [weak self] in
+                self?.dismiss(animated: true) {
+                    self?.requestPermissionsAndProceed()
+                }
+            },
+            onNotNow: { [weak self] in
+                self?.dismiss(animated: true)
+                // User chose "Not Now" - stay on role picker
+            },
+            onOpenSettings: { [weak self] in
+                self?.dismiss(animated: true) {
+                    PermissionManager.shared.openAppSettings()
+                }
+            }
+        )
+        
+        let hostingController = UIHostingController(rootView: permissionView)
+        hostingController.modalPresentationStyle = .fullScreen
+        present(hostingController, animated: true)
+    }
+    
+    private func requestPermissionsAndProceed() {
+        PermissionManager.shared.requestCameraAndPhotosPermissions { [weak self] granted in
+            DispatchQueue.main.async {
+                if granted {
+                    self?.performSegue(withIdentifier: Segues.showCamera, sender: self)
+                } else {
+                    // Permissions denied, show denied modal
+                    self?.showCameraPermissionsModal(permissionType: .denied)
+                }
+            }
+        }
     }
     
     deinit {
