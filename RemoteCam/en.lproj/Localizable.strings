@@ -114,3 +114,49 @@
 "local_network_not_now" = "Not Now";
 "local_network_cancel" = "Cancel";
 "local_network_open_settings" = "Open Settings";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "Allow Camera & Photos Access";
+"camera_permissions_subtitle" = "Remote Shutter needs access to your camera and photos to capture and save images when connected with other devices.";
+
+"camera_permissions_required_title" = "Camera & Photos Access Required";
+"camera_permissions_required_subtitle" = "Remote Shutter requires camera and photos access to function. Please enable them in Settings to continue.";
+
+"camera_permission_feature_title" = "Camera Access";
+"camera_permission_feature_description" = "Take photos remotely using one device as a camera and another as a remote control for perfect shots.";
+
+"photos_permission_feature_title" = "Save Photos";
+"photos_permission_feature_description" = "Automatically save captured photos to your photo library for easy access and sharing.";
+
+"remote_control_feature_title" = "Remote Control";
+"remote_control_feature_description" = "Use one device to control the camera on another device for group photos, selfies, and creative shots.";
+
+"camera_permissions_allow" = "Allow Access";
+"camera_permissions_not_now" = "Not Now";
+"camera_permissions_cancel" = "Cancel";
+"camera_permissions_open_settings" = "Open Settings";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "Camera permission not requested yet";
+"camera_permission_denied" = "Camera access denied";
+"camera_permission_restricted" = "Camera access restricted";
+"camera_permission_authorized" = "Camera access granted";
+"camera_permission_unknown" = "Unknown camera permission status";
+
+"photos_permission_not_determined" = "Photos permission not requested yet";
+"photos_permission_denied" = "Photos access denied";
+"photos_permission_restricted" = "Photos access restricted";
+"photos_permission_authorized" = "Full photos access granted";
+"photos_permission_limited" = "Limited photos access granted";
+"photos_permission_unknown" = "Unknown photos permission status";
+
+/* Camera Error View */
+"camera_error_title" = "Camera Access Required";
+"camera_error_subtitle" = "Remote Shutter needs access to your camera and photos to function. Please enable permissions in Settings.";
+"camera_error_open_settings" = "Open Settings";
+"camera_error_go_back" = "Go Back";
+"camera_access_required" = "Camera Access";
+"photos_access_required" = "Photos Access";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "Microphone access denied. Video will be recorded without audio.";
