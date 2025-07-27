@@ -13,58 +13,7 @@ import AVFoundation
 
 let timerDefault = "timerDefault"
 
-func setFlashMode(ctrl: Weak<MonitorViewController>, flashMode: AVCaptureDevice.FlashMode?) {
-    if let f = flashMode {
-        switch f {
-        case .off:
-            ctrl.value?.flashStatus.text = "Off"
-        case .on:
-            ctrl.value?.flashStatus.text = "On"
-        case .auto:
-            ctrl.value?.flashStatus.text = "Auto"
-        default:
-            ctrl.value?.flashStatus.text = "None"
-        }
-    } else {
-        ctrl.value?.flashStatus.text = "None"
-    }
-}
-
-func setTorchMode(ctrl: Weak<MonitorViewController>, torchMode: AVCaptureDevice.TorchMode?) {
-    if let t = torchMode {
-        switch t {
-        case .off:
-            if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate)  {
-                ctrl.value?.programmaticTorchButton?.setImage(torchOffImage, for: .normal)
-                ctrl.value?.programmaticTorchButton?.tintColor = UIColor(red: 78/255, green: 168/255, blue: 201/255, alpha: 1);
-                ctrl.value?.programmaticTorchButton?.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-            }
-        case .on:
-            if let torchOnImage = UIImage(named: "torch_on")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate) {
-                ctrl.value?.programmaticTorchButton?.setImage(torchOnImage, for: .normal)
-                ctrl.value?.programmaticTorchButton?.tintColor = UIColor.white
-                ctrl.value?.programmaticTorchButton?.backgroundColor = UIColor(red: 78/255, green: 168/255, blue: 201/255, alpha: 0.6);
-            }
-        case .auto:
-            if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate)  {
-                ctrl.value?.programmaticTorchButton?.setImage(torchOffImage, for: .normal)
-                ctrl.value?.programmaticTorchButton?.tintColor = UIColor.orange
-                ctrl.value?.programmaticTorchButton?.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-            }
-        @unknown default:
-            if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate) {
-                ctrl.value?.programmaticTorchButton?.setImage(torchOffImage, for: .normal)
-                ctrl.value?.programmaticTorchButton?.tintColor = UIColor.red
-                ctrl.value?.programmaticTorchButton?.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-            }
-        }
-    } else {
-        if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate)  {
-            ctrl.value?.programmaticTorchButton?.setImage(torchOffImage, for: .normal)
-            ctrl.value?.programmaticTorchButton?.tintColor = UIColor.white
-        }
-    }
-}
+// Legacy setFlashMode and setTorchMode functions removed - using SwiftUI view model instead
 
 /**
 Monitor actor has a reference to the session actor and to the monitorViewController, it acts as the connection between the model and the controller from an MVC perspective.
@@ -149,27 +98,18 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
             // MARK: - Camera Capabilities Response Handling
             case let capabilities as RemoteCmd.CameraCapabilitiesResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl, let cameraInfo = capabilities.getCurrentCameraInfo() {
-                        // Update flash mode display
-                        if cameraInfo.hasFlash {
-                            // We'd need to get the actual flash mode from somewhere
-                            // For now, we'll just indicate flash is available
-                            ctrl.value?.flashButton.isHidden = false
-                        } else {
-                            ctrl.value?.flashButton.isHidden = true
-                        }
-                        
-                        // Update lens controls
-                        ctrl.value?.updateLensControls(
-                            lensType: capabilities.currentLens,
-                            availableLenses: cameraInfo.availableLenses
+                    if let ctrl = ctrl?.value, let cameraInfo = capabilities.getCurrentCameraInfo() {
+                        // Update lens controls in view model
+                        ctrl.updateLensTypesInViewModel(
+                            cameraInfo.availableLenses,
+                            current: capabilities.currentLens
                         )
                         
-                        // Update zoom controls
+                        // Update zoom controls in view model
                         if let zoomRange = cameraInfo.getZoomCapabilities()[capabilities.currentLens] {
-                            ctrl.value?.updateZoomControls(
-                                zoomFactor: capabilities.currentZoom,
-                                maxZoom: zoomRange.maxZoom
+                            ctrl.updateZoomInViewModel(
+                                capabilities.currentZoom,
+                                maxFactor: zoomRange.maxZoom
                             )
                         }
                     }
@@ -178,47 +118,47 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
             // MARK: - Zoom Response Handling
             case let zoom as UICmd.SetZoomResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl, let zoomFactor = zoom.zoomFactor {
-                        let maxZoom = zoom.zoomRange?.maxZoom ?? ctrl.value?.maxZoomFactor ?? 10.0
-                        ctrl.value?.updateZoomControls(zoomFactor: zoomFactor, maxZoom: maxZoom)
+                    if let ctrl = ctrl?.value, let zoomFactor = zoom.zoomFactor {
+                        let maxZoom = zoom.zoomRange?.maxZoom ?? ctrl.maxZoomFactor ?? 10.0
+                        ctrl.updateZoomInViewModel(zoomFactor, maxFactor: maxZoom)
                     }
                 }
                 
             case let zoomRemote as RemoteCmd.SetZoomResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl, let zoomFactor = zoomRemote.zoomFactor {
-                        let maxZoom = zoomRemote.zoomRange?.maxZoom ?? ctrl.value?.maxZoomFactor ?? 10.0
-                        ctrl.value?.updateZoomControls(zoomFactor: zoomFactor, maxZoom: maxZoom)
+                    if let ctrl = ctrl?.value, let zoomFactor = zoomRemote.zoomFactor {
+                        let maxZoom = zoomRemote.zoomRange?.maxZoom ?? ctrl.maxZoomFactor ?? 10.0
+                        ctrl.updateZoomInViewModel(zoomFactor, maxFactor: maxZoom)
                     }
                 }
                 
             // MARK: - Lens Response Handling
             case let lens as UICmd.SwitchLensResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl, 
+                    if let ctrl = ctrl?.value, 
                        let lensType = lens.lensType,
                        let availableLenses = lens.availableLenses {
-                        ctrl.value?.updateLensControls(lensType: lensType, availableLenses: availableLenses)
+                        ctrl.updateLensTypesInViewModel(availableLenses, current: lensType)
                         
                         // Update zoom controls if we have the new zoom info
                         if let currentZoom = lens.currentZoom,
                            let zoomRange = lens.zoomRange {
-                            ctrl.value?.updateZoomControls(zoomFactor: currentZoom, maxZoom: zoomRange.maxZoom)
+                            ctrl.updateZoomInViewModel(currentZoom, maxFactor: zoomRange.maxZoom)
                         }
                     }
                 }
                 
             case let lensRemote as RemoteCmd.SwitchLensResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl,
+                    if let ctrl = ctrl?.value,
                        let lensType = lensRemote.lensType,
                        let availableLenses = lensRemote.availableLenses {
-                        ctrl.value?.updateLensControls(lensType: lensType, availableLenses: availableLenses)
+                        ctrl.updateLensTypesInViewModel(availableLenses, current: lensType)
                         
                         // Update zoom controls if we have the new zoom info
                         if let currentZoom = lensRemote.currentZoom,
                            let zoomRange = lensRemote.zoomRange {
-                            ctrl.value?.updateZoomControls(zoomFactor: currentZoom, maxZoom: zoomRange.maxZoom)
+                            ctrl.updateZoomInViewModel(currentZoom, maxFactor: zoomRange.maxZoom)
                         }
                     }
                 }
@@ -251,36 +191,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private let sliderColor1 = UIColor(red: 0.150, green: 0.670, blue: 0.80, alpha: 1)
     private let sliderColor2 = UIColor(red: 0.060, green: 0.100, blue: 0.160, alpha: 1)
 
-    @IBOutlet weak var flashStatus: UILabel!
-
-    @IBOutlet weak var imageView: UIImageView!
-
-    @IBOutlet weak var takePicture: UIButton!
-
-    @IBOutlet weak var sliderContainer: UIView!
-
-    @IBOutlet weak var timerSlider: UISlider!
-
-    @IBOutlet weak var timerLabel: UILabel!
-
-    @IBOutlet weak var galleryButton: UIButton!
-
-    @IBOutlet weak var backButton: UIButton!
-
-    @IBOutlet weak var flashButton: UIButton!
-
-    @IBOutlet weak var settingsButton: UIButton!
-
-    @IBOutlet weak var toggleCamera: UIButton!
-    
-    @IBOutlet weak var controlsView: UIView!
-
-    @IBOutlet weak var segmentedControl: UISegmentedControl!
-
-    @IBOutlet weak var recordingView: UIImageView!
-    
-    // MARK: - Zoom and Lens Controls
-    @IBOutlet weak var lensSegmentedControl: UISegmentedControl?
+    // MARK: - Legacy outlets removed - now using SwiftUI
     
     // Programmatic UI Controls
     private var programmaticZoomSlider: UISlider!
@@ -364,133 +275,15 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         }
     }
 
-    func configurePhotoMode() {
-        takePicture.setImage(UIImage.init(named: "camera.png"), for: .normal)
-        galleryButton.isEnabled = true
-        backButton.isEnabled = true
-        flashButton.isEnabled = true
-        flashButton.isHidden = false
-        flashStatus.isHidden = false
-        programmaticTorchButton?.isEnabled = true
-        programmaticTorchButton?.isHidden = false
-        timerSlider.isEnabled = true
-        settingsButton.isEnabled = true
-        segmentedControl.isEnabled = true
-        recordingView.isHidden = true
-        toggleCamera.isEnabled = true
-        toggleCamera.isHidden = false
-        programmaticToggleCameraButton?.isEnabled = true
-        programmaticToggleCameraButton?.isHidden = false
-        lensSegmentedControl?.isEnabled = true
-        // Enable programmatic controls
-        programmaticZoomSlider.isEnabled = true
-        programmaticLensSegmentedControl.isEnabled = true
-        zoomControlsContainer.isHidden = true // Keep hidden - using pinch gesture
-        lensControlsContainer.isHidden = false
-        pinchGestureRecognizer.isEnabled = true
-        buttonPrompt = buttonPromptPhotoMode
-    }
+    // Legacy configurePhotoMode removed - using SwiftUI swiftUIConfigurePhotoMode instead
 
-    func configureVideoMode() {
-        takePicture.setImage(UIImage.init(named: "record-button.png"), for: .normal)
-        galleryButton.isEnabled = true
-        backButton.isEnabled = true
-        flashButton.isEnabled = false
-        flashButton.isHidden = true
-        flashStatus.isHidden = true
-        programmaticTorchButton?.isEnabled = true
-        programmaticTorchButton?.isHidden = false
-        timerSlider.isEnabled = true
-        settingsButton.isEnabled = true
-        segmentedControl.isEnabled = true
-        recordingView.isHidden = true
-        toggleCamera.isEnabled = true
-        toggleCamera.isHidden = false
-        programmaticToggleCameraButton?.isEnabled = true
-        programmaticToggleCameraButton?.isHidden = false
-        lensSegmentedControl?.isEnabled = true
-        // Enable programmatic controls
-        programmaticZoomSlider.isEnabled = true
-        programmaticLensSegmentedControl.isEnabled = true
-        zoomControlsContainer.isHidden = true // Keep hidden - using pinch gesture
-        lensControlsContainer.isHidden = false
-        pinchGestureRecognizer.isEnabled = true
-        buttonPrompt = buttonPromptVideoMode
-    }
+    // Legacy configureVideoMode removed - using SwiftUI swiftUIConfigureVideoMode instead
 
-    func configureVideoModeRecording() {
-        takePicture.setImage(UIImage.init(named: "stop-button.png"), for: .normal)
-        galleryButton.isEnabled = false
-        backButton.isEnabled = false
-        flashButton.isEnabled = false
-        flashButton.isHidden = true
-        flashStatus.isHidden = true
-        programmaticTorchButton?.isEnabled = false
-        programmaticTorchButton?.isHidden = true
-        timerSlider.isEnabled = false
-        settingsButton.isEnabled = false
-        segmentedControl.isEnabled = false
-        recordingView.isHidden = false
-        toggleCamera.isEnabled = false
-        toggleCamera.isHidden = true
-        programmaticToggleCameraButton?.isEnabled = false
-        programmaticToggleCameraButton?.isHidden = true
-        lensSegmentedControl?.isEnabled = false
-        // Disable programmatic controls
-        programmaticZoomSlider.isEnabled = false
-        programmaticLensSegmentedControl.isEnabled = false
-        zoomControlsContainer.isHidden = true
-        lensControlsContainer.isHidden = true
-        pinchGestureRecognizer.isEnabled = false
-        buttonPrompt = buttonPromptRecordingMode
-    }
+    // Legacy configureVideoModeRecording removed - using SwiftUI swiftUIConfigureVideoRecording instead
 
-    @IBAction func onToggleCamera(sender: UIButton) {
-        session ! UICmd.ToggleCamera()
-    }
-
-    @IBAction func onSliderChange(sender: UISlider) {
-        timerSliderValue = Int(round(sender.value))
-        self.timerLabel.text = "\(timerSliderValue)"
-    }
-
-    @IBAction func toggleFlash(sender: UIButton) {
-        session ! UICmd.ToggleFlash()
-    }
+    // Legacy @IBAction methods removed - using SwiftUI callbacks instead
     
-    @IBAction func toggleTorch(sender: UIButton) {
-        if InAppPurchasesManager.shared().hasTorchFeature() {
-            session ! UICmd.ToggleTorch()
-        } else {
-            showSettings(sender: settingsButton)
-        }
-    }
-    
-    @objc func onProgrammaticZoomSliderChange(sender: UISlider) {
-        let zoomFactor = CGFloat(sender.value)
-        currentZoomFactor = zoomFactor
-        updateZoomLabel()
-        session ! UICmd.SetZoom(zoomFactor: zoomFactor)
-    }
-    
-    // MARK: - Lens Control Actions
-    @IBAction func onLensSegmentedControlChanged(sender: UISegmentedControl) {
-        let orderedAvailableLenses = getOrderedAvailableLenses()
-        
-        guard sender.selectedSegmentIndex < orderedAvailableLenses.count else { return }
-        let selectedLensType = orderedAvailableLenses[sender.selectedSegmentIndex]
-        currentLensType = selectedLensType
-        session ! UICmd.SwitchLens(lensType: selectedLensType)
-    }
-    
-    @objc func onProgrammaticLensSegmentedControlChanged(sender: UISegmentedControl) {
-        let orderedAvailableLenses = getOrderedAvailableLenses()
-        
-        guard sender.selectedSegmentIndex < orderedAvailableLenses.count else { return }
-        let selectedLensType = orderedAvailableLenses[sender.selectedSegmentIndex]
-        currentLensType = selectedLensType
-        session ! UICmd.SwitchLens(lensType: selectedLensType)
-    }
+    // Legacy @objc and @IBAction methods removed - using SwiftUI callbacks instead
 
     @IBAction func showSettings(sender: UIButton) {
         let ctrl = CMConfigurationsViewController()
@@ -521,333 +314,19 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
      Take picture contains the logic to kick off the Timer for the picture.
     */
 
-    @IBAction func onTakePicture(sender: UIBarButtonItem) {
-        let sendMediaToRemote = CMConfigurationsViewController.sendMediaToRemote();
-        if buttonPrompt == buttonPromptRecordingMode {
-            self.session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: sendMediaToRemote)
-            return
-        }
+    // Legacy @IBAction onTakePicture removed - using SwiftUI callbacks instead
 
-        func timerAlertTitle(seconds: Int) -> String {
-            "\(buttonPrompt) in \(seconds) seconds"
-        }
-
-        let alert = UIAlertController(title: timerAlertTitle(seconds: timerSliderValue),
-                message: nil,
-                preferredStyle: .alert)
-
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { [weak self](_) in
-            alert.dismiss(animated: true, completion: nil)
-            self?.timer.cancel()
-        })
-
-        self.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
-
-        self.present(alert, animated: true) { [weak self] in
-            self?.timer.start(withDuration: Int(round(self?.timerSlider.value ?? 0)), withTickHandler: { [weak self](t) in
-                alert.title = timerAlertTitle(seconds: t!.timeRemaining())
-                switch t!.timeRemaining() {
-                case let l where l > 3:
-                    self?.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
-                case 3:
-                    self?.soundManager.playBeepSound(CPSoundManagerAudioTypeFast)
-                default:
-                    break
-                }
-            },
-            andCompletionHandler: { [weak self] (_) in
-                alert.dismiss(animated: true, completion: nil)
-                self?.session.tell(msg:UICmd.TakePicture(sender: nil, sendMediaToRemote: sendMediaToRemote))
-            })
-        }
-    }
-
-    private func configureTimerUI() {
-        self.timerSlider.value = Float(timerSliderValue)
-        self.timerLabel.text = "\(timerSliderValue)"
-        self.sliderContainer.layer.cornerRadius = 30.0
-        self.sliderContainer.clipsToBounds = true
-        self.timerSlider.layer.anchorPoint = CGPoint.init(x: 1.0, y: 1.0)
-        self.timerSlider.transform = CGAffineTransform(rotationAngle: CGFloat(-Double.pi / 2))
-        self.timerSlider.minimumTrackTintColor = sliderColor1
-        self.timerSlider.maximumTrackTintColor = sliderColor2
-        self.timerSlider.thumbTintColor = sliderColor1
-    }
+    // Legacy configureTimerUI removed - using SwiftUI instead
     
-    // MARK: - Programmatic UI Setup
-    private func setupProgrammaticZoomAndLensControls() {
-        // Setup zoom controls container
-        zoomControlsContainer = UIView()
-        zoomControlsContainer.backgroundColor = UIColor.clear
-        zoomControlsContainer.translatesAutoresizingMaskIntoConstraints = false
-        zoomControlsContainer.isHidden = true // Hide slider since we're using pinch gesture
-        view.addSubview(zoomControlsContainer)
-        
-        // Setup zoom label - now positioned on main view since we're using pinch gesture
-        programmaticZoomLabel = UILabel()
-        programmaticZoomLabel.text = "1.0x"
-        programmaticZoomLabel.textColor = .white
-        programmaticZoomLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        programmaticZoomLabel.textAlignment = .center
-        programmaticZoomLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-        programmaticZoomLabel.layer.cornerRadius = 6
-        programmaticZoomLabel.clipsToBounds = true
-        programmaticZoomLabel.alpha = 0.3 // Start semi-transparent
-        programmaticZoomLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(programmaticZoomLabel)
-        
-        // Setup zoom slider
-        programmaticZoomSlider = UISlider()
-        programmaticZoomSlider.minimumValue = 1.0
-        programmaticZoomSlider.maximumValue = 10.0
-        programmaticZoomSlider.value = 1.0
-        programmaticZoomSlider.minimumTrackTintColor = sliderColor1
-        programmaticZoomSlider.maximumTrackTintColor = sliderColor2
-        programmaticZoomSlider.thumbTintColor = sliderColor1
-        programmaticZoomSlider.addTarget(self, action: #selector(onProgrammaticZoomSliderChange), for: .valueChanged)
-        programmaticZoomSlider.translatesAutoresizingMaskIntoConstraints = false
-        zoomControlsContainer.addSubview(programmaticZoomSlider)
-        
-        // Setup lens controls container
-        lensControlsContainer = UIView()
-        lensControlsContainer.backgroundColor = UIColor.black.withAlphaComponent(0.0)
-        lensControlsContainer.translatesAutoresizingMaskIntoConstraints = false
-        controlsView.addSubview(lensControlsContainer)
-        
-        // Setup lens segmented control
-        programmaticLensSegmentedControl = UISegmentedControl()
-        programmaticLensSegmentedControl.backgroundColor = UIColor.clear
-        programmaticLensSegmentedControl.selectedSegmentTintColor = sliderColor1
-        programmaticLensSegmentedControl.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
-        programmaticLensSegmentedControl.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
-        programmaticLensSegmentedControl.addTarget(self, action: #selector(onProgrammaticLensSegmentedControlChanged), for: .valueChanged)
-        programmaticLensSegmentedControl.translatesAutoresizingMaskIntoConstraints = false
-        lensControlsContainer.addSubview(programmaticLensSegmentedControl)
-        
-        // Setup constraints
-        setupZoomAndLensConstraints()
-        
-        // Setup pinch gesture for zoom
-        setupPinchGestureForZoom()
-    }
+    // Legacy setupProgrammaticZoomAndLensControls removed - using SwiftUI instead
     
-    private func setupProgrammaticTorchButton() {
-        // Create torch button
-        programmaticTorchButton = UIButton(type: .custom)
-        
-        // Set initial image with template rendering mode
-        if let torchOffImage = UIImage(named: "torch_off")?.preparingThumbnail(of: CGSize(width: 35, height: 35))?.withRenderingMode(.alwaysTemplate) {
-            programmaticTorchButton.setImage(torchOffImage, for: .normal)
-        }
-        
-        if #available(iOS 15.0, *) {
-            var config = programmaticTorchButton.configuration ?? UIButton.Configuration.plain()
-            config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 6, bottom: 6, trailing: 6)
-
-            programmaticTorchButton.configuration = config
-            programmaticTorchButton.imageView?.contentMode = .scaleAspectFit
-        } else {
-            programmaticTorchButton.imageEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
-        }
-        
-        programmaticTorchButton.tintColor = UIColor(red: 78/255, green: 168/255, blue: 201/255, alpha: 1);
-        programmaticTorchButton.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-        programmaticTorchButton.layer.cornerRadius = 30
-        programmaticTorchButton.clipsToBounds = true
-        programmaticTorchButton.translatesAutoresizingMaskIntoConstraints = false
-        programmaticTorchButton.addTarget(self, action: #selector(onProgrammaticTorchButtonTapped), for: .touchUpInside)
-        view.addSubview(programmaticTorchButton)
-        NSLayoutConstraint.activate([
-            programmaticTorchButton.bottomAnchor.constraint(equalTo: settingsButton.topAnchor, constant: -20),
-            programmaticTorchButton.centerXAnchor.constraint(equalTo: settingsButton.centerXAnchor),
-            programmaticTorchButton.widthAnchor.constraint(equalToConstant: 60),
-            programmaticTorchButton.heightAnchor.constraint(equalToConstant: 60)
-        ])
-    }
+    // Legacy UIKit setup methods removed - using SwiftUI instead
     
+    // Legacy pinch gesture handler removed - zoom gestures will be handled in SwiftUI
     
-    @objc private func onProgrammaticTorchButtonTapped() {
-        if InAppPurchasesManager.shared().hasTorchFeature() {
-            session ! UICmd.ToggleTorch()
-        } else {
-            showSettings(sender: settingsButton)
-        }
-    }
+    // All legacy UIKit methods removed - using SwiftUI view model integration instead
     
-    private func setupPinchGestureForZoom() {
-        // Create pinch gesture recognizer
-        pinchGestureRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
-        
-        // Add to the image view (camera feed area)
-        imageView.isUserInteractionEnabled = true
-        imageView.addGestureRecognizer(pinchGestureRecognizer)
-    }
-    
-    @objc private func handlePinchGesture(_ gesture: UIPinchGestureRecognizer) {
-        guard gesture.numberOfTouches == 2 else { return }
-        
-        switch gesture.state {
-        case .began:
-            lastPinchScale = 1.0
-            showZoomLabel()
-            
-        case .changed:
-            // Calculate the zoom change based on pinch scale
-            let scaleDelta = gesture.scale / lastPinchScale
-            let newZoomFactor = currentZoomFactor * scaleDelta
-            
-            // Clamp to min/max zoom range
-            let clampedZoomFactor = max(1.0, min(maxZoomFactor, newZoomFactor))
-            
-            // Only update if zoom actually changed
-            if abs(clampedZoomFactor - currentZoomFactor) > 0.01 {
-                currentZoomFactor = clampedZoomFactor
-                updateZoomLabel()
-                session ! UICmd.SetZoom(zoomFactor: currentZoomFactor)
-                
-                // Update any visible sliders to match
-                OperationQueue.main.addOperation { [weak self] in
-                    self?.programmaticZoomSlider.value = Float(clampedZoomFactor)
-                }
-            }
-            
-            lastPinchScale = gesture.scale
-            
-        case .ended, .cancelled:
-            lastPinchScale = 1.0
-            hideZoomLabelAfterDelay()
-            
-        default:
-            break
-        }
-    }
-    
-    private func showZoomLabel() {
-        zoomLabelTimer?.invalidate()
-        OperationQueue.main.addOperation { [weak self] in
-            UIView.animate(withDuration: 0.2) {
-                self?.programmaticZoomLabel.alpha = 1.0
-            }
-        }
-    }
-    
-    private func hideZoomLabelAfterDelay() {
-        zoomLabelTimer?.invalidate()
-        zoomLabelTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
-            OperationQueue.main.addOperation {
-                UIView.animate(withDuration: 0.3) {
-                    self?.programmaticZoomLabel.alpha = 0.3
-                }
-            }
-        }
-    }
-    
-    private func setupZoomAndLensConstraints() {
-        NSLayoutConstraint.activate([
-            // Zoom controls container - positioned on the right side
-            zoomControlsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            zoomControlsContainer.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: 80),
-            zoomControlsContainer.widthAnchor.constraint(equalToConstant: 120),
-            zoomControlsContainer.heightAnchor.constraint(equalToConstant: 80),
-            
-            // Zoom label - positioned below the settings button
-            programmaticZoomLabel.topAnchor.constraint(equalTo: settingsButton.bottomAnchor, constant: 20),
-            programmaticZoomLabel.centerXAnchor.constraint(equalTo: settingsButton.centerXAnchor),
-            programmaticZoomLabel.widthAnchor.constraint(equalToConstant: 60),
-            programmaticZoomLabel.heightAnchor.constraint(equalToConstant: 30),
-            
-            // Zoom slider
-            programmaticZoomSlider.topAnchor.constraint(equalTo: programmaticZoomLabel.bottomAnchor, constant: 8),
-            programmaticZoomSlider.leadingAnchor.constraint(equalTo: zoomControlsContainer.leadingAnchor, constant: 8),
-            programmaticZoomSlider.trailingAnchor.constraint(equalTo: zoomControlsContainer.trailingAnchor, constant: -8),
-            programmaticZoomSlider.bottomAnchor.constraint(equalTo: zoomControlsContainer.bottomAnchor, constant: -8),
-            
-            // Lens controls container - positioned at the bottom of the controls view
-            lensControlsContainer.leadingAnchor.constraint(equalTo: controlsView.leadingAnchor, constant: 8),
-            lensControlsContainer.trailingAnchor.constraint(equalTo: controlsView.trailingAnchor, constant: -8),
-            lensControlsContainer.topAnchor.constraint(equalTo: controlsView.topAnchor, constant: 8),
-            lensControlsContainer.heightAnchor.constraint(equalToConstant: 40),
-            
-            // Lens segmented control - narrow and centered
-            programmaticLensSegmentedControl.centerXAnchor.constraint(equalTo: lensControlsContainer.centerXAnchor),
-            programmaticLensSegmentedControl.widthAnchor.constraint(equalToConstant: 180),
-            programmaticLensSegmentedControl.topAnchor.constraint(equalTo: lensControlsContainer.topAnchor, constant: 8),
-            programmaticLensSegmentedControl.bottomAnchor.constraint(equalTo: lensControlsContainer.bottomAnchor, constant: -8)
-        ])
-    }
-    
-    // MARK: - Zoom UI Configuration
-    private func configureZoomUI() {
-        // Configure programmatic controls
-        programmaticZoomSlider.minimumValue = 1.0
-        programmaticZoomSlider.maximumValue = Float(maxZoomFactor)
-        programmaticZoomSlider.value = Float(currentZoomFactor)
-        updateZoomLabel()
-    }
-    
-    // MARK: - Lens UI Configuration
-    private func configureLensUI() {
-        updateLensSegmentedControl()
-    }
-    
-    private func updateZoomLabel() {
-        let zoomText = String(format: "%.1fx", currentZoomFactor)
-        programmaticZoomLabel.text = zoomText
-    }
-    
-    // MARK: - Lens Display Order Helper
-    private func getOrderedAvailableLenses() -> [CameraLensType] {
-        // Custom display order: 0.5, 1, 2x (ultraWide, wideAngle, telephoto)
-        let displayOrder: [CameraLensType] = [.ultraWide, .wideAngle, .telephoto, .dualCamera]
-        return displayOrder.filter { availableLensTypes.contains($0) }
-    }
-    
-    private func updateLensSegmentedControl() {
-        // Update both storyboard and programmatic controls
-        updateSegmentedControl(programmaticLensSegmentedControl)
-        if let lensControl = self.lensSegmentedControl {
-            updateSegmentedControl(lensControl)
-        }
-    }
-    
-    private func updateSegmentedControl(_ control: UISegmentedControl) {
-        control.removeAllSegments()
-        
-        let orderedAvailableLenses = getOrderedAvailableLenses()
-        
-        for (index, lensType) in orderedAvailableLenses.enumerated() {
-            control.insertSegment(withTitle: lensType.displayName, at: index, animated: false)
-        }
-        
-        if let currentIndex = orderedAvailableLenses.firstIndex(of: currentLensType) {
-            control.selectedSegmentIndex = currentIndex
-        }
-    }
-    
-    // MARK: - Update Methods for Remote Responses
-    func updateZoomControls(zoomFactor: CGFloat, maxZoom: CGFloat) {
-        currentZoomFactor = zoomFactor
-        maxZoomFactor = maxZoom
-        
-        OperationQueue.main.addOperation { [weak self] in
-            self?.programmaticZoomSlider.maximumValue = Float(maxZoom)
-            self?.programmaticZoomSlider.value = Float(zoomFactor)
-            self?.updateZoomLabel()
-        }
-    }
-    
-    func updateLensControls(lensType: CameraLensType, availableLenses: [CameraLensType]) {
-        currentLensType = lensType
-        availableLensTypes = availableLenses
-        
-        OperationQueue.main.addOperation { [weak self] in
-            self?.updateLensSegmentedControl()
-        }
-    }
-
-    // MARK: - Legacy Method (replaced by SwiftUI callbacks)
-    // @objc func onSegmentedControlChanged(event: UIEvent) - now handled in SwiftUI
-
+    // MARK: - Essential UIImagePickerController Delegate (keep for now)
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         if let image = info[.originalImage] {
             let activityViewController = UIActivityViewController(activityItems: [image], applicationActivities: [])
@@ -856,7 +335,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                 activityViewController.modalPresentationStyle = UIModalPresentationStyle.pageSheet
                 #else
                 activityViewController.modalPresentationStyle = UIModalPresentationStyle.popover
-                activityViewController.popoverPresentationController?.sourceView = self.galleryButton
+                // Note: Using view instead of removed galleryButton
+                activityViewController.popoverPresentationController?.sourceView = self.view
                 #endif
                 self.present(activityViewController, animated: true)
             }

@@ -62,6 +62,9 @@
 		0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2E01BE702BC00F0B238 /* CPSoundManager.m */; };
 		0684A2E81BE7049800F0B238 /* beep.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E61BE7049800F0B238 /* beep.m4a */; };
 		0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E91BE704C600F0B238 /* fastBeep.aif */; };
+		068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59A2E3544AD00A49279 /* MonitorView.swift */; };
+		068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */; };
+		068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */; };
 		068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
 		068EF0B02531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
 		068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
@@ -226,6 +229,9 @@
 		0684A2E01BE702BC00F0B238 /* CPSoundManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CPSoundManager.m; sourceTree = "<group>"; };
 		0684A2E61BE7049800F0B238 /* beep.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = beep.m4a; sourceTree = "<group>"; };
 		0684A2E91BE704C600F0B238 /* fastBeep.aif */ = {isa = PBXFileReference; lastKnownFileType = file; path = fastBeep.aif; sourceTree = "<group>"; };
+		068DF59A2E3544AD00A49279 /* MonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorView.swift; sourceTree = "<group>"; };
+		068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MonitorViewController+SwiftUI.swift"; sourceTree = "<group>"; };
+		068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorViewModel.swift; sourceTree = "<group>"; };
 		068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorVideoStates.swift; sourceTree = "<group>"; };
 		068EF0B72531844B00A84DFA /* CameraVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraVideoStates.swift; sourceTree = "<group>"; };
 		068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerDelegates.swift; sourceTree = "<group>"; };
@@ -405,6 +411,9 @@
 		069284601BE5C1A700AF4678 /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				068DF59A2E3544AD00A49279 /* MonitorView.swift */,
+				068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */,
+				068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */,
 				067327662E2DF85B003E5F94 /* PhotosAccessHelper.swift */,
 				067327642E2DF82A003E5F94 /* PhotosAccessDeniedView.swift */,
 				065024061BEA406B00311C8A /* Settings */,
@@ -787,6 +796,9 @@
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
 				85D33836258D48C30091972B /* UIViewController.swift in Sources */,
+				068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */,
+				068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */,
+				068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */,
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */,
 				068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
