@@ -133,6 +133,7 @@ extension MonitorVideoStates {
                 self.requestFrame([peer])
 
             case let cmd as UICmd.TakePicture:
+                print("🔴 DEBUG: TakePicture received in monitorRecordingVideo state - stopping recording")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this,  sendMediaToPeer: cmd.sendMediaToRemote))
 
             case is RemoteCmd.StopRecordingVideoAck:
@@ -174,6 +175,7 @@ extension MonitorVideoStates {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
+                monitor ! UICmd.RenderVideoMode()  // Reset UI to responsive state
                 ^{alert?.show(true)}
 
             case let w as RemoteCmd.StopRecordingVideoResp:

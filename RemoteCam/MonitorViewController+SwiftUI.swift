@@ -70,8 +70,10 @@ extension MonitorViewController {
     
     // MARK: - Action Handlers
     private func handleTakePicture() {
+        print("🔴 DEBUG: handleTakePicture called - isRecording: \(viewModel.isRecording), uiState: \(viewModel.uiState)")
         // Use existing UICmd.TakePicture logic
         session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: false)
+        print("🔴 DEBUG: UICmd.TakePicture sent to session")
     }
     
     private func handleToggleCamera() {
@@ -164,10 +166,9 @@ extension MonitorViewController {
     }
     
     private func showSettings() {
-        // Navigate to settings - this should match the existing logic
-        if let settingsVC = storyboard?.instantiateViewController(withIdentifier: "CMConfigurationsViewController") {
-            navigationController?.pushViewController(settingsVC, animated: true)
-        }
+        // Create settings controller directly (not from storyboard)
+        let ctrl = CMConfigurationsViewController()
+        navigationController?.pushViewController(ctrl, animated: true)
     }
 }
 

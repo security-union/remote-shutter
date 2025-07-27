@@ -191,7 +191,22 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private let sliderColor1 = UIColor(red: 0.150, green: 0.670, blue: 0.80, alpha: 1)
     private let sliderColor2 = UIColor(red: 0.060, green: 0.100, blue: 0.160, alpha: 1)
 
-    // MARK: - Legacy outlets removed - now using SwiftUI
+    // MARK: - Legacy outlets (kept for storyboard compatibility, not used)
+    @IBOutlet weak var backButton: UIButton?
+    @IBOutlet weak var flashButton: UIButton?
+    @IBOutlet weak var flashStatus: UILabel?
+    @IBOutlet weak var galleryButton: UIButton?
+    @IBOutlet weak var imageView: UIImageView?
+    @IBOutlet weak var settingsButton: UIButton?
+    @IBOutlet weak var sliderContainer: UIView?
+    @IBOutlet weak var takePicture: UIButton?
+    @IBOutlet weak var timerLabel: UILabel?
+    @IBOutlet weak var timerSlider: UISlider?
+    @IBOutlet weak var toggleCamera: UIButton?
+    @IBOutlet weak var controlsView: UIView?
+    @IBOutlet weak var segmentedControl: UISegmentedControl?
+    @IBOutlet weak var recordingView: UIImageView?
+    // Note: bannerView, bannerHeight, bottomBannerConstraint inherited from BaseViewController
     
     // Programmatic UI Controls
     private var programmaticZoomSlider: UISlider!

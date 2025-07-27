@@ -297,22 +297,35 @@ struct MonitorView: View {
     private var mainActionButton: some View {
         Button(action: onTakePicture) {
             ZStack {
+                // Outer border (always white)
                 Circle()
-                    .fill(viewModel.isRecording ? Color.red : Color.white)
+                    .fill(Color.white)
                     .frame(width: 80, height: 80)
                 
+                // Main button styling based on mode and recording state
                 if viewModel.isRecording {
+                    // Recording: Red background with white stop square
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 70, height: 70)
+                    
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.white)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 22, height: 22)
+                } else if viewModel.uiState == .videoMode || viewModel.uiState == .shortsMode {
+                    // Video mode (not recording): Red circle ready to record
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 70, height: 70)
                 } else {
+                    // Photo mode: White with black inner border
                     Circle()
                         .stroke(Color.black, lineWidth: 3)
                         .frame(width: 65, height: 65)
                 }
             }
         }
-        .disabled(!viewModel.isSegmentedControlEnabled)
+        .disabled(!viewModel.isSegmentedControlEnabled && !viewModel.isRecording)
     }
     
     private func actionButton(systemImage: String, action: @escaping () -> Void, isEnabled: Bool) -> some View {
@@ -338,9 +351,13 @@ struct MonitorView: View {
             
             Spacer()
             
-            // Flash/Torch Button (context-dependent)
+            // Flash/Torch Controls (context-dependent)
             if viewModel.uiState == .photoMode {
-                flashButton
+                // Show both flash and torch for photo mode
+                HStack(spacing: 20) {
+                    flashButton
+                    torchButton
+                }
             } else if viewModel.uiState == .videoMode || viewModel.uiState == .shortsMode {
                 torchButton
             }
