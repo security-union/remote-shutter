@@ -38,6 +38,8 @@ extension MonitorVideoStates {
                                 state: self.monitorPhotoMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
                 }
+                // Video and Shorts modes stay in video state
+                // UI differences are handled in SwiftUI view
 
             case is UICmd.TakePicture:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this))

@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import SwiftUI
 import Theater
 import AVFoundation
 
@@ -85,17 +86,22 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                 
             case is UICmd.RenderPhotoMode:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    ctrl?.value?.configurePhotoMode()
+                    ctrl?.value?.swiftUIConfigurePhotoMode()
                 }
 
             case is UICmd.RenderVideoMode:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    ctrl?.value?.configureVideoMode()
+                    ctrl?.value?.swiftUIConfigureVideoMode()
                 }
 
             case is UICmd.RenderVideoModeRecording:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    ctrl?.value?.configureVideoModeRecording()
+                    ctrl?.value?.swiftUIConfigureVideoRecording()
+                }
+
+            case is UICmd.RenderShortsMode:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.swiftUIConfigureShortsMode()
                 }
 
             case is UICmd.BecomeMonitorFailed:
@@ -105,37 +111,37 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
 
             case let cam as UICmd.ToggleCameraResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl {
-                        setFlashMode(ctrl: ctrl, flashMode: cam.flashMode)
+                    if let ctrl = ctrl?.value, let flashMode = cam.flashMode {
+                        ctrl.updateFlashModeInViewModel(flashMode)
                     }
                 }
 
             case let flash as RemoteCmd.ToggleFlashResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl {
-                        setFlashMode(ctrl: ctrl, flashMode: flash.flashMode)
+                    if let ctrl = ctrl?.value, let flashMode = flash.flashMode {
+                        ctrl.updateFlashModeInViewModel(flashMode)
                     }
                 }
 
             case let torch as RemoteCmd.ToggleTorchResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl {
-                        setTorchMode(ctrl: ctrl, torchMode: torch.torchMode)
+                    if let ctrl = ctrl?.value, let torchMode = torch.torchMode {
+                        ctrl.updateTorchModeInViewModel(torchMode)
                     }
                 }
                 
             case let torchSet as RemoteCmd.SetTorchResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl {
-                        setTorchMode(ctrl: ctrl, torchMode: torchSet.torchMode)
+                    if let ctrl = ctrl?.value, let torchMode = torchSet.torchMode {
+                        ctrl.updateTorchModeInViewModel(torchMode)
                     }
                 }
 
             case let f as RemoteCmd.OnFrame:
                 if let cgImage = UIImage(data: f.data) {
                     OperationQueue.main.addOperation {[weak ctrl] in
-                        if let ctrl = ctrl {
-                            ctrl.value?.imageView.image = cgImage
+                        if let ctrl = ctrl?.value {
+                            ctrl.updateCameraImageInViewModel(cgImage)
                         }
                     }
                 }
@@ -237,6 +243,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     let timer: RCTimer = RCTimer()
 
     let soundManager: CPSoundManager = CPSoundManager()
+    
+    // MARK: - SwiftUI Integration
+    private(set) var viewModel = MonitorViewModel()
+    var swiftUIHostingController: UIHostingController<MonitorView>?
 
     private let sliderColor1 = UIColor(red: 0.150, green: 0.670, blue: 0.80, alpha: 1)
     private let sliderColor2 = UIColor(red: 0.060, green: 0.100, blue: 0.160, alpha: 1)
@@ -287,10 +297,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private var zoomLabelTimer: Timer?
     
     // MARK: - Zoom and Lens Properties
-    private var currentZoomFactor: CGFloat = 1.0
+    var currentZoomFactor: CGFloat = 1.0
     public var maxZoomFactor: CGFloat = 10.0
-    private var availableLensTypes: [CameraLensType] = [.wideAngle]
-    private var currentLensType: CameraLensType = .wideAngle
+    var availableLensTypes: [CameraLensType] = [.wideAngle]
+    var currentLensType: CameraLensType = .wideAngle
 
     var buttonPrompt: String = ""
 
@@ -304,19 +314,12 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         super.viewDidLoad()
         print("🔍 DEBUG: MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
         monitor ! SetViewCtrl(ctrl: self)
-        self.configureTimerUI()
-        self.setupProgrammaticZoomAndLensControls()
-        self.setupProgrammaticTorchButton()
-        self.configureZoomUI()
-        self.configureLensUI()
-        self.segmentedControl.addTarget(self,
-                                        action: #selector(self.onSegmentedControlChanged(event:)),
-                                        for: .valueChanged)
-        self.takePicture.imageView?.contentMode = .scaleAspectFit
-        self.flashButton.imageView?.contentMode = .scaleAspectFit
-        self.imageView.contentMode = .scaleAspectFit
-        recordingView.image = UIImage.gifImageWithName("recording")
-        configurePhotoMode()
+        
+        // Setup SwiftUI view instead of storyboard
+        setupSwiftUIView()
+        
+        // Configure initial state
+        swiftUIConfigurePhotoMode()
         
         // Request camera capabilities after MonitorActor is fully set up
         // This handles the race condition where capabilities arrive before viewDidLoad
@@ -842,21 +845,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         }
     }
 
-    @objc func onSegmentedControlChanged(event: UIEvent) {
-        if InAppPurchasesManager.shared().hasVideoRecordingFeature() {
-            var mode = RecordingMode.Photo
-            switch segmentedControl.selectedSegmentIndex {
-            case 0:
-                mode = RecordingMode.Photo
-            default:
-                mode = RecordingMode.Video
-            }
-            session ! UICmd.BecomeMonitor(nil, mode: mode)
-        } else {
-            showSettings(sender: settingsButton)
-            segmentedControl.selectedSegmentIndex = 0
-        }
-    }
+    // MARK: - Legacy Method (replaced by SwiftUI callbacks)
+    // @objc func onSegmentedControlChanged(event: UIEvent) - now handled in SwiftUI
 
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         if let image = info[.originalImage] {

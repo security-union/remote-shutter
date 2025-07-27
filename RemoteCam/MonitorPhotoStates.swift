@@ -132,6 +132,11 @@ extension RemoteCamSession {
                     self.become(name: states.monitorVideoMode,
                                 state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
+                } else if mode.mode == RecordingMode.Shorts {
+                    // For now, shorts mode uses video recording with enhanced UI
+                    self.become(name: states.monitorVideoMode,
+                                state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby),
+                                discardOld: true)
                 }
 
             case is Disconnect:

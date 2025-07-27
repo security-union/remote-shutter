@@ -1,0 +1,171 @@
+import Foundation
+import SwiftUI
+import Combine
+
+// MARK: - UI State
+enum MonitorUIState {
+    case photoMode
+    case videoMode
+    case videoRecording
+    case shortsMode
+}
+
+// MARK: - Monitor View Model
+class MonitorViewModel: ObservableObject {
+    // MARK: - Published Properties
+    @Published var currentMode: RecordingMode = .Photo
+    @Published var uiState: MonitorUIState = .photoMode
+    @Published var isRecording: Bool = false
+    @Published var cameraImage: UIImage?
+    @Published var flashStatus: String = ""
+    @Published var isFlashEnabled: Bool = false
+    @Published var isTorchEnabled: Bool = false
+    @Published var buttonPrompt: String = ""
+    
+    // MARK: - Timer Properties
+    @Published var timerValue: Int = 0
+    @Published var timerSliderValue: Double = 0 {
+        didSet {
+            UserDefaults.standard.set(Int(timerSliderValue), forKey: "timerDefault")
+            UserDefaults.standard.synchronize()
+        }
+    }
+    @Published var maxTimerValue: Double = 10
+    
+    // MARK: - Zoom and Lens Properties
+    @Published var currentZoomFactor: CGFloat = 1.0
+    @Published var maxZoomFactor: CGFloat = 10.0
+    @Published var availableLensTypes: [CameraLensType] = [.wideAngle]
+    @Published var currentLensType: CameraLensType = .wideAngle
+    @Published var showZoomControls: Bool = false
+    
+    // MARK: - Initializer
+    init() {
+        // Load timer value from UserDefaults
+        self.timerSliderValue = Double(UserDefaults.standard.integer(forKey: "timerDefault"))
+    }
+    
+    // MARK: - Control State
+    @Published var isGalleryEnabled: Bool = true
+    @Published var isBackEnabled: Bool = true
+    @Published var isFlashButtonEnabled: Bool = true
+    @Published var isSettingsEnabled: Bool = true
+    @Published var isToggleCameraEnabled: Bool = true
+    @Published var isTimerSliderEnabled: Bool = true
+    @Published var isSegmentedControlEnabled: Bool = true
+    @Published var isLensControlEnabled: Bool = true
+    @Published var isZoomSliderEnabled: Bool = true
+    
+    // MARK: - UI Configuration Methods
+    func configurePhotoMode() {
+        DispatchQueue.main.async {
+            self.uiState = .photoMode
+            self.isRecording = false
+            self.isGalleryEnabled = true
+            self.isBackEnabled = true
+            self.isFlashButtonEnabled = true
+            self.isSettingsEnabled = true
+            self.isToggleCameraEnabled = true
+            self.isTimerSliderEnabled = true
+            self.isSegmentedControlEnabled = true
+            self.isLensControlEnabled = true
+            self.isZoomSliderEnabled = true
+            self.buttonPrompt = NSLocalizedString("Taking photo", comment: "")
+        }
+    }
+    
+    func configureVideoMode() {
+        DispatchQueue.main.async {
+            self.uiState = .videoMode
+            self.isRecording = false
+            self.isGalleryEnabled = true
+            self.isBackEnabled = true
+            self.isFlashButtonEnabled = false
+            self.isSettingsEnabled = true
+            self.isToggleCameraEnabled = true
+            self.isTimerSliderEnabled = true
+            self.isSegmentedControlEnabled = true
+            self.isLensControlEnabled = true
+            self.isZoomSliderEnabled = true
+            self.buttonPrompt = NSLocalizedString("Recording video", comment: "")
+        }
+    }
+    
+    func configureVideoRecording() {
+        DispatchQueue.main.async {
+            self.uiState = .videoRecording
+            self.isRecording = true
+            self.isGalleryEnabled = false
+            self.isBackEnabled = false
+            self.isFlashButtonEnabled = false
+            self.isSettingsEnabled = false
+            self.isToggleCameraEnabled = false
+            self.isTimerSliderEnabled = false
+            self.isSegmentedControlEnabled = false
+            self.isLensControlEnabled = false
+            self.isZoomSliderEnabled = false
+            self.buttonPrompt = NSLocalizedString("Stopping video", comment: "")
+        }
+    }
+    
+    func configureShortsMode() {
+        DispatchQueue.main.async {
+            self.uiState = .shortsMode
+            self.isRecording = false
+            self.isGalleryEnabled = true
+            self.isBackEnabled = true
+            self.isFlashButtonEnabled = false
+            self.isSettingsEnabled = true
+            self.isToggleCameraEnabled = true
+            self.isTimerSliderEnabled = false // Shorts will have its own duration controls
+            self.isSegmentedControlEnabled = true
+            self.isLensControlEnabled = true
+            self.isZoomSliderEnabled = true
+            self.buttonPrompt = NSLocalizedString("Recording shorts", comment: "")
+        }
+    }
+    
+    // MARK: - Update Methods (called from MonitorViewController Actor messages)
+    func updateCameraImage(_ image: UIImage?) {
+        DispatchQueue.main.async {
+            self.cameraImage = image
+        }
+    }
+    
+    func updateFlashStatus(_ status: String, isEnabled: Bool) {
+        DispatchQueue.main.async {
+            self.flashStatus = status
+            self.isFlashEnabled = isEnabled
+        }
+    }
+    
+    func updateTorchStatus(_ isEnabled: Bool) {
+        DispatchQueue.main.async {
+            self.isTorchEnabled = isEnabled
+        }
+    }
+    
+    func updateZoomFactor(_ factor: CGFloat, maxFactor: CGFloat) {
+        DispatchQueue.main.async {
+            self.currentZoomFactor = factor
+            self.maxZoomFactor = maxFactor
+        }
+    }
+    
+    func updateAvailableLenses(_ lenses: [CameraLensType], current: CameraLensType) {
+        DispatchQueue.main.async {
+            self.availableLensTypes = lenses
+            self.currentLensType = current
+        }
+    }
+    
+    func showZoomControlsTemporarily() {
+        DispatchQueue.main.async {
+            self.showZoomControls = true
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.showZoomControls = false
+        }
+    }
+} 
