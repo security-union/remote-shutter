@@ -71,9 +71,89 @@ extension MonitorViewController {
     // MARK: - Action Handlers
     private func handleTakePicture() {
         print("🔴 DEBUG: handleTakePicture called - isRecording: \(viewModel.isRecording), uiState: \(viewModel.uiState)")
+        
+        // If timer is running, cancel it
+        if viewModel.timerValue > 0 {
+            print("🔴 DEBUG: Canceling timer countdown")
+            self.timer.cancel()
+            self.soundManager.stopPlayer() // Stop any playing sound
+            resetTimerUI()
+            return
+        }
+        
+        let timerDuration = Int(viewModel.timerSliderValue)
+        
+        if timerDuration > 0 && viewModel.uiState == .photoMode {
+            // Start timer countdown for photo
+            print("🔴 DEBUG: Starting timer countdown: \(timerDuration) seconds")
+            startPhotoTimerCountdown(duration: timerDuration)
+        } else {
+            // No timer or video mode - execute immediately
+            print("🔴 DEBUG: No timer - executing immediately")
+            executeAction()
+        }
+    }
+    
+    private func startPhotoTimerCountdown(duration: Int) {
+        // Update UI to show countdown starting
+        viewModel.timerValue = duration
+        viewModel.buttonPrompt = "\(duration)"
+        
+        // Play initial countdown beep
+        if duration == 2 {
+            soundManager.playBeepSound(CPSoundManagerAudioTypeFast)
+        }else  if duration > 2 {
+            // no op  
+        } else {
+            soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
+        }
+        
+        self.timer.start(withDuration: duration, withTickHandler: { [weak self] timer in
+            DispatchQueue.main.async {
+                let remaining = timer!.timeRemaining()
+                self?.viewModel.timerValue = Int(remaining)
+                self?.viewModel.buttonPrompt = "\(remaining)"
+                
+                // Play countdown chimes
+                if remaining == 2 {
+                    // Fast beep only for final second
+                    self?.soundManager.playBeepSound(CPSoundManagerAudioTypeFast)
+                } else if remaining < 2 {
+                    // No op
+                } else {
+                    // Regular beep for all other countdown
+                    self?.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
+                }
+                
+                print("🔴 DEBUG: Timer tick - \(remaining) seconds remaining")
+            }
+        }, andCompletionHandler: { [weak self] _ in
+            DispatchQueue.main.async {
+                print("🔴 DEBUG: Timer completed - taking picture")
+                self?.executeAction()
+                self?.resetTimerUI()
+            }
+        })
+    }
+    
+    private func executeAction() {
         // Use existing UICmd.TakePicture logic
         session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: false)
         print("🔴 DEBUG: UICmd.TakePicture sent to session")
+    }
+    
+    private func resetTimerUI() {
+        viewModel.timerValue = 0
+        switch viewModel.uiState {
+        case .photoMode:
+            viewModel.buttonPrompt = NSLocalizedString("Taking photo", comment: "")
+        case .videoMode:
+            viewModel.buttonPrompt = NSLocalizedString("Recording video", comment: "")
+        case .videoRecording:
+            viewModel.buttonPrompt = NSLocalizedString("Stopping video", comment: "")
+        case .shortsMode:
+            viewModel.buttonPrompt = NSLocalizedString("Recording shorts", comment: "")
+        }
     }
     
     private func handleToggleCamera() {

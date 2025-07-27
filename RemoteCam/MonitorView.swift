@@ -323,6 +323,13 @@ struct MonitorView: View {
                         .stroke(Color.black, lineWidth: 3)
                         .frame(width: 65, height: 65)
                 }
+                
+                // Show countdown number if timer is active
+                if viewModel.timerValue > 0 {
+                    Text("\(viewModel.timerValue)")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(viewModel.uiState == .photoMode ? .black : .white)
+                }
             }
         }
         .disabled(!viewModel.isSegmentedControlEnabled && !viewModel.isRecording)
