@@ -38,6 +38,8 @@ extension MonitorVideoStates {
                                 state: self.monitorPhotoMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
                 }
+                // Video and Shorts modes stay in video state
+                // UI differences are handled in SwiftUI view
 
             case is UICmd.TakePicture:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this))
@@ -129,9 +131,29 @@ extension MonitorVideoStates {
             case is RemoteCmd.OnFrame:
                 monitor ! msg
                 self.requestFrame([peer])
+                
+            case let ack as RemoteCmd.StartRecordingVideoAck:
+                // Synchronize recording start time with camera
+                if let startTime = ack.recordingStartTime {
+                    monitor ! UICmd.SyncRecordingStartTime(startTime: startTime)
+                }
 
             case let cmd as UICmd.TakePicture:
+                print("🔴 DEBUG: TakePicture received in monitorRecordingVideo state - stopping recording")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this,  sendMediaToPeer: cmd.sendMediaToRemote))
+
+            case is UICmd.ToggleTorch:
+                // Handle torch toggle during video recording
+                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
+                    print("❌ DEBUG: Failed to send torch toggle command during video recording: \(f.tryError.localizedDescription)")
+                }
+                
+            case let torchResp as RemoteCmd.ToggleTorchResp:
+                // Handle torch response during video recording
+                if let error = torchResp.error {
+                    print("❌ DEBUG: Video recording torch response error: \(error.localizedDescription)")
+                }
+                monitor ! torchResp
 
             case is RemoteCmd.StopRecordingVideoAck:
                 self.become(
@@ -172,6 +194,7 @@ extension MonitorVideoStates {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
+                monitor ! UICmd.RenderVideoMode()  // Reset UI to responsive state
                 ^{alert?.show(true)}
 
             case let w as RemoteCmd.StopRecordingVideoResp:

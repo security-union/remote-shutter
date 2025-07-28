@@ -1,0 +1,27 @@
+//
+//  FeatureFlags.swift
+//  RemoteShutter
+//
+//  Created by Dario Lencina on 2025.
+//  Copyright © 2025 Security Union. All rights reserved.
+//
+
+import Foundation
+
+// MARK: - Global Feature Flags
+/// Centralized feature flag management for Remote Shutter app
+/// All feature flags should be defined here for easy management and consistency
+struct FeatureFlags {
+    
+    // MARK: - UI Features
+    
+    /// Enable Shorts mode (short-form video recording)
+    /// Set to true when Shorts mode implementation is complete
+    static let ENABLE_SHORTS_MODE = false
+    
+    // MARK: - Future Feature Flags
+    // Add new feature flags here as needed
+    // Example:
+    // static let ENABLE_AI_FILTERS = false
+    // static let ENABLE_CLOUD_SYNC = false
+} 
