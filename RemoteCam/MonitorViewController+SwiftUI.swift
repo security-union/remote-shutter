@@ -138,8 +138,9 @@ extension MonitorViewController {
     
     private func executeAction() {
         // Use existing UICmd.TakePicture logic
-        session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: false)
-        print("🔴 DEBUG: UICmd.TakePicture sent to session")
+        let shouldSendMedia = CMConfigurationsViewController.sendMediaToRemote()
+        session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: shouldSendMedia)
+        print("🔴 DEBUG: UICmd.TakePicture sent to session with sendMediaToRemote: \(shouldSendMedia)")
     }
     
     private func resetTimerUI() {
