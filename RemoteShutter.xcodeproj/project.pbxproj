@@ -105,6 +105,9 @@
 		06BB79AC2E372D370094E085 /* CameraRecordingTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79AA2E372D370094E085 /* CameraRecordingTimerView.swift */; };
 		06BB79AE2E372D420094E085 /* RecordingTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79AD2E372D420094E085 /* RecordingTimer.swift */; };
 		06BB79AF2E372D420094E085 /* RecordingTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79AD2E372D420094E085 /* RecordingTimer.swift */; };
+		06BB79B82E374D410094E085 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79B72E374D410094E085 /* FeatureFlags.swift */; };
+		06BB79B92E374D410094E085 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79B72E374D410094E085 /* FeatureFlags.swift */; };
+		06BB79BA2E374D410094E085 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79B72E374D410094E085 /* FeatureFlags.swift */; };
 		06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3D2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
@@ -264,6 +267,7 @@
 		06B1D8142536C3F90029CCB6 /* recording.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = recording.gif; sourceTree = "<group>"; };
 		06BB79AA2E372D370094E085 /* CameraRecordingTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraRecordingTimerView.swift; sourceTree = "<group>"; };
 		06BB79AD2E372D420094E085 /* RecordingTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingTimer.swift; sourceTree = "<group>"; };
+		06BB79B72E374D410094E085 /* FeatureFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlags.swift; sourceTree = "<group>"; };
 		06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamConnected.swift; sourceTree = "<group>"; };
 		06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCmds.swift; sourceTree = "<group>"; };
 		06CDFB1D252E9CD200EA56FB /* UICmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICmds.swift; sourceTree = "<group>"; };
@@ -452,6 +456,7 @@
 		069284611BE5C1BD00AF4678 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				06BB79B72E374D410094E085 /* FeatureFlags.swift */,
 				06CDFB1D252E9CD200EA56FB /* UICmds.swift */,
 				06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */,
 				069284451BE5C0E600AF4678 /* MultipeerMessages.swift */,
@@ -820,6 +825,7 @@
 				0673275D2E2DF142003E5F94 /* PermissionManager.swift in Sources */,
 				06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */,
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
+				06BB79B82E374D410094E085 /* FeatureFlags.swift in Sources */,
 				0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */,
 				0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */,
 				06CDFB2A252EC2C300EA56FB /* CGImage.swift in Sources */,
@@ -870,6 +876,7 @@
 				065532EF258C4BE9000C2339 /* DeviceScannerViewController.swift in Sources */,
 				85C11C0C2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C72531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				06BB79BA2E374D410094E085 /* FeatureFlags.swift in Sources */,
 				0631D182256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				06E9652825351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
 				06CDFB2B252EC2C300EA56FB /* CGImage.swift in Sources */,
@@ -897,6 +904,7 @@
 				065532F8258C4BF4000C2339 /* RolePickerController.swift in Sources */,
 				06184D43258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */,
 				0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
+				06BB79B92E374D410094E085 /* FeatureFlags.swift in Sources */,
 				065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */,
 				85C11C0D2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */,

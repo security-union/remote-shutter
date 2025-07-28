@@ -239,11 +239,15 @@ struct MonitorView: View {
     
     // MARK: - Mode Selector
     private var modeSelector: some View {
-                 HStack(spacing: 0) {
-             modeButton(title: "Photo", mode: .Photo)
-             modeButton(title: "Video", mode: .Video)
-             modeButton(title: "Shorts", mode: .Shorts)
-         }
+        HStack(spacing: 0) {
+            modeButton(title: "Photo", mode: .Photo)
+            modeButton(title: "Video", mode: .Video)
+            
+            // Shorts mode - feature flagged
+            if FeatureFlags.ENABLE_SHORTS_MODE {
+                modeButton(title: "Shorts", mode: .Shorts)
+            }
+        }
         .background(Color.gray.opacity(0.2))
         .cornerRadius(8)
         .disabled(!viewModel.isSegmentedControlEnabled)

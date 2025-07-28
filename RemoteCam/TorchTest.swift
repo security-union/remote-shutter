@@ -2,7 +2,7 @@
 //  TorchTest.swift
 //  RemoteShutter
 //
-//  Created by AI Assistant on 2024.
+//  Created by Dario Lencina on 2024.
 //  Copyright © 2024 Security Union LLC. All rights reserved.
 //
 
