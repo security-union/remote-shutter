@@ -53,6 +53,7 @@ class MonitorViewModel: ObservableObject {
     @Published var isGalleryEnabled: Bool = true
     @Published var isBackEnabled: Bool = true
     @Published var isFlashButtonEnabled: Bool = true
+    @Published var isTorchButtonEnabled: Bool = true
     @Published var isSettingsEnabled: Bool = true
     @Published var isToggleCameraEnabled: Bool = true
     @Published var isTimerSliderEnabled: Bool = true
@@ -68,6 +69,7 @@ class MonitorViewModel: ObservableObject {
             self.isGalleryEnabled = true
             self.isBackEnabled = true
             self.isFlashButtonEnabled = true
+            self.isTorchButtonEnabled = true
             self.isSettingsEnabled = true
             self.isToggleCameraEnabled = true
             self.isTimerSliderEnabled = true
@@ -87,6 +89,7 @@ class MonitorViewModel: ObservableObject {
             self.isGalleryEnabled = true
             self.isBackEnabled = true
             self.isFlashButtonEnabled = false
+            self.isTorchButtonEnabled = true
             self.isSettingsEnabled = true
             self.isToggleCameraEnabled = true
             self.isTimerSliderEnabled = true
@@ -106,6 +109,7 @@ class MonitorViewModel: ObservableObject {
             self.isGalleryEnabled = false
             self.isBackEnabled = false
             self.isFlashButtonEnabled = false
+            self.isTorchButtonEnabled = true
             self.isSettingsEnabled = false
             self.isToggleCameraEnabled = false
             self.isTimerSliderEnabled = false
@@ -123,6 +127,7 @@ class MonitorViewModel: ObservableObject {
             self.isGalleryEnabled = true
             self.isBackEnabled = true
             self.isFlashButtonEnabled = false
+            self.isTorchButtonEnabled = true
             self.isSettingsEnabled = true
             self.isToggleCameraEnabled = true
             self.isTimerSliderEnabled = false // Shorts will have its own duration controls

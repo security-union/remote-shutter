@@ -142,6 +142,19 @@ extension MonitorVideoStates {
                 print("🔴 DEBUG: TakePicture received in monitorRecordingVideo state - stopping recording")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this,  sendMediaToPeer: cmd.sendMediaToRemote))
 
+            case is UICmd.ToggleTorch:
+                // Handle torch toggle during video recording
+                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
+                    print("❌ DEBUG: Failed to send torch toggle command during video recording: \(f.tryError.localizedDescription)")
+                }
+                
+            case let torchResp as RemoteCmd.ToggleTorchResp:
+                // Handle torch response during video recording
+                if let error = torchResp.error {
+                    print("❌ DEBUG: Video recording torch response error: \(error.localizedDescription)")
+                }
+                monitor ! torchResp
+
             case is RemoteCmd.StopRecordingVideoAck:
                 self.become(
                     name: self.states.monitorWaitingForVideo,

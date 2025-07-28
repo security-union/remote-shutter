@@ -383,7 +383,7 @@ struct MonitorView: View {
                 .font(.system(size: 20))
                 .foregroundColor(viewModel.isTorchEnabled ? .yellow : .white)
         }
-        .disabled(!viewModel.isFlashButtonEnabled)
+        .disabled(!viewModel.isTorchButtonEnabled)
     }
 }
 
