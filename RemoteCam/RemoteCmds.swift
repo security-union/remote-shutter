@@ -36,14 +36,26 @@ public class RemoteCmd: Actor.Message {
     }
 
     @objc(_TtCC10ActorsDemo9RemoteCmd7StartRecordingVideoAck)public class StartRecordingVideoAck: RemoteCmd, NSCoding {
+        let recordingStartTime: Date?
+        
         public func encode(with aCoder: NSCoder) {
+            if let startTime = recordingStartTime {
+                aCoder.encode(startTime, forKey: "recordingStartTime")
+            }
         }
 
         public override init(sender: ActorRef?) {
+            self.recordingStartTime = nil
+            super.init(sender: sender)
+        }
+        
+        public init(sender: ActorRef?, recordingStartTime: Date?) {
+            self.recordingStartTime = recordingStartTime
             super.init(sender: sender)
         }
 
         public required init?(coder aDecoder: NSCoder) {
+            self.recordingStartTime = aDecoder.decodeObject(forKey: "recordingStartTime") as? Date
             super.init(sender: nil)
         }
     }

@@ -62,6 +62,9 @@
 		0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2E01BE702BC00F0B238 /* CPSoundManager.m */; };
 		0684A2E81BE7049800F0B238 /* beep.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E61BE7049800F0B238 /* beep.m4a */; };
 		0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E91BE704C600F0B238 /* fastBeep.aif */; };
+		068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59A2E3544AD00A49279 /* MonitorView.swift */; };
+		068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */; };
+		068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */; };
 		068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
 		068EF0B02531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
 		068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
@@ -98,6 +101,13 @@
 		06B1D8152536C3FA0029CCB6 /* recording.gif in Resources */ = {isa = PBXBuildFile; fileRef = 06B1D8142536C3F90029CCB6 /* recording.gif */; };
 		06B1D8162536C3FA0029CCB6 /* recording.gif in Resources */ = {isa = PBXBuildFile; fileRef = 06B1D8142536C3F90029CCB6 /* recording.gif */; };
 		06B1D8172536C3FA0029CCB6 /* recording.gif in Resources */ = {isa = PBXBuildFile; fileRef = 06B1D8142536C3F90029CCB6 /* recording.gif */; };
+		06BB79AB2E372D370094E085 /* CameraRecordingTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79AA2E372D370094E085 /* CameraRecordingTimerView.swift */; };
+		06BB79AC2E372D370094E085 /* CameraRecordingTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79AA2E372D370094E085 /* CameraRecordingTimerView.swift */; };
+		06BB79AE2E372D420094E085 /* RecordingTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79AD2E372D420094E085 /* RecordingTimer.swift */; };
+		06BB79AF2E372D420094E085 /* RecordingTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79AD2E372D420094E085 /* RecordingTimer.swift */; };
+		06BB79B82E374D410094E085 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79B72E374D410094E085 /* FeatureFlags.swift */; };
+		06BB79B92E374D410094E085 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79B72E374D410094E085 /* FeatureFlags.swift */; };
+		06BB79BA2E374D410094E085 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79B72E374D410094E085 /* FeatureFlags.swift */; };
 		06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3D2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
@@ -226,6 +236,9 @@
 		0684A2E01BE702BC00F0B238 /* CPSoundManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CPSoundManager.m; sourceTree = "<group>"; };
 		0684A2E61BE7049800F0B238 /* beep.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = beep.m4a; sourceTree = "<group>"; };
 		0684A2E91BE704C600F0B238 /* fastBeep.aif */ = {isa = PBXFileReference; lastKnownFileType = file; path = fastBeep.aif; sourceTree = "<group>"; };
+		068DF59A2E3544AD00A49279 /* MonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorView.swift; sourceTree = "<group>"; };
+		068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MonitorViewController+SwiftUI.swift"; sourceTree = "<group>"; };
+		068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorViewModel.swift; sourceTree = "<group>"; };
 		068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorVideoStates.swift; sourceTree = "<group>"; };
 		068EF0B72531844B00A84DFA /* CameraVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraVideoStates.swift; sourceTree = "<group>"; };
 		068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerDelegates.swift; sourceTree = "<group>"; };
@@ -252,6 +265,9 @@
 		06AEE43325333B4A00C2ED90 /* UIAlertController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIAlertController.swift; sourceTree = "<group>"; };
 		06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+gif.swift"; sourceTree = "<group>"; };
 		06B1D8142536C3F90029CCB6 /* recording.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = recording.gif; sourceTree = "<group>"; };
+		06BB79AA2E372D370094E085 /* CameraRecordingTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraRecordingTimerView.swift; sourceTree = "<group>"; };
+		06BB79AD2E372D420094E085 /* RecordingTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingTimer.swift; sourceTree = "<group>"; };
+		06BB79B72E374D410094E085 /* FeatureFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlags.swift; sourceTree = "<group>"; };
 		06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamConnected.swift; sourceTree = "<group>"; };
 		06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCmds.swift; sourceTree = "<group>"; };
 		06CDFB1D252E9CD200EA56FB /* UICmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICmds.swift; sourceTree = "<group>"; };
@@ -405,6 +421,10 @@
 		069284601BE5C1A700AF4678 /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				06BB79AD2E372D420094E085 /* RecordingTimer.swift */,
+				068DF59A2E3544AD00A49279 /* MonitorView.swift */,
+				068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */,
+				068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */,
 				067327662E2DF85B003E5F94 /* PhotosAccessHelper.swift */,
 				067327642E2DF82A003E5F94 /* PhotosAccessDeniedView.swift */,
 				065024061BEA406B00311C8A /* Settings */,
@@ -428,6 +448,7 @@
 				067327682E2E0293003E5F94 /* RemoteShutterHelpView.swift */,
 				067327602E2DF49B003E5F94 /* MicrophonePermissionPromptView.swift */,
 				067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */,
+				06BB79AA2E372D370094E085 /* CameraRecordingTimerView.swift */,
 			);
 			name = Controllers;
 			sourceTree = "<group>";
@@ -435,6 +456,7 @@
 		069284611BE5C1BD00AF4678 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				06BB79B72E374D410094E085 /* FeatureFlags.swift */,
 				06CDFB1D252E9CD200EA56FB /* UICmds.swift */,
 				06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */,
 				069284451BE5C0E600AF4678 /* MultipeerMessages.swift */,
@@ -787,6 +809,9 @@
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
 				85D33836258D48C30091972B /* UIViewController.swift in Sources */,
+				068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */,
+				068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */,
+				068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */,
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */,
 				068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
@@ -800,12 +825,14 @@
 				0673275D2E2DF142003E5F94 /* PermissionManager.swift in Sources */,
 				06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */,
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
+				06BB79B82E374D410094E085 /* FeatureFlags.swift in Sources */,
 				0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */,
 				0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */,
 				06CDFB2A252EC2C300EA56FB /* CGImage.swift in Sources */,
 				069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */,
 				067327692E2E0293003E5F94 /* RemoteShutterHelpView.swift in Sources */,
 				06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
+				06BB79AE2E372D420094E085 /* RecordingTimer.swift in Sources */,
 				067BEFCC2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift in Sources */,
 				0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */,
 				0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */,
@@ -832,6 +859,7 @@
 				0673275F2E2DF163003E5F94 /* CameraPermissionsView.swift in Sources */,
 				06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */,
 				0684A2D51BE6E9A000F0B238 /* MonitorStates.swift in Sources */,
+				06BB79AB2E372D370094E085 /* CameraRecordingTimerView.swift in Sources */,
 				0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */,
 				066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */,
 				069284541BE5C0E600AF4678 /* UIImage+ImageProcessing.m in Sources */,
@@ -848,6 +876,7 @@
 				065532EF258C4BE9000C2339 /* DeviceScannerViewController.swift in Sources */,
 				85C11C0C2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C72531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				06BB79BA2E374D410094E085 /* FeatureFlags.swift in Sources */,
 				0631D182256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				06E9652825351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
 				06CDFB2B252EC2C300EA56FB /* CGImage.swift in Sources */,
@@ -875,6 +904,7 @@
 				065532F8258C4BF4000C2339 /* RolePickerController.swift in Sources */,
 				06184D43258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */,
 				0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
+				06BB79B92E374D410094E085 /* FeatureFlags.swift in Sources */,
 				065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */,
 				85C11C0D2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
@@ -891,11 +921,13 @@
 				06B1D8112536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */,
 				061596F8251FCFDA0032289B /* Constants.m in Sources */,
+				06BB79AC2E372D370094E085 /* CameraRecordingTimerView.swift in Sources */,
 				85C11C072582F3FC00618F32 /* UIButton.swift in Sources */,
 				06D114D12532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
 				06E965232535199400E5A8B3 /* MediaProcessors.swift in Sources */,
 				068EF0BA2531844B00A84DFA /* CameraVideoStates.swift in Sources */,
 				068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
+				06BB79AF2E372D420094E085 /* RecordingTimer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -942,7 +974,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 54;
+				CURRENT_PROJECT_VERSION = 55;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -954,7 +986,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.6;
+				MARKETING_VERSION = 4.7;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -981,7 +1013,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 54;
+				CURRENT_PROJECT_VERSION = 55;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -993,7 +1025,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.6;
+				MARKETING_VERSION = 4.7;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
