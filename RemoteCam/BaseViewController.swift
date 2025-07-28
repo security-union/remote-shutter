@@ -62,8 +62,8 @@ public class iAdViewController: UIViewController {
     }
 
     @objc func ShouldHideAds(notification: NSNotification) {
-        DispatchQueue.main.async {
-            self.turnOffAds()
+        DispatchQueue.main.async {[weak self] in
+            self?.turnOffAds()
         }
     }
 

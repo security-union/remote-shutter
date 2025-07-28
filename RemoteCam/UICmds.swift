@@ -13,6 +13,7 @@ import MultipeerConnectivity
 enum RecordingMode {
     case Photo
     case Video
+    case Shorts
 }
 
 // MARK: - Shared Types (matching RemoteCmds.swift)
@@ -33,6 +34,8 @@ public class UICmd {
     public class RenderVideoMode: Actor.Message {}
 
     public class RenderVideoModeRecording: Actor.Message {}
+    
+    public class RenderShortsMode: Actor.Message {}
 
     public class BecomeMonitorFailed: Actor.Message {}
 
@@ -94,12 +97,21 @@ public class UICmd {
         }
     }
 
-    public class TakePicture: Actor.Message {
+    public     class TakePicture: Actor.Message {
         let sendMediaToRemote: Bool
-        
+
         public init(sender: ActorRef?, sendMediaToRemote: Bool) {
             self.sendMediaToRemote = sendMediaToRemote
             super.init(sender: sender)
+        }
+    }
+    
+    class SyncRecordingStartTime: Actor.Message {
+        let startTime: Date
+        
+        public init(startTime: Date) {
+            self.startTime = startTime
+            super.init(sender: nil)
         }
     }
 
