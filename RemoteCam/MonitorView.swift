@@ -187,10 +187,10 @@ struct MonitorView: View {
         .background(
             // Premium glassmorphism card background
             ZStack {
-                // Backdrop blur effect
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.black.opacity(0.3))
+                // Backdrop blur effect with proper clipping
+                Color.black.opacity(0.3)
                     .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 
                 // Subtle border highlight
                 RoundedRectangle(cornerRadius: 16)
