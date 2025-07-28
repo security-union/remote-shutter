@@ -47,6 +47,11 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                 OperationQueue.main.addOperation {[weak ctrl] in
                     ctrl?.value?.swiftUIConfigureVideoRecording()
                 }
+                
+            case let cmd as UICmd.SyncRecordingStartTime:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.recordingStartTime = cmd.startTime
+                }
 
             case is UICmd.RenderShortsMode:
                 OperationQueue.main.addOperation {[weak ctrl] in

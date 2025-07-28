@@ -97,12 +97,21 @@ public class UICmd {
         }
     }
 
-    public class TakePicture: Actor.Message {
+    public     class TakePicture: Actor.Message {
         let sendMediaToRemote: Bool
-        
+
         public init(sender: ActorRef?, sendMediaToRemote: Bool) {
             self.sendMediaToRemote = sendMediaToRemote
             super.init(sender: sender)
+        }
+    }
+    
+    class SyncRecordingStartTime: Actor.Message {
+        let startTime: Date
+        
+        public init(startTime: Date) {
+            self.startTime = startTime
+            super.init(sender: nil)
         }
     }
 

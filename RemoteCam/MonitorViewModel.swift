@@ -32,6 +32,10 @@ class MonitorViewModel: ObservableObject {
     }
     @Published var maxTimerValue: Double = 10
     
+    // MARK: - Recording Duration Properties
+    @Published var recordingStartTime: Date?
+    @Published var isShowingRecordingDuration: Bool = false
+    
     // MARK: - Zoom and Lens Properties
     @Published var currentZoomFactor: CGFloat = 1.0
     @Published var maxZoomFactor: CGFloat = 10.0
@@ -78,6 +82,8 @@ class MonitorViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.uiState = .videoMode
             self.isRecording = false
+            self.recordingStartTime = nil
+            self.isShowingRecordingDuration = false
             self.isGalleryEnabled = true
             self.isBackEnabled = true
             self.isFlashButtonEnabled = false
@@ -95,6 +101,8 @@ class MonitorViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.uiState = .videoRecording
             self.isRecording = true
+            self.recordingStartTime = Date()
+            self.isShowingRecordingDuration = true
             self.isGalleryEnabled = false
             self.isBackEnabled = false
             self.isFlashButtonEnabled = false

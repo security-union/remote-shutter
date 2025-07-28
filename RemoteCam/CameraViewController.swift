@@ -74,6 +74,10 @@ public class CameraViewController: UIViewController,
 
     // Variable used to downsample the camera preview, please use with care.
     private var sendFrame = true
+    
+    // MARK: - Recording Timer Properties
+    private var recordingStartTime: Date?
+    private var recordingTimerController: CameraRecordingTimerViewController?
 
     @IBOutlet weak var back: UIButton!
     @IBOutlet var recordingView: UIImageView!
@@ -84,6 +88,7 @@ public class CameraViewController: UIViewController,
         recordingView.image = UIImage.gifImageWithName("recording")
         session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
         configureIdleMode()
+        setupRecordingTimerOverlay()
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -106,6 +111,33 @@ public class CameraViewController: UIViewController,
         } else {
             showPermissionErrorView()
         }
+    }
+    
+    // MARK: - Recording Timer Methods
+    private func setupRecordingTimerOverlay() {
+        recordingTimerController = CameraRecordingTimerViewController()
+        
+        if let timerController = recordingTimerController {
+            addChild(timerController)
+            view.addSubview(timerController.view)
+            timerController.didMove(toParent: self)
+            
+            // Setup constraints to fill the entire view
+            timerController.view.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                timerController.view.topAnchor.constraint(equalTo: view.topAnchor),
+                timerController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                timerController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                timerController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+        }
+    }
+    
+    private func updateRecordingTimerDisplay() {
+        recordingTimerController?.updateRecordingState(
+            startTime: recordingStartTime,
+            isRecording: isRecording
+        )
     }
     
     private func showPermissionErrorView() {
@@ -845,6 +877,12 @@ extension CameraViewController {
             }
             self.isRecording = false
             self.recordingWillBeStopped = true
+            
+            // Stop recording timer
+            DispatchQueue.main.async { [weak self] in
+                self?.recordingStartTime = nil
+                self?.updateRecordingTimerDisplay()
+            }
             self.assetWriter?.finishWriting {[weak self] in
                 self?.assetWriter=nil
                 self?.readyToRecordVideo = false
@@ -1028,6 +1066,19 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             if !wasReadyToRecord && isReadyToRecord {
                 recordingWillBeStarted = false
                 self.isRecording = true
+                
+                // Start recording timer and notify monitor
+                DispatchQueue.main.async { [weak self] in
+                    let startTime = Date()
+                    self?.recordingStartTime = startTime
+                    self?.updateRecordingTimerDisplay()
+                    
+                    // Send recording start time to monitor for synchronization
+                    if let session = self?.session {
+                        session ! RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: startTime)
+                    }
+                    
+                }
             }
         }
     }

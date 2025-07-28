@@ -62,14 +62,17 @@ struct MonitorView: View {
                     )
             }
             
-            // Recording indicator
-            if viewModel.isRecording {
+            // Recording indicator with duration timer
+            if viewModel.isShowingRecordingDuration {
                 VStack {
                     HStack {
                         Spacer()
-                        recordingIndicator
-                            .padding(.top, 20)
-                            .padding(.trailing, 20)
+                        RecordingTimer(
+                            startTime: viewModel.recordingStartTime,
+                            isRecording: viewModel.isRecording
+                        )
+                        .padding(.top, 20)
+                        .padding(.trailing, 20)
                     }
                     Spacer()
                 }
@@ -117,23 +120,7 @@ struct MonitorView: View {
     }
     
     // MARK: - Recording Indicator
-    private var recordingIndicator: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(Color.red)
-                .frame(width: 12, height: 12)
-                .scaleEffect(1.0)
-                .animation(.easeInOut(duration: 1.0).repeatForever(), value: viewModel.isRecording)
-            
-            Text("REC")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.white)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color.black.opacity(0.6))
-        .cornerRadius(8)
-    }
+    // Note: Replaced with RecordingTimer component that includes duration
     
     // MARK: - Zoom Controls Overlay
     private var zoomControlsOverlay: some View {

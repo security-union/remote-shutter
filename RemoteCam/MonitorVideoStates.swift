@@ -131,6 +131,12 @@ extension MonitorVideoStates {
             case is RemoteCmd.OnFrame:
                 monitor ! msg
                 self.requestFrame([peer])
+                
+            case let ack as RemoteCmd.StartRecordingVideoAck:
+                // Synchronize recording start time with camera
+                if let startTime = ack.recordingStartTime {
+                    monitor ! UICmd.SyncRecordingStartTime(startTime: startTime)
+                }
 
             case let cmd as UICmd.TakePicture:
                 print("🔴 DEBUG: TakePicture received in monitorRecordingVideo state - stopping recording")
