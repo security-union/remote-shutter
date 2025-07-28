@@ -78,12 +78,12 @@ struct MonitorView: View {
                 }
             }
             
-            // Zoom controls overlay
+            // Zoom controls overlay - moved to right side to avoid gesture conflicts
             if viewModel.showZoomControls {
-                VStack {
+                HStack {
                     Spacer()
                     zoomControlsOverlay
-                        .padding(.bottom, 100)
+                        .padding(.trailing, 20)
                 }
             }
             
@@ -124,26 +124,45 @@ struct MonitorView: View {
     
     // MARK: - Zoom Controls Overlay
     private var zoomControlsOverlay: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
+            // Zoom level indicator
             Text("\(String(format: "%.1f", viewModel.currentZoomFactor))x")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.black.opacity(0.6))
-                .cornerRadius(8)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.black.opacity(0.7))
+                .cornerRadius(6)
             
-            Slider(
-                value: Binding(
-                    get: { viewModel.currentZoomFactor },
-                    set: { onZoomChange($0) }
-                ),
-                in: 1.0...viewModel.maxZoomFactor
-            )
-            .accentColor(.blue)
-            .disabled(!viewModel.isZoomSliderEnabled)
-            .frame(width: 200)
+            // Vertical progress bar (read-only) to show zoom level
+            ZStack(alignment: .bottom) {
+                // Background track
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.white.opacity(0.3))
+                    .frame(width: 6, height: 120)
+                
+                // Progress fill
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.blue)
+                    .frame(
+                        width: 6, 
+                        height: CGFloat(120 * Double((viewModel.currentZoomFactor - 1.0) / (viewModel.maxZoomFactor - 1.0)))
+                    )
+            }
+            
+            // Zoom range labels
+            VStack(spacing: 4) {
+                Text("\(String(format: "%.0f", viewModel.maxZoomFactor))x")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+                Spacer()
+                Text("1x")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .frame(height: 30)
         }
+        .frame(width: 30)
     }
     
     // MARK: - Controls Section
