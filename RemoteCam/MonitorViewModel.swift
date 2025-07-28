@@ -43,6 +43,9 @@ class MonitorViewModel: ObservableObject {
     @Published var currentLensType: CameraLensType = .wideAngle
     @Published var showZoomControls: Bool = false
     
+    // MARK: - Zoom Controls Watchdog Timer (DispatchSourceTimer for performance)
+    private var zoomControlsWatchdog: DispatchSourceTimer?
+    
     // MARK: - Initializer
     init() {
         // Load timer value from UserDefaults
@@ -173,12 +176,25 @@ class MonitorViewModel: ObservableObject {
     }
     
     func showZoomControlsTemporarily() {
-        DispatchQueue.main.async {
-            self.showZoomControls = true
+        // Show controls immediately (already on main thread from SwiftUI)
+        showZoomControls = true
+        
+        // Create timer only once, then reuse by resetting deadline
+        if zoomControlsWatchdog == nil {
+            zoomControlsWatchdog = DispatchSource.makeTimerSource(queue: .main)
+            zoomControlsWatchdog?.setEventHandler { [weak self] in
+                self?.showZoomControls = false
+            }
+            zoomControlsWatchdog?.resume()
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            self.showZoomControls = false
-        }
+        // Reset the timer deadline (much faster than recreating)
+        zoomControlsWatchdog?.schedule(deadline: .now() + 0.5)
+    }
+    
+    deinit {
+        // Clean up timer on deinit
+        zoomControlsWatchdog?.cancel()
+        zoomControlsWatchdog = nil
     }
 } 

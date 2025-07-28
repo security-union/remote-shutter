@@ -78,12 +78,12 @@ struct MonitorView: View {
                 }
             }
             
-            // Zoom controls overlay - moved to right side to avoid gesture conflicts
+            // Zoom controls overlay - positioned at top for right-handed accessibility
             if viewModel.showZoomControls {
-                HStack {
-                    Spacer()
+                VStack {
                     zoomControlsOverlay
-                        .padding(.trailing, 20)
+                        .padding(.top, 50) // Below status bar
+                    Spacer()
                 }
             }
             
@@ -112,7 +112,10 @@ struct MonitorView: View {
         .gesture(
             MagnificationGesture()
                 .onChanged { value in
-                    let newZoom = max(1.0, min(viewModel.maxZoomFactor, viewModel.currentZoomFactor * value))
+                    // Apply sensitivity multiplier to make zoom less sensitive
+                    let sensitivity: CGFloat = 0.5 // Reduce sensitivity by half
+                    let zoomChange = (value - 1.0) * sensitivity + 1.0
+                    let newZoom = max(1.0, min(viewModel.maxZoomFactor, viewModel.currentZoomFactor * zoomChange))
                     onZoomChange(newZoom)
                     viewModel.showZoomControlsTemporarily()
                 }
@@ -124,45 +127,88 @@ struct MonitorView: View {
     
     // MARK: - Zoom Controls Overlay
     private var zoomControlsOverlay: some View {
-        VStack(spacing: 16) {
-            // Zoom level indicator
-            Text("\(String(format: "%.1f", viewModel.currentZoomFactor))x")
-                .font(.system(size: 14, weight: .semibold))
+        VStack(spacing: 10) {
+            // Current zoom level - prominent display
+            Text("\(String(format: "%.1f", viewModel.currentZoomFactor))×")
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.black.opacity(0.7))
-                .cornerRadius(6)
+                .tracking(0.5)
             
-            // Vertical progress bar (read-only) to show zoom level
-            ZStack(alignment: .bottom) {
-                // Background track
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.white.opacity(0.3))
-                    .frame(width: 6, height: 120)
+            // Progress bar with refined styling
+            HStack(spacing: 8) {
+                // Start label
+                Text("1×")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.8))
                 
-                // Progress fill
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.blue)
-                    .frame(
-                        width: 6, 
-                        height: CGFloat(120 * Double((viewModel.currentZoomFactor - 1.0) / (viewModel.maxZoomFactor - 1.0)))
+                // Enhanced progress bar
+                ZStack(alignment: .leading) {
+                    // Background track with subtle gradient
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.15),
+                                    Color.white.opacity(0.25)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 140, height: 8)
+                    
+                    // Progress fill with beautiful gradient
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.0, green: 0.48, blue: 1.0), // iOS blue
+                                    Color(red: 0.0, green: 0.68, blue: 1.0)  // Lighter blue
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(
+                            width: CGFloat(140 * Double((viewModel.currentZoomFactor - 1.0) / (viewModel.maxZoomFactor - 1.0))), 
+                            height: 8
+                        )
+                        .shadow(color: Color.blue.opacity(0.3), radius: 2, x: 0, y: 1)
+                }
+                
+                // End label
+                Text("\(String(format: "%.0f", viewModel.maxZoomFactor))×")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(
+            // Premium glassmorphism card background
+            ZStack {
+                // Backdrop blur effect
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.black.opacity(0.3))
+                    .background(.ultraThinMaterial)
+                
+                // Subtle border highlight
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.4),
+                                Color.white.opacity(0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.5
                     )
             }
-            
-            // Zoom range labels
-            VStack(spacing: 4) {
-                Text("\(String(format: "%.0f", viewModel.maxZoomFactor))x")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.7))
-                Spacer()
-                Text("1x")
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.7))
-            }
-            .frame(height: 30)
-        }
-        .frame(width: 30)
+        )
+        .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 4)
+        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
     
     // MARK: - Controls Section
