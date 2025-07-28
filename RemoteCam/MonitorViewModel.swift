@@ -87,7 +87,7 @@ class MonitorViewModel: ObservableObject {
             self.isSegmentedControlEnabled = true
             self.isLensControlEnabled = true
             self.isZoomSliderEnabled = true
-            self.buttonPrompt = NSLocalizedString("Recording video", comment: "")
+            self.buttonPrompt = NSLocalizedString("Starting video", comment: "")
         }
     }
     

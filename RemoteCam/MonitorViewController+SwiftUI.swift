@@ -83,18 +83,18 @@ extension MonitorViewController {
         
         let timerDuration = Int(viewModel.timerSliderValue)
         
-        if timerDuration > 0 && viewModel.uiState == .photoMode {
-            // Start timer countdown for photo
+        if timerDuration > 0 && (viewModel.uiState == .photoMode || viewModel.uiState == .videoMode) {
+            // Start timer countdown for photo or video
             print("🔴 DEBUG: Starting timer countdown: \(timerDuration) seconds")
-            startPhotoTimerCountdown(duration: timerDuration)
+            startTimerCountdown(duration: timerDuration)
         } else {
-            // No timer or video mode - execute immediately
+            // No timer or shorts mode - execute immediately
             print("🔴 DEBUG: No timer - executing immediately")
             executeAction()
         }
     }
     
-    private func startPhotoTimerCountdown(duration: Int) {
+    private func startTimerCountdown(duration: Int) {
         // Update UI to show countdown starting
         viewModel.timerValue = duration
         viewModel.buttonPrompt = "\(duration)"
@@ -148,7 +148,7 @@ extension MonitorViewController {
         case .photoMode:
             viewModel.buttonPrompt = NSLocalizedString("Taking photo", comment: "")
         case .videoMode:
-            viewModel.buttonPrompt = NSLocalizedString("Recording video", comment: "")
+            viewModel.buttonPrompt = NSLocalizedString("Starting video", comment: "")
         case .videoRecording:
             viewModel.buttonPrompt = NSLocalizedString("Stopping video", comment: "")
         case .shortsMode:
