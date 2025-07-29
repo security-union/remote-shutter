@@ -98,6 +98,9 @@
 "help_remote_shutter_description" = "Tag fotos uden at røre kameraenheden";
 "help_video_recording_title" = "Video Optagelse";
 "help_video_recording_description" = "Start og stop video optagelse på afstand";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "Overfører Video";
 "help_camera_controls_title" = "Kamera Kontroller";
 "help_camera_controls_description" = "Juster blitz, lommelygte, timer og kamera indstillinger";
 

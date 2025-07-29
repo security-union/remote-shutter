@@ -12,7 +12,7 @@ struct VideoTransferProgressView: View {
         if isVisible {
             VStack(spacing: 12) {
                 // Transfer status text
-                Text("Transferring Video")
+                Text(NSLocalizedString("video_transfer_progress_title", comment: "Title shown during video transfer"))
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .tracking(0.3)
