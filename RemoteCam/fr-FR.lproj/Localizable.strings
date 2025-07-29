@@ -16,11 +16,11 @@
 "Cancel" = "Annuler";
 
 /* Local Network Permission Modal */
-"local_network_permission_title" = "Demander l'Accès au Réseau Local";
-"local_network_permission_subtitle" = "Remote Shutter a besoin de l'accès au réseau local pour découvrir et connecter vos appareils en utilisant le framework peer-to-peer d'Apple.";
+"local_network_title" = "Demander l'Accès au Réseau Local";
+"local_network_subtitle" = "Remote Shutter a besoin de l'accès au réseau local pour découvrir et connecter vos appareils en utilisant le framework peer-to-peer d'Apple.";
 
 "local_network_access_required_title" = "Accès au Réseau Local Requis";
-"local_network_access_required_subtitle" = "Remote Shutter a besoin de l'accès au réseau local pour fonctionner. Veuillez l'activer dans les Réglages pour continuer.";
+"local_network_required_subtitle" = "Remote Shutter a besoin de l'accès au réseau local pour fonctionner. Veuillez l'activer dans les Réglages pour continuer.";
 
 "local_network_feature_title" = "Connexion Peer-to-Peer";
 "local_network_feature_description" = "Utilise le framework MultipeerConnectivity d'Apple pour découvrir et connecter les appareils sur votre réseau local pour un contrôle à distance transparent.";

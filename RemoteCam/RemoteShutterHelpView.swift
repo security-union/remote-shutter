@@ -94,6 +94,7 @@ struct RemoteShutterHelpView: View {
                 }
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 
