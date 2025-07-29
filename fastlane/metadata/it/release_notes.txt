@@ -1,1 +1,0 @@
-Aggiunto interruttore nella schermata delle impostazioni per disabilitare l'invio di video/immagini al telecomando.
