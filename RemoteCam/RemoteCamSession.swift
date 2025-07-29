@@ -19,6 +19,10 @@ func getRemoteCamSession() -> ActorRef? {
     RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RemoteCam Session")
 }
 
+func getMonitorActor() -> ActorRef? {
+    RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/MonitorActor")
+}
+
 public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSessionDelegate {
 
     let states = RemoteCamStates()
@@ -133,22 +137,30 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             self.handleSendVideoResource(sendVideo)
             
         case let transferStarted as UICmd.VideoResourceTransferStarted:
-            // Forward to UI controllers
-            self.forwardToViewControllers(transferStarted)
+            // Forward to MonitorActor using actor system
+            self.forwardToActors(transferStarted)
+            // Also forward to current state (for camera states that have ctrl reference)
+            super.receive(msg: transferStarted)
             
         case let transferProgress as UICmd.VideoResourceTransferProgress:
-            // Forward to UI controllers
-            self.forwardToViewControllers(transferProgress)
+            // Forward to MonitorActor using actor system
+            self.forwardToActors(transferProgress)
+            // Also forward to current state (for camera states that have ctrl reference)
+            super.receive(msg: transferProgress)
             
         case let transferCompleted as UICmd.VideoResourceTransferCompleted:
-            // Forward to UI controllers and send video response
-            self.forwardToViewControllers(transferCompleted)
+            // Forward to MonitorActor and send video response
+            self.forwardToActors(transferCompleted)
             self.handleVideoTransferCompleted(transferCompleted)
+            // Also forward to current state (for camera states that have ctrl reference)
+            super.receive(msg: transferCompleted)
             
         case let transferFailed as UICmd.VideoResourceTransferFailed:
-            // Forward to UI controllers and send error response
-            self.forwardToViewControllers(transferFailed)
+            // Forward to MonitorActor and send error response
+            self.forwardToActors(transferFailed)
             self.handleVideoTransferFailed(transferFailed)
+            // Also forward to current state (for camera states that have ctrl reference)
+            super.receive(msg: transferFailed)
 
         default:
             super.receive(msg: msg)
@@ -314,14 +326,13 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: response)
     }
     
-    private func forwardToViewControllers(_ message: Actor.Message) {
-        // Use NotificationCenter for reliable view controller communication
-        DispatchQueue.main.async {
-            print("🔄 DEBUG: Posting notification for message: \(type(of: message))")
-            NotificationCenter.default.post(
-                name: NSNotification.Name("VideoTransferProgressNotification"),
-                object: message
-            )
+    private func forwardToActors(_ message: Actor.Message) {
+        // Send directly to MonitorActor using actor system
+        if let monitorActor = getMonitorActor() {
+            monitorActor ! message
         }
+        
+        // For camera side, we'll handle this in the camera states where we have the ctrl reference
+        // This is cleaner than notifications and maintains the actor pattern
     }
 }

@@ -324,49 +324,7 @@ extension MonitorViewController {
         viewModel.finishVideoTransfer()
     }
     
-    // MARK: - Video Transfer Notification Handling
-    func setupVideoTransferNotifications() {
-        NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("VideoTransferProgressNotification"),
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self = self,
-                  let message = notification.object as? Actor.Message else {
-                print("📺 DEBUG: MonitorViewController - Invalid notification object")
-                return
-            }
-            
-            print("📺 DEBUG: MonitorViewController received notification with: \(type(of: message))")
-            
-            switch message {
-            case let started as UICmd.VideoResourceTransferStarted:
-                print("📥 DEBUG: Monitor - Video transfer started: \(started.totalBytes) bytes")
-                self.viewModel.startVideoTransfer(totalBytes: started.totalBytes)
-                print("📥 DEBUG: Monitor ViewModel updated - isTransferring: \(self.viewModel.isVideoTransferring)")
-                
-            case let progress as UICmd.VideoResourceTransferProgress:
-                print("📥 DEBUG: Monitor - Video transfer progress: \(Int(progress.progress * 100))%")
-                self.viewModel.updateVideoTransferProgress(
-                    completedBytes: progress.completedBytes,
-                    totalBytes: progress.totalBytes
-                )
-                self.viewModel.updateVideoTransferSpeed(0) // Speed calculation would need additional tracking
-                print("📥 DEBUG: Monitor ViewModel progress: \(self.viewModel.videoTransferProgress)")
-                
-            case let completed as UICmd.VideoResourceTransferCompleted:
-                print("📥 DEBUG: Monitor - Video transfer completed successfully")
-                self.viewModel.finishVideoTransfer()
-                
-            case let failed as UICmd.VideoResourceTransferFailed:
-                print("📥 DEBUG: Monitor - Video transfer failed: \(failed.error.localizedDescription)")
-                self.viewModel.finishVideoTransfer()
-                
-            default:
-                print("📥 DEBUG: Monitor - Unknown message type: \(type(of: message))")
-                break
-            }
-        }
-        print("📺 DEBUG: MonitorViewController - Registered for video transfer notifications")
-    }
+    // MARK: - Video Transfer Progress
+    // Video transfer progress is now handled directly via MonitorActor
+    // using proper actor message passing instead of notifications
 } 

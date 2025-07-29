@@ -62,11 +62,32 @@ extension RemoteCamSession {
                              ctrl: CameraViewController,
                              lobby: Weak<DeviceScannerViewController>) -> Receive {
         // Note: Progress UI is now handled by SwiftUI VideoTransferProgressView
-        // No need for old UIAlertController
+        // Camera side progress updates are handled directly via ctrl reference
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
                 // Progress UI handled by SwiftUI components
+                break
+                
+            // MARK: - Video Transfer Progress Handling
+            case let started as UICmd.VideoResourceTransferStarted:
+                ctrl.cameraViewModel.startVideoTransfer(totalBytes: started.totalBytes)
+                print("📤 DEBUG: Camera state - Video transfer started: \(started.totalBytes) bytes")
+                
+            case let progress as UICmd.VideoResourceTransferProgress:
+                ctrl.cameraViewModel.updateVideoTransferProgress(
+                    completedBytes: progress.completedBytes,
+                    totalBytes: progress.totalBytes
+                )
+                print("📤 DEBUG: Camera state - Video transfer progress: \(Int(progress.progress * 100))%")
+                
+            case let completed as UICmd.VideoResourceTransferCompleted:
+                ctrl.cameraViewModel.finishVideoTransfer()
+                print("📤 DEBUG: Camera state - Video transfer completed")
+                
+            case let failed as UICmd.VideoResourceTransferFailed:
+                ctrl.cameraViewModel.finishVideoTransfer()
+                print("📤 DEBUG: Camera state - Video transfer failed: \(failed.error.localizedDescription)")
                 break
             case let c as RemoteCmd.StopRecordingVideoResp:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: c)

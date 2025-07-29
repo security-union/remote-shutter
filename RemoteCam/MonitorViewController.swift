@@ -167,6 +167,34 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                         }
                     }
                 }
+            
+            // MARK: - Video Transfer Progress Handling
+            case let started as UICmd.VideoResourceTransferStarted:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.startVideoTransfer(totalBytes: started.totalBytes)
+                    print("📺 DEBUG: MonitorActor - Video transfer started: \(started.totalBytes) bytes")
+                }
+                
+            case let progress as UICmd.VideoResourceTransferProgress:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.updateVideoTransferProgress(
+                        completedBytes: progress.completedBytes,
+                        totalBytes: progress.totalBytes
+                    )
+                    print("📺 DEBUG: MonitorActor - Video transfer progress: \(Int(progress.progress * 100))%")
+                }
+                
+            case let completed as UICmd.VideoResourceTransferCompleted:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.finishVideoTransfer()
+                    print("📺 DEBUG: MonitorActor - Video transfer completed")
+                }
+                
+            case let failed as UICmd.VideoResourceTransferFailed:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.finishVideoTransfer()
+                    print("📺 DEBUG: MonitorActor - Video transfer failed: \(failed.error.localizedDescription)")
+                }
                 
             default:
                 self.receive(msg: msg)
@@ -258,9 +286,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         // Setup SwiftUI view instead of storyboard
         setupSwiftUIView()
         
-        // Setup video transfer notifications
-        setupVideoTransferNotifications()
-        
         // Configure initial state
         swiftUIConfigurePhotoMode()
         
@@ -287,8 +312,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         self.soundManager.stopPlayer()
         session ! UICmd.UnbecomeMonitor(sender: nil)
         
-        // Remove notification observers
-        NotificationCenter.default.removeObserver(self)
+        // Video transfer progress is handled by MonitorActor - no cleanup needed
         print("📺 DEBUG: MonitorViewController - Removed notification observers")
         
         // Delay actor destruction to allow pending messages to arrive
