@@ -435,12 +435,14 @@ public class UICmd {
         public let totalBytes: Int64
         public let progress: Double
         public let resourceName: String
+        public let transferSpeed: Double // bytes per second
         
-        public init(completedBytes: Int64, totalBytes: Int64, progress: Double, resourceName: String, sender: ActorRef?) {
+        public init(completedBytes: Int64, totalBytes: Int64, progress: Double, resourceName: String, transferSpeed: Double = 0.0, sender: ActorRef?) {
             self.completedBytes = completedBytes
             self.totalBytes = totalBytes
             self.progress = progress
             self.resourceName = resourceName
+            self.transferSpeed = transferSpeed
             super.init(sender: sender)
         }
     }

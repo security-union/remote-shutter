@@ -79,7 +79,8 @@ extension RemoteCamSession {
                     completedBytes: progress.completedBytes,
                     totalBytes: progress.totalBytes
                 )
-                print("📤 DEBUG: Camera state - Video transfer progress: \(Int(progress.progress * 100))%")
+                ctrl.cameraViewModel.updateVideoTransferSpeed(progress.transferSpeed)
+                print("📤 DEBUG: Camera state - Video transfer progress: \(Int(progress.progress * 100))% - Speed: \(String(format: "%.1f", progress.transferSpeed / 1024 / 1024)) MB/s")
                 
             case let completed as UICmd.VideoResourceTransferCompleted:
                 ctrl.cameraViewModel.finishVideoTransfer()
