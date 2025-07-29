@@ -15,112 +15,109 @@ struct CameraPermissionsView: View {
     }
     
     var body: some View {
-        NavigationView {
-            GeometryReader { geometry in
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // Header section with icon and title
-                        VStack(spacing: 24) {
-                            Spacer()
-                                .frame(height: max(60, geometry.safeAreaInsets.top + 40))
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Header section with icon and title
+                    VStack(spacing: 24) {
+                        Spacer()
+                            .frame(height: max(60, geometry.safeAreaInsets.top + 40))
+                        
+                        // Camera icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue.opacity(0.1))
+                                .frame(width: 88, height: 88)
                             
-                            // Camera icon
-                            ZStack {
-                                Circle()
-                                    .fill(Color.blue.opacity(0.1))
-                                    .frame(width: 88, height: 88)
-                                
-                                Image(systemName: "camera.fill")
-                                    .font(.system(size: 36, weight: .medium))
-                                    .foregroundColor(.blue)
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 36, weight: .medium))
+                                .foregroundColor(.blue)
+                        }
+                        
+                        VStack(spacing: 12) {
+                            Text(localizedTitle)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.primary)
+                            
+                            Text(localizedSubtitle)
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    
+                    // Content section
+                    VStack(spacing: 24) {
+                        Spacer()
+                            .frame(height: 50)
+                        
+                        // Feature explanation cards
+                        VStack(spacing: 16) {
+                            FeatureCard(
+                                icon: "camera.circle",
+                                title: NSLocalizedString("camera_permission_feature_title", comment: ""),
+                                description: NSLocalizedString("camera_permission_feature_description", comment: "")
+                            )
+                            
+                            FeatureCard(
+                                icon: "photo.on.rectangle",
+                                title: NSLocalizedString("photos_permission_feature_title", comment: ""),
+                                description: NSLocalizedString("photos_permission_feature_description", comment: "")
+                            )
+                            
+                            FeatureCard(
+                                icon: "iphone.and.arrow.forward",
+                                title: NSLocalizedString("remote_control_feature_title", comment: ""),
+                                description: NSLocalizedString("remote_control_feature_description", comment: "")
+                            )
+                        }
+                        
+                        Spacer()
+                            .frame(height: 40)
+                        
+                        // Action buttons
+                        VStack(spacing: 12) {
+                            Button(action: primaryAction) {
+                                HStack {
+                                    Text(primaryButtonTitle)
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(Color.blue)
+                                .cornerRadius(12)
                             }
                             
-                            VStack(spacing: 12) {
-                                Text(localizedTitle)
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .multilineTextAlignment(.center)
-                                    .foregroundColor(.primary)
-                                
-                                Text(localizedSubtitle)
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(nil)
-                                    .fixedSize(horizontal: false, vertical: true)
+                            if permissionType == .initial {
+                                Button(action: onNotNow) {
+                                    Text(NSLocalizedString("camera_permissions_not_now", comment: ""))
+                                        .font(.body)
+                                        .foregroundColor(.blue)
+                                        .frame(height: 44)
+                                }
+                            } else {
+                                Button(action: dismissAction) {
+                                    Text(NSLocalizedString("camera_permissions_cancel", comment: ""))
+                                        .font(.body)
+                                        .foregroundColor(.blue)
+                                        .frame(height: 44)
+                                }
                             }
                         }
                         
-                        // Content section
-                        VStack(spacing: 24) {
-                            Spacer()
-                                .frame(height: 50)
-                            
-                            // Feature explanation cards
-                            VStack(spacing: 16) {
-                                FeatureCard(
-                                    icon: "camera.circle",
-                                    title: NSLocalizedString("camera_permission_feature_title", comment: ""),
-                                    description: NSLocalizedString("camera_permission_feature_description", comment: "")
-                                )
-                                
-                                FeatureCard(
-                                    icon: "photo.on.rectangle",
-                                    title: NSLocalizedString("photos_permission_feature_title", comment: ""),
-                                    description: NSLocalizedString("photos_permission_feature_description", comment: "")
-                                )
-                                
-                                FeatureCard(
-                                    icon: "iphone.and.arrow.forward",
-                                    title: NSLocalizedString("remote_control_feature_title", comment: ""),
-                                    description: NSLocalizedString("remote_control_feature_description", comment: "")
-                                )
-                            }
-                            
-                            Spacer()
-                                .frame(height: 40)
-                            
-                            // Action buttons
-                            VStack(spacing: 12) {
-                                Button(action: primaryAction) {
-                                    HStack {
-                                        Text(primaryButtonTitle)
-                                            .font(.headline)
-                                            .foregroundColor(.white)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 50)
-                                    .background(Color.blue)
-                                    .cornerRadius(12)
-                                }
-                                
-                                if permissionType == .initial {
-                                    Button(action: onNotNow) {
-                                        Text(NSLocalizedString("camera_permissions_not_now", comment: ""))
-                                            .font(.body)
-                                            .foregroundColor(.blue)
-                                            .frame(height: 44)
-                                    }
-                                } else {
-                                    Button(action: dismissAction) {
-                                        Text(NSLocalizedString("camera_permissions_cancel", comment: ""))
-                                            .font(.body)
-                                            .foregroundColor(.blue)
-                                            .frame(height: 44)
-                                    }
-                                }
-                            }
-                            
-                            Spacer()
-                                .frame(height: max(40, geometry.safeAreaInsets.bottom + 20))
-                        }
+                        Spacer()
+                            .frame(height: max(40, geometry.safeAreaInsets.bottom + 20))
                     }
                 }
             }
-            .padding(.horizontal, 24)
-            .background(Color(.systemBackground))
-            .navigationBarHidden(true)
         }
+        .padding(.horizontal, 24)
+        .background(Color(.systemBackground))
         .interactiveDismissDisabled()
     }
     
