@@ -390,4 +390,80 @@ public class UICmd {
             super.init(sender: nil)
         }
     }
+    
+    // MARK: - Video Resource Transfer Messages
+    
+    @objc(_TtCC10ActorsDemo5UICmd17SendVideoResource)public class SendVideoResource: Actor.Message, NSCoding {
+        public let videoURL: URL
+        public let peers: [MCPeerID]
+        public let shouldSendToPeer: Bool
+        
+        public init(videoURL: URL, peers: [MCPeerID], shouldSendToPeer: Bool, sender: ActorRef?) {
+            self.videoURL = videoURL
+            self.peers = peers
+            self.shouldSendToPeer = shouldSendToPeer
+            super.init(sender: sender)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+            aCoder.encode(videoURL, forKey: "videoURL")
+            aCoder.encode(peers, forKey: "peers")
+            aCoder.encode(shouldSendToPeer, forKey: "shouldSendToPeer")
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            self.videoURL = aDecoder.decodeObject(forKey: "videoURL") as! URL
+            self.peers = aDecoder.decodeObject(forKey: "peers") as! [MCPeerID]
+            self.shouldSendToPeer = aDecoder.decodeBool(forKey: "shouldSendToPeer")
+            super.init(sender: nil)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd26VideoResourceTransferStarted)public class VideoResourceTransferStarted: Actor.Message {
+        public let totalBytes: Int64
+        public let resourceName: String
+        
+        public init(totalBytes: Int64, resourceName: String, sender: ActorRef?) {
+            self.totalBytes = totalBytes
+            self.resourceName = resourceName
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd27VideoResourceTransferProgress)public class VideoResourceTransferProgress: Actor.Message {
+        public let completedBytes: Int64
+        public let totalBytes: Int64
+        public let progress: Double
+        public let resourceName: String
+        
+        public init(completedBytes: Int64, totalBytes: Int64, progress: Double, resourceName: String, sender: ActorRef?) {
+            self.completedBytes = completedBytes
+            self.totalBytes = totalBytes
+            self.progress = progress
+            self.resourceName = resourceName
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd28VideoResourceTransferCompleted)public class VideoResourceTransferCompleted: Actor.Message {
+        public let resourceName: String
+        public let success: Bool
+        
+        public init(resourceName: String, success: Bool, sender: ActorRef?) {
+            self.resourceName = resourceName
+            self.success = success
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd25VideoResourceTransferFailed)public class VideoResourceTransferFailed: Actor.Message {
+        public let error: Error
+        public let resourceName: String
+        
+        public init(error: Error, resourceName: String, sender: ActorRef?) {
+            self.error = error
+            self.resourceName = resourceName
+            super.init(sender: sender)
+        }
+    }
 }

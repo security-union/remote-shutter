@@ -9,6 +9,7 @@
 import Foundation
 import Theater
 import MultipeerConnectivity
+import Combine
 
 func getFrameSender() -> ActorRef? {
     RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender")
@@ -25,6 +26,9 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
     var session: MCSession!
 
     var mcAdvertiserAssistant: MCAdvertiserAssistant!
+    
+    // Progress tracking for video transfers
+    var progressCancellables = Set<AnyCancellable>()
 
     public required init(context: ActorSystem, ref: ActorRef) {
         super.init(context: context, ref: ref)
@@ -124,6 +128,28 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             print("🔍 DEBUG: Base session forwarding capabilities to peers")
             self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: capabilities)
 
+        // MARK: - Video Resource Transfer Handling
+        case let sendVideo as UICmd.SendVideoResource:
+            self.handleSendVideoResource(sendVideo)
+            
+        case let transferStarted as UICmd.VideoResourceTransferStarted:
+            // Forward to UI controllers
+            self.forwardToViewControllers(transferStarted)
+            
+        case let transferProgress as UICmd.VideoResourceTransferProgress:
+            // Forward to UI controllers
+            self.forwardToViewControllers(transferProgress)
+            
+        case let transferCompleted as UICmd.VideoResourceTransferCompleted:
+            // Forward to UI controllers and send video response
+            self.forwardToViewControllers(transferCompleted)
+            self.handleVideoTransferCompleted(transferCompleted)
+            
+        case let transferFailed as UICmd.VideoResourceTransferFailed:
+            // Forward to UI controllers and send error response
+            self.forwardToViewControllers(transferFailed)
+            self.handleVideoTransferFailed(transferFailed)
+
         default:
             super.receive(msg: msg)
         }
@@ -181,6 +207,99 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             }
         } else {
 //            print("✅ DEBUG: sendCommandOrGoToScanning successfully sent message")
+        }
+    }
+    
+    // MARK: - Video Resource Transfer Implementation
+    
+    private func handleSendVideoResource(_ sendVideo: UICmd.SendVideoResource) {
+        guard sendVideo.shouldSendToPeer else {
+            // Send empty response when not sending video to peer
+            let response = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
+            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: response)
+            return
+        }
+        
+        // Use the session's connected peers instead of relying on the message
+        let connectedPeers = self.session.connectedPeers
+        guard !connectedPeers.isEmpty else {
+            print("❌ DEBUG: No connected peers for video transfer")
+            let error = NSError(domain: "VideoTransfer", code: 1, userInfo: [NSLocalizedDescriptionKey: "No connected peers"])
+            let failedMsg = UICmd.VideoResourceTransferFailed(error: error, resourceName: "unknown", sender: self.this)
+            self.this ! failedMsg
+            return
+        }
+        
+        // Get file size for progress tracking
+        let fileSize: Int64
+        do {
+            let attributes = try FileManager.default.attributesOfItem(atPath: sendVideo.videoURL.path)
+            fileSize = attributes[.size] as? Int64 ?? 0
+        } catch {
+            print("❌ DEBUG: Error getting video file size: \(error.localizedDescription)")
+            let failedMsg = UICmd.VideoResourceTransferFailed(error: error, resourceName: "unknown", sender: self.this)
+            self.this ! failedMsg
+            return
+        }
+        
+        // Generate unique resource name
+        let resourceName = "video_\(UUID().uuidString).mov"
+        
+        // Notify about transfer start
+        let startedMsg = UICmd.VideoResourceTransferStarted(totalBytes: fileSize, resourceName: resourceName, sender: self.this)
+        self.this ! startedMsg
+        
+        // Send video file as resource to all connected peers
+        for peer in connectedPeers {
+            self.session.sendResource(
+                at: sendVideo.videoURL,
+                withName: resourceName,
+                toPeer: peer
+            ) { [weak self] error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        print("❌ DEBUG: Error sending video resource: \(error.localizedDescription)")
+                        let failedMsg = UICmd.VideoResourceTransferFailed(error: error, resourceName: resourceName, sender: self?.this)
+                        if let this = self?.this {
+                            this ! failedMsg
+                        }
+                    } else {
+                        print("✅ DEBUG: Video resource sent successfully")
+                        let completedMsg = UICmd.VideoResourceTransferCompleted(resourceName: resourceName, success: true, sender: self?.this)
+                        if let this = self?.this {
+                            this ! completedMsg
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func handleVideoTransferCompleted(_ completed: UICmd.VideoResourceTransferCompleted) {
+        if completed.success {
+            // Send success response without data (data sent via resource transfer)
+            let response = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
+            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: response)
+        }
+    }
+    
+    private func handleVideoTransferFailed(_ failed: UICmd.VideoResourceTransferFailed) {
+        // Send error response
+        let response = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: failed.error)
+        self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: response)
+    }
+    
+    private func forwardToViewControllers(_ message: Actor.Message) {
+        // Forward progress messages to UI controllers for display
+        // This will be handled by the view controllers that listen for these messages
+        DispatchQueue.main.async { [weak self] in
+            if let cameraVC = UIApplication.shared.keyWindow?.rootViewController?.navigationController?.visibleViewController as? CameraViewController {
+                cameraVC.handleVideoTransferMessage(message)
+            }
+            
+            if let monitorVC = UIApplication.shared.keyWindow?.rootViewController?.navigationController?.visibleViewController as? MonitorViewController {
+                monitorVC.handleVideoTransferMessage(message)
+            }
         }
     }
 }

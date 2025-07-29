@@ -306,4 +306,49 @@ extension MonitorViewController {
     func updateLensTypesInViewModel(_ lenses: [CameraLensType], current: CameraLensType) {
         viewModel.updateAvailableLenses(lenses, current: current)
     }
+    
+    // MARK: - Video Transfer Progress Methods
+    func startVideoTransferInViewModel(totalBytes: Int64) {
+        viewModel.startVideoTransfer(totalBytes: totalBytes)
+    }
+    
+    func updateVideoTransferProgressInViewModel(completedBytes: Int64, totalBytes: Int64) {
+        viewModel.updateVideoTransferProgress(completedBytes: completedBytes, totalBytes: totalBytes)
+    }
+    
+    func updateVideoTransferSpeedInViewModel(_ bytesPerSecond: Double) {
+        viewModel.updateVideoTransferSpeed(bytesPerSecond)
+    }
+    
+    func finishVideoTransferInViewModel() {
+        viewModel.finishVideoTransfer()
+    }
+    
+    // MARK: - Video Transfer Message Handling
+    func handleVideoTransferMessage(_ message: Actor.Message) {
+        switch message {
+        case let started as UICmd.VideoResourceTransferStarted:
+            viewModel.startVideoTransfer(totalBytes: started.totalBytes)
+            print("📥 DEBUG: Monitor - Video transfer started: \(started.totalBytes) bytes")
+            
+        case let progress as UICmd.VideoResourceTransferProgress:
+            viewModel.updateVideoTransferProgress(
+                completedBytes: progress.completedBytes,
+                totalBytes: progress.totalBytes
+            )
+            viewModel.updateVideoTransferSpeed(0) // Speed calculation would need additional tracking
+            print("📥 DEBUG: Monitor - Video transfer progress: \(Int(progress.progress * 100))%")
+            
+        case let completed as UICmd.VideoResourceTransferCompleted:
+            viewModel.finishVideoTransfer()
+            print("📥 DEBUG: Monitor - Video transfer completed successfully")
+            
+        case let failed as UICmd.VideoResourceTransferFailed:
+            viewModel.finishVideoTransfer()
+            print("📥 DEBUG: Monitor - Video transfer failed: \(failed.error.localizedDescription)")
+            
+        default:
+            break
+        }
+    }
 } 

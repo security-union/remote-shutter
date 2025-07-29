@@ -235,6 +235,15 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     var buttonPrompt: String = ""
 
+    // MARK: - Orientation Control
+    override public var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return .portrait
+    }
+    
+    override public var shouldAutorotate: Bool {
+        return false
+    }
+
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         print("🔍 DEBUG: MonitorViewController viewWillAppear - \(ObjectIdentifier(self))")

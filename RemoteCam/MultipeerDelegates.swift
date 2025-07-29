@@ -9,6 +9,8 @@
 import Foundation
 import Theater
 import MultipeerConnectivity
+import Combine
+import UIKit
 
 let AppStoreURL = URL(string: "https://apps.apple.com/us/app/remote-shutter/id633274861")!
 
@@ -79,11 +81,79 @@ extension RemoteCamSession {
     }
 
     public func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {
-
+        mailbox.addOperation(BlockOperation {
+            print("📥 DEBUG: Started receiving resource: \(resourceName) from \(peerID.displayName)")
+            
+            // Check if this is a video transfer
+            if resourceName.hasPrefix("video_") {
+                let totalBytes = progress.totalUnitCount
+                print("📊 DEBUG: Video transfer started - Total bytes: \(totalBytes)")
+                
+                // Send message through actor system
+                let startedMsg = UICmd.VideoResourceTransferStarted(totalBytes: totalBytes, resourceName: resourceName, sender: self.this)
+                self.this ! startedMsg
+                
+                // Observe progress changes and send progress messages
+                progress.publisher(for: \.fractionCompleted)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] fractionCompleted in
+                        let completedBytes = Int64(Double(progress.totalUnitCount) * fractionCompleted)
+                        print("📊 DEBUG: Video transfer progress: \(Int(fractionCompleted * 100))%")
+                        
+                        let progressMsg = UICmd.VideoResourceTransferProgress(
+                            completedBytes: completedBytes,
+                            totalBytes: progress.totalUnitCount,
+                            progress: fractionCompleted,
+                            resourceName: resourceName,
+                            sender: self?.this
+                        )
+                        if let this = self?.this {
+                            this ! progressMsg
+                        }
+                    }
+                    .store(in: &self.progressCancellables)
+            }
+        })
     }
 
     public func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {
-
+        mailbox.addOperation(BlockOperation {
+            print("📥 DEBUG: Finished receiving resource: \(resourceName) from \(peerID.displayName)")
+            
+            if let error = error {
+                print("❌ DEBUG: Error receiving resource: \(error.localizedDescription)")
+                
+                // Send failure message through actor system
+                let failedMsg = UICmd.VideoResourceTransferFailed(error: error, resourceName: resourceName, sender: self.this)
+                self.this ! failedMsg
+                return
+            }
+            
+            // Check if this is a video transfer
+            if resourceName.hasPrefix("video_") {
+                print("✅ DEBUG: Video transfer completed successfully")
+                
+                // Send completion message through actor system
+                let completedMsg = UICmd.VideoResourceTransferCompleted(resourceName: resourceName, success: true, sender: self.this)
+                self.this ! completedMsg
+                
+                // Handle the received video file
+                if let localURL = localURL {
+                    do {
+                        let videoData = try Data(contentsOf: localURL)
+                        let videoResp = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: videoData, error: nil)
+                        self.this ! videoResp
+                        
+                        // Clean up the temporary file
+                        try FileManager.default.removeItem(at: localURL)
+                    } catch {
+                        print("❌ DEBUG: Error processing received video: \(error.localizedDescription)")
+                        let videoResp = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: error)
+                        self.this ! videoResp
+                    }
+                }
+            }
+        })
     }
 
     @nonobjc public func session(session: MCSession, didReceiveCertificate certificate: [AnyObject]?, fromPeer peerID: MCPeerID, certificateHandler: @escaping (Bool) -> Void) {
