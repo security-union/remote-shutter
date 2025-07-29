@@ -98,6 +98,9 @@
 "help_remote_shutter_description" = "Scatta foto senza toccare il dispositivo fotocamera";
 "help_video_recording_title" = "Registrazione Video";
 "help_video_recording_description" = "Avvia e ferma la registrazione video da remoto";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "Trasferimento Video";
 "help_camera_controls_title" = "Controlli Fotocamera";
 "help_camera_controls_description" = "Regola flash, torcia, timer e impostazioni fotocamera";
 
