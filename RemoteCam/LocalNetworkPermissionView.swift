@@ -13,109 +13,106 @@ struct LocalNetworkPermissionView: View {
     }
     
     var body: some View {
-        NavigationView {
-            GeometryReader { geometry in
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // Header section with icon and title
-                        VStack(spacing: 24) {
-                            // Network icon
-                            ZStack {
-                                Circle()
-                                    .fill(Color.blue.opacity(0.1))
-                                    .frame(width: 88, height: 88)
-                                
-                                Image(systemName: "network")
-                                    .font(.system(size: 36, weight: .medium))
-                                    .foregroundColor(.blue)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Header section with icon and title
+                    VStack(spacing: 24) {
+                        // Network icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue.opacity(0.1))
+                                .frame(width: 88, height: 88)
+                            
+                            Image(systemName: "network")
+                                .font(.system(size: 36, weight: .medium))
+                                .foregroundColor(.blue)
+                        }
+                        
+                        VStack(spacing: 12) {
+                            Text(localizedTitle)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.primary)
+                            
+                            Text(localizedSubtitle)
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    
+                    // Content section
+                    VStack(spacing: 24) {
+                        Spacer()
+                            .frame(height: 50)
+                        
+                        // Feature explanation cards
+                        VStack(spacing: 16) {
+                            FeatureCard(
+                                icon: "iphone.and.arrow.forward",
+                                title: NSLocalizedString("local_network_feature_title", comment: ""),
+                                description: NSLocalizedString("local_network_feature_description", comment: "")
+                            )
+                            
+                            FeatureCard(
+                                icon: "lock.shield",
+                                title: NSLocalizedString("local_network_privacy_title", comment: ""),
+                                description: NSLocalizedString("local_network_privacy_description", comment: "")
+                            )
+                            
+                            FeatureCard(
+                                icon: "bolt.circle",
+                                title: NSLocalizedString("local_network_benefits_title", comment: ""),
+                                description: NSLocalizedString("local_network_benefits_description", comment: "")
+                            )
+                        }
+                        
+                        Spacer()
+                            .frame(height: 40)
+                        
+                        // Action buttons
+                        VStack(spacing: 12) {
+                            Button(action: primaryAction) {
+                                HStack {
+                                    Text(primaryButtonTitle)
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(Color.blue)
+                                .cornerRadius(12)
                             }
                             
-                            VStack(spacing: 12) {
-                                Text(localizedTitle)
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .multilineTextAlignment(.center)
-                                    .foregroundColor(.primary)
-                                
-                                Text(localizedSubtitle)
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(nil)
-                                    .fixedSize(horizontal: false, vertical: true)
+                            if permissionType == .initial {
+                                Button(action: onNotNow) {
+                                    Text(NSLocalizedString("local_network_not_now", comment: ""))
+                                        .font(.body)
+                                        .foregroundColor(.blue)
+                                        .frame(height: 44)
+                                }
+                            } else {
+                                Button(action: dismissAction) {
+                                    Text(NSLocalizedString("local_network_cancel", comment: ""))
+                                        .font(.body)
+                                        .foregroundColor(.blue)
+                                        .frame(height: 44)
+                                }
                             }
                         }
                         
-                        // Content section
-                        VStack(spacing: 24) {
-                            Spacer()
-                                .frame(height: 50)
-                            
-                            // Feature explanation cards
-                            VStack(spacing: 16) {
-                                FeatureCard(
-                                    icon: "iphone.and.arrow.forward",
-                                    title: NSLocalizedString("local_network_feature_title", comment: ""),
-                                    description: NSLocalizedString("local_network_feature_description", comment: "")
-                                )
-                                
-                                FeatureCard(
-                                    icon: "lock.shield",
-                                    title: NSLocalizedString("local_network_privacy_title", comment: ""),
-                                    description: NSLocalizedString("local_network_privacy_description", comment: "")
-                                )
-                                
-                                FeatureCard(
-                                    icon: "bolt.circle",
-                                    title: NSLocalizedString("local_network_benefits_title", comment: ""),
-                                    description: NSLocalizedString("local_network_benefits_description", comment: "")
-                                )
-                            }
-                            
-                            Spacer()
-                                .frame(height: 40)
-                            
-                            // Action buttons
-                            VStack(spacing: 12) {
-                                Button(action: primaryAction) {
-                                    HStack {
-                                        Text(primaryButtonTitle)
-                                            .font(.headline)
-                                            .foregroundColor(.white)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 50)
-                                    .background(Color.blue)
-                                    .cornerRadius(12)
-                                }
-                                
-                                if permissionType == .initial {
-                                    Button(action: onNotNow) {
-                                        Text(NSLocalizedString("local_network_not_now", comment: ""))
-                                            .font(.body)
-                                            .foregroundColor(.blue)
-                                            .frame(height: 44)
-                                    }
-                                } else {
-                                    Button(action: dismissAction) {
-                                        Text(NSLocalizedString("local_network_cancel", comment: ""))
-                                            .font(.body)
-                                            .foregroundColor(.blue)
-                                            .frame(height: 44)
-                                    }
-                                }
-                            }
-                            
-                            Spacer()
-                                .frame(height: max(40, geometry.safeAreaInsets.bottom + 20))
-                        }
+                        Spacer()
+                            .frame(height: max(40, geometry.safeAreaInsets.bottom + 20))
                     }
                 }
             }
-            .padding(.horizontal, 24)
-            .background(Color(.systemBackground))
-            .navigationBarHidden(true)
         }
+        .padding(.horizontal, 24)
+        .background(Color(.systemBackground))
         .interactiveDismissDisabled()
     }
     
@@ -124,18 +121,18 @@ struct LocalNetworkPermissionView: View {
     private var localizedTitle: String {
         switch permissionType {
         case .initial:
-            return NSLocalizedString("local_network_permission_title", comment: "")
+            return NSLocalizedString("local_network_title", comment: "")
         case .denied:
-            return NSLocalizedString("local_network_access_required_title", comment: "")
+            return NSLocalizedString("local_network_subtitle", comment: "")
         }
     }
     
     private var localizedSubtitle: String {
         switch permissionType {
         case .initial:
-            return NSLocalizedString("local_network_permission_subtitle", comment: "")
+            return NSLocalizedString("local_network_subtitle", comment: "")
         case .denied:
-            return NSLocalizedString("local_network_access_required_subtitle", comment: "")
+            return NSLocalizedString("local_network_required_subtitle", comment: "")
         }
     }
     
@@ -173,31 +170,58 @@ struct FeatureCard: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 24, weight: .medium))
-                .foregroundColor(.blue)
-                .frame(width: 32, height: 32)
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(width: 40, height: 40)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.blue)
+            }
             
+            // Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
                     .foregroundColor(.primary)
-                    .multilineTextAlignment(.leading)
                 
                 Text(description)
                     .font(.body)
                     .foregroundColor(.secondary)
-                    .multilineTextAlignment(.leading)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
             }
             
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
+        .padding(16)
+        .background(
+            // Premium glassmorphism card background
+            ZStack {
+                // Backdrop blur effect with proper clipping
+                Color.black.opacity(0.3)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                
+                // Subtle border highlight
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.4),
+                                Color.white.opacity(0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.5
+                    )
+            }
+        )
+        .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 4)
+        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
 }
 
