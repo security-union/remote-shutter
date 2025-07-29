@@ -251,7 +251,8 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         
         // Send video file as resource to all connected peers
         for peer in connectedPeers {
-            self.session.sendResource(
+            // Capture the Progress object returned by sendResource to track sending progress
+            let sendProgress = self.session.sendResource(
                 at: sendVideo.videoURL,
                 withName: resourceName,
                 toPeer: peer
@@ -271,6 +272,30 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                         }
                     }
                 }
+            }
+            
+            // Track sending progress using Combine (similar to receiving side)
+            if let progress = sendProgress {
+                print("📤 DEBUG: Started tracking sending progress for resource: \(resourceName)")
+                progress.publisher(for: \.fractionCompleted)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] fractionCompleted in
+                        let completedBytes = Int64(Double(progress.totalUnitCount) * fractionCompleted)
+                        print("📤 DEBUG: Camera sending progress: \(Int(fractionCompleted * 100))%")
+                        let progressMsg = UICmd.VideoResourceTransferProgress(
+                            completedBytes: completedBytes,
+                            totalBytes: progress.totalUnitCount,
+                            progress: fractionCompleted,
+                            resourceName: resourceName,
+                            sender: self?.this
+                        )
+                        if let this = self?.this {
+                            this ! progressMsg
+                        }
+                    }
+                    .store(in: &self.progressCancellables)
+            } else {
+                print("⚠️ DEBUG: No progress object returned from sendResource")
             }
         }
     }
