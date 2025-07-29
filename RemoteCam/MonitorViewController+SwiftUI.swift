@@ -306,4 +306,25 @@ extension MonitorViewController {
     func updateLensTypesInViewModel(_ lenses: [CameraLensType], current: CameraLensType) {
         viewModel.updateAvailableLenses(lenses, current: current)
     }
+    
+    // MARK: - Video Transfer Progress Methods
+    func startVideoTransferInViewModel(totalBytes: Int64) {
+        viewModel.startVideoTransfer(totalBytes: totalBytes)
+    }
+    
+    func updateVideoTransferProgressInViewModel(completedBytes: Int64, totalBytes: Int64) {
+        viewModel.updateVideoTransferProgress(completedBytes: completedBytes, totalBytes: totalBytes)
+    }
+    
+    func updateVideoTransferSpeedInViewModel(_ bytesPerSecond: Double) {
+        viewModel.updateVideoTransferSpeed(bytesPerSecond)
+    }
+    
+    func finishVideoTransferInViewModel() {
+        viewModel.finishVideoTransfer()
+    }
+    
+    // MARK: - Video Transfer Progress
+    // Video transfer progress is now handled directly via MonitorActor
+    // using proper actor message passing instead of notifications
 } 

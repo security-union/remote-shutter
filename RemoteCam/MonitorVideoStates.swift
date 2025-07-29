@@ -185,31 +185,26 @@ extension MonitorVideoStates {
     func monitorWaitingForVideo(monitor: ActorRef,
                                peer: MCPeerID,
                                lobby: Weak<DeviceScannerViewController>) -> Receive {
-        var alert: UIAlertController?
-        ^{
-            alert = UIAlertController(title: "Waiting for video file...",
-                    message: nil,
-                    preferredStyle: .alert)
-        }
+        // Note: Progress UI is now handled by SwiftUI VideoTransferProgressView
+        // No need for old UIAlertController
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
                 monitor ! UICmd.RenderVideoMode()  // Reset UI to responsive state
-                ^{alert?.show(true)}
+                // Progress UI handled by SwiftUI components
 
             case let w as RemoteCmd.StopRecordingVideoResp:
-                ^{alert?.title = "Saving video..."}
+                // Progress UI will be dismissed by SwiftUI when transfer completes
                 saveVideo(w)
-                ^{alert?.dismiss(animated: true)}
                 self.popToState(name: self.states.monitorVideoMode)
 
             case is Disconnect:
-                ^{alert?.dismiss(animated: true)}
+                // Progress UI handled by SwiftUI - no alert to dismiss
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                    ^{alert?.dismiss(animated: true)}
+                    // Progress UI handled by SwiftUI - no alert to dismiss
                     self.popAndStartScanning()
                 }
 

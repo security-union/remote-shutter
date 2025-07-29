@@ -167,6 +167,35 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                         }
                     }
                 }
+            
+            // MARK: - Video Transfer Progress Handling
+            case let started as UICmd.VideoResourceTransferStarted:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.startVideoTransfer(totalBytes: started.totalBytes)
+                    print("📺 DEBUG: MonitorActor - Video transfer started: \(started.totalBytes) bytes")
+                }
+                
+            case let progress as UICmd.VideoResourceTransferProgress:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.updateVideoTransferProgress(
+                        completedBytes: progress.completedBytes,
+                        totalBytes: progress.totalBytes
+                    )
+                    ctrl?.value?.viewModel.updateVideoTransferSpeed(progress.transferSpeed)
+                    print("📺 DEBUG: MonitorActor - Video transfer progress: \(Int(progress.progress * 100))% - Speed: \(String(format: "%.1f", progress.transferSpeed / 1024 / 1024)) MB/s")
+                }
+                
+            case let completed as UICmd.VideoResourceTransferCompleted:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.finishVideoTransfer()
+                    print("📺 DEBUG: MonitorActor - Video transfer completed")
+                }
+                
+            case let failed as UICmd.VideoResourceTransferFailed:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.finishVideoTransfer()
+                    print("📺 DEBUG: MonitorActor - Video transfer failed: \(failed.error.localizedDescription)")
+                }
                 
             default:
                 self.receive(msg: msg)
@@ -235,6 +264,15 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     var buttonPrompt: String = ""
 
+    // MARK: - Orientation Control
+    override public var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return .portrait
+    }
+    
+    override public var shouldAutorotate: Bool {
+        return false
+    }
+
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         print("🔍 DEBUG: MonitorViewController viewWillAppear - \(ObjectIdentifier(self))")
@@ -274,6 +312,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         self.zoomLabelTimer?.invalidate()
         self.soundManager.stopPlayer()
         session ! UICmd.UnbecomeMonitor(sender: nil)
+        
+        // Video transfer progress is handled by MonitorActor - no cleanup needed
+        print("📺 DEBUG: MonitorViewController - Removed notification observers")
         
         // Delay actor destruction to allow pending messages to arrive
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [monitor] in
