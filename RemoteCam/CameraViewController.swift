@@ -95,6 +95,7 @@ public class CameraViewController: UIViewController,
         configureIdleMode()
         setupRecordingTimerOverlay()
         setupProgressOverlay()
+        setupVideoTransferNotifications()
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -159,6 +160,7 @@ public class CameraViewController: UIViewController,
                 overlayController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
         }
+        print("📱 DEBUG: CameraViewController - Setup progress overlay")
     }
 
     
@@ -1017,30 +1019,50 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         print("📤 DEBUG: Sent SendVideoResource message to actor system")
     }
     
-    // MARK: - Video Transfer Message Handling
-    func handleVideoTransferMessage(_ message: Actor.Message) {
+    // MARK: - Video Transfer Notification Handling
+    private func setupVideoTransferNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleVideoTransferNotification(_:)),
+            name: NSNotification.Name("VideoTransferProgressNotification"),
+            object: nil
+        )
+        print("📱 DEBUG: CameraViewController - Registered for video transfer notifications")
+    }
+    
+    @objc private func handleVideoTransferNotification(_ notification: Notification) {
+        guard let message = notification.object as? Actor.Message else {
+            print("📱 DEBUG: CameraViewController - Invalid notification object")
+            return
+        }
+        
+        print("📱 DEBUG: CameraViewController received notification with: \(type(of: message))")
+        
         switch message {
         case let started as UICmd.VideoResourceTransferStarted:
-            cameraViewModel.startVideoTransfer(totalBytes: started.totalBytes)
             print("📤 DEBUG: Camera - Video transfer started: \(started.totalBytes) bytes")
+            cameraViewModel.startVideoTransfer(totalBytes: started.totalBytes)
+            print("📤 DEBUG: Camera ViewModel updated - isTransferring: \(cameraViewModel.isVideoTransferring)")
             
         case let progress as UICmd.VideoResourceTransferProgress:
+            print("📤 DEBUG: Camera - Video transfer progress: \(Int(progress.progress * 100))%")
             cameraViewModel.updateVideoTransferProgress(
                 completedBytes: progress.completedBytes,
                 totalBytes: progress.totalBytes
             )
             cameraViewModel.updateVideoTransferSpeed(0) // Speed calculation would need additional tracking
-            print("📤 DEBUG: Camera - Video transfer progress: \(Int(progress.progress * 100))%")
+            print("📤 DEBUG: Camera ViewModel progress: \(cameraViewModel.videoTransferProgress)")
             
         case let completed as UICmd.VideoResourceTransferCompleted:
-            cameraViewModel.finishVideoTransfer()
             print("📤 DEBUG: Camera - Video transfer completed successfully")
+            cameraViewModel.finishVideoTransfer()
             
         case let failed as UICmd.VideoResourceTransferFailed:
-            cameraViewModel.finishVideoTransfer()
             print("📤 DEBUG: Camera - Video transfer failed: \(failed.error.localizedDescription)")
+            cameraViewModel.finishVideoTransfer()
             
         default:
+            print("📤 DEBUG: Camera - Unknown message type: \(type(of: message))")
             break
         }
     }

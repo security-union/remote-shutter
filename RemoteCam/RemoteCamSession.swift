@@ -290,16 +290,13 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
     }
     
     private func forwardToViewControllers(_ message: Actor.Message) {
-        // Forward progress messages to UI controllers for display
-        // This will be handled by the view controllers that listen for these messages
-        DispatchQueue.main.async { [weak self] in
-            if let cameraVC = UIApplication.shared.keyWindow?.rootViewController?.navigationController?.visibleViewController as? CameraViewController {
-                cameraVC.handleVideoTransferMessage(message)
-            }
-            
-            if let monitorVC = UIApplication.shared.keyWindow?.rootViewController?.navigationController?.visibleViewController as? MonitorViewController {
-                monitorVC.handleVideoTransferMessage(message)
-            }
+        // Use NotificationCenter for reliable view controller communication
+        DispatchQueue.main.async {
+            print("🔄 DEBUG: Posting notification for message: \(type(of: message))")
+            NotificationCenter.default.post(
+                name: NSNotification.Name("VideoTransferProgressNotification"),
+                object: message
+            )
         }
     }
 }

@@ -258,6 +258,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         // Setup SwiftUI view instead of storyboard
         setupSwiftUIView()
         
+        // Setup video transfer notifications
+        setupVideoTransferNotifications()
+        
         // Configure initial state
         swiftUIConfigurePhotoMode()
         
@@ -283,6 +286,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         self.zoomLabelTimer?.invalidate()
         self.soundManager.stopPlayer()
         session ! UICmd.UnbecomeMonitor(sender: nil)
+        
+        // Remove notification observers
+        NotificationCenter.default.removeObserver(self)
+        print("📺 DEBUG: MonitorViewController - Removed notification observers")
         
         // Delay actor destruction to allow pending messages to arrive
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [monitor] in

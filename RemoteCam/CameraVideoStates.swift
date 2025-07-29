@@ -61,46 +61,32 @@ extension RemoteCamSession {
     func cameraTransmittingVideo(peer: MCPeerID,
                              ctrl: CameraViewController,
                              lobby: Weak<DeviceScannerViewController>) -> Receive {
-        var alert: UIAlertController?
-        ^{
-        alert = UIAlertController(title: "Sending video to Monitor",
-                message: nil,
-                preferredStyle: .alert)
-        }
+        // Note: Progress UI is now handled by SwiftUI VideoTransferProgressView
+        // No need for old UIAlertController
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
-                ^{
-                    alert?.show(true)
-                }
+                // Progress UI handled by SwiftUI components
+                break
             case let c as RemoteCmd.StopRecordingVideoResp:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: c)
-                ^{
-                    alert?.dismiss(animated: true) {
-                        self.mailbox.addOperation {
-                            self.popToState(name: self.states.camera)
-                        }
-                    }
+                // Progress UI handled by SwiftUI - no alert to dismiss
+                self.mailbox.addOperation {
+                    self.popToState(name: self.states.camera)
                 }
                 
             case let c as DisconnectPeer:
                 if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                    ^{
-                        alert?.dismiss(animated: true) {
-                            self.mailbox.addOperation {
-                                self.popAndStartScanning()
-                            }
-                        }
+                    // Progress UI handled by SwiftUI - no alert to dismiss
+                    self.mailbox.addOperation {
+                        self.popAndStartScanning()
                     }
                 }
 
             case is Disconnect:
-                ^{
-                    alert?.dismiss(animated: true) {
-                        self.mailbox.addOperation {
-                            self.popAndStartScanning()
-                        }
-                    }
+                // Progress UI handled by SwiftUI - no alert to dismiss
+                self.mailbox.addOperation {
+                    self.popAndStartScanning()
                 }
 
             default:
