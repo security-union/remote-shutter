@@ -12,6 +12,7 @@ import AVFoundation
 import Photos
 import StoreKit
 import SwiftUI
+import Combine
 
 /**
 Default fps, it would be neat if we would adjust this based on network conditions.
@@ -78,6 +79,10 @@ public class CameraViewController: UIViewController,
     // MARK: - Recording Timer Properties
     private var recordingStartTime: Date?
     private var recordingTimerController: CameraRecordingTimerViewController?
+    
+    // MARK: - Video Transfer Progress Properties
+    let cameraViewModel = CameraViewModel()
+    private var progressOverlayController: UIHostingController<CameraProgressOverlayView>?
 
     @IBOutlet weak var back: UIButton!
     @IBOutlet var recordingView: UIImageView!
@@ -89,6 +94,7 @@ public class CameraViewController: UIViewController,
         session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
         configureIdleMode()
         setupRecordingTimerOverlay()
+        setupProgressOverlay()
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -132,6 +138,30 @@ public class CameraViewController: UIViewController,
             ])
         }
     }
+    
+    // MARK: - Video Transfer Progress Methods
+    private func setupProgressOverlay() {
+        let progressOverlayView = CameraProgressOverlayView(viewModel: cameraViewModel)
+        progressOverlayController = UIHostingController(rootView: progressOverlayView)
+        
+        if let overlayController = progressOverlayController {
+            addChild(overlayController)
+            view.addSubview(overlayController.view)
+            overlayController.didMove(toParent: self)
+            
+            // Setup constraints to fill the entire view
+            overlayController.view.translatesAutoresizingMaskIntoConstraints = false
+            overlayController.view.backgroundColor = UIColor.clear
+            NSLayoutConstraint.activate([
+                overlayController.view.topAnchor.constraint(equalTo: view.topAnchor),
+                overlayController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                overlayController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                overlayController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+        }
+        print("📱 DEBUG: CameraViewController - Setup progress overlay")
+    }
+
     
     private func updateRecordingTimerDisplay() {
         recordingTimerController?.updateRecordingState(
@@ -936,39 +966,63 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
 
     func saveMovieToPhotosAppAndRemotePeer(_ sendVideoToPeer:Bool) {
         let outputFileURL = movieUrl()
-        if let data = try? Data(contentsOf: outputFileURL) {
-            // Send video to the monitor
-            let data_if_needed = sendVideoToPeer ? data : nil
-            session ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: data_if_needed, error: nil)
-            // Check the authorization status.
-            PHPhotoLibrary.requestAuthorization { status in
-                if status == .authorized {
-                    // Save the movie file to the photo library and cleanup.
-                    PHPhotoLibrary.shared().performChanges({
-                        let options = PHAssetResourceCreationOptions()
-                        options.shouldMoveFile = true
-                        let creationRequest = PHAssetCreationRequest.forAsset()
-                        creationRequest.addResource(with: .video, fileURL: outputFileURL, options: options)
-                    }, completionHandler: { success, error in
-                        if !success {
-                            print("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
+        
+                 // Send video to the monitor using resource transfer if requested
+         if sendVideoToPeer {
+             sendVideoAsResource(outputFileURL)
+         } else {
+             // Send empty response when not sending video
+             session ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
+         }
+         
+         // Check the authorization status.
+         PHPhotoLibrary.requestAuthorization { status in
+             if status == .authorized {
+                 // Save the movie file to the photo library and cleanup.
+                 PHPhotoLibrary.shared().performChanges({
+                     let options = PHAssetResourceCreationOptions()
+                     options.shouldMoveFile = true
+                     let creationRequest = PHAssetCreationRequest.forAsset()
+                     creationRequest.addResource(with: .video, fileURL: outputFileURL, options: options)
+                 }, completionHandler: { success, error in
+                     if !success {
+                         print("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
+                     }
+                     cleanupFileAt(outputFileURL)
+                 }
+                 )
+             } else {
+                 DispatchQueue.main.async {[weak self] in
+                     self?.showPhotosAccessDeniedModal(for: .video)
+                 }
+                 cleanupFileAt(outputFileURL)
                         }
-                        cleanupFileAt(outputFileURL)
-                    }
-                    )
-                } else {
-                    DispatchQueue.main.async {[weak self] in
-                        self?.showPhotosAccessDeniedModal(for: .video)
-                    }
-                    cleanupFileAt(outputFileURL)
-                }
-            }
-        } else {
-            cleanupFileAt(movieUrl())
-        }
+       }
+   }
+   
+       // MARK: - Video Resource Transfer
+    private func sendVideoAsResource(_ videoURL: URL) {
+        // Get connected peers through the session
+        // Note: We can't access session.connectedPeers directly since session is ActorRef
+        // Instead, we'll send a message to let the actor handle peer checking
+        
+        // Send message to RemoteCamSession actor to handle video resource transfer
+        let sendVideoMsg = UICmd.SendVideoResource(
+            videoURL: videoURL,
+            peers: [], // Will be populated by the actor from its session
+            shouldSendToPeer: true,
+            sender: nil
+        )
+        
+        session ! sendVideoMsg
+        print("📤 DEBUG: Sent SendVideoResource message to actor system")
     }
+    
+    // MARK: - Video Transfer Progress
+    // Video transfer progress is now handled directly in CameraVideoStates.swift
+    // via the direct ctrl reference passed to camera states
 
-    func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
+   func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
         var videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
         if #available(iOS 13, *) {

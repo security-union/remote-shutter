@@ -87,6 +87,16 @@ struct MonitorView: View {
                 }
             }
             
+            // Video transfer progress overlay - positioned at center
+            if viewModel.isVideoTransferring {
+                VideoTransferProgressView(
+                    progress: viewModel.videoTransferProgress,
+                    transferSizeText: viewModel.videoTransferSizeText,
+                    transferSpeedText: viewModel.videoTransferSpeedText,
+                    isVisible: viewModel.isVideoTransferring
+                )
+            }
+            
             // Flash status overlay
             if !viewModel.flashStatus.isEmpty && viewModel.uiState == .photoMode {
                 VStack {
