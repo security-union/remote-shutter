@@ -113,6 +113,7 @@
 		06BB79BF2E3884FA0094E085 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79BE2E3884FA0094E085 /* CameraViewModel.swift */; };
 		06BB79C12E38852B0094E085 /* VideoTransferProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */; };
 		06BB79C32E388D4B0094E085 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C22E388D4B0094E085 /* CameraViewModel.swift */; };
+		06BB79C42E389D6D0094E085 /* VideoTransferProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */; };
 		06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3D2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
@@ -925,6 +926,7 @@
 				065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */,
 				85C11C0D2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				06BB79C42E389D6D0094E085 /* VideoTransferProgressView.swift in Sources */,
 				0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
 				06CDFB2C252EC2C300EA56FB /* CGImage.swift in Sources */,
@@ -992,6 +994,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 57;
 				CURRENT_PROJECT_VERSION = 56;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
@@ -1004,6 +1007,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 4.9;
 				MARKETING_VERSION = 4.8;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
@@ -1031,7 +1035,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 56;
+				CURRENT_PROJECT_VERSION = 57;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -1043,7 +1047,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.8;
+				MARKETING_VERSION = 4.9;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
