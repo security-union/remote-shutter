@@ -93,18 +93,46 @@ extension RemoteCamSession {
                 let startedMsg = UICmd.VideoResourceTransferStarted(totalBytes: totalBytes, resourceName: resourceName, sender: self.this)
                 self.this ! startedMsg
                 
+                class SpeedTracker {
+                    var lastUpdateTime = Date()
+                    var lastCompletedBytes: Int64 = 0
+                    var lastCalculatedSpeed: Double = 0.0
+                }
+                let speedTracker = SpeedTracker()
+                
                 // Observe progress changes and send progress messages
                 progress.publisher(for: \.fractionCompleted)
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] fractionCompleted in
                         let completedBytes = Int64(Double(progress.totalUnitCount) * fractionCompleted)
-                        print("📊 DEBUG: Video transfer progress: \(Int(fractionCompleted * 100))%")
+                        
+                        // Simple speed calculation
+                        let currentTime = Date()
+                        let timeElapsed = currentTime.timeIntervalSince(speedTracker.lastUpdateTime)
+                        let bytesTransferred = completedBytes - speedTracker.lastCompletedBytes
+                        
+                        print("📊 DEBUG: Speed calc - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), lastCompleted: \(speedTracker.lastCompletedBytes), current: \(completedBytes)")
+                        
+                        let transferSpeed: Double
+                        if timeElapsed > 0.5 && bytesTransferred > 0 {
+                            transferSpeed = Double(bytesTransferred) / timeElapsed
+                            speedTracker.lastUpdateTime = currentTime
+                            speedTracker.lastCompletedBytes = completedBytes
+                            speedTracker.lastCalculatedSpeed = transferSpeed
+                            print("📊 DEBUG: Speed calculated: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
+                        } else {
+                            transferSpeed = speedTracker.lastCalculatedSpeed
+                            print("📊 DEBUG: Speed calculation skipped - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), using last speed: \(String(format: "%.1f", speedTracker.lastCalculatedSpeed / 1024 / 1024)) MB/s")
+                        }
+                        
+                        print("📊 DEBUG: Video transfer progress: \(Int(fractionCompleted * 100))% - Speed: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
                         
                         let progressMsg = UICmd.VideoResourceTransferProgress(
                             completedBytes: completedBytes,
                             totalBytes: progress.totalUnitCount,
                             progress: fractionCompleted,
                             resourceName: resourceName,
+                            transferSpeed: transferSpeed,
                             sender: self?.this
                         )
                         if let this = self?.this {
