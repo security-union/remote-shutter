@@ -190,6 +190,9 @@
 "photos_open_settings" = "Open Settings";
 "photos_dismiss" = "Dismiss";
 
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "Transferring Video";
+
 /* Help Modal */
 "help_title" = "How Remote Shutter Works";
 "help_subtitle" = "Take perfect photos and videos using two devices";

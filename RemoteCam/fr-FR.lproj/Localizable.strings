@@ -86,6 +86,9 @@
 "photos_open_settings" = "Ouvrir les Réglages";
 "photos_dismiss" = "Fermer";
 
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "Transfert Vidéo";
+
 /* Help Modal */
 "help_title" = "Comment Fonctionne Remote Shutter";
 "help_subtitle" = "Prenez des photos et vidéos parfaites en utilisant deux appareils";
