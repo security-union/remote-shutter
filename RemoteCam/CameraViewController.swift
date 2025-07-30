@@ -100,8 +100,6 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Back Button Management
     private func ensureBackButtonIsOnTop() {
-        // Ensure the back button is always on top of all overlays
-//        if let recordingView = 
         
         if let backButton = back {
             view.bringSubviewToFront(backButton)
