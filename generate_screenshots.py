@@ -35,6 +35,18 @@ LOCALIZATIONS = {
             "subtitle": "Take pictures",
             "description": "from anywhere.",
             "feature": "Works from\nup to 50\nfeet away!"
+        },
+        "screenshot3": {
+            "title": "Capture Memories",
+            "subtitle": "Just Like You",
+            "description": "Want Them",
+            "feature": "Perfect for\ncreative\nangles!"
+        },
+        "screenshot4": {
+            "title": "Setup Guide",
+            "subtitle": "Quick Start",
+            "description": "Instructions",
+            "feature": "Check that the device has wifi turned on.\n\nLaunch this app on your second device."
         }
     },
     "it": {
@@ -49,6 +61,18 @@ LOCALIZATIONS = {
             "subtitle": "Scatta foto",
             "description": "da ovunque.",
             "feature": "Funziona fino a\n50 piedi\ndi distanza!"
+        },
+        "screenshot3": {
+            "title": "Cattura Ricordi",
+            "subtitle": "Proprio Come",
+            "description": "Li Vuoi",
+            "feature": "Perfetto per\nangoli\ncreativi!"
+        },
+        "screenshot4": {
+            "title": "Guida Setup",
+            "subtitle": "Avvio Rapido",
+            "description": "Istruzioni",
+            "feature": "Verifica che il dispositivo abbia il wifi attivato.\n\nAvvia questa app sul tuo secondo dispositivo."
         }
     },
     "fr": {
@@ -63,6 +87,18 @@ LOCALIZATIONS = {
             "subtitle": "Prenez des photos",
             "description": "de n'importe où.",
             "feature": "Fonctionne jusqu'à\n50 pieds\nde distance!"
+        },
+        "screenshot3": {
+            "title": "Capturez des Souvenirs",
+            "subtitle": "Exactement Comme",
+            "description": "Vous Les Voulez",
+            "feature": "Parfait pour\ndes angles\ncréatifs!"
+        },
+        "screenshot4": {
+            "title": "Guide de Configuration",
+            "subtitle": "Démarrage Rapide",
+            "description": "Instructions",
+            "feature": "Vérifiez que l'appareil a le wifi activé.\n\nLancez cette app sur votre deuxième appareil."
         }
     },
     "es": {
@@ -77,6 +113,18 @@ LOCALIZATIONS = {
             "subtitle": "Toma fotos",
             "description": "desde cualquier lugar.",
             "feature": "¡Funciona hasta\n50 pies\nde distancia!"
+        },
+        "screenshot3": {
+            "title": "Captura Recuerdos",
+            "subtitle": "Exactamente Como",
+            "description": "Los Quieres",
+            "feature": "¡Perfecto para\nángulos\ncreativos!"
+        },
+        "screenshot4": {
+            "title": "Guía de Configuración",
+            "subtitle": "Inicio Rápido",
+            "description": "Instrucciones",
+            "feature": "Verifica que el dispositivo tenga wifi activado.\n\nLanza esta app en tu segundo dispositivo."
         }
     },
     "da": {
@@ -91,6 +139,18 @@ LOCALIZATIONS = {
             "subtitle": "Tag billeder",
             "description": "fra hvor som helst.",
             "feature": "Virker op til\n50 fod\nvæk!"
+        },
+        "screenshot3": {
+            "title": "Fang Minder",
+            "subtitle": "Præcis Som Du",
+            "description": "Vil Have Dem",
+            "feature": "Perfekt til\nkreative\nvinkler!"
+        },
+        "screenshot4": {
+            "title": "Opsætningsguide",
+            "subtitle": "Hurtig Start",
+            "description": "Instruktioner",
+            "feature": "Kontroller at enheden har wifi tændt.\n\nStart denne app på din anden enhed."
         }
     }
 }
@@ -336,44 +396,81 @@ def replace_text_in_svg(svg_content, lang, screenshot_type):
     
     return svg_content
 
-def generate_svg_from_template(device, lang, screenshot_type, output_dir):
-    """Generate SVG from template with localized content"""
+def generate_svg_from_template(device_config, lang, screenshot_type, output_dir, png_enabled):
+    """Generate SVG from template for specific device, language, and screenshot type"""
+    
+    # Create language directory first, then device directory
+    lang_dir = output_dir / lang
+    lang_dir.mkdir(exist_ok=True)
+    
+    device_dir = lang_dir / device_config['name'].lower().replace(' ', '_')
+    device_dir.mkdir(exist_ok=True)
     
     # Load template
-    template_name = f"screenshot{screenshot_type[-1]}"  # screenshot1 or screenshot2
-    try:
-        svg_content = load_svg_template(template_name, device)
-    except FileNotFoundError as e:
-        print(f"❌ Template not found: {e}")
-        return
+    template_name = f"{screenshot_type}_{device_config['name'].lower().replace(' ', '_')}.svg"
+    template_path = Path("svg_templates") / template_name
     
-    # Replace text placeholders
-    svg_content = replace_text_in_svg(svg_content, lang, screenshot_type)
+    if not template_path.exists():
+        print(f"❌ Template not found: {template_path}")
+        return False
     
-    # Save generated SVG
-    filename = f"screenshot{screenshot_type[-1]}_{device['name'].lower().replace(' ', '_')}_{lang}.svg"
-    filepath = output_dir / filename
+    # Load localization data
+    lang_file = Path("localization") / f"{lang}.json"
+    if not lang_file.exists():
+        print(f"❌ Localization file not found: {lang_file}")
+        return False
     
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(svg_content)
+    with open(lang_file, 'r', encoding='utf-8') as f:
+        lang_data = json.load(f)
     
-    print(f"Generated: {filename}")
+    # Load template content
+    with open(template_path, 'r', encoding='utf-8') as f:
+        template_content = f.read()
     
-    # Validate the generated SVG
-    is_valid, validation_msg = validate_svg_file(filepath)
-    if not is_valid:
-        print(f"⚠️  Warning: Generated SVG may be corrupted: {validation_msg}")
-        print(f"   Template: {template_name}_{device['name'].lower().replace(' ', '_')}.svg")
-        print(f"   Language: {lang}")
-        return
-    
-    # Convert to PNG if rsvg-convert is available
-    if check_rsvg_convert():
-        png_filename = filename.replace('.svg', '.png')
-        png_filepath = output_dir / png_filename
-        convert_svg_to_png(filepath, png_filepath, device["width"], device["height"])
+    # Replace placeholders
+    if screenshot_type == "screenshot1":
+        # Screenshot 1: Title, Subtitle, Description
+        replacements = {
+            "{{TITLE}}": lang_data.get(screenshot_type, {}).get("title", ""),
+            "{{SUBTITLE}}": lang_data.get(screenshot_type, {}).get("subtitle", ""),
+            "{{DESCRIPTION}}": lang_data.get(screenshot_type, {}).get("description", "")
+        }
     else:
-        print("⚠️  rsvg-convert not found. PNG conversion skipped.")
+        # Screenshots 2, 3, 4: Feature lines
+        feature_lines = lang_data.get(screenshot_type, {}).get("feature", "").split('\n')
+        replacements = {
+            "{{FEATURE_LINE1}}": feature_lines[0] if len(feature_lines) > 0 else "",
+            "{{FEATURE_LINE2}}": feature_lines[1] if len(feature_lines) > 1 else "",
+            "{{FEATURE_LINE3}}": feature_lines[2] if len(feature_lines) > 2 else "",
+            "{{FEATURE}}": lang_data.get(screenshot_type, {}).get("feature", "")
+        }
+    
+    # Apply replacements
+    for placeholder, value in replacements.items():
+        template_content = template_content.replace(placeholder, value)
+    
+    # Generate output filename
+    output_filename = f"{screenshot_type}_{lang}.svg"
+    output_path = device_dir / output_filename
+    
+    # Write SVG file
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(template_content)
+    
+    print(f"Generated: {output_path}")
+    
+    # Convert to PNG if converter is available
+    if png_enabled:
+        png_filename = f"{screenshot_type}_{lang}.png"
+        png_path = device_dir / png_filename
+        
+        if convert_svg_to_png(output_path, png_path, device_config['width'], device_config['height']):
+            return True
+        else:
+            print(f"⚠️  PNG conversion failed for {output_filename}")
+            return False
+    
+    return True
 
 def generate_all_screenshots():
     """Generate all screenshots for all devices and languages"""
@@ -417,6 +514,12 @@ def generate_all_screenshots():
         print("   - screenshot2_iphone_15_pro_max.svg")
         print("   - screenshot2_iphone_15_pro.svg")
         print("   - screenshot2_ipad_pro_11.svg")
+        print("   - screenshot3_iphone_15_pro_max.svg")
+        print("   - screenshot3_iphone_15_pro.svg")
+        print("   - screenshot3_ipad_pro_11.svg")
+        print("   - screenshot4_iphone_15_pro_max.svg")
+        print("   - screenshot4_iphone_15_pro.svg")
+        print("   - screenshot4_ipad_pro_11.svg")
         print()
         print("🔧 Template placeholders:")
         print("   {{TITLE}} - App title")
@@ -428,31 +531,39 @@ def generate_all_screenshots():
         print("   {{FEATURE_LINE3}} - Third line of feature text")
         return
     
-    total_screenshots = len(DEVICES) * len(LOCALIZATIONS) * 2
+    total_screenshots = len(DEVICES) * len(LOCALIZATIONS) * 4
     current = 0
     
-    for device_name, device_config in DEVICES.items():
-        print(f"📱 Generating for {device_config['name']}...")
+    for lang in LOCALIZATIONS.keys():
+        print(f"🌍 Language: {lang}")
         
-        for lang in LOCALIZATIONS.keys():
-            print(f"  🌍 Language: {lang}")
+        for device_name, device_config in DEVICES.items():
+            print(f"  📱 Device: {device_config['name']}")
             
             # Generate Screenshot 1
-            generate_svg_from_template(device_config, lang, "screenshot1", output_dir)
+            generate_svg_from_template(device_config, lang, "screenshot1", output_dir, png_enabled)
             current += 1
             
             # Generate Screenshot 2
-            generate_svg_from_template(device_config, lang, "screenshot2", output_dir)
+            generate_svg_from_template(device_config, lang, "screenshot2", output_dir, png_enabled)
             current += 1
             
-            print(f"    ✅ Generated 2 screenshots ({current}/{total_screenshots})")
+            # Generate Screenshot 3
+            generate_svg_from_template(device_config, lang, "screenshot3", output_dir, png_enabled)
+            current += 1
+            
+            # Generate Screenshot 4
+            generate_svg_from_template(device_config, lang, "screenshot4", output_dir, png_enabled)
+            current += 1
+            
+            print(f"    ✅ Generated 4 screenshots ({current}/{total_screenshots})")
     
     print()
     print("🎉 All screenshots generated successfully!")
     print(f"📊 Total screenshots: {total_screenshots}")
     print(f"📱 Devices: {len(DEVICES)}")
     print(f"🌍 Languages: {len(LOCALIZATIONS)}")
-    print(f"🖼️  Screenshots per device/language: 2")
+    print(f"🖼️  Screenshots per device/language: 4")
     
     if png_enabled:
         print(f"📄 Format: SVG + PNG")
@@ -461,6 +572,23 @@ def generate_all_screenshots():
             print(f"   - {device_config['name']}: {device_config['width']} x {device_config['height']}")
     else:
         print(f"📄 Format: SVG only (install rsvg-convert or Inkscape for PNG conversion)")
+    
+    print()
+    print("📁 New directory structure:")
+    print("   screenshots/")
+    for lang in LOCALIZATIONS.keys():
+        print(f"   ├── {lang}/")
+        for device_name, device_config in DEVICES.items():
+            device_dir = device_config['name'].lower().replace(' ', '_')
+            print(f"   │   ├── {device_dir}/")
+            print(f"   │   │   ├── screenshot1_{lang}.svg")
+            print(f"   │   │   ├── screenshot1_{lang}.png")
+            print(f"   │   │   ├── screenshot2_{lang}.svg")
+            print(f"   │   │   ├── screenshot2_{lang}.png")
+            print(f"   │   │   ├── screenshot3_{lang}.svg")
+            print(f"   │   │   ├── screenshot3_{lang}.png")
+            print(f"   │   │   ├── screenshot4_{lang}.svg")
+            print(f"   │   │   └── screenshot4_{lang}.png")
 
 def create_localization_files():
     """Create JSON files for each language for easy editing"""
@@ -483,10 +611,16 @@ def create_sample_templates():
     required_templates = [
         "screenshot1_iphone_15_pro_max.svg",
         "screenshot2_iphone_15_pro_max.svg", 
+        "screenshot3_iphone_15_pro_max.svg",
+        "screenshot4_iphone_15_pro_max.svg",
         "screenshot1_iphone_15_pro.svg",
         "screenshot2_iphone_15_pro.svg",
+        "screenshot3_iphone_15_pro.svg",
+        "screenshot4_iphone_15_pro.svg",
         "screenshot1_ipad_pro_11.svg",
-        "screenshot2_ipad_pro_11.svg"
+        "screenshot2_ipad_pro_11.svg",
+        "screenshot3_ipad_pro_11.svg",
+        "screenshot4_ipad_pro_11.svg"
     ]
     
     # Check which templates already exist
@@ -698,10 +832,16 @@ def create_sample_templates():
     templates = {
         "screenshot1_iphone_15_pro_max.svg": iphone_max_template1,
         "screenshot2_iphone_15_pro_max.svg": iphone_max_template2,
+        "screenshot3_iphone_15_pro_max.svg": iphone_max_template2,  # Use same layout as screenshot2
+        "screenshot4_iphone_15_pro_max.svg": iphone_max_template2,  # Use same layout as screenshot2
         "screenshot1_iphone_15_pro.svg": iphone_template1,
         "screenshot2_iphone_15_pro.svg": iphone_template2,
+        "screenshot3_iphone_15_pro.svg": iphone_template2,  # Use same layout as screenshot2
+        "screenshot4_iphone_15_pro.svg": iphone_template2,  # Use same layout as screenshot2
         "screenshot1_ipad_pro_11.svg": ipad_template1,
         "screenshot2_ipad_pro_11.svg": ipad_template2,
+        "screenshot3_ipad_pro_11.svg": ipad_template2,  # Use same layout as screenshot2
+        "screenshot4_ipad_pro_11.svg": ipad_template2,  # Use same layout as screenshot2
     }
     
     # Only create missing templates
@@ -742,10 +882,16 @@ def help_with_custom_svg():
     print("3. **File Naming**: Name your files exactly:")
     print("   - screenshot1_iphone_15_pro_max.svg")
     print("   - screenshot2_iphone_15_pro_max.svg")
+    print("   - screenshot3_iphone_15_pro_max.svg")
+    print("   - screenshot4_iphone_15_pro_max.svg")
     print("   - screenshot1_iphone_15_pro.svg")
     print("   - screenshot2_iphone_15_pro.svg")
+    print("   - screenshot3_iphone_15_pro.svg")
+    print("   - screenshot4_iphone_15_pro.svg")
     print("   - screenshot1_ipad_pro_11.svg")
     print("   - screenshot2_ipad_pro_11.svg")
+    print("   - screenshot3_ipad_pro_11.svg")
+    print("   - screenshot4_ipad_pro_11.svg")
     print()
     print("4. **Common Issues**:")
     print("   - If text doesn't replace: Check placeholder spelling")

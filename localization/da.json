@@ -10,5 +10,17 @@
     "subtitle": "Tag billeder",
     "description": "fra hvor som helst.",
     "feature": "Virker op til\n50 fod\nvæk!"
+  },
+  "screenshot3": {
+    "title": "Fang Minder",
+    "subtitle": "Præcis Som Du",
+    "description": "Vil Have Dem",
+    "feature": "Perfekt til\nkreative\nvinkler!"
+  },
+  "screenshot4": {
+    "title": "Opsætningsguide",
+    "subtitle": "Hurtig Start",
+    "description": "Instruktioner",
+    "feature": "Kontroller at enheden har wifi tændt.\n\nStart denne app på din anden enhed."
   }
 }

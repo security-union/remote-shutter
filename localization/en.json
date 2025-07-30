@@ -10,5 +10,17 @@
     "subtitle": "Take pictures",
     "description": "from anywhere.",
     "feature": "Works from\nup to 50\nfeet away!"
+  },
+  "screenshot3": {
+    "title": "Capture Memories",
+    "subtitle": "Just Like You",
+    "description": "Want Them",
+    "feature": "Perfect for\ncreative\nangles!"
+  },
+  "screenshot4": {
+    "title": "Setup Guide",
+    "subtitle": "Quick Start",
+    "description": "Instructions",
+    "feature": "Check that the device has wifi turned on.\n\nLaunch this app on your second device."
   }
 }

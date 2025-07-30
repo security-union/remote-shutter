@@ -10,5 +10,17 @@
     "subtitle": "Prenez des photos",
     "description": "de n'importe où.",
     "feature": "Fonctionne jusqu'à\n50 pieds\nde distance!"
+  },
+  "screenshot3": {
+    "title": "Capturez des Souvenirs",
+    "subtitle": "Exactement Comme",
+    "description": "Vous Les Voulez",
+    "feature": "Parfait pour\ndes angles\ncréatifs!"
+  },
+  "screenshot4": {
+    "title": "Guide de Configuration",
+    "subtitle": "Démarrage Rapide",
+    "description": "Instructions",
+    "feature": "Vérifiez que l'appareil a le wifi activé.\n\nLancez cette app sur votre deuxième appareil."
   }
 }
