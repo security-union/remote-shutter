@@ -101,6 +101,8 @@ public class CameraViewController: UIViewController,
     // MARK: - Back Button Management
     private func ensureBackButtonIsOnTop() {
         // Ensure the back button is always on top of all overlays
+//        if let recordingView = 
+        
         if let backButton = back {
             view.bringSubviewToFront(backButton)
         }
@@ -227,7 +229,7 @@ public class CameraViewController: UIViewController,
     func configureIdleMode() {
         recordingView.isHidden = true
         back.isHidden = false
-        activityIndicator.style = .whiteLarge
+        activityIndicator.style = UIActivityIndicatorView.Style.large
         activityIndicator.color = UIColor.white
     }
 
@@ -271,7 +273,7 @@ public class CameraViewController: UIViewController,
         self.captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
         DispatchQueue.main.async {
             self.captureVideoPreviewLayer!.frame = self.view.frame
-            self.view.layer.insertSublayer(self.captureVideoPreviewLayer!, below: self.back.layer)
+            self.view.layer.insertSublayer(self.captureVideoPreviewLayer!, below: self.recordingView.layer)
         }
 
         do {
