@@ -1,0 +1,28 @@
+{
+  "screenshot1": {
+    "title": "Remote Shutter",
+    "subtitle": "Take pictures",
+    "description": "from anywhere.",
+    "feature": "Works from\nup to 50\nfeet away!"
+  },
+  "screenshot2": {
+    "title": "Remote Shutter",
+    "subtitle": "Take pictures",
+    "description": "from anywhere.",
+    "feature": "Works from\nup to 50\nfeet away!"
+  },
+  "screenshot3": {
+    "title": "Capture Memories",
+    "subtitle": "Just Like You",
+    "description": "Want Them",
+    "feature": "Perfect for\ncreative\nangles!"
+  },
+  "screenshot4": {
+    "title": "Setup Guide",
+    "subtitle": "Quick Start",
+    "description": "Instructions",
+    "feature": "Instructions\nVerify that wifi is on\nLaunch this app\non a second device",
+    "camera": "Camera",
+    "remote": "Remote"
+  }
+}
