@@ -22,12 +22,12 @@
      inkscape:deskcolor="#505050"
      showgrid="false"
      inkscape:zoom="0.325054"
-     inkscape:cx="310.71761"
-     inkscape:cy="1638.1894"
+     inkscape:cx="615.28238"
+     inkscape:cy="1179.804"
      inkscape:window-width="1390"
      inkscape:window-height="1027"
-     inkscape:window-x="0"
-     inkscape:window-y="25"
+     inkscape:window-x="1327"
+     inkscape:window-y="28"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg1846" />
   <defs
@@ -65,13 +65,89 @@
        width="1188.9967"
        height="356.07974"
        id="rect4259" />
+    <rect
+       x="148.62457"
+       y="247.70764"
+       width="1188.9967"
+       height="356.07974"
+       id="rect4259-1" />
+    <filter
+       inkscape:collect="always"
+       style="color-interpolation-filters:sRGB"
+       id="filter6365"
+       x="-0.020604866"
+       y="-0.1909516"
+       width="1.0412097"
+       height="1.3819032">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="7.7144445"
+         id="feGaussianBlur6367" />
+    </filter>
+    <rect
+       x="148.62457"
+       y="247.70764"
+       width="1188.9967"
+       height="356.07974"
+       id="rect4259-3" />
+    <rect
+       x="148.62457"
+       y="247.70764"
+       width="1188.9967"
+       height="356.07974"
+       id="rect4259-2-5" />
+    <filter
+       inkscape:collect="always"
+       style="color-interpolation-filters:sRGB"
+       id="filter6361"
+       x="-0.020205505"
+       y="-0.1909516"
+       width="1.040411"
+       height="1.3819032">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="7.7144445"
+         id="feGaussianBlur6363" />
+    </filter>
+    <rect
+       x="148.62457"
+       y="247.70764"
+       width="1188.9967"
+       height="356.07974"
+       id="rect4259-2-8" />
+    <rect
+       x="148.62457"
+       y="247.70764"
+       width="1188.9967"
+       height="356.07974"
+       id="rect4259-2-0-2" />
+    <filter
+       inkscape:collect="always"
+       style="color-interpolation-filters:sRGB"
+       id="filter6357"
+       x="-0.020163255"
+       y="-0.1909516"
+       width="1.0403265"
+       height="1.3819032">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="7.7144445"
+         id="feGaussianBlur6359" />
+    </filter>
+    <rect
+       x="148.62457"
+       y="247.70764"
+       width="1188.9967"
+       height="356.07974"
+       id="rect4259-2-0-0" />
   </defs>
   <!-- Background -->
   <rect
      width="1284"
      height="2778"
      fill="url(#greenGradient2)"
-     id="rect1830" />
+     id="rect1830"
+     style="fill:#800080" />
   <!-- Device mockup - iPhone 15 Pro proportions -->
   <!-- Feature Text - iPhone 15 Pro positioning -->
   <g
@@ -158,36 +234,6 @@
      x="964.76263"
      y="767.56879"
      transform="matrix(0.99892699,-0.04631281,-0.13762011,0.99048509,0,0)" />
-  <text
-     xml:space="preserve"
-     id="text4257"
-     style="font-weight:bold;font-size:96px;line-height:0;font-family:'Russo One';-inkscape-font-specification:'Russo One Bold';text-align:start;white-space:pre;shape-inside:url(#rect4259);display:inline;fill:#ffffff;fill-opacity:1;stroke-width:10.9606;stroke-linecap:round"
-     transform="matrix(1.0871636,0,0,1.0871636,-30.267856,-57.428054)"
-     x="-449.27899"
-     y="0"><tspan
-       x="148.625"
-       y="276.33861"
-       id="tspan2106">{{FEATURE_LINE1}}</tspan></text>
-  <text
-     xml:space="preserve"
-     id="text4257-4"
-     style="font-weight:bold;font-size:96px;line-height:0;font-family:'Russo One';-inkscape-font-specification:'Russo One Bold';text-align:start;white-space:pre;shape-inside:url(#rect4259-2);display:inline;fill:#ffffff;fill-opacity:1;stroke-width:10.9606;stroke-linecap:round"
-     transform="matrix(1.0871636,0,0,1.0871636,-24.915346,94.971341)"
-     x="-449.27899"
-     y="0"><tspan
-       x="148.625"
-       y="276.33861"
-       id="tspan2108">{{FEATURE_LINE2}}</tspan></text>
-  <text
-     xml:space="preserve"
-     id="text4257-4-4"
-     style="font-weight:bold;font-size:96px;line-height:0;font-family:'Russo One';-inkscape-font-specification:'Russo One Bold';text-align:start;white-space:pre;shape-inside:url(#rect4259-2-0);display:inline;fill:#ffffff;fill-opacity:1;stroke-width:10.9606;stroke-linecap:round"
-     transform="matrix(1.0871636,0,0,1.0871636,-31.203096,241.82871)"
-     x="-449.27899"
-     y="0"><tspan
-       x="148.625"
-       y="276.33861"
-       id="tspan2110">{{FEATURE_LINE3}}</tspan></text>
   <rect
      style="fill:#000000;stroke-width:10.9606;stroke-linecap:round"
      id="rect1731"
@@ -204,4 +250,64 @@
      id="image1727"
      x="194.7549"
      y="1124.7808" />
+  <text
+     xml:space="preserve"
+     id="text4257-49"
+     style="font-weight:bold;font-size:96px;line-height:0;font-family:'Russo One';-inkscape-font-specification:'Russo One Bold';text-align:start;white-space:pre;shape-inside:url(#rect4259-1);display:inline;mix-blend-mode:normal;fill:#000000;fill-opacity:1;stroke-width:10.9606;stroke-linecap:round;filter:url(#filter6365)"
+     transform="matrix(1.0871636,0,0,1.0871636,-26.108496,-80.859859)"
+     x="-449.27899"
+     y="0"><tspan
+       x="148.625"
+       y="276.33861"
+       id="tspan871">{{FEATURE_LINE1}}</tspan></text>
+  <text
+     xml:space="preserve"
+     id="text4257"
+     style="font-weight:bold;font-size:96px;line-height:0;font-family:'Russo One';-inkscape-font-specification:'Russo One Bold';text-align:start;white-space:pre;shape-inside:url(#rect4259-3);display:inline;fill:#ffffff;fill-opacity:1;stroke-width:10.9606;stroke-linecap:round"
+     transform="matrix(1.0871636,0,0,1.0871636,-29.697076,-92.598449)"
+     x="-449.27899"
+     y="0"><tspan
+       x="148.625"
+       y="276.33861"
+       id="tspan873">{{FEATURE_LINE1}}</tspan></text>
+  <text
+     xml:space="preserve"
+     id="text4257-4-7"
+     style="font-weight:bold;font-size:96px;line-height:0;font-family:'Russo One';-inkscape-font-specification:'Russo One Bold';text-align:start;white-space:pre;shape-inside:url(#rect4259-2-5);display:inline;mix-blend-mode:normal;fill:#000000;fill-opacity:1;stroke-width:10.9606;stroke-linecap:round;filter:url(#filter6361)"
+     transform="matrix(1.0871636,0,0,1.0871636,-20.755976,71.539521)"
+     x="-449.27899"
+     y="0"><tspan
+       x="148.625"
+       y="276.33861"
+       id="tspan875">{{FEATURE_LINE2}}</tspan></text>
+  <text
+     xml:space="preserve"
+     id="text4257-4"
+     style="font-weight:bold;font-size:96px;line-height:0;font-family:'Russo One';-inkscape-font-specification:'Russo One Bold';text-align:start;white-space:pre;shape-inside:url(#rect4259-2-8);display:inline;fill:#ffffff;fill-opacity:1;stroke-width:10.9606;stroke-linecap:round"
+     transform="matrix(1.0871636,0,0,1.0871636,-24.344566,59.800941)"
+     x="-449.27899"
+     y="0"><tspan
+       x="148.625"
+       y="276.33861"
+       id="tspan877">{{FEATURE_LINE2}}</tspan></text>
+  <text
+     xml:space="preserve"
+     id="text4257-4-4-7"
+     style="font-weight:bold;font-size:96px;line-height:0;font-family:'Russo One';-inkscape-font-specification:'Russo One Bold';text-align:start;white-space:pre;shape-inside:url(#rect4259-2-0-2);display:inline;mix-blend-mode:normal;fill:#000000;fill-opacity:1;stroke-width:10.9606;stroke-linecap:round;filter:url(#filter6357)"
+     transform="matrix(1.0871636,0,0,1.0871636,-27.043726,218.39687)"
+     x="-449.27899"
+     y="0"><tspan
+       x="148.625"
+       y="276.33861"
+       id="tspan879">{{FEATURE_LINE3}}</tspan></text>
+  <text
+     xml:space="preserve"
+     id="text4257-4-4"
+     style="font-weight:bold;font-size:96px;line-height:0;font-family:'Russo One';-inkscape-font-specification:'Russo One Bold';text-align:start;white-space:pre;shape-inside:url(#rect4259-2-0-0);display:inline;fill:#ffffff;fill-opacity:1;stroke-width:10.9606;stroke-linecap:round"
+     transform="matrix(1.0871636,0,0,1.0871636,-30.632316,206.65831)"
+     x="-449.27899"
+     y="0"><tspan
+       x="148.625"
+       y="276.33861"
+       id="tspan881">{{FEATURE_LINE3}}</tspan></text>
 </svg>
