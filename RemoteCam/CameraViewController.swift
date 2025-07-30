@@ -125,7 +125,7 @@ public class CameraViewController: UIViewController,
         
         if let timerController = recordingTimerController {
             addChild(timerController)
-            view.addSubview(timerController.view)
+            view.insertSubview(timerController.view, belowSubview: back)
             timerController.didMove(toParent: self)
             
             // Setup constraints to fill the entire view
@@ -136,6 +136,9 @@ public class CameraViewController: UIViewController,
                 timerController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 timerController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
+            
+            // Ensure the overlay doesn't block user interactions with the back button
+            timerController.view.isUserInteractionEnabled = false
         }
     }
     
@@ -146,7 +149,7 @@ public class CameraViewController: UIViewController,
         
         if let overlayController = progressOverlayController {
             addChild(overlayController)
-            view.addSubview(overlayController.view)
+            view.insertSubview(overlayController.view, belowSubview: back)
             overlayController.didMove(toParent: self)
             
             // Setup constraints to fill the entire view
@@ -158,6 +161,9 @@ public class CameraViewController: UIViewController,
                 overlayController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 overlayController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
+            
+            // Ensure the overlay doesn't block user interactions with the back button
+            overlayController.view.isUserInteractionEnabled = false
         }
         print("📱 DEBUG: CameraViewController - Setup progress overlay")
     }
@@ -217,7 +223,7 @@ public class CameraViewController: UIViewController,
     func configureIdleMode() {
         recordingView.isHidden = true
         back.isHidden = false
-        activityIndicator.style = .whiteLarge
+        activityIndicator.style = UIActivityIndicatorView.Style.large
         activityIndicator.color = UIColor.white
     }
 
