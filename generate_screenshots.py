@@ -18,7 +18,8 @@ from pathlib import Path
 DEVICES = {
     "iphone_max": {"name": "iPhone 15 Pro Max", "width": 1290, "height": 2796},
     "iphone": {"name": "iPhone 15 Pro", "width": 1284, "height": 2778},
-    "ipad": {"name": "iPad Pro 11", "width": 1640, "height": 2360}
+    "ipad": {"name": "iPad Pro 11", "width": 1640, "height": 2360},
+    "ipad_pro_12_9": {"name": "iPad Pro 12.9", "width": 2048, "height": 2732}
 }
 
 # Localization data
@@ -642,7 +643,11 @@ def create_sample_templates():
         "screenshot1_ipad_pro_11.svg",
         "screenshot2_ipad_pro_11.svg",
         "screenshot3_ipad_pro_11.svg",
-        "screenshot4_ipad_pro_11.svg"
+        "screenshot4_ipad_pro_11.svg",
+        "screenshot1_ipad_pro_12.9.svg",
+        "screenshot2_ipad_pro_12.9.svg",
+        "screenshot3_ipad_pro_12.9.svg",
+        "screenshot4_ipad_pro_12.9.svg"
     ]
     
     # Check which templates already exist
@@ -982,6 +987,10 @@ def create_sample_templates():
         "screenshot2_ipad_pro_11.svg": ipad_template2,
         "screenshot3_ipad_pro_11.svg": ipad_template2,  # Use same layout as screenshot2
         "screenshot4_ipad_pro_11.svg": ipad_template4,  # Use special template with CAMERA/REMOTE
+        "screenshot1_ipad_pro_12.9.svg": ipad_template1,  # Use same layout as iPad Pro 11
+        "screenshot2_ipad_pro_12.9.svg": ipad_template2,  # Use same layout as iPad Pro 11
+        "screenshot3_ipad_pro_12.9.svg": ipad_template2,  # Use same layout as iPad Pro 11
+        "screenshot4_ipad_pro_12.9.svg": ipad_template4,  # Use same layout as iPad Pro 11
     }
     
     # Only create missing templates
@@ -1032,6 +1041,10 @@ def help_with_custom_svg():
     print("   - screenshot2_ipad_pro_11.svg")
     print("   - screenshot3_ipad_pro_11.svg")
     print("   - screenshot4_ipad_pro_11.svg")
+    print("   - screenshot1_ipad_pro_12.9.svg")
+    print("   - screenshot2_ipad_pro_12.9.svg")
+    print("   - screenshot3_ipad_pro_12.9.svg")
+    print("   - screenshot4_ipad_pro_12.9.svg")
     print()
     print("4. **Common Issues**:")
     print("   - If text doesn't replace: Check placeholder spelling")
