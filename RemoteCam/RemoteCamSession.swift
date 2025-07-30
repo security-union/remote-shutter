@@ -127,6 +127,19 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             print("🔍 DEBUG: Default handler sending empty SwitchLensResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
             self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
             
+        // MARK: - Video Recording Command Handling
+        case is RemoteCmd.StartRecordingVideo:
+            print("❌ DEBUG: Session default handler received StartRecordingVideo - NOT in camera state!")
+            let l = RemoteCmd.StartRecordingVideoAck(sender: this, recordingStartTime: nil, error: self.unableToProcessError(msg: msg))
+            print("🔍 DEBUG: Default handler sending StartRecordingVideoAck with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
+            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            
+        case is RemoteCmd.StopRecordingVideo:
+            print("❌ DEBUG: Session default handler received StopRecordingVideo - NOT in camera state!")
+            let l = RemoteCmd.StopRecordingVideoResp(sender: this, pic: nil, error: self.unableToProcessError(msg: msg))
+            print("🔍 DEBUG: Default handler sending StopRecordingVideoResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
+            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
             // Forward capabilities to connected peers (monitor)
             print("🔍 DEBUG: Base session forwarding capabilities to peers")

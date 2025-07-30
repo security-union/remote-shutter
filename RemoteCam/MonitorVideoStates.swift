@@ -133,8 +133,14 @@ extension MonitorVideoStates {
                 self.requestFrame([peer])
                 
             case let ack as RemoteCmd.StartRecordingVideoAck:
-                // Synchronize recording start time with camera
-                if let startTime = ack.recordingStartTime {
+                // Check if this is an error response
+                if let error = ack.error {
+                    print("❌ DEBUG: StartRecordingVideoAck received with error - device not in camera mode")
+                    showError(error.localizedDescription)
+                    // Transition back to video mode state
+                    self.popToState(name: self.states.monitorVideoMode)
+                } else if let startTime = ack.recordingStartTime {
+                    // Synchronize recording start time with camera
                     monitor ! UICmd.SyncRecordingStartTime(startTime: startTime)
                 }
 
