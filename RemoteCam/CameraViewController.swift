@@ -95,12 +95,22 @@ public class CameraViewController: UIViewController,
         configureIdleMode()
         setupRecordingTimerOverlay()
         setupProgressOverlay()
+        ensureBackButtonIsOnTop()
+    }
+
+    // MARK: - Back Button Management
+    private func ensureBackButtonIsOnTop() {
+        // Ensure the back button is always on top of all overlays
+        if let backButton = back {
+            view.bringSubviewToFront(backButton)
+        }
     }
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = true
         orientation = getOrientation()
+        ensureBackButtonIsOnTop()
     }
 
     override public func viewDidAppear(_ animated: Bool) {
@@ -125,7 +135,7 @@ public class CameraViewController: UIViewController,
         
         if let timerController = recordingTimerController {
             addChild(timerController)
-            view.insertSubview(timerController.view, belowSubview: back)
+            view.addSubview(timerController.view)
             timerController.didMove(toParent: self)
             
             // Setup constraints to fill the entire view
@@ -136,9 +146,6 @@ public class CameraViewController: UIViewController,
                 timerController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 timerController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
-            
-            // Ensure the overlay doesn't block user interactions with the back button
-            timerController.view.isUserInteractionEnabled = false
         }
     }
     
@@ -149,7 +156,7 @@ public class CameraViewController: UIViewController,
         
         if let overlayController = progressOverlayController {
             addChild(overlayController)
-            view.insertSubview(overlayController.view, belowSubview: back)
+            view.addSubview(overlayController.view)
             overlayController.didMove(toParent: self)
             
             // Setup constraints to fill the entire view
@@ -161,9 +168,6 @@ public class CameraViewController: UIViewController,
                 overlayController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 overlayController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
-            
-            // Ensure the overlay doesn't block user interactions with the back button
-            overlayController.view.isUserInteractionEnabled = false
         }
         print("📱 DEBUG: CameraViewController - Setup progress overlay")
     }
@@ -223,7 +227,7 @@ public class CameraViewController: UIViewController,
     func configureIdleMode() {
         recordingView.isHidden = true
         back.isHidden = false
-        activityIndicator.style = UIActivityIndicatorView.Style.large
+        activityIndicator.style = .whiteLarge
         activityIndicator.color = UIColor.white
     }
 
