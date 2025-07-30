@@ -1,0 +1,28 @@
+{
+  "screenshot1": {
+    "title": "Remote Shutter",
+    "subtitle": "Scatta foto",
+    "description": "da ovunque.",
+    "feature": "Funziona fino a\n50 piedi\ndi distanza!"
+  },
+  "screenshot2": {
+    "title": "Remote Shutter",
+    "subtitle": "Scatta foto",
+    "description": "da ovunque.",
+    "feature": "Funziona fino a\n50 piedi\ndi distanza!"
+  },
+  "screenshot3": {
+    "title": "Cattura Ricordi",
+    "subtitle": "Proprio Come",
+    "description": "Li Vuoi",
+    "feature": "Perfetto per\nangoli\ncreativi!"
+  },
+  "screenshot4": {
+    "title": "Guida Setup",
+    "subtitle": "Avvio Rapido",
+    "description": "Istruzioni",
+    "feature": "Istruzioni\nVerifica che il wifi sia attivo\nAvvia questa app\nsu un secondo dispositivo",
+    "camera": "Camera",
+    "remote": "Controllo"
+  }
+}
