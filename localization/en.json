@@ -21,6 +21,8 @@
     "title": "Setup Guide",
     "subtitle": "Quick Start",
     "description": "Instructions",
-    "feature": "Instructions\nVerify that wifi is on\nLaunch this app on a second device\nCamera and Remote"
+    "feature": "Instructions\nVerify that wifi is on\nLaunch this app\non a second device",
+    "camera": "Camera",
+    "remote": "Remote"
   }
 }

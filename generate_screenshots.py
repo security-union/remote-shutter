@@ -46,7 +46,9 @@ LOCALIZATIONS = {
             "title": "Setup Guide",
             "subtitle": "Quick Start",
             "description": "Instructions",
-            "feature": "Check that the device has wifi turned on.\n\nLaunch this app on your second device."
+            "feature": "Instructions\nVerify that wifi is on\nLaunch this app\non a second device",
+            "camera": "Camera",
+            "remote": "Remote"
         }
     },
     "it": {
@@ -72,7 +74,9 @@ LOCALIZATIONS = {
             "title": "Guida Setup",
             "subtitle": "Avvio Rapido",
             "description": "Istruzioni",
-            "feature": "Verifica che il dispositivo abbia il wifi attivato.\n\nAvvia questa app sul tuo secondo dispositivo."
+            "feature": "Istruzioni\nVerifica che il wifi sia attivo\nAvvia questa app\nsu un secondo dispositivo",
+            "camera": "Camera",
+            "remote": "Controllo"
         }
     },
     "fr": {
@@ -98,7 +102,9 @@ LOCALIZATIONS = {
             "title": "Guide de Configuration",
             "subtitle": "Démarrage Rapide",
             "description": "Instructions",
-            "feature": "Vérifiez que l'appareil a le wifi activé.\n\nLancez cette app sur votre deuxième appareil."
+            "feature": "Instructions\nVérifiez que le wifi est activé\nLancez cette app\nsur un deuxième appareil",
+            "camera": "Caméra",
+            "remote": "Remote"
         }
     },
     "es": {
@@ -124,7 +130,9 @@ LOCALIZATIONS = {
             "title": "Guía de Configuración",
             "subtitle": "Inicio Rápido",
             "description": "Instrucciones",
-            "feature": "Verifica que el dispositivo tenga wifi activado.\n\nLanza esta app en tu segundo dispositivo."
+            "feature": "Instrucciones\nVerifica que el wifi esté activado\nLanza esta app\nen un segundo dispositivo",
+            "camera": "Cámara",
+            "remote": "Control"
         }
     },
     "da": {
@@ -150,7 +158,9 @@ LOCALIZATIONS = {
             "title": "Opsætningsguide",
             "subtitle": "Hurtig Start",
             "description": "Instruktioner",
-            "feature": "Kontroller at enheden har wifi tændt.\n\nStart denne app på din anden enhed."
+            "feature": "Instruktioner\nKontroller at wifi er tændt\nStart denne app\npå en anden enhed",
+            "camera": "Kamera",
+            "remote": "Remote"
         }
     }
 }
@@ -435,8 +445,20 @@ def generate_svg_from_template(device_config, lang, screenshot_type, output_dir,
             "{{SUBTITLE}}": lang_data.get(screenshot_type, {}).get("subtitle", ""),
             "{{DESCRIPTION}}": lang_data.get(screenshot_type, {}).get("description", "")
         }
+    elif screenshot_type == "screenshot4":
+        # Screenshot 4: Feature lines + CAMERA and REMOTE
+        feature_lines = lang_data.get(screenshot_type, {}).get("feature", "").split('\n')
+        replacements = {
+            "{{FEATURE_LINE1}}": feature_lines[0] if len(feature_lines) > 0 else "",
+            "{{FEATURE_LINE2}}": feature_lines[1] if len(feature_lines) > 1 else "",
+            "{{FEATURE_LINE3}}": feature_lines[2] if len(feature_lines) > 2 else "",
+            "{{FEATURE_LINE4}}": feature_lines[3] if len(feature_lines) > 3 else "",
+            "{{FEATURE}}": lang_data.get(screenshot_type, {}).get("feature", ""),
+            "{{CAMERA}}": lang_data.get(screenshot_type, {}).get("camera", "Camera"),
+            "{{REMOTE}}": lang_data.get(screenshot_type, {}).get("remote", "Remote")
+        }
     else:
-        # Screenshots 2, 3, 4: Feature lines
+        # Screenshots 2, 3: Feature lines
         feature_lines = lang_data.get(screenshot_type, {}).get("feature", "").split('\n')
         replacements = {
             "{{FEATURE_LINE1}}": feature_lines[0] if len(feature_lines) > 0 else "",
@@ -828,20 +850,138 @@ def create_sample_templates():
     </text>
 </svg>'''
     
+    # Create special template for screenshot4 with CAMERA and REMOTE placeholders
+    iphone_max_template4 = '''<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1290" height="2796" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="greenGradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#2E7D32;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    
+    <!-- Background -->
+    <rect width="1290" height="2796" fill="url(#greenGradient4)"/>
+    
+    <!-- Device mockup - iPhone 15 Pro Max proportions -->
+    <g transform="translate(129,1677) rotate(-15)">
+        <rect x="0" y="0" width="425" height="766" rx="20" ry="20" 
+              fill="#1a1a1a" stroke="#333" stroke-width="2"/>
+        <rect x="8" y="8" width="409" height="750" rx="15" ry="15" 
+              fill="#87CEEB"/>
+    </g>
+    
+    <!-- Feature Text - iPhone 15 Pro Max positioning -->
+    <text x="774" y="559" font-family="Arial, sans-serif" font-size="64" 
+          font-weight="bold" fill="white" text-anchor="middle">
+        <tspan x="774" dy="0">{{FEATURE_LINE1}}</tspan>
+        <tspan x="774" dy="86">{{FEATURE_LINE2}}</tspan>
+        <tspan x="774" dy="86">{{FEATURE_LINE3}}</tspan>
+    </text>
+    
+    <!-- Camera and Remote labels -->
+    <text x="322" y="2000" font-family="Arial, sans-serif" font-size="48" 
+          font-weight="bold" fill="white" text-anchor="middle">
+        <tspan x="322" dy="0">{{CAMERA}}</tspan>
+    </text>
+    <text x="968" y="2000" font-family="Arial, sans-serif" font-size="48" 
+          font-weight="bold" fill="white" text-anchor="middle">
+        <tspan x="968" dy="0">{{REMOTE}}</tspan>
+    </text>
+</svg>'''
+    
+    iphone_template4 = '''<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1284" height="2778" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="greenGradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#2E7D32;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    
+    <!-- Background -->
+    <rect width="1284" height="2778" fill="url(#greenGradient4)"/>
+    
+    <!-- Device mockup - iPhone 15 Pro proportions -->
+    <g transform="translate(128,1667) rotate(-15)">
+        <rect x="0" y="0" width="423" height="762" rx="20" ry="20" 
+              fill="#1a1a1a" stroke="#333" stroke-width="2"/>
+        <rect x="8" y="8" width="407" height="746" rx="15" ry="15" 
+              fill="#87CEEB"/>
+    </g>
+    
+    <!-- Feature Text - iPhone 15 Pro positioning -->
+    <text x="770" y="555" font-family="Arial, sans-serif" font-size="64" 
+          font-weight="bold" fill="white" text-anchor="middle">
+        <tspan x="770" dy="0">{{FEATURE_LINE1}}</tspan>
+        <tspan x="770" dy="86">{{FEATURE_LINE2}}</tspan>
+        <tspan x="770" dy="86">{{FEATURE_LINE3}}</tspan>
+    </text>
+    
+    <!-- Camera and Remote labels -->
+    <text x="321" y="1995" font-family="Arial, sans-serif" font-size="48" 
+          font-weight="bold" fill="white" text-anchor="middle">
+        <tspan x="321" dy="0">{{CAMERA}}</tspan>
+    </text>
+    <text x="963" y="1995" font-family="Arial, sans-serif" font-size="48" 
+          font-weight="bold" fill="white" text-anchor="middle">
+        <tspan x="963" dy="0">{{REMOTE}}</tspan>
+    </text>
+</svg>'''
+    
+    ipad_template4 = '''<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1640" height="2360" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="greenGradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#2E7D32;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    
+    <!-- Background -->
+    <rect width="1640" height="2360" fill="url(#greenGradient4)"/>
+    
+    <!-- Device mockup - iPad Pro 11" proportions -->
+    <g transform="translate(164,1416) rotate(-15)">
+        <rect x="0" y="0" width="541" height="708" rx="20" ry="20" 
+              fill="#1a1a1a" stroke="#333" stroke-width="2"/>
+        <rect x="8" y="8" width="525" height="692" rx="15" ry="15" 
+              fill="#87CEEB"/>
+    </g>
+    
+    <!-- Feature Text - iPad Pro 11" positioning -->
+    <text x="987" y="472" font-family="Arial, sans-serif" font-size="82" 
+          font-weight="bold" fill="white" text-anchor="middle">
+        <tspan x="987" dy="0">{{FEATURE_LINE1}}</tspan>
+        <tspan x="987" dy="110">{{FEATURE_LINE2}}</tspan>
+        <tspan x="987" dy="110">{{FEATURE_LINE3}}</tspan>
+    </text>
+    
+    <!-- Camera and Remote labels -->
+    <text x="410" y="1700" font-family="Arial, sans-serif" font-size="60" 
+          font-weight="bold" fill="white" text-anchor="middle">
+        <tspan x="410" dy="0">{{CAMERA}}</tspan>
+    </text>
+    <text x="1230" y="1700" font-family="Arial, sans-serif" font-size="60" 
+          font-weight="bold" fill="white" text-anchor="middle">
+        <tspan x="1230" dy="0">{{REMOTE}}</tspan>
+    </text>
+</svg>'''
+    
     # Create all device-specific templates
     templates = {
         "screenshot1_iphone_15_pro_max.svg": iphone_max_template1,
         "screenshot2_iphone_15_pro_max.svg": iphone_max_template2,
         "screenshot3_iphone_15_pro_max.svg": iphone_max_template2,  # Use same layout as screenshot2
-        "screenshot4_iphone_15_pro_max.svg": iphone_max_template2,  # Use same layout as screenshot2
+        "screenshot4_iphone_15_pro_max.svg": iphone_max_template4,  # Use special template with CAMERA/REMOTE
         "screenshot1_iphone_15_pro.svg": iphone_template1,
         "screenshot2_iphone_15_pro.svg": iphone_template2,
         "screenshot3_iphone_15_pro.svg": iphone_template2,  # Use same layout as screenshot2
-        "screenshot4_iphone_15_pro.svg": iphone_template2,  # Use same layout as screenshot2
+        "screenshot4_iphone_15_pro.svg": iphone_template4,  # Use special template with CAMERA/REMOTE
         "screenshot1_ipad_pro_11.svg": ipad_template1,
         "screenshot2_ipad_pro_11.svg": ipad_template2,
         "screenshot3_ipad_pro_11.svg": ipad_template2,  # Use same layout as screenshot2
-        "screenshot4_ipad_pro_11.svg": ipad_template2,  # Use same layout as screenshot2
+        "screenshot4_ipad_pro_11.svg": ipad_template4,  # Use special template with CAMERA/REMOTE
     }
     
     # Only create missing templates

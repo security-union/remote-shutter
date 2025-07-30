@@ -21,6 +21,8 @@
     "title": "Guida Setup",
     "subtitle": "Avvio Rapido",
     "description": "Istruzioni",
-    "feature": "Istruzioni\nVerifica che il wifi sia attivo\nAvvia questa app su un secondo dispositivo\nCamera e Remote"
+    "feature": "Istruzioni\nVerifica che il wifi sia attivo\nAvvia questa app\nsu un secondo dispositivo",
+    "camera": "Camera",
+    "remote": "Controllo"
   }
 }

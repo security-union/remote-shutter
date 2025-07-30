@@ -21,6 +21,8 @@
     "title": "Opsætningsguide",
     "subtitle": "Hurtig Start",
     "description": "Instruktioner",
-    "feature": "Instruktioner\nKontroller at wifi er tændt\nStart denne app på en anden enhed\nCamera og Remote"
+    "feature": "Instruktioner\nKontroller at wifi er tændt\nStart denne app\npå en anden enhed",
+    "camera": "Kamera",
+    "remote": "Remote"
   }
 }

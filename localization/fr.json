@@ -21,6 +21,8 @@
     "title": "Guide de Configuration",
     "subtitle": "Démarrage Rapide",
     "description": "Instructions",
-    "feature": "Instructions\nVérifiez que le wifi est activé\nLancez cette app sur un deuxième appareil\nCamera et Remote"
+    "feature": "Instructions\nVérifiez que le wifi est activé\nLancez cette app\nsur un deuxième appareil",
+    "camera": "Caméra",
+    "remote": "Remote"
   }
 }
