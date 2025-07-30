@@ -95,12 +95,22 @@ public class CameraViewController: UIViewController,
         configureIdleMode()
         setupRecordingTimerOverlay()
         setupProgressOverlay()
+        ensureBackButtonIsOnTop()
+    }
+
+    // MARK: - Back Button Management
+    private func ensureBackButtonIsOnTop() {
+        
+        if let backButton = back {
+            view.bringSubviewToFront(backButton)
+        }
     }
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.isNavigationBarHidden = true
         orientation = getOrientation()
+        ensureBackButtonIsOnTop()
     }
 
     override public func viewDidAppear(_ animated: Bool) {
@@ -217,7 +227,7 @@ public class CameraViewController: UIViewController,
     func configureIdleMode() {
         recordingView.isHidden = true
         back.isHidden = false
-        activityIndicator.style = .whiteLarge
+        activityIndicator.style = UIActivityIndicatorView.Style.large
         activityIndicator.color = UIColor.white
     }
 
@@ -261,7 +271,7 @@ public class CameraViewController: UIViewController,
         self.captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
         DispatchQueue.main.async {
             self.captureVideoPreviewLayer!.frame = self.view.frame
-            self.view.layer.insertSublayer(self.captureVideoPreviewLayer!, below: self.back.layer)
+            self.view.layer.insertSublayer(self.captureVideoPreviewLayer!, below: self.recordingView.layer)
         }
 
         do {
