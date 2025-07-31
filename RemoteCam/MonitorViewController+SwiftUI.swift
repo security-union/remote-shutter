@@ -40,7 +40,7 @@ extension MonitorViewController {
                     onExitShorts: { [weak self] in
                         self?.handleShortsExit()
                     },
-                    onDeleteClip: { [weak self] clipId in
+                    onDeleteClip: { [weak self] (clipId: UUID) in
                         self?.handleShortsDeleteClip(clipId)
                     },
                     onPreviewClip: { [weak self] clip in

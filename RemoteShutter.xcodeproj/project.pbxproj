@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		060287372E3BB6E7008990D7 /* ShortsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060287362E3BB6E7008990D7 /* ShortsViewController.swift */; };
+		060287382E3BB6E7008990D7 /* ShortsConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060287342E3BB6E7008990D7 /* ShortsConfig.swift */; };
+		060287392E3BB6E7008990D7 /* ShortsSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060287352E3BB6E7008990D7 /* ShortsSession.swift */; };
+		0602873A2E3BB6E7008990D7 /* ShortsClip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060287332E3BB6E7008990D7 /* ShortsClip.swift */; };
+		0602873C2E3BB732008990D7 /* MonitorShortsStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0602873B2E3BB732008990D7 /* MonitorShortsStates.swift */; };
+		0602873D2E3BB732008990D7 /* MonitorShortsStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0602873B2E3BB732008990D7 /* MonitorShortsStates.swift */; };
+		0602873E2E3BB732008990D7 /* MonitorShortsStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0602873B2E3BB732008990D7 /* MonitorShortsStates.swift */; };
+		060287402E3BB7F7008990D7 /* ShortsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0602873F2E3BB7F7008990D7 /* ShortsView.swift */; };
+		060287422E3BB910008990D7 /* ShortsMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060287412E3BB910008990D7 /* ShortsMonitorView.swift */; };
 		060866BE2522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		060866BF2522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		060866C02522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
@@ -181,6 +190,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		060287332E3BB6E7008990D7 /* ShortsClip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortsClip.swift; sourceTree = "<group>"; };
+		060287342E3BB6E7008990D7 /* ShortsConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortsConfig.swift; sourceTree = "<group>"; };
+		060287352E3BB6E7008990D7 /* ShortsSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortsSession.swift; sourceTree = "<group>"; };
+		060287362E3BB6E7008990D7 /* ShortsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortsViewController.swift; sourceTree = "<group>"; };
+		0602873B2E3BB732008990D7 /* MonitorShortsStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorShortsStates.swift; sourceTree = "<group>"; };
+		0602873F2E3BB7F7008990D7 /* ShortsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortsView.swift; sourceTree = "<group>"; };
+		060287412E3BB910008990D7 /* ShortsMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortsMonitorView.swift; sourceTree = "<group>"; };
 		0602E4EA1BEA4FC90015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4EC1BEA4FDE0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4EE1BEA504D0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
@@ -390,6 +406,7 @@
 		068EF0AD2531835900A84DFA /* MonitorStates */ = {
 			isa = PBXGroup;
 			children = (
+				0602873B2E3BB732008990D7 /* MonitorShortsStates.swift */,
 				0684A2D41BE6E9A000F0B238 /* MonitorStates.swift */,
 				068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */,
 				06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */,
@@ -431,6 +448,12 @@
 		069284601BE5C1A700AF4678 /* Controllers */ = {
 			isa = PBXGroup;
 			children = (
+				060287332E3BB6E7008990D7 /* ShortsClip.swift */,
+				060287342E3BB6E7008990D7 /* ShortsConfig.swift */,
+				060287352E3BB6E7008990D7 /* ShortsSession.swift */,
+				0602873F2E3BB7F7008990D7 /* ShortsView.swift */,
+				060287412E3BB910008990D7 /* ShortsMonitorView.swift */,
+				060287362E3BB6E7008990D7 /* ShortsViewController.swift */,
 				06BB79AD2E372D420094E085 /* RecordingTimer.swift */,
 				068DF59A2E3544AD00A49279 /* MonitorView.swift */,
 				06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */,
@@ -829,8 +852,10 @@
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */,
 				068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				0602873D2E3BB732008990D7 /* MonitorShortsStates.swift in Sources */,
 				06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */,
 				0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */,
+				060287422E3BB910008990D7 /* ShortsMonitorView.swift in Sources */,
 				85C11C052582F3FC00618F32 /* UIButton.swift in Sources */,
 				0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */,
 				068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
@@ -840,6 +865,10 @@
 				06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */,
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
 				06BB79B82E374D410094E085 /* FeatureFlags.swift in Sources */,
+				060287372E3BB6E7008990D7 /* ShortsViewController.swift in Sources */,
+				060287382E3BB6E7008990D7 /* ShortsConfig.swift in Sources */,
+				060287392E3BB6E7008990D7 /* ShortsSession.swift in Sources */,
+				0602873A2E3BB6E7008990D7 /* ShortsClip.swift in Sources */,
 				0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */,
 				0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */,
 				06CDFB2A252EC2C300EA56FB /* CGImage.swift in Sources */,
@@ -862,6 +891,7 @@
 				067327612E2DF49B003E5F94 /* MicrophonePermissionPromptView.swift in Sources */,
 				0684A2D31BE6E98A00F0B238 /* CamStates.swift in Sources */,
 				067327652E2DF82A003E5F94 /* PhotosAccessDeniedView.swift in Sources */,
+				060287402E3BB7F7008990D7 /* ShortsView.swift in Sources */,
 				067327672E2DF85B003E5F94 /* PhotosAccessHelper.swift in Sources */,
 				069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */,
 				0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */,
@@ -901,6 +931,7 @@
 				06E9653F2535754800E5A8B3 /* Data+MD5.swift in Sources */,
 				06CDFB1F252E9CD200EA56FB /* UICmds.swift in Sources */,
 				06AEE43525333B4A00C2ED90 /* UIAlertController.swift in Sources */,
+				0602873C2E3BB732008990D7 /* MonitorShortsStates.swift in Sources */,
 				068EF0CF2531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
 				06C32C3D2533A41800C18687 /* RemoteCamConnected.swift in Sources */,
 				06CDFB18252E9A7900EA56FB /* RemoteCmds.swift in Sources */,
@@ -942,6 +973,7 @@
 				061596F8251FCFDA0032289B /* Constants.m in Sources */,
 				06BB79AC2E372D370094E085 /* CameraRecordingTimerView.swift in Sources */,
 				85C11C072582F3FC00618F32 /* UIButton.swift in Sources */,
+				0602873E2E3BB732008990D7 /* MonitorShortsStates.swift in Sources */,
 				06D114D12532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
 				06E965232535199400E5A8B3 /* MediaProcessors.swift in Sources */,
 				068EF0BA2531844B00A84DFA /* CameraVideoStates.swift in Sources */,

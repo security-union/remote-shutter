@@ -26,9 +26,36 @@ struct ShortsMonitorView: View {
     let onPreviewClip: (ShortsClip) -> Void
     let onConfigurationChange: (ShortsConfig) -> Void
     
-    @State private var isRecording = false
     @State private var recordingDuration: TimeInterval = 0
     @State private var recordingTimer: Timer?
+    
+    // Use viewModel.isRecording instead of local state
+    
+    init(
+        viewModel: MonitorViewModel,
+        onStartRecording: @escaping () -> Void,
+        onStopRecording: @escaping () -> Void,
+        onToggleCamera: @escaping () -> Void,
+        onToggleFlash: @escaping () -> Void,
+        onToggleTorch: @escaping () -> Void,
+        onFinalize: @escaping () -> Void,
+        onExitShorts: @escaping () -> Void,
+        onDeleteClip: @escaping (UUID) -> Void,
+        onPreviewClip: @escaping (ShortsClip) -> Void,
+        onConfigurationChange: @escaping (ShortsConfig) -> Void
+    ) {
+        self.viewModel = viewModel
+        self.onStartRecording = onStartRecording
+        self.onStopRecording = onStopRecording
+        self.onToggleCamera = onToggleCamera
+        self.onToggleFlash = onToggleFlash
+        self.onToggleTorch = onToggleTorch
+        self.onFinalize = onFinalize
+        self.onExitShorts = onExitShorts
+        self.onDeleteClip = onDeleteClip
+        self.onPreviewClip = onPreviewClip
+        self.onConfigurationChange = onConfigurationChange
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -62,6 +89,13 @@ struct ShortsMonitorView: View {
         .statusBarHidden()
         .onDisappear {
             stopRecordingTimer()
+        }
+        .onChange(of: viewModel.isRecording) { isRecording in
+            if isRecording {
+                startRecordingTimer()
+            } else {
+                stopRecordingTimer()
+            }
         }
     }
     
@@ -135,8 +169,8 @@ struct ShortsMonitorView: View {
                 }
             }
             
-            // Recording Indicator
-            if isRecording {
+            // Recording Indicator  
+            if viewModel.isRecording {
                 VStack {
                     HStack {
                         Circle()
@@ -215,7 +249,7 @@ struct ShortsMonitorView: View {
             
             // Large Record Button
             Button(action: {
-                if isRecording {
+                if viewModel.isRecording {
                     stopRecording()
                 } else {
                     startRecording()
@@ -227,10 +261,10 @@ struct ShortsMonitorView: View {
                         .frame(width: 80, height: 80)
                     
                     Circle()
-                        .fill(isRecording ? Color.red : Color.white)
-                        .frame(width: isRecording ? 40 : 60, height: isRecording ? 40 : 60)
-                        .scaleEffect(isRecording ? 0.8 : 1.0)
-                        .animation(.easeInOut(duration: 0.2), value: isRecording)
+                        .fill(viewModel.isRecording ? Color.red : Color.white)
+                        .frame(width: viewModel.isRecording ? 40 : 60, height: viewModel.isRecording ? 40 : 60)
+                        .scaleEffect(viewModel.isRecording ? 0.8 : 1.0)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.isRecording)
                 }
             }
             .disabled(!canRecord)
@@ -253,7 +287,7 @@ struct ShortsMonitorView: View {
     
     private var canRecord: Bool {
         guard let session = viewModel.shortsSession else { return false }
-        return !isRecording && session.canAddClip
+        return !viewModel.isRecording && session.canAddClip
     }
     
     // MARK: - Timeline Section
@@ -386,16 +420,17 @@ struct ShortsMonitorView: View {
     
     // MARK: - Recording Logic
     private func startRecording() {
-        isRecording = true
+        // Don't set isRecording=true until camera acknowledges
+        // The MonitorViewModel will update the recording state via proper channels
         recordingDuration = 0
         onStartRecording()
-        startRecordingTimer()
+        // Timer will be started when camera confirms recording
     }
     
     private func stopRecording() {
-        isRecording = false
+        // Don't immediately set isRecording=false, wait for camera acknowledgment
         onStopRecording()
-        stopRecordingTimer()
+        // Timer will be stopped when camera confirms stop
     }
     
     private func startRecordingTimer() {

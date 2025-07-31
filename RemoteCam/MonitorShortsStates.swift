@@ -24,10 +24,23 @@ extension MonitorShortsStates {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
-                print("📱 DEBUG: Remote entered shorts mode - sending StartShortsMode to Camera")
+                print("📱 DEBUG: Remote entered shorts mode - checking camera connection")
                 monitor ! UICmd.RenderShortsMode()
                 self.requestFrame([peer])
                 
+                // Check if camera is connected before proceeding
+                guard !self.session.connectedPeers.isEmpty else {
+                    print("❌ DEBUG: No camera connected - cannot enter shorts mode")
+                    let error = NSError(domain: "ShortsMode", code: 1, userInfo: [NSLocalizedDescriptionKey: "No camera connected. Please connect a camera device first."])
+                    showError(error.localizedDescription)
+                    // Return to photo mode as fallback
+                    self.become(name: self.states.monitorPhotoMode,
+                                state: self.monitorPhotoMode(monitor: monitor, peer: peer, lobby: lobby),
+                                discardOld: true)
+                    return
+                }
+                
+                print("📱 DEBUG: Camera connected - sending StartShortsMode to Camera")
                 // Send StartShortsMode command and transition to waiting state
                 let config = ShortsConfig.thirtySeconds // Default config
                 let startCmd = RemoteCmd.StartShortsMode(
@@ -49,14 +62,25 @@ extension MonitorShortsStates {
         }
     }
     
-    func monitorWaitingForShortsMode(monitor: ActorRef,
-                                   peer: MCPeerID,
+        func monitorWaitingForShortsMode(monitor: ActorRef,
+peer: MCPeerID,
                                    lobby: Weak<DeviceScannerViewController>) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
                 print("📱 DEBUG: Remote waiting for StartShortsModeAck from Camera")
                 self.requestFrame([peer])
+                
+                // Add timeout protection (5 seconds as per design document)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+                    guard let self = self else { return }
+                    print("⏰ DEBUG: Timeout waiting for StartShortsModeAck - returning to photo mode")
+                    let error = NSError(domain: "ShortsMode", code: 2, userInfo: [NSLocalizedDescriptionKey: "Camera did not respond to shorts mode request. Please try again."])
+                    showError(error.localizedDescription)
+                    self.become(name: self.states.monitorPhotoMode,
+                                state: self.monitorPhotoMode(monitor: monitor, peer: peer, lobby: lobby),
+                                discardOld: true)
+                }
 
             case is RemoteCmd.OnFrame:
                 monitor ! msg
@@ -120,7 +144,7 @@ extension MonitorShortsStates {
                 monitor ! msg
                 self.requestFrame([peer])
                 
-            case let cmd as UICmd.StartShortsClip:
+            case _ as UICmd.StartShortsClip:
                 print("📱 DEBUG: Remote requesting start shorts clip")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StartShortsClip(maxDuration: 30.0, sender: self.this))
                 // Transition to recording state
@@ -129,7 +153,7 @@ extension MonitorShortsStates {
                     state: self.monitorRecordingShortsClip(monitor: monitor, peer: peer, lobby: lobby)
                 )
                 
-            case let cmd as UICmd.StopShortsClip:
+            case _ as UICmd.StopShortsClip:
                 print("📱 DEBUG: StopShortsClip received but not recording - ignoring")
                 
             case let mode as UICmd.BecomeMonitor:
@@ -183,8 +207,8 @@ extension MonitorShortsStates {
         }
     }
     
-    func monitorRecordingShortsClip(monitor: ActorRef,
-                                  peer: MCPeerID,
+        func monitorRecordingShortsClip(monitor: ActorRef,
+peer: MCPeerID,
                                   lobby: Weak<DeviceScannerViewController>) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
@@ -192,6 +216,18 @@ extension MonitorShortsStates {
                 print("📱 DEBUG: Remote waiting for shorts clip recording to start")
                 monitor ! UICmd.RenderShortsRecording(sender: nil)
                 self.requestFrame([peer])
+                
+                // Add timeout protection for clip start (3 seconds as per design document)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    guard let self = self else { return }
+                    print("⏰ DEBUG: Timeout waiting for StartShortsClipAck - returning to active shorts mode")
+                    let error = NSError(domain: "ShortsMode", code: 3, userInfo: [NSLocalizedDescriptionKey: "Camera did not start recording. Please try again."])
+                    showError(error.localizedDescription)
+                    self.become(
+                        name: "monitorActiveShortsMode",
+                        state: self.monitorActiveShortsMode(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                }
 
             case is RemoteCmd.OnFrame:
                 monitor ! msg
@@ -212,20 +248,14 @@ extension MonitorShortsStates {
                     monitor ! UICmd.SyncRecordingStartTime(startTime: startTime)
                 }
                 
-            case let cmd as UICmd.StopShortsClip:
+            case _ as UICmd.StopShortsClip:
                 print("📱 DEBUG: Remote requesting stop shorts clip recording")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopShortsClip(sender: self.this))
                 
-            case let ack as RemoteCmd.StopShortsClipAck:
-                if let error = ack.error {
-                    print("❌ DEBUG: StopShortsClipAck received with error: \(error.localizedDescription)")
-                    showError(error.localizedDescription)
-                }
-                print("✅ DEBUG: StopShortsClipAck received - clip recording stopped")
-                // Go back to active shorts mode for next clip
+                // Transition to waiting state for stop acknowledgment
                 self.become(
-                    name: "monitorActiveShortsMode",
-                    state: self.monitorActiveShortsMode(monitor: monitor, peer: peer, lobby: lobby)
+                    name: "monitorWaitingForShortsClipStop",
+                    state: self.monitorWaitingForShortsClipStop(monitor: monitor, peer: peer, lobby: lobby)
                 )
                 
             case let mode as UICmd.BecomeMonitor:
@@ -285,6 +315,57 @@ extension MonitorShortsStates {
                                 state: self.monitorPhotoMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
                 }
+                
+            case is Disconnect:
+                self.popAndStartScanning()
+
+            case let c as DisconnectPeer:
+                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
+                    self.popAndStartScanning()
+                }
+
+            default:
+                self.receive(msg: msg)
+            }
+        }
+    }
+    
+    func monitorWaitingForShortsClipStop(monitor: ActorRef,
+                                       peer: MCPeerID,
+                                       lobby: Weak<DeviceScannerViewController>) -> Receive {
+        return { [unowned self] (msg: Actor.Message) in
+            switch msg {
+            case is OnEnter:
+                print("📱 DEBUG: Remote waiting for StopShortsClipAck from Camera")
+                self.requestFrame([peer])
+                
+                // Add timeout protection for clip stop (10 seconds as per design document)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) { [weak self] in
+                    guard let self = self else { return }
+                    print("⏰ DEBUG: Timeout waiting for StopShortsClipAck - returning to active shorts mode")
+                    let error = NSError(domain: "ShortsMode", code: 4, userInfo: [NSLocalizedDescriptionKey: "Camera did not confirm stop recording. Returning to shorts mode."])
+                    showError(error.localizedDescription)
+                    self.become(
+                        name: "monitorActiveShortsMode",
+                        state: self.monitorActiveShortsMode(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                }
+
+            case is RemoteCmd.OnFrame:
+                monitor ! msg
+                self.requestFrame([peer])
+                
+            case let ack as RemoteCmd.StopShortsClipAck:
+                if let error = ack.error {
+                    print("❌ DEBUG: StopShortsClipAck received with error: \(error.localizedDescription)")
+                    showError(error.localizedDescription)
+                }
+                print("✅ DEBUG: StopShortsClipAck received - clip recording stopped")
+                // Go back to active shorts mode for next clip
+                self.become(
+                    name: "monitorActiveShortsMode",
+                    state: self.monitorActiveShortsMode(monitor: monitor, peer: peer, lobby: lobby)
+                )
                 
             case is Disconnect:
                 self.popAndStartScanning()
