@@ -220,7 +220,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     // MARK: - SwiftUI Integration
     private(set) var viewModel = MonitorViewModel()
-    var swiftUIHostingController: UIHostingController<MonitorView>?
+    var swiftUIHostingController: UIHostingController<AnyView>?
 
     private let sliderColor1 = UIColor(red: 0.150, green: 0.670, blue: 0.80, alpha: 1)
     private let sliderColor2 = UIColor(red: 0.060, green: 0.100, blue: 0.160, alpha: 1)

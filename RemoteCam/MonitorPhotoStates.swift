@@ -133,9 +133,9 @@ extension RemoteCamSession {
                                 state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
                 } else if mode.mode == RecordingMode.Shorts {
-                    // For now, shorts mode uses video recording with enhanced UI
-                    self.become(name: states.monitorVideoMode,
-                                state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby),
+                    print("📱 DEBUG: Remote entering shorts mode - will send StartShortsMode to camera")
+                    self.become(name: states.monitorShortsMode,
+                                state: self.monitorShortsMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
                 }
 

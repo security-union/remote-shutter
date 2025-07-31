@@ -1175,4 +1175,28 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             }
         }
     }
+    
+    // MARK: - Shorts Mode Transition
+    
+    func transitionToShortsMode(config: ShortsConfig, session: RemoteCamSession?) {
+        print("📱 DEBUG: CameraViewController transitioning to ShortsViewController")
+        
+        // Create ShortsViewController
+        let shortsVC = ShortsViewController()
+        shortsVC.session = self.session // Pass the actor session
+        
+        // Push onto navigation stack
+        self.navigationController?.pushViewController(shortsVC, animated: true)
+        
+        // After transition completes, notify actor to switch states
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak shortsVC] in
+            guard let shortsVC = shortsVC else { return }
+            
+            // Start shorts mode on the new controller
+            shortsVC.startShortsMode(config: config)
+            
+            // The actor state transition will be handled by the ShortsViewController
+            print("📱 DEBUG: ShortsViewController transition completed")
+        }
+    }
 }

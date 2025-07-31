@@ -468,4 +468,78 @@ public class UICmd {
             super.init(sender: sender)
         }
     }
+    
+    // MARK: - Shorts Mode UI Commands
+    
+    @objc(_TtCC10ActorsDemo5UICmd17ShortsClipRecorded)public class ShortsClipRecorded: Actor.Message {
+        public let clipURL: URL
+        public let duration: TimeInterval
+        public let thumbnailImage: UIImage?
+        
+        public init(clipURL: URL, duration: TimeInterval, thumbnailImage: UIImage?, sender: ActorRef?) {
+            self.clipURL = clipURL
+            self.duration = duration
+            self.thumbnailImage = thumbnailImage
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd26ShortsClipTransferStarted)public class ShortsClipTransferStarted: Actor.Message {
+        public let clipId: UUID
+        public let totalBytes: Int64
+        
+        public init(clipId: UUID, totalBytes: Int64, sender: ActorRef?) {
+            self.clipId = clipId
+            self.totalBytes = totalBytes
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd26ShortsClipTransferProgress)public class ShortsClipTransferProgress: Actor.Message {
+        public let clipId: UUID
+        public let progress: Double
+        
+        public init(clipId: UUID, progress: Double, sender: ActorRef?) {
+            self.clipId = clipId
+            self.progress = progress
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd27ShortsClipTransferCompleted)public class ShortsClipTransferCompleted: Actor.Message {
+        public let clipId: UUID
+        public let success: Bool
+        
+        public init(clipId: UUID, success: Bool, sender: ActorRef?) {
+            self.clipId = clipId
+            self.success = success
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd19ShortsSessionStarted)public class ShortsSessionStarted: Actor.Message {
+        public let sessionId: UUID
+        public let config: ShortsConfig
+        
+        public init(sessionId: UUID, config: ShortsConfig, sender: ActorRef?) {
+            self.sessionId = sessionId
+            self.config = config
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd20ShortsControllerReady)public class ShortsControllerReady: Actor.Message {
+        public let controller: ShortsViewController
+        
+        public init(controller: ShortsViewController, sender: ActorRef?) {
+            self.controller = controller
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd22ShortsControllerExiting)public class ShortsControllerExiting: Actor.Message {
+        public override init(sender: ActorRef?) {
+            super.init(sender: sender)
+        }
+    }
 }

@@ -818,4 +818,134 @@ public class RemoteCmd: Actor.Message {
             super.init(sender: nil)
         }
     }
+    
+    // MARK: - Shorts Mode Commands
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd14StartShortsMode)public class StartShortsMode: RemoteCmd, NSCoding {
+        let maxDuration: TimeInterval
+        let maxClips: Int
+        
+        public init(maxDuration: TimeInterval, maxClips: Int, sender: ActorRef?) {
+            self.maxDuration = maxDuration
+            self.maxClips = maxClips
+            super.init(sender: sender)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+            aCoder.encode(maxDuration, forKey: "maxDuration")
+            aCoder.encode(maxClips, forKey: "maxClips")
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            self.maxDuration = aDecoder.decodeDouble(forKey: "maxDuration")
+            self.maxClips = aDecoder.decodeInteger(forKey: "maxClips")
+            super.init(sender: nil)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd14StartShortsClip)public class StartShortsClip: RemoteCmd, NSCoding {
+        let maxDuration: TimeInterval
+        
+        public init(maxDuration: TimeInterval, sender: ActorRef?) {
+            self.maxDuration = maxDuration
+            super.init(sender: sender)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+            aCoder.encode(maxDuration, forKey: "maxDuration")
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            self.maxDuration = aDecoder.decodeDouble(forKey: "maxDuration")
+            super.init(sender: nil)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd13StopShortsClip)public class StopShortsClip: RemoteCmd, NSCoding {
+        public override init(sender: ActorRef?) {
+            super.init(sender: sender)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            super.init(sender: nil)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd13ExitShortsMode)public class ExitShortsMode: RemoteCmd, NSCoding {
+        public override init(sender: ActorRef?) {
+            super.init(sender: sender)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            super.init(sender: nil)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd14ShortsClipData)public class ShortsClipData: RemoteCmd, NSCoding {
+        public let clipId: UUID
+        public let videoURL: URL
+        public let duration: TimeInterval
+        public let order: Int
+        public let thumbnailData: Data?
+        
+        public init(clipId: UUID, videoURL: URL, duration: TimeInterval, order: Int, thumbnailData: Data?, sender: ActorRef?) {
+            self.clipId = clipId
+            self.videoURL = videoURL
+            self.duration = duration
+            self.order = order
+            self.thumbnailData = thumbnailData
+            super.init(sender: sender)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+            aCoder.encode(clipId.uuidString, forKey: "clipId")
+            aCoder.encode(videoURL, forKey: "videoURL")
+            aCoder.encode(duration, forKey: "duration")
+            aCoder.encode(order, forKey: "order")
+            aCoder.encode(thumbnailData, forKey: "thumbnailData")
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            guard let clipIdString = aDecoder.decodeObject(forKey: "clipId") as? String,
+                  let clipId = UUID(uuidString: clipIdString),
+                  let videoURL = aDecoder.decodeObject(forKey: "videoURL") as? URL else {
+                return nil
+            }
+            
+            self.clipId = clipId
+            self.videoURL = videoURL
+            self.duration = aDecoder.decodeDouble(forKey: "duration")
+            self.order = aDecoder.decodeInteger(forKey: "order")
+            self.thumbnailData = aDecoder.decodeObject(forKey: "thumbnailData") as? Data
+            super.init(sender: nil)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd20ShortsCommandResponse)public class ShortsCommandResponse: RemoteCmd, NSCoding {
+        public let success: Bool
+        public let error: String?
+        
+        public init(success: Bool, error: String?, sender: ActorRef?) {
+            self.success = success
+            self.error = error
+            super.init(sender: sender)
+        }
+
+        public func encode(with aCoder: NSCoder) {
+            aCoder.encode(success, forKey: "success")
+            aCoder.encode(error, forKey: "error")
+        }
+
+        public required init?(coder aDecoder: NSCoder) {
+            self.success = aDecoder.decodeBool(forKey: "success")
+            self.error = aDecoder.decodeObject(forKey: "error") as? String
+            super.init(sender: nil)
+        }
+    }
 }

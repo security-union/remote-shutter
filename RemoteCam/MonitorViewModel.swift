@@ -8,6 +8,8 @@ enum MonitorUIState {
     case videoMode
     case videoRecording
     case shortsMode
+    case shortsRecording
+    case shortsPreview
 }
 
 // MARK: - Monitor View Model
@@ -49,6 +51,14 @@ class MonitorViewModel: ObservableObject {
     @Published var videoTransferBytesCompleted: Int64 = 0
     @Published var videoTransferBytesTotal: Int64 = 0
     @Published var videoTransferSpeed: Double = 0.0 // bytes per second
+    
+    // MARK: - Shorts Mode Properties
+    @Published var shortsSession: ShortsSession?
+    @Published var selectedShortsConfig: ShortsConfig = .thirtySeconds
+    @Published var isInShortsMode: Bool = false
+    @Published var shortsPreviewClip: ShortsClip?
+    @Published var shortsPlaybackTime: TimeInterval = 0
+    @Published var shortsClipTransferProgress: [UUID: Double] = [:]
     
     // MARK: - Zoom Controls Watchdog Timer (DispatchSourceTimer for performance)
     private var zoomControlsWatchdog: DispatchSourceTimer?
@@ -134,6 +144,8 @@ class MonitorViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.uiState = .shortsMode
             self.isRecording = false
+            self.isInShortsMode = true
+            self.shortsSession = ShortsSession(config: self.selectedShortsConfig)
             self.isGalleryEnabled = true
             self.isBackEnabled = true
             self.isFlashButtonEnabled = false
@@ -144,7 +156,61 @@ class MonitorViewModel: ObservableObject {
             self.isSegmentedControlEnabled = true
             self.isLensControlEnabled = true
             self.isZoomSliderEnabled = true
-            self.buttonPrompt = NSLocalizedString("Recording shorts", comment: "")
+            self.buttonPrompt = NSLocalizedString("Ready to record shorts", comment: "")
+        }
+    }
+    
+    func configureShortsRecording() {
+        DispatchQueue.main.async {
+            self.uiState = .shortsRecording
+            self.isRecording = true
+            self.isGalleryEnabled = false
+            self.isBackEnabled = false
+            self.isSettingsEnabled = false
+            self.isToggleCameraEnabled = false
+            self.isSegmentedControlEnabled = false
+            self.shortsSession?.state = .recording
+            self.buttonPrompt = NSLocalizedString("Recording clip...", comment: "")
+        }
+    }
+    
+    func configureShortsPreview() {
+        DispatchQueue.main.async {
+            self.uiState = .shortsPreview
+            self.isRecording = false
+            self.isGalleryEnabled = true
+            self.isBackEnabled = true
+            self.isSettingsEnabled = true
+            self.shortsSession?.state = .previewing
+            self.buttonPrompt = NSLocalizedString("Previewing shorts", comment: "")
+        }
+    }
+    
+    // MARK: - Shorts Session Management
+    
+    func startShortsSession(with config: ShortsConfig) {
+        DispatchQueue.main.async {
+            self.selectedShortsConfig = config
+            self.shortsSession = ShortsSession(config: config)
+            self.isInShortsMode = true
+        }
+    }
+    
+    func exitShortsMode() {
+        DispatchQueue.main.async {
+            self.isInShortsMode = false
+            self.shortsSession = nil
+            self.shortsPreviewClip = nil
+            self.shortsPlaybackTime = 0
+            self.shortsClipTransferProgress.removeAll()
+            // Return to photo mode by default
+            self.configurePhotoMode()
+        }
+    }
+    
+    func updateShortsClipTransferProgress(clipId: UUID, progress: Double) {
+        DispatchQueue.main.async {
+            self.shortsClipTransferProgress[clipId] = progress
         }
     }
     

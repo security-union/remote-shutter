@@ -17,7 +17,7 @@ struct FeatureFlags {
     
     /// Enable Shorts mode (short-form video recording)
     /// Set to true when Shorts mode implementation is complete
-    static let ENABLE_SHORTS_MODE = false
+    static let ENABLE_SHORTS_MODE = true
     
     // MARK: - Future Feature Flags
     // Add new feature flags here as needed

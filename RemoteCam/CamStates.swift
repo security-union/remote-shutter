@@ -159,6 +159,62 @@ extension RemoteCamSession {
                                 lobby: lobbyWrapper)
                 )
             
+            // MARK: - Shorts Mode Commands
+            case let shortsCmd as RemoteCmd.StartShortsMode:
+                print("📱 DEBUG: Shorts mode requested")
+                
+                // Check if we're already in ShortsViewController
+                if let shortsCtrl = ctrl as? ShortsViewController {
+                    let config = ShortsConfig(
+                        maxDuration: shortsCmd.maxDuration,
+                        maxClips: shortsCmd.maxClips,
+                        minClipDuration: 0.5,
+                        maxSingleClipDuration: min(shortsCmd.maxDuration, 30.0)
+                    )
+                    shortsCtrl.startShortsMode(config: config)
+                    self.become(
+                        name: "cameraShortsMode",
+                        state: self.cameraShortsMode(peer: peer,
+                                        ctrl: shortsCtrl,
+                                        lobby: lobbyWrapper)
+                    )
+                    let successMsg = RemoteCmd.ShortsCommandResponse(success: true, error: nil, sender: nil)
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: successMsg, mode: .reliable)
+                    
+                // Currently in CameraViewController - need to transition
+                } else if let cameraCtrl = ctrl as? CameraViewController {
+                    print("📱 DEBUG: Transitioning from CameraViewController to ShortsViewController")
+                    
+                    let config = ShortsConfig(
+                        maxDuration: shortsCmd.maxDuration,
+                        maxClips: shortsCmd.maxClips,
+                        minClipDuration: 0.5,
+                        maxSingleClipDuration: min(shortsCmd.maxDuration, 30.0)
+                    )
+                    
+                    // Trigger UI transition on main thread
+                    DispatchQueue.main.async { [weak self] in
+                        cameraCtrl.transitionToShortsMode(config: config, session: self)
+                    }
+                    
+                    // Note: Actor state transition will happen after UI transition completes
+                } else {
+                    // For now, just send success - navigation will be handled by UI layer later
+                    print("📱 DEBUG: Need to transition to ShortsViewController via UI")
+                    let successMsg = RemoteCmd.ShortsCommandResponse(success: true, error: nil, sender: nil)
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: successMsg, mode: .reliable)
+                    
+                    // Send UI command to notify that shorts mode should be started
+                    let config = ShortsConfig(
+                        maxDuration: shortsCmd.maxDuration,
+                        maxClips: shortsCmd.maxClips,
+                        minClipDuration: 0.5,
+                        maxSingleClipDuration: min(shortsCmd.maxDuration, 30.0)
+                    )
+                    let uiCmd = UICmd.ShortsSessionStarted(sessionId: UUID(), config: config, sender: nil)
+                    ctrl.session ! uiCmd
+                }
+            
             case let micError as UICmd.MicrophoneAccessDenied:
                 // Handle microphone access denied during recording setup
                 let ack = RemoteCmd.StopRecordingVideoAck()
@@ -261,11 +317,116 @@ extension RemoteCamSession {
             case is UICmd.UnbecomeCamera:
                 print("🔍 DEBUG: Camera explicitly unbecoming - going to connected state")
                 self.popToState(name: self.states.connected)
+            
+            // MARK: - Shorts Controller Ready
+            case let readyCmd as UICmd.ShortsControllerReady:
+                print("📱 DEBUG: ShortsViewController is ready - transitioning to cameraShortsMode state")
+                
+                // Transition to cameraShortsMode state with the new controller
+                self.become(
+                    name: "cameraShortsMode",
+                    state: self.cameraShortsMode(peer: peer,
+                                    ctrl: readyCmd.controller,
+                                    lobby: lobbyWrapper)
+                )
+                
+                // Send success response to remote
+                let successMsg = RemoteCmd.ShortsCommandResponse(success: true, error: nil, sender: nil)
+                self.sendCommandOrGoToScanning(peer: [peer], msg: successMsg, mode: .reliable)
 
             default:
                 self.receive(msg: msg)
             }
         }
+    }
+    
+    // MARK: - Shorts Mode Camera State
+    func cameraShortsMode(peer: MCPeerID,
+                         ctrl: ShortsViewController,
+                         lobby: Weak<DeviceScannerViewController>) -> Receive {
+        
+        return { [unowned self] (msg: Actor.Message) in
+            guard lobby.value != nil else {
+                popAndStartScanning()
+                return
+            }
+            
+            switch msg {
+            case is OnEnter:
+                print("📱 DEBUG: Camera entered shorts mode")
+                
+            case let startClipCmd as RemoteCmd.StartShortsClip:
+                print("📱 DEBUG: Camera starting shorts clip recording")
+                ctrl.startRecordingClip(maxDuration: startClipCmd.maxDuration)
+                
+            case is RemoteCmd.StopShortsClip:
+                print("📱 DEBUG: Camera stopping shorts clip recording")
+                ctrl.stopRecordingClip()
+                
+            case is RemoteCmd.ExitShortsMode:
+                print("📱 DEBUG: Camera exiting shorts mode")
+                // Return to regular camera state
+                // Note: Navigation back to CameraViewController will be handled by UI layer
+                self.become(
+                    name: self.states.connected,
+                    state: self.connected(lobbyWrapper: lobby, peer: peer)
+                )
+                
+            case let clipRecorded as UICmd.ShortsClipRecorded:
+                print("📱 DEBUG: Camera finished recording shorts clip - transferring to remote")
+                // Transfer the clip to the remote
+                self.transferShortsClip(clipRecorded, to: peer)
+                
+            case is RemoteCmd.RequestFrame:
+                self.receive(msg: msg)
+                
+            case is RemoteCmd.SendFrame:
+                self.receive(msg: msg)
+                
+            case let c as DisconnectPeer:
+                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
+                    print("📱 DEBUG: Shorts camera disconnecting peer - cleaning up")
+                    self.popAndStartScanning()
+                }
+                
+            case is Disconnect:
+                print("📱 DEBUG: Shorts camera disconnecting - cleaning up")
+                self.popAndStartScanning()
+                
+            case is UICmd.UnbecomeCamera:
+                print("📱 DEBUG: Shorts camera explicitly unbecoming")
+                self.popToState(name: self.states.connected)
+            
+            case is UICmd.ShortsControllerExiting:
+                print("📱 DEBUG: ShortsViewController exiting - transitioning back to regular camera state")
+                // Need to find the CameraViewController that should take over
+                // For now, just go back to connected state - the UI navigation is handled separately
+                self.popToState(name: self.states.connected)
+                
+            default:
+                self.receive(msg: msg)
+            }
+        }
+    }
+    
+    // MARK: - Shorts Clip Transfer Helper
+    private func transferShortsClip(_ clipCmd: UICmd.ShortsClipRecorded, to peer: MCPeerID) {
+        // Convert thumbnail image to data if available
+        let thumbnailData = clipCmd.thumbnailImage?.pngData()
+        
+        // Send clip data to remote
+        let transferCmd = RemoteCmd.ShortsClipData(
+            clipId: UUID(), // Generate clip ID
+            videoURL: clipCmd.clipURL,
+            duration: clipCmd.duration,
+            order: 0, // This should come from the session
+            thumbnailData: thumbnailData,
+            sender: nil
+        )
+        
+        self.sendCommandOrGoToScanning(peer: [peer], msg: transferCmd, mode: .reliable)
+        
+        print("📱 DEBUG: Started transferring shorts clip (\(clipCmd.duration)s)")
     }
 
 }

@@ -11,46 +11,90 @@ extension MonitorViewController {
         // Remove all existing subviews (storyboard remnants)
         view.subviews.forEach { $0.removeFromSuperview() }
         
-        // Create SwiftUI view with callbacks
-        let monitorView = MonitorView(
-            viewModel: viewModel,
-            onTakePicture: { [weak self] in
-                self?.handleTakePicture()
-            },
-            onToggleCamera: { [weak self] in
-                self?.handleToggleCamera()
-            },
-            onToggleFlash: { [weak self] in
-                self?.handleToggleFlash()
-            },
-            onToggleTorch: { [weak self] in
-                self?.handleToggleTorch()
-            },
-            onTimerChange: { [weak self] value in
-                self?.handleTimerChange(value)
-            },
-            onModeChange: { [weak self] mode in
-                self?.handleModeChange(mode)
-            },
-            onBackTapped: { [weak self] in
-                self?.handleBackTapped()
-            },
-            onGalleryTapped: { [weak self] in
-                self?.handleGalleryTapped()
-            },
-            onSettingsTapped: { [weak self] in
-                self?.handleSettingsTapped()
-            },
-            onZoomChange: { [weak self] factor in
-                self?.handleZoomChange(factor)
-            },
-            onLensChange: { [weak self] lensType in
-                self?.handleLensChange(lensType)
-            }
-        )
+        // Choose appropriate view based on mode
+        let rootView: AnyView
+        
+        if viewModel.isInShortsMode {
+            // Use dedicated ShortsMonitorView for shorts mode
+            rootView = AnyView(
+                ShortsMonitorView(
+                    viewModel: viewModel,
+                    onStartRecording: { [weak self] in
+                        self?.handleShortsStartRecording()
+                    },
+                    onStopRecording: { [weak self] in
+                        self?.handleShortsStopRecording()
+                    },
+                    onToggleCamera: { [weak self] in
+                        self?.handleToggleCamera()
+                    },
+                    onToggleFlash: { [weak self] in
+                        self?.handleToggleFlash()
+                    },
+                    onToggleTorch: { [weak self] in
+                        self?.handleToggleTorch()
+                    },
+                    onFinalize: { [weak self] in
+                        self?.handleShortsFinalize()
+                    },
+                    onExitShorts: { [weak self] in
+                        self?.handleShortsExit()
+                    },
+                    onDeleteClip: { [weak self] clipId in
+                        self?.handleShortsDeleteClip(clipId)
+                    },
+                    onPreviewClip: { [weak self] clip in
+                        self?.handleShortsPreviewClip(clip)
+                    },
+                    onConfigurationChange: { [weak self] config in
+                        self?.handleShortsConfigChange(config)
+                    }
+                )
+            )
+        } else {
+            // Use regular MonitorView for photo/video modes
+            rootView = AnyView(
+                MonitorView(
+                    viewModel: viewModel,
+                    onTakePicture: { [weak self] in
+                        self?.handleTakePicture()
+                    },
+                    onToggleCamera: { [weak self] in
+                        self?.handleToggleCamera()
+                    },
+                    onToggleFlash: { [weak self] in
+                        self?.handleToggleFlash()
+                    },
+                    onToggleTorch: { [weak self] in
+                        self?.handleToggleTorch()
+                    },
+                    onTimerChange: { [weak self] value in
+                        self?.handleTimerChange(value)
+                    },
+                    onModeChange: { [weak self] mode in
+                        self?.handleModeChange(mode)
+                    },
+                    onBackTapped: { [weak self] in
+                        self?.handleBackTapped()
+                    },
+                    onGalleryTapped: { [weak self] in
+                        self?.handleGalleryTapped()
+                    },
+                    onSettingsTapped: { [weak self] in
+                        self?.handleSettingsTapped()
+                    },
+                    onZoomChange: { [weak self] factor in
+                        self?.handleZoomChange(factor)
+                    },
+                    onLensChange: { [weak self] lensType in
+                        self?.handleLensChange(lensType)
+                    }
+                )
+            )
+        }
         
         // Host SwiftUI view
-        let hostingController = UIHostingController(rootView: monitorView)
+        let hostingController = UIHostingController(rootView: rootView)
         addChild(hostingController)
         view.addSubview(hostingController.view)
         hostingController.didMove(toParent: self)
@@ -154,6 +198,10 @@ extension MonitorViewController {
             viewModel.buttonPrompt = NSLocalizedString("Stopping video", comment: "")
         case .shortsMode:
             viewModel.buttonPrompt = NSLocalizedString("Recording shorts", comment: "")
+        case .shortsRecording:
+            viewModel.buttonPrompt = NSLocalizedString("Recording clip...", comment: "")
+        case .shortsPreview:
+            viewModel.buttonPrompt = NSLocalizedString("Previewing shorts", comment: "")
         }
     }
     
@@ -227,6 +275,55 @@ extension MonitorViewController {
         session ! UICmd.SwitchLens(lensType: lensType)
     }
     
+    // MARK: - Shorts Mode Handlers
+    
+    private func handleShortsStartRecording() {
+        print("📱 DEBUG: Remote requesting start shorts clip recording")
+        session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)  // In shorts mode, clips should be sent to Remote
+    }
+    
+    private func handleShortsStopRecording() {
+        print("📱 DEBUG: Remote requesting stop shorts clip recording")
+        session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)  // In shorts mode, clips should be sent to Remote
+    }
+    
+    private func handleShortsFinalize() {
+        print("📱 DEBUG: Remote requesting finalize shorts session")
+        // TODO: Implement finalize functionality
+        // This should combine all clips into final video on Remote side
+    }
+    
+    private func handleShortsExit() {
+        print("📱 DEBUG: Remote requesting exit shorts mode")
+        // Switch back to photo mode
+        session ! UICmd.BecomeMonitor(nil, mode: .Photo)
+        DispatchQueue.main.async {
+            self.viewModel.isInShortsMode = false
+            self.viewModel.currentMode = .Photo
+            self.setupSwiftUIView()  // Refresh UI to regular mode
+        }
+    }
+    
+    private func handleShortsDeleteClip(_ clipId: UUID) {
+        print("📱 DEBUG: Remote requesting delete clip \(clipId)")
+        // TODO: Remove clip from session
+        if let session = viewModel.shortsSession {
+            session.removeClip(withId: clipId)
+        }
+    }
+    
+    private func handleShortsPreviewClip(_ clip: ShortsClip) {
+        print("📱 DEBUG: Remote requesting preview clip \(clip.id)")
+        // TODO: Implement clip preview
+    }
+    
+    private func handleShortsConfigChange(_ config: ShortsConfig) {
+        print("📱 DEBUG: Remote changing shorts config to \(config.maxDuration)s")
+        viewModel.selectedShortsConfig = config
+        // Update session with new config
+        viewModel.shortsSession = ShortsSession(config: config)
+    }
+    
     // MARK: - Helper Methods
     
     private func showGallery() {
@@ -273,6 +370,11 @@ extension MonitorViewController {
     func swiftUIConfigureShortsMode() {
         viewModel.configureShortsMode()
         viewModel.currentMode = .Shorts
+        
+        // Refresh UI to show ShortsMonitorView
+        DispatchQueue.main.async {
+            self.setupSwiftUIView()
+        }
     }
     
     // MARK: - Update Methods for Actor Integration
