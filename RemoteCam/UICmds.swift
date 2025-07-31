@@ -542,4 +542,28 @@ public class UICmd {
             super.init(sender: sender)
         }
     }
+    
+    @objc(_TtCC10ActorsDemo5UICmd15StartShortsClip)public class StartShortsClip: Actor.Message {
+        public override init(sender: ActorRef?) {
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd14StopShortsClip)public class StopShortsClip: Actor.Message {
+        public override init(sender: ActorRef?) {
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd21RenderShortsRecording)public class RenderShortsRecording: Actor.Message {
+        public override init(sender: ActorRef?) {
+            super.init(sender: sender)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo5UICmd15ExitShortsMode)public class ExitShortsMode: Actor.Message {
+        public override init(sender: ActorRef?) {
+            super.init(sender: sender)
+        }
+    }
 }

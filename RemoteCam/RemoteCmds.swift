@@ -927,24 +927,90 @@ public class RemoteCmd: Actor.Message {
         }
     }
     
-    @objc(_TtCC10ActorsDemo9RemoteCmd20ShortsCommandResponse)public class ShortsCommandResponse: RemoteCmd, NSCoding {
-        public let success: Bool
-        public let error: String?
+    // MARK: - Shorts Mode Acknowledgments (following video recording pattern)
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd16StartShortsModeAck)public class StartShortsModeAck: RemoteCmd, NSCoding {
+        public let error: Error?
         
-        public init(success: Bool, error: String?, sender: ActorRef?) {
-            self.success = success
+        public init(sender: ActorRef?, error: Error? = nil) {
             self.error = error
             super.init(sender: sender)
         }
-
+        
         public func encode(with aCoder: NSCoder) {
-            aCoder.encode(success, forKey: "success")
-            aCoder.encode(error, forKey: "error")
+            if let error = self.error {
+                aCoder.encode(error, forKey: "error")
+            }
         }
-
+        
         public required init?(coder aDecoder: NSCoder) {
-            self.success = aDecoder.decodeBool(forKey: "success")
-            self.error = aDecoder.decodeObject(forKey: "error") as? String
+            self.error = aDecoder.decodeObject(forKey: "error") as? Error
+            super.init(sender: nil)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd16StartShortsClipAck)public class StartShortsClipAck: RemoteCmd, NSCoding {
+        public let recordingStartTime: Date?
+        public let error: Error?
+        
+        public init(sender: ActorRef?, recordingStartTime: Date? = nil, error: Error? = nil) {
+            self.recordingStartTime = recordingStartTime
+            self.error = error
+            super.init(sender: sender)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+            if let startTime = recordingStartTime {
+                aCoder.encode(startTime, forKey: "recordingStartTime")
+            }
+            if let error = self.error {
+                aCoder.encode(error, forKey: "error")
+            }
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            self.recordingStartTime = aDecoder.decodeObject(forKey: "recordingStartTime") as? Date
+            self.error = aDecoder.decodeObject(forKey: "error") as? Error
+            super.init(sender: nil)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd15StopShortsClipAck)public class StopShortsClipAck: RemoteCmd, NSCoding {
+        public let error: Error?
+        
+        public init(sender: ActorRef?, error: Error? = nil) {
+            self.error = error
+            super.init(sender: sender)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+            if let error = self.error {
+                aCoder.encode(error, forKey: "error")
+            }
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            self.error = aDecoder.decodeObject(forKey: "error") as? Error
+            super.init(sender: nil)
+        }
+    }
+    
+    @objc(_TtCC10ActorsDemo9RemoteCmd15ExitShortsModeAck)public class ExitShortsModeAck: RemoteCmd, NSCoding {
+        public let error: Error?
+        
+        public init(sender: ActorRef?, error: Error? = nil) {
+            self.error = error
+            super.init(sender: sender)
+        }
+        
+        public func encode(with aCoder: NSCoder) {
+            if let error = self.error {
+                aCoder.encode(error, forKey: "error")
+            }
+        }
+        
+        public required init?(coder aDecoder: NSCoder) {
+            self.error = aDecoder.decodeObject(forKey: "error") as? Error
             super.init(sender: nil)
         }
     }

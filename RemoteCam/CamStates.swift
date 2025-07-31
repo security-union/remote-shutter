@@ -161,29 +161,11 @@ extension RemoteCamSession {
             
             // MARK: - Shorts Mode Commands
             case let shortsCmd as RemoteCmd.StartShortsMode:
-                print("📱 DEBUG: Shorts mode requested")
+                print("📱 DEBUG: Camera received StartShortsMode command")
                 
-                // Check if we're already in ShortsViewController
-                if let shortsCtrl = ctrl as? ShortsViewController {
-                    let config = ShortsConfig(
-                        maxDuration: shortsCmd.maxDuration,
-                        maxClips: shortsCmd.maxClips,
-                        minClipDuration: 0.5,
-                        maxSingleClipDuration: min(shortsCmd.maxDuration, 30.0)
-                    )
-                    shortsCtrl.startShortsMode(config: config)
-                    self.become(
-                        name: "cameraShortsMode",
-                        state: self.cameraShortsMode(peer: peer,
-                                        ctrl: shortsCtrl,
-                                        lobby: lobbyWrapper)
-                    )
-                    let successMsg = RemoteCmd.ShortsCommandResponse(success: true, error: nil, sender: nil)
-                    self.sendCommandOrGoToScanning(peer: [peer], msg: successMsg, mode: .reliable)
-                    
-                // Currently in CameraViewController - need to transition
-                } else if let cameraCtrl = ctrl as? CameraViewController {
-                    print("📱 DEBUG: Transitioning from CameraViewController to ShortsViewController")
+                // Always transition from CameraViewController - this is the expected flow
+                if let cameraCtrl = ctrl as? CameraViewController {
+                    print("📱 DEBUG: Camera transitioning from CameraViewController to ShortsViewController")
                     
                     let config = ShortsConfig(
                         maxDuration: shortsCmd.maxDuration,
@@ -197,22 +179,16 @@ extension RemoteCamSession {
                         cameraCtrl.transitionToShortsMode(config: config, session: self)
                     }
                     
-                    // Note: Actor state transition will happen after UI transition completes
-                } else {
-                    // For now, just send success - navigation will be handled by UI layer later
-                    print("📱 DEBUG: Need to transition to ShortsViewController via UI")
-                    let successMsg = RemoteCmd.ShortsCommandResponse(success: true, error: nil, sender: nil)
-                    self.sendCommandOrGoToScanning(peer: [peer], msg: successMsg, mode: .reliable)
+                    // Send acknowledgment immediately - UI transition will complete asynchronously
+                    let ack = RemoteCmd.StartShortsModeAck(sender: nil, error: nil)
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: ack)
+                    print("✅ DEBUG: Camera sent StartShortsModeAck")
                     
-                    // Send UI command to notify that shorts mode should be started
-                    let config = ShortsConfig(
-                        maxDuration: shortsCmd.maxDuration,
-                        maxClips: shortsCmd.maxClips,
-                        minClipDuration: 0.5,
-                        maxSingleClipDuration: min(shortsCmd.maxDuration, 30.0)
-                    )
-                    let uiCmd = UICmd.ShortsSessionStarted(sessionId: UUID(), config: config, sender: nil)
-                    ctrl.session ! uiCmd
+                } else {
+                    print("❌ DEBUG: StartShortsMode requested but controller is not CameraViewController")
+                    let error = NSError(domain: "ShortsMode", code: 1, userInfo: [NSLocalizedDescriptionKey: "Camera not ready for shorts mode"])
+                    let ack = RemoteCmd.StartShortsModeAck(sender: nil, error: error)
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: ack)
                 }
             
             case let micError as UICmd.MicrophoneAccessDenied:
@@ -331,8 +307,8 @@ extension RemoteCamSession {
                 )
                 
                 // Send success response to remote
-                let successMsg = RemoteCmd.ShortsCommandResponse(success: true, error: nil, sender: nil)
-                self.sendCommandOrGoToScanning(peer: [peer], msg: successMsg, mode: .reliable)
+                // This case shouldn't happen since we now have proper acknowledgments
+                print("⚠️ DEBUG: Already in ShortsViewController - this should not happen in the new flow")
 
             default:
                 self.receive(msg: msg)
@@ -359,14 +335,34 @@ extension RemoteCamSession {
                 print("📱 DEBUG: Camera starting shorts clip recording")
                 ctrl.startRecordingClip(maxDuration: startClipCmd.maxDuration)
                 
-            case is RemoteCmd.StopShortsClip:
+                // Send acknowledgment with recording start time (like video recording)
+                let startTime = Date()
+                let ack = RemoteCmd.StartShortsClipAck(sender: nil, recordingStartTime: startTime, error: nil)
+                self.sendCommandOrGoToScanning(peer: [peer], msg: ack)
+                print("✅ DEBUG: Camera sent StartShortsClipAck")
+                
+            case let stopClipCmd as RemoteCmd.StopShortsClip:
                 print("📱 DEBUG: Camera stopping shorts clip recording")
                 ctrl.stopRecordingClip()
                 
-            case is RemoteCmd.ExitShortsMode:
+                // Send acknowledgment
+                let ack = RemoteCmd.StopShortsClipAck(sender: nil, error: nil)
+                self.sendCommandOrGoToScanning(peer: [peer], msg: ack)
+                print("✅ DEBUG: Camera sent StopShortsClipAck")
+                
+            case let exitCmd as RemoteCmd.ExitShortsMode:
                 print("📱 DEBUG: Camera exiting shorts mode")
-                // Return to regular camera state
-                // Note: Navigation back to CameraViewController will be handled by UI layer
+                
+                // Send acknowledgment first
+                let ack = RemoteCmd.ExitShortsModeAck(sender: nil, error: nil)
+                self.sendCommandOrGoToScanning(peer: [peer], msg: ack)
+                print("✅ DEBUG: Camera sent ExitShortsModeAck")
+                
+                // Exit shorts mode and return to regular camera state
+                DispatchQueue.main.async {
+                    ctrl.exitShortsMode()
+                }
+                
                 self.become(
                     name: self.states.connected,
                     state: self.connected(lobbyWrapper: lobby, peer: peer)

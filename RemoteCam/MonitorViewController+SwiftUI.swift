@@ -279,12 +279,12 @@ extension MonitorViewController {
     
     private func handleShortsStartRecording() {
         print("📱 DEBUG: Remote requesting start shorts clip recording")
-        session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)  // In shorts mode, clips should be sent to Remote
+        session ! UICmd.StartShortsClip(sender: nil)
     }
     
     private func handleShortsStopRecording() {
         print("📱 DEBUG: Remote requesting stop shorts clip recording")
-        session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)  // In shorts mode, clips should be sent to Remote
+        session ! UICmd.StopShortsClip(sender: nil)
     }
     
     private func handleShortsFinalize() {
