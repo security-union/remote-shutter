@@ -30,7 +30,7 @@ class MonitorViewModel: ObservableObject {
             UserDefaults.standard.synchronize()
         }
     }
-    @Published var maxTimerValue: Double = 10
+    @Published var maxTimerValue: Double = 20
     
     // MARK: - Recording Duration Properties
     @Published var recordingStartTime: Date?
