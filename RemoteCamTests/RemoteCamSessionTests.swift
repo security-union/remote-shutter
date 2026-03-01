@@ -343,7 +343,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     // MARK: - MonitorPhotoMode: ToggleCamera transitions to monitorTogglingCamera
 
-    func testMonitorPhotoModeToggleCameraTransitions() {
+    func testMonitorPhotoModeToggleCameraTransitions() throws {
         throw XCTSkip("because it is broken")
 
         pushMonitorPhotoModeState()
@@ -356,7 +356,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     // MARK: - MonitorPhotoMode: Switch to Video mode
 
-    func testMonitorPhotoModeSwitchToVideoMode() {
+    func testMonitorPhotoModeSwitchToVideoMode() throws {
         throw XCTSkip("because it is broken")
         pushMonitorPhotoModeState()
 
@@ -369,7 +369,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     // MARK: - MonitorPhotoMode: ToggleTorch sends remote command
 
-    func testMonitorPhotoModeToggleTorchSendsCommand() {
+    func testMonitorPhotoModeToggleTorchSendsCommand() throws {
         throw XCTSkip("because it is broken")
         pushMonitorPhotoModeState()
 
@@ -384,7 +384,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     // MARK: - MonitorPhotoMode: RequestCameraCapabilities
 
-    func testMonitorPhotoModeRequestCameraCapabilities() {
+    func testMonitorPhotoModeRequestCameraCapabilities() throws {
         throw XCTSkip("because it is broken")
         pushMonitorPhotoModeState()
 
@@ -398,7 +398,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     // MARK: - MonitorVideoMode: OnEnter
 
-    func testMonitorVideoModeOnEnterRequestsFrame() {
+    func testMonitorVideoModeOnEnterRequestsFrame() throws {
         throw XCTSkip("because it is broken")
         pushScanningState()
         pushConnectedState()
@@ -413,7 +413,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     // MARK: - MonitorVideoMode: Switch to Photo mode
 
-    func testMonitorVideoModeSwitchToPhotoMode() {
+    func testMonitorVideoModeSwitchToPhotoMode() throws {
         throw XCTSkip("because it is broken")
         pushMonitorVideoModeState()
 
@@ -425,7 +425,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     // MARK: - MonitorVideoMode: Disconnect
 
-    func testMonitorVideoModeDisconnectPopsToScanning() {
+    func testMonitorVideoModeDisconnectPopsToScanning() throws {
         throw XCTSkip("because it is broken")
         pushMonitorVideoModeState()
 
