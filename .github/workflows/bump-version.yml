@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   bump:
@@ -36,11 +37,19 @@ jobs:
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "new_build=$NEW_BUILD" >> "$GITHUB_OUTPUT"
 
-      - name: Commit and tag
+      - name: Create branch and PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          BRANCH="bump/${{ steps.bump.outputs.new_version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add RemoteShutter.xcodeproj/project.pbxproj
           git commit -m "Bump version to ${{ steps.bump.outputs.new_version }} (build ${{ steps.bump.outputs.new_build }})"
-          git tag "${{ steps.bump.outputs.new_version }}"
-          git push origin master --tags
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "Bump version to ${{ steps.bump.outputs.new_version }}" \
+            --body "Automated ${{ inputs.bump_type }} version bump: **${{ steps.bump.outputs.new_version }}** (build ${{ steps.bump.outputs.new_build }})" \
+            --base master \
+            --head "$BRANCH"
