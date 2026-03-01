@@ -182,7 +182,7 @@ public class CameraViewController: UIViewController,
     
     private func showPermissionErrorView() {
         let errorView = CameraPermissionErrorView(
-            onOpenSettings: { [weak self] in
+            onOpenSettings: { 
                 PermissionManager.shared.openAppSettings()
             },
             onGoBack: { [weak self] in
@@ -211,7 +211,9 @@ public class CameraViewController: UIViewController,
         super.viewDidDisappear(animated)
         if self.isBeingDismissed || self.isMovingFromParent {
             if captureSession.isRunning {
-                captureSession.stopRunning()
+                cameraConfigQueue.async { [weak self] in
+                    self?.captureSession.stopRunning()
+                }
             }
             session ! UICmd.UnbecomeCamera(sender: nil)
         }
@@ -257,7 +259,9 @@ public class CameraViewController: UIViewController,
             [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
         self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
         if self.captureSession.isRunning {
-            self.captureSession.stopRunning()
+            self.cameraConfigQueue.async {
+                self.captureSession.stopRunning()
+            }
         }
         self.captureSession.beginConfiguration()
         self.captureSession.sessionPreset = .high
@@ -279,7 +283,7 @@ public class CameraViewController: UIViewController,
             self.captureSession.addInput(self.videoDeviceInput)
             self.captureSession.addOutput(self.videoDataOutput)
 
-            self.setFrameRate(framerate: fps, videoDevice: videoDevice)
+            try self.setFrameRate(framerate: fps, videoDevice: videoDevice)
             
             // Gather complete camera capabilities for both front and back cameras
             self.gatherAllCameraCapabilities()
@@ -298,7 +302,9 @@ public class CameraViewController: UIViewController,
                 self.rotateCameraToOrientation(orientation: self.orientation)
             }
             self.captureSession.commitConfiguration()
-            self.captureSession.startRunning()
+            self.cameraConfigQueue.async {
+                self.captureSession.startRunning()
+            }
         } catch let error as NSError {
             print("error \(error)")
         }
@@ -316,7 +322,7 @@ public class CameraViewController: UIViewController,
             captureSession.addInput(newInput)
             self.videoDeviceInput = newInput
             configSessionOutput()
-            setFrameRate(framerate: fps, videoDevice: newDevice!)
+            try setFrameRate(framerate: fps, videoDevice: newDevice!)
             
             // Update available lens types for new camera position
             self.updateAvailableLensTypes(for: newPosition!)
@@ -693,7 +699,7 @@ public class CameraViewController: UIViewController,
             currentZoomFactor = 1.0
             
             configSessionOutput()
-            setFrameRate(framerate: fps, videoDevice: newDevice)
+            try setFrameRate(framerate: fps, videoDevice: newDevice)
             
             DispatchQueue.main.async {
                 self.rotateCameraToOrientation(orientation: self.orientation)
@@ -736,18 +742,11 @@ public class CameraViewController: UIViewController,
         }
     }
 
-    func setFrameRate(framerate: Int, videoDevice: AVCaptureDevice) -> Try<Int> {
-        do {
-            try videoDevice.lockForConfiguration()
-            videoDevice.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: Int32(framerate))
-            videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(framerate))
-            videoDevice.unlockForConfiguration()
-            return Success(framerate)
-        } catch let error as NSError {
-            return Failure(error: error)
-        } catch {
-            return Failure(error: NSError(domain: "unknown error", code: 0, userInfo: nil))
-        }
+    func setFrameRate(framerate: Int, videoDevice: AVCaptureDevice) throws {
+        try videoDevice.lockForConfiguration()
+        videoDevice.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: Int32(framerate))
+        videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(framerate))
+        videoDevice.unlockForConfiguration()
     }
 
     func cloneCameraSettings(_ settings: AVCapturePhotoSettings) -> AVCapturePhotoSettings {

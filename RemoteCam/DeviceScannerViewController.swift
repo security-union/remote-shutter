@@ -83,7 +83,7 @@ public class DeviceScannerViewController: UIViewController {
         
         // Check if we have a cached peer ID and if the device name has changed
         if let data = UserDefaults.standard.data(forKey: userDefaultsPeerId),
-           let cachedPeerID = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? MCPeerID {
+           let cachedPeerID = try? NSKeyedUnarchiver.unarchivedObject(ofClass: MCPeerID.self, from: data) {
             
             // If the cached peer's display name matches current device name, use it
             if cachedPeerID.displayName == currentDeviceName {

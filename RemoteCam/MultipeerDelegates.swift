@@ -49,7 +49,13 @@ extension RemoteCamSession {
     }
 
     public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-        guard let inboundMessage = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) else {
+        guard let inboundMessage: Any = {
+            let unarchiver = try? NSKeyedUnarchiver(forReadingFrom: data)
+            unarchiver?.requiresSecureCoding = false
+            let obj = unarchiver?.decodeObject(forKey: NSKeyedArchiveRootObjectKey)
+            unarchiver?.finishDecoding()
+            return obj
+        }() else {
             showIncopatibilityMessage()
             return
         }
