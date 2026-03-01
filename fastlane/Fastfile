@@ -1,4 +1,12 @@
 require 'base64'
+require 'openssl'
+
+puts "=========================================="
+puts "PATCHED FASTFILE LOADED (2026-03-01)"
+puts "Ruby: #{RUBY_VERSION}"
+puts "OpenSSL: #{OpenSSL::OPENSSL_VERSION}"
+puts "OpenSSL lib: #{OpenSSL::OPENSSL_LIBRARY_VERSION}"
+puts "=========================================="
 
 default_platform(:ios)
 
@@ -20,13 +28,64 @@ def normalize_pem(content)
   end
 end
 
+# Monkey-patch: EC.new uses deprecated PEM_read_bio_ECPrivateKey which may fail
+# with "invalid curve name" on certain OpenSSL 3.4.x builds. Fall back to
+# PKey.read which uses the generic EVP interface (PEM_read_bio_PrivateKey).
+# https://github.com/fastlane/fastlane/issues/20553
+module OpenSSL
+  module PKey
+    class EC
+      class << self
+        unless method_defined?(:_original_new_for_curve_fix)
+          alias_method :_original_new_for_curve_fix, :new
+          def new(*args, &block)
+            _original_new_for_curve_fix(*args, &block)
+          rescue OpenSSL::PKey::ECError => e
+            if args.length == 1 && args[0].is_a?(String) && e.message.include?('invalid curve name')
+              puts "[FASTFILE PATCH] EC.new failed: #{e.message}"
+              puts "[FASTFILE PATCH] Retrying with OpenSSL::PKey.read..."
+              result = OpenSSL::PKey.read(args[0])
+              puts "[FASTFILE PATCH] PKey.read succeeded: #{result.class}"
+              result
+            else
+              raise
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
 platform :ios do
 
   desc "Sync certificates and profiles via fastlane match"
   lane :sync_signing do
     # Decode, normalize newlines, re-encode so fastlane gets valid PEM
     raw = Base64.decode64(ENV["ASC_KEY_CONTENT"])
+    puts "[FASTFILE PATCH] Decoded key length: #{raw.length}"
+    puts "[FASTFILE PATCH] Key has newlines: #{raw.include?("\n")}"
+    puts "[FASTFILE PATCH] Key starts with: #{raw[0..30]}..."
+
     fixed = normalize_pem(raw)
+    puts "[FASTFILE PATCH] After normalize - has newlines: #{fixed.include?("\n")}"
+    puts "[FASTFILE PATCH] After normalize - length: #{fixed.length}"
+
+    # Quick sanity check: can we parse it directly?
+    begin
+      test_key = OpenSSL::PKey::EC.new(fixed)
+      puts "[FASTFILE PATCH] Direct EC.new sanity check: OK (#{test_key.class})"
+    rescue => e
+      puts "[FASTFILE PATCH] Direct EC.new sanity check FAILED: #{e.class}: #{e.message}"
+      # Try PKey.read directly
+      begin
+        test_key = OpenSSL::PKey.read(fixed)
+        puts "[FASTFILE PATCH] Direct PKey.read sanity check: OK (#{test_key.class})"
+      rescue => e2
+        puts "[FASTFILE PATCH] Direct PKey.read also FAILED: #{e2.class}: #{e2.message}"
+      end
+    end
+
     key_b64 = Base64.strict_encode64(fixed)
 
     app_store_connect_api_key(
