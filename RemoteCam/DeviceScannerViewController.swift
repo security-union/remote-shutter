@@ -493,11 +493,21 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
 extension DeviceScannerViewController: MCNearbyServiceBrowserDelegate {
     public func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String : String]?) {
         connectedPeers.append(peerID)
-        
+
         // Enable speed run scanning for future visits - user has successfully found a peer
         speedRunScanning = true
-        
+
+        // Auto-connect to known devices
+        if FeatureFlags.ENABLE_AUTO_RECONNECT &&
+            !isAutoConnecting &&
+            KnownDevicesManager.shared.isKnown(displayName: peerID.displayName) {
+            isAutoConnecting = true
+            autoConnectingPeerName = peerID.displayName
+            remoteCamSession ! ConnectToDevice(peer: peerID, sender: nil)
+        }
+
         DispatchQueue.main.async {
+            self.updateCancelButton()
             self.tableView.reloadData()
         }
     }

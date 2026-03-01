@@ -56,6 +56,10 @@ class TestDeviceScannerViewController: DeviceScannerViewController {
     override func startScanning() {
         // no-op
     }
+
+    override func goToRolePicker() {
+        // no-op — avoids performSegue crash without storyboard
+    }
 }
 
 // MARK: - Test Helpers
@@ -108,11 +112,16 @@ class RemoteCamSessionTests: XCTestCase {
         lobby = Self.sharedLobby
         lobbyWrapper = Weak(lobby)
 
+        // Clean known devices before each test
+        KnownDevicesManager.shared.clearAll()
+
         // Wait for preStart's `become(waitingForCtrl)` + OnEnter to finish.
         waitForMailbox(session, test: self)
     }
 
     override func tearDown() {
+        // Clean up known devices
+        KnownDevicesManager.shared.clearAll()
         // Theater's Actor.tell() uses [unowned self] in mailbox operations.
         // If the actor is deallocated while operations are pending, the
         // unowned reference crashes. We must ensure the mailbox is fully
@@ -446,5 +455,105 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentState()?.0, session.states.connected)
+    }
+
+    // MARK: - OnConnectToDevice saves peer to KnownDevicesManager
+
+    func testOnConnectToDeviceSavesPeerToKnownDevices() {
+        // Use real scanning state so KnownDevicesManager.addDevice is called
+        session.become(name: session.states.scanning,
+                       state: session.scanning(lobbyWrapper))
+        waitForMailbox(session, test: self)
+
+        XCTAssertFalse(KnownDevicesManager.shared.isKnown(displayName: peer.displayName))
+
+        ref ! OnConnectToDevice(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertTrue(KnownDevicesManager.shared.isKnown(displayName: peer.displayName))
+    }
+}
+
+// MARK: - KnownDevicesManager Tests
+
+class KnownDevicesManagerTests: XCTestCase {
+
+    private var manager: KnownDevicesManager!
+    private var testDefaults: UserDefaults!
+
+    override func setUp() {
+        super.setUp()
+        testDefaults = UserDefaults(suiteName: "KnownDevicesManagerTests")!
+        testDefaults.removePersistentDomain(forName: "KnownDevicesManagerTests")
+        manager = KnownDevicesManager(defaults: testDefaults)
+    }
+
+    override func tearDown() {
+        testDefaults.removePersistentDomain(forName: "KnownDevicesManagerTests")
+        testDefaults = nil
+        manager = nil
+        super.tearDown()
+    }
+
+    func testAddAndRetrieveDevice() {
+        manager.addDevice(displayName: "iPhone")
+        XCTAssertTrue(manager.isKnown(displayName: "iPhone"))
+        XCTAssertEqual(manager.allDevices(), ["iPhone"])
+    }
+
+    func testIsKnownReturnsFalseForUnknown() {
+        XCTAssertFalse(manager.isKnown(displayName: "Unknown"))
+    }
+
+    func testRemoveDevice() {
+        manager.addDevice(displayName: "iPhone")
+        manager.addDevice(displayName: "iPad")
+        manager.removeDevice(displayName: "iPhone")
+
+        XCTAssertFalse(manager.isKnown(displayName: "iPhone"))
+        XCTAssertTrue(manager.isKnown(displayName: "iPad"))
+    }
+
+    func testClearAll() {
+        manager.addDevice(displayName: "iPhone")
+        manager.addDevice(displayName: "iPad")
+        manager.clearAll()
+
+        XCTAssertEqual(manager.allDevices(), [])
+    }
+
+    func testMRUOrdering() {
+        manager.addDevice(displayName: "A")
+        manager.addDevice(displayName: "B")
+        manager.addDevice(displayName: "C")
+
+        XCTAssertEqual(manager.allDevices(), ["C", "B", "A"])
+
+        // Re-adding A should move it to front
+        manager.addDevice(displayName: "A")
+        XCTAssertEqual(manager.allDevices(), ["A", "C", "B"])
+    }
+
+    func testMaxDevicesLimit() {
+        for i in 1...15 {
+            manager.addDevice(displayName: "Device\(i)")
+        }
+
+        let devices = manager.allDevices()
+        XCTAssertEqual(devices.count, 10)
+        // Most recent should be first
+        XCTAssertEqual(devices.first, "Device15")
+        // Oldest beyond limit should be gone
+        XCTAssertFalse(manager.isKnown(displayName: "Device1"))
+        XCTAssertFalse(manager.isKnown(displayName: "Device5"))
+        XCTAssertTrue(manager.isKnown(displayName: "Device6"))
+    }
+
+    func testDuplicateAddDoesNotCreateDuplicates() {
+        manager.addDevice(displayName: "iPhone")
+        manager.addDevice(displayName: "iPhone")
+        manager.addDevice(displayName: "iPhone")
+
+        XCTAssertEqual(manager.allDevices(), ["iPhone"])
     }
 }
