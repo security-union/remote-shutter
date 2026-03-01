@@ -27,9 +27,6 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true
 
-      - name: Install CocoaPods
-        run: pod install --repo-update
-
       - name: Run tests
         run: |
           xcodebuild \
