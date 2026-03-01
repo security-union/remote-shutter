@@ -148,6 +148,8 @@
 		85D33832258D489C0091972B /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33831258D489C0091972B /* UIView.swift */; };
 		85D33836258D48C30091972B /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33835258D48C30091972B /* UIViewController.swift */; };
 		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
+		AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */; };
+		ABBA2C4CD92C4E137A90F275 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -291,6 +293,7 @@
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.debug.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.debug.xcconfig"; sourceTree = "<group>"; };
 		69E2751E42D4D3ED3B0395F8 /* Pods-RemoteCam.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.release.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.release.xcconfig"; sourceTree = "<group>"; };
+		7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteShutterUITests.swift; sourceTree = "<group>"; };
 		852E430A250D4B1D00F5151E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -301,9 +304,12 @@
 		85D33835258D48C30091972B /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
 		85F118E5250ACBE100B73E48 /* RemoteShutter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamSessionTests.swift; sourceTree = "<group>"; };
 		B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
 		BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		C4415A8FAB4FB271F412749F /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
 		D1F8EDB852F5C77347AE6066 /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
+		D74001DF2412690FAA394C74 /* Pods-RemoteShutterTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -320,6 +326,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ABBA2C4CD92C4E137A90F275 /* Pods_RemoteShutterTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -423,6 +430,7 @@
 		069284321BE5BF5C00AF4678 /* RemoteCamTests */ = {
 			isa = PBXGroup;
 			children = (
+				AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */,
 				069284351BE5BF5C00AF4678 /* Info.plist */,
 			);
 			path = RemoteCamTests;
@@ -562,6 +570,7 @@
 				06EEA7DB1BBB87EE005787AE /* Starscream.framework */,
 				27B79A6BB7E56A401AD5A495 /* Pods.framework */,
 				BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */,
+				7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -573,6 +582,8 @@
 				69E2751E42D4D3ED3B0395F8 /* Pods-RemoteCam.release.xcconfig */,
 				B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */,
 				D1F8EDB852F5C77347AE6066 /* Pods-RemoteShutter.release.xcconfig */,
+				D74001DF2412690FAA394C74 /* Pods-RemoteShutterTests.debug.xcconfig */,
+				C4415A8FAB4FB271F412749F /* Pods-RemoteShutterTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -614,6 +625,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 069284391BE5BF5C00AF4678 /* Build configuration list for PBXNativeTarget "RemoteShutterTests" */;
 			buildPhases = (
+				67C56B34490C048240E0AE78 /* [CP] Check Pods Manifest.lock */,
 				0692842B1BE5BF5C00AF4678 /* Sources */,
 				0692842C1BE5BF5C00AF4678 /* Frameworks */,
 				0692842D1BE5BF5C00AF4678 /* Resources */,
@@ -670,7 +682,6 @@
 					};
 					852E4305250D4B1D00F5151E = {
 						CreatedOnToolsVersion = 11.7;
-						DevelopmentTeam = 86N68E36XN;
 						LastSwiftMigration = 1200;
 						ProvisioningStyle = Automatic;
 						TestTargetID = 0692841B1BE5BF5B00AF4678;
@@ -747,6 +758,28 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		67C56B34490C048240E0AE78 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-RemoteShutterTests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
 		8AC1B538FE9584BC346DAE60 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -888,30 +921,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				065532F5258C4BF3000C2339 /* RolePickerController.swift in Sources */,
-				06184D42258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */,
-				0613BBD12530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
-				065532EF258C4BE9000C2339 /* DeviceScannerViewController.swift in Sources */,
-				85C11C0C2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
-				068EF0C72531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
-				06BB79BA2E374D410094E085 /* FeatureFlags.swift in Sources */,
-				0631D182256DFC960006CAF3 /* FrameSender.swift in Sources */,
-				06E9652825351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
-				06CDFB2B252EC2C300EA56FB /* CGImage.swift in Sources */,
-				06E9653F2535754800E5A8B3 /* Data+MD5.swift in Sources */,
-				06CDFB1F252E9CD200EA56FB /* UICmds.swift in Sources */,
-				06AEE43525333B4A00C2ED90 /* UIAlertController.swift in Sources */,
-				068EF0CF2531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
-				06C32C3D2533A41800C18687 /* RemoteCamConnected.swift in Sources */,
-				06CDFB18252E9A7900EA56FB /* RemoteCmds.swift in Sources */,
-				06B1D8102536C2330029CCB6 /* UIImage+gif.swift in Sources */,
-				0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */,
-				061596F7251FCFDA0032289B /* Constants.m in Sources */,
-				85C11C062582F3FC00618F32 /* UIButton.swift in Sources */,
-				06D114D02532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
-				06E965222535199400E5A8B3 /* MediaProcessors.swift in Sources */,
-				068EF0B92531844B00A84DFA /* CameraVideoStates.swift in Sources */,
-				068EF0B02531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
+				AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1061,12 +1071,13 @@
 		};
 		0692843A1BE5BF5C00AF4678 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = D74001DF2412690FAA394C74 /* Pods-RemoteShutterTests.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ENABLE_MODULES = YES;
 				INFOPLIST_FILE = RemoteCamTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1077,18 +1088,19 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteShutterTests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteCam.app/RemoteCam";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteShutter.app/RemoteShutter";
 			};
 			name = Debug;
 		};
 		0692843B1BE5BF5C00AF4678 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C4415A8FAB4FB271F412749F /* Pods-RemoteShutterTests.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ENABLE_MODULES = YES;
 				INFOPLIST_FILE = RemoteCamTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1098,7 +1110,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "RemoteCam/RemoteShutterTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteCam.app/RemoteCam";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RemoteShutter.app/RemoteShutter";
 			};
 			name = Release;
 		};
@@ -1226,7 +1238,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 86N68E36XN;
+				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				INFOPLIST_FILE = RemoteShutterUITests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.7;
@@ -1259,7 +1271,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 86N68E36XN;
+				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				INFOPLIST_FILE = RemoteShutterUITests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.7;

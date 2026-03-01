@@ -1,0 +1,6 @@
+framework module Pods_RemoteShutterTests {
+  umbrella header "Pods-RemoteShutterTests-umbrella.h"
+
+  export *
+  module * { export * }
+}
