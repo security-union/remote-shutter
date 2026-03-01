@@ -437,7 +437,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     // MARK: - MonitorVideoMode: UnbecomeMonitor
 
-    func testMonitorVideoModeUnbecomeMonitorPopsToConnected() {
+    func testMonitorVideoModeUnbecomeMonitorPopsToConnected() throws {
         throw XCTSkip("because it is broken")
         pushMonitorVideoModeState()
 
