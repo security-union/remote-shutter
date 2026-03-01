@@ -45,7 +45,7 @@ jobs:
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          ASC_KEY_CONTENT: "${{ secrets.ASC_KEY_CONTENT }}"
         run: bundle exec fastlane release
 
       - name: Upload IPA artifact
