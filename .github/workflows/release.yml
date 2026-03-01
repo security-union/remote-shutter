@@ -38,7 +38,9 @@ jobs:
       #       CODE_SIGNING_REQUIRED=NO \
       #       CODE_SIGNING_ALLOWED=NO
       #   continue-on-error: true
-      # - name: Build and upload to App Store
+      
+      
+      - name: Build and upload to App Store
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
