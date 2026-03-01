@@ -118,16 +118,17 @@ class RemoteCamSessionTests: XCTestCase {
         // unowned reference crashes. We must ensure the mailbox is fully
         // drained before releasing the actor.
         //
-        // waitForMailbox is NOT sufficient here — it only waits for operations
-        // queued before the drain op. But state handlers (OnEnter etc.) queue
-        // NEW operations during execution (e.g. `monitor ! RenderPhotoMode`),
-        // which land AFTER the drain op.
+        // We cannot use waitUntilAllOperationsAreFinished() here because it
+        // blocks the main thread. State handlers use ^{} (Theater's prefix
+        // operator) which dispatches to the main queue with
+        // waitUntilFinished:true. If the main thread is blocked, those
+        // mailbox operations deadlock waiting for the main thread.
         //
-        // waitUntilAllOperationsAreFinished() blocks until operationCount == 0,
-        // covering operations added by in-flight handlers.
-        session.mailbox.waitUntilAllOperationsAreFinished()
+        // Instead, we pump the main run loop while waiting, allowing ^{}
+        // dispatches to execute.
+        drainMailboxPumpingRunLoop()
         system.stop()
-        session.mailbox.waitUntilAllOperationsAreFinished()
+        drainMailboxPumpingRunLoop()
         system = nil
         ref = nil
         session = nil
@@ -135,6 +136,15 @@ class RemoteCamSessionTests: XCTestCase {
         lobby = nil
         lobbyWrapper = nil
         super.tearDown()
+    }
+
+    /// Drains the actor mailbox while keeping the main run loop alive.
+    /// This prevents deadlocks with ^{} (synchronous main-thread dispatch).
+    private func drainMailboxPumpingRunLoop() {
+        let deadline = Date(timeIntervalSinceNow: 5.0)
+        while session.mailbox.operationCount > 0 && Date() < deadline {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
+        }
     }
 
     // MARK: - Helpers
