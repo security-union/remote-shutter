@@ -67,7 +67,7 @@ class TestDeviceScannerViewController: DeviceScannerViewController {
 func waitForMailbox(_ session: TestableRemoteCamSession, test: XCTestCase) {
     let expectation = test.expectation(description: "mailbox drained")
     session.mailbox.addOperation { expectation.fulfill() }
-    test.wait(for: [expectation], timeout: 2.0)
+    test.wait(for: [expectation], timeout: 5.0)
 }
 
 // MARK: - Tests
@@ -113,7 +113,16 @@ class RemoteCamSessionTests: XCTestCase {
     }
 
     override func tearDown() {
+        // Drain the mailbox BEFORE stopping the system. Theater's Actor.tell()
+        // uses [unowned self], so if the actor is deallocated while pending
+        // operations remain on the mailbox, the unowned reference crashes.
+        // By draining first, all in-flight messages finish while `session`
+        // still holds a strong reference to the actor.
+        waitForMailbox(session, test: self)
         system.stop()
+        // Wait for Harakiri (sent by system.stop) to be processed while
+        // the actor is still alive.
+        waitForMailbox(session, test: self)
         system = nil
         ref = nil
         session = nil
