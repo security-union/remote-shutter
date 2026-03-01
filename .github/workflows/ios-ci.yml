@@ -57,7 +57,7 @@ jobs:
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO
           
-    - name: Run Tests (if available)
+    - name: Run Tests
       run: |
         xcodebuild \
           -workspace RemoteShutter.xcworkspace \
@@ -67,20 +67,7 @@ jobs:
           test \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO
-      continue-on-error: true
-      
-    - name: Archive for Release (if main branch)
-      if: github.ref == 'refs/heads/main'
-      run: |
-        xcodebuild \
-          -workspace RemoteShutter.xcworkspace \
-          -scheme RemoteCam \
-          -configuration Release \
-          -archivePath RemoteShutter.xcarchive \
-          archive \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
-          
+
     - name: Upload Build Artifacts
       if: failure()
       uses: actions/upload-artifact@v4
