@@ -1,3 +1,26 @@
+# Workaround for "invalid curve name" error on macOS 15 runners with OpenSSL 3.4+.
+# Apple's .p8 keys embed the curve name "prime256v1" which newer OpenSSL rejects
+# in EC.new but handles fine via the generic PKey.read parser.
+# https://github.com/fastlane/fastlane/issues/20553
+require 'openssl'
+module OpenSSL
+  module PKey
+    class EC
+      class << self
+        unless method_defined?(:_original_new_for_curve_fix)
+          alias_method :_original_new_for_curve_fix, :new
+          def new(*args, &block)
+            _original_new_for_curve_fix(*args, &block)
+          rescue OpenSSL::PKey::ECError => e
+            raise unless args.length == 1 && args[0].is_a?(String) && e.message.include?('invalid curve name')
+            OpenSSL::PKey.read(args[0])
+          end
+        end
+      end
+    end
+  end
+end
+
 default_platform(:ios)
 
 platform :ios do
