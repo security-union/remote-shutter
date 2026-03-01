@@ -43,3 +43,11 @@ xcuserdata
 
 Carthage/Build
 .DS_Store
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output
+
+# Bundler
+vendor/bundle
