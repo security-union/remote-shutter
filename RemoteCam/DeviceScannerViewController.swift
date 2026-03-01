@@ -56,6 +56,10 @@ public class DeviceScannerViewController: UIViewController {
     var isScanning: Bool = false
     var hasLocalNetworkAccess: Bool = true
     var hasScanningError: Bool = false
+
+    // Auto-reconnect state
+    var isAutoConnecting: Bool = false
+    var autoConnectingPeerName: String?
     
     // Modern Swift UserDefaults property
     var speedRunScanning: Bool {
@@ -135,6 +139,27 @@ public class DeviceScannerViewController: UIViewController {
         navigationItem.rightBarButtonItem = helpButton
     }
     
+    /// Shows or hides a Cancel nav bar button during auto-connect.
+    func updateCancelButton() {
+        if isAutoConnecting {
+            let cancelButton = UIBarButtonItem(
+                barButtonSystemItem: .cancel,
+                target: self,
+                action: #selector(cancelAutoConnect)
+            )
+            navigationItem.leftBarButtonItem = cancelButton
+        } else {
+            navigationItem.leftBarButtonItem = nil
+        }
+    }
+
+    @objc private func cancelAutoConnect() {
+        isAutoConnecting = false
+        autoConnectingPeerName = nil
+        updateCancelButton()
+        tableView.reloadData()
+    }
+
     @objc private func showHelpModal() {
         let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
             self?.dismiss(animated: true)
@@ -191,18 +216,24 @@ public class DeviceScannerViewController: UIViewController {
         connectedPeers.removeAll()
         isScanning = true
         hasScanningError = false  // Clear error state when starting new scan
+        isAutoConnecting = false
+        autoConnectingPeerName = nil
         DispatchQueue.main.async {
+            self.updateCancelButton()
             self.tableView.reloadData()
         }
         scanner.stopBrowsingForPeers()
         scanner.startBrowsingForPeers()
     }
-    
+
     func stopScanning() {
         splash.stopAnimating()
         connectedPeers.removeAll()
         isScanning = false
+        isAutoConnecting = false
+        autoConnectingPeerName = nil
         DispatchQueue.main.async {
+            self.updateCancelButton()
             self.tableView.reloadData()
         }
         scanner.stopBrowsingForPeers()
@@ -437,6 +468,9 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
         if (connectedPeers.count == 0) {
             return
         }
+        isAutoConnecting = false
+        autoConnectingPeerName = nil
+        updateCancelButton()
         let peer = connectedPeers[indexPath.row]
         remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
     }
@@ -448,6 +482,8 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
             } else {
                 return NSLocalizedString("TAP THE GREEN BUTTON TO GET STARTED", comment: "")
             }
+        } else if isAutoConnecting, let name = autoConnectingPeerName {
+            return String(format: NSLocalizedString("CONNECTING TO %@...", comment: ""), name)
         } else {
             return NSLocalizedString("SEARCHING FOR NEARBY DEVICES...", comment: "")
         }

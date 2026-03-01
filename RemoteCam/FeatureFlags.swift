@@ -19,6 +19,13 @@ struct FeatureFlags {
     /// Set to true when Shorts mode implementation is complete
     static let ENABLE_SHORTS_MODE = false
     
+    // MARK: - Connectivity Features
+
+    /// Enable auto-reconnect to previously paired devices.
+    /// When enabled, the app auto-accepts invitations from known devices
+    /// and auto-invites them when discovered during scanning.
+    static let ENABLE_AUTO_RECONNECT = true
+
     // MARK: - Future Feature Flags
     // Add new feature flags here as needed
     // Example:

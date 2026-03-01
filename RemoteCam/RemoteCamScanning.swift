@@ -41,6 +41,7 @@ extension RemoteCamSession {
                     lobby.splash.startAnimating()
                 }
             case let w as OnConnectToDevice:
+                KnownDevicesManager.shared.addDevice(displayName: w.peer.displayName)
                 ^{
                     lobby.splash.stopAnimating()
                 }

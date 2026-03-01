@@ -29,7 +29,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
 
     var session: MCSession!
 
-    var mcAdvertiserAssistant: MCAdvertiserAssistant!
+    var mcNearbyServiceAdvertiser: MCNearbyServiceAdvertiser!
     
     // Progress tracking for video transfers
     var progressCancellables = Set<AnyCancellable>()
@@ -39,8 +39,8 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
     }
 
     override public func willStop() {
-        if let adv = self.mcAdvertiserAssistant {
-            adv.stop()
+        if let adv = self.mcNearbyServiceAdvertiser {
+            adv.stopAdvertisingPeer()
         }
         if let session = self.session {
             session.disconnect()
@@ -71,9 +71,10 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             CATransaction.setCompletionBlock {
                 self.session = MCSession(peer: lobby.peerID)
                 self.session.delegate = self
-                self.mcAdvertiserAssistant = MCAdvertiserAssistant(
-                    serviceType: service, discoveryInfo: nil, session: self.session)
-                self.mcAdvertiserAssistant.start()
+                self.mcNearbyServiceAdvertiser = MCNearbyServiceAdvertiser(
+                    peer: lobby.peerID, discoveryInfo: nil, serviceType: service)
+                self.mcNearbyServiceAdvertiser.delegate = self
+                self.mcNearbyServiceAdvertiser.startAdvertisingPeer()
             }
             lobby.navigationController?.popToViewController(lobby, animated: true)
             lobby.startScanning()
@@ -373,8 +374,57 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         if let monitorActor = getMonitorActor() {
             monitorActor ! message
         }
-        
+
         // For camera side, we'll handle this in the camera states where we have the ctrl reference
         // This is cleaner than notifications and maintains the actor pattern
+    }
+}
+
+// MARK: - MCNearbyServiceAdvertiserDelegate
+
+extension RemoteCamSession: MCNearbyServiceAdvertiserDelegate {
+
+    public func advertiser(
+        _ advertiser: MCNearbyServiceAdvertiser,
+        didReceiveInvitationFromPeer peerID: MCPeerID,
+        withContext context: Data?,
+        invitationHandler: @escaping (Bool, MCSession?) -> Void
+    ) {
+        if FeatureFlags.ENABLE_AUTO_RECONNECT &&
+            KnownDevicesManager.shared.isKnown(displayName: peerID.displayName) {
+            invitationHandler(true, self.session)
+            return
+        }
+
+        ^{
+            let alert = UIAlertController(
+                title: NSLocalizedString("Incoming Connection", comment: ""),
+                message: String(
+                    format: NSLocalizedString("%@ wants to connect", comment: ""),
+                    peerID.displayName
+                ),
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(
+                title: NSLocalizedString("Accept", comment: ""),
+                style: .default
+            ) { _ in
+                invitationHandler(true, self.session)
+            })
+            alert.addAction(UIAlertAction(
+                title: NSLocalizedString("Decline", comment: ""),
+                style: .cancel
+            ) { _ in
+                invitationHandler(false, nil)
+            })
+            alert.show(true)
+        }
+    }
+
+    public func advertiser(
+        _ advertiser: MCNearbyServiceAdvertiser,
+        didNotStartAdvertisingPeer error: Error
+    ) {
+        print("Advertiser failed to start: \(error.localizedDescription)")
     }
 }
