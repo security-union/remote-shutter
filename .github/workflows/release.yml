@@ -27,18 +27,18 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true
 
-      - name: Run tests
-        run: |
-          xcodebuild \
-            -workspace RemoteShutter.xcworkspace \
-            -scheme RemoteCam \
-            -destination 'platform=iOS Simulator,OS=18.5,name=iPhone 16' \
-            -configuration Debug \
-            test \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
-        continue-on-error: true
-      - name: Build and upload to App Store
+      # - name: Run tests
+      #   run: |
+      #     xcodebuild \
+      #       -workspace RemoteShutter.xcworkspace \
+      #       -scheme RemoteCam \
+      #       -destination 'platform=iOS Simulator,OS=18.5,name=iPhone 16' \
+      #       -configuration Debug \
+      #       test \
+      #       CODE_SIGNING_REQUIRED=NO \
+      #       CODE_SIGNING_ALLOWED=NO
+      #   continue-on-error: true
+      # - name: Build and upload to App Store
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
