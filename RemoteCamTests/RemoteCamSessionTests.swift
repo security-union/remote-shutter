@@ -113,16 +113,21 @@ class RemoteCamSessionTests: XCTestCase {
     }
 
     override func tearDown() {
-        // Drain the mailbox BEFORE stopping the system. Theater's Actor.tell()
-        // uses [unowned self], so if the actor is deallocated while pending
-        // operations remain on the mailbox, the unowned reference crashes.
-        // By draining first, all in-flight messages finish while `session`
-        // still holds a strong reference to the actor.
-        waitForMailbox(session, test: self)
+        // Theater's Actor.tell() uses [unowned self] in mailbox operations.
+        // If the actor is deallocated while operations are pending, the
+        // unowned reference crashes. We must ensure the mailbox is fully
+        // drained before releasing the actor.
+        //
+        // waitForMailbox is NOT sufficient here — it only waits for operations
+        // queued before the drain op. But state handlers (OnEnter etc.) queue
+        // NEW operations during execution (e.g. `monitor ! RenderPhotoMode`),
+        // which land AFTER the drain op.
+        //
+        // waitUntilAllOperationsAreFinished() blocks until operationCount == 0,
+        // covering operations added by in-flight handlers.
+        session.mailbox.waitUntilAllOperationsAreFinished()
         system.stop()
-        // Wait for Harakiri (sent by system.stop) to be processed while
-        // the actor is still alive.
-        waitForMailbox(session, test: self)
+        session.mailbox.waitUntilAllOperationsAreFinished()
         system = nil
         ref = nil
         session = nil
