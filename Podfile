@@ -6,12 +6,16 @@ source 'https://github.com/CocoaPods/Specs.git'
 platform :ios, '15.0'
 use_frameworks!
 
-target 'RemoteShutter' do    
+target 'RemoteShutter' do
     pod 'Starscream', '~> 4.0.8'
     pod 'Theater', '1.1'
     pod 'Google-Mobile-Ads-SDK', '~> 11.0'
     pod 'GoogleUserMessagingPlatform', '~> 2.0'
     pod 'SwiftLint', '~> 0.41.0'
+
+    target 'RemoteShutterTests' do
+        inherit! :search_paths
+    end
 end
 
 post_install do |installer|
