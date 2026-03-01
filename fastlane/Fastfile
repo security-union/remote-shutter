@@ -1,36 +1,38 @@
-# Workaround for "invalid curve name" error on macOS 15 runners with OpenSSL 3.4+.
-# Apple's .p8 keys embed the curve name "prime256v1" which newer OpenSSL rejects
-# in EC.new but handles fine via the generic PKey.read parser.
-# https://github.com/fastlane/fastlane/issues/20553
-require 'openssl'
-module OpenSSL
-  module PKey
-    class EC
-      class << self
-        unless method_defined?(:_original_new_for_curve_fix)
-          alias_method :_original_new_for_curve_fix, :new
-          def new(*args, &block)
-            _original_new_for_curve_fix(*args, &block)
-          rescue OpenSSL::PKey::ECError => e
-            raise unless args.length == 1 && args[0].is_a?(String) && e.message.include?('invalid curve name')
-            OpenSSL::PKey.read(args[0])
-          end
-        end
-      end
-    end
-  end
-end
+require 'base64'
 
 default_platform(:ios)
+
+# Fix PEM content that has had its newlines stripped.
+# OpenSSL requires newlines after the header, between body lines (every 64 chars),
+# and before the footer. Without them it produces a misleading "invalid curve name" error.
+# https://github.com/fastlane/fastlane/issues/20593
+def normalize_pem(content)
+  return content if content.include?("\n")
+  return content unless content.include?("-----BEGIN")
+
+  if content =~ /^(-----BEGIN [^-]+-----)(.*)(-----END [^-]+-----)$/
+    header = $1
+    body = $2
+    footer = $3
+    "#{header}\n#{body.scan(/.{1,64}/).join("\n")}\n#{footer}\n"
+  else
+    content
+  end
+end
 
 platform :ios do
 
   desc "Sync certificates and profiles via fastlane match"
   lane :sync_signing do
+    # Decode, normalize newlines, re-encode so fastlane gets valid PEM
+    raw = Base64.decode64(ENV["ASC_KEY_CONTENT"])
+    fixed = normalize_pem(raw)
+    key_b64 = Base64.strict_encode64(fixed)
+
     app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
       issuer_id: ENV["ASC_ISSUER_ID"],
-      key_content: ENV["ASC_KEY_CONTENT"],
+      key_content: key_b64,
       is_key_content_base64: true
     )
 
