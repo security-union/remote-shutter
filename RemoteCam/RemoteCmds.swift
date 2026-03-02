@@ -788,11 +788,17 @@ public class RemoteCmd: Actor.Message {
         }
 
         public required init?(coder aDecoder: NSCoder) {
-            let zoomValue = aDecoder.decodeFloat(forKey: "zoomFactor")
-            self.zoomFactor = zoomValue > 0 ? CGFloat(zoomValue) : nil
-            
-            let lensRaw = aDecoder.decodeInteger(forKey: "currentLens")
-            self.currentLens = lensRaw > 0 ? CameraLensType(rawValue: lensRaw) : nil
+            if aDecoder.containsValue(forKey: "zoomFactor") {
+                self.zoomFactor = CGFloat(aDecoder.decodeFloat(forKey: "zoomFactor"))
+            } else {
+                self.zoomFactor = nil
+            }
+
+            if aDecoder.containsValue(forKey: "currentLens") {
+                self.currentLens = CameraLensType(rawValue: aDecoder.decodeInteger(forKey: "currentLens"))
+            } else {
+                self.currentLens = nil
+            }
             
             if let rangeData = aDecoder.decodeObject(forKey: "zoomRange") as? Data {
                 self.zoomRange = try? JSONDecoder().decode(ZoomRange.self, from: rangeData)

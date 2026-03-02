@@ -60,13 +60,9 @@ extension RemoteCamSession {
                          ctrl: CameraViewController,
                          lobby: Weak<DeviceScannerViewController>,
                          sendMediaToPeer: Bool) -> Receive {
-        var alert: UIAlertController?
-        ^{
-            alert = UIAlertController(title: "Taking picture",
-                message: nil,
-                preferredStyle: .alert)
-
-            alert?.show(true)
+        var alertHandle: AlertHandle?
+        ^{ [weak self] in
+            alertHandle = self?.alertPresenter.showAlert(title: "Taking picture")
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
@@ -74,8 +70,8 @@ extension RemoteCamSession {
                 if let imageData = t.pic {
                     savePicture(imageData)
                 }
-                ^{
-                    alert?.dismiss(animated: true, completion: nil)
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
                 if self.sendMessage(
                     peer: [peer],
@@ -90,19 +86,18 @@ extension RemoteCamSession {
                     return
                 }
                 self.unbecome()
+
             case let c as DisconnectPeer:
-                ^{
-                    alert?.dismiss(animated: true, completion: nil)
-                    if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                        self.mailbox.addOperation(BlockOperation {
-                            self.popAndStartScanning()
-                        })
-                    }
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                }
+                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                    self.popAndStartScanning()
                 }
 
             case is Disconnect:
-                ^{
-                    alert?.dismiss(animated: true)
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
                 self.popAndStartScanning()
 
@@ -248,7 +243,7 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
+                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
                     print("🔍 DEBUG: Camera disconnecting peer - going to scanning")
                     self.popAndStartScanning()
                 }

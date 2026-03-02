@@ -22,29 +22,24 @@ func getMonitorActor() -> ActorRef? {
     RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/MonitorActor")
 }
 
-public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSessionDelegate {
+public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
     let states = RemoteCamStates()
 
-    var session: MCSession!
+    var alertPresenter: AlertPresenting = UIAlertPresenter()
 
-    var mcAdvertiserAssistant: MCAdvertiserAssistant!
-    
-    // Progress tracking for video transfers
-    var progressCancellables = Set<AnyCancellable>()
+    var multipeerService: (any MultipeerServiceProtocol)!
+
+    var session: MCSession! { multipeerService?.session }
+
+    var connectedPeers: [MCPeerID] { multipeerService?.connectedPeers ?? [] }
 
     public required init(context: ActorSystem, ref: ActorRef) {
         super.init(context: context, ref: ref)
     }
 
     override public func willStop() {
-        if let adv = self.mcAdvertiserAssistant {
-            adv.stop()
-        }
-        if let session = self.session {
-            session.disconnect()
-            session.delegate = nil
-        }
+        multipeerService?.stopSession()
     }
 
     override public func receiveWithCtrl(ctrl: Weak<DeviceScannerViewController>) -> Receive {
@@ -68,11 +63,9 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         ^{
             CATransaction.begin()
             CATransaction.setCompletionBlock {
-                self.session = MCSession(peer: lobby.peerID)
-                self.session.delegate = self
-                self.mcAdvertiserAssistant = MCAdvertiserAssistant(
-                    serviceType: service, discoveryInfo: nil, session: self.session)
-                self.mcAdvertiserAssistant.start()
+                self.multipeerService = MultipeerService()
+                self.multipeerService.delegate = self
+                self.multipeerService.startSession(peerID: lobby.peerID)
             }
             lobby.navigationController?.popToViewController(lobby, animated: true)
             lobby.startScanning()
@@ -98,25 +91,25 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
 
         case is RemoteCmd.TakePic:
             let l = RemoteCmd.TakePicResp(sender: this, error: self.unableToProcessError(msg: msg))
-            sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
         case is RemoteCmd.ToggleCamera:
             let l = RemoteCmd.ToggleCameraResp(
                 cameraCapabilities: nil, error: self.unableToProcessError(msg: msg)
             )
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
 
         case is RemoteCmd.ToggleFlash:
             let l = RemoteCmd.ToggleFlashResp(
                 flashMode: nil, error: self.unableToProcessError(msg: msg)
             )
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
             
         // MARK: - Zoom and Lens Command Handling
         case is RemoteCmd.SetZoom:
             let l = RemoteCmd.SetZoomResp(
                 zoomFactor: nil, currentLens: nil, zoomRange: nil, error: self.unableToProcessError(msg: msg)
             )
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
             
         case is RemoteCmd.SwitchLens:
             print("❌ DEBUG: Session default handler received SwitchLens - NOT in camera state!")
@@ -124,25 +117,25 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                 lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: self.unableToProcessError(msg: msg)
             )
             print("🔍 DEBUG: Default handler sending empty SwitchLensResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
             
         // MARK: - Video Recording Command Handling
         case is RemoteCmd.StartRecordingVideo:
             print("❌ DEBUG: Session default handler received StartRecordingVideo - NOT in camera state!")
             let l = RemoteCmd.StartRecordingVideoAck(sender: this, recordingStartTime: nil, error: self.unableToProcessError(msg: msg))
             print("🔍 DEBUG: Default handler sending StartRecordingVideoAck with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
             
         case is RemoteCmd.StopRecordingVideo:
             print("❌ DEBUG: Session default handler received StopRecordingVideo - NOT in camera state!")
             let l = RemoteCmd.StopRecordingVideoResp(sender: this, pic: nil, error: self.unableToProcessError(msg: msg))
             print("🔍 DEBUG: Default handler sending StopRecordingVideoResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: l)
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
             
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
             // Forward capabilities to connected peers (monitor)
             print("🔍 DEBUG: Base session forwarding capabilities to peers")
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: capabilities)
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: capabilities)
 
         // MARK: - Video Resource Transfer Handling
         case let sendVideo as UICmd.SendVideoResource:
@@ -192,17 +185,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                             msg: Actor.Message,
                             mode: MCSessionSendDataMode = .reliable) -> Try<Message> {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
-        do {
-            let serializedMessage = try NSKeyedArchiver.archivedData(
-                withRootObject: msg, requiringSecureCoding: false)
-            try self.session.send(serializedMessage,
-                    toPeers: peer,
-                    with: mode)
-            return Success(msg)
-        } catch let error as NSError {
-            print("sendMessage error \(error)")
-            return Failure(error: error)
-        }
+        return multipeerService.send(msg, to: peer, mode: mode)
     }
 
     public func sendCommandOrGoToScanning(peer: [MCPeerID],
@@ -217,17 +200,13 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
             print("🔍 DEBUG: - Transmission error: \(switchResp.error?.localizedDescription ?? "nil")")
         }
         
-        if self.sendMessage(peer: self.session.connectedPeers, msg: msg).isFailure() {
+        if self.sendMessage(peer: self.connectedPeers, msg: msg).isFailure() {
             print("❌ DEBUG: sendCommandOrGoToScanning failed to send message")
             self.popToState(name: self.states.scanning)
-            ^{
-            let alert = UIAlertController(
-                title: NSLocalizedString("Connection error", comment: ""),
-                message: NSLocalizedString("Peer disconnected, please reconnect", comment: ""),
-                preferredStyle: .alert)
-
-                alert.simpleOkAction()
-                alert.show(true)
+            ^{ [weak self] in
+                self?.alertPresenter.showError(
+                    title: NSLocalizedString("Connection error", comment: "")
+                )
             }
         } else {
 //            print("✅ DEBUG: sendCommandOrGoToScanning successfully sent message")
@@ -240,12 +219,12 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         guard sendVideo.shouldSendToPeer else {
             // Send empty response when not sending video to peer
             let response = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: response)
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: response)
             return
         }
         
         // Use the session's connected peers instead of relying on the message
-        let connectedPeers = self.session.connectedPeers
+        let connectedPeers = self.connectedPeers
         guard !connectedPeers.isEmpty else {
             print("❌ DEBUG: No connected peers for video transfer")
             let error = NSError(domain: "VideoTransfer", code: 1, userInfo: [NSLocalizedDescriptionKey: "No connected peers"])
@@ -276,7 +255,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         // Send video file as resource to all connected peers
         for peer in connectedPeers {
             // Capture the Progress object returned by sendResource to track sending progress
-            let sendProgress = self.session.sendResource(
+            let sendProgress = self.multipeerService.sendResource(
                 at: sendVideo.videoURL,
                 withName: resourceName,
                 toPeer: peer
@@ -346,7 +325,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                             this ! progressMsg
                         }
                     }
-                    .store(in: &self.progressCancellables)
+                    .store(in: &self.multipeerService.progressCancellables)
             } else {
                 print("⚠️ DEBUG: No progress object returned from sendResource")
             }
@@ -357,14 +336,14 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         if completed.success {
             // Send success response without data (data sent via resource transfer)
             let response = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
-            self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: response)
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: response)
         }
     }
     
     private func handleVideoTransferFailed(_ failed: UICmd.VideoResourceTransferFailed) {
         // Send error response
         let response = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: failed.error)
-        self.sendCommandOrGoToScanning(peer: self.session.connectedPeers, msg: response)
+        self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: response)
     }
     
     private func forwardToActors(_ message: Actor.Message) {

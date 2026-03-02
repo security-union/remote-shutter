@@ -62,6 +62,12 @@
 		068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
 		068EF0B82531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
 		068EF0BA2531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
+		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
+		AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
+		AA0001012E940001000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
+		AA0001042E940004000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
+		AA0001052E940005000A1001 /* UIAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062E940006000A1001 /* UIAlertPresenter.swift */; };
+		AA0001072E940007000A1001 /* UIAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062E940006000A1001 /* UIAlertPresenter.swift */; };
 		068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
 		068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
 		068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
@@ -129,6 +135,7 @@
 		85D33836258D48C30091972B /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33835258D48C30091972B /* UIViewController.swift */; };
 		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
 		AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */; };
+		AABB00042E930002009TESTS /* RemoteCmdSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */; };
 		ABBA2C4CD92C4E137A90F275 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */; };
 		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
 		E9256A91DEEB414C3FE6C48D /* ActorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4711EC884DF706A90B90662D /* ActorSystem.swift */; };
@@ -233,6 +240,9 @@
 		068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorVideoStates.swift; sourceTree = "<group>"; };
 		068EF0B72531844B00A84DFA /* CameraVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraVideoStates.swift; sourceTree = "<group>"; };
 		068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerDelegates.swift; sourceTree = "<group>"; };
+		F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
+		AA0001032E940003000A1001 /* AlertPresenting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenting.swift; sourceTree = "<group>"; };
+		AA0001062E940006000A1001 /* UIAlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAlertPresenter.swift; sourceTree = "<group>"; };
 		068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamScanning.swift; sourceTree = "<group>"; };
 		0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		069284251BE5BF5B00AF4678 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -294,6 +304,7 @@
 		85F118E5250ACBE100B73E48 /* RemoteShutter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamSessionTests.swift; sourceTree = "<group>"; };
+		AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCmdSerializationTests.swift; sourceTree = "<group>"; };
 		B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
 		BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4415A8FAB4FB271F412749F /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
@@ -380,6 +391,9 @@
 				068EF0B62531842C00A84DFA /* CameraStates */,
 				068EF0AD2531835900A84DFA /* MonitorStates */,
 				068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */,
+				F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */,
+				AA0001032E940003000A1001 /* AlertPresenting.swift */,
+				AA0001062E940006000A1001 /* UIAlertPresenter.swift */,
 			);
 			name = RemoteCamSession;
 			sourceTree = "<group>";
@@ -422,6 +436,7 @@
 			isa = PBXGroup;
 			children = (
 				AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */,
+				AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */,
 				069284351BE5BF5C00AF4678 /* Info.plist */,
 			);
 			path = RemoteCamTests;
@@ -847,6 +862,9 @@
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */,
 				068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */,
+				AA0001012E940001000A1001 /* AlertPresenting.swift in Sources */,
+				AA0001052E940005000A1001 /* UIAlertPresenter.swift in Sources */,
 				06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */,
 				0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */,
 				85C11C052582F3FC00618F32 /* UIButton.swift in Sources */,
@@ -914,6 +932,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */,
+				AABB00042E930002009TESTS /* RemoteCmdSerializationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -928,6 +947,9 @@
 				065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */,
 				85C11C0D2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */,
+				AA0001042E940004000A1001 /* AlertPresenting.swift in Sources */,
+				AA0001072E940007000A1001 /* UIAlertPresenter.swift in Sources */,
 				06BB79C42E389D6D0094E085 /* VideoTransferProgressView.swift in Sources */,
 				0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
