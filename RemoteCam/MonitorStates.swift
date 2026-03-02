@@ -44,6 +44,11 @@ extension RemoteCamSession {
                         self?.alertPresenter.showError(title: error._domain)
                     }
                     self.unbecome()
+                } else {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    self.unbecome()
                 }
 
             case let c as DisconnectPeer:
@@ -176,6 +181,11 @@ extension RemoteCamSession {
                     ^{ [weak self] in
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                         self?.alertPresenter.showError(title: error._domain)
+                    }
+                    self.unbecome()
+                } else {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                     }
                     self.unbecome()
                 }

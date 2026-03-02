@@ -977,6 +977,16 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentState()?.0, session.states.monitor)
     }
 
+    func testMonitorTogglingFlashNilNilResponseUnbecomes() throws {
+        pushMonitorTogglingFlashState()
+
+        ref ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
+                       "State should unbecome even when both flashMode and error are nil")
+    }
+
     func testMonitorTogglingFlashDisconnectPopsToScanning() throws {
         pushMonitorTogglingFlashState()
 
@@ -1052,6 +1062,16 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentState()?.0, session.states.monitor)
     }
 
+    func testMonitorTogglingCameraNilNilResponseUnbecomes() throws {
+        pushMonitorTogglingCameraState()
+
+        ref ! RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
+                       "State should unbecome even when both capabilities and error are nil")
+    }
+
     func testMonitorTogglingCameraDisconnectPopsToScanning() throws {
         pushMonitorTogglingCameraState()
 
@@ -1122,6 +1142,16 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+    }
+
+    func testMonitorSwitchingLensNilNilResponseUnbecomes() throws {
+        pushMonitorSwitchingLensState()
+
+        ref ! RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
+                       "State should unbecome even when both lensType and error are nil")
     }
 
     func testMonitorSwitchingLensDisconnectPeerPopsToScanning() throws {
