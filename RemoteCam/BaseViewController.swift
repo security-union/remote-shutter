@@ -67,6 +67,7 @@ public class iAdViewController: UIViewController {
     }
 
     func turnOffAds() {
+        guard isViewLoaded, bannerView != nil else { return }
         self.bannerView.removeConstraints(self.iAdsLayoutConstrains())
         self.shouldHideBanner()
         self.AdBanner.removeFromSuperview()
