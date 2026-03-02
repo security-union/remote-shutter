@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import Theater
 import AVFoundation
 
 // MARK: - MonitorViewController SwiftUI Integration

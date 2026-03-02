@@ -6,7 +6,6 @@
 //
 
 import XCTest
-@testable import Theater
 import MultipeerConnectivity
 
 @testable import RemoteShutter
@@ -117,15 +116,6 @@ class RemoteCamSessionTests: XCTestCase {
         // If the actor is deallocated while operations are pending, the
         // unowned reference crashes. We must ensure the mailbox is fully
         // drained before releasing the actor.
-        //
-        // We cannot use waitUntilAllOperationsAreFinished() here because it
-        // blocks the main thread. State handlers use ^{} (Theater's prefix
-        // operator) which dispatches to the main queue with
-        // waitUntilFinished:true. If the main thread is blocked, those
-        // mailbox operations deadlock waiting for the main thread.
-        //
-        // Instead, we pump the main run loop while waiting, allowing ^{}
-        // dispatches to execute.
         drainMailboxPumpingRunLoop()
         system.stop()
         drainMailboxPumpingRunLoop()
@@ -139,7 +129,6 @@ class RemoteCamSessionTests: XCTestCase {
     }
 
     /// Drains the actor mailbox while keeping the main run loop alive.
-    /// This prevents deadlocks with ^{} (synchronous main-thread dispatch).
     private func drainMailboxPumpingRunLoop() {
         let deadline = Date(timeIntervalSinceNow: 5.0)
         while session.mailbox.operationCount > 0 && Date() < deadline {
@@ -309,7 +298,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorPhotoMode: Disconnect
 
     func testMonitorPhotoModeDisconnectPopsToScanning() throws {
-        throw XCTSkip("because it is broken")
         pushMonitorPhotoModeState()
 
         ref ! Disconnect(sender: nil)
@@ -321,7 +309,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorPhotoMode: TakePicture transitions to monitorTakingPicture
     
     func testMonitorPhotoModeTakePictureTransitions() throws {
-        throw XCTSkip("because it is broken")
         pushMonitorPhotoModeState()
 
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
@@ -333,7 +320,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorPhotoMode: ToggleFlash transitions to monitorTogglingFlash
 
     func testMonitorPhotoModeToggleFlashTransitions() throws {
-        throw XCTSkip("because it is broken")
         pushMonitorPhotoModeState()
 
         ref ! UICmd.ToggleFlash()
@@ -345,8 +331,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorPhotoMode: ToggleCamera transitions to monitorTogglingCamera
 
     func testMonitorPhotoModeToggleCameraTransitions() throws {
-        throw XCTSkip("because it is broken")
-
         pushMonitorPhotoModeState()
 
         ref ! UICmd.ToggleCamera()
@@ -358,7 +342,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorPhotoMode: Switch to Video mode
 
     func testMonitorPhotoModeSwitchToVideoMode() throws {
-        throw XCTSkip("because it is broken")
         pushMonitorPhotoModeState()
 
         ref ! UICmd.BecomeMonitor(ref, mode: .Video)
@@ -371,7 +354,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorPhotoMode: ToggleTorch sends remote command
 
     func testMonitorPhotoModeToggleTorchSendsCommand() throws {
-        throw XCTSkip("because it is broken")
         pushMonitorPhotoModeState()
 
         ref ! UICmd.ToggleTorch()
@@ -386,7 +368,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorPhotoMode: RequestCameraCapabilities
 
     func testMonitorPhotoModeRequestCameraCapabilities() throws {
-        throw XCTSkip("because it is broken")
         pushMonitorPhotoModeState()
 
         ref ! UICmd.RequestCameraCapabilities()
@@ -400,7 +381,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorVideoMode: OnEnter
 
     func testMonitorVideoModeOnEnterRequestsFrame() throws {
-        throw XCTSkip("because it is broken")
         pushScanningState()
         pushConnectedState()
 
@@ -415,7 +395,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorVideoMode: Switch to Photo mode
 
     func testMonitorVideoModeSwitchToPhotoMode() throws {
-        throw XCTSkip("because it is broken")
         pushMonitorVideoModeState()
 
         ref ! UICmd.BecomeMonitor(ref, mode: .Photo)
@@ -427,7 +406,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorVideoMode: Disconnect
 
     func testMonitorVideoModeDisconnectPopsToScanning() throws {
-        throw XCTSkip("because it is broken")
         pushMonitorVideoModeState()
 
         ref ! Disconnect(sender: nil)
@@ -439,7 +417,6 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - MonitorVideoMode: UnbecomeMonitor
 
     func testMonitorVideoModeUnbecomeMonitorPopsToConnected() throws {
-        throw XCTSkip("because it is broken")
         pushMonitorVideoModeState()
 
         ref ! UICmd.UnbecomeMonitor(sender: nil)

@@ -8,7 +8,6 @@
 
 import UIKit
 import SwiftUI
-import Theater
 import MultipeerConnectivity
 import Network
 import dnssd

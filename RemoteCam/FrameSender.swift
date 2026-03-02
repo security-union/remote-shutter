@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import Theater
 import MultipeerConnectivity
 
 class SetSession : Actor.Message {

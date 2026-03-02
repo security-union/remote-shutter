@@ -2,33 +2,24 @@ PODS:
   - Google-Mobile-Ads-SDK (11.13.0):
     - GoogleUserMessagingPlatform (>= 1.1)
   - GoogleUserMessagingPlatform (2.7.0)
-  - Starscream (4.0.8)
   - SwiftLint (0.41.0)
-  - Theater (1.1):
-    - Starscream (~> 4.0.8)
 
 DEPENDENCIES:
   - Google-Mobile-Ads-SDK (~> 11.0)
   - GoogleUserMessagingPlatform (~> 2.0)
-  - Starscream (~> 4.0.8)
   - SwiftLint (~> 0.41.0)
-  - Theater (= 1.1)
 
 SPEC REPOS:
   https://github.com/CocoaPods/Specs.git:
     - Google-Mobile-Ads-SDK
     - GoogleUserMessagingPlatform
-    - Starscream
     - SwiftLint
-    - Theater
 
 SPEC CHECKSUMS:
   Google-Mobile-Ads-SDK: 14f57f2dc33532a24db288897e26494640810407
   GoogleUserMessagingPlatform: a8b56893477f67212fbc8411c139e61d463349f5
-  Starscream: 19b5533ddb925208db698f0ac508a100b884a1b9
   SwiftLint: c585ebd615d9520d7fbdbe151f527977b0534f1e
-  Theater: 79836e00fb7f66bfc40552b873671a3126ad9056
 
-PODFILE CHECKSUM: 39ac48e931a8b8623872252273703c99f1303129
+PODFILE CHECKSUM: ff82af5c37278cdc87a0f31cf2d25464cad0f057
 
 COCOAPODS: 1.16.2

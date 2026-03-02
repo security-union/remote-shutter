@@ -11,17 +11,13 @@
 		060866BF2522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		060866C02522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
-		0609A4DC251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060B1E241BE710FE00077BCC /* BaseViewController.swift */; };
 		0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
-		0613BBD12530887500A6C24F /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
 		0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
 		061596F6251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
-		061596F7251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
 		061596F8251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
 		06184D41258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06184D40258EF4C500F63172 /* CoolActivityIndicator.swift */; };
-		06184D42258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06184D40258EF4C500F63172 /* CoolActivityIndicator.swift */; };
 		06184D43258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06184D40258EF4C500F63172 /* CoolActivityIndicator.swift */; };
 		0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0624C0401BE8616E001CC738 /* CameraAccess.swift */; };
 		0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */; };
@@ -29,7 +25,6 @@
 		0624C04B1BE8662D001CC738 /* BFDeniedAccessToCameraView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */; };
 		0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */; };
 		0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
-		0631D182256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */; };
@@ -39,9 +34,7 @@
 		0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024161BEA413900311C8A /* PurchasesRestorer.m */; };
 		0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024181BEA413900311C8A /* InAppPurchasesManager.m */; };
 		06503C552E2CDB55003DEAFA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 06503C542E2CDB55003DEAFA /* Localizable.strings */; };
-		065532EF258C4BE9000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
-		065532F5258C4BF3000C2339 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
 		065532F8258C4BF4000C2339 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
 		065DE66C253A43BA0022193C /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */; platformFilter = ios; settings = {ATTRIBUTES = (Weak, ); }; };
 		066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066427741BE924DD003EDD41 /* EnumExtensions.swift */; };
@@ -66,16 +59,12 @@
 		068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */; };
 		068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */; };
 		068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
-		068EF0B02531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
 		068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
 		068EF0B82531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
-		068EF0B92531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
 		068EF0BA2531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
 		068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
-		068EF0C72531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
 		068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
 		068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
-		068EF0CF2531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
 		068EF0D02531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
 		0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */; };
 		069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284251BE5BF5B00AF4678 /* Assets.xcassets */; };
@@ -93,10 +82,8 @@
 		069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 069284701BE5C82E00AF4678 /* InfoPlist.strings */; };
 		06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */; };
 		06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AEE43325333B4A00C2ED90 /* UIAlertController.swift */; };
-		06AEE43525333B4A00C2ED90 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AEE43325333B4A00C2ED90 /* UIAlertController.swift */; };
 		06AEE43625333B4A00C2ED90 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AEE43325333B4A00C2ED90 /* UIAlertController.swift */; };
 		06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */; };
-		06B1D8102536C2330029CCB6 /* UIImage+gif.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */; };
 		06B1D8112536C2330029CCB6 /* UIImage+gif.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */; };
 		06B1D8152536C3FA0029CCB6 /* recording.gif in Resources */ = {isa = PBXBuildFile; fileRef = 06B1D8142536C3F90029CCB6 /* recording.gif */; };
 		06B1D8162536C3FA0029CCB6 /* recording.gif in Resources */ = {isa = PBXBuildFile; fileRef = 06B1D8142536C3F90029CCB6 /* recording.gif */; };
@@ -107,7 +94,6 @@
 		06BB79AF2E372D420094E085 /* RecordingTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79AD2E372D420094E085 /* RecordingTimer.swift */; };
 		06BB79B82E374D410094E085 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79B72E374D410094E085 /* FeatureFlags.swift */; };
 		06BB79B92E374D410094E085 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79B72E374D410094E085 /* FeatureFlags.swift */; };
-		06BB79BA2E374D410094E085 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79B72E374D410094E085 /* FeatureFlags.swift */; };
 		06BB79BC2E3884F00094E085 /* CameraProgressOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */; };
 		06BB79BD2E3884F00094E085 /* CameraProgressOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */; };
 		06BB79BF2E3884FA0094E085 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79BE2E3884FA0094E085 /* CameraViewModel.swift */; };
@@ -115,34 +101,28 @@
 		06BB79C32E388D4B0094E085 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C22E388D4B0094E085 /* CameraViewModel.swift */; };
 		06BB79C42E389D6D0094E085 /* VideoTransferProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */; };
 		06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
-		06C32C3D2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06CDFB17252E9A7900EA56FB /* RemoteCmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */; };
-		06CDFB18252E9A7900EA56FB /* RemoteCmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */; };
 		06CDFB1E252E9CD200EA56FB /* UICmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB1D252E9CD200EA56FB /* UICmds.swift */; };
-		06CDFB1F252E9CD200EA56FB /* UICmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB1D252E9CD200EA56FB /* UICmds.swift */; };
 		06CDFB20252E9CD200EA56FB /* UICmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB1D252E9CD200EA56FB /* UICmds.swift */; };
 		06CDFB2A252EC2C300EA56FB /* CGImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB29252EC2C300EA56FB /* CGImage.swift */; };
-		06CDFB2B252EC2C300EA56FB /* CGImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB29252EC2C300EA56FB /* CGImage.swift */; };
 		06CDFB2C252EC2C300EA56FB /* CGImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB29252EC2C300EA56FB /* CGImage.swift */; };
 		06D114CF2532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */; };
-		06D114D02532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */; };
 		06D114D12532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D114CE2532DDE100FB6F86 /* MonitorPhotoStates.swift */; };
 		06E965212535199400E5A8B3 /* MediaProcessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E965202535199400E5A8B3 /* MediaProcessors.swift */; };
-		06E965222535199400E5A8B3 /* MediaProcessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E965202535199400E5A8B3 /* MediaProcessors.swift */; };
 		06E965232535199400E5A8B3 /* MediaProcessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E965202535199400E5A8B3 /* MediaProcessors.swift */; };
 		06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
-		06E9652825351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
 		06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
 		06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
-		06E9653F2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
+		30425A0C926DE812ECA4528E /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1681D37E731D371A697244F7 /* Try.swift */; };
+		6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */; };
+		69F9B5912B122CD3FFA41F78 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC390F40AB4C16ED4E8124 /* Message.swift */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
+		855990C925275177E07AA346 /* Stack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */; };
 		85C11C052582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
-		85C11C062582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
 		85C11C072582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
 		85C11C0B2582F6FA00618F32 /* PKIAPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C0A2582F6FA00618F32 /* PKIAPHandler.swift */; };
-		85C11C0C2582F6FA00618F32 /* PKIAPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C0A2582F6FA00618F32 /* PKIAPHandler.swift */; };
 		85C11C0D2582F6FA00618F32 /* PKIAPHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C0A2582F6FA00618F32 /* PKIAPHandler.swift */; };
 		85D3382E258D25D80091972B /* RolePickerOptionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D3382D258D25D80091972B /* RolePickerOptionController.swift */; };
 		85D33832258D489C0091972B /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33831258D489C0091972B /* UIView.swift */; };
@@ -150,6 +130,9 @@
 		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
 		AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */; };
 		ABBA2C4CD92C4E137A90F275 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */; };
+		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
+		E9256A91DEEB414C3FE6C48D /* ActorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4711EC884DF706A90B90662D /* ActorSystem.swift */; };
+		F32EBBCC678C33E1B4E62884 /* NSOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFE1C1E3BF1B4B2BD321763 /* NSOperationQueue.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -290,9 +273,15 @@
 		06E9653D2535754800E5A8B3 /* Data+MD5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+MD5.swift"; sourceTree = "<group>"; };
 		06EEA7DB1BBB87EE005787AE /* Starscream.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Starscream.framework; path = "Pods/../build/Debug-iphoneos/Starscream.framework"; sourceTree = "<group>"; };
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
+		0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Stack.swift; sourceTree = "<group>"; };
+		1681D37E731D371A697244F7 /* Try.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Try.swift; sourceTree = "<group>"; };
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CB14475747F8CECCE476895 /* Actor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Actor.swift; sourceTree = "<group>"; };
+		4711EC884DF706A90B90662D /* ActorSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActorSystem.swift; sourceTree = "<group>"; };
 		4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.debug.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.debug.xcconfig"; sourceTree = "<group>"; };
+		68EC390F40AB4C16ED4E8124 /* Message.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		69E2751E42D4D3ED3B0395F8 /* Pods-RemoteCam.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.release.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.release.xcconfig"; sourceTree = "<group>"; };
+		7AFE1C1E3BF1B4B2BD321763 /* NSOperationQueue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NSOperationQueue.swift; sourceTree = "<group>"; };
 		7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteShutterUITests.swift; sourceTree = "<group>"; };
@@ -310,6 +299,7 @@
 		C4415A8FAB4FB271F412749F /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
 		D1F8EDB852F5C77347AE6066 /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
 		D74001DF2412690FAA394C74 /* Pods-RemoteShutterTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.debug.xcconfig"; sourceTree = "<group>"; };
+		E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ViewControllerActor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -423,6 +413,7 @@
 				069284601BE5C1A700AF4678 /* Controllers */,
 				069284751BE5C8F900AF4678 /* Assets */,
 				0692842A1BE5BF5B00AF4678 /* Info.plist */,
+				3AB8B803EAAB55F3283797A6 /* Theater */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -575,6 +566,21 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		3AB8B803EAAB55F3283797A6 /* Theater */ = {
+			isa = PBXGroup;
+			children = (
+				3CB14475747F8CECCE476895 /* Actor.swift */,
+				4711EC884DF706A90B90662D /* ActorSystem.swift */,
+				68EC390F40AB4C16ED4E8124 /* Message.swift */,
+				7AFE1C1E3BF1B4B2BD321763 /* NSOperationQueue.swift */,
+				0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */,
+				1681D37E731D371A697244F7 /* Try.swift */,
+				E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */,
+			);
+			name = Theater;
+			path = Theater;
+			sourceTree = "<group>";
+		};
 		6E71D580DBCCE813F82C1948 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
@@ -609,7 +615,6 @@
 				069284191BE5BF5B00AF4678 /* Frameworks */,
 				0692841A1BE5BF5B00AF4678 /* Resources */,
 				0615C2FC1BEE7F0100E494B8 /* Embed Frameworks */,
-				8AC1B538FE9584BC346DAE60 /* [CP] Embed Pods Frameworks */,
 				F4D91A248DDD738FBADE9296 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
@@ -780,26 +785,6 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		8AC1B538FE9584BC346DAE60 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-frameworks.sh",
-				"${BUILT_PRODUCTS_DIR}/Starscream/Starscream.framework",
-				"${BUILT_PRODUCTS_DIR}/Theater/Theater.framework",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Starscream.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Theater.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		8F0BD161644B70FD40F8B308 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -914,6 +899,13 @@
 				0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */,
 				066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */,
 				069284541BE5C0E600AF4678 /* UIImage+ImageProcessing.m in Sources */,
+				D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */,
+				E9256A91DEEB414C3FE6C48D /* ActorSystem.swift in Sources */,
+				69F9B5912B122CD3FFA41F78 /* Message.swift in Sources */,
+				F32EBBCC678C33E1B4E62884 /* NSOperationQueue.swift in Sources */,
+				855990C925275177E07AA346 /* Stack.swift in Sources */,
+				30425A0C926DE812ECA4528E /* Try.swift in Sources */,
+				6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

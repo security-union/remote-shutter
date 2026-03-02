@@ -8,7 +8,6 @@
 
 import UIKit
 import SwiftUI
-import Theater
 import AVFoundation
 
 let timerDefault = "timerDefault"
