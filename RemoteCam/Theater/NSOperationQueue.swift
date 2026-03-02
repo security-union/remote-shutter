@@ -11,52 +11,27 @@ import Foundation
 prefix operator ^
 
 /**
- Convenience operator that executes a block with type (Void) -> (Void) in the main queue.
- 
- Replaces:
- 
- ```
- let blockOp = NSBlockOperation({
- print("blah")
- })
- 
- NSOperationQueue.mainQueue().addOperations([blockOp], waitUntilFinished: true)
- 
- ```
- 
- with
- 
+ Convenience operator that asynchronously executes a block on the main queue.
+ Use this for UI updates from actor message handlers.
+
  ```
  ^{print("blah")}
  ```
- 
  */
 
 public prefix func ^ (block : @escaping () -> (Void)) -> Void {
-    OperationQueue.main.addOperations([BlockOperation(block: block)], waitUntilFinished: true)
+    OperationQueue.main.addOperations([BlockOperation(block: block)], waitUntilFinished: false)
 }
 
 prefix operator ^^
 
 /**
- Convenience operator that executes a block with type (Void) -> (Void) in the main queue and blocks until it's finished.
- 
- Replaces:
- 
+ Convenience operator that asynchronously executes a block on the main queue.
+ Identical to `^` — both dispatch asynchronously.
 
- 
- ```
- NSOperationQueue.mainQueue().addOperationWithBlock({
- print("blah")
- })
- ```
- 
- with
- 
  ```
  ^^{print("blah")}
  ```
- 
  */
 
 public prefix func ^^ (block : @escaping () -> (Void)) -> Void {
