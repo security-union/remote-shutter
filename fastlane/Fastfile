@@ -79,7 +79,8 @@ platform :ios do
       export_method: "app-store",
       clean: true,
       output_directory: "./build",
-      output_name: "RemoteShutter.ipa"
+      output_name: "RemoteShutter.ipa",
+      xcargs: "CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='match AppStore com.blackfireapps.remotecamera' CODE_SIGN_IDENTITY='Apple Distribution'"
     )
     upload_to_app_store(
       skip_metadata: false,
