@@ -176,12 +176,10 @@ code_sign_if_enabled() {
 }
 
 if [[ "$CONFIGURATION" == "Debug" ]]; then
-  install_framework "${BUILT_PRODUCTS_DIR}/Starscream/Starscream.framework"
-  install_framework "${BUILT_PRODUCTS_DIR}/Theater/Theater.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/FlatBuffers/FlatBuffers.framework"
 fi
 if [[ "$CONFIGURATION" == "Release" ]]; then
-  install_framework "${BUILT_PRODUCTS_DIR}/Starscream/Starscream.framework"
-  install_framework "${BUILT_PRODUCTS_DIR}/Theater/Theater.framework"
+  install_framework "${BUILT_PRODUCTS_DIR}/FlatBuffers/FlatBuffers.framework"
 fi
 if [ "${COCOAPODS_PARALLEL_CODE_SIGN}" == "true" ]; then
   wait

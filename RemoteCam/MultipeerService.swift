@@ -61,8 +61,11 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     func send(_ msg: Actor.Message, to peers: [MCPeerID],
               mode: MCSessionSendDataMode) -> Try<Actor.Message> {
         do {
-            let serializedMessage = try NSKeyedArchiver.archivedData(
-                withRootObject: msg, requiringSecureCoding: false)
+            guard let serializedMessage = serializeToFlatBuffer(msg) else {
+                let error = NSError(domain: "MultipeerService", code: -1,
+                                    userInfo: [NSLocalizedDescriptionKey: "Unknown message type: \(type(of: msg))"])
+                return Failure(error: error)
+            }
             try session.send(serializedMessage, toPeers: peers, with: mode)
             return Success(msg)
         } catch let error as NSError {
@@ -96,13 +99,7 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     }
 
     public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-        guard let inboundMessage: Any = {
-            let unarchiver = try? NSKeyedUnarchiver(forReadingFrom: data)
-            unarchiver?.requiresSecureCoding = false
-            let obj = unarchiver?.decodeObject(forKey: NSKeyedArchiveRootObjectKey)
-            unarchiver?.finishDecoding()
-            return obj
-        }() else {
+        guard let inboundMessage = RemoteCmd.fromFlatBuffer(data) else {
             delegate?.didDetectIncompatibility()
             return
         }
@@ -115,7 +112,7 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
         case let m as Actor.Message:
             delegate?.didReceiveMessage(m)
         default:
-            print("unable to unarchive")
+            print("unable to decode message")
         }
     }
 

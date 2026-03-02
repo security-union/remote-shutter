@@ -1,0 +1,143 @@
+// FlatBufferSchemas.fbs
+// FlatBuffers schema for Remote Shutter P2P communication
+// Compile with: flatc --swift FlatBufferSchemas.fbs
+
+file_identifier "RCAM";
+
+namespace RemoteShutter;
+
+// MARK: - Enums
+
+enum CommandAction : byte {
+    TakePicture = 0,
+    ToggleTorch = 1,
+    ToggleFlash = 2,
+    ToggleCamera = 3,
+    SetZoom = 4,
+    SwitchLens = 5,
+    StartRecording = 6,
+    StopRecording = 7,
+    RequestCapabilities = 8,
+    SetTorchMode = 9,
+    SetFlashMode = 10,
+    RequestFrame = 11,
+    PeerBecameCamera = 12,
+    PeerBecameMonitor = 13
+}
+
+enum CameraPosition : byte {
+    Back = 0,
+    Front = 1
+}
+
+enum TorchMode : byte {
+    Off = 0,
+    On = 1,
+    Auto = 2
+}
+
+enum FlashMode : byte {
+    Off = 0,
+    On = 1,
+    Auto = 2
+}
+
+enum CameraLensType : byte {
+    WideAngle = 0,
+    UltraWide = 1,
+    Telephoto = 2,
+    DualCamera = 3
+}
+
+enum MessageType : byte {
+    CameraCommand = 0,
+    CameraStateResponse = 1,
+    FrameData = 2
+}
+
+// MARK: - Command Parameters
+
+table CommandParameters {
+    send_to_remote: bool;
+    zoom_factor: double;
+    lens_type: CameraLensType;
+    torch_mode: TorchMode;
+    flash_mode: FlashMode;
+    bundle_version: int;
+    short_version: string;
+    platform: string;
+}
+
+// MARK: - Command Structure
+
+table CameraCommand {
+    action: CommandAction;
+    parameters: CommandParameters;
+}
+
+// MARK: - State Structures
+
+table ZoomRange {
+    min_zoom: double;
+    max_zoom: double;
+}
+
+table ZoomCapability {
+    lens_type: CameraLensType;
+    zoom_range: ZoomRange;
+}
+
+table CameraInfo {
+    available_lenses: [CameraLensType];
+    has_flash: bool;
+    has_torch: bool;
+    zoom_capabilities: [ZoomCapability];
+}
+
+table CameraState {
+    current_camera: CameraPosition;
+    current_lens: CameraLensType;
+    zoom_factor: double;
+    torch_mode: TorchMode;
+    flash_mode: FlashMode;
+}
+
+table CameraCapabilities {
+    front_camera: CameraInfo;
+    back_camera: CameraInfo;
+}
+
+// MARK: - Response Structure
+
+table CameraStateResponse {
+    action: CommandAction;
+    success: bool;
+    error: string;
+    current_state: CameraState;
+    capabilities: CameraCapabilities;
+    media_data: [ubyte];
+    recording_start_time: uint64;
+    available_lenses: [CameraLensType];
+    zoom_range: ZoomRange;
+    current_zoom: double;
+}
+
+// MARK: - Frame Data
+
+table FrameData {
+    image_data: [ubyte];
+    fps: int;
+    camera_position: CameraPosition;
+    orientation: int;
+}
+
+// MARK: - P2P Message Envelope
+
+table P2PMessage {
+    type: MessageType;
+    command: CameraCommand;
+    response: CameraStateResponse;
+    frame_data: FrameData;
+}
+
+root_type P2PMessage;
