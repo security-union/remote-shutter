@@ -1,0 +1,38 @@
+# Privacy Policy for Remote Shutter
+
+**Last updated: March 2, 2026**
+
+## Overview
+
+Remote Shutter ("the App") is developed by Security Union. This privacy policy explains how we handle information when you use our app.
+
+## Data Collection
+
+Remote Shutter operates primarily as a peer-to-peer camera remote control. The App:
+
+- **Does not collect personal data** — No accounts, logins, or personal information are required.
+- **Does not transmit data to external servers** — Photos and video are transferred directly between your paired devices over a local peer-to-peer connection (MultipeerConnectivity).
+- **Does not track you** — We do not use analytics or tracking SDKs beyond what is required for ads.
+
+## Camera and Microphone Access
+
+The App requires camera and microphone access to function as a remote camera. This data is:
+- Used only for the intended camera/video functionality
+- Transferred only between your locally paired devices
+- Never uploaded to any server
+
+## Advertising
+
+The App uses Google AdMob to display ads. Google may collect certain device information for ad personalization. You can review Google's privacy policy at https://policies.google.com/privacy. You may opt out of personalized ads through your device settings.
+
+## In-App Purchases
+
+In-app purchases are processed by Apple and subject to Apple's privacy policy.
+
+## Contact
+
+If you have questions about this privacy policy, please open an issue at https://github.com/security-union/remote-shutter/issues.
+
+## Changes
+
+We may update this privacy policy from time to time. Updates will be posted in this repository.
