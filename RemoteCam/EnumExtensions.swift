@@ -8,7 +8,6 @@
 
 import Foundation
 import AVFoundation
-import Theater
 
 // MARK: - Camera Lens Types
 public enum CameraLensType: Int, CaseIterable, Codable {

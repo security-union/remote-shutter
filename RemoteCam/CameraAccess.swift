@@ -9,7 +9,6 @@
 import Foundation
 import Photos
 import AVFoundation
-import Theater
 
 /**
 Permissions verification extensions

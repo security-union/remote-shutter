@@ -8,7 +8,6 @@
 
 import UIKit
 import GoogleMobileAds
-import Theater
 import AppTrackingTransparency
 
 public func showError(_ error: String) {

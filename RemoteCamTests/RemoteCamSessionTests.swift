@@ -6,7 +6,6 @@
 //
 
 import XCTest
-@testable import Theater
 import MultipeerConnectivity
 
 @testable import RemoteShutter
