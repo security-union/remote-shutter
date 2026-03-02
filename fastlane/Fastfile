@@ -1,13 +1,6 @@
 require 'base64'
 require 'openssl'
 
-puts "=========================================="
-puts "PATCHED FASTFILE LOADED (2026-03-01)"
-puts "Ruby: #{RUBY_VERSION}"
-puts "OpenSSL: #{OpenSSL::OPENSSL_VERSION}"
-puts "OpenSSL lib: #{OpenSSL::OPENSSL_LIBRARY_VERSION}"
-puts "=========================================="
-
 default_platform(:ios)
 
 # Fix PEM content that has had its newlines stripped.
@@ -42,11 +35,8 @@ module OpenSSL
             _original_new_for_curve_fix(*args, &block)
           rescue OpenSSL::PKey::ECError => e
             if args.length == 1 && args[0].is_a?(String) && e.message.include?('invalid curve name')
-              puts "[FASTFILE PATCH] EC.new failed: #{e.message}"
-              puts "[FASTFILE PATCH] Retrying with OpenSSL::PKey.read..."
-              result = OpenSSL::PKey.read(args[0])
-              puts "[FASTFILE PATCH] PKey.read succeeded: #{result.class}"
-              result
+              puts "[FASTFILE PATCH] EC.new failed: #{e.message}, retrying with PKey.read..."
+              OpenSSL::PKey.read(args[0])
             else
               raise
             end
@@ -59,33 +49,10 @@ end
 
 platform :ios do
 
-  desc "Sync certificates and profiles via fastlane match"
-  lane :sync_signing do
-    # Decode, normalize newlines, re-encode so fastlane gets valid PEM
+  desc "Load ASC API Key information to use in subsequent lanes"
+  lane :load_asc_api_key do
     raw = Base64.decode64(ENV["ASC_KEY_CONTENT"])
-    puts "[FASTFILE PATCH] Decoded key length: #{raw.length}"
-    puts "[FASTFILE PATCH] Key has newlines: #{raw.include?("\n")}"
-    puts "[FASTFILE PATCH] Key starts with: #{raw[0..30]}..."
-
     fixed = normalize_pem(raw)
-    puts "[FASTFILE PATCH] After normalize - has newlines: #{fixed.include?("\n")}"
-    puts "[FASTFILE PATCH] After normalize - length: #{fixed.length}"
-
-    # Quick sanity check: can we parse it directly?
-    begin
-      test_key = OpenSSL::PKey::EC.new(fixed)
-      puts "[FASTFILE PATCH] Direct EC.new sanity check: OK (#{test_key.class})"
-    rescue => e
-      puts "[FASTFILE PATCH] Direct EC.new sanity check FAILED: #{e.class}: #{e.message}"
-      # Try PKey.read directly
-      begin
-        test_key = OpenSSL::PKey.read(fixed)
-        puts "[FASTFILE PATCH] Direct PKey.read sanity check: OK (#{test_key.class})"
-      rescue => e2
-        puts "[FASTFILE PATCH] Direct PKey.read also FAILED: #{e2.class}: #{e2.message}"
-      end
-    end
-
     key_b64 = Base64.strict_encode64(fixed)
 
     app_store_connect_api_key(
@@ -94,34 +61,26 @@ platform :ios do
       key_content: key_b64,
       is_key_content_base64: true
     )
+  end
 
+  desc "Build and upload to App Store Connect"
+  lane :release do
+    load_asc_api_key
+    setup_ci
     match(
       type: "appstore",
       app_identifier: "com.blackfireapps.remotecamera",
       git_url: ENV["MATCH_GIT_URL"],
       readonly: true
     )
-  end
-
-  desc "Build the app for App Store distribution"
-  lane :build_release do
-    sync_signing
-
     build_app(
       workspace: "RemoteShutter.xcworkspace",
       scheme: "RemoteCam",
       export_method: "app-store",
       clean: true,
       output_directory: "./build",
-      output_name: "RemoteShutter.ipa",
-      xcargs: "CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='match AppStore com.blackfireapps.remotecamera' CODE_SIGN_IDENTITY='Apple Distribution'"
+      output_name: "RemoteShutter.ipa"
     )
-  end
-
-  desc "Build and upload to App Store Connect"
-  lane :release do
-    build_release
-
     upload_to_app_store(
       skip_metadata: false,
       skip_screenshots: true,
