@@ -107,6 +107,12 @@ class RemoteCamSessionTests: XCTestCase {
         lobby = Self.sharedLobby
         lobbyWrapper = Weak(lobby)
 
+        // Provide a real MultipeerService with an MCSession so the computed
+        // `session` property doesn't crash when state handlers check connectedPeers.
+        let mp = MultipeerService()
+        mp.session = MCSession(peer: MCPeerID(displayName: "TestSessionPeer"))
+        session.multipeerService = mp
+
         // Wait for preStart's `become(waitingForCtrl)` + OnEnter to finish.
         waitForMailbox(session, test: self)
     }
@@ -423,5 +429,369 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentState()?.0, session.states.connected)
+    }
+
+    // MARK: - MonitorPhotoMode: SwitchLens transitions to monitorSwitchingLens
+
+    func testMonitorPhotoModeSwitchLensTransitions() throws {
+        pushMonitorPhotoModeState()
+
+        ref ! UICmd.SwitchLens(lensType: .telephoto)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorSwitchingLens)
+    }
+
+    // MARK: - MonitorPhotoMode: SetZoom sends remote command
+
+    func testMonitorPhotoModeSetZoomSendsCommand() throws {
+        pushMonitorPhotoModeState()
+
+        ref ! UICmd.SetZoom(zoomFactor: 2.0)
+        waitForMailbox(session, test: self)
+
+        // Should stay in monitor state
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        let zoomMessages = session.sentMessages.filter { $0.msg is RemoteCmd.SetZoom }
+        XCTAssertEqual(zoomMessages.count, 1)
+    }
+
+    // MARK: - MonitorPhotoMode: PeerBecameCamera requests capabilities
+
+    func testMonitorPhotoModePeerBecameCameraRequestsCapabilities() throws {
+        pushMonitorPhotoModeState()
+
+        ref ! RemoteCmd.PeerBecameCamera.createWithDefaults()
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        let capRequests = session.sentMessages.filter { $0.msg is RemoteCmd.RequestCameraCapabilities }
+        XCTAssertEqual(capRequests.count, 1)
+    }
+
+    // MARK: - MonitorPhotoMode: DisconnectPeer pops to scanning
+
+    func testMonitorPhotoModeDisconnectPeerPopsToScanning() throws {
+        pushMonitorPhotoModeState()
+
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        // connectedPeers is empty (no real session), so it should pop
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+    }
+
+    // MARK: - MonitorVideoMode: TakePicture starts recording and transitions
+
+    func testMonitorVideoModeTakePictureStartsRecording() throws {
+        pushMonitorVideoModeState()
+
+        ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
+        waitForMailbox(session, test: self)
+
+        // Should have sent StartRecordingVideo to peer
+        let startMsgs = session.sentMessages.filter { $0.msg is RemoteCmd.StartRecordingVideo }
+        XCTAssertEqual(startMsgs.count, 1)
+        // Should have transitioned to monitorRecordingVideo
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorRecordingVideo)
+    }
+
+    // MARK: - MonitorVideoMode: ToggleCamera transitions
+
+    func testMonitorVideoModeToggleCameraTransitions() throws {
+        pushMonitorVideoModeState()
+
+        ref ! UICmd.ToggleCamera()
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorTogglingCamera)
+    }
+
+    // MARK: - MonitorVideoMode: ToggleTorch sends command
+
+    func testMonitorVideoModeToggleTorchSendsCommand() throws {
+        pushMonitorVideoModeState()
+
+        ref ! UICmd.ToggleTorch()
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        let torchMessages = session.sentMessages.filter { $0.msg is RemoteCmd.ToggleTorch }
+        XCTAssertEqual(torchMessages.count, 1)
+    }
+
+    // MARK: - MonitorVideoMode: SwitchLens transitions
+
+    func testMonitorVideoModeSwitchLensTransitions() throws {
+        pushMonitorVideoModeState()
+
+        ref ! UICmd.SwitchLens(lensType: .ultraWide)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorSwitchingLens)
+    }
+
+    // MARK: - MonitorVideoMode: SetZoom sends command
+
+    func testMonitorVideoModeSetZoomSendsCommand() throws {
+        pushMonitorVideoModeState()
+
+        ref ! UICmd.SetZoom(zoomFactor: 3.0)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        let zoomMessages = session.sentMessages.filter { $0.msg is RemoteCmd.SetZoom }
+        XCTAssertEqual(zoomMessages.count, 1)
+    }
+
+    // MARK: - MonitorVideoMode: RequestCameraCapabilities sends request
+
+    func testMonitorVideoModeRequestCameraCapabilities() throws {
+        pushMonitorVideoModeState()
+
+        ref ! UICmd.RequestCameraCapabilities()
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        let capRequests = session.sentMessages.filter { $0.msg is RemoteCmd.RequestCameraCapabilities }
+        XCTAssertEqual(capRequests.count, 1)
+    }
+
+    // MARK: - MonitorVideoMode: PeerBecameCamera requests capabilities
+
+    func testMonitorVideoModePeerBecameCameraRequestsCapabilities() throws {
+        pushMonitorVideoModeState()
+
+        ref ! RemoteCmd.PeerBecameCamera.createWithDefaults()
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        let capRequests = session.sentMessages.filter { $0.msg is RemoteCmd.RequestCameraCapabilities }
+        XCTAssertEqual(capRequests.count, 1)
+    }
+
+    // MARK: - MonitorVideoMode: DisconnectPeer pops to scanning
+
+    func testMonitorVideoModeDisconnectPeerPopsToScanning() throws {
+        pushMonitorVideoModeState()
+
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+    }
+
+    // MARK: - MonitorTakingPicture Helpers
+
+    private func pushMonitorTakingPictureState() {
+        pushMonitorPhotoModeState()
+        session.become(name: session.states.monitorTakingPicture,
+                       state: session.monitorTakingPicture(monitor: ref, peer: peer, lobby: lobbyWrapper))
+        waitForMailbox(session, test: self)
+        session.sentMessages.removeAll()
+    }
+
+    // MARK: - MonitorTakingPicture: TakePicResp with error unbecomes
+
+    func testMonitorTakingPictureTakePicRespWithErrorUnbecomes() throws {
+        pushMonitorTakingPictureState()
+
+        let error = NSError(domain: "TestError", code: 42, userInfo: nil)
+        ref ! RemoteCmd.TakePicResp(sender: nil, error: error)
+        waitForMailbox(session, test: self)
+
+        // unbecome() pops monitorTakingPicture → back to monitorPhotoMode
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+    }
+
+    // MARK: - MonitorTakingPicture: TakePicResp with picture unbecomes
+
+    func testMonitorTakingPictureTakePicRespWithPicUnbecomes() throws {
+        pushMonitorTakingPictureState()
+
+        let imageData = Data([0xFF, 0xD8, 0xFF, 0xE0]) // minimal JPEG header
+        ref ! RemoteCmd.TakePicResp(sender: nil, pic: imageData)
+        waitForMailbox(session, test: self)
+
+        // unbecome() pops monitorTakingPicture → back to monitorPhotoMode
+        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+    }
+
+    // MARK: - MonitorTakingPicture: TakePicAck forwards to peer
+
+    func testMonitorTakingPictureTakePicAckForwardsToPeer() throws {
+        pushMonitorTakingPictureState()
+
+        ref ! RemoteCmd.TakePicAck(sender: nil)
+        waitForMailbox(session, test: self)
+
+        // Should stay in monitorTakingPicture and send the ack to the camera peer
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorTakingPicture)
+        let ackMessages = session.sentMessages.filter { $0.msg is RemoteCmd.TakePicAck }
+        XCTAssertEqual(ackMessages.count, 1)
+        XCTAssertEqual(ackMessages[0].peers, [peer])
+    }
+
+    // MARK: - MonitorRecordingVideo Helpers
+
+    /// Pushes the monitorRecordingVideo state.
+    /// Uses monitorVideoMode as the name for the video mode state
+    /// so that popToState(name: states.monitorVideoMode) works correctly.
+    private func pushMonitorRecordingVideoState() {
+        pushScanningState()
+        pushConnectedState()
+        session.become(name: session.states.monitorVideoMode,
+                       state: session.monitorVideoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
+        waitForMailbox(session, test: self)
+        session.become(name: session.states.monitorRecordingVideo,
+                       state: session.monitorRecordingVideo(monitor: ref, peer: peer, lobby: lobbyWrapper))
+        waitForMailbox(session, test: self)
+        session.sentMessages.removeAll()
+    }
+
+    // MARK: - MonitorRecordingVideo: OnEnter sends RenderVideoModeRecording + RequestFrame
+
+    func testMonitorRecordingVideoOnEnter() throws {
+        pushScanningState()
+        pushConnectedState()
+        session.become(name: session.states.monitorVideoMode,
+                       state: session.monitorVideoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
+        waitForMailbox(session, test: self)
+        session.sentMessages.removeAll()
+
+        session.become(name: session.states.monitorRecordingVideo,
+                       state: session.monitorRecordingVideo(monitor: ref, peer: peer, lobby: lobbyWrapper))
+        waitForMailbox(session, test: self)
+
+        // OnEnter should have sent a RequestFrame
+        let frameRequests = session.sentMessages.filter { $0.msg is RemoteCmd.RequestFrame }
+        XCTAssertEqual(frameRequests.count, 1)
+    }
+
+    // MARK: - MonitorRecordingVideo: StartRecordingVideoAck with error pops to video mode
+
+    func testMonitorRecordingVideoStartAckWithErrorPopsToVideoMode() throws {
+        pushMonitorRecordingVideoState()
+
+        let error = NSError(domain: "TestError", code: 1, userInfo: nil)
+        ref ! RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil, error: error)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorVideoMode)
+    }
+
+    // MARK: - MonitorRecordingVideo: TakePicture sends StopRecordingVideo
+
+    func testMonitorRecordingVideoTakePictureSendsStopRecording() throws {
+        pushMonitorRecordingVideoState()
+
+        ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
+        waitForMailbox(session, test: self)
+
+        let stopMsgs = session.sentMessages.filter { $0.msg is RemoteCmd.StopRecordingVideo }
+        XCTAssertEqual(stopMsgs.count, 1)
+        // Should still be in recording state (waiting for ack)
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorRecordingVideo)
+    }
+
+    // MARK: - MonitorRecordingVideo: StopRecordingVideoAck transitions to monitorWaitingForVideo
+
+    func testMonitorRecordingVideoStopAckTransitionsToWaiting() throws {
+        pushMonitorRecordingVideoState()
+
+        ref ! RemoteCmd.StopRecordingVideoAck()
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorWaitingForVideo)
+    }
+
+    // MARK: - MonitorRecordingVideo: StopRecordingVideoResp with error pops to video mode
+
+    func testMonitorRecordingVideoStopRespWithErrorPopsToVideoMode() throws {
+        pushMonitorRecordingVideoState()
+
+        let error = NSError(domain: "TestError", code: 2, userInfo: nil)
+        ref ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: error)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorVideoMode)
+    }
+
+    // MARK: - MonitorRecordingVideo: Disconnect pops to scanning
+
+    func testMonitorRecordingVideoDisconnectPopsToScanning() throws {
+        pushMonitorRecordingVideoState()
+
+        ref ! Disconnect(sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+    }
+
+    // MARK: - MonitorRecordingVideo: DisconnectPeer pops to scanning
+
+    func testMonitorRecordingVideoDisconnectPeerPopsToScanning() throws {
+        pushMonitorRecordingVideoState()
+
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+    }
+
+    // MARK: - MonitorWaitingForVideo Helpers
+
+    private func pushMonitorWaitingForVideoState() {
+        pushMonitorRecordingVideoState()
+        session.become(name: session.states.monitorWaitingForVideo,
+                       state: session.monitorWaitingForVideo(monitor: ref, peer: peer, lobby: lobbyWrapper))
+        waitForMailbox(session, test: self)
+        session.sentMessages.removeAll()
+    }
+
+    // MARK: - MonitorWaitingForVideo: StopRecordingVideoResp pops to video mode
+
+    func testMonitorWaitingForVideoStopRespPopsToVideoMode() throws {
+        pushMonitorWaitingForVideoState()
+
+        ref ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.monitorVideoMode)
+    }
+
+    // MARK: - MonitorWaitingForVideo: Disconnect pops to scanning
+
+    func testMonitorWaitingForVideoDisconnectPopsToScanning() throws {
+        pushMonitorWaitingForVideoState()
+
+        ref ! Disconnect(sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+    }
+
+    // MARK: - MonitorWaitingForVideo: DisconnectPeer pops to scanning
+
+    func testMonitorWaitingForVideoDisconnectPeerPopsToScanning() throws {
+        pushMonitorWaitingForVideoState()
+
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+    }
+
+    // MARK: - Connected: DisconnectPeer pops to scanning when no peers
+
+    func testConnectedStateDisconnectPeerPopsToScanning() throws {
+        pushScanningState()
+        pushConnectedState()
+
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        // connectedPeers is empty (no real session), so should pop
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
     }
 }

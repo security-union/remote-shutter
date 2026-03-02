@@ -62,6 +62,8 @@
 		068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
 		068EF0B82531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
 		068EF0BA2531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
+		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
+		AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
 		068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
 		068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
@@ -233,6 +235,7 @@
 		068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorVideoStates.swift; sourceTree = "<group>"; };
 		068EF0B72531844B00A84DFA /* CameraVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraVideoStates.swift; sourceTree = "<group>"; };
 		068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerDelegates.swift; sourceTree = "<group>"; };
+		F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
 		068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamScanning.swift; sourceTree = "<group>"; };
 		0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		069284251BE5BF5B00AF4678 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -380,6 +383,7 @@
 				068EF0B62531842C00A84DFA /* CameraStates */,
 				068EF0AD2531835900A84DFA /* MonitorStates */,
 				068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */,
+				F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */,
 			);
 			name = RemoteCamSession;
 			sourceTree = "<group>";
@@ -847,6 +851,7 @@
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */,
 				068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */,
 				06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */,
 				0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */,
 				85C11C052582F3FC00618F32 /* UIButton.swift in Sources */,
@@ -928,6 +933,7 @@
 				065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */,
 				85C11C0D2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */,
 				06BB79C42E389D6D0094E085 /* VideoTransferProgressView.swift in Sources */,
 				0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,

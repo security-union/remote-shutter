@@ -22,29 +22,20 @@ func getMonitorActor() -> ActorRef? {
     RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/MonitorActor")
 }
 
-public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSessionDelegate {
+public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
     let states = RemoteCamStates()
 
-    var session: MCSession!
+    var multipeerService: MultipeerService!
 
-    var mcAdvertiserAssistant: MCAdvertiserAssistant!
-    
-    // Progress tracking for video transfers
-    var progressCancellables = Set<AnyCancellable>()
+    var session: MCSession { multipeerService.session }
 
     public required init(context: ActorSystem, ref: ActorRef) {
         super.init(context: context, ref: ref)
     }
 
     override public func willStop() {
-        if let adv = self.mcAdvertiserAssistant {
-            adv.stop()
-        }
-        if let session = self.session {
-            session.disconnect()
-            session.delegate = nil
-        }
+        multipeerService?.stopSession()
     }
 
     override public func receiveWithCtrl(ctrl: Weak<DeviceScannerViewController>) -> Receive {
@@ -68,11 +59,9 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         ^{
             CATransaction.begin()
             CATransaction.setCompletionBlock {
-                self.session = MCSession(peer: lobby.peerID)
-                self.session.delegate = self
-                self.mcAdvertiserAssistant = MCAdvertiserAssistant(
-                    serviceType: service, discoveryInfo: nil, session: self.session)
-                self.mcAdvertiserAssistant.start()
+                self.multipeerService = MultipeerService()
+                self.multipeerService.delegate = self
+                self.multipeerService.startSession(peerID: lobby.peerID)
             }
             lobby.navigationController?.popToViewController(lobby, animated: true)
             lobby.startScanning()
@@ -192,17 +181,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                             msg: Actor.Message,
                             mode: MCSessionSendDataMode = .reliable) -> Try<Message> {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
-        do {
-            let serializedMessage = try NSKeyedArchiver.archivedData(
-                withRootObject: msg, requiringSecureCoding: false)
-            try self.session.send(serializedMessage,
-                    toPeers: peer,
-                    with: mode)
-            return Success(msg)
-        } catch let error as NSError {
-            print("sendMessage error \(error)")
-            return Failure(error: error)
-        }
+        return multipeerService.send(msg, to: peer, mode: mode)
     }
 
     public func sendCommandOrGoToScanning(peer: [MCPeerID],
@@ -276,7 +255,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
         // Send video file as resource to all connected peers
         for peer in connectedPeers {
             // Capture the Progress object returned by sendResource to track sending progress
-            let sendProgress = self.session.sendResource(
+            let sendProgress = self.multipeerService.sendResource(
                 at: sendVideo.videoURL,
                 withName: resourceName,
                 toPeer: peer
@@ -346,7 +325,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController>, MCSes
                             this ! progressMsg
                         }
                     }
-                    .store(in: &self.progressCancellables)
+                    .store(in: &self.multipeerService.progressCancellables)
             } else {
                 print("⚠️ DEBUG: No progress object returned from sendResource")
             }

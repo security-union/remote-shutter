@@ -22,102 +22,85 @@ extension RemoteCamSession {
                 message: "Please update Remote Shutter on both devices.")
             alert.addAction(UIAlertAction.init(title: "Update", style: .default) {_ in
                 UIApplication.shared.open(AppStoreURL, options: [:], completionHandler: nil)
-                
+
             })
             alert.show(true)
         }
     }
+}
 
-    public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
+// MARK: - MultipeerServiceDelegate
+
+extension RemoteCamSession: MultipeerServiceDelegate {
+
+    func didReceiveMessage(_ message: Actor.Message) {
         mailbox.addOperation(BlockOperation {
-            switch state {
-            case MCSessionState.connected:
-                self.this ! OnConnectToDevice(peer: peerID, sender: self.this)
-                print("Connected: \(peerID.displayName)")
-
-            case MCSessionState.connecting:
-                print("Connecting: \(peerID.displayName)")
-
-            case MCSessionState.notConnected:
-                self.this ! DisconnectPeer(peer: peerID, sender: self.this)
-                print("Not Connected: \(peerID.displayName)")
-            @unknown default:
-                fatalError()
-            }
+            self.this ! message
         })
     }
 
-    public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-        guard let inboundMessage: Any = {
-            let unarchiver = try? NSKeyedUnarchiver(forReadingFrom: data)
-            unarchiver?.requiresSecureCoding = false
-            let obj = unarchiver?.decodeObject(forKey: NSKeyedArchiveRootObjectKey)
-            unarchiver?.finishDecoding()
-            return obj
-        }() else {
-            showIncopatibilityMessage()
-            return
-        }
-        // TODO: Add logic to determine frame destination.
-        switch inboundMessage {
-            
-        case let requestFrame as RemoteCmd.RequestFrame:
-            getFrameSender()?.tell(msg: requestFrame)
-
-        case let frame as RemoteCmd.SendFrame:
-            this ! RemoteCmd.OnFrame(data: frame.data,
-                sender: nil,
-                peerId: peerID,
-                fps: frame.fps,
-                camPosition: frame.camPosition,
-                camOrientation: frame.camOrientation)
-
-        case let m as Message:
-            this ! m
-
-        default:
-            print("unable to unarchive")
-        }
-
+    func didReceiveFrameRequest(_ request: RemoteCmd.RequestFrame) {
+        getFrameSender()?.tell(msg: request)
     }
 
-    public func session(_ session: MCSession, didReceive stream: InputStream, withName streamName: String, fromPeer peerID: MCPeerID) {
-
+    func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID) {
+        this ! RemoteCmd.OnFrame(data: frame.data,
+            sender: nil,
+            peerId: peer,
+            fps: frame.fps,
+            camPosition: frame.camPosition,
+            camOrientation: frame.camOrientation)
     }
 
-    public func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {
+    func peerDidConnect(_ peer: MCPeerID) {
         mailbox.addOperation(BlockOperation {
-            print("📥 DEBUG: Started receiving resource: \(resourceName) from \(peerID.displayName)")
-            
+            self.this ! OnConnectToDevice(peer: peer, sender: self.this)
+        })
+    }
+
+    func peerDidDisconnect(_ peer: MCPeerID) {
+        mailbox.addOperation(BlockOperation {
+            self.this ! DisconnectPeer(peer: peer, sender: self.this)
+        })
+    }
+
+    func didDetectIncompatibility() {
+        showIncopatibilityMessage()
+    }
+
+    func didStartReceivingResource(name resourceName: String, progress: Progress) {
+        mailbox.addOperation(BlockOperation {
+            print("📥 DEBUG: Started receiving resource: \(resourceName)")
+
             // Check if this is a video transfer
             if resourceName.hasPrefix("video_") {
                 let totalBytes = progress.totalUnitCount
                 print("📊 DEBUG: Video transfer started - Total bytes: \(totalBytes)")
-                
+
                 // Send message through actor system
                 let startedMsg = UICmd.VideoResourceTransferStarted(totalBytes: totalBytes, resourceName: resourceName, sender: self.this)
                 self.this ! startedMsg
-                
+
                 class SpeedTracker {
                     var lastUpdateTime = Date()
                     var lastCompletedBytes: Int64 = 0
                     var lastCalculatedSpeed: Double = 0.0
                 }
                 let speedTracker = SpeedTracker()
-                
+
                 // Observe progress changes and send progress messages
                 progress.publisher(for: \.fractionCompleted)
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] fractionCompleted in
                         let completedBytes = Int64(Double(progress.totalUnitCount) * fractionCompleted)
-                        
+
                         // Simple speed calculation
                         let currentTime = Date()
                         let timeElapsed = currentTime.timeIntervalSince(speedTracker.lastUpdateTime)
                         let bytesTransferred = completedBytes - speedTracker.lastCompletedBytes
-                        
+
                         print("📊 DEBUG: Speed calc - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), lastCompleted: \(speedTracker.lastCompletedBytes), current: \(completedBytes)")
-                        
+
                         let transferSpeed: Double
                         if timeElapsed > 0.5 && bytesTransferred > 0 {
                             transferSpeed = Double(bytesTransferred) / timeElapsed
@@ -129,9 +112,9 @@ extension RemoteCamSession {
                             transferSpeed = speedTracker.lastCalculatedSpeed
                             print("📊 DEBUG: Speed calculation skipped - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), using last speed: \(String(format: "%.1f", speedTracker.lastCalculatedSpeed / 1024 / 1024)) MB/s")
                         }
-                        
+
                         print("📊 DEBUG: Video transfer progress: \(Int(fractionCompleted * 100))% - Speed: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
-                        
+
                         let progressMsg = UICmd.VideoResourceTransferProgress(
                             completedBytes: completedBytes,
                             totalBytes: progress.totalUnitCount,
@@ -144,39 +127,39 @@ extension RemoteCamSession {
                             this ! progressMsg
                         }
                     }
-                    .store(in: &self.progressCancellables)
+                    .store(in: &self.multipeerService.progressCancellables)
             }
         })
     }
 
-    public func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {
+    func didFinishReceivingResource(name resourceName: String, at localURL: URL?, error: Error?) {
         mailbox.addOperation(BlockOperation {
-            print("📥 DEBUG: Finished receiving resource: \(resourceName) from \(peerID.displayName)")
-            
+            print("📥 DEBUG: Finished receiving resource: \(resourceName)")
+
             if let error = error {
                 print("❌ DEBUG: Error receiving resource: \(error.localizedDescription)")
-                
+
                 // Send failure message through actor system
                 let failedMsg = UICmd.VideoResourceTransferFailed(error: error, resourceName: resourceName, sender: self.this)
                 self.this ! failedMsg
                 return
             }
-            
+
             // Check if this is a video transfer
             if resourceName.hasPrefix("video_") {
                 print("✅ DEBUG: Video transfer completed successfully")
-                
+
                 // Send completion message through actor system
                 let completedMsg = UICmd.VideoResourceTransferCompleted(resourceName: resourceName, success: true, sender: self.this)
                 self.this ! completedMsg
-                
+
                 // Handle the received video file
                 if let localURL = localURL {
                     do {
                         let videoData = try Data(contentsOf: localURL)
                         let videoResp = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: videoData, error: nil)
                         self.this ! videoResp
-                        
+
                         // Clean up the temporary file
                         try FileManager.default.removeItem(at: localURL)
                     } catch {
@@ -187,9 +170,5 @@ extension RemoteCamSession {
                 }
             }
         })
-    }
-
-    @nonobjc public func session(session: MCSession, didReceiveCertificate certificate: [AnyObject]?, fromPeer peerID: MCPeerID, certificateHandler: @escaping (Bool) -> Void) {
-        certificateHandler(true)
     }
 }
