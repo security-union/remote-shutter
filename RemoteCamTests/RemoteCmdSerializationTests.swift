@@ -232,8 +232,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertNil(decoded.error)
     }
 
-    /// Known bug: wideAngle has rawValue 0, but `init?(coder:)` treats 0 as nil.
-    func testSetZoomResp_wideAngleLens_BUG() {
+    func testSetZoomResp_wideAngleLens() {
         let original = RemoteCmd.SetZoomResp(
             zoomFactor: 1.0,
             currentLens: .wideAngle,
@@ -241,9 +240,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
             error: nil
         )
         let decoded: RemoteCmd.SetZoomResp = roundTrip(original)
-        // BUG: wideAngle (rawValue 0) is decoded as nil because of `lensRaw > 0` check
-        // This test documents the bug. When fixed, change to XCTAssertEqual.
-        XCTAssertNil(decoded.currentLens, "Known bug: wideAngle (rawValue 0) lost during decode")
+        XCTAssertEqual(decoded.currentLens, .wideAngle, "wideAngle (rawValue 0) must survive round-trip")
+        XCTAssertEqual(decoded.zoomFactor!, 1.0, accuracy: 0.001)
     }
 
     func testSetZoomResp_withError() {
