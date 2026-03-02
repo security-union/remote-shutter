@@ -142,7 +142,7 @@ extension RemoteCamSession {
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
+                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
                     self.popAndStartScanning()
                 }
 
@@ -155,67 +155,63 @@ extension RemoteCamSession {
     func monitorTakingPicture(monitor: ActorRef,
                               peer: MCPeerID,
                               lobby: Weak<DeviceScannerViewController>) -> Receive {
-        var alert: UIAlertController?
-        ^{
-            alert = UIAlertController(title: "Requesting picture",
-                message: nil,
-                preferredStyle: .alert)
+        var alertHandle: AlertHandle?
+        ^{ [weak self] in
+            alertHandle = self?.alertPresenter.showAlert(title: "Requesting picture")
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
 
             case is RemoteCmd.TakePicAck:
-                ^{alert?.title = "Receiving picture"}
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.updateAlert(h, title: "Receiving picture") }
+                }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: msg)
 
             case let cmd as UICmd.TakePicture:
-                ^{alert?.show(true) {
-                    self.mailbox.addOperation(BlockOperation {
-                        self.sendCommandOrGoToScanning(
-                            peer: [peer],
-                            msg: RemoteCmd.TakePic(sender: self.this, sendMediaToPeer:cmd.sendMediaToRemote)
-                        )
-                    })
-                }}
+                self.sendCommandOrGoToScanning(
+                    peer: [peer],
+                    msg: RemoteCmd.TakePic(sender: self.this, sendMediaToPeer: cmd.sendMediaToRemote)
+                )
 
             case let picResp as RemoteCmd.TakePicResp:
                 if let imageData = picResp.pic {
                     savePictureOnMonitor(imageData)
-                    ^{alert?.dismiss(animated: true)}
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
                 } else if let error = picResp.error {
-                    ^{alert?.dismiss(animated: true) { () in
-                        let error = UIAlertController(title: error._domain, message: nil, preferredStyle: .alert)
-                        error.simpleOkAction()
-                        error.show(true)
-                    }}
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                        self?.alertPresenter.showError(title: error._domain)
+                    }
                 }
                 self.unbecome()
 
             case is UICmd.UnbecomeMonitor:
-                ^{alert?.dismiss(animated: true) {
-                    self.mailbox.addOperation(BlockOperation {
-                        self.popToState(name: self.states.connected)
-                    })
-                }}
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                }
+                self.popToState(name: self.states.connected)
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.session.connectedPeers.count == 0 {
-                    ^{alert?.dismiss(animated: true) {
-                        self.mailbox.addOperation(BlockOperation {
-                            self.popAndStartScanning()
-                        })
-                    }}
+                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    self.popAndStartScanning()
                 }
 
             case is Disconnect:
-                ^{alert?.dismiss(animated: true) {
-                    self.mailbox.addOperation(BlockOperation {
-                        self.popAndStartScanning()
-                    })
-                }}
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                }
+                self.popAndStartScanning()
 
             default:
-                ^{alert?.dismiss(animated: true, completion: nil)}
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                }
                 print("ignoring message")
             }
         }

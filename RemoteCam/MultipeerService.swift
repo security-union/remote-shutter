@@ -20,7 +20,22 @@ protocol MultipeerServiceDelegate: AnyObject {
     func didFinishReceivingResource(name: String, at localURL: URL?, error: Error?)
 }
 
-class MultipeerService: NSObject, MCSessionDelegate {
+protocol MultipeerServiceProtocol: AnyObject {
+    var delegate: MultipeerServiceDelegate? { get set }
+    var session: MCSession! { get }
+    var connectedPeers: [MCPeerID] { get }
+    var progressCancellables: Set<AnyCancellable> { get set }
+
+    func startSession(peerID: MCPeerID)
+    func stopSession()
+    func send(_ msg: Actor.Message, to peers: [MCPeerID],
+              mode: MCSessionSendDataMode) -> Try<Actor.Message>
+    func sendResource(at url: URL, withName name: String,
+                      toPeer peer: MCPeerID,
+                      completion: @escaping (Error?) -> Void) -> Progress?
+}
+
+class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
 
     weak var delegate: MultipeerServiceDelegate?
     var session: MCSession!
