@@ -10,6 +10,7 @@ target 'RemoteShutter' do
     pod 'Google-Mobile-Ads-SDK', '~> 11.0'
     pod 'GoogleUserMessagingPlatform', '~> 2.0'
     pod 'SwiftLint', '~> 0.41.0'
+    pod 'FlatBuffers', :git => 'https://github.com/google/flatbuffers.git', :tag => 'v25.2.10'
 
     target 'RemoteShutterTests' do
         inherit! :search_paths

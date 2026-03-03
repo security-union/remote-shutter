@@ -62,12 +62,6 @@
 		068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */; };
 		068EF0B82531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
 		068EF0BA2531844B00A84DFA /* CameraVideoStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0B72531844B00A84DFA /* CameraVideoStates.swift */; };
-		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
-		AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
-		AA0001012E940001000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
-		AA0001042E940004000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
-		AA0001052E940005000A1001 /* UIAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062E940006000A1001 /* UIAlertPresenter.swift */; };
-		AA0001072E940007000A1001 /* UIAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062E940006000A1001 /* UIAlertPresenter.swift */; };
 		068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
 		068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */; };
 		068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
@@ -121,9 +115,12 @@
 		06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
 		06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
+		2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */; };
 		30425A0C926DE812ECA4528E /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1681D37E731D371A697244F7 /* Try.swift */; };
+		30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */; };
 		6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */; };
 		69F9B5912B122CD3FFA41F78 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC390F40AB4C16ED4E8124 /* Message.swift */; };
+		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		855990C925275177E07AA346 /* Stack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */; };
 		85C11C052582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
@@ -134,8 +131,13 @@
 		85D33832258D489C0091972B /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33831258D489C0091972B /* UIView.swift */; };
 		85D33836258D48C30091972B /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33835258D48C30091972B /* UIViewController.swift */; };
 		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
+		AA0001012E940001000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
+		AA0001042E940004000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
+		AA0001052E940005000A1001 /* UIAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062E940006000A1001 /* UIAlertPresenter.swift */; };
+		AA0001072E940007000A1001 /* UIAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062E940006000A1001 /* UIAlertPresenter.swift */; };
 		AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */; };
 		AABB00042E930002009TESTS /* RemoteCmdSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */; };
+		AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		ABBA2C4CD92C4E137A90F275 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */; };
 		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
 		E9256A91DEEB414C3FE6C48D /* ActorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4711EC884DF706A90B90662D /* ActorSystem.swift */; };
@@ -240,9 +242,6 @@
 		068EF0AE2531837A00A84DFA /* MonitorVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorVideoStates.swift; sourceTree = "<group>"; };
 		068EF0B72531844B00A84DFA /* CameraVideoStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraVideoStates.swift; sourceTree = "<group>"; };
 		068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerDelegates.swift; sourceTree = "<group>"; };
-		F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
-		AA0001032E940003000A1001 /* AlertPresenting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenting.swift; sourceTree = "<group>"; };
-		AA0001062E940006000A1001 /* UIAlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAlertPresenter.swift; sourceTree = "<group>"; };
 		068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamScanning.swift; sourceTree = "<group>"; };
 		0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		069284251BE5BF5B00AF4678 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -285,12 +284,14 @@
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
 		0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Stack.swift; sourceTree = "<group>"; };
 		1681D37E731D371A697244F7 /* Try.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Try.swift; sourceTree = "<group>"; };
+		1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCmdFlatBuffers.swift; sourceTree = "<group>"; };
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CB14475747F8CECCE476895 /* Actor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Actor.swift; sourceTree = "<group>"; };
 		4711EC884DF706A90B90662D /* ActorSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActorSystem.swift; sourceTree = "<group>"; };
 		4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.debug.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.debug.xcconfig"; sourceTree = "<group>"; };
 		68EC390F40AB4C16ED4E8124 /* Message.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		69E2751E42D4D3ED3B0395F8 /* Pods-RemoteCam.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.release.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.release.xcconfig"; sourceTree = "<group>"; };
+		6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FlatBufferSchemas_generated.swift; sourceTree = "<group>"; };
 		7AFE1C1E3BF1B4B2BD321763 /* NSOperationQueue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NSOperationQueue.swift; sourceTree = "<group>"; };
 		7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -303,14 +304,18 @@
 		85D33835258D48C30091972B /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
 		85F118E5250ACBE100B73E48 /* RemoteShutter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0001032E940003000A1001 /* AlertPresenting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenting.swift; sourceTree = "<group>"; };
+		AA0001062E940006000A1001 /* UIAlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAlertPresenter.swift; sourceTree = "<group>"; };
 		AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamSessionTests.swift; sourceTree = "<group>"; };
 		AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCmdSerializationTests.swift; sourceTree = "<group>"; };
 		B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
 		BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4415A8FAB4FB271F412749F /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
+		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
 		D1F8EDB852F5C77347AE6066 /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
 		D74001DF2412690FAA394C74 /* Pods-RemoteShutterTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.debug.xcconfig"; sourceTree = "<group>"; };
 		E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ViewControllerActor.swift; sourceTree = "<group>"; };
+		F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -428,6 +433,9 @@
 				069284751BE5C8F900AF4678 /* Assets */,
 				0692842A1BE5BF5B00AF4678 /* Info.plist */,
 				3AB8B803EAAB55F3283797A6 /* Theater */,
+				6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */,
+				CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */,
+				1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -592,7 +600,6 @@
 				1681D37E731D371A697244F7 /* Try.swift */,
 				E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */,
 			);
-			name = Theater;
 			path = Theater;
 			sourceTree = "<group>";
 		};
@@ -631,6 +638,7 @@
 				0692841A1BE5BF5B00AF4678 /* Resources */,
 				0615C2FC1BEE7F0100E494B8 /* Embed Frameworks */,
 				F4D91A248DDD738FBADE9296 /* [CP] Copy Pods Resources */,
+				CF3DD94A9128A3326585E246 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -822,6 +830,24 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		CF3DD94A9128A3326585E246 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/FlatBuffers/FlatBuffers.framework",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FlatBuffers.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		F4D91A248DDD738FBADE9296 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -924,6 +950,8 @@
 				855990C925275177E07AA346 /* Stack.swift in Sources */,
 				30425A0C926DE812ECA4528E /* Try.swift in Sources */,
 				6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */,
+				2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */,
+				30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1018,7 +1046,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 66;
+				CURRENT_PROJECT_VERSION = 67;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -1030,7 +1058,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.14.2;
+				MARKETING_VERSION = 5.0.0;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1057,7 +1085,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 66;
+				CURRENT_PROJECT_VERSION = 67;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -1069,7 +1097,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.14.2;
+				MARKETING_VERSION = 5.0.0;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";

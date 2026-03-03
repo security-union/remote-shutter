@@ -2,7 +2,7 @@
 //  RemoteCmdSerializationTests.swift
 //  RemoteShutterTests
 //
-//  Round-trip NSCoding serialization tests for every RemoteCmd subclass.
+//  Round-trip FlatBuffers serialization tests for every RemoteCmd subclass.
 //  Uses the exact same encode/decode path as production (MultipeerService).
 //
 
@@ -15,34 +15,56 @@ final class RemoteCmdSerializationTests: XCTestCase {
 
     // MARK: - Helper
 
-    /// Encodes and decodes using the exact production path from MultipeerService.
-    private func roundTrip<T>(_ original: T) -> T {
-        // Encode (MultipeerService.send line 64)
-        let data: Data
-        do {
-            data = try NSKeyedArchiver.archivedData(withRootObject: original, requiringSecureCoding: false)
-        } catch {
-            XCTFail("Failed to archive: \(error)")
+    /// Encodes via toFlatBuffer(), decodes via RemoteCmd.fromFlatBuffer().
+    /// Mirrors the production path in MultipeerService.
+    private func roundTrip<T: Actor.Message>(_ original: T) -> T {
+        let data = toFlatBufferData(original)
+
+        guard let decoded = RemoteCmd.fromFlatBuffer(data) else {
+            XCTFail("fromFlatBuffer returned nil for \(T.self)")
             fatalError()
         }
 
-        // Decode (MultipeerService.session(_:didReceive:fromPeer:) lines 100-104)
-        let unarchiver: NSKeyedUnarchiver
-        do {
-            unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
-        } catch {
-            XCTFail("Failed to create unarchiver: \(error)")
-            fatalError()
-        }
-        unarchiver.requiresSecureCoding = false
-        let obj = unarchiver.decodeObject(forKey: NSKeyedArchiveRootObjectKey)
-        unarchiver.finishDecoding()
-
-        guard let result = obj as? T else {
-            XCTFail("Decoded object is \(type(of: obj as Any)), expected \(T.self)")
+        guard let result = decoded as? T else {
+            XCTFail("Decoded object is \(type(of: decoded)), expected \(T.self)")
             fatalError()
         }
         return result
+    }
+
+    /// Dispatches to the correct toFlatBuffer() extension based on runtime type.
+    private func toFlatBufferData(_ msg: Actor.Message) -> Data {
+        switch msg {
+        case let m as RemoteCmd.StartRecordingVideo: return m.toFlatBuffer()
+        case let m as RemoteCmd.StartRecordingVideoAck: return m.toFlatBuffer()
+        case let m as RemoteCmd.StopRecordingVideo: return m.toFlatBuffer()
+        case let m as RemoteCmd.StopRecordingVideoAck: return m.toFlatBuffer()
+        case let m as RemoteCmd.StopRecordingVideoResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.TakePic: return m.toFlatBuffer()
+        case let m as RemoteCmd.TakePicAck: return m.toFlatBuffer()
+        case let m as RemoteCmd.TakePicResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
+        case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.SwitchLens: return m.toFlatBuffer()
+        case let m as RemoteCmd.SwitchLensResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.PeerBecameCamera: return m.toFlatBuffer()
+        case let m as RemoteCmd.PeerBecameMonitor: return m.toFlatBuffer()
+        case let m as RemoteCmd.ToggleFlash: return m.toFlatBuffer()
+        case let m as RemoteCmd.ToggleFlashResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.ToggleTorch: return m.toFlatBuffer()
+        case let m as RemoteCmd.ToggleTorchResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetTorch: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetTorchResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
+        case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
+        default:
+            XCTFail("No toFlatBuffer() for \(type(of: msg))")
+            fatalError()
+        }
     }
 
     // MARK: - 1. StartRecordingVideo
@@ -68,7 +90,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let original = RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil, error: error)
         let decoded: RemoteCmd.StartRecordingVideoAck = roundTrip(original)
         XCTAssertNil(decoded.recordingStartTime)
-        XCTAssertEqual((decoded.error as NSError?)?.code, 42)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "recording failed")
     }
 
     // MARK: - 3. StopRecordingVideo
@@ -104,11 +127,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testStopRecordingVideoResp_withError() {
-        let error = NSError(domain: "test", code: 99)
+        let error = NSError(domain: "test", code: 99, userInfo: [NSLocalizedDescriptionKey: "stop recording failed"])
         let original = RemoteCmd.StopRecordingVideoResp(sender: nil, error: error)
         let decoded: RemoteCmd.StopRecordingVideoResp = roundTrip(original)
         XCTAssertNil(decoded.video)
-        XCTAssertEqual((decoded.error as NSError?)?.code, 99)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "stop recording failed")
     }
 
     // MARK: - 6. TakePic
@@ -151,11 +175,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testTakePicResp_withError() {
-        let error = NSError(domain: "camera", code: 1)
+        let error = NSError(domain: "camera", code: 1, userInfo: [NSLocalizedDescriptionKey: "take pic failed"])
         let original = RemoteCmd.TakePicResp(sender: nil, error: error)
         let decoded: RemoteCmd.TakePicResp = roundTrip(original)
         XCTAssertNil(decoded.pic)
-        XCTAssertEqual((decoded.error as NSError?)?.code, 1)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "take pic failed")
     }
 
     // MARK: - 9. SendFrame
@@ -245,13 +270,14 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testSetZoomResp_withError() {
-        let error = NSError(domain: "zoom", code: 5)
+        let error = NSError(domain: "zoom", code: 5, userInfo: [NSLocalizedDescriptionKey: "zoom failed"])
         let original = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: error)
         let decoded: RemoteCmd.SetZoomResp = roundTrip(original)
         XCTAssertNil(decoded.zoomFactor)
         XCTAssertNil(decoded.currentLens)
         XCTAssertNil(decoded.zoomRange)
-        XCTAssertEqual((decoded.error as NSError?)?.code, 5)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "zoom failed")
     }
 
     // MARK: - 13. CameraCapabilitiesResp
@@ -358,7 +384,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testSwitchLensResp_withError() {
-        let error = NSError(domain: "lens", code: 3)
+        let error = NSError(domain: "lens", code: 3, userInfo: [NSLocalizedDescriptionKey: "lens switch failed"])
         let original = RemoteCmd.SwitchLensResp(
             lensType: nil,
             availableLenses: nil,
@@ -371,7 +397,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertNil(decoded.availableLenses)
         XCTAssertNil(decoded.currentZoom)
         XCTAssertNil(decoded.zoomRange)
-        XCTAssertEqual((decoded.error as NSError?)?.code, 3)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "lens switch failed")
     }
 
     // MARK: - 16. PeerBecameCamera
@@ -424,11 +451,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testToggleFlashResp_withError() {
-        let error = NSError(domain: "flash", code: 7)
+        let error = NSError(domain: "flash", code: 7, userInfo: [NSLocalizedDescriptionKey: "flash toggle failed"])
         let original = RemoteCmd.ToggleFlashResp(flashMode: nil, error: error)
         let decoded: RemoteCmd.ToggleFlashResp = roundTrip(original)
         XCTAssertNil(decoded.flashMode)
-        XCTAssertEqual((decoded.error as NSError?)?.code, 7)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "flash toggle failed")
     }
 
     // MARK: - 20. ToggleTorch
@@ -455,11 +483,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testToggleTorchResp_withError() {
-        let error = NSError(domain: "torch", code: 8)
+        let error = NSError(domain: "torch", code: 8, userInfo: [NSLocalizedDescriptionKey: "torch toggle failed"])
         let original = RemoteCmd.ToggleTorchResp(torchMode: nil, error: error)
         let decoded: RemoteCmd.ToggleTorchResp = roundTrip(original)
         XCTAssertNil(decoded.torchMode)
-        XCTAssertEqual((decoded.error as NSError?)?.code, 8)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "torch toggle failed")
     }
 
     // MARK: - 22. SetTorch
@@ -486,11 +515,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testSetTorchResp_withError() {
-        let error = NSError(domain: "torch", code: 9)
+        let error = NSError(domain: "torch", code: 9, userInfo: [NSLocalizedDescriptionKey: "set torch failed"])
         let original = RemoteCmd.SetTorchResp(torchMode: nil, error: error)
         let decoded: RemoteCmd.SetTorchResp = roundTrip(original)
         XCTAssertNil(decoded.torchMode)
-        XCTAssertEqual((decoded.error as NSError?)?.code, 9)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "set torch failed")
     }
 
     // MARK: - 24. ToggleCamera
@@ -528,11 +558,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testToggleCameraResp_withError() {
-        let error = NSError(domain: "camera", code: 11)
+        let error = NSError(domain: "camera", code: 11, userInfo: [NSLocalizedDescriptionKey: "camera toggle failed"])
         let original = RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: error)
         let decoded: RemoteCmd.ToggleCameraResp = roundTrip(original)
         XCTAssertNil(decoded.cameraCapabilities)
-        XCTAssertEqual((decoded.error as NSError?)?.code, 11)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "camera toggle failed")
     }
 
     // MARK: - 26. RequestCameraCapabilities
@@ -541,5 +572,104 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let original = RemoteCmd.RequestCameraCapabilities()
         let decoded: RemoteCmd.RequestCameraCapabilities = roundTrip(original)
         XCTAssertNotNil(decoded)
+    }
+
+    // MARK: - Gap coverage tests
+
+    func testCameraCapabilitiesResp_zoomCapabilitiesValues() {
+        let backCamera = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle, .ultraWide, .telephoto],
+            hasFlash: true,
+            hasTorch: true,
+            zoomCapabilities: [
+                .wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0),
+                .ultraWide: RemoteCmd.ZoomRange(minZoom: 0.5, maxZoom: 2.0),
+                .telephoto: RemoteCmd.ZoomRange(minZoom: 2.0, maxZoom: 15.0)
+            ]
+        )
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: backCamera,
+            currentCamera: .back, currentLens: .telephoto,
+            currentZoom: 5.0, error: nil
+        )
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        let caps = decoded.backCamera!.getZoomCapabilities()
+        XCTAssertEqual(caps[.wideAngle]?.minZoom, 1.0)
+        XCTAssertEqual(caps[.wideAngle]?.maxZoom, 10.0)
+        XCTAssertEqual(caps[.ultraWide]?.minZoom, 0.5)
+        XCTAssertEqual(caps[.ultraWide]?.maxZoom, 2.0)
+        XCTAssertEqual(caps[.telephoto]?.minZoom, 2.0)
+        XCTAssertEqual(caps[.telephoto]?.maxZoom, 15.0)
+    }
+
+    func testToggleTorchResp_auto() {
+        let original = RemoteCmd.ToggleTorchResp(torchMode: .auto, error: nil)
+        let decoded: RemoteCmd.ToggleTorchResp = roundTrip(original)
+        XCTAssertEqual(decoded.torchMode, .auto, "TorchMode.auto (rawValue 2) must survive round-trip")
+    }
+
+    func testSetTorchResp_off_rawValueZero() {
+        let original = RemoteCmd.SetTorchResp(torchMode: .off, error: nil)
+        let decoded: RemoteCmd.SetTorchResp = roundTrip(original)
+        XCTAssertEqual(decoded.torchMode, .off, "TorchMode.off (rawValue 0) must survive round-trip")
+    }
+
+    func testStopRecordingVideoResp_nilVideoNilError() {
+        let original = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
+        let decoded: RemoteCmd.StopRecordingVideoResp = roundTrip(original)
+        XCTAssertNil(decoded.video)
+        XCTAssertNil(decoded.error)
+    }
+
+    func testSwitchLens_dualCamera() {
+        let original = RemoteCmd.SwitchLens(lensType: .dualCamera)
+        let decoded: RemoteCmd.SwitchLens = roundTrip(original)
+        XCTAssertEqual(decoded.lensType, .dualCamera, "dualCamera (rawValue 3) must survive round-trip")
+    }
+
+    func testSendFrame_landscapeLeft() {
+        let frameData = Data([0xAA, 0xBB])
+        let original = RemoteCmd.SendFrame(
+            data: frameData, sender: nil, fps: 24,
+            camPosition: .back, camOrientation: .landscapeLeft
+        )
+        let decoded: RemoteCmd.SendFrame = roundTrip(original)
+        XCTAssertEqual(decoded.camOrientation, .landscapeLeft)
+        XCTAssertEqual(decoded.data, frameData)
+    }
+
+    func testSendFrame_portraitUpsideDown() {
+        let frameData = Data([0xCC, 0xDD])
+        let original = RemoteCmd.SendFrame(
+            data: frameData, sender: nil, fps: 15,
+            camPosition: .front, camOrientation: .portraitUpsideDown
+        )
+        let decoded: RemoteCmd.SendFrame = roundTrip(original)
+        XCTAssertEqual(decoded.camOrientation, .portraitUpsideDown)
+        XCTAssertEqual(decoded.camPosition, .front)
+    }
+
+    func testToggleCameraResp_nestedZoomCapabilities() {
+        let backCamera = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle, .telephoto],
+            hasFlash: true, hasTorch: true,
+            zoomCapabilities: [
+                .wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0),
+                .telephoto: RemoteCmd.ZoomRange(minZoom: 2.0, maxZoom: 20.0)
+            ]
+        )
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: backCamera,
+            currentCamera: .back, currentLens: .wideAngle,
+            currentZoom: 3.0, error: nil
+        )
+        let original = RemoteCmd.ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
+        let decoded: RemoteCmd.ToggleCameraResp = roundTrip(original)
+        let caps = decoded.cameraCapabilities!.backCamera!.getZoomCapabilities()
+        XCTAssertEqual(caps[.wideAngle]?.minZoom, 1.0)
+        XCTAssertEqual(caps[.wideAngle]?.maxZoom, 10.0)
+        XCTAssertEqual(caps[.telephoto]?.minZoom, 2.0)
+        XCTAssertEqual(caps[.telephoto]?.maxZoom, 20.0)
+        XCTAssertEqual(Double(decoded.cameraCapabilities?.currentZoom ?? 0), 3.0, accuracy: 0.001)
     }
 }

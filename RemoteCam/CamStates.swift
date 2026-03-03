@@ -91,7 +91,7 @@ extension RemoteCamSession {
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
                     self.popAndStartScanning()
                 }
 
@@ -243,7 +243,7 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
                     print("🔍 DEBUG: Camera disconnecting peer - going to scanning")
                     self.popAndStartScanning()
                 }

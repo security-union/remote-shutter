@@ -9,12 +9,12 @@
 /* Begin PBXAggregateTarget section */
 		458B188365A307B3C128ABF524D1A3E3 /* GoogleUserMessagingPlatform */ = {
 			isa = PBXAggregateTarget;
-			buildConfigurationList = 538960989AB594092FD510593648D647 /* Build configuration list for PBXAggregateTarget "GoogleUserMessagingPlatform" */;
+			buildConfigurationList = 8095202549260543E3C6E0A8050A2219 /* Build configuration list for PBXAggregateTarget "GoogleUserMessagingPlatform" */;
 			buildPhases = (
-				5406CE1850525FF1FD5CF858F1656558 /* [CP] Copy XCFrameworks */,
+				C5A6B66C1470C7078E7A6C42926D575F /* [CP] Copy XCFrameworks */,
 			);
 			dependencies = (
-				A65726B9F22CAECEBD71B2833865826C /* PBXTargetDependency */,
+				65FC90910DFC2414B1DA26A65373152F /* PBXTargetDependency */,
 			);
 			name = GoogleUserMessagingPlatform;
 		};
@@ -30,64 +30,94 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
-		1493DD91336DE7675C83360B987057DD /* GoogleMobileAdsPlaceholder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E56FF0E5285EE93E2927132BBD3479 /* GoogleMobileAdsPlaceholder.swift */; };
-		20197A45B4A5AC52F77191733C1788DC /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 384DDA2CB25005BD6479B5987C619DD4 /* Foundation.framework */; };
-		206D2E2AB07FB7AEB482F923736C883A /* Pods-RemoteShutter-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 184BADAA87AC5E586BB5E2FD4AE6BCD5 /* Pods-RemoteShutter-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		3317DC9751692475C7BF6CA18EE999CE /* Google-Mobile-Ads-SDK-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = DD6A3E7807352DFF9577ED4FCD112CDE /* Google-Mobile-Ads-SDK-dummy.m */; };
+		01320B2C73DD1B209433A61C5FEC153C /* Offset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A1F40BD26F664E07C9A3F82B3AE66A1 /* Offset.swift */; };
+		0A128DE9D9816DF917E14F0022BC8884 /* FlatBuffersUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EC635452B30BE5A314B16201292D717 /* FlatBuffersUtils.swift */; };
+		1493DD91336DE7675C83360B987057DD /* GoogleMobileAdsPlaceholder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B750749EFEF1831B390F1DCFFAF0F22A /* GoogleMobileAdsPlaceholder.swift */; };
+		29B7A4D15A504D19C1367433093A65E7 /* Verifiable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB397D6117EBA7750BF7D3DB33069AE5 /* Verifiable.swift */; };
+		31883CAA379B98041BDA19DFBB18339C /* FlatBuffers-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 563D0E6A9F9D3EE343A8D88DAF3C9864 /* FlatBuffers-dummy.m */; };
+		3317DC9751692475C7BF6CA18EE999CE /* Google-Mobile-Ads-SDK-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 0702B34425DD8675A73D89F25F480A64 /* Google-Mobile-Ads-SDK-dummy.m */; };
+		3856111C629067257D17227459755DD7 /* String+extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4310496A952D79ED1C38832D84039 /* String+extension.swift */; };
+		39D2FC268C070D38CDDE24A090A3668B /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 384DDA2CB25005BD6479B5987C619DD4 /* Foundation.framework */; };
+		3BFDA571A8CBA7C3AB2B4DBB47335512 /* Table.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0664CCDE2067A932A2D2A8D959910AA /* Table.swift */; };
+		3EF543FB0FA5A08E48188C246FC7BEE3 /* Verifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92DF024E3E8E8714C174ABA31D6B14C8 /* Verifier.swift */; };
+		40F544DDC5C2F8BD60F32B6485E3AA44 /* FlatbuffersErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 883FA673222D6102DF5CEB1C72CC0424 /* FlatbuffersErrors.swift */; };
+		507CC6B92E8017344E0358A14082EA08 /* Mutable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A509CD9BD023E9CF9759894C0F29931 /* Mutable.swift */; };
 		510E3750BD2A8E80DD85CF7549003D38 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 384DDA2CB25005BD6479B5987C619DD4 /* Foundation.framework */; };
-		6C788F45D17E00E59185B2DE1F108069 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3C75754F78B7D3D7FA1781FA76F6B706 /* PrivacyInfo.xcprivacy */; };
-		76CC24DFFB8755FEE704EE5AA9DA1539 /* Pods-RemoteShutter-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 32DA30A58E41B0F3C9E4576E5632D1B1 /* Pods-RemoteShutter-dummy.m */; };
-		875814164C95AE2EDAC8E068725082EC /* Pods-RemoteShutterTests-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A044482C1418E49CC8597C066F9328F /* Pods-RemoteShutterTests-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		91AD03DF75940F2B9FF42295E8B2CF21 /* Pods-RemoteShutterTests-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = EC9F5E0F4454F28AED6870C906A08265 /* Pods-RemoteShutterTests-dummy.m */; };
-		BD90468037AC7AC384A68A4EABE27F84 /* Google-Mobile-Ads-SDK-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = B3E99C8908A3A1A80BEFF8AFB51677CA /* Google-Mobile-Ads-SDK-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		5951C2EA60E0FDEB9C212E8F20A5C408 /* NativeObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48C5D2BBD7FF9DD176E64D243AD58814 /* NativeObject.swift */; };
+		66D4895D22A3402F88353D8819C0FD66 /* TableVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F9FFC97312B9EAF67FAB5927F1F307 /* TableVerifier.swift */; };
+		6E6B103176709108FFD200D88A4CC4AD /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 40E3976A5377D28D677F99BAA685AE79 /* PrivacyInfo.xcprivacy */; };
+		755E6B37B39E072D1A7ADE4E9B5A4FF8 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84D2615DFEB1ADDB161AE3928610EF0A /* Constants.swift */; };
+		7C0ADE3CBF2446A8D3FBD3F46F324F01 /* ByteBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7E4A0DE545D9835D2E8B3E4C14E42E1 /* ByteBuffer.swift */; };
+		84D08C46E5AD4B3B6125FF34B1442C87 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 384DDA2CB25005BD6479B5987C619DD4 /* Foundation.framework */; };
+		875814164C95AE2EDAC8E068725082EC /* Pods-RemoteShutterTests-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = E354D59F4CDAE019B7CF3D93E2AEEDDE /* Pods-RemoteShutterTests-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		8D2906243751DA2CED795044CFE8E7D9 /* Int+extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA7BDC5C7C66A266FD7869C132A6304 /* Int+extension.swift */; };
+		8E1761DFFB965A1CE58393C7932191AE /* FlatBufferBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC67989DEFBCD9BBCD67FBD266EA8B08 /* FlatBufferBuilder.swift */; };
+		9075117E5E1BB75F69B716D3621A7756 /* FlatBufferObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = F698EEDB604EF907E810E6968F7D6336 /* FlatBufferObject.swift */; };
+		91AD03DF75940F2B9FF42295E8B2CF21 /* Pods-RemoteShutterTests-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 2937D8BD3694AA2410700E604AA8343F /* Pods-RemoteShutterTests-dummy.m */; };
+		9EF8B0BAE25E8F14CB8F52F4B17BC913 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FCFF2763C92DB23BB809D1D468488C2B /* PrivacyInfo.xcprivacy */; };
+		AC3125E168570698BD6F9530E5971994 /* VeriferOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974F7F1ADD2D5A489805A44B31BD68A6 /* VeriferOptions.swift */; };
+		B217B76E1D2D82EE21BB74A05D284D34 /* Root.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0E26D5962FD4D1C9A4B3DB29BCC320 /* Root.swift */; };
+		B58CC064E37253BABDA5C17A5F5DFEEE /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 768273BE6CCD46B018C11D681F6789C9 /* Message.swift */; };
+		BD90468037AC7AC384A68A4EABE27F84 /* Google-Mobile-Ads-SDK-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 1FD186536AAA49F97422BC6A5B74812F /* Google-Mobile-Ads-SDK-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C5AEC4F6CD0537DD15A0AE014B419BDE /* Pods-RemoteShutter-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 22CADFA3D0249B088212B018EF604D23 /* Pods-RemoteShutter-dummy.m */; };
+		C743C5E4447FB367B746E0F6A9E473EB /* Struct.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35EC4E0E274EC0BCFE94B7D12BDD44F /* Struct.swift */; };
 		D35DA73FB8D7D9DFA392B2AB182D2990 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 384DDA2CB25005BD6479B5987C619DD4 /* Foundation.framework */; };
-		F2DB7D66AA68FB3F9D299060AAD116A9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EE1378CF2F91F5E57D46388066AFDC64 /* PrivacyInfo.xcprivacy */; };
+		D798B603F51F3D3BA76196AC068CF02C /* FlatBuffers-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 01E08A4ADF972041C1537ABDC3224A1D /* FlatBuffers-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		E34C0E6B3F20E7A1C3F1944FD8F43888 /* Enum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7ABE31D4817B91CAA3607922CCB791 /* Enum.swift */; };
+		ED5851C450E0796053B844E039CAB005 /* Pods-RemoteShutter-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 5AE81F5B6B2DEB11056C942236FE92F2 /* Pods-RemoteShutter-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		0E109F88F99401B28C2D09D07967D845 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 49600CDCCC4E83C6CBB9BBDB533A9E9D;
-			remoteInfo = "Pods-RemoteShutter";
-		};
-		17503DB4B5768DB327C2B00FFF4F5E4E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 36FD0958A0EC4A0FCF599E9B22719B03;
-			remoteInfo = "Google-Mobile-Ads-SDK-GoogleMobileAdsResources";
-		};
-		40D549C3C9CEB12C55790DCA477F6599 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 458B188365A307B3C128ABF524D1A3E3;
-			remoteInfo = GoogleUserMessagingPlatform;
-		};
-		5DD4CA9FBBC4C2AA20ACD708C1309653 /* PBXContainerItemProxy */ = {
+		1CE1915B447028007C5E2C079D4A620C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 63A7C675C13F87669AF56006D943998B;
 			remoteInfo = "GoogleUserMessagingPlatform-UserMessagingPlatformResources";
 		};
-		7CEC11E789DE6B1167C0C1CE934BC89D /* PBXContainerItemProxy */ = {
+		2949AE29B5F11A3DB8D6CC7675A4A371 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = FEA3B3A570634836C0457F3D7CEF1699;
-			remoteInfo = "Google-Mobile-Ads-SDK";
+			remoteGlobalIDString = 458B188365A307B3C128ABF524D1A3E3;
+			remoteInfo = GoogleUserMessagingPlatform;
 		};
-		9B457BA3C2A8B4B7C1AEDCA47DE7709F /* PBXContainerItemProxy */ = {
+		6FF5283778BCEB12FDF6E1D7BFFF7DB3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 52B60EC2A583F24ACBB69C113F5488B9;
 			remoteInfo = SwiftLint;
 		};
-		DF555B8CD8AC04142C4C28CC72DBF12C /* PBXContainerItemProxy */ = {
+		717A5CA985065FD42862236FBDE6F1EF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 49600CDCCC4E83C6CBB9BBDB533A9E9D;
+			remoteInfo = "Pods-RemoteShutter";
+		};
+		8D339EB178A9F1980292A1D4E5A89B54 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 36FD0958A0EC4A0FCF599E9B22719B03;
+			remoteInfo = "Google-Mobile-Ads-SDK-GoogleMobileAdsResources";
+		};
+		9D73CBA76DB0B1830CF8FF165F387239 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6CCF5850BCF97B0A34DC965BFB4FFDE5;
+			remoteInfo = FlatBuffers;
+		};
+		D952A0BE7A0C3919E6F165DD0D0F4F0B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FEA3B3A570634836C0457F3D7CEF1699;
+			remoteInfo = "Google-Mobile-Ads-SDK";
+		};
+		EECE10B5C2DCFEAA2CDCFA5B3568298D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
@@ -97,50 +127,79 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		06AA839BBBEB987377ECEBB43B2AE7C7 /* Pods-RemoteShutterTests.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "Pods-RemoteShutterTests.modulemap"; sourceTree = "<group>"; };
-		0893019E16E571DBBB8DA58DC81C5500 /* Google-Mobile-Ads-SDK.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "Google-Mobile-Ads-SDK.modulemap"; sourceTree = "<group>"; };
-		0A044482C1418E49CC8597C066F9328F /* Pods-RemoteShutterTests-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-RemoteShutterTests-umbrella.h"; sourceTree = "<group>"; };
-		0C3A153AFA166D5B9BF28C8CE7EC736B /* Google-Mobile-Ads-SDK-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Google-Mobile-Ads-SDK-Info.plist"; sourceTree = "<group>"; };
-		1314D215D6BCA68C3E9C4084DFB0A81A /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
-		184BADAA87AC5E586BB5E2FD4AE6BCD5 /* Pods-RemoteShutter-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-RemoteShutter-umbrella.h"; sourceTree = "<group>"; };
-		274585489DEE6ADDA6BAE4FD3D6BF71E /* SwiftLint.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = SwiftLint.debug.xcconfig; sourceTree = "<group>"; };
-		2DAFF77DEAB6D00B34B49EEB2C111440 /* Pods-RemoteShutter.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "Pods-RemoteShutter.modulemap"; sourceTree = "<group>"; };
-		32DA30A58E41B0F3C9E4576E5632D1B1 /* Pods-RemoteShutter-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Pods-RemoteShutter-dummy.m"; sourceTree = "<group>"; };
-		351AC6BC245E3B53712FCD74AB59E28B /* Pods-RemoteShutterTests-acknowledgements.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutterTests-acknowledgements.plist"; sourceTree = "<group>"; };
+		01E08A4ADF972041C1537ABDC3224A1D /* FlatBuffers-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "FlatBuffers-umbrella.h"; sourceTree = "<group>"; };
+		0702B34425DD8675A73D89F25F480A64 /* Google-Mobile-Ads-SDK-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Google-Mobile-Ads-SDK-dummy.m"; sourceTree = "<group>"; };
+		096A0ED1BCEE8CA2607C733B627270B9 /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
+		0991CCF4096E1F0D361315FCC1F84B92 /* Pods-RemoteShutterTests-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutterTests-Info.plist"; sourceTree = "<group>"; };
+		0A1F40BD26F664E07C9A3F82B3AE66A1 /* Offset.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Offset.swift; path = swift/Sources/FlatBuffers/Offset.swift; sourceTree = "<group>"; };
+		0A4FBB6F0C5C14A60604C4B6C170107D /* GoogleUserMessagingPlatform.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = GoogleUserMessagingPlatform.debug.xcconfig; sourceTree = "<group>"; };
+		0EC635452B30BE5A314B16201292D717 /* FlatBuffersUtils.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FlatBuffersUtils.swift; path = swift/Sources/FlatBuffers/FlatBuffersUtils.swift; sourceTree = "<group>"; };
+		0F547C96F8BF4A9F1E741AD6901FF066 /* Pods-RemoteShutterTests-acknowledgements.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutterTests-acknowledgements.plist"; sourceTree = "<group>"; };
+		138264D00B5BD77C18DFFB00327263A5 /* FlatBuffers */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = FlatBuffers; path = FlatBuffers.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A37E82B03009924E045A43364239252 /* ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist"; sourceTree = "<group>"; };
+		1D9545640F2916A93BC7BD84B6695DD0 /* Google-Mobile-Ads-SDK.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Google-Mobile-Ads-SDK.release.xcconfig"; sourceTree = "<group>"; };
+		1FD186536AAA49F97422BC6A5B74812F /* Google-Mobile-Ads-SDK-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Google-Mobile-Ads-SDK-umbrella.h"; sourceTree = "<group>"; };
+		22CADFA3D0249B088212B018EF604D23 /* Pods-RemoteShutter-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Pods-RemoteShutter-dummy.m"; sourceTree = "<group>"; };
+		26AA17E9C25B8D2F3753BBA195413D99 /* SwiftLint.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = SwiftLint.release.xcconfig; sourceTree = "<group>"; };
+		2937D8BD3694AA2410700E604AA8343F /* Pods-RemoteShutterTests-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Pods-RemoteShutterTests-dummy.m"; sourceTree = "<group>"; };
+		2A41B088A05DC474FC422983F55DBFC5 /* Pods-RemoteShutter-acknowledgements.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutter-acknowledgements.plist"; sourceTree = "<group>"; };
+		34F9FFC97312B9EAF67FAB5927F1F307 /* TableVerifier.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TableVerifier.swift; path = swift/Sources/FlatBuffers/TableVerifier.swift; sourceTree = "<group>"; };
 		384DDA2CB25005BD6479B5987C619DD4 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		3931ED135304903031FA66AB8E357599 /* Pods-RemoteShutter-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutter-Info.plist"; sourceTree = "<group>"; };
 		3998091512768CD07733CB4F02B4BD9F /* Google-Mobile-Ads-SDK-GoogleMobileAdsResources */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = "Google-Mobile-Ads-SDK-GoogleMobileAdsResources"; path = GoogleMobileAdsResources.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
-		3C75754F78B7D3D7FA1781FA76F6B706 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = "Frameworks/GoogleMobileAdsFramework/GoogleMobileAds.xcframework/ios-arm64/GoogleMobileAds.framework/PrivacyInfo.xcprivacy"; sourceTree = "<group>"; };
+		3F7ABE31D4817B91CAA3607922CCB791 /* Enum.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Enum.swift; path = swift/Sources/FlatBuffers/Enum.swift; sourceTree = "<group>"; };
+		40E3976A5377D28D677F99BAA685AE79 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = "Frameworks/Release/UserMessagingPlatform.xcframework/ios-arm64/UserMessagingPlatform.framework/PrivacyInfo.xcprivacy"; sourceTree = "<group>"; };
+		410909B62476157A91F7C1717748D1CC /* Pods-RemoteShutter-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutter-Info.plist"; sourceTree = "<group>"; };
+		4345341D1D8BF40FB55260F34C9EE72C /* UserMessagingPlatform.xcframework */ = {isa = PBXFileReference; includeInIndex = 1; name = UserMessagingPlatform.xcframework; path = Frameworks/Release/UserMessagingPlatform.xcframework; sourceTree = "<group>"; };
+		463D2DFE684B84E1AF36BC3809ED309E /* FlatBuffers.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = FlatBuffers.modulemap; sourceTree = "<group>"; };
+		46BBDB51AEB5D9A7086A19D0C431CF9F /* FlatBuffers-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "FlatBuffers-prefix.pch"; sourceTree = "<group>"; };
+		48C5D2BBD7FF9DD176E64D243AD58814 /* NativeObject.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NativeObject.swift; path = swift/Sources/FlatBuffers/NativeObject.swift; sourceTree = "<group>"; };
+		4A509CD9BD023E9CF9759894C0F29931 /* Mutable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Mutable.swift; path = swift/Sources/FlatBuffers/Mutable.swift; sourceTree = "<group>"; };
 		4CFB247C3FAC50BC87F988A65ACDA66E /* Pods-RemoteShutterTests */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = "Pods-RemoteShutterTests"; path = Pods_RemoteShutterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D90B0D53451F1C3A58000FEB62A46FE /* Pods-RemoteShutter.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "Pods-RemoteShutter.modulemap"; sourceTree = "<group>"; };
+		4F40BDD9BB18435FC4B506C5D499F0A4 /* Google-Mobile-Ads-SDK.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Google-Mobile-Ads-SDK.debug.xcconfig"; sourceTree = "<group>"; };
+		563D0E6A9F9D3EE343A8D88DAF3C9864 /* FlatBuffers-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "FlatBuffers-dummy.m"; sourceTree = "<group>"; };
+		5AE81F5B6B2DEB11056C942236FE92F2 /* Pods-RemoteShutter-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-RemoteShutter-umbrella.h"; sourceTree = "<group>"; };
 		5D1D50E923BF95A1DCCDF637C50BD480 /* Pods-RemoteShutter */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = "Pods-RemoteShutter"; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		72B261FAD16841E0607D900406C56842 /* Google-Mobile-Ads-SDK-xcframeworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "Google-Mobile-Ads-SDK-xcframeworks.sh"; sourceTree = "<group>"; };
-		7759E12719FA6BB57CAEE0458777A563 /* Google-Mobile-Ads-SDK.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Google-Mobile-Ads-SDK.release.xcconfig"; sourceTree = "<group>"; };
-		7EDEF22EA8A787E9512066C556C1B1AC /* SwiftLint.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = SwiftLint.release.xcconfig; sourceTree = "<group>"; };
-		851540DEC991E58A03E3BFC30E0E00F4 /* Pods-RemoteShutterTests-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutterTests-Info.plist"; sourceTree = "<group>"; };
-		853AF0A8634E7848C0644CEAC5DD930B /* GoogleMobileAds.xcframework */ = {isa = PBXFileReference; includeInIndex = 1; name = GoogleMobileAds.xcframework; path = Frameworks/GoogleMobileAdsFramework/GoogleMobileAds.xcframework; sourceTree = "<group>"; };
-		855C012C54FCD67D9552DD49DA224836 /* Pods-RemoteShutter-resources.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "Pods-RemoteShutter-resources.sh"; sourceTree = "<group>"; };
-		88AB5D32EB7E7F9B94ADDD1F07DB7DA8 /* UserMessagingPlatform.xcframework */ = {isa = PBXFileReference; includeInIndex = 1; name = UserMessagingPlatform.xcframework; path = Frameworks/Release/UserMessagingPlatform.xcframework; sourceTree = "<group>"; };
+		60A40A3527C861C623D727B3E6E84C18 /* Pods-RemoteShutterTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutterTests.debug.xcconfig"; sourceTree = "<group>"; };
+		61E403D653BA02CD2C217E74DDB102D9 /* Pods-RemoteShutter-acknowledgements.markdown */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "Pods-RemoteShutter-acknowledgements.markdown"; sourceTree = "<group>"; };
+		6EAB7A0799DF55FC3014B3BE245B5E25 /* FlatBuffers-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "FlatBuffers-Info.plist"; sourceTree = "<group>"; };
+		6F018A4E4D0A9FAEAAD903F41FCF994F /* ResourceBundle-UserMessagingPlatformResources-GoogleUserMessagingPlatform-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "ResourceBundle-UserMessagingPlatformResources-GoogleUserMessagingPlatform-Info.plist"; sourceTree = "<group>"; };
+		768273BE6CCD46B018C11D681F6789C9 /* Message.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Message.swift; path = swift/Sources/FlatBuffers/Message.swift; sourceTree = "<group>"; };
+		84D2615DFEB1ADDB161AE3928610EF0A /* Constants.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Constants.swift; path = swift/Sources/FlatBuffers/Constants.swift; sourceTree = "<group>"; };
+		883FA673222D6102DF5CEB1C72CC0424 /* FlatbuffersErrors.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FlatbuffersErrors.swift; path = swift/Sources/FlatBuffers/FlatbuffersErrors.swift; sourceTree = "<group>"; };
 		8A377C18F92A8A511869ADA54B5652D2 /* GoogleUserMessagingPlatform-UserMessagingPlatformResources */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = "GoogleUserMessagingPlatform-UserMessagingPlatformResources"; path = UserMessagingPlatformResources.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
-		8DA7E98E84E16B428D52C454F459392A /* Google-Mobile-Ads-SDK.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Google-Mobile-Ads-SDK.debug.xcconfig"; sourceTree = "<group>"; };
-		90DBB998BD907E2712524F7E18DBDA46 /* Pods-RemoteShutterTests-acknowledgements.markdown */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "Pods-RemoteShutterTests-acknowledgements.markdown"; sourceTree = "<group>"; };
-		971F7D9AD82E2B8DB2CFFBECC1564F16 /* ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist"; sourceTree = "<group>"; };
-		981BAA1BFD0262318F777D490092B1BA /* GoogleUserMessagingPlatform.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = GoogleUserMessagingPlatform.debug.xcconfig; sourceTree = "<group>"; };
+		8F6C840FB30FE55DCF39861C249DEBBF /* SwiftLint.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = SwiftLint.debug.xcconfig; sourceTree = "<group>"; };
+		92DF024E3E8E8714C174ABA31D6B14C8 /* Verifier.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Verifier.swift; path = swift/Sources/FlatBuffers/Verifier.swift; sourceTree = "<group>"; };
+		974F7F1ADD2D5A489805A44B31BD68A6 /* VeriferOptions.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VeriferOptions.swift; path = swift/Sources/FlatBuffers/VeriferOptions.swift; sourceTree = "<group>"; };
 		9D940727FF8FB9C785EB98E56350EF41 /* Podfile */ = {isa = PBXFileReference; explicitFileType = text.script.ruby; includeInIndex = 1; indentWidth = 2; lastKnownFileType = text; name = Podfile; path = ../Podfile; sourceTree = SOURCE_ROOT; tabWidth = 2; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
-		B1D0255F3877491F0BD91E7EB662AA59 /* ResourceBundle-UserMessagingPlatformResources-GoogleUserMessagingPlatform-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "ResourceBundle-UserMessagingPlatformResources-GoogleUserMessagingPlatform-Info.plist"; sourceTree = "<group>"; };
-		B3E99C8908A3A1A80BEFF8AFB51677CA /* Google-Mobile-Ads-SDK-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Google-Mobile-Ads-SDK-umbrella.h"; sourceTree = "<group>"; };
-		B4E56FF0E5285EE93E2927132BBD3479 /* GoogleMobileAdsPlaceholder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GoogleMobileAdsPlaceholder.swift; path = Sources/GoogleMobileAdsPlaceholder.swift; sourceTree = "<group>"; };
-		C1A0D268E341576744DB800D7C1A50BC /* Pods-RemoteShutter-acknowledgements.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutter-acknowledgements.plist"; sourceTree = "<group>"; };
-		CD696C728B2F561D0E568C931315FD96 /* Pods-RemoteShutterTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutterTests.debug.xcconfig"; sourceTree = "<group>"; };
-		D26F1A28996F35322B5104C588F00209 /* Google-Mobile-Ads-SDK-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Google-Mobile-Ads-SDK-prefix.pch"; sourceTree = "<group>"; };
-		D4A1E9C8F31AF74E240019FD44F562B6 /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
-		DD6A3E7807352DFF9577ED4FCD112CDE /* Google-Mobile-Ads-SDK-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Google-Mobile-Ads-SDK-dummy.m"; sourceTree = "<group>"; };
-		DE16D61A978EA7DE4A1AD141E6E8AE3F /* GoogleUserMessagingPlatform.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = GoogleUserMessagingPlatform.release.xcconfig; sourceTree = "<group>"; };
-		EC9F5E0F4454F28AED6870C906A08265 /* Pods-RemoteShutterTests-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Pods-RemoteShutterTests-dummy.m"; sourceTree = "<group>"; };
-		EE1378CF2F91F5E57D46388066AFDC64 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = "Frameworks/Release/UserMessagingPlatform.xcframework/ios-arm64/UserMessagingPlatform.framework/PrivacyInfo.xcprivacy"; sourceTree = "<group>"; };
-		EEF24E809D3FD2F7EDD6EFEEE7EF71D4 /* Pods-RemoteShutter-acknowledgements.markdown */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "Pods-RemoteShutter-acknowledgements.markdown"; sourceTree = "<group>"; };
-		F69D3F94FB06A1CD7F8DE42890CC1545 /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
+		9DA7BDC5C7C66A266FD7869C132A6304 /* Int+extension.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = "Int+extension.swift"; path = "swift/Sources/FlatBuffers/Int+extension.swift"; sourceTree = "<group>"; };
+		9FA647FD151ABEB1A5D86830294D1B57 /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
+		A0664CCDE2067A932A2D2A8D959910AA /* Table.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Table.swift; path = swift/Sources/FlatBuffers/Table.swift; sourceTree = "<group>"; };
+		A8AA8B556449804A48156D7447F21D39 /* GoogleMobileAds.xcframework */ = {isa = PBXFileReference; includeInIndex = 1; name = GoogleMobileAds.xcframework; path = Frameworks/GoogleMobileAdsFramework/GoogleMobileAds.xcframework; sourceTree = "<group>"; };
+		B343D347B2D3667769E5EFECB186559F /* Google-Mobile-Ads-SDK-xcframeworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "Google-Mobile-Ads-SDK-xcframeworks.sh"; sourceTree = "<group>"; };
+		B4A4310496A952D79ED1C38832D84039 /* String+extension.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = "String+extension.swift"; path = "swift/Sources/FlatBuffers/String+extension.swift"; sourceTree = "<group>"; };
+		B750749EFEF1831B390F1DCFFAF0F22A /* GoogleMobileAdsPlaceholder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GoogleMobileAdsPlaceholder.swift; path = Sources/GoogleMobileAdsPlaceholder.swift; sourceTree = "<group>"; };
+		B7E4A0DE545D9835D2E8B3E4C14E42E1 /* ByteBuffer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ByteBuffer.swift; path = swift/Sources/FlatBuffers/ByteBuffer.swift; sourceTree = "<group>"; };
+		BCC681E5804B8F201790ABA3F94B1543 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
+		C35EC4E0E274EC0BCFE94B7D12BDD44F /* Struct.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Struct.swift; path = swift/Sources/FlatBuffers/Struct.swift; sourceTree = "<group>"; };
+		CC67989DEFBCD9BBCD67FBD266EA8B08 /* FlatBufferBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FlatBufferBuilder.swift; path = swift/Sources/FlatBuffers/FlatBufferBuilder.swift; sourceTree = "<group>"; };
+		CF43050D118B8F34BA90EE75241C35DD /* Google-Mobile-Ads-SDK-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Google-Mobile-Ads-SDK-Info.plist"; sourceTree = "<group>"; };
+		D3C31AB682FEF8150C4B69A0CC86A09B /* Pods-RemoteShutter-frameworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "Pods-RemoteShutter-frameworks.sh"; sourceTree = "<group>"; };
+		D7C23A9DA38FAE537287E52555DD61AC /* Google-Mobile-Ads-SDK-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Google-Mobile-Ads-SDK-prefix.pch"; sourceTree = "<group>"; };
+		D80800C15266ECA99D535F47B7924DEE /* GoogleUserMessagingPlatform-xcframeworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "GoogleUserMessagingPlatform-xcframeworks.sh"; sourceTree = "<group>"; };
+		DA434DF7DFAFF7002C22E83645839E1E /* Pods-RemoteShutterTests.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "Pods-RemoteShutterTests.modulemap"; sourceTree = "<group>"; };
+		E0EA202B9250822F6336C5E722E1E5EC /* Pods-RemoteShutter-resources.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "Pods-RemoteShutter-resources.sh"; sourceTree = "<group>"; };
+		E18BAC7F041B6680F31861271C931695 /* Pods-RemoteShutterTests-acknowledgements.markdown */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "Pods-RemoteShutterTests-acknowledgements.markdown"; sourceTree = "<group>"; };
+		E354D59F4CDAE019B7CF3D93E2AEEDDE /* Pods-RemoteShutterTests-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-RemoteShutterTests-umbrella.h"; sourceTree = "<group>"; };
+		E55AD57AAC40CE886DFA4A4575C329BD /* GoogleUserMessagingPlatform.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = GoogleUserMessagingPlatform.release.xcconfig; sourceTree = "<group>"; };
+		EFF0D11E967FD627EA39BDD5E550162C /* FlatBuffers.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = FlatBuffers.debug.xcconfig; sourceTree = "<group>"; };
+		F19081843FDB3F1F9EFBD0D3D2D66794 /* Google-Mobile-Ads-SDK.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "Google-Mobile-Ads-SDK.modulemap"; sourceTree = "<group>"; };
+		F698EEDB604EF907E810E6968F7D6336 /* FlatBufferObject.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FlatBufferObject.swift; path = swift/Sources/FlatBuffers/FlatBufferObject.swift; sourceTree = "<group>"; };
 		F8ECCB3B4E33C0FDD00B394CC2C7EA2E /* Google-Mobile-Ads-SDK */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = "Google-Mobile-Ads-SDK"; path = Google_Mobile_Ads_SDK.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		FE90A886B36F238523FF7797F91DAD4A /* GoogleUserMessagingPlatform-xcframeworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "GoogleUserMessagingPlatform-xcframeworks.sh"; sourceTree = "<group>"; };
+		F9385365F2109F67C512747D6B9036DB /* FlatBuffers.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = FlatBuffers.release.xcconfig; sourceTree = "<group>"; };
+		FB0E26D5962FD4D1C9A4B3DB29BCC320 /* Root.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Root.swift; path = swift/Sources/FlatBuffers/Root.swift; sourceTree = "<group>"; };
+		FB397D6117EBA7750BF7D3DB33069AE5 /* Verifiable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Verifiable.swift; path = swift/Sources/FlatBuffers/Verifiable.swift; sourceTree = "<group>"; };
+		FCFF2763C92DB23BB809D1D468488C2B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = "Frameworks/GoogleMobileAdsFramework/GoogleMobileAds.xcframework/ios-arm64/GoogleMobileAds.framework/PrivacyInfo.xcprivacy"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,7 +211,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		58689B272AAF40E6F7A04D8F52D1BCF0 /* Frameworks */ = {
+		239FB556B24AF57009AFE81D955D3FF3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69C0E17E8E0264639A43D676F0EEB5AF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -167,148 +233,85 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		DC5B7E111F7BA75FF676CCF2123121D2 /* Frameworks */ = {
+		CC660CCA2DE6578C4C09E23957CD8F07 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				39D2FC268C070D38CDDE24A090A3668B /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		DF3E34909ACEDE7976AD47215767867F /* Frameworks */ = {
+		EFCF8EBC97E345AE3C9904036830E79B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				20197A45B4A5AC52F77191733C1788DC /* Foundation.framework in Frameworks */,
+				84D08C46E5AD4B3B6125FF34B1442C87 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		1010A766FE4403BC3215882785DFC090 /* GoogleUserMessagingPlatform */ = {
+		221A3F98AA0219D967CA49ECD3B01154 /* Pods-RemoteShutterTests */ = {
 			isa = PBXGroup;
 			children = (
-				FC3D1BC358751198F3A23982DC280614 /* Frameworks */,
-				F47DF821CC1416EFA95BFAA652B5EF85 /* Resources */,
-				BAE35451CF05DF11EB2A7D130D102B8D /* Support Files */,
-			);
-			name = GoogleUserMessagingPlatform;
-			path = GoogleUserMessagingPlatform;
-			sourceTree = "<group>";
-		};
-		12F493D22BFCDA0889F6D055FAFE8814 /* Pods-RemoteShutter */ = {
-			isa = PBXGroup;
-			children = (
-				2DAFF77DEAB6D00B34B49EEB2C111440 /* Pods-RemoteShutter.modulemap */,
-				EEF24E809D3FD2F7EDD6EFEEE7EF71D4 /* Pods-RemoteShutter-acknowledgements.markdown */,
-				C1A0D268E341576744DB800D7C1A50BC /* Pods-RemoteShutter-acknowledgements.plist */,
-				32DA30A58E41B0F3C9E4576E5632D1B1 /* Pods-RemoteShutter-dummy.m */,
-				3931ED135304903031FA66AB8E357599 /* Pods-RemoteShutter-Info.plist */,
-				855C012C54FCD67D9552DD49DA224836 /* Pods-RemoteShutter-resources.sh */,
-				184BADAA87AC5E586BB5E2FD4AE6BCD5 /* Pods-RemoteShutter-umbrella.h */,
-				1314D215D6BCA68C3E9C4084DFB0A81A /* Pods-RemoteShutter.debug.xcconfig */,
-				F69D3F94FB06A1CD7F8DE42890CC1545 /* Pods-RemoteShutter.release.xcconfig */,
-			);
-			name = "Pods-RemoteShutter";
-			path = "Target Support Files/Pods-RemoteShutter";
-			sourceTree = "<group>";
-		};
-		17A8885EEF96840A816C21E37D9158CD /* Google-Mobile-Ads-SDK */ = {
-			isa = PBXGroup;
-			children = (
-				B4E56FF0E5285EE93E2927132BBD3479 /* GoogleMobileAdsPlaceholder.swift */,
-				DA47F7F82D8A73468FA34B394101A32A /* Frameworks */,
-				B0DDACBCCAEFC79880D03BBF6EACE614 /* Resources */,
-				28C3FBB3F67BA0C2F29860786530D2B8 /* Support Files */,
-			);
-			name = "Google-Mobile-Ads-SDK";
-			path = "Google-Mobile-Ads-SDK";
-			sourceTree = "<group>";
-		};
-		28C3FBB3F67BA0C2F29860786530D2B8 /* Support Files */ = {
-			isa = PBXGroup;
-			children = (
-				0893019E16E571DBBB8DA58DC81C5500 /* Google-Mobile-Ads-SDK.modulemap */,
-				DD6A3E7807352DFF9577ED4FCD112CDE /* Google-Mobile-Ads-SDK-dummy.m */,
-				0C3A153AFA166D5B9BF28C8CE7EC736B /* Google-Mobile-Ads-SDK-Info.plist */,
-				D26F1A28996F35322B5104C588F00209 /* Google-Mobile-Ads-SDK-prefix.pch */,
-				B3E99C8908A3A1A80BEFF8AFB51677CA /* Google-Mobile-Ads-SDK-umbrella.h */,
-				72B261FAD16841E0607D900406C56842 /* Google-Mobile-Ads-SDK-xcframeworks.sh */,
-				8DA7E98E84E16B428D52C454F459392A /* Google-Mobile-Ads-SDK.debug.xcconfig */,
-				7759E12719FA6BB57CAEE0458777A563 /* Google-Mobile-Ads-SDK.release.xcconfig */,
-				971F7D9AD82E2B8DB2CFFBECC1564F16 /* ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist */,
-			);
-			name = "Support Files";
-			path = "../Target Support Files/Google-Mobile-Ads-SDK";
-			sourceTree = "<group>";
-		};
-		38DB2F818E91D7E94C2A142F2BBEE87C /* Pods-RemoteShutterTests */ = {
-			isa = PBXGroup;
-			children = (
-				06AA839BBBEB987377ECEBB43B2AE7C7 /* Pods-RemoteShutterTests.modulemap */,
-				90DBB998BD907E2712524F7E18DBDA46 /* Pods-RemoteShutterTests-acknowledgements.markdown */,
-				351AC6BC245E3B53712FCD74AB59E28B /* Pods-RemoteShutterTests-acknowledgements.plist */,
-				EC9F5E0F4454F28AED6870C906A08265 /* Pods-RemoteShutterTests-dummy.m */,
-				851540DEC991E58A03E3BFC30E0E00F4 /* Pods-RemoteShutterTests-Info.plist */,
-				0A044482C1418E49CC8597C066F9328F /* Pods-RemoteShutterTests-umbrella.h */,
-				CD696C728B2F561D0E568C931315FD96 /* Pods-RemoteShutterTests.debug.xcconfig */,
-				D4A1E9C8F31AF74E240019FD44F562B6 /* Pods-RemoteShutterTests.release.xcconfig */,
+				DA434DF7DFAFF7002C22E83645839E1E /* Pods-RemoteShutterTests.modulemap */,
+				E18BAC7F041B6680F31861271C931695 /* Pods-RemoteShutterTests-acknowledgements.markdown */,
+				0F547C96F8BF4A9F1E741AD6901FF066 /* Pods-RemoteShutterTests-acknowledgements.plist */,
+				2937D8BD3694AA2410700E604AA8343F /* Pods-RemoteShutterTests-dummy.m */,
+				0991CCF4096E1F0D361315FCC1F84B92 /* Pods-RemoteShutterTests-Info.plist */,
+				E354D59F4CDAE019B7CF3D93E2AEEDDE /* Pods-RemoteShutterTests-umbrella.h */,
+				60A40A3527C861C623D727B3E6E84C18 /* Pods-RemoteShutterTests.debug.xcconfig */,
+				9FA647FD151ABEB1A5D86830294D1B57 /* Pods-RemoteShutterTests.release.xcconfig */,
 			);
 			name = "Pods-RemoteShutterTests";
 			path = "Target Support Files/Pods-RemoteShutterTests";
 			sourceTree = "<group>";
 		};
-		6BA27804ABD9817375F16ED1D12176E0 /* SwiftLint */ = {
+		6828C59E5A4C47B2AE9EB15286280B19 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				7790BB99D24305202D9745DB0F107E04 /* Support Files */,
+				8C7EE4682A0C79137D57B41780213655 /* FlatBuffers */,
+				B876888BE1C5DDC20AA3CBBB3F96684D /* Google-Mobile-Ads-SDK */,
+				B93E837B13E75EC5EE7E3F6FF14F775E /* GoogleUserMessagingPlatform */,
+				FEB64939226AC44C33B7858711C014AE /* SwiftLint */,
 			);
-			name = SwiftLint;
-			path = SwiftLint;
+			name = Pods;
 			sourceTree = "<group>";
 		};
-		7790BB99D24305202D9745DB0F107E04 /* Support Files */ = {
+		8C7EE4682A0C79137D57B41780213655 /* FlatBuffers */ = {
 			isa = PBXGroup;
 			children = (
-				274585489DEE6ADDA6BAE4FD3D6BF71E /* SwiftLint.debug.xcconfig */,
-				7EDEF22EA8A787E9512066C556C1B1AC /* SwiftLint.release.xcconfig */,
+				B7E4A0DE545D9835D2E8B3E4C14E42E1 /* ByteBuffer.swift */,
+				84D2615DFEB1ADDB161AE3928610EF0A /* Constants.swift */,
+				3F7ABE31D4817B91CAA3607922CCB791 /* Enum.swift */,
+				CC67989DEFBCD9BBCD67FBD266EA8B08 /* FlatBufferBuilder.swift */,
+				F698EEDB604EF907E810E6968F7D6336 /* FlatBufferObject.swift */,
+				883FA673222D6102DF5CEB1C72CC0424 /* FlatbuffersErrors.swift */,
+				0EC635452B30BE5A314B16201292D717 /* FlatBuffersUtils.swift */,
+				9DA7BDC5C7C66A266FD7869C132A6304 /* Int+extension.swift */,
+				768273BE6CCD46B018C11D681F6789C9 /* Message.swift */,
+				4A509CD9BD023E9CF9759894C0F29931 /* Mutable.swift */,
+				48C5D2BBD7FF9DD176E64D243AD58814 /* NativeObject.swift */,
+				0A1F40BD26F664E07C9A3F82B3AE66A1 /* Offset.swift */,
+				FB0E26D5962FD4D1C9A4B3DB29BCC320 /* Root.swift */,
+				B4A4310496A952D79ED1C38832D84039 /* String+extension.swift */,
+				C35EC4E0E274EC0BCFE94B7D12BDD44F /* Struct.swift */,
+				A0664CCDE2067A932A2D2A8D959910AA /* Table.swift */,
+				34F9FFC97312B9EAF67FAB5927F1F307 /* TableVerifier.swift */,
+				974F7F1ADD2D5A489805A44B31BD68A6 /* VeriferOptions.swift */,
+				FB397D6117EBA7750BF7D3DB33069AE5 /* Verifiable.swift */,
+				92DF024E3E8E8714C174ABA31D6B14C8 /* Verifier.swift */,
+				EDAFAD14553D55F53A5DD9B1A5FE744E /* Support Files */,
 			);
-			name = "Support Files";
-			path = "../Target Support Files/SwiftLint";
+			name = FlatBuffers;
+			path = FlatBuffers;
 			sourceTree = "<group>";
 		};
-		B0DDACBCCAEFC79880D03BBF6EACE614 /* Resources */ = {
+		A704328A6EBC94FD40BAC7DE366833F1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3C75754F78B7D3D7FA1781FA76F6B706 /* PrivacyInfo.xcprivacy */,
-			);
-			name = Resources;
-			sourceTree = "<group>";
-		};
-		B935E0B02A49203B25CD597C2702B33A /* Targets Support Files */ = {
-			isa = PBXGroup;
-			children = (
-				12F493D22BFCDA0889F6D055FAFE8814 /* Pods-RemoteShutter */,
-				38DB2F818E91D7E94C2A142F2BBEE87C /* Pods-RemoteShutterTests */,
-			);
-			name = "Targets Support Files";
-			sourceTree = "<group>";
-		};
-		BAE35451CF05DF11EB2A7D130D102B8D /* Support Files */ = {
-			isa = PBXGroup;
-			children = (
-				FE90A886B36F238523FF7797F91DAD4A /* GoogleUserMessagingPlatform-xcframeworks.sh */,
-				981BAA1BFD0262318F777D490092B1BA /* GoogleUserMessagingPlatform.debug.xcconfig */,
-				DE16D61A978EA7DE4A1AD141E6E8AE3F /* GoogleUserMessagingPlatform.release.xcconfig */,
-				B1D0255F3877491F0BD91E7EB662AA59 /* ResourceBundle-UserMessagingPlatformResources-GoogleUserMessagingPlatform-Info.plist */,
-			);
-			name = "Support Files";
-			path = "../Target Support Files/GoogleUserMessagingPlatform";
-			sourceTree = "<group>";
-		};
-		CD928F46D8F9A1B7AD34FE53C40B35C9 /* Products */ = {
-			isa = PBXGroup;
-			children = (
+				138264D00B5BD77C18DFFB00327263A5 /* FlatBuffers */,
 				F8ECCB3B4E33C0FDD00B394CC2C7EA2E /* Google-Mobile-Ads-SDK */,
 				3998091512768CD07733CB4F02B4BD9F /* Google-Mobile-Ads-SDK-GoogleMobileAdsResources */,
 				8A377C18F92A8A511869ADA54B5652D2 /* GoogleUserMessagingPlatform-UserMessagingPlatformResources */,
@@ -318,15 +321,82 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B876888BE1C5DDC20AA3CBBB3F96684D /* Google-Mobile-Ads-SDK */ = {
+			isa = PBXGroup;
+			children = (
+				B750749EFEF1831B390F1DCFFAF0F22A /* GoogleMobileAdsPlaceholder.swift */,
+				FF99C5E6C56E34974CE9DDD110F888DE /* Frameworks */,
+				EA9C1B57FF6D89092935091E82AB0515 /* Resources */,
+				F133F6172BBDA5445137394C9328674A /* Support Files */,
+			);
+			name = "Google-Mobile-Ads-SDK";
+			path = "Google-Mobile-Ads-SDK";
+			sourceTree = "<group>";
+		};
+		B93E837B13E75EC5EE7E3F6FF14F775E /* GoogleUserMessagingPlatform */ = {
+			isa = PBXGroup;
+			children = (
+				CEF11B2CD01A57F3FA9EBC8BF3CC0BC4 /* Frameworks */,
+				C090D88891618AA1D56714CE59D72204 /* Resources */,
+				F7E2EB28E42845E5708DD3EA6C70928D /* Support Files */,
+			);
+			name = GoogleUserMessagingPlatform;
+			path = GoogleUserMessagingPlatform;
+			sourceTree = "<group>";
+		};
+		C090D88891618AA1D56714CE59D72204 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				40E3976A5377D28D677F99BAA685AE79 /* PrivacyInfo.xcprivacy */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		C528F629611FB5A04AC959268C73BD67 /* Support Files */ = {
+			isa = PBXGroup;
+			children = (
+				8F6C840FB30FE55DCF39861C249DEBBF /* SwiftLint.debug.xcconfig */,
+				26AA17E9C25B8D2F3753BBA195413D99 /* SwiftLint.release.xcconfig */,
+			);
+			name = "Support Files";
+			path = "../Target Support Files/SwiftLint";
+			sourceTree = "<group>";
+		};
+		CEF11B2CD01A57F3FA9EBC8BF3CC0BC4 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				4345341D1D8BF40FB55260F34C9EE72C /* UserMessagingPlatform.xcframework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		CF1408CF629C7361332E53B88F7BD30C = {
 			isa = PBXGroup;
 			children = (
 				9D940727FF8FB9C785EB98E56350EF41 /* Podfile */,
 				D210D550F4EA176C3123ED886F8F87F5 /* Frameworks */,
-				E4622D1473F48D996B6491E660FF8347 /* Pods */,
-				CD928F46D8F9A1B7AD34FE53C40B35C9 /* Products */,
-				B935E0B02A49203B25CD597C2702B33A /* Targets Support Files */,
+				6828C59E5A4C47B2AE9EB15286280B19 /* Pods */,
+				A704328A6EBC94FD40BAC7DE366833F1 /* Products */,
+				E6A4EE58160D7E25C888A113701BB6E5 /* Targets Support Files */,
 			);
+			sourceTree = "<group>";
+		};
+		D0D87702FED79166E65C263EDDCA7430 /* Pods-RemoteShutter */ = {
+			isa = PBXGroup;
+			children = (
+				4D90B0D53451F1C3A58000FEB62A46FE /* Pods-RemoteShutter.modulemap */,
+				61E403D653BA02CD2C217E74DDB102D9 /* Pods-RemoteShutter-acknowledgements.markdown */,
+				2A41B088A05DC474FC422983F55DBFC5 /* Pods-RemoteShutter-acknowledgements.plist */,
+				22CADFA3D0249B088212B018EF604D23 /* Pods-RemoteShutter-dummy.m */,
+				D3C31AB682FEF8150C4B69A0CC86A09B /* Pods-RemoteShutter-frameworks.sh */,
+				410909B62476157A91F7C1717748D1CC /* Pods-RemoteShutter-Info.plist */,
+				E0EA202B9250822F6336C5E722E1E5EC /* Pods-RemoteShutter-resources.sh */,
+				5AE81F5B6B2DEB11056C942236FE92F2 /* Pods-RemoteShutter-umbrella.h */,
+				BCC681E5804B8F201790ABA3F94B1543 /* Pods-RemoteShutter.debug.xcconfig */,
+				096A0ED1BCEE8CA2607C733B627270B9 /* Pods-RemoteShutter.release.xcconfig */,
+			);
+			name = "Pods-RemoteShutter";
+			path = "Target Support Files/Pods-RemoteShutter";
 			sourceTree = "<group>";
 		};
 		D210D550F4EA176C3123ED886F8F87F5 /* Frameworks */ = {
@@ -337,24 +407,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		DA47F7F82D8A73468FA34B394101A32A /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				853AF0A8634E7848C0644CEAC5DD930B /* GoogleMobileAds.xcframework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		E4622D1473F48D996B6491E660FF8347 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				17A8885EEF96840A816C21E37D9158CD /* Google-Mobile-Ads-SDK */,
-				1010A766FE4403BC3215882785DFC090 /* GoogleUserMessagingPlatform */,
-				6BA27804ABD9817375F16ED1D12176E0 /* SwiftLint */,
-			);
-			name = Pods;
-			sourceTree = "<group>";
-		};
 		E4801F62A6B08CD9B5410329F1A18FDE /* iOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -363,18 +415,80 @@
 			name = iOS;
 			sourceTree = "<group>";
 		};
-		F47DF821CC1416EFA95BFAA652B5EF85 /* Resources */ = {
+		E6A4EE58160D7E25C888A113701BB6E5 /* Targets Support Files */ = {
 			isa = PBXGroup;
 			children = (
-				EE1378CF2F91F5E57D46388066AFDC64 /* PrivacyInfo.xcprivacy */,
+				D0D87702FED79166E65C263EDDCA7430 /* Pods-RemoteShutter */,
+				221A3F98AA0219D967CA49ECD3B01154 /* Pods-RemoteShutterTests */,
+			);
+			name = "Targets Support Files";
+			sourceTree = "<group>";
+		};
+		EA9C1B57FF6D89092935091E82AB0515 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				FCFF2763C92DB23BB809D1D468488C2B /* PrivacyInfo.xcprivacy */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
 		};
-		FC3D1BC358751198F3A23982DC280614 /* Frameworks */ = {
+		EDAFAD14553D55F53A5DD9B1A5FE744E /* Support Files */ = {
 			isa = PBXGroup;
 			children = (
-				88AB5D32EB7E7F9B94ADDD1F07DB7DA8 /* UserMessagingPlatform.xcframework */,
+				463D2DFE684B84E1AF36BC3809ED309E /* FlatBuffers.modulemap */,
+				563D0E6A9F9D3EE343A8D88DAF3C9864 /* FlatBuffers-dummy.m */,
+				6EAB7A0799DF55FC3014B3BE245B5E25 /* FlatBuffers-Info.plist */,
+				46BBDB51AEB5D9A7086A19D0C431CF9F /* FlatBuffers-prefix.pch */,
+				01E08A4ADF972041C1537ABDC3224A1D /* FlatBuffers-umbrella.h */,
+				EFF0D11E967FD627EA39BDD5E550162C /* FlatBuffers.debug.xcconfig */,
+				F9385365F2109F67C512747D6B9036DB /* FlatBuffers.release.xcconfig */,
+			);
+			name = "Support Files";
+			path = "../Target Support Files/FlatBuffers";
+			sourceTree = "<group>";
+		};
+		F133F6172BBDA5445137394C9328674A /* Support Files */ = {
+			isa = PBXGroup;
+			children = (
+				F19081843FDB3F1F9EFBD0D3D2D66794 /* Google-Mobile-Ads-SDK.modulemap */,
+				0702B34425DD8675A73D89F25F480A64 /* Google-Mobile-Ads-SDK-dummy.m */,
+				CF43050D118B8F34BA90EE75241C35DD /* Google-Mobile-Ads-SDK-Info.plist */,
+				D7C23A9DA38FAE537287E52555DD61AC /* Google-Mobile-Ads-SDK-prefix.pch */,
+				1FD186536AAA49F97422BC6A5B74812F /* Google-Mobile-Ads-SDK-umbrella.h */,
+				B343D347B2D3667769E5EFECB186559F /* Google-Mobile-Ads-SDK-xcframeworks.sh */,
+				4F40BDD9BB18435FC4B506C5D499F0A4 /* Google-Mobile-Ads-SDK.debug.xcconfig */,
+				1D9545640F2916A93BC7BD84B6695DD0 /* Google-Mobile-Ads-SDK.release.xcconfig */,
+				1A37E82B03009924E045A43364239252 /* ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist */,
+			);
+			name = "Support Files";
+			path = "../Target Support Files/Google-Mobile-Ads-SDK";
+			sourceTree = "<group>";
+		};
+		F7E2EB28E42845E5708DD3EA6C70928D /* Support Files */ = {
+			isa = PBXGroup;
+			children = (
+				D80800C15266ECA99D535F47B7924DEE /* GoogleUserMessagingPlatform-xcframeworks.sh */,
+				0A4FBB6F0C5C14A60604C4B6C170107D /* GoogleUserMessagingPlatform.debug.xcconfig */,
+				E55AD57AAC40CE886DFA4A4575C329BD /* GoogleUserMessagingPlatform.release.xcconfig */,
+				6F018A4E4D0A9FAEAAD903F41FCF994F /* ResourceBundle-UserMessagingPlatformResources-GoogleUserMessagingPlatform-Info.plist */,
+			);
+			name = "Support Files";
+			path = "../Target Support Files/GoogleUserMessagingPlatform";
+			sourceTree = "<group>";
+		};
+		FEB64939226AC44C33B7858711C014AE /* SwiftLint */ = {
+			isa = PBXGroup;
+			children = (
+				C528F629611FB5A04AC959268C73BD67 /* Support Files */,
+			);
+			name = SwiftLint;
+			path = SwiftLint;
+			sourceTree = "<group>";
+		};
+		FF99C5E6C56E34974CE9DDD110F888DE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A8AA8B556449804A48156D7447F21D39 /* GoogleMobileAds.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -390,6 +504,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		211E7213AD856784C3536F7C77855B38 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D798B603F51F3D3BA76196AC068CF02C /* FlatBuffers-umbrella.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B23F9353E3148B809D4BA25A333D0F47 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -398,11 +520,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		DA237783FB54C5E6257866DD137445B6 /* Headers */ = {
+		DD98C08B599BF7F67D7B3F8BA7D74032 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				206D2E2AB07FB7AEB482F923736C883A /* Pods-RemoteShutter-umbrella.h in Headers */,
+				ED5851C450E0796053B844E039CAB005 /* Pods-RemoteShutter-umbrella.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -411,11 +533,11 @@
 /* Begin PBXNativeTarget section */
 		36FD0958A0EC4A0FCF599E9B22719B03 /* Google-Mobile-Ads-SDK-GoogleMobileAdsResources */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F5A5C490C8205A0C376620B576D0DFE2 /* Build configuration list for PBXNativeTarget "Google-Mobile-Ads-SDK-GoogleMobileAdsResources" */;
+			buildConfigurationList = 35DEDB9CDE13A4D3A8618A473C32E6E7 /* Build configuration list for PBXNativeTarget "Google-Mobile-Ads-SDK-GoogleMobileAdsResources" */;
 			buildPhases = (
-				7FAEDB1F5F11A07E06E9C12C531CD737 /* Sources */,
-				58689B272AAF40E6F7A04D8F52D1BCF0 /* Frameworks */,
-				ABBDADB605F256F4348FFCC9FD508C3D /* Resources */,
+				35D3DD282040376309845D3850E714F2 /* Sources */,
+				239FB556B24AF57009AFE81D955D3FF3 /* Frameworks */,
+				79120DDD5AA87D3BB5532C57227C58F4 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -428,19 +550,20 @@
 		};
 		49600CDCCC4E83C6CBB9BBDB533A9E9D /* Pods-RemoteShutter */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 165C9BFB260B268B97991A54B9FD0A18 /* Build configuration list for PBXNativeTarget "Pods-RemoteShutter" */;
+			buildConfigurationList = 21B55F3A6CD16DCDF53090524090B8AE /* Build configuration list for PBXNativeTarget "Pods-RemoteShutter" */;
 			buildPhases = (
-				DA237783FB54C5E6257866DD137445B6 /* Headers */,
-				A2963F497A540C0C691CB24BD000CC2A /* Sources */,
-				DF3E34909ACEDE7976AD47215767867F /* Frameworks */,
-				4D0DAE73C13404073A16D0FE8CB0D4B4 /* Resources */,
+				DD98C08B599BF7F67D7B3F8BA7D74032 /* Headers */,
+				C4ECC269BB459E8C86C83649044A2681 /* Sources */,
+				CC660CCA2DE6578C4C09E23957CD8F07 /* Frameworks */,
+				ABBFADBB946441BB990A67FB5D16D141 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				C62401C936DB631DDBAC734027079EF3 /* PBXTargetDependency */,
-				7DCA35624A3DFBF41EE1C20C78B2A3C3 /* PBXTargetDependency */,
-				395AEF694FD90043CDEDD7CFE98EAAEC /* PBXTargetDependency */,
+				2E0B6A39B763136F9B9967B8DF3DCF22 /* PBXTargetDependency */,
+				0A67EEA685E7CD3F34E529619FD8075D /* PBXTargetDependency */,
+				805A96F302788D2FBC5B5927E4946E00 /* PBXTargetDependency */,
+				0663AFDF10395532040114ACFB8A1660 /* PBXTargetDependency */,
 			);
 			name = "Pods-RemoteShutter";
 			productName = Pods_RemoteShutter;
@@ -449,11 +572,11 @@
 		};
 		63A7C675C13F87669AF56006D943998B /* GoogleUserMessagingPlatform-UserMessagingPlatformResources */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 36E1242933F7D33F0F8A3171499BEAF2 /* Build configuration list for PBXNativeTarget "GoogleUserMessagingPlatform-UserMessagingPlatformResources" */;
+			buildConfigurationList = 36DD769212A519F3991BE34226FF6854 /* Build configuration list for PBXNativeTarget "GoogleUserMessagingPlatform-UserMessagingPlatformResources" */;
 			buildPhases = (
-				2D9CCFE83ACE305ED0E7BD2E69C7CEEA /* Sources */,
-				DC5B7E111F7BA75FF676CCF2123121D2 /* Frameworks */,
-				273727E27EBFC5A80AB9E57916D18E59 /* Resources */,
+				5B73B8F3E4507B0CEF98BB965B8B09FC /* Sources */,
+				69C0E17E8E0264639A43D676F0EEB5AF /* Frameworks */,
+				5DB2FD181C5ED3E5C3A87DEFF8BC7061 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -463,6 +586,24 @@
 			productName = UserMessagingPlatformResources;
 			productReference = 8A377C18F92A8A511869ADA54B5652D2 /* GoogleUserMessagingPlatform-UserMessagingPlatformResources */;
 			productType = "com.apple.product-type.bundle";
+		};
+		6CCF5850BCF97B0A34DC965BFB4FFDE5 /* FlatBuffers */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 802FF27E8D714685DA0D472C1A341C8E /* Build configuration list for PBXNativeTarget "FlatBuffers" */;
+			buildPhases = (
+				211E7213AD856784C3536F7C77855B38 /* Headers */,
+				F975A4092524457861BF5B2A347670BF /* Sources */,
+				EFCF8EBC97E345AE3C9904036830E79B /* Frameworks */,
+				06347526F3A7F580C9FC70B09A297DB5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FlatBuffers;
+			productName = FlatBuffers;
+			productReference = 138264D00B5BD77C18DFFB00327263A5 /* FlatBuffers */;
+			productType = "com.apple.product-type.framework";
 		};
 		FCA5C12F607294E6954AAC5BE79D9E6B /* Pods-RemoteShutterTests */ = {
 			isa = PBXNativeTarget;
@@ -476,7 +617,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				079E1703020505AE1F130A9AFF9A178D /* PBXTargetDependency */,
+				BA817CF65F44A4FF5C042284781CF9E7 /* PBXTargetDependency */,
 			);
 			name = "Pods-RemoteShutterTests";
 			productName = Pods_RemoteShutterTests;
@@ -496,8 +637,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				54E2F9589346A1CE9AFC9A0AB1F267CA /* PBXTargetDependency */,
-				06C8436DB9EAAE5483732EFCCC6BC48D /* PBXTargetDependency */,
+				8C08EEE5B24238156FA1E56400203F25 /* PBXTargetDependency */,
+				D524E9186E00E4047DC317684A8D2616 /* PBXTargetDependency */,
 			);
 			name = "Google-Mobile-Ads-SDK";
 			productName = Google_Mobile_Ads_SDK;
@@ -524,10 +665,11 @@
 			mainGroup = CF1408CF629C7361332E53B88F7BD30C;
 			minimizedProjectReferenceProxies = 0;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = CD928F46D8F9A1B7AD34FE53C40B35C9 /* Products */;
+			productRefGroup = A704328A6EBC94FD40BAC7DE366833F1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				6CCF5850BCF97B0A34DC965BFB4FFDE5 /* FlatBuffers */,
 				FEA3B3A570634836C0457F3D7CEF1699 /* Google-Mobile-Ads-SDK */,
 				36FD0958A0EC4A0FCF599E9B22719B03 /* Google-Mobile-Ads-SDK-GoogleMobileAdsResources */,
 				458B188365A307B3C128ABF524D1A3E3 /* GoogleUserMessagingPlatform */,
@@ -540,6 +682,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		06347526F3A7F580C9FC70B09A297DB5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1CF44B3B9ECB7DB1FE1C8B3C244E4EAD /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -547,26 +696,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		273727E27EBFC5A80AB9E57916D18E59 /* Resources */ = {
+		5DB2FD181C5ED3E5C3A87DEFF8BC7061 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F2DB7D66AA68FB3F9D299060AAD116A9 /* PrivacyInfo.xcprivacy in Resources */,
+				6E6B103176709108FFD200D88A4CC4AD /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4D0DAE73C13404073A16D0FE8CB0D4B4 /* Resources */ = {
+		79120DDD5AA87D3BB5532C57227C58F4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9EF8B0BAE25E8F14CB8F52F4B17BC913 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		ABBDADB605F256F4348FFCC9FD508C3D /* Resources */ = {
+		ABBFADBB946441BB990A67FB5D16D141 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6C788F45D17E00E59185B2DE1F108069 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -580,23 +729,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		5406CE1850525FF1FD5CF858F1656558 /* [CP] Copy XCFrameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/GoogleUserMessagingPlatform/GoogleUserMessagingPlatform-xcframeworks-input-files.xcfilelist",
-			);
-			name = "[CP] Copy XCFrameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/GoogleUserMessagingPlatform/GoogleUserMessagingPlatform-xcframeworks-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/GoogleUserMessagingPlatform/GoogleUserMessagingPlatform-xcframeworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		62A1CB4E7755DF23F645AE7F4B214347 /* [CP] Copy XCFrameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -614,17 +746,34 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Google-Mobile-Ads-SDK/Google-Mobile-Ads-SDK-xcframeworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		C5A6B66C1470C7078E7A6C42926D575F /* [CP] Copy XCFrameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/GoogleUserMessagingPlatform/GoogleUserMessagingPlatform-xcframeworks-input-files.xcfilelist",
+			);
+			name = "[CP] Copy XCFrameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/GoogleUserMessagingPlatform/GoogleUserMessagingPlatform-xcframeworks-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/GoogleUserMessagingPlatform/GoogleUserMessagingPlatform-xcframeworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		2D9CCFE83ACE305ED0E7BD2E69C7CEEA /* Sources */ = {
+		35D3DD282040376309845D3850E714F2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		7FAEDB1F5F11A07E06E9C12C531CD737 /* Sources */ = {
+		5B73B8F3E4507B0CEF98BB965B8B09FC /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -639,11 +788,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A2963F497A540C0C691CB24BD000CC2A /* Sources */ = {
+		C4ECC269BB459E8C86C83649044A2681 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				76CC24DFFB8755FEE704EE5AA9DA1539 /* Pods-RemoteShutter-dummy.m in Sources */,
+				C5AEC4F6CD0537DD15A0AE014B419BDE /* Pods-RemoteShutter-dummy.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -656,57 +805,91 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F975A4092524457861BF5B2A347670BF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7C0ADE3CBF2446A8D3FBD3F46F324F01 /* ByteBuffer.swift in Sources */,
+				755E6B37B39E072D1A7ADE4E9B5A4FF8 /* Constants.swift in Sources */,
+				E34C0E6B3F20E7A1C3F1944FD8F43888 /* Enum.swift in Sources */,
+				8E1761DFFB965A1CE58393C7932191AE /* FlatBufferBuilder.swift in Sources */,
+				9075117E5E1BB75F69B716D3621A7756 /* FlatBufferObject.swift in Sources */,
+				31883CAA379B98041BDA19DFBB18339C /* FlatBuffers-dummy.m in Sources */,
+				40F544DDC5C2F8BD60F32B6485E3AA44 /* FlatbuffersErrors.swift in Sources */,
+				0A128DE9D9816DF917E14F0022BC8884 /* FlatBuffersUtils.swift in Sources */,
+				8D2906243751DA2CED795044CFE8E7D9 /* Int+extension.swift in Sources */,
+				B58CC064E37253BABDA5C17A5F5DFEEE /* Message.swift in Sources */,
+				507CC6B92E8017344E0358A14082EA08 /* Mutable.swift in Sources */,
+				5951C2EA60E0FDEB9C212E8F20A5C408 /* NativeObject.swift in Sources */,
+				01320B2C73DD1B209433A61C5FEC153C /* Offset.swift in Sources */,
+				B217B76E1D2D82EE21BB74A05D284D34 /* Root.swift in Sources */,
+				3856111C629067257D17227459755DD7 /* String+extension.swift in Sources */,
+				C743C5E4447FB367B746E0F6A9E473EB /* Struct.swift in Sources */,
+				3BFDA571A8CBA7C3AB2B4DBB47335512 /* Table.swift in Sources */,
+				66D4895D22A3402F88353D8819C0FD66 /* TableVerifier.swift in Sources */,
+				AC3125E168570698BD6F9530E5971994 /* VeriferOptions.swift in Sources */,
+				29B7A4D15A504D19C1367433093A65E7 /* Verifiable.swift in Sources */,
+				3EF543FB0FA5A08E48188C246FC7BEE3 /* Verifier.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		06C8436DB9EAAE5483732EFCCC6BC48D /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = GoogleUserMessagingPlatform;
-			target = 458B188365A307B3C128ABF524D1A3E3 /* GoogleUserMessagingPlatform */;
-			targetProxy = DF555B8CD8AC04142C4C28CC72DBF12C /* PBXContainerItemProxy */;
-		};
-		079E1703020505AE1F130A9AFF9A178D /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "Pods-RemoteShutter";
-			target = 49600CDCCC4E83C6CBB9BBDB533A9E9D /* Pods-RemoteShutter */;
-			targetProxy = 0E109F88F99401B28C2D09D07967D845 /* PBXContainerItemProxy */;
-		};
-		395AEF694FD90043CDEDD7CFE98EAAEC /* PBXTargetDependency */ = {
+		0663AFDF10395532040114ACFB8A1660 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = SwiftLint;
 			target = 52B60EC2A583F24ACBB69C113F5488B9 /* SwiftLint */;
-			targetProxy = 9B457BA3C2A8B4B7C1AEDCA47DE7709F /* PBXContainerItemProxy */;
+			targetProxy = 6FF5283778BCEB12FDF6E1D7BFFF7DB3 /* PBXContainerItemProxy */;
 		};
-		54E2F9589346A1CE9AFC9A0AB1F267CA /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "Google-Mobile-Ads-SDK-GoogleMobileAdsResources";
-			target = 36FD0958A0EC4A0FCF599E9B22719B03 /* Google-Mobile-Ads-SDK-GoogleMobileAdsResources */;
-			targetProxy = 17503DB4B5768DB327C2B00FFF4F5E4E /* PBXContainerItemProxy */;
-		};
-		7DCA35624A3DFBF41EE1C20C78B2A3C3 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = GoogleUserMessagingPlatform;
-			target = 458B188365A307B3C128ABF524D1A3E3 /* GoogleUserMessagingPlatform */;
-			targetProxy = 40D549C3C9CEB12C55790DCA477F6599 /* PBXContainerItemProxy */;
-		};
-		A65726B9F22CAECEBD71B2833865826C /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "GoogleUserMessagingPlatform-UserMessagingPlatformResources";
-			target = 63A7C675C13F87669AF56006D943998B /* GoogleUserMessagingPlatform-UserMessagingPlatformResources */;
-			targetProxy = 5DD4CA9FBBC4C2AA20ACD708C1309653 /* PBXContainerItemProxy */;
-		};
-		C62401C936DB631DDBAC734027079EF3 /* PBXTargetDependency */ = {
+		0A67EEA685E7CD3F34E529619FD8075D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "Google-Mobile-Ads-SDK";
 			target = FEA3B3A570634836C0457F3D7CEF1699 /* Google-Mobile-Ads-SDK */;
-			targetProxy = 7CEC11E789DE6B1167C0C1CE934BC89D /* PBXContainerItemProxy */;
+			targetProxy = D952A0BE7A0C3919E6F165DD0D0F4F0B /* PBXContainerItemProxy */;
+		};
+		2E0B6A39B763136F9B9967B8DF3DCF22 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = FlatBuffers;
+			target = 6CCF5850BCF97B0A34DC965BFB4FFDE5 /* FlatBuffers */;
+			targetProxy = 9D73CBA76DB0B1830CF8FF165F387239 /* PBXContainerItemProxy */;
+		};
+		65FC90910DFC2414B1DA26A65373152F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "GoogleUserMessagingPlatform-UserMessagingPlatformResources";
+			target = 63A7C675C13F87669AF56006D943998B /* GoogleUserMessagingPlatform-UserMessagingPlatformResources */;
+			targetProxy = 1CE1915B447028007C5E2C079D4A620C /* PBXContainerItemProxy */;
+		};
+		805A96F302788D2FBC5B5927E4946E00 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = GoogleUserMessagingPlatform;
+			target = 458B188365A307B3C128ABF524D1A3E3 /* GoogleUserMessagingPlatform */;
+			targetProxy = 2949AE29B5F11A3DB8D6CC7675A4A371 /* PBXContainerItemProxy */;
+		};
+		8C08EEE5B24238156FA1E56400203F25 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "Google-Mobile-Ads-SDK-GoogleMobileAdsResources";
+			target = 36FD0958A0EC4A0FCF599E9B22719B03 /* Google-Mobile-Ads-SDK-GoogleMobileAdsResources */;
+			targetProxy = 8D339EB178A9F1980292A1D4E5A89B54 /* PBXContainerItemProxy */;
+		};
+		BA817CF65F44A4FF5C042284781CF9E7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "Pods-RemoteShutter";
+			target = 49600CDCCC4E83C6CBB9BBDB533A9E9D /* Pods-RemoteShutter */;
+			targetProxy = 717A5CA985065FD42862236FBDE6F1EF /* PBXContainerItemProxy */;
+		};
+		D524E9186E00E4047DC317684A8D2616 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = GoogleUserMessagingPlatform;
+			target = 458B188365A307B3C128ABF524D1A3E3 /* GoogleUserMessagingPlatform */;
+			targetProxy = EECE10B5C2DCFEAA2CDCFA5B3568298D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0B4438613CD25621891E9C0FC202089A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 274585489DEE6ADDA6BAE4FD3D6BF71E /* SwiftLint.debug.xcconfig */;
+			baseConfigurationReference = 8F6C840FB30FE55DCF39861C249DEBBF /* SwiftLint.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -721,9 +904,105 @@
 			};
 			name = Debug;
 		};
-		24F187B4B212E806DFADAA7F4D955A0F /* Debug */ = {
+		14700A83AB211482197A054D457584E5 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 981BAA1BFD0262318F777D490092B1BA /* GoogleUserMessagingPlatform.debug.xcconfig */;
+			baseConfigurationReference = E55AD57AAC40CE886DFA4A4575C329BD /* GoogleUserMessagingPlatform.release.xcconfig */;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/GoogleUserMessagingPlatform";
+				IBSC_MODULE = GoogleUserMessagingPlatform;
+				INFOPLIST_FILE = "Target Support Files/GoogleUserMessagingPlatform/ResourceBundle-UserMessagingPlatformResources-GoogleUserMessagingPlatform-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_NAME = UserMessagingPlatformResources;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_EXTENSION = bundle;
+			};
+			name = Release;
+		};
+		2AFFEDB468C91FD0D6A7F6E2FD33CC17 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BCC681E5804B8F201790ABA3F94B1543 /* Pods-RemoteShutter.debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				INFOPLIST_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACH_O_TYPE = staticlib;
+				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.modulemap";
+				OTHER_LDFLAGS = "";
+				OTHER_LIBTOOLFLAGS = "";
+				PODS_ROOT = "$(SRCROOT)";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.${PRODUCT_NAME:rfc1034identifier}";
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		2C2AF12E52924EE846061F65501452CB /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 096A0ED1BCEE8CA2607C733B627270B9 /* Pods-RemoteShutter.release.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				INFOPLIST_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACH_O_TYPE = staticlib;
+				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.modulemap";
+				OTHER_LDFLAGS = "";
+				OTHER_LIBTOOLFLAGS = "";
+				PODS_ROOT = "$(SRCROOT)";
+				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.${PRODUCT_NAME:rfc1034identifier}";
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
+		3EC3C2817248303AA10666B97F317BDE /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E55AD57AAC40CE886DFA4A4575C329BD /* GoogleUserMessagingPlatform.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -736,12 +1015,13 @@
 				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
 			};
-			name = Debug;
+			name = Release;
 		};
 		5D3C46E2A43758E59493B4702A47D2FE /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CD696C728B2F561D0E568C931315FD96 /* Pods-RemoteShutterTests.debug.xcconfig */;
+			baseConfigurationReference = 60A40A3527C861C623D727B3E6E84C18 /* Pods-RemoteShutterTests.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
 				CLANG_ENABLE_OBJC_WEAK = NO;
@@ -780,7 +1060,7 @@
 		};
 		612A771FEC74E5BC5C4888D1C8CEEDAF /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8DA7E98E84E16B428D52C454F459392A /* Google-Mobile-Ads-SDK.debug.xcconfig */;
+			baseConfigurationReference = 4F40BDD9BB18435FC4B506C5D499F0A4 /* Google-Mobile-Ads-SDK.debug.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
@@ -818,11 +1098,45 @@
 			};
 			name = Debug;
 		};
-		682ACAB65F62C706BC57513AECF9FCF6 /* Debug */ = {
+		63238F45F140631F806866A36413A556 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1314D215D6BCA68C3E9C4084DFB0A81A /* Pods-RemoteShutter.debug.xcconfig */;
+			baseConfigurationReference = 0A4FBB6F0C5C14A60604C4B6C170107D /* GoogleUserMessagingPlatform.debug.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		720F92729E427B9575AD3F6473DFB138 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4F40BDD9BB18435FC4B506C5D499F0A4 /* Google-Mobile-Ads-SDK.debug.xcconfig */;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/Google-Mobile-Ads-SDK";
+				IBSC_MODULE = Google_Mobile_Ads_SDK;
+				INFOPLIST_FILE = "Target Support Files/Google-Mobile-Ads-SDK/ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_NAME = GoogleMobileAdsResources;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_EXTENSION = bundle;
+			};
+			name = Debug;
+		};
+		7C16CB2BECE5408BFDFAD7C64987E2C6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = EFF0D11E967FD627EA39BDD5E550162C /* FlatBuffers.debug.xcconfig */;
+			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
@@ -834,7 +1148,9 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_MODULE_VERIFIER = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				INFOPLIST_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-Info.plist";
+				GCC_PREFIX_HEADER = "Target Support Files/FlatBuffers/FlatBuffers-prefix.pch";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Target Support Files/FlatBuffers/FlatBuffers-Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -842,58 +1158,34 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACH_O_TYPE = staticlib;
-				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.modulemap";
-				OTHER_LDFLAGS = "";
-				OTHER_LIBTOOLFLAGS = "";
-				PODS_ROOT = "$(SRCROOT)";
-				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.${PRODUCT_NAME:rfc1034identifier}";
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				MODULEMAP_FILE = "Target Support Files/FlatBuffers/FlatBuffers.modulemap";
+				PRODUCT_MODULE_NAME = FlatBuffers;
+				PRODUCT_NAME = FlatBuffers;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
 			name = Debug;
 		};
-		7245ABCAFB48FD6FDD7A184AF4E609EB /* Release */ = {
+		812A95062CFF8A983FD4687F6EDEF74A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F69D3F94FB06A1CD7F8DE42890CC1545 /* Pods-RemoteShutter.release.xcconfig */;
+			baseConfigurationReference = 1D9545640F2916A93BC7BD84B6695DD0 /* Google-Mobile-Ads-SDK.release.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
-				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = NO;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				INFOPLIST_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-Info.plist";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				CODE_SIGNING_ALLOWED = NO;
+				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/Google-Mobile-Ads-SDK";
+				IBSC_MODULE = Google_Mobile_Ads_SDK;
+				INFOPLIST_FILE = "Target Support Files/Google-Mobile-Ads-SDK/ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				MACH_O_TYPE = staticlib;
-				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.modulemap";
-				OTHER_LDFLAGS = "";
-				OTHER_LIBTOOLFLAGS = "";
-				PODS_ROOT = "$(SRCROOT)";
-				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.${PRODUCT_NAME:rfc1034identifier}";
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				PRODUCT_NAME = GoogleMobileAdsResources;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
+				WRAPPER_EXTENSION = bundle;
 			};
 			name = Release;
 		};
@@ -1025,26 +1317,49 @@
 			};
 			name = Release;
 		};
-		AF7AF9B94ACE2A2D94BBCB5AC2FBEB35 /* Release */ = {
+		A4DCD9A46F0641D8D586F1E8B5260E3B /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DE16D61A978EA7DE4A1AD141E6E8AE3F /* GoogleUserMessagingPlatform.release.xcconfig */;
+			baseConfigurationReference = F9385365F2109F67C512747D6B9036DB /* FlatBuffers.release.xcconfig */;
 			buildSettings = {
-				CODE_SIGNING_ALLOWED = NO;
-				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/GoogleUserMessagingPlatform";
-				IBSC_MODULE = GoogleUserMessagingPlatform;
-				INFOPLIST_FILE = "Target Support Files/GoogleUserMessagingPlatform/ResourceBundle-UserMessagingPlatformResources-GoogleUserMessagingPlatform-Info.plist";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
+				"CODE_SIGN_IDENTITY[sdk=watchos*]" = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_PREFIX_HEADER = "Target Support Files/FlatBuffers/FlatBuffers-prefix.pch";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Target Support Files/FlatBuffers/FlatBuffers-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_NAME = UserMessagingPlatformResources;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MODULEMAP_FILE = "Target Support Files/FlatBuffers/FlatBuffers.modulemap";
+				PRODUCT_MODULE_NAME = FlatBuffers;
+				PRODUCT_NAME = FlatBuffers;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
+				SWIFT_INSTALL_OBJC_HEADER = YES;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				WRAPPER_EXTENSION = bundle;
+				VALIDATE_PRODUCT = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
 			};
 			name = Release;
 		};
 		BA2AB6FB0451A4F73DDA8150E1858BF7 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7759E12719FA6BB57CAEE0458777A563 /* Google-Mobile-Ads-SDK.release.xcconfig */;
+			baseConfigurationReference = 1D9545640F2916A93BC7BD84B6695DD0 /* Google-Mobile-Ads-SDK.release.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
@@ -1083,45 +1398,9 @@
 			};
 			name = Release;
 		};
-		BB53CBDF82BC6240E4C721E9442182A8 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7759E12719FA6BB57CAEE0458777A563 /* Google-Mobile-Ads-SDK.release.xcconfig */;
-			buildSettings = {
-				CODE_SIGNING_ALLOWED = NO;
-				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/Google-Mobile-Ads-SDK";
-				IBSC_MODULE = Google_Mobile_Ads_SDK;
-				INFOPLIST_FILE = "Target Support Files/Google-Mobile-Ads-SDK/ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_NAME = GoogleMobileAdsResources;
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				WRAPPER_EXTENSION = bundle;
-			};
-			name = Release;
-		};
-		C21E09CF462493F759F18F1D88543C40 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = DE16D61A978EA7DE4A1AD141E6E8AE3F /* GoogleUserMessagingPlatform.release.xcconfig */;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CLANG_ENABLE_OBJC_WEAK = NO;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
 		CBE2CC5B769AE2E4D4F7BF8F649B6C62 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D4A1E9C8F31AF74E240019FD44F562B6 /* Pods-RemoteShutterTests.release.xcconfig */;
+			baseConfigurationReference = 9FA647FD151ABEB1A5D86830294D1B57 /* Pods-RemoteShutterTests.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
 				CLANG_ENABLE_OBJC_WEAK = NO;
@@ -1161,7 +1440,7 @@
 		};
 		D50FFF5B8165CD19A2549C03C57E729E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7EDEF22EA8A787E9512066C556C1B1AC /* SwiftLint.release.xcconfig */;
+			baseConfigurationReference = 26AA17E9C25B8D2F3753BBA195413D99 /* SwiftLint.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1177,9 +1456,9 @@
 			};
 			name = Release;
 		};
-		E846241D14418ADF3491B2B69F594CE1 /* Debug */ = {
+		E60C276CF092F903042084DD27ABCBA0 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 981BAA1BFD0262318F777D490092B1BA /* GoogleUserMessagingPlatform.debug.xcconfig */;
+			baseConfigurationReference = 0A4FBB6F0C5C14A60604C4B6C170107D /* GoogleUserMessagingPlatform.debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGNING_ALLOWED = NO;
 				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/GoogleUserMessagingPlatform";
@@ -1187,23 +1466,6 @@
 				INFOPLIST_FILE = "Target Support Files/GoogleUserMessagingPlatform/ResourceBundle-UserMessagingPlatformResources-GoogleUserMessagingPlatform-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_NAME = UserMessagingPlatformResources;
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				WRAPPER_EXTENSION = bundle;
-			};
-			name = Debug;
-		};
-		FDFCDA0015BB63DDF533CB87ADC8B870 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8DA7E98E84E16B428D52C454F459392A /* Google-Mobile-Ads-SDK.debug.xcconfig */;
-			buildSettings = {
-				CODE_SIGNING_ALLOWED = NO;
-				CONFIGURATION_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/Google-Mobile-Ads-SDK";
-				IBSC_MODULE = Google_Mobile_Ads_SDK;
-				INFOPLIST_FILE = "Target Support Files/Google-Mobile-Ads-SDK/ResourceBundle-GoogleMobileAdsResources-Google-Mobile-Ads-SDK-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				PRODUCT_NAME = GoogleMobileAdsResources;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1223,20 +1485,29 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		165C9BFB260B268B97991A54B9FD0A18 /* Build configuration list for PBXNativeTarget "Pods-RemoteShutter" */ = {
+		21B55F3A6CD16DCDF53090524090B8AE /* Build configuration list for PBXNativeTarget "Pods-RemoteShutter" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				682ACAB65F62C706BC57513AECF9FCF6 /* Debug */,
-				7245ABCAFB48FD6FDD7A184AF4E609EB /* Release */,
+				2AFFEDB468C91FD0D6A7F6E2FD33CC17 /* Debug */,
+				2C2AF12E52924EE846061F65501452CB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		36E1242933F7D33F0F8A3171499BEAF2 /* Build configuration list for PBXNativeTarget "GoogleUserMessagingPlatform-UserMessagingPlatformResources" */ = {
+		35DEDB9CDE13A4D3A8618A473C32E6E7 /* Build configuration list for PBXNativeTarget "Google-Mobile-Ads-SDK-GoogleMobileAdsResources" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				E846241D14418ADF3491B2B69F594CE1 /* Debug */,
-				AF7AF9B94ACE2A2D94BBCB5AC2FBEB35 /* Release */,
+				720F92729E427B9575AD3F6473DFB138 /* Debug */,
+				812A95062CFF8A983FD4687F6EDEF74A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		36DD769212A519F3991BE34226FF6854 /* Build configuration list for PBXNativeTarget "GoogleUserMessagingPlatform-UserMessagingPlatformResources" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E60C276CF092F903042084DD27ABCBA0 /* Debug */,
+				14700A83AB211482197A054D457584E5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1250,11 +1521,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		538960989AB594092FD510593648D647 /* Build configuration list for PBXAggregateTarget "GoogleUserMessagingPlatform" */ = {
+		802FF27E8D714685DA0D472C1A341C8E /* Build configuration list for PBXNativeTarget "FlatBuffers" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				24F187B4B212E806DFADAA7F4D955A0F /* Debug */,
-				C21E09CF462493F759F18F1D88543C40 /* Release */,
+				7C16CB2BECE5408BFDFAD7C64987E2C6 /* Debug */,
+				A4DCD9A46F0641D8D586F1E8B5260E3B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8095202549260543E3C6E0A8050A2219 /* Build configuration list for PBXAggregateTarget "GoogleUserMessagingPlatform" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				63238F45F140631F806866A36413A556 /* Debug */,
+				3EC3C2817248303AA10666B97F317BDE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1273,15 +1553,6 @@
 			buildConfigurations = (
 				5D3C46E2A43758E59493B4702A47D2FE /* Debug */,
 				CBE2CC5B769AE2E4D4F7BF8F649B6C62 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		F5A5C490C8205A0C376620B576D0DFE2 /* Build configuration list for PBXNativeTarget "Google-Mobile-Ads-SDK-GoogleMobileAdsResources" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				FDFCDA0015BB63DDF533CB87ADC8B870 /* Debug */,
-				BB53CBDF82BC6240E4C721E9442182A8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

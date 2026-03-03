@@ -44,10 +44,15 @@ extension RemoteCamSession {
                         self?.alertPresenter.showError(title: error._domain)
                     }
                     self.unbecome()
+                } else {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    self.unbecome()
                 }
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
                     ^{ [weak self] in
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                     }
@@ -119,7 +124,7 @@ extension RemoteCamSession {
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
                     self.popAndStartScanning()
                 }
 
@@ -178,10 +183,15 @@ extension RemoteCamSession {
                         self?.alertPresenter.showError(title: error._domain)
                     }
                     self.unbecome()
+                } else {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    self.unbecome()
                 }
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
                     ^{ [weak self] in
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                     }
