@@ -60,16 +60,21 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
     func startScanning(lobby: DeviceScannerViewController) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
+
+        if multipeerService == nil {
+            multipeerService = MultipeerService(peerID: lobby.peerID)
+            multipeerService.delegate = self
+        } else {
+            multipeerService.disconnect()
+        }
+        multipeerService.startAdvertisingAndBrowsing()
+
         ^{
-            CATransaction.begin()
-            CATransaction.setCompletionBlock {
-                self.multipeerService = MultipeerService()
-                self.multipeerService.delegate = self
-                self.multipeerService.startSession(peerID: lobby.peerID)
-            }
             lobby.navigationController?.popToViewController(lobby, animated: true)
-            lobby.startScanning()
-            CATransaction.commit()
+            lobby.connectedPeers.removeAll()
+            lobby.isScanning = true
+            lobby.hasScanningError = false
+            lobby.tableView.reloadData()
         }
     }
 
