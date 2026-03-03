@@ -94,6 +94,7 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
             print("Not Connected: \(peerID.displayName)")
             delegate?.peerDidDisconnect(peerID)
         @unknown default:
+            print("unknown default")
             fatalError()
         }
     }

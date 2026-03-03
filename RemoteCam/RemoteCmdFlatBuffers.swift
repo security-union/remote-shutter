@@ -581,7 +581,9 @@ extension RemoteCmd {
     static func fromFlatBuffer(_ data: Data) -> Actor.Message? {
         let bytes = [UInt8](data)
         var buffer = ByteBuffer(bytes: bytes)
-        let msg: RemoteShutter_P2PMessage = getRoot(byteBuffer: &buffer)
+        guard let msg: RemoteShutter_P2PMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
+            return nil
+        }
 
         switch msg.type {
         case .cameracommand:
