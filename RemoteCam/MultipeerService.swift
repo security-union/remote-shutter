@@ -110,10 +110,8 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
             delegate?.didReceiveFrameRequest(requestFrame)
         case let frame as RemoteCmd.SendFrame:
             delegate?.didReceiveFrame(frame, from: peerID)
-        case let m as Actor.Message:
-            delegate?.didReceiveMessage(m)
         default:
-            print("unable to decode message")
+            delegate?.didReceiveMessage(inboundMessage)
         }
     }
 
