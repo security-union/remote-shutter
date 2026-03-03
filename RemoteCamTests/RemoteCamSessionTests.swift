@@ -15,7 +15,7 @@ import Combine
 
 class FakeMultipeerService: MultipeerServiceProtocol {
     weak var delegate: MultipeerServiceDelegate?
-    var session: MCSession?
+    var session: MCSession!
     var connectedPeers: [MCPeerID] = []
     var progressCancellables = Set<AnyCancellable>()
 

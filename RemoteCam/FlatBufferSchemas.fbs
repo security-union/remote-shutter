@@ -52,7 +52,8 @@ enum CameraLensType : byte {
 enum MessageType : byte {
     CameraCommand = 0,
     CameraStateResponse = 1,
-    FrameData = 2
+    FrameData = 2,
+    Heartbeat = 3
 }
 
 // MARK: - Command Parameters

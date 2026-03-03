@@ -87,8 +87,9 @@ public enum RemoteShutter_MessageType: Int8, Enum, Verifiable {
   case cameracommand = 0
   case camerastateresponse = 1
   case framedata = 2
+  case heartbeat = 3
 
-  public static var max: RemoteShutter_MessageType { return .framedata }
+  public static var max: RemoteShutter_MessageType { return .heartbeat }
   public static var min: RemoteShutter_MessageType { return .cameracommand }
 }
 

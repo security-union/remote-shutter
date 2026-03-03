@@ -14,7 +14,7 @@ class DebugStateOverlay {
     static let shared = DebugStateOverlay()
 
     private var window: UIWindow?
-    private let label = UILabel()
+    private var label: UILabel?
 
     private init() {}
 
@@ -27,35 +27,37 @@ class DebugStateOverlay {
         overlay.windowLevel = .statusBar + 1
         overlay.isUserInteractionEnabled = false
 
-        label.font = UIFont.monospacedSystemFont(ofSize: 11, weight: .medium)
-        label.textColor = .white
-        label.backgroundColor = UIColor.black.withAlphaComponent(0.7)
-        label.textAlignment = .center
-        label.text = "—"
-        label.layer.cornerRadius = 4
-        label.clipsToBounds = true
+        let lbl = UILabel()
+        lbl.font = UIFont.monospacedSystemFont(ofSize: 11, weight: .medium)
+        lbl.textColor = .white
+        lbl.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        lbl.textAlignment = .center
+        lbl.text = "—"
+        lbl.layer.cornerRadius = 4
+        lbl.clipsToBounds = true
 
         let container = UIViewController()
         container.view.backgroundColor = .clear
-        container.view.addSubview(label)
+        container.view.addSubview(lbl)
 
-        label.translatesAutoresizingMaskIntoConstraints = false
+        lbl.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: container.view.centerXAnchor),
-            label.bottomAnchor.constraint(equalTo: container.view.safeAreaLayoutGuide.bottomAnchor, constant: -4),
-            label.heightAnchor.constraint(equalToConstant: 20),
-            label.widthAnchor.constraint(greaterThanOrEqualToConstant: 100)
+            lbl.centerXAnchor.constraint(equalTo: container.view.centerXAnchor),
+            lbl.bottomAnchor.constraint(equalTo: container.view.safeAreaLayoutGuide.bottomAnchor, constant: -4),
+            lbl.heightAnchor.constraint(equalToConstant: 20),
+            lbl.widthAnchor.constraint(greaterThanOrEqualToConstant: 100)
         ])
 
         overlay.rootViewController = container
         overlay.isHidden = false
+        self.label = lbl
         self.window = overlay
     }
 
     func update(state: String) {
         DispatchQueue.main.async {
             if self.window == nil { self.setupWindow() }
-            self.label.text = "  \(state)  "
+            self.label?.text = "  \(state)  "
         }
     }
 }

@@ -64,6 +64,9 @@ extension RemoteCamSession {
                 } else {
                     showIncopatibilityMessage()
                 }
+                
+            case is UICmd.StartScanning:
+                self.popAndStartScanning()
 
             case is Disconnect:
                 self.popAndStartScanning()

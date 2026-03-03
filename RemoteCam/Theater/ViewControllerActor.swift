@@ -125,7 +125,7 @@ open class ViewCtrlActor<A : UIViewController> : Actor {
     }
     
     deinit {
-        print("killing")
+        print("killing View Controller Actor")
     }
     
 }

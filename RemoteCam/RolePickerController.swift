@@ -182,6 +182,10 @@ public class RolePickerController: UIViewController {
     deinit {
         print("killing RolePickerController")
         rolePicker ! Actor.Harakiri(sender: nil)
+        
+        if let session = getRemoteCamSession() {
+            session ! Disconnect(sender: nil)
+        }
     }
     
 }

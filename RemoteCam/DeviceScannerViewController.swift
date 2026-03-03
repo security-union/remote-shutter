@@ -157,20 +157,11 @@ public class DeviceScannerViewController: UIViewController {
     }
     
     public override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        self.remoteCamSession ! Disconnect()
-        
+        super.viewDidAppear(animated)        
         // Reload table data in case user returned from system permission dialog
         DispatchQueue.main.async {
             self.tableView.reloadData()
         }
-        
-        // Check if user has successfully found peers before (speed run mode)
-        if speedRunScanning {
-            // Auto-start scanning for experienced users
-            checkLocalNetworkAccessAndStartScanning()
-        }
-        // First-time users will see the button and educational flow
     }
     
     public override func prepare(for segue: UIStoryboardSegue, sender: Any?) {

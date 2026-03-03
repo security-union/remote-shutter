@@ -65,8 +65,6 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
     func popAndStartScanning() {
         // Trash the old service so stale disconnect callbacks
         // from a previous peer can never reach us.
-        self.multipeerService?.stopSession()
-        self.multipeerService = nil
         self.popToState(name: self.states.scanning)
     }
 
@@ -369,5 +367,9 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         
         // For camera side, we'll handle this in the camera states where we have the ctrl reference
         // This is cleaner than notifications and maintains the actor pattern
+    }
+    
+    deinit {
+        print("killing RemoteCamSession ****")
     }
 }

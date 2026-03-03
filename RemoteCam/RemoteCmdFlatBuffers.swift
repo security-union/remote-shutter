@@ -578,13 +578,16 @@ extension RemoteCmd.RequestCameraCapabilities {
 // MARK: - fromFlatBuffer() factory
 
 extension RemoteCmd {
-    static func fromFlatBuffer(_ data: Data) -> Actor.Message? {
+    /// Parses raw Data into a P2PMessage. Returns nil if the data is malformed.
+    static func parseMessage(_ data: Data) -> RemoteShutter_P2PMessage? {
         let bytes = [UInt8](data)
         var buffer = ByteBuffer(bytes: bytes)
-        guard let msg: RemoteShutter_P2PMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
-            return nil
-        }
+        return try? getCheckedRoot(byteBuffer: &buffer)
+    }
 
+    /// Decodes an already-parsed P2PMessage into an Actor.Message.
+    /// Returns nil for heartbeats or unknown types.
+    static func decode(from msg: RemoteShutter_P2PMessage) -> Actor.Message? {
         switch msg.type {
         case .cameracommand:
             return decodeCommand(msg)
@@ -592,7 +595,15 @@ extension RemoteCmd {
             return decodeResponse(msg)
         case .framedata:
             return decodeFrame(msg)
+        case .heartbeat:
+            return nil
         }
+    }
+
+    /// Convenience: parses raw Data and decodes in one step.
+    static func fromFlatBuffer(_ data: Data) -> Actor.Message? {
+        guard let msg = parseMessage(data) else { return nil }
+        return decode(from: msg)
     }
 
     private static func decodeCommand(_ msg: RemoteShutter_P2PMessage) -> Actor.Message? {
