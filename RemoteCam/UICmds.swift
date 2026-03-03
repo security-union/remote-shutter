@@ -457,6 +457,35 @@ public class UICmd {
         }
     }
     
+    // MARK: - Browser Events
+
+    public class BrowserFoundPeer: Actor.Message {
+        public let peer: MCPeerID
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
+
+    public class BrowserLostPeer: Actor.Message {
+        public let peer: MCPeerID
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
+
+    public class BrowserFailed: Actor.Message {
+        public let error: Error
+
+        public init(error: Error) {
+            self.error = error
+            super.init(sender: nil)
+        }
+    }
+
     @objc(_TtCC10ActorsDemo5UICmd25VideoResourceTransferFailed)public class VideoResourceTransferFailed: Actor.Message {
         public let error: Error
         public let resourceName: String

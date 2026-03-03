@@ -68,6 +68,25 @@ extension RemoteCamSession: MultipeerServiceDelegate {
         showIncopatibilityMessage()
     }
 
+    func browserDidFindPeer(_ peer: MCPeerID) {
+        mailbox.addOperation(BlockOperation {
+            self.this ! UICmd.BrowserFoundPeer(peer: peer)
+        })
+    }
+
+    func browserDidLosePeer(_ peer: MCPeerID) {
+        mailbox.addOperation(BlockOperation {
+            self.this ! UICmd.BrowserLostPeer(peer: peer)
+        })
+    }
+
+    func browserDidFail(_ error: Error) {
+        print("Browser failed to start browsing: \(error.localizedDescription)")
+        mailbox.addOperation(BlockOperation {
+            self.this ! UICmd.BrowserFailed(error: error)
+        })
+    }
+
     func didStartReceivingResource(name resourceName: String, progress: Progress) {
         mailbox.addOperation(BlockOperation {
             print("📥 DEBUG: Started receiving resource: \(resourceName)")

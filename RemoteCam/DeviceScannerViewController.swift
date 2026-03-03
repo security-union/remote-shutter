@@ -77,18 +77,19 @@ public class DeviceScannerViewController: UIViewController {
     // Add network browser for checking local network access
     var networkBrowser: NWBrowser?
     
-    lazy var scanner: MCNearbyServiceBrowser = {
+    private lazy var _peerIDInitialized: Bool = {
+        initializePeerID()
+        return true
+    }()
+
+    private func initializePeerID() {
         let currentDeviceName = UIDevice.current.name
-        
-        // Check if we have a cached peer ID and if the device name has changed
+
         if let data = UserDefaults.standard.data(forKey: userDefaultsPeerId),
            let cachedPeerID = try? NSKeyedUnarchiver.unarchivedObject(ofClass: MCPeerID.self, from: data) {
-            
-            // If the cached peer's display name matches current device name, use it
             if cachedPeerID.displayName == currentDeviceName {
                 self.peerID = cachedPeerID
             } else {
-                // Device name has changed, create new peer ID with current name
                 let newPeerID = MCPeerID(displayName: currentDeviceName)
                 let newData = try? NSKeyedArchiver.archivedData(
                       withRootObject: newPeerID, requiringSecureCoding: false)
@@ -96,18 +97,13 @@ public class DeviceScannerViewController: UIViewController {
                 self.peerID = newPeerID
             }
         } else {
-            // No cached peer ID, create new one
             let peerID = MCPeerID(displayName: currentDeviceName)
             let data = try? NSKeyedArchiver.archivedData(
                   withRootObject: peerID, requiringSecureCoding: false)
             UserDefaults.standard.set(data, forKey: userDefaultsPeerId)
             self.peerID = peerID
         }
-        
-        let browser = MCNearbyServiceBrowser(peer: self.peerID, serviceType: service)
-        browser.delegate = self
-        return browser
-    }()
+    }
     
     
     let frameSender: ActorRef! = RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
@@ -116,6 +112,7 @@ public class DeviceScannerViewController: UIViewController {
 
     public override func viewDidLoad() {
         super.viewDidLoad()
+        _ = _peerIDInitialized
         self.remoteCamSession ! SetViewCtrl(ctrl: self)
         self.setupStyle()
         setupHelpButton()
@@ -189,14 +186,12 @@ public class DeviceScannerViewController: UIViewController {
         splash.stopAnimating()
         connectedPeers.removeAll()
         isScanning = true
-        hasScanningError = false  // Clear error state when starting new scan
+        hasScanningError = false
         DispatchQueue.main.async {
             self.tableView.reloadData()
         }
-        scanner.stopBrowsingForPeers()
-        scanner.startBrowsingForPeers()
     }
-    
+
     func stopScanning() {
         splash.stopAnimating()
         connectedPeers.removeAll()
@@ -204,7 +199,6 @@ public class DeviceScannerViewController: UIViewController {
         DispatchQueue.main.async {
             self.tableView.reloadData()
         }
-        scanner.stopBrowsingForPeers()
     }
     
     @IBAction func startScanningDevices() {
@@ -304,7 +298,6 @@ public class DeviceScannerViewController: UIViewController {
     
     func startActualScanning() {
         self.remoteCamSession ! UICmd.StartScanning(sender: nil)
-        startScanning()
     }
     
     func showLocalNetworkAccessDeniedAlert() {
@@ -427,7 +420,9 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
     }
     
     @objc func stopScanningDevices() {
-        stopScanning()
+        isScanning = false
+        connectedPeers.removeAll()
+        tableView.reloadData()
         self.remoteCamSession ! Disconnect()
     }
     
@@ -453,55 +448,4 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
     }
 }
 
-extension DeviceScannerViewController: MCNearbyServiceBrowserDelegate {
-    public func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String : String]?) {
-        connectedPeers.append(peerID)
-        
-        // Enable speed run scanning for future visits - user has successfully found a peer
-        speedRunScanning = true
-        
-        DispatchQueue.main.async {
-            self.tableView.reloadData()
-        }
-    }
-    
-    public func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
-        connectedPeers = connectedPeers.filter { (peer) -> Bool in peer != peerID }
-        DispatchQueue.main.async {
-            self.tableView.reloadData()
-        }
-    }
-    
-    public func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
-        print("Browser failed to start browsing: \(error.localizedDescription)")
-        
-        // Reset speed run mode and set error state when scanning fails
-        speedRunScanning = false
-        hasScanningError = true
-        
-        DispatchQueue.main.async {
-            self.stopScanning()
-            
-            // Show error alert to user
-            let alert = UIAlertController(
-                title: NSLocalizedString("Scanning Error", comment: ""),
-                message: NSLocalizedString("Unable to scan for nearby devices. Please check your network settings and try again.", comment: ""),
-                preferredStyle: .alert
-            )
-            
-            alert.addAction(UIAlertAction(
-                title: NSLocalizedString("OK", comment: ""),
-                style: .default,
-                handler: nil
-            ))
-            
-            self.present(alert, animated: true) {
-                // Reload table after scanning error alert is presented
-                DispatchQueue.main.async {
-                    self.tableView.reloadData()
-                }
-            }
-        }
-    }
-}
 

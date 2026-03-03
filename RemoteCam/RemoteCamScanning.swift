@@ -35,7 +35,7 @@ extension RemoteCamSession {
                 }
                 self.startScanning(lobby: lobby)
             case let w as ConnectToDevice:
-                lobby.scanner.invitePeer(w.peer, to: session, withContext: nil, timeout: 5)
+                self.multipeerService.invitePeer(w.peer, timeout: 5)
                 ^{
                     lobby.splash.startAnimating()
                 }
@@ -50,6 +50,42 @@ extension RemoteCamSession {
                 ^{
                     lobby.goToRolePicker()
                 }
+
+            case let m as UICmd.BrowserFoundPeer:
+                ^{
+                    if !lobby.connectedPeers.contains(m.peer) {
+                        lobby.connectedPeers.append(m.peer)
+                    }
+                    lobby.speedRunScanning = true
+                    lobby.tableView.reloadData()
+                }
+
+            case let m as UICmd.BrowserLostPeer:
+                ^{
+                    lobby.connectedPeers.removeAll { $0 == m.peer }
+                    lobby.tableView.reloadData()
+                }
+
+            case let m as UICmd.BrowserFailed:
+                ^{
+                    lobby.speedRunScanning = false
+                    lobby.hasScanningError = true
+                    lobby.isScanning = false
+                    lobby.tableView.reloadData()
+
+                    let alert = UIAlertController(
+                        title: NSLocalizedString("Scanning Error", comment: ""),
+                        message: NSLocalizedString("Unable to scan for nearby devices. Please check your network settings and try again.", comment: ""),
+                        preferredStyle: .alert
+                    )
+                    alert.addAction(UIAlertAction(
+                        title: NSLocalizedString("OK", comment: ""),
+                        style: .default,
+                        handler: nil
+                    ))
+                    lobby.present(alert, animated: true)
+                }
+                _ = m // suppress unused warning
 
             default:
                 self.receive(msg: msg)

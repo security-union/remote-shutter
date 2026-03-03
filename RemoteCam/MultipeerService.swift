@@ -18,6 +18,9 @@ protocol MultipeerServiceDelegate: AnyObject {
     func didDetectIncompatibility()
     func didStartReceivingResource(name: String, progress: Progress)
     func didFinishReceivingResource(name: String, at localURL: URL?, error: Error?)
+    func browserDidFindPeer(_ peer: MCPeerID)
+    func browserDidLosePeer(_ peer: MCPeerID)
+    func browserDidFail(_ error: Error)
 }
 
 protocol MultipeerServiceProtocol: AnyObject {
@@ -26,8 +29,11 @@ protocol MultipeerServiceProtocol: AnyObject {
     var connectedPeers: [MCPeerID] { get }
     var progressCancellables: Set<AnyCancellable> { get set }
 
-    func startSession(peerID: MCPeerID)
+    func startAdvertisingAndBrowsing()
+    func stopAdvertisingAndBrowsing()
+    func disconnect()
     func stopSession()
+    func invitePeer(_ peer: MCPeerID, timeout: TimeInterval)
     func send(_ msg: Actor.Message, to peers: [MCPeerID],
               mode: MCSessionSendDataMode) -> Try<Actor.Message>
     func sendResource(at url: URL, withName name: String,
@@ -35,27 +41,52 @@ protocol MultipeerServiceProtocol: AnyObject {
                       completion: @escaping (Error?) -> Void) -> Progress?
 }
 
-class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
+class MultipeerService: NSObject, MCSessionDelegate,
+    MCNearbyServiceAdvertiserDelegate, MCNearbyServiceBrowserDelegate,
+    MultipeerServiceProtocol {
 
     weak var delegate: MultipeerServiceDelegate?
-    var session: MCSession!
-    private var mcAdvertiserAssistant: MCAdvertiserAssistant!
+    private(set) var session: MCSession!
+    private var advertiser: MCNearbyServiceAdvertiser!
+    private var browser: MCNearbyServiceBrowser!
     var progressCancellables = Set<AnyCancellable>()
 
     var connectedPeers: [MCPeerID] { session?.connectedPeers ?? [] }
 
-    func startSession(peerID: MCPeerID) {
+    init(peerID: MCPeerID) {
+        super.init()
         session = MCSession(peer: peerID)
         session.delegate = self
-        mcAdvertiserAssistant = MCAdvertiserAssistant(
-            serviceType: service, discoveryInfo: nil, session: session)
-        mcAdvertiserAssistant.start()
+        advertiser = MCNearbyServiceAdvertiser(
+            peer: peerID, discoveryInfo: nil, serviceType: service)
+        advertiser.delegate = self
+        browser = MCNearbyServiceBrowser(peer: peerID, serviceType: service)
+        browser.delegate = self
+    }
+
+    func startAdvertisingAndBrowsing() {
+        advertiser.startAdvertisingPeer()
+        browser.stopBrowsingForPeers()
+        browser.startBrowsingForPeers()
+    }
+
+    func stopAdvertisingAndBrowsing() {
+        advertiser.stopAdvertisingPeer()
+        browser.stopBrowsingForPeers()
+    }
+
+    func disconnect() {
+        session.disconnect()
     }
 
     func stopSession() {
-        mcAdvertiserAssistant?.stop()
+        stopAdvertisingAndBrowsing()
         session?.disconnect()
         session?.delegate = nil
+    }
+
+    func invitePeer(_ peer: MCPeerID, timeout: TimeInterval = 10) {
+        browser.invitePeer(peer, to: session, withContext: nil, timeout: timeout)
     }
 
     func send(_ msg: Actor.Message, to peers: [MCPeerID],
@@ -79,6 +110,36 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
                       completion: @escaping (Error?) -> Void) -> Progress? {
         return session.sendResource(at: url, withName: name,
                                     toPeer: peer, withCompletionHandler: completion)
+    }
+
+    // MARK: - MCNearbyServiceAdvertiserDelegate
+
+    func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
+                    didReceiveInvitationFromPeer peerID: MCPeerID,
+                    withContext context: Data?,
+                    invitationHandler: @escaping (Bool, MCSession?) -> Void) {
+        invitationHandler(true, session)
+    }
+
+    func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
+                    didNotStartAdvertisingPeer error: Error) {
+        print("Advertiser failed to start: \(error.localizedDescription)")
+    }
+
+    // MARK: - MCNearbyServiceBrowserDelegate
+
+    func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID,
+                 withDiscoveryInfo info: [String: String]?) {
+        delegate?.browserDidFindPeer(peerID)
+    }
+
+    func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
+        delegate?.browserDidLosePeer(peerID)
+    }
+
+    func browser(_ browser: MCNearbyServiceBrowser,
+                 didNotStartBrowsingForPeers error: Error) {
+        delegate?.browserDidFail(error)
     }
 
     // MARK: - MCSessionDelegate
