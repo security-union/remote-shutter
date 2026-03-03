@@ -21,12 +21,20 @@ class FakeMultipeerService: MultipeerServiceProtocol {
 
     // Recording
     var sentMessages: [(msg: Actor.Message, peers: [MCPeerID], mode: MCSessionSendDataMode)] = []
-    var startSessionCalled = false
     var stopSessionCalled = false
+    var disconnectCalled = false
+    var startAdvertisingAndBrowsingCalled = false
+    var stopAdvertisingAndBrowsingCalled = false
+    var invitedPeers: [(peer: MCPeerID, timeout: TimeInterval)] = []
     var sendResult: Try<Actor.Message> = Failure(error: NSError(domain: "test", code: 0))
 
-    func startSession(peerID: MCPeerID) { startSessionCalled = true }
+    func startAdvertisingAndBrowsing() { startAdvertisingAndBrowsingCalled = true }
+    func stopAdvertisingAndBrowsing() { stopAdvertisingAndBrowsingCalled = true }
+    func disconnect() { disconnectCalled = true }
     func stopSession() { stopSessionCalled = true }
+    func invitePeer(_ peer: MCPeerID, timeout: TimeInterval) {
+        invitedPeers.append((peer, timeout))
+    }
     func send(_ msg: Actor.Message, to peers: [MCPeerID],
               mode: MCSessionSendDataMode) -> Try<Actor.Message> {
         sentMessages.append((msg, peers, mode))
@@ -70,7 +78,7 @@ class FakeAlertPresenter: AlertPresenting {
 class TestableRemoteCamSession: RemoteCamSession {
 
     override func startScanning(lobby: DeviceScannerViewController) {
-        // no-op — avoids MCAdvertiserAssistant, MCSession, and UI code
+        // no-op — avoids MultipeerService creation and UI code
     }
 }
 
