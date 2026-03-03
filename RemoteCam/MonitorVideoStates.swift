@@ -105,7 +105,7 @@ extension MonitorVideoStates {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer.displayName == peer.displayName {
                     self.popAndStartScanning()
                 }
 
@@ -177,7 +177,7 @@ extension MonitorVideoStates {
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer.displayName == peer.displayName {
                     self.popAndStartScanning()
                 }
 
@@ -208,7 +208,7 @@ extension MonitorVideoStates {
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer.displayName == peer.displayName {
                     // Progress UI handled by SwiftUI - no alert to dismiss
                     self.popAndStartScanning()
                 }

@@ -55,11 +55,19 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
     }
 
     func popAndStartScanning() {
+        // Stop the old session immediately so the MCAdvertiserAssistant can't
+        // accept new connections before the scanning state creates a fresh session.
+        // Without this, a fast reconnect can land on the old MCSession whose
+        // delegate chain gets orphaned when startScanning replaces the service.
+        self.multipeerService?.stopSession()
         self.popToState(name: self.states.scanning)
     }
 
     func startScanning(lobby: DeviceScannerViewController) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
+        // Stop the old session immediately to prevent the MCAdvertiserAssistant
+        // from accepting new connections while we animate back to scanning.
+        self.multipeerService?.stopSession()
         ^{
             CATransaction.begin()
             CATransaction.setCompletionBlock {
@@ -202,7 +210,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         
         if self.sendMessage(peer: self.connectedPeers, msg: msg).isFailure() {
             print("❌ DEBUG: sendCommandOrGoToScanning failed to send message")
-            self.popToState(name: self.states.scanning)
+            self.popAndStartScanning()
             ^{ [weak self] in
                 self?.alertPresenter.showError(
                     title: NSLocalizedString("Connection error", comment: "")

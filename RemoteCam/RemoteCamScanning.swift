@@ -26,6 +26,9 @@ extension RemoteCamSession {
                     lobby.splash.stopAnimating()
                 }
                 self.startScanning(lobby: lobby)
+            case is Disconnect:
+                self.startScanning(lobby: lobby)
+
             case is RemoteShutter.DisconnectPeer:
                 ^{
                     let alert = UIAlertController(title: "Error", message: "Unable to connect")

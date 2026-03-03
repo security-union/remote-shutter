@@ -142,7 +142,7 @@ extension RemoteCamSession {
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer.displayName == peer.displayName {
                     self.popAndStartScanning()
                 }
 
@@ -195,7 +195,7 @@ extension RemoteCamSession {
                 self.popToState(name: self.states.connected)
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer.displayName == peer.displayName {
                     ^{ [weak self] in
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                     }

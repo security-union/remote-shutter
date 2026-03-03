@@ -52,7 +52,7 @@ extension RemoteCamSession {
                 }
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer.displayName == peer.displayName {
                     ^{ [weak self] in
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                     }
@@ -121,12 +121,18 @@ extension RemoteCamSession {
                 }
 
             case let c as DisconnectPeer:
+                if c.peer.displayName == peer.displayName {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    self.popAndStartScanning()
+                }
+
+            case is Disconnect:
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
-                    self.popAndStartScanning()
-                }
+                self.popAndStartScanning()
 
             case is UICmd.UnbecomeMonitor:
                 ^{ [weak self] in
@@ -191,7 +197,7 @@ extension RemoteCamSession {
                 }
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer.displayName == peer.displayName {
                     ^{ [weak self] in
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                     }
