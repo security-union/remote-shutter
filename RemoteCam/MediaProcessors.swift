@@ -19,7 +19,7 @@ func cleanupFileAt(_ url: URL) {
         do {
             try FileManager.default.removeItem(atPath: url.path)
         } catch {
-            print("Could not remove file at url: \(url.path)")
+            Log.error("Could not remove file at url: \(url.path)")
         }
     }
 }

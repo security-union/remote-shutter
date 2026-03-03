@@ -70,7 +70,7 @@ extension RemoteCamSession {
             // MARK: - Video Transfer Progress Handling
             case let started as UICmd.VideoResourceTransferStarted:
                 ctrl.cameraViewModel.startVideoTransfer(totalBytes: started.totalBytes)
-                print("📤 DEBUG: Camera state - Video transfer started: \(started.totalBytes) bytes")
+                Log.debug("Camera state - Video transfer started: \(started.totalBytes) bytes")
                 
             case let progress as UICmd.VideoResourceTransferProgress:
                 ctrl.cameraViewModel.updateVideoTransferProgress(
@@ -78,15 +78,15 @@ extension RemoteCamSession {
                     totalBytes: progress.totalBytes
                 )
                 ctrl.cameraViewModel.updateVideoTransferSpeed(progress.transferSpeed)
-                print("📤 DEBUG: Camera state - Video transfer progress: \(Int(progress.progress * 100))% - Speed: \(String(format: "%.1f", progress.transferSpeed / 1024 / 1024)) MB/s")
+                Log.debug("Camera state - Video transfer progress: \(Int(progress.progress * 100))% - Speed: \(String(format: "%.1f", progress.transferSpeed / 1024 / 1024)) MB/s")
                 
             case _ as UICmd.VideoResourceTransferCompleted:
                 ctrl.cameraViewModel.finishVideoTransfer()
-                print("📤 DEBUG: Camera state - Video transfer completed")
+                Log.debug("Camera state - Video transfer completed")
                 
             case let failed as UICmd.VideoResourceTransferFailed:
                 ctrl.cameraViewModel.finishVideoTransfer()
-                print("📤 DEBUG: Camera state - Video transfer failed: \(failed.error.localizedDescription)")
+                Log.error("Camera state - Video transfer failed: \(failed.error.localizedDescription)")
                 break
             case let c as RemoteCmd.StopRecordingVideoResp:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: c)

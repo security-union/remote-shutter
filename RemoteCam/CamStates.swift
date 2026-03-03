@@ -15,23 +15,23 @@ extension RemoteCamSession {
 
     // MARK: - Camera Capabilities Retry Helper
     private func attemptToSendCapabilities(ctrl: CameraViewController, peer: MCPeerID, attempt: Int, maxAttempts: Int) {
-        print("🔍 DEBUG: Attempt \(attempt)/\(maxAttempts) to gather camera capabilities")
+        Log.debug("Attempt \(attempt)/\(maxAttempts) to gather camera capabilities")
         
         ctrl.gatherAllCameraCapabilities()
         if let capabilities = ctrl.gatherCurrentCameraCapabilities() {
-            print("✅ DEBUG: Successfully gathered capabilities on attempt \(attempt)")
-            print("🔍 DEBUG: Sending camera capabilities - Available lenses: \(capabilities.getCurrentCameraInfo()?.availableLenses ?? [])")
+            Log.debug("Successfully gathered capabilities on attempt \(attempt)")
+            Log.debug("Sending camera capabilities - Available lenses: \(capabilities.getCurrentCameraInfo()?.availableLenses ?? [])")
             self.mailbox.addOperation(BlockOperation {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: capabilities)
             })
         } else if attempt < maxAttempts {
             let delay = Double(attempt) * 0.2 // 0.2s, 0.4s, 0.6s, 0.8s delays
-            print("⏳ DEBUG: Attempt \(attempt) failed, retrying in \(delay)s")
+            Log.debug("Attempt \(attempt) failed, retrying in \(delay)s")
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 self?.attemptToSendCapabilities(ctrl: ctrl, peer: peer, attempt: attempt + 1, maxAttempts: maxAttempts)
             }
         } else {
-            print("❌ DEBUG: Failed to gather camera capabilities after \(maxAttempts) attempts")
+            Log.error("Failed to gather camera capabilities after \(maxAttempts) attempts")
         }
     }
 
@@ -48,9 +48,9 @@ extension RemoteCamSession {
                 creationRequest.addResource(with: .photo, data: imageData, options: nil)
             }) { (success: Bool, _: Error?) in
                 if success {
-                    print("Saved photo!")
+                    Log.debug("Saved photo")
                 } else {
-                    print("Failed to save photo!")
+                    Log.error("Failed to save photo")
                 }
             }
         }
@@ -122,17 +122,17 @@ extension RemoteCamSession {
             switch msg {
             case is OnEnter:
                 self.updateDebugStateOverlay()
-                print("🔍 DEBUG: Camera starting up")
+                Log.debug("Camera starting up")
                 getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
                 
             case is RemoteCmd.PeerBecameMonitor:
                 // When a new monitor joins, immediately send camera capabilities
-                print("🔍 DEBUG: Camera received PeerBecameMonitor - attempting to send capabilities")
+                Log.debug("Camera received PeerBecameMonitor - attempting to send capabilities")
                 self.attemptToSendCapabilities(ctrl: ctrl, peer: peer, attempt: 1, maxAttempts: 5)
                 
             case is RemoteCmd.RequestCameraCapabilities:
                 // When monitor explicitly requests capabilities
-                print("🔍 DEBUG: Camera received RequestCameraCapabilities - attempting to gather capabilities")
+                Log.debug("Camera received RequestCameraCapabilities - attempting to gather capabilities")
                 self.attemptToSendCapabilities(ctrl: ctrl, peer: peer, attempt: 1, maxAttempts: 5)
                 
             case is RemoteCmd.RequestFrame:
@@ -168,16 +168,16 @@ extension RemoteCamSession {
                             state: self.cameraTakingPic(peer: peer, ctrl: ctrl, lobby: lobbyWrapper, sendMediaToPeer: cmd.sendMediaToPeer))
 
             case is RemoteCmd.ToggleCamera:
-                print("🔍 DEBUG: Camera received ToggleCamera command")
+                Log.debug("Camera received ToggleCamera command")
                 let result = ctrl.toggleCamera()
                 var resp: Message?
                 if let (_, position) = result.toOptional() {
-                    print("✅ DEBUG: Camera toggle success - new position: \(position)")
+                    Log.debug("Camera toggle success - new position: \(position)")
                     // Send camera capabilities as part of the response
                     let capabilities = ctrl.gatherCurrentCameraCapabilities()
                     resp = RemoteCmd.ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
                 } else if let failure = result as? Failure {
-                    print("❌ DEBUG: Camera toggle failed: \(failure.tryError.localizedDescription)")
+                    Log.error("Camera toggle failed: \(failure.tryError.localizedDescription)")
                     resp = RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: failure.tryError)
                 }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
@@ -215,30 +215,30 @@ extension RemoteCamSession {
                 
             // MARK: - Zoom Command Handling
             case let zoomCmd as RemoteCmd.SetZoom:
-                print("🔍 DEBUG: Camera received SetZoom: \(zoomCmd.zoomFactor)")
+                Log.debug("Camera received SetZoom: \(zoomCmd.zoomFactor)")
                 let result = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
                 var resp: Message?
                 if let (zoomFactor, currentLens, zoomRange) = result.toOptional() {
                     resp = RemoteCmd.SetZoomResp(zoomFactor: zoomFactor, currentLens: currentLens, zoomRange: zoomRange, error: nil)
                 } else if let failure = result as? Failure {
-                    print("❌ DEBUG: Camera zoom failed: \(failure.tryError.localizedDescription)")
+                    Log.error("Camera zoom failed: \(failure.tryError.localizedDescription)")
                     resp = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: failure.tryError)
                 }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
                 
             // MARK: - Lens Switching Command Handling  
             case let lensCmd as RemoteCmd.SwitchLens:
-                print("🔍 DEBUG: Camera received SwitchLens command to \(lensCmd.lensType.displayName)")
+                Log.debug("Camera received SwitchLens command to \(lensCmd.lensType.displayName)")
                 let result = ctrl.switchLens(to: lensCmd.lensType)
                 var resp: Message?
                 if let (lensType, availableLenses, currentZoom, zoomRange) = result.toOptional() {
-                    print("✅ DEBUG: Camera lens switch success - new lens: \(lensType.displayName)")
+                    Log.debug("Camera lens switch success - new lens: \(lensType.displayName)")
                     resp = RemoteCmd.SwitchLensResp(lensType: lensType, availableLenses: availableLenses, currentZoom: currentZoom, zoomRange: zoomRange, error: nil)
 
                 } else if let failure = result as? Failure {
-                    print("❌ DEBUG: Camera lens switch failed: \(failure.tryError.localizedDescription)")
+                    Log.error("Camera lens switch failed: \(failure.tryError.localizedDescription)")
                     resp = RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: failure.error)
-                    print("🔍 DEBUG: Created error response:")
+                    Log.debug("Created error response")
 //                    print("🔍 DEBUG: - error: \(failure.error.localizedDescription)")
                 }
                 
@@ -246,16 +246,16 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
 
             case let c as DisconnectPeer:
-                print("🔍 DEBUG: Camera disconnecting peer - going to scanning")
+                Log.debug("Camera disconnecting peer - going to scanning")
                 self.popAndStartScanning()
                 
 
             case is Disconnect:
-                print("🔍 DEBUG: Camera disconnecting - going to scanning")
+                Log.debug("Camera disconnecting - going to scanning")
                 self.popAndStartScanning()
 
             case is UICmd.UnbecomeCamera:
-                print("🔍 DEBUG: Camera explicitly unbecoming - going to connected state")
+                Log.debug("Camera explicitly unbecoming - going to connected state")
                 self.popToState(name: self.states.connected)
 
             default:

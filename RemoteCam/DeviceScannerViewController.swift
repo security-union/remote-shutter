@@ -116,6 +116,7 @@ public class DeviceScannerViewController: UIViewController {
 
     public override func viewDidLoad() {
         super.viewDidLoad()
+        Log.debug("viewDidLoad")
         self.remoteCamSession ! SetViewCtrl(ctrl: self)
         self.setupStyle()
         setupHelpButton()
@@ -248,10 +249,10 @@ public class DeviceScannerViewController: UIViewController {
             DispatchQueue.main.async {
                 switch state {
                 case .waiting(let error):
-                    print("Network browser waiting with error: \(error)")
+                    Log.warning("Network browser waiting with error: \(error)")
                     if case .dns(let dnsError) = error {
                         let dnsCode = Int(dnsError)
-                        print("DNS error code: \(dnsCode)")
+                        Log.warning("DNS error code: \(dnsCode)")
                         if dnsCode == Int(kDNSServiceErr_PolicyDenied) {
                             // No local network access - reset speed run mode and set error state
                             self?.speedRunScanning = false
@@ -266,20 +267,20 @@ public class DeviceScannerViewController: UIViewController {
                     self?.hasScanningError = false
                     self?.startActualScanning()
                 case .ready:
-                    print("Network browser ready")
+                    Log.debug("Network browser ready")
                     // Network access is available - clear error state
                     self?.hasLocalNetworkAccess = true
                     self?.hasScanningError = false
                     self?.startActualScanning()
                 case .failed(let error):
-                    print("Network browser failed: \(error)")
+                    Log.error("Network browser failed: \(error)")
                     // Permission denied - likely local network access denied
                     self?.speedRunScanning = false
                     self?.hasLocalNetworkAccess = false
                     self?.hasScanningError = true
                     self?.showLocalNetworkAccessDeniedAlert()
                 default:
-                    print("Network browser state: \(state)")
+                    Log.debug("Network browser state: \(state)")
                     break
                 }
             }
@@ -348,7 +349,7 @@ public class DeviceScannerViewController: UIViewController {
     }
     
     deinit {
-        print("deinit DeviceScanners")
+        Log.debug("deinit DeviceScanners")
         networkBrowser?.cancel()
         frameSender ! Actor.Harakiri(sender: nil)
         remoteCamSession ! Actor.Harakiri(sender: nil)
@@ -465,7 +466,7 @@ extension DeviceScannerViewController: MCNearbyServiceBrowserDelegate {
     }
     
     public func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {
-        print("Browser failed to start browsing: \(error.localizedDescription)")
+        Log.error("Browser failed to start browsing: \(error.localizedDescription)")
         
         // Reset speed run mode and set error state when scanning fails
         speedRunScanning = false

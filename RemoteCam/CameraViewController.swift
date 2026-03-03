@@ -168,7 +168,7 @@ public class CameraViewController: UIViewController,
                 overlayController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
         }
-        print("📱 DEBUG: CameraViewController - Setup progress overlay")
+        Log.debug("CameraViewController - Setup progress overlay")
     }
 
     
@@ -305,7 +305,7 @@ public class CameraViewController: UIViewController,
                 self.captureSession.startRunning()
             }
         } catch let error as NSError {
-            print("error \(error)")
+            Log.error("error \(error)")
         }
     }
 
@@ -347,7 +347,7 @@ public class CameraViewController: UIViewController,
         if captureSession.canAddOutput(videoDataOutput) {
             captureSession.addOutput(videoDataOutput)
         } else {
-            print("Could not add still image output to the session")
+            Log.error("Could not add still image output to the session")
             return
         }
 
@@ -356,7 +356,7 @@ public class CameraViewController: UIViewController,
             photoOutput.isHighResolutionCaptureEnabled = true
             captureSession.addOutput(photoOutput)
         } else {
-            print("Could not add movie file output to the session")
+            Log.error("Could not add movie file output to the session")
             return
         }
         videoConnection = videoDataOutput.connection(with: .video)
@@ -501,44 +501,44 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Camera Capabilities Gathering
     func gatherAllCameraCapabilities() {
-        print("🔍 DEBUG: gatherAllCameraCapabilities called")
-        
+        Log.debug("gatherAllCameraCapabilities called")
+
         // Gather front camera capabilities
         frontCameraInfo = gatherCameraInfo(for: .front)
-        print("🔍 DEBUG: Front camera info: \(frontCameraInfo != nil ? "available" : "nil")")
-        
-        // Gather back camera capabilities  
+        Log.debug("Front camera info: \(frontCameraInfo != nil ? "available" : "nil")")
+
+        // Gather back camera capabilities
         backCameraInfo = gatherCameraInfo(for: .back)
-        print("🔍 DEBUG: Back camera info: \(backCameraInfo != nil ? "available" : "nil")")
-        
+        Log.debug("Back camera info: \(backCameraInfo != nil ? "available" : "nil")")
+
         if let backInfo = backCameraInfo {
-            print("🔍 DEBUG: - Back camera available lenses: \(backInfo.availableLenses)")
-            print("🔍 DEBUG: - Back camera has flash: \(backInfo.hasFlash)")
+            Log.debug("- Back camera available lenses: \(backInfo.availableLenses)")
+            Log.debug("- Back camera has flash: \(backInfo.hasFlash)")
         }
-        
+
         if let frontInfo = frontCameraInfo {
-            print("🔍 DEBUG: - Front camera available lenses: \(frontInfo.availableLenses)")
-            print("🔍 DEBUG: - Front camera has flash: \(frontInfo.hasFlash)")
+            Log.debug("- Front camera available lenses: \(frontInfo.availableLenses)")
+            Log.debug("- Front camera has flash: \(frontInfo.hasFlash)")
         }
     }
     
     func gatherCameraInfo(for position: AVCaptureDevice.Position) -> RemoteCmd.CameraInfo? {
         let positionName = position == .front ? "Front" : "Back"
-        print("🔍 DEBUG: gatherCameraInfo for \(positionName) camera")
-        
+        Log.debug("gatherCameraInfo for \(positionName) camera")
+
         let deviceTypes = getAllDeviceTypes()
         let videoDevices = AVCaptureDevice.DiscoverySession.init(
                 deviceTypes: deviceTypes,
                 mediaType: .video, position: position).devices
-        
-        print("🔍 DEBUG: - Found \(videoDevices.count) devices for \(positionName) position")
+
+        Log.debug("- Found \(videoDevices.count) devices for \(positionName) position")
         for device in videoDevices {
-            print("🔍 DEBUG: - \(device.localizedName) (\(device.deviceType.rawValue))")
+            Log.debug("- \(device.localizedName) (\(device.deviceType.rawValue))")
         }
-        
-        guard !videoDevices.isEmpty else { 
-            print("🔍 DEBUG: - No devices found for \(positionName) position")
-            return nil 
+
+        guard !videoDevices.isEmpty else {
+            Log.debug("- No devices found for \(positionName) position")
+            return nil
         }
         
         // Find available lens types for this position
@@ -546,7 +546,7 @@ public class CameraViewController: UIViewController,
             return videoDevices.contains { $0.deviceType == lensType.deviceType }
         }
         
-        print("🔍 DEBUG: - Final available lenses: \(availableLenses.map { $0.displayName })")
+        Log.debug("- Final available lenses: \(availableLenses.map { $0.displayName })")
         
         // Check if any camera on this position has flash
         let hasFlash = videoDevices.contains { $0.hasFlash }
@@ -597,17 +597,17 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Current Camera Capabilities for Toggle Response
     func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
-        print("🔍 DEBUG: gatherCurrentCameraCapabilities called")
-        
-        guard let currentDevice = self.videoDeviceInput?.device else { 
-            print("❌ DEBUG: No videoDeviceInput.device available")
-            print("❌ DEBUG: videoDeviceInput is \(self.videoDeviceInput != nil ? "not nil" : "nil")")
-            return nil 
+        Log.debug("gatherCurrentCameraCapabilities called")
+
+        guard let currentDevice = self.videoDeviceInput?.device else {
+            Log.error("No videoDeviceInput.device available")
+            Log.error("videoDeviceInput is \(self.videoDeviceInput != nil ? "not nil" : "nil")")
+            return nil
         }
-        
-        print("🔍 DEBUG: Current device: \(currentDevice.localizedName)")
-        print("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
-        print("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
+
+        Log.debug("Current device: \(currentDevice.localizedName)")
+        Log.debug("frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
+        Log.debug("backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
         
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo,
@@ -618,22 +618,22 @@ public class CameraViewController: UIViewController,
             error: nil
         )
         
-        print("🔍 DEBUG: Created capabilities response successfully")
+        Log.debug("Created capabilities response successfully")
         return capabilities
     }
     
     // MARK: - Enhanced Zoom Control Methods
     func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
-        print("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
-        
+        Log.debug("setZoom called with factor: \(zoomFactor)")
+
         guard let device = self.videoDeviceInput?.device else {
-            print("❌ DEBUG: No camera device available")
+            Log.error("No camera device available")
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
         
-        print("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
-        print("🔍 DEBUG: Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
-        print("🔍 DEBUG: Current zoom: \(device.videoZoomFactor)")
+        Log.debug("Current device: \(device.localizedName), position: \(device.position.rawValue)")
+        Log.debug("Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
+        Log.debug("Current zoom: \(device.videoZoomFactor)")
         
         do {
             try device.lockForConfiguration()
@@ -641,13 +641,13 @@ public class CameraViewController: UIViewController,
             let clampedZoom = max(device.minAvailableVideoZoomFactor, 
                                  min(zoomFactor, device.maxAvailableVideoZoomFactor))
             
-            print("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
+            Log.debug("Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
             device.videoZoomFactor = clampedZoom
             currentZoomFactor = clampedZoom
             
             device.unlockForConfiguration()
             
-            print("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor)")
+            Log.debug("Zoom set successfully to \(device.videoZoomFactor)")
             
             let zoomRange = RemoteCmd.ZoomRange(
                 minZoom: device.minAvailableVideoZoomFactor,
@@ -656,7 +656,7 @@ public class CameraViewController: UIViewController,
             
             return Success((clampedZoom, currentLensType, zoomRange))
         } catch let error as NSError {
-            print("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
+            Log.error("Error setting zoom: \(error.localizedDescription)")
             return Failure(error: error)
         }
     }
@@ -850,7 +850,7 @@ extension CameraViewController {
                 if self.captureSession.canAddInput(audioDeviceInput) {
                     self.captureSession.addInput(audioDeviceInput)
                 } else {
-                    print("Could not add audio device input to the session")
+                    Log.error("Could not add audio device input to the session")
                 }
                 
                 if self.captureSession.canAddOutput(self.audioDataOutput) {
@@ -866,7 +866,7 @@ extension CameraViewController {
                 self.startVideoRecordingProcess()
                 
             } catch {
-                print("Error setting up audio for video recording: \(error)")
+                Log.error("Error setting up audio for video recording: \(error)")
                 // Start recording without audio
                 self.startVideoRecordingWithoutAudio()
             }
@@ -994,7 +994,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                      creationRequest.addResource(with: .video, fileURL: outputFileURL, options: options)
                  }, completionHandler: { success, error in
                      if !success {
-                         print("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
+                         Log.error("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
                      }
                      cleanupFileAt(outputFileURL)
                  }
@@ -1023,7 +1023,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         )
         
         session ! sendVideoMsg
-        print("📤 DEBUG: Sent SendVideoResource message to actor system")
+        Log.debug("Sent SendVideoResource message to actor system")
     }
     
     // MARK: - Video Transfer Progress
@@ -1090,11 +1090,11 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             if assetWriter.canAdd(audioInput) {
                 assetWriter.add(audioInput)
             } else {
-                print("Cannot add audio input to asset writer")
+                Log.error("Cannot add audio input to asset writer")
                 return false
             }
         } else {
-            print("Cannot apply audio settings to asset writer")
+            Log.error("Cannot apply audio settings to asset writer")
             return false
         }
         return true

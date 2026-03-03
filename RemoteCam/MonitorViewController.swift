@@ -171,7 +171,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
             case let started as UICmd.VideoResourceTransferStarted:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     ctrl?.value?.viewModel.startVideoTransfer(totalBytes: started.totalBytes)
-                    print("📺 DEBUG: MonitorActor - Video transfer started: \(started.totalBytes) bytes")
+                    Log.debug("MonitorActor - Video transfer started: \(started.totalBytes) bytes")
                 }
                 
             case let progress as UICmd.VideoResourceTransferProgress:
@@ -181,19 +181,19 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                         totalBytes: progress.totalBytes
                     )
                     ctrl?.value?.viewModel.updateVideoTransferSpeed(progress.transferSpeed)
-                    print("📺 DEBUG: MonitorActor - Video transfer progress: \(Int(progress.progress * 100))% - Speed: \(String(format: "%.1f", progress.transferSpeed / 1024 / 1024)) MB/s")
+                    Log.debug("MonitorActor - Video transfer progress: \(Int(progress.progress * 100))% - Speed: \(String(format: "%.1f", progress.transferSpeed / 1024 / 1024)) MB/s")
                 }
                 
             case let completed as UICmd.VideoResourceTransferCompleted:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     ctrl?.value?.viewModel.finishVideoTransfer()
-                    print("📺 DEBUG: MonitorActor - Video transfer completed")
+                    Log.debug("MonitorActor - Video transfer completed")
                 }
                 
             case let failed as UICmd.VideoResourceTransferFailed:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     ctrl?.value?.viewModel.finishVideoTransfer()
-                    print("📺 DEBUG: MonitorActor - Video transfer failed: \(failed.error.localizedDescription)")
+                    Log.error("MonitorActor - Video transfer failed: \(failed.error.localizedDescription)")
                 }
                 
             default:
@@ -274,13 +274,13 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        print("🔍 DEBUG: MonitorViewController viewWillAppear - \(ObjectIdentifier(self))")
+        Log.debug("MonitorViewController viewWillAppear - \(ObjectIdentifier(self))")
         self.navigationController?.isNavigationBarHidden = true
     }
 
     override public func viewDidLoad() {
         super.viewDidLoad()
-        print("🔍 DEBUG: MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
+        Log.debug("MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
         monitor ! SetViewCtrl(ctrl: self)
         
         // Setup SwiftUI view instead of storyboard
@@ -292,7 +292,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         // Request camera capabilities after MonitorActor is fully set up
         // This handles the race condition where capabilities arrive before viewDidLoad
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            print("🔍 DEBUG: Requesting camera capabilities after MonitorActor setup")
+            Log.debug("Requesting camera capabilities after MonitorActor setup")
             if let session = self?.session {
                 session ! UICmd.RequestCameraCapabilities()
             }
@@ -305,15 +305,15 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     }
 
     deinit {
-        print("🔍 DEBUG: MonitorViewController deinit - \(ObjectIdentifier(self))")
-        print("stop monitor")
+        Log.debug("MonitorViewController deinit - \(ObjectIdentifier(self))")
+        Log.debug("stop monitor")
         self.timer.cancel()
         self.zoomLabelTimer?.invalidate()
         self.soundManager.stopPlayer()
         session ! UICmd.UnbecomeMonitor(sender: nil)
         
         // Video transfer progress is handled by MonitorActor - no cleanup needed
-        print("📺 DEBUG: MonitorViewController - Removed notification observers")
+        Log.debug("MonitorViewController - Removed notification observers")
         
         // Delay actor destruction to allow pending messages to arrive
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [monitor] in

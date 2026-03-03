@@ -78,6 +78,6 @@ class FrameSender: Actor {
     }
     
     deinit {
-        print("killing frame sender")
+        Log.debug("killing frame sender")
     }
 }

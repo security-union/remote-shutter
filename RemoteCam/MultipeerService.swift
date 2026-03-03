@@ -77,6 +77,7 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     // MARK: - Session Lifecycle
 
     func startSession(peerID: MCPeerID) {
+        Log.info("starting session with peerID: \(peerID)")
         session = MCSession(peer: peerID)
         session?.delegate = self
         mcAdvertiserAssistant = MCAdvertiserAssistant(
@@ -109,7 +110,7 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
             try session?.send(serializedMessage, toPeers: peers, with: mode)
             return Success(msg)
         } catch let error as NSError {
-            print("sendMessage error \(error)")
+            Log.error("sendMessage error \(error)")
             return Failure(error: error)
         }
     }
@@ -124,6 +125,7 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     // MARK: - Heartbeat Sending (must be called on heartbeatQueue)
 
     private func startHeartbeatSendTimer() {
+        Log.info("Starting heartbeat send timer")
         stopHeartbeatSendTimer()
 
         let timer = DispatchSource.makeTimerSource(queue: heartbeatQueue)
@@ -142,30 +144,33 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     }
 
     private func sendHeartbeatToAllPeers() {
+        Log.info(">>> Attempting to send heartbeat")
         guard let session = session else { return }
         let peers = session.connectedPeers
         guard !peers.isEmpty else { return }
 
         do {
+            Log.info(">>> Sending heartbeat")
             try session.send(Self.heartbeatData, toPeers: peers, with: .unreliable)
         } catch {
             // Heartbeat send failures are expected when peers disconnect;
             // the watchdog will handle cleanup.
+            Log.error("Error sending heartbeat: \(error).")
         }
     }
 
     // MARK: - Peer Watchdog (must be called on heartbeatQueue)
 
     private func resetWatchdog(for peerID: MCPeerID) {
-        print("reset watchdog for \(peerID.displayName)")
+        Log.debug("reset watchdog for \(peerID.displayName)")
         peerWatchdogs[peerID]?.cancel()
 
         let timer = DispatchSource.makeTimerSource(queue: heartbeatQueue)
         timer.schedule(deadline: .now() + Self.heartbeatDeadline)
         timer.setEventHandler { [weak self] in
-            print("firing watchdog for \(peerID.displayName)")
+            Log.warning("firing watchdog for \(peerID.displayName)")
             guard let self = self else { return }
-            print("Watchdog fired for \(peerID.displayName) — no heartbeat in \(Self.heartbeatDeadline)s")
+            Log.warning("Watchdog fired for \(peerID.displayName) — no heartbeat in \(Self.heartbeatDeadline)s")
             self.peerWatchdogs.removeValue(forKey: peerID)
             self.delegate?.peerDidDisconnect(peerID)
             if self.peerWatchdogs.isEmpty {
@@ -191,7 +196,7 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         switch state {
         case .connected:
-            print("Connected: \(peerID)")
+            Log.debug("Connected: \(peerID)")
             heartbeatQueue.async { [weak self] in
                 guard let self = self else { return }
                 self.resetWatchdog(for: peerID)
@@ -202,15 +207,15 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
             delegate?.peerDidConnect(peerID)
 
         case .connecting:
-            print("Connecting: \(peerID)")
+            Log.debug("Connecting: \(peerID)")
 
         case .notConnected:
             // Intentionally ignored. The heartbeat watchdog is the sole
             // disconnect mechanism. This callback is unreliable.
-            print("Not Connected (ignored): \(peerID)")
+            Log.debug("Not Connected (ignored): \(peerID)")
 
         @unknown default:
-            print("unknown default")
+            Log.error("unknown default")
             fatalError()
         }
     }
@@ -265,6 +270,6 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     }
     
     deinit {
-        print("killing Multipeer Service")
+        Log.debug("killing Multipeer Service")
     }
 }

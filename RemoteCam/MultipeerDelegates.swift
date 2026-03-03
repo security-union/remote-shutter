@@ -70,12 +70,12 @@ extension RemoteCamSession: MultipeerServiceDelegate {
 
     func didStartReceivingResource(name resourceName: String, progress: Progress) {
         mailbox.addOperation(BlockOperation {
-            print("📥 DEBUG: Started receiving resource: \(resourceName)")
+            Log.debug("Started receiving resource: \(resourceName)")
 
             // Check if this is a video transfer
             if resourceName.hasPrefix("video_") {
                 let totalBytes = progress.totalUnitCount
-                print("📊 DEBUG: Video transfer started - Total bytes: \(totalBytes)")
+                Log.debug("Video transfer started - Total bytes: \(totalBytes)")
 
                 // Send message through actor system
                 let startedMsg = UICmd.VideoResourceTransferStarted(totalBytes: totalBytes, resourceName: resourceName, sender: self.this)
@@ -99,7 +99,7 @@ extension RemoteCamSession: MultipeerServiceDelegate {
                         let timeElapsed = currentTime.timeIntervalSince(speedTracker.lastUpdateTime)
                         let bytesTransferred = completedBytes - speedTracker.lastCompletedBytes
 
-                        print("📊 DEBUG: Speed calc - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), lastCompleted: \(speedTracker.lastCompletedBytes), current: \(completedBytes)")
+                        Log.debug("Speed calc - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), lastCompleted: \(speedTracker.lastCompletedBytes), current: \(completedBytes)")
 
                         let transferSpeed: Double
                         if timeElapsed > 0.5 && bytesTransferred > 0 {
@@ -107,13 +107,13 @@ extension RemoteCamSession: MultipeerServiceDelegate {
                             speedTracker.lastUpdateTime = currentTime
                             speedTracker.lastCompletedBytes = completedBytes
                             speedTracker.lastCalculatedSpeed = transferSpeed
-                            print("📊 DEBUG: Speed calculated: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
+                            Log.debug("Speed calculated: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
                         } else {
                             transferSpeed = speedTracker.lastCalculatedSpeed
-                            print("📊 DEBUG: Speed calculation skipped - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), using last speed: \(String(format: "%.1f", speedTracker.lastCalculatedSpeed / 1024 / 1024)) MB/s")
+                            Log.debug("Speed calculation skipped - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), using last speed: \(String(format: "%.1f", speedTracker.lastCalculatedSpeed / 1024 / 1024)) MB/s")
                         }
 
-                        print("📊 DEBUG: Video transfer progress: \(Int(fractionCompleted * 100))% - Speed: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
+                        Log.debug("Video transfer progress: \(Int(fractionCompleted * 100))% - Speed: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
 
                         let progressMsg = UICmd.VideoResourceTransferProgress(
                             completedBytes: completedBytes,
@@ -134,10 +134,10 @@ extension RemoteCamSession: MultipeerServiceDelegate {
 
     func didFinishReceivingResource(name resourceName: String, at localURL: URL?, error: Error?) {
         mailbox.addOperation(BlockOperation {
-            print("📥 DEBUG: Finished receiving resource: \(resourceName)")
+            Log.debug("Finished receiving resource: \(resourceName)")
 
             if let error = error {
-                print("❌ DEBUG: Error receiving resource: \(error.localizedDescription)")
+                Log.error("Error receiving resource: \(error.localizedDescription)")
 
                 // Send failure message through actor system
                 let failedMsg = UICmd.VideoResourceTransferFailed(error: error, resourceName: resourceName, sender: self.this)
@@ -147,7 +147,7 @@ extension RemoteCamSession: MultipeerServiceDelegate {
 
             // Check if this is a video transfer
             if resourceName.hasPrefix("video_") {
-                print("✅ DEBUG: Video transfer completed successfully")
+                Log.debug("Video transfer completed successfully")
 
                 // Send completion message through actor system
                 let completedMsg = UICmd.VideoResourceTransferCompleted(resourceName: resourceName, success: true, sender: self.this)
@@ -163,7 +163,7 @@ extension RemoteCamSession: MultipeerServiceDelegate {
                         // Clean up the temporary file
                         try FileManager.default.removeItem(at: localURL)
                     } catch {
-                        print("❌ DEBUG: Error processing received video: \(error.localizedDescription)")
+                        Log.error("Error processing received video: \(error.localizedDescription)")
                         let videoResp = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: error)
                         self.this ! videoResp
                     }

@@ -133,7 +133,7 @@ extension PKIAPHandler: SKProductsRequestDelegate, SKPaymentTransactionObserver{
     }
     
     func paymentQueue(_ queue: SKPaymentQueue, restoreCompletedTransactionsFailedWithError error: Error) {
-        print("error \(error)")
+        Log.error("\(error)")
     }
     
     // IAP PAYMENT QUEUE

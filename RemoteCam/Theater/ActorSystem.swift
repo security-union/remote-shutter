@@ -192,11 +192,11 @@ open class ActorSystem  {
         } else if let sender = msg.sender, let _ = actorForRef(ref: sender) {
             sender ! Actor.DeadLetter(message: msg, sender:recipient)
         } else {
-            print("Dropped message \(msg)")
+            Log.warning("Dropped message \(msg)")
         }
     }
     
     deinit {
-        print("killing ActorSystem: \(name)")
+        Log.debug("killing ActorSystem: \(name)")
     }
 }

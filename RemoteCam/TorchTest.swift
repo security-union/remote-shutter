@@ -30,14 +30,14 @@ class TorchTest {
             deviceTypes: deviceTypes,
             mediaType: .video, position: .back).devices
         
-        print("🔍 Torch Test: Found \(videoDevices.count) back camera devices")
-        
+        Log.debug("Torch Test: Found \(videoDevices.count) back camera devices")
+
         for device in videoDevices {
-            print("🔍 Torch Test: \(device.localizedName)")
-            print("   - Has Flash: \(device.hasFlash)")
-            print("   - Has Torch: \(device.hasTorch)")
-            print("   - Current Torch Mode: \(device.torchMode.rawValue)")
-            print("   - Torch Level: \(device.torchLevel)")
+            Log.debug("Torch Test: \(device.localizedName)")
+            Log.debug("   - Has Flash: \(device.hasFlash)")
+            Log.debug("   - Has Torch: \(device.hasTorch)")
+            Log.debug("   - Current Torch Mode: \(device.torchMode.rawValue)")
+            Log.debug("   - Torch Level: \(device.torchLevel)")
         }
     }
 }

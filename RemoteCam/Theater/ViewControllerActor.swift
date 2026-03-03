@@ -47,7 +47,7 @@ open class ViewCtrlActor<A : UIViewController> : Actor {
     
     public let waitingForCtrlState = "waitingForCtrl"
     
-    public let withCtrlState = "withCtrl9"
+    public let withCtrlState = "withCtrl"
     
     /**
     Subclasses must override this constructor.
@@ -93,7 +93,7 @@ open class ViewCtrlActor<A : UIViewController> : Actor {
                 popToState(name: name)
             }
         } else {
-            print("unable to find state with name \(name)")
+            Log.warning("unable to find state with name \(name)")
         }
     }
     
@@ -108,7 +108,7 @@ open class ViewCtrlActor<A : UIViewController> : Actor {
                 popToRootState()
             }
         } else {
-            print("unable to find root state")
+            Log.warning("unable to find root state")
         }
     }
     
@@ -125,7 +125,7 @@ open class ViewCtrlActor<A : UIViewController> : Actor {
     }
     
     deinit {
-        print("killing View Controller Actor")
+        Log.debug("killing View Controller Actor")
     }
     
 }

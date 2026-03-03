@@ -75,7 +75,7 @@ public class RolePickerController: UIViewController {
     override public func viewDidLoad() {
         super.viewDidLoad()
         setupStyle()
-        rolePicker ! SetViewCtrl(ctrl: self)
+//        rolePicker ! SetViewCtrl(ctrl: self)
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -180,8 +180,8 @@ public class RolePickerController: UIViewController {
     }
     
     deinit {
-        print("killing RolePickerController")
-        rolePicker ! Actor.Harakiri(sender: nil)
+        Log.debug("killing RolePickerController")
+//        rolePicker ! Actor.Harakiri(sender: nil
         
         if let session = getRemoteCamSession() {
             session ! Disconnect(sender: nil)

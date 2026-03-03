@@ -69,11 +69,11 @@ extension MonitorViewController {
     
     // MARK: - Action Handlers
     private func handleTakePicture() {
-        print("🔴 DEBUG: handleTakePicture called - isRecording: \(viewModel.isRecording), uiState: \(viewModel.uiState)")
+        Log.debug("handleTakePicture called - isRecording: \(viewModel.isRecording), uiState: \(viewModel.uiState)")
         
         // If timer is running, cancel it
         if viewModel.timerValue > 0 {
-            print("🔴 DEBUG: Canceling timer countdown")
+            Log.debug("Canceling timer countdown")
             self.timer.cancel()
             self.soundManager.stopPlayer() // Stop any playing sound
             resetTimerUI()
@@ -84,11 +84,11 @@ extension MonitorViewController {
         
         if timerDuration > 0 && (viewModel.uiState == .photoMode || viewModel.uiState == .videoMode) {
             // Start timer countdown for photo or video
-            print("🔴 DEBUG: Starting timer countdown: \(timerDuration) seconds")
+            Log.debug("Starting timer countdown: \(timerDuration) seconds")
             startTimerCountdown(duration: timerDuration)
         } else {
             // No timer or shorts mode - execute immediately
-            print("🔴 DEBUG: No timer - executing immediately")
+            Log.debug("No timer - executing immediately")
             executeAction()
         }
     }
@@ -124,11 +124,11 @@ extension MonitorViewController {
                     self?.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
                 }
                 
-                print("🔴 DEBUG: Timer tick - \(remaining) seconds remaining")
+                Log.debug("Timer tick - \(remaining) seconds remaining")
             }
         }, andCompletionHandler: { [weak self] _ in
             DispatchQueue.main.async {
-                print("🔴 DEBUG: Timer completed - taking picture")
+                Log.debug("Timer completed - taking picture")
                 self?.executeAction()
                 self?.resetTimerUI()
             }
@@ -139,7 +139,7 @@ extension MonitorViewController {
         // Use existing UICmd.TakePicture logic
         let shouldSendMedia = CMConfigurationsViewController.sendMediaToRemote()
         session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: shouldSendMedia)
-        print("🔴 DEBUG: UICmd.TakePicture sent to session with sendMediaToRemote: \(shouldSendMedia)")
+        Log.debug("UICmd.TakePicture sent to session with sendMediaToRemote: \(shouldSendMedia)")
     }
     
     private func resetTimerUI() {

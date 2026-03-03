@@ -197,7 +197,7 @@ class WelcomeViewController: UIViewController {
         count += 1
         UserDefaults.standard.set(count, forKey: reviewCounterKey)
 
-        print("Review presented \(count) time(s)")
+        Log.debug("Review presented \(count) time(s)")
 
         let infoDictionaryKey = kCFBundleVersionKey as String
         guard let currentVersion = Bundle.main.object(forInfoDictionaryKey: infoDictionaryKey) as? String

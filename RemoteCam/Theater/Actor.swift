@@ -210,7 +210,7 @@ open class Actor : NSObject {
                 popToState(name: name)
             }
         } else {
-            print("unable to find state with name \(name)")
+            Log.warning("unable to find state with name \(name)")
         }
     }
     
@@ -240,7 +240,7 @@ open class Actor : NSObject {
         default :
             if let (name,state) : (String,Receive) = self.statesStack.head() {
                 #if DEBUG
-                print("Sending message to state \(name)")
+                Log.debug("Sending message to state \(name)")
                 #endif
                 state(msg)
             } else {
@@ -258,7 +258,7 @@ open class Actor : NSObject {
     open func receive(msg : Actor.Message) -> Void {
         switch msg {
         default :
-            print("message not handled \(NSStringFromClass(type(of: msg)))")
+            Log.warning("message not handled \(NSStringFromClass(type(of: msg)))")
         }
     }
     
@@ -270,13 +270,13 @@ open class Actor : NSObject {
         mailbox.addOperation { [weak self] in
             guard let self = self else {
                 #if DEBUG
-                print("dropping \(msg) because I am dead")
+                Log.debug("dropping \(msg) because I am dead")
                 #endif
                 return
             }
             self.sender = msg.sender
             #if DEBUG
-            print("\(self.sender?.path.asString ?? "No Sender") told \(msg) to \(self.this.path.asString)")
+            Log.debug("\(self.sender?.path.asString ?? "No Sender") told \(msg) to \(self.this.path.asString)")
             #endif
             self.systemReceive(msg: msg)
         }
@@ -329,7 +329,7 @@ open class Actor : NSObject {
     }
     
     deinit {
-        print("killing \(self.this.path.asString)")
+        Log.debug("killing \(self.this.path.asString)")
     }
     
 }
