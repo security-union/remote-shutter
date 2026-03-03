@@ -142,9 +142,8 @@ extension RemoteCamSession {
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
-                    self.popAndStartScanning()
-                }
+                self.popAndStartScanning()
+            
 
             default:
                 self.receive(msg: msg)
@@ -161,7 +160,6 @@ extension RemoteCamSession {
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
-
             case is RemoteCmd.TakePicAck:
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.updateAlert(h, title: "Receiving picture") }
@@ -195,12 +193,11 @@ extension RemoteCamSession {
                 self.popToState(name: self.states.connected)
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
-                    ^{ [weak self] in
-                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
-                    }
-                    self.popAndStartScanning()
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
+                self.popAndStartScanning()
+                
 
             case is Disconnect:
                 ^{ [weak self] in

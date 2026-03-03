@@ -15,7 +15,7 @@ import Combine
 
 class FakeMultipeerService: MultipeerServiceProtocol {
     weak var delegate: MultipeerServiceDelegate?
-    var session: MCSession!
+    var session: MCSession?
     var connectedPeers: [MCPeerID] = []
     var progressCancellables = Set<AnyCancellable>()
 
@@ -1238,6 +1238,125 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentState()?.0, session.states.connected)
+    }
+
+    // MARK: - MonitorSwitchingLens: Disconnect pops to scanning
+
+    func testMonitorSwitchingLensDisconnectPopsToScanning() throws {
+        pushMonitorSwitchingLensState()
+
+        ref ! Disconnect(sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+    }
+
+    // MARK: - DisconnectPeer race condition: peer reconnects before message is processed
+    //
+    // When MultipeerConnectivity fires .notConnected followed quickly by .connected,
+    // the DisconnectPeer message may be processed after MCSession.connectedPeers already
+    // includes the reconnected peer. The state machine must still handle the disconnect
+    // regardless of the live connectedPeers count.
+
+    func testConnectedStateDisconnectPeerRaceCondition() throws {
+        pushScanningState()
+        pushConnectedState()
+
+        // Peer reconnected before DisconnectPeer is processed — connectedPeers is NOT empty
+        fakeMP.connectedPeers = [peer]
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning,
+                       "DisconnectPeer must pop to scanning even when connectedPeers is non-empty (race condition)")
+    }
+
+    func testMonitorPhotoModeDisconnectPeerRaceCondition() throws {
+        pushMonitorPhotoModeState()
+
+        fakeMP.connectedPeers = [peer]
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning,
+                       "DisconnectPeer must pop to scanning even when connectedPeers is non-empty (race condition)")
+    }
+
+    func testMonitorVideoModeDisconnectPeerRaceCondition() throws {
+        pushMonitorVideoModeState()
+
+        fakeMP.connectedPeers = [peer]
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning,
+                       "DisconnectPeer must pop to scanning even when connectedPeers is non-empty (race condition)")
+    }
+
+    func testMonitorTakingPictureDisconnectPeerRaceCondition() throws {
+        pushMonitorTakingPictureState()
+
+        fakeMP.connectedPeers = [peer]
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning,
+                       "DisconnectPeer must pop to scanning even when connectedPeers is non-empty (race condition)")
+    }
+
+    func testMonitorRecordingVideoDisconnectPeerRaceCondition() throws {
+        pushMonitorRecordingVideoState()
+
+        fakeMP.connectedPeers = [peer]
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning,
+                       "DisconnectPeer must pop to scanning even when connectedPeers is non-empty (race condition)")
+    }
+
+    func testMonitorWaitingForVideoDisconnectPeerRaceCondition() throws {
+        pushMonitorWaitingForVideoState()
+
+        fakeMP.connectedPeers = [peer]
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning,
+                       "DisconnectPeer must pop to scanning even when connectedPeers is non-empty (race condition)")
+    }
+
+    func testMonitorTogglingFlashDisconnectPeerRaceCondition() throws {
+        pushMonitorTogglingFlashState()
+
+        fakeMP.connectedPeers = [peer]
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning,
+                       "DisconnectPeer must pop to scanning even when connectedPeers is non-empty (race condition)")
+    }
+
+    func testMonitorTogglingCameraDisconnectPeerRaceCondition() throws {
+        pushMonitorTogglingCameraState()
+
+        fakeMP.connectedPeers = [peer]
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning,
+                       "DisconnectPeer must pop to scanning even when connectedPeers is non-empty (race condition)")
+    }
+
+    func testMonitorSwitchingLensDisconnectPeerRaceCondition() throws {
+        pushMonitorSwitchingLensState()
+
+        fakeMP.connectedPeers = [peer]
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentState()?.0, session.states.scanning,
+                       "DisconnectPeer must pop to scanning even when connectedPeers is non-empty (race condition)")
     }
 
 }

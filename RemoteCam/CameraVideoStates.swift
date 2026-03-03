@@ -31,10 +31,9 @@ extension RemoteCamSession {
                 )
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
-                    self.popAndStartScanning()
-                    ctrl.stopRecordingVideo(false)
-                }
+                self.popAndStartScanning()
+                ctrl.stopRecordingVideo(false)
+                
 
             case is Disconnect:
                 ctrl.stopRecordingVideo(false)
@@ -65,7 +64,6 @@ extension RemoteCamSession {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
-                // Progress UI handled by SwiftUI components
                 break
                 
             // MARK: - Video Transfer Progress Handling
@@ -97,12 +95,11 @@ extension RemoteCamSession {
                 }
                 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
-                    // Progress UI handled by SwiftUI - no alert to dismiss
-                    self.mailbox.addOperation {
-                        self.popAndStartScanning()
-                    }
+                // Progress UI handled by SwiftUI - no alert to dismiss
+                self.mailbox.addOperation {
+                    self.popAndStartScanning()
                 }
+                
 
             case is Disconnect:
                 // Progress UI handled by SwiftUI - no alert to dismiss

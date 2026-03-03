@@ -25,7 +25,6 @@ extension RemoteCamSession {
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
-
             case is UICmd.ToggleFlash:
                 if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleFlash()) as? Failure {
                     self.this ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: f.error)
@@ -52,12 +51,11 @@ extension RemoteCamSession {
                 }
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
-                    ^{ [weak self] in
-                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
-                    }
-                    self.popAndStartScanning()
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
+                self.popAndStartScanning()
+            
 
             case is Disconnect:
                 ^{ [weak self] in
@@ -121,12 +119,11 @@ extension RemoteCamSession {
                 }
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
-                    ^{ [weak self] in
-                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
-                    }
-                    self.popAndStartScanning()
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
+                self.popAndStartScanning()
+                
 
             case is Disconnect:
                 ^{ [weak self] in
@@ -197,12 +194,11 @@ extension RemoteCamSession {
                 }
 
             case let c as DisconnectPeer:
-                if c.peer.displayName == peer.displayName {
-                    ^{ [weak self] in
-                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
-                    }
-                    self.popAndStartScanning()
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
+                self.popAndStartScanning()
+                
 
             case is Disconnect:
                 ^{ [weak self] in

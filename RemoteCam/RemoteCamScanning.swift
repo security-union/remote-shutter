@@ -38,6 +38,7 @@ extension RemoteCamSession {
                 }
                 self.startScanning(lobby: lobby)
             case let w as ConnectToDevice:
+                guard let session = session else { return }
                 lobby.scanner.invitePeer(w.peer, to: session, withContext: nil, timeout: 5)
                 ^{
                     lobby.splash.startAnimating()

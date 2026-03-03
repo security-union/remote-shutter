@@ -30,7 +30,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
     var multipeerService: (any MultipeerServiceProtocol)!
 
-    var session: MCSession! { multipeerService?.session }
+    var session: MCSession? { multipeerService?.session }
 
     var connectedPeers: [MCPeerID] { multipeerService?.connectedPeers ?? [] }
 

@@ -111,7 +111,7 @@ public class DeviceScannerViewController: UIViewController {
     
     
     let frameSender: ActorRef! = RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
-    
+
     let remoteCamSession: ActorRef! = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
 
     public override func viewDidLoad() {
@@ -455,6 +455,7 @@ extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegat
 
 extension DeviceScannerViewController: MCNearbyServiceBrowserDelegate {
     public func browser(_ browser: MCNearbyServiceBrowser, foundPeer peerID: MCPeerID, withDiscoveryInfo info: [String : String]?) {
+        guard !connectedPeers.contains(peerID) else { return }
         connectedPeers.append(peerID)
         
         // Enable speed run scanning for future visits - user has successfully found a peer
