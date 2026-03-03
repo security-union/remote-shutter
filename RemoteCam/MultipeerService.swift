@@ -41,6 +41,9 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     var session: MCSession!
     private var mcAdvertiserAssistant: MCAdvertiserAssistant!
     var progressCancellables = Set<AnyCancellable>()
+    /// Pending disconnect work items keyed by MCPeerID (object identity).
+    /// A .notConnected schedules a 1s delayed disconnect; .connecting/.connected cancels it.
+    private var pendingDisconnects: [MCPeerID: DispatchWorkItem] = [:]
 
     var connectedPeers: [MCPeerID] { session?.connectedPeers ?? [] }
 
@@ -53,6 +56,8 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     }
 
     func stopSession() {
+        pendingDisconnects.values.forEach { $0.cancel() }
+        pendingDisconnects.removeAll()
         mcAdvertiserAssistant?.stop()
         session?.disconnect()
         session?.delegate = nil
@@ -86,17 +91,37 @@ class MultipeerService: NSObject, MCSessionDelegate, MultipeerServiceProtocol {
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         switch state {
         case .connected:
-            print("Connected: \(peerID.displayName)")
+            print("Connected: \(peerID)")
+            cancelPendingDisconnect(for: peerID)
             delegate?.peerDidConnect(peerID)
         case .connecting:
-            print("Connecting: \(peerID.displayName)")
+            print("Connecting: \(peerID)")
+            cancelPendingDisconnect(for: peerID)
         case .notConnected:
-            print("Not Connected: \(peerID.displayName)")
-            delegate?.peerDidDisconnect(peerID)
+            print("Not Connected: \(peerID) — scheduling 1s debounce")
+            scheduleDisconnect(for: peerID)
         @unknown default:
             print("unknown default")
             fatalError()
         }
+    }
+
+    private func cancelPendingDisconnect(for peerID: MCPeerID) {
+        if let pending = pendingDisconnects.removeValue(forKey: peerID) {
+            print("Cancelled pending disconnect for \(peerID.displayName)")
+            pending.cancel()
+        }
+    }
+
+    private func scheduleDisconnect(for peerID: MCPeerID) {
+        cancelPendingDisconnect(for: peerID)
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.pendingDisconnects.removeValue(forKey: peerID)
+            print("Disconnect debounce fired for \(peerID.displayName)")
+            self?.delegate?.peerDidDisconnect(peerID)
+        }
+        pendingDisconnects[peerID] = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
     }
 
     public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {

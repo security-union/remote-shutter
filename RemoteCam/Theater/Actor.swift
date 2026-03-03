@@ -177,9 +177,6 @@ open class Actor : NSObject {
     final public func become(name : String, state : @escaping Receive, discardOld : Bool) -> Void  {
         if discardOld { self.statesStack.popAndThrowAway() }
         self.statesStack.push(element: (name, state))
-        #if DEBUG
-        DebugStateOverlay.shared.update(state: name)
-        #endif
         this ! OnEnter()
     }
 
@@ -189,11 +186,6 @@ open class Actor : NSObject {
 
     final public func unbecome() {
         self.statesStack.popAndThrowAway()
-        #if DEBUG
-        if let (name, _) = self.statesStack.head() {
-            DebugStateOverlay.shared.update(state: name)
-        }
-        #endif
         this ! OnEnter()
     }
     

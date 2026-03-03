@@ -22,6 +22,7 @@ extension RemoteCamSession {
                  is UICmd.BecomeCamera,
                  is UICmd.BecomeMonitor,
                  is UICmd.StartScanning:
+                self.updateDebugStateOverlay()
                 ^{
                     lobby.splash.stopAnimating()
                 }

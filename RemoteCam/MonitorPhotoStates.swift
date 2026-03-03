@@ -45,6 +45,7 @@ extension RemoteCamSession {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
+                self.updateDebugStateOverlay()
                 monitor ! UICmd.RenderPhotoMode()
                 self.requestFrame([peer])
 
@@ -160,6 +161,9 @@ extension RemoteCamSession {
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+            case is OnEnter:
+                self.updateDebugStateOverlay()
+
             case is RemoteCmd.TakePicAck:
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.updateAlert(h, title: "Receiving picture") }

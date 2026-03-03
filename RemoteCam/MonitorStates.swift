@@ -25,6 +25,9 @@ extension RemoteCamSession {
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+            case is OnEnter:
+                self.updateDebugStateOverlay()
+
             case is UICmd.ToggleFlash:
                 if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleFlash()) as? Failure {
                     self.this ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: f.error)
@@ -85,6 +88,9 @@ extension RemoteCamSession {
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+            case is OnEnter:
+                self.updateDebugStateOverlay()
+
             case let lensCmd as UICmd.SwitchLens:
                 if let f = self.sendMessage(
                     peer: [peer], msg: RemoteCmd.SwitchLens(lensType: lensCmd.lensType)) as? Failure {
@@ -152,6 +158,9 @@ extension RemoteCamSession {
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+            case is OnEnter:
+                self.updateDebugStateOverlay()
+
             case is UICmd.ToggleCamera:
                 if let f = self.sendMessage(
                     peer: [peer], msg: RemoteCmd.ToggleCamera()) as? Failure {

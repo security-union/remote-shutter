@@ -24,6 +24,7 @@ extension RemoteCamSession {
             }
             switch msg {
             case is OnEnter:
+                self.updateDebugStateOverlay()
                 ^{
                     lobby.stopScanning()
                 }

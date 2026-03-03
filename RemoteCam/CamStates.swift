@@ -66,6 +66,9 @@ extension RemoteCamSession {
         }
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+            case is OnEnter:
+                self.updateDebugStateOverlay()
+
             case let t as UICmd.OnPicture:
                 if let imageData = t.pic {
                     savePicture(imageData)
@@ -118,6 +121,7 @@ extension RemoteCamSession {
             
             switch msg {
             case is OnEnter:
+                self.updateDebugStateOverlay()
                 print("🔍 DEBUG: Camera starting up")
                 getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
                 

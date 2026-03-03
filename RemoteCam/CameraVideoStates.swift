@@ -19,6 +19,7 @@ extension RemoteCamSession {
             switch msg {
             
             case is OnEnter:
+                self.updateDebugStateOverlay()
                 getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
 
             case let stop as RemoteCmd.StopRecordingVideo:
@@ -64,8 +65,8 @@ extension RemoteCamSession {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
-                break
-                
+                self.updateDebugStateOverlay()
+
             // MARK: - Video Transfer Progress Handling
             case let started as UICmd.VideoResourceTransferStarted:
                 ctrl.cameraViewModel.startVideoTransfer(totalBytes: started.totalBytes)

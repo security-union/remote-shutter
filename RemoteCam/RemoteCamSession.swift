@@ -38,6 +38,14 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         super.init(context: context, ref: ref)
     }
 
+    func updateDebugStateOverlay() {
+        #if DEBUG
+        if let (name, _) = self.currentState() {
+            DebugStateOverlay.shared.update(state: name)
+        }
+        #endif
+    }
+
     override public func willStop() {
         multipeerService?.stopSession()
     }
@@ -55,19 +63,18 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
     }
 
     func popAndStartScanning() {
-        // Stop the old session immediately so the MCAdvertiserAssistant can't
-        // accept new connections before the scanning state creates a fresh session.
-        // Without this, a fast reconnect can land on the old MCSession whose
-        // delegate chain gets orphaned when startScanning replaces the service.
+        // Trash the old service so stale disconnect callbacks
+        // from a previous peer can never reach us.
         self.multipeerService?.stopSession()
+        self.multipeerService = nil
         self.popToState(name: self.states.scanning)
     }
 
     func startScanning(lobby: DeviceScannerViewController) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
-        // Stop the old session immediately to prevent the MCAdvertiserAssistant
-        // from accepting new connections while we animate back to scanning.
+        // Trash the old service before creating a fresh one.
         self.multipeerService?.stopSession()
+        self.multipeerService = nil
         ^{
             CATransaction.begin()
             CATransaction.setCompletionBlock {

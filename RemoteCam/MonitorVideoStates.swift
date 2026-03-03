@@ -21,6 +21,7 @@ extension MonitorVideoStates {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
+                self.updateDebugStateOverlay()
                 monitor ! UICmd.RenderVideoMode()
                 self.requestFrame([peer])
 
@@ -123,6 +124,7 @@ extension MonitorVideoStates {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
+                self.updateDebugStateOverlay()
                 monitor ! UICmd.RenderVideoModeRecording()
                 self.requestFrame([peer])
 
@@ -192,6 +194,7 @@ extension MonitorVideoStates {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
+                self.updateDebugStateOverlay()
                 monitor ! UICmd.RenderVideoMode()  // Reset UI to responsive state
                 // Progress UI handled by SwiftUI components
 
