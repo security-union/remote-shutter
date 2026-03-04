@@ -9,7 +9,7 @@ permissions:
 jobs:
   release:
     name: Build & Upload to App Store
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,7 +17,7 @@ jobs:
 
       - uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4'
+          xcode-version: '26.2'
 
       - uses: ruby/setup-ruby@v1
         with:
