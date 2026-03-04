@@ -1,18 +1,21 @@
-Remote Shutter is an application that requires two devices. It works on both macOS and iOS. 
+Turn any two devices into a wireless remote camera system — no internet, no WiFi, no account needed. Just connect and shoot.
 
-With Remote Shutter one of your devices is the camera remote or camera monitor, and the other device would be set up wherever you would like to take a picture as the camera. Using the connected phone you can take pictures from up to 50 feet away.
+Remote Shutter uses peer-to-peer technology to link two devices directly. One becomes the camera, the other becomes your remote control with a live monitor. Perfect for group photos, selfies, tripod shots, creative angles, and hands-free photography.
 
-Remote Shutter makes it easy to take pictures of things at weird angles and that would put you in an uncomfortable position. Take Remote Shutter for a spin for free!
-
-Features:
-- Take pictures from up to 50ft away
-- Toggle the camera orientation
-- Use the camera flash
-- Adjustable camera timer
+FEATURES
+- Wireless remote shutter from up to 50 feet away
+- Live camera preview on your remote device
+- Switch between front and rear cameras remotely
+- Camera flash control
+- Adjustable photo timer
+- Record video remotely
+- Works with iPhone, iPad, and Mac
+- No internet or WiFi network required — direct device-to-device connection
 
 HOW TO USE
+1. Open Remote Shutter on two devices
+2. Devices connect automatically via peer-to-peer
+3. Choose which device is the camera and which is the remote
+4. Start shooting from anywhere in the room!
 
-When you first open the app the phone will start searching for devices to connect with. The camera connects with a P2P connection to the other device. Once the devices are connected you will have to choose which device is the camera and which phone is the remote. 
-1. Connect your devices
-2. Choose which role the device has (camera or remote)
-3. Set up & take pictures!
+Whether you're setting up a family photo, recording content, or capturing hard-to-reach angles, Remote Shutter gives you full wireless control of your camera from another device.
