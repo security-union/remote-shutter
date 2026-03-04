@@ -436,6 +436,7 @@ def convert_svg_to_png_inkscape(svg_file, png_file, width, height):
             "--export-type=png",
             f"--export-width={width}",
             f"--export-height={height}",
+            f"--export-background=black",
             f"--export-filename={png_file}",
             str(svg_file)
         ]
@@ -460,6 +461,7 @@ def convert_svg_to_png(svg_file, png_file, width, height):
             "rsvg-convert",
             "--width", str(width),
             "--height", str(height),
+            "--background-color=black",
             "--format", "png",
             "--output", str(png_file),
             str(svg_file)
