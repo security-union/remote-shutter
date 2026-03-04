@@ -1,6 +1,6 @@
 
 <p align="center" >
-  <img src="Docs/icon.png" title="Remote Shutter" width="200" float=left>
+  <img src="RemoteCam/Assets.xcassets/AppIcon.appiconset/1024.png" title="Remote Shutter" width="200" float=left>
 </p>
 
 # Remote shutter: camera connect
