@@ -16,10 +16,36 @@ from pathlib import Path
 
 # Device configurations
 DEVICES = {
-    "iphone_max": {"name": "iPhone 15 Pro Max", "width": 1290, "height": 2796},
-    "iphone": {"name": "iPhone 15 Pro", "width": 1284, "height": 2778},
-    "ipad": {"name": "iPad Pro 11", "width": 1640, "height": 2360},
-    "ipad_pro_12_9": {"name": "iPad Pro 12.9", "width": 2048, "height": 2732}
+    "iphone_67": {
+        "name": "iPhone 15 Pro Max",
+        "template_name": "iphone_15_pro_max",
+        "fastlane_family": "APP_IPHONE_67",
+        "width": 1290, "height": 2796,
+    },
+    "iphone_65": {
+        "name": "iPhone 15 Pro",
+        "template_name": "iphone_15_pro",
+        "fastlane_family": "APP_IPHONE_65",
+        "width": 1284, "height": 2778,
+    },
+    "iphone_55": {
+        "name": "iPhone 8 Plus",
+        "template_name": "iphone_15_pro",  # reuse 6.5" template, resize on export
+        "fastlane_family": "APP_IPHONE_55",
+        "width": 1242, "height": 2208,
+    },
+    "ipad_pro_11": {
+        "name": "iPad Pro 11",
+        "template_name": "ipad_pro_11",
+        "fastlane_family": "APP_IPAD_PRO_3GEN_11",
+        "width": 1640, "height": 2360,
+    },
+    "ipad_pro_12_9": {
+        "name": "iPad Pro 12.9",
+        "template_name": "ipad_pro_12.9",
+        "fastlane_family": "APP_IPAD_PRO_3GEN_129",
+        "width": 2048, "height": 2732,
+    },
 }
 
 # Localization data
@@ -164,6 +190,15 @@ LOCALIZATIONS = {
             "remote": "Remote"
         }
     }
+}
+
+# Map script language codes to fastlane locale directory names
+LANG_TO_LOCALE = {
+    "en": "en-US",
+    "es": "es-MX",
+    "fr": "fr-FR",
+    "da": "da",
+    "it": "it",
 }
 
 def detect_package_manager():
@@ -407,47 +442,48 @@ def replace_text_in_svg(svg_content, lang, screenshot_type):
     
     return svg_content
 
-def generate_svg_from_template(device_config, lang, screenshot_type, output_dir, png_enabled):
-    """Generate SVG from template for specific device, language, and screenshot type"""
-    
-    # Create language directory first, then device directory
-    lang_dir = output_dir / lang
+def generate_svg_from_template(device_config, lang, screenshot_type, svg_work_dir, fastlane_dir, locale, png_enabled):
+    """Generate SVG from template for specific device, language, and screenshot type.
+
+    SVG intermediates go to svg_work_dir/<lang>/<device>/.
+    PNGs go to fastlane_dir/<locale>/ with fastlane naming.
+    """
+
+    # Create SVG working directory (for intermediates)
+    lang_dir = svg_work_dir / lang
     lang_dir.mkdir(exist_ok=True)
-    
     device_dir = lang_dir / device_config['name'].lower().replace(' ', '_')
     device_dir.mkdir(exist_ok=True)
-    
-    # Load template
-    template_name = f"{screenshot_type}_{device_config['name'].lower().replace(' ', '_')}.svg"
+
+    # Load template using template_name field
+    template_name = f"{screenshot_type}_{device_config['template_name']}.svg"
     template_path = Path("svg_templates") / template_name
-    
+
     if not template_path.exists():
         print(f"❌ Template not found: {template_path}")
         return False
-    
+
     # Load localization data
     lang_file = Path("localization") / f"{lang}.json"
     if not lang_file.exists():
         print(f"❌ Localization file not found: {lang_file}")
         return False
-    
+
     with open(lang_file, 'r', encoding='utf-8') as f:
         lang_data = json.load(f)
-    
+
     # Load template content
     with open(template_path, 'r', encoding='utf-8') as f:
         template_content = f.read()
-    
+
     # Replace placeholders
     if screenshot_type == "screenshot1":
-        # Screenshot 1: Title, Subtitle, Description
         replacements = {
             "{{TITLE}}": lang_data.get(screenshot_type, {}).get("title", ""),
             "{{SUBTITLE}}": lang_data.get(screenshot_type, {}).get("subtitle", ""),
             "{{DESCRIPTION}}": lang_data.get(screenshot_type, {}).get("description", "")
         }
     elif screenshot_type == "screenshot4":
-        # Screenshot 4: Feature lines + CAMERA and REMOTE
         feature_lines = lang_data.get(screenshot_type, {}).get("feature", "").split('\n')
         replacements = {
             "{{FEATURE_LINE1}}": feature_lines[0] if len(feature_lines) > 0 else "",
@@ -459,7 +495,6 @@ def generate_svg_from_template(device_config, lang, screenshot_type, output_dir,
             "{{REMOTE}}": lang_data.get(screenshot_type, {}).get("remote", "Remote")
         }
     else:
-        # Screenshots 2, 3: Feature lines
         feature_lines = lang_data.get(screenshot_type, {}).get("feature", "").split('\n')
         replacements = {
             "{{FEATURE_LINE1}}": feature_lines[0] if len(feature_lines) > 0 else "",
@@ -467,54 +502,72 @@ def generate_svg_from_template(device_config, lang, screenshot_type, output_dir,
             "{{FEATURE_LINE3}}": feature_lines[2] if len(feature_lines) > 2 else "",
             "{{FEATURE}}": lang_data.get(screenshot_type, {}).get("feature", "")
         }
-    
+
     # Apply replacements
     for placeholder, value in replacements.items():
         template_content = template_content.replace(placeholder, value)
-    
-    # Generate output filename
-    output_filename = f"{screenshot_type}_{lang}.svg"
-    output_path = device_dir / output_filename
-    
-    # Write SVG file
-    with open(output_path, 'w', encoding='utf-8') as f:
+
+    # Write SVG intermediate
+    svg_filename = f"{screenshot_type}_{lang}.svg"
+    svg_path = device_dir / svg_filename
+    with open(svg_path, 'w', encoding='utf-8') as f:
         f.write(template_content)
-    
-    print(f"Generated: {output_path}")
-    
-    # Convert to PNG if converter is available
+    print(f"Generated SVG: {svg_path}")
+
+    # Convert to PNG with fastlane naming
     if png_enabled:
-        png_filename = f"{screenshot_type}_{lang}.png"
-        png_path = device_dir / png_filename
-        
-        if convert_svg_to_png(output_path, png_path, device_config['width'], device_config['height']):
+        # screenshot1 -> index 0, screenshot2 -> index 1, etc.
+        screenshot_index = int(screenshot_type.replace("screenshot", "")) - 1
+        fastlane_family = device_config['fastlane_family']
+
+        # Fastlane naming: <index>_<DEVICE_FAMILY>_<index>.png
+        png_filename = f"{screenshot_index}_{fastlane_family}_{screenshot_index}.png"
+        locale_dir = fastlane_dir / locale
+        locale_dir.mkdir(parents=True, exist_ok=True)
+        png_path = locale_dir / png_filename
+
+        if convert_svg_to_png(svg_path, png_path, device_config['width'], device_config['height']):
+            print(f"✅ PNG: {png_path}")
             return True
         else:
-            print(f"⚠️  PNG conversion failed for {output_filename}")
+            print(f"⚠️  PNG conversion failed for {svg_filename}")
             return False
-    
+
     return True
 
 def generate_all_screenshots():
-    """Generate all screenshots for all devices and languages"""
-    
-    # Create output directory
-    output_dir = Path("screenshots")
-    output_dir.mkdir(exist_ok=True)
-    
+    """Generate all screenshots for all devices and languages.
+
+    SVG intermediates go to screenshots/.
+    PNGs go to fastlane/screenshots/<locale>/ with fastlane naming.
+    """
+
+    # SVG working directory (intermediates)
+    svg_work_dir = Path("screenshots")
+    svg_work_dir.mkdir(exist_ok=True)
+
+    # Fastlane output directory
+    fastlane_dir = Path("fastlane") / "screenshots"
+    fastlane_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create locale subdirectories
+    for lang, locale in LANG_TO_LOCALE.items():
+        (fastlane_dir / locale).mkdir(exist_ok=True)
+
     # Create templates directory if it doesn't exist
     templates_dir = Path("svg_templates")
     templates_dir.mkdir(exist_ok=True)
-    
+
     print("🎨 Generating Remote Shutter Screenshots...")
-    print(f"📁 Output directory: {output_dir.absolute()}")
+    print(f"📁 SVG working directory: {svg_work_dir.absolute()}")
+    print(f"📁 PNG output directory: {fastlane_dir.absolute()}")
     print(f"📁 Templates directory: {templates_dir.absolute()}")
     print()
-    
+
     # Check and ensure converter availability
     png_enabled = ensure_rsvg_convert()
     inkscape_available = check_inkscape() is not None
-    
+
     if png_enabled:
         print("✅ rsvg-convert found - PNG conversion enabled")
         if inkscape_available:
@@ -526,7 +579,7 @@ def generate_all_screenshots():
         print("⚠️  No SVG converters found - only SVG files will be generated")
         print("   Install rsvg-convert or Inkscape for PNG conversion")
     print()
-    
+
     # Check if templates exist
     if not list(templates_dir.glob("*.svg")):
         print("⚠️  No SVG templates found!")
@@ -553,65 +606,51 @@ def generate_all_screenshots():
         print("   {{FEATURE_LINE2}} - Second line of feature text")
         print("   {{FEATURE_LINE3}} - Third line of feature text")
         return
-    
+
     total_screenshots = len(DEVICES) * len(LOCALIZATIONS) * 4
     current = 0
-    
+
     for lang in LOCALIZATIONS.keys():
-        print(f"🌍 Language: {lang}")
-        
+        locale = LANG_TO_LOCALE[lang]
+        print(f"🌍 Language: {lang} (locale: {locale})")
+
         for device_name, device_config in DEVICES.items():
-            print(f"  📱 Device: {device_config['name']}")
-            
-            # Generate Screenshot 1
-            generate_svg_from_template(device_config, lang, "screenshot1", output_dir, png_enabled)
-            current += 1
-            
-            # Generate Screenshot 2
-            generate_svg_from_template(device_config, lang, "screenshot2", output_dir, png_enabled)
-            current += 1
-            
-            # Generate Screenshot 3
-            generate_svg_from_template(device_config, lang, "screenshot3", output_dir, png_enabled)
-            current += 1
-            
-            # Generate Screenshot 4
-            generate_svg_from_template(device_config, lang, "screenshot4", output_dir, png_enabled)
-            current += 1
-            
+            print(f"  📱 Device: {device_config['name']} ({device_config['fastlane_family']})")
+
+            for i in range(1, 5):
+                screenshot_type = f"screenshot{i}"
+                generate_svg_from_template(
+                    device_config, lang, screenshot_type,
+                    svg_work_dir, fastlane_dir, locale, png_enabled
+                )
+                current += 1
+
             print(f"    ✅ Generated 4 screenshots ({current}/{total_screenshots})")
-    
+
     print()
     print("🎉 All screenshots generated successfully!")
     print(f"📊 Total screenshots: {total_screenshots}")
     print(f"📱 Devices: {len(DEVICES)}")
     print(f"🌍 Languages: {len(LOCALIZATIONS)}")
     print(f"🖼️  Screenshots per device/language: 4")
-    
+
     if png_enabled:
-        print(f"📄 Format: SVG + PNG")
+        print(f"📄 Format: SVG (working) + PNG (fastlane)")
         print(f"📏 PNG resolutions:")
         for device_name, device_config in DEVICES.items():
-            print(f"   - {device_config['name']}: {device_config['width']} x {device_config['height']}")
+            print(f"   - {device_config['name']} ({device_config['fastlane_family']}): {device_config['width']} x {device_config['height']}")
     else:
         print(f"📄 Format: SVG only (install rsvg-convert or Inkscape for PNG conversion)")
-    
+
     print()
-    print("📁 New directory structure:")
-    print("   screenshots/")
-    for lang in LOCALIZATIONS.keys():
-        print(f"   ├── {lang}/")
+    print("📁 Fastlane directory structure:")
+    print("   fastlane/screenshots/")
+    for lang, locale in LANG_TO_LOCALE.items():
+        print(f"   ├── {locale}/")
         for device_name, device_config in DEVICES.items():
-            device_dir = device_config['name'].lower().replace(' ', '_')
-            print(f"   │   ├── {device_dir}/")
-            print(f"   │   │   ├── screenshot1_{lang}.svg")
-            print(f"   │   │   ├── screenshot1_{lang}.png")
-            print(f"   │   │   ├── screenshot2_{lang}.svg")
-            print(f"   │   │   ├── screenshot2_{lang}.png")
-            print(f"   │   │   ├── screenshot3_{lang}.svg")
-            print(f"   │   │   ├── screenshot3_{lang}.png")
-            print(f"   │   │   ├── screenshot4_{lang}.svg")
-            print(f"   │   │   └── screenshot4_{lang}.png")
+            family = device_config['fastlane_family']
+            for i in range(4):
+                print(f"   │   ├── {i}_{family}_{i}.png")
 
 def create_localization_files():
     """Create JSON files for each language for easy editing"""
