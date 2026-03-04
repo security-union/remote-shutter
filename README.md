@@ -7,9 +7,10 @@
 ## P2P Remote control camera
 
 <p align="center" >
-  <img src="store_assets/2.1/imgs/iphone_8_plus/3.png" width="200" title="Pic 1" float=left>
-  <img src="store_assets/2.1/imgs/iphone_8_plus/5.png" width="200" title="Pic 2" float=left>
-  <img src="store_assets/2.1/imgs/iphone_8_plus/1.png" width="200" title="Pic 3" float=left>
+  <img src="fastlane/screenshots/en-US/0_APP_IPHONE_67_0.png" width="200" title="Screenshot 1" float=left>
+  <img src="fastlane/screenshots/en-US/1_APP_IPHONE_67_1.png" width="200" title="Screenshot 2" float=left>
+  <img src="fastlane/screenshots/en-US/2_APP_IPHONE_67_2.png" width="200" title="Screenshot 3" float=left>
+  <img src="fastlane/screenshots/en-US/3_APP_IPHONE_67_3.png" width="200" title="Screenshot 4" float=left>
 </p>
 
 <p align="center">
