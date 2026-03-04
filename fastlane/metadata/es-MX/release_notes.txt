@@ -1,1 +1,2 @@
-Se agregó un interruptor en la pantalla de configuración para deshabilitar el envío de videos/imágenes al control remoto.
+- Corrección de errores de conectividad
+- Reducción del número de pasos para conectar dispositivos

@@ -1,0 +1,28 @@
+{
+  "screenshot1": {
+    "title": "Remote Shutter",
+    "subtitle": "어디서든",
+    "description": "촬영하세요",
+    "feature": "최대 15미터\n떨어진 곳에서\n촬영 가능!"
+  },
+  "screenshot2": {
+    "title": "Remote Shutter",
+    "subtitle": "어디서든",
+    "description": "촬영하세요",
+    "feature": "최대 15미터\n떨어진 곳에서\n촬영 가능!"
+  },
+  "screenshot3": {
+    "title": "추억을",
+    "subtitle": "원하는 대로",
+    "description": "담아보세요",
+    "feature": "자유로운\n각도로\n촬영!"
+  },
+  "screenshot4": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "무선 연결\n기기 간 직접 연결\n인터넷 불필요",
+    "camera": "카메라",
+    "remote": "리모컨"
+  }
+}

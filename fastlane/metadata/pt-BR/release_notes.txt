@@ -1,1 +1,2 @@
-Adicionado interruptor na tela de configurações para desativar o envio de vídeos/imagens para o controle remoto.
+- Correção de bugs de conectividade
+- Redução do número de etapas para conectar dispositivos
