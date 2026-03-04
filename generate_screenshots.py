@@ -162,6 +162,62 @@ LOCALIZATIONS = {
             "remote": "Control"
         }
     },
+    "de": {
+        "screenshot1": {
+            "title": "Remote Shutter",
+            "subtitle": "Machen Sie Fotos",
+            "description": "von überall.",
+            "feature": "Funktioniert aus\nbis zu 15\nMetern Entfernung!"
+        },
+        "screenshot2": {
+            "title": "Remote Shutter",
+            "subtitle": "Machen Sie Fotos",
+            "description": "von überall.",
+            "feature": "Funktioniert aus\nbis zu 15\nMetern Entfernung!"
+        },
+        "screenshot3": {
+            "title": "Erinnerungen",
+            "subtitle": "Genau So",
+            "description": "Festhalten",
+            "feature": "Perfekt für\nkreative\nBlickwinkel!"
+        },
+        "screenshot4": {
+            "title": "Einrichtung",
+            "subtitle": "Schnellstart",
+            "description": "Anleitung",
+            "feature": "Anleitung\nÜberprüfen Sie dass WLAN aktiv ist\nStarten Sie diese App\nauf einem zweiten Gerät",
+            "camera": "Kamera",
+            "remote": "Fernbedienung"
+        }
+    },
+    "pt": {
+        "screenshot1": {
+            "title": "Remote Shutter",
+            "subtitle": "Tire fotos",
+            "description": "de qualquer lugar.",
+            "feature": "Funciona até\n50 pés\nde distância!"
+        },
+        "screenshot2": {
+            "title": "Remote Shutter",
+            "subtitle": "Tire fotos",
+            "description": "de qualquer lugar.",
+            "feature": "Funciona até\n50 pés\nde distância!"
+        },
+        "screenshot3": {
+            "title": "Capture Memórias",
+            "subtitle": "Exatamente Como",
+            "description": "Você As Quer",
+            "feature": "Perfeito para\nângulos\ncriativos!"
+        },
+        "screenshot4": {
+            "title": "Guia de Configuração",
+            "subtitle": "Início Rápido",
+            "description": "Instruções",
+            "feature": "Instruções\nVerifique que o wifi está ativado\nAbra este app\nem um segundo dispositivo",
+            "camera": "Câmera",
+            "remote": "Controle"
+        }
+    },
     "da": {
         "screenshot1": {
             "title": "Remote Shutter",
@@ -199,6 +255,8 @@ LANG_TO_LOCALE = {
     "fr": "fr-FR",
     "da": "da",
     "it": "it",
+    "pt": "pt-BR",
+    "de": "de-DE",
 }
 
 def detect_package_manager():
