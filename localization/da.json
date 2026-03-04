@@ -24,5 +24,13 @@
     "feature": "Instruktioner\nKontroller at wifi er tændt\nStart denne app\npå en anden enhed",
     "camera": "Kamera",
     "remote": "Remote"
+  },
+  "screenshot5": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "Trådløs Forbindelse\nEnhed til Enhed\nIntet Internet Påkrævet",
+    "camera": "Kamera",
+    "remote": "Remote"
   }
 }

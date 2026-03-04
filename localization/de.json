@@ -24,5 +24,13 @@
     "feature": "Anleitung\nÜberprüfen Sie dass WLAN aktiv ist\nStarten Sie diese App\nauf einem zweiten Gerät",
     "camera": "Kamera",
     "remote": "Fernbedienung"
+  },
+  "screenshot5": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "Kabellos Verbinden\nGerät zu Gerät\nKein Internet Nötig",
+    "camera": "Kamera",
+    "remote": "Fernbedienung"
   }
 }

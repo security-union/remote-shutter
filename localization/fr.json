@@ -24,5 +24,13 @@
     "feature": "Instructions\nVérifiez que le wifi est activé\nLancez cette app\nsur un deuxième appareil",
     "camera": "Caméra",
     "remote": "Remote"
+  },
+  "screenshot5": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "Connexion Sans Fil\nAppareil à Appareil\nPas d'Internet Requis",
+    "camera": "Caméra",
+    "remote": "Télécommande"
   }
 }

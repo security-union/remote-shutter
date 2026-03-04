@@ -24,5 +24,13 @@
     "feature": "Istruzioni\nVerifica che il wifi sia attivo\nAvvia questa app\nsu un secondo dispositivo",
     "camera": "Camera",
     "remote": "Controllo"
+  },
+  "screenshot5": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "Connessione Wireless\nDispositivo a Dispositivo\nNessun Internet Necessario",
+    "camera": "Camera",
+    "remote": "Controllo"
   }
 }

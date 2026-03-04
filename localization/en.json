@@ -24,5 +24,13 @@
     "feature": "Instructions\nVerify that wifi is on\nLaunch this app\non a second device",
     "camera": "Camera",
     "remote": "Remote"
+  },
+  "screenshot5": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "Connect Wirelessly\nDevice to Device\nNo Internet Required",
+    "camera": "Camera",
+    "remote": "Remote"
   }
 }

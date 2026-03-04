@@ -24,5 +24,13 @@
     "feature": "Instruções\nVerifique que o wifi está ativado\nAbra este app\nem um segundo dispositivo",
     "camera": "Câmera",
     "remote": "Controle"
+  },
+  "screenshot5": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "Conecte Sem Fio\nDispositivo a Dispositivo\nSem Internet Necessária",
+    "camera": "Câmera",
+    "remote": "Controle"
   }
 }

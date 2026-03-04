@@ -24,5 +24,13 @@
     "feature": "Instrucciones\nVerifica que el wifi esté activado\nLanza esta app\nen un segundo dispositivo",
     "camera": "Cámara",
     "remote": "Control"
+  },
+  "screenshot5": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "Conecta Sin Cables\nDispositivo a Dispositivo\nSin Internet Necesario",
+    "camera": "Cámara",
+    "remote": "Control"
   }
 }

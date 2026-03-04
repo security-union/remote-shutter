@@ -76,6 +76,14 @@ LOCALIZATIONS = {
             "feature": "Instructions\nVerify that wifi is on\nLaunch this app\non a second device",
             "camera": "Camera",
             "remote": "Remote"
+        },
+        "screenshot5": {
+            "title": "",
+            "subtitle": "",
+            "description": "",
+            "feature": "Connect Wirelessly\nDevice to Device\nNo Internet Required",
+            "camera": "Camera",
+            "remote": "Remote"
         }
     },
     "it": {
@@ -102,6 +110,12 @@ LOCALIZATIONS = {
             "subtitle": "Avvio Rapido",
             "description": "Istruzioni",
             "feature": "Istruzioni\nVerifica che il wifi sia attivo\nAvvia questa app\nsu un secondo dispositivo",
+            "camera": "Camera",
+            "remote": "Controllo"
+        },
+        "screenshot5": {
+            "title": "", "subtitle": "", "description": "",
+            "feature": "Connessione Wireless\nDispositivo a Dispositivo\nNessun Internet Necessario",
             "camera": "Camera",
             "remote": "Controllo"
         }
@@ -132,6 +146,12 @@ LOCALIZATIONS = {
             "feature": "Instructions\nVérifiez que le wifi est activé\nLancez cette app\nsur un deuxième appareil",
             "camera": "Caméra",
             "remote": "Remote"
+        },
+        "screenshot5": {
+            "title": "", "subtitle": "", "description": "",
+            "feature": "Connexion Sans Fil\nAppareil à Appareil\nPas d'Internet Requis",
+            "camera": "Caméra",
+            "remote": "Télécommande"
         }
     },
     "es": {
@@ -158,6 +178,12 @@ LOCALIZATIONS = {
             "subtitle": "Inicio Rápido",
             "description": "Instrucciones",
             "feature": "Instrucciones\nVerifica que el wifi esté activado\nLanza esta app\nen un segundo dispositivo",
+            "camera": "Cámara",
+            "remote": "Control"
+        },
+        "screenshot5": {
+            "title": "", "subtitle": "", "description": "",
+            "feature": "Conecta Sin Cables\nDispositivo a Dispositivo\nSin Internet Necesario",
             "camera": "Cámara",
             "remote": "Control"
         }
@@ -188,6 +214,12 @@ LOCALIZATIONS = {
             "feature": "Anleitung\nÜberprüfen Sie dass WLAN aktiv ist\nStarten Sie diese App\nauf einem zweiten Gerät",
             "camera": "Kamera",
             "remote": "Fernbedienung"
+        },
+        "screenshot5": {
+            "title": "", "subtitle": "", "description": "",
+            "feature": "Kabellos Verbinden\nGerät zu Gerät\nKein Internet Nötig",
+            "camera": "Kamera",
+            "remote": "Fernbedienung"
         }
     },
     "pt": {
@@ -216,6 +248,12 @@ LOCALIZATIONS = {
             "feature": "Instruções\nVerifique que o wifi está ativado\nAbra este app\nem um segundo dispositivo",
             "camera": "Câmera",
             "remote": "Controle"
+        },
+        "screenshot5": {
+            "title": "", "subtitle": "", "description": "",
+            "feature": "Conecte Sem Fio\nDispositivo a Dispositivo\nSem Internet Necessária",
+            "camera": "Câmera",
+            "remote": "Controle"
         }
     },
     "da": {
@@ -242,6 +280,12 @@ LOCALIZATIONS = {
             "subtitle": "Hurtig Start",
             "description": "Instruktioner",
             "feature": "Instruktioner\nKontroller at wifi er tændt\nStart denne app\npå en anden enhed",
+            "camera": "Kamera",
+            "remote": "Remote"
+        },
+        "screenshot5": {
+            "title": "", "subtitle": "", "description": "",
+            "feature": "Trådløs Forbindelse\nEnhed til Enhed\nIntet Internet Påkrævet",
             "camera": "Kamera",
             "remote": "Remote"
         }
@@ -541,7 +585,7 @@ def generate_svg_from_template(device_config, lang, screenshot_type, svg_work_di
             "{{SUBTITLE}}": lang_data.get(screenshot_type, {}).get("subtitle", ""),
             "{{DESCRIPTION}}": lang_data.get(screenshot_type, {}).get("description", "")
         }
-    elif screenshot_type == "screenshot4":
+    elif screenshot_type in ("screenshot4", "screenshot5"):
         feature_lines = lang_data.get(screenshot_type, {}).get("feature", "").split('\n')
         replacements = {
             "{{FEATURE_LINE1}}": feature_lines[0] if len(feature_lines) > 0 else "",
@@ -665,7 +709,7 @@ def generate_all_screenshots():
         print("   {{FEATURE_LINE3}} - Third line of feature text")
         return
 
-    total_screenshots = len(DEVICES) * len(LOCALIZATIONS) * 4
+    total_screenshots = len(DEVICES) * len(LOCALIZATIONS) * 5
     current = 0
 
     for lang in LOCALIZATIONS.keys():
@@ -675,7 +719,7 @@ def generate_all_screenshots():
         for device_name, device_config in DEVICES.items():
             print(f"  📱 Device: {device_config['name']} ({device_config['fastlane_family']})")
 
-            for i in range(1, 5):
+            for i in range(1, 6):
                 screenshot_type = f"screenshot{i}"
                 generate_svg_from_template(
                     device_config, lang, screenshot_type,
@@ -683,14 +727,14 @@ def generate_all_screenshots():
                 )
                 current += 1
 
-            print(f"    ✅ Generated 4 screenshots ({current}/{total_screenshots})")
+            print(f"    ✅ Generated 5 screenshots ({current}/{total_screenshots})")
 
     print()
     print("🎉 All screenshots generated successfully!")
     print(f"📊 Total screenshots: {total_screenshots}")
     print(f"📱 Devices: {len(DEVICES)}")
     print(f"🌍 Languages: {len(LOCALIZATIONS)}")
-    print(f"🖼️  Screenshots per device/language: 4")
+    print(f"🖼️  Screenshots per device/language: 5")
 
     if png_enabled:
         print(f"📄 Format: SVG (working) + PNG (fastlane)")
@@ -707,7 +751,7 @@ def generate_all_screenshots():
         print(f"   ├── {locale}/")
         for device_name, device_config in DEVICES.items():
             family = device_config['fastlane_family']
-            for i in range(4):
+            for i in range(5):
                 print(f"   │   ├── {i}_{family}_{i}.png")
 
 def create_localization_files():
