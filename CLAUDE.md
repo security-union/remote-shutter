@@ -90,6 +90,10 @@ Note: Theater's DEBUG logging is intentionally disabled in Podfile `post_install
 
 Centralized in `FeatureFlags.swift`. Check existing flags before adding new ones.
 
+### App Store Metadata (Fastlane)
+
+Metadata lives in `fastlane/metadata/<locale>/`. When editing `keywords.txt` files, **keywords must be 100 characters or fewer** (including commas). App Store Connect will reject the upload if any locale exceeds this limit. Always verify with `wc -c` before committing. Other field limits: app name 30 chars, subtitle 30 chars, promotional text 170 chars, description 4000 chars.
+
 ### In-App Purchases
 
 Managed by `PKIAPHandler.swift` (`InAppPurchasesManager`). Product IDs: `05` (remove ads), `06` (enable video), `07` (enable torch), `08` (enable video only).
