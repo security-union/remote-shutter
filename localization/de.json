@@ -1,0 +1,28 @@
+{
+  "screenshot1": {
+    "title": "Remote Shutter",
+    "subtitle": "Machen Sie Fotos",
+    "description": "von überall.",
+    "feature": "Funktioniert aus\nbis zu 15\nMetern Entfernung!"
+  },
+  "screenshot2": {
+    "title": "Remote Shutter",
+    "subtitle": "Machen Sie Fotos",
+    "description": "von überall.",
+    "feature": "Funktioniert aus\nbis zu 15\nMetern Entfernung!"
+  },
+  "screenshot3": {
+    "title": "Erinnerungen",
+    "subtitle": "Genau So",
+    "description": "Festhalten",
+    "feature": "Perfekt für\nkreative\nBlickwinkel!"
+  },
+  "screenshot4": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "Kabellos Verbinden\nGerät zu Gerät\nKein Internet Nötig",
+    "camera": "Kamera",
+    "remote": "Fernbedienung"
+  }
+}
