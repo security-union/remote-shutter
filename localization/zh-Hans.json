@@ -1,0 +1,28 @@
+{
+  "screenshot1": {
+    "title": "Remote Shutter",
+    "subtitle": "随时随地",
+    "description": "拍照",
+    "feature": "最远可达\n15米\n远程拍摄！"
+  },
+  "screenshot2": {
+    "title": "Remote Shutter",
+    "subtitle": "随时随地",
+    "description": "拍照",
+    "feature": "最远可达\n15米\n远程拍摄！"
+  },
+  "screenshot3": {
+    "title": "记录美好",
+    "subtitle": "随心所欲",
+    "description": "留住回忆",
+    "feature": "自由角度\n创意\n拍摄！"
+  },
+  "screenshot4": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "无线连接\n设备直连\n无需网络",
+    "camera": "相机",
+    "remote": "遥控"
+  }
+}

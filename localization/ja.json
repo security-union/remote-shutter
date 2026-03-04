@@ -1,0 +1,28 @@
+{
+  "screenshot1": {
+    "title": "Remote Shutter",
+    "subtitle": "どこからでも",
+    "description": "撮影できる",
+    "feature": "最大15メートル\n離れた場所から\n撮影可能！"
+  },
+  "screenshot2": {
+    "title": "Remote Shutter",
+    "subtitle": "どこからでも",
+    "description": "撮影できる",
+    "feature": "最大15メートル\n離れた場所から\n撮影可能！"
+  },
+  "screenshot3": {
+    "title": "思い出を",
+    "subtitle": "思い通りに",
+    "description": "残そう",
+    "feature": "自由な\nアングルで\n撮影！"
+  },
+  "screenshot4": {
+    "title": "",
+    "subtitle": "",
+    "description": "",
+    "feature": "ワイヤレス接続\nデバイス同士を直接\nネット不要",
+    "camera": "カメラ",
+    "remote": "リモコン"
+  }
+}

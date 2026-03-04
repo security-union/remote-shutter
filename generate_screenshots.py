@@ -227,6 +227,84 @@ LOCALIZATIONS = {
             "camera": "Kamera",
             "remote": "Remote"
         }
+    },
+    "ja": {
+        "screenshot1": {
+            "title": "Remote Shutter",
+            "subtitle": "どこからでも",
+            "description": "撮影できる",
+            "feature": "最大15メートル\n離れた場所から\n撮影可能！"
+        },
+        "screenshot2": {
+            "title": "Remote Shutter",
+            "subtitle": "どこからでも",
+            "description": "撮影できる",
+            "feature": "最大15メートル\n離れた場所から\n撮影可能！"
+        },
+        "screenshot3": {
+            "title": "思い出を",
+            "subtitle": "思い通りに",
+            "description": "残そう",
+            "feature": "自由な\nアングルで\n撮影！"
+        },
+        "screenshot4": {
+            "title": "", "subtitle": "", "description": "",
+            "feature": "ワイヤレス接続\nデバイス同士を直接\nネット不要",
+            "camera": "カメラ",
+            "remote": "リモコン"
+        }
+    },
+    "ko": {
+        "screenshot1": {
+            "title": "Remote Shutter",
+            "subtitle": "어디서든",
+            "description": "촬영하세요",
+            "feature": "최대 15미터\n떨어진 곳에서\n촬영 가능!"
+        },
+        "screenshot2": {
+            "title": "Remote Shutter",
+            "subtitle": "어디서든",
+            "description": "촬영하세요",
+            "feature": "최대 15미터\n떨어진 곳에서\n촬영 가능!"
+        },
+        "screenshot3": {
+            "title": "추억을",
+            "subtitle": "원하는 대로",
+            "description": "담아보세요",
+            "feature": "자유로운\n각도로\n촬영!"
+        },
+        "screenshot4": {
+            "title": "", "subtitle": "", "description": "",
+            "feature": "무선 연결\n기기 간 직접 연결\n인터넷 불필요",
+            "camera": "카메라",
+            "remote": "리모컨"
+        }
+    },
+    "zh-Hans": {
+        "screenshot1": {
+            "title": "Remote Shutter",
+            "subtitle": "随时随地",
+            "description": "拍照",
+            "feature": "最远可达\n15米\n远程拍摄！"
+        },
+        "screenshot2": {
+            "title": "Remote Shutter",
+            "subtitle": "随时随地",
+            "description": "拍照",
+            "feature": "最远可达\n15米\n远程拍摄！"
+        },
+        "screenshot3": {
+            "title": "记录美好",
+            "subtitle": "随心所欲",
+            "description": "留住回忆",
+            "feature": "自由角度\n创意\n拍摄！"
+        },
+        "screenshot4": {
+            "title": "", "subtitle": "", "description": "",
+            "feature": "无线连接\n设备直连\n无需网络",
+            "camera": "相机",
+            "remote": "遥控"
+        }
     }
 }
 
@@ -239,6 +317,9 @@ LANG_TO_LOCALE = {
     "it": "it",
     "pt": "pt-BR",
     "de": "de-DE",
+    "ja": "ja",
+    "ko": "ko",
+    "zh-Hans": "zh-Hans",
 }
 
 def detect_package_manager():

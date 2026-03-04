@@ -1,1 +1,2 @@
-Schalter im Einstellungsbildschirm hinzugefügt, um das Senden von Videos/Bildern an die Fernbedienung zu deaktivieren.
+- Verbindungsfehler behoben
+- Anzahl der Schritte zum Verbinden der Geräte reduziert

@@ -1,1 +1,2 @@
-Added switch in settings screen to disable sending video/pictures to the remote.
+- Rettet forbindelsesfejl
+- Reduceret antal trin for at forbinde enheder

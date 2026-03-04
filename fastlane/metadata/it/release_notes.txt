@@ -1,1 +1,2 @@
-Aggiunto interruttore nella schermata delle impostazioni per disabilitare l'invio di video/immagini al telecomando.
+- Risolti bug di connettività
+- Ridotto il numero di passaggi per connettere i dispositivi

@@ -1,1 +1,2 @@
-Ajout d'un commutateur dans l'écran des paramètres pour désactiver l'envoi de vidéos/images à la télécommande.
+- Correction de bugs de connectivité
+- Réduction du nombre d'étapes pour connecter les appareils
