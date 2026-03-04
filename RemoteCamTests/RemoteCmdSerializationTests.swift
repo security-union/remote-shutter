@@ -45,6 +45,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.TakePicResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
+        case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
@@ -648,6 +649,60 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.camOrientation, .portraitUpsideDown)
         XCTAssertEqual(decoded.camPosition, .front)
     }
+
+    // MARK: - SendFrame with H.265 fields
+
+    func testSendFrame_withKeyframeAndParameterSets() {
+        let frameData = Data(repeating: 0xFF, count: 128)
+        let paramSets = Data(repeating: 0xAA, count: 64)
+        let original = RemoteCmd.SendFrame(
+            data: frameData, sender: nil, fps: 30,
+            camPosition: .back, camOrientation: .landscapeRight,
+            isKeyframe: true, parameterSets: paramSets
+        )
+        let decoded: RemoteCmd.SendFrame = roundTrip(original)
+        XCTAssertEqual(decoded.data, frameData)
+        XCTAssertEqual(decoded.fps, 30)
+        XCTAssertEqual(decoded.camPosition, .back)
+        XCTAssertEqual(decoded.camOrientation, .landscapeRight)
+        XCTAssertTrue(decoded.isKeyframe)
+        XCTAssertEqual(decoded.parameterSets, paramSets)
+    }
+
+    func testSendFrame_nonKeyframe_nilParameterSets() {
+        let frameData = Data([1, 2, 3])
+        let original = RemoteCmd.SendFrame(
+            data: frameData, sender: nil, fps: 30,
+            camPosition: .front, camOrientation: .portrait,
+            isKeyframe: false, parameterSets: nil
+        )
+        let decoded: RemoteCmd.SendFrame = roundTrip(original)
+        XCTAssertFalse(decoded.isKeyframe)
+        XCTAssertNil(decoded.parameterSets)
+    }
+
+    func testSendFrame_defaultsBackwardCompatible() {
+        // Old-style SendFrame without new fields should work with defaults
+        let frameData = Data([5, 6, 7])
+        let original = RemoteCmd.SendFrame(
+            data: frameData, sender: nil, fps: 24,
+            camPosition: .back, camOrientation: .landscapeRight
+        )
+        let decoded: RemoteCmd.SendFrame = roundTrip(original)
+        XCTAssertEqual(decoded.data, frameData)
+        XCTAssertFalse(decoded.isKeyframe)
+        XCTAssertNil(decoded.parameterSets)
+    }
+
+    // MARK: - RequestKeyframe
+
+    func testRequestKeyframe_roundTrip() {
+        let original = RemoteCmd.RequestKeyframe(sender: nil)
+        let decoded: RemoteCmd.RequestKeyframe = roundTrip(original)
+        XCTAssertNotNil(decoded)
+    }
+
+    // MARK: - Nested Zoom Capabilities
 
     func testToggleCameraResp_nestedZoomCapabilities() {
         let backCamera = RemoteCmd.CameraInfo(

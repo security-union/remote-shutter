@@ -22,8 +22,9 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case requestframe = 11
   case peerbecamecamera = 12
   case peerbecamemonitor = 13
+  case requestkeyframe = 14
 
-  public static var max: RemoteShutter_CommandAction { return .peerbecamemonitor }
+  public static var max: RemoteShutter_CommandAction { return .requestkeyframe }
   public static var min: RemoteShutter_CommandAction { return .takepicture }
 }
 
@@ -583,6 +584,9 @@ public struct RemoteShutter_FrameData: FlatBufferObject, Verifiable {
     case fps = 6
     case cameraPosition = 8
     case orientation = 10
+    case isKeyframe = 12
+    case parameterSets = 14
+    case sequenceNumber = 16
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -594,24 +598,40 @@ public struct RemoteShutter_FrameData: FlatBufferObject, Verifiable {
   public var fps: Int32 { let o = _accessor.offset(VTOFFSET.fps.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
   public var cameraPosition: RemoteShutter_CameraPosition { let o = _accessor.offset(VTOFFSET.cameraPosition.v); return o == 0 ? .back : RemoteShutter_CameraPosition(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .back }
   public var orientation: Int32 { let o = _accessor.offset(VTOFFSET.orientation.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
-  public static func startFrameData(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 4) }
+  public var isKeyframe: Bool { let o = _accessor.offset(VTOFFSET.isKeyframe.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public var hasParameterSets: Bool { let o = _accessor.offset(VTOFFSET.parameterSets.v); return o == 0 ? false : true }
+  public var parameterSetsCount: Int32 { let o = _accessor.offset(VTOFFSET.parameterSets.v); return o == 0 ? 0 : _accessor.vector(count: o) }
+  public func parameterSets(at index: Int32) -> UInt8 { let o = _accessor.offset(VTOFFSET.parameterSets.v); return o == 0 ? 0 : _accessor.directRead(of: UInt8.self, offset: _accessor.vector(at: o) + index * 1) }
+  public var parameterSets: [UInt8] { return _accessor.getVector(at: VTOFFSET.parameterSets.v) ?? [] }
+  public var sequenceNumber: UInt32 { let o = _accessor.offset(VTOFFSET.sequenceNumber.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt32.self, at: o) }
+  public static func startFrameData(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 7) }
   public static func addVectorOf(imageData: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: imageData, at: VTOFFSET.imageData.p) }
   public static func add(fps: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: fps, def: 0, at: VTOFFSET.fps.p) }
   public static func add(cameraPosition: RemoteShutter_CameraPosition, _ fbb: inout FlatBufferBuilder) { fbb.add(element: cameraPosition.rawValue, def: 0, at: VTOFFSET.cameraPosition.p) }
   public static func add(orientation: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: orientation, def: 0, at: VTOFFSET.orientation.p) }
+  public static func add(isKeyframe: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: isKeyframe, def: false,
+   at: VTOFFSET.isKeyframe.p) }
+  public static func addVectorOf(parameterSets: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: parameterSets, at: VTOFFSET.parameterSets.p) }
+  public static func add(sequenceNumber: UInt32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: sequenceNumber, def: 0, at: VTOFFSET.sequenceNumber.p) }
   public static func endFrameData(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createFrameData(
     _ fbb: inout FlatBufferBuilder,
     imageDataVectorOffset imageData: Offset = Offset(),
     fps: Int32 = 0,
     cameraPosition: RemoteShutter_CameraPosition = .back,
-    orientation: Int32 = 0
+    orientation: Int32 = 0,
+    isKeyframe: Bool = false,
+    parameterSetsVectorOffset parameterSets: Offset = Offset(),
+    sequenceNumber: UInt32 = 0
   ) -> Offset {
     let __start = RemoteShutter_FrameData.startFrameData(&fbb)
     RemoteShutter_FrameData.addVectorOf(imageData: imageData, &fbb)
     RemoteShutter_FrameData.add(fps: fps, &fbb)
     RemoteShutter_FrameData.add(cameraPosition: cameraPosition, &fbb)
     RemoteShutter_FrameData.add(orientation: orientation, &fbb)
+    RemoteShutter_FrameData.add(isKeyframe: isKeyframe, &fbb)
+    RemoteShutter_FrameData.addVectorOf(parameterSets: parameterSets, &fbb)
+    RemoteShutter_FrameData.add(sequenceNumber: sequenceNumber, &fbb)
     return RemoteShutter_FrameData.endFrameData(&fbb, start: __start)
   }
 
@@ -621,6 +641,9 @@ public struct RemoteShutter_FrameData: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.fps.p, fieldName: "fps", required: false, type: Int32.self)
     try _v.visit(field: VTOFFSET.cameraPosition.p, fieldName: "cameraPosition", required: false, type: RemoteShutter_CameraPosition.self)
     try _v.visit(field: VTOFFSET.orientation.p, fieldName: "orientation", required: false, type: Int32.self)
+    try _v.visit(field: VTOFFSET.isKeyframe.p, fieldName: "isKeyframe", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.parameterSets.p, fieldName: "parameterSets", required: false, type: ForwardOffset<Vector<UInt8, UInt8>>.self)
+    try _v.visit(field: VTOFFSET.sequenceNumber.p, fieldName: "sequenceNumber", required: false, type: UInt32.self)
     _v.finish()
   }
 }

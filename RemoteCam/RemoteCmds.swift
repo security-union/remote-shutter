@@ -141,17 +141,29 @@ public class RemoteCmd: Actor.Message {
         public let fps: NSInteger
         public let camPosition: AVCaptureDevice.Position
         public let camOrientation: UIInterfaceOrientation
+        public let isKeyframe: Bool
+        public let parameterSets: Data?
+        public let sequenceNumber: UInt32
 
-        init(data: Data, sender: ActorRef?, fps: NSInteger, camPosition: AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation) {
+        init(data: Data, sender: ActorRef?, fps: NSInteger, camPosition: AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation, isKeyframe: Bool = false, parameterSets: Data? = nil, sequenceNumber: UInt32 = 0) {
             self.data = data
             self.fps = fps
             self.camPosition = camPosition
             self.camOrientation = camOrientation
+            self.isKeyframe = isKeyframe
+            self.parameterSets = parameterSets
+            self.sequenceNumber = sequenceNumber
             super.init(sender: sender)
         }
     }
 
     public class RequestFrame: Actor.Message {
+        public override init(sender: ActorRef?) {
+            super.init(sender: sender)
+        }
+    }
+
+    public class RequestKeyframe: Actor.Message {
         public override init(sender: ActorRef?) {
             super.init(sender: sender)
         }
@@ -163,13 +175,19 @@ public class RemoteCmd: Actor.Message {
         public let fps: NSInteger
         public let camPosition: AVCaptureDevice.Position
         public let camOrientation: UIInterfaceOrientation
+        public let isKeyframe: Bool
+        public let parameterSets: Data?
+        public let sequenceNumber: UInt32
 
-        init(data: Data, sender: ActorRef?, peerId: MCPeerID, fps: NSInteger, camPosition: AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation) {
+        init(data: Data, sender: ActorRef?, peerId: MCPeerID, fps: NSInteger, camPosition: AVCaptureDevice.Position, camOrientation: UIInterfaceOrientation, isKeyframe: Bool = false, parameterSets: Data? = nil, sequenceNumber: UInt32 = 0) {
             self.camPosition = camPosition
             self.data = data
             self.peerId = peerId
             self.fps = fps
             self.camOrientation = camOrientation
+            self.isKeyframe = isKeyframe
+            self.parameterSets = parameterSets
+            self.sequenceNumber = sequenceNumber
             super.init(sender: sender)
         }
     }

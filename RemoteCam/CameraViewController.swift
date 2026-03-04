@@ -14,13 +14,6 @@ import SwiftUI
 import Combine
 
 /**
-Default fps, it would be neat if we would adjust this based on network conditions.
-*/
-
-let fps = 30
-
-
-/**
   Camera UI
 */
 public class CameraViewController: UIViewController,
@@ -72,8 +65,9 @@ public class CameraViewController: UIViewController,
     private var videoInput: AVAssetWriterInput!
     private var audioInput: AVAssetWriterInput!
 
-    // Variable used to downsample the camera preview, please use with care.
-    private var sendFrame = true
+    // MARK: - Video Encoder
+    private(set) var hevcEncoder: VideoEncoder?
+    private let streamingConfig = StreamingConfig.load()
     
     // MARK: - Recording Timer Properties
     private var recordingStartTime: Date?
@@ -115,8 +109,15 @@ public class CameraViewController: UIViewController,
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         checkPermissionsAndSetupCamera()
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(appDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(appWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification, object: nil)
     }
-    
+
     private func checkPermissionsAndSetupCamera() {
         let permissionManager = PermissionManager.shared
         permissionManager.updatePermissionStatuses()
@@ -208,7 +209,11 @@ public class CameraViewController: UIViewController,
 
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willEnterForegroundNotification, object: nil)
         if self.isBeingDismissed || self.isMovingFromParent {
+            hevcEncoder?.invalidate()
+            hevcEncoder = nil
             if captureSession.isRunning {
                 cameraConfigQueue.async { [weak self] in
                     self?.captureSession.stopRunning()
@@ -216,6 +221,15 @@ public class CameraViewController: UIViewController,
             }
             session ! UICmd.UnbecomeCamera(sender: nil)
         }
+    }
+
+    @objc private func appDidEnterBackground() {
+        hevcEncoder?.invalidate()
+        hevcEncoder = nil
+    }
+
+    @objc private func appWillEnterForeground() {
+        startVideoEncoder()
     }
 
     public override func viewWillLayoutSubviews() {
@@ -282,7 +296,7 @@ public class CameraViewController: UIViewController,
             self.captureSession.addInput(self.videoDeviceInput)
             self.captureSession.addOutput(self.videoDataOutput)
 
-            try self.setFrameRate(framerate: fps, videoDevice: videoDevice)
+            try self.setFrameRate(framerate: streamingConfig.fps, videoDevice: videoDevice)
             
             // Gather complete camera capabilities for both front and back cameras
             self.gatherAllCameraCapabilities()
@@ -304,9 +318,19 @@ public class CameraViewController: UIViewController,
             self.cameraConfigQueue.async {
                 self.captureSession.startRunning()
             }
+
+            // Initialize H.265 video encoder for streaming
+            startVideoEncoder()
         } catch let error as NSError {
             print("error \(error)")
         }
+    }
+
+    func startVideoEncoder() {
+        hevcEncoder?.invalidate()
+        let encoder = VideoEncoder(config: streamingConfig)
+        encoder.delegate = self
+        hevcEncoder = encoder
     }
 
     func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)> {
@@ -321,7 +345,10 @@ public class CameraViewController: UIViewController,
             captureSession.addInput(newInput)
             self.videoDeviceInput = newInput
             configSessionOutput()
-            try setFrameRate(framerate: fps, videoDevice: newDevice!)
+            try setFrameRate(framerate: streamingConfig.fps, videoDevice: newDevice!)
+
+            // Restart encoder after camera toggle
+            startVideoEncoder()
             
             // Update available lens types for new camera position
             self.updateAvailableLensTypes(for: newPosition!)
@@ -698,7 +725,7 @@ public class CameraViewController: UIViewController,
             currentZoomFactor = 1.0
             
             configSessionOutput()
-            try setFrameRate(framerate: fps, videoDevice: newDevice)
+            try setFrameRate(framerate: streamingConfig.fps, videoDevice: newDevice)
             
             DispatchQueue.main.async {
                 self.rotateCameraToOrientation(orientation: self.orientation)
@@ -957,21 +984,37 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
     public func sendFrameToMonitor(_ captureOutput: AVCaptureOutput,
                               didOutput sampleBuffer: CMSampleBuffer,
                               from connection: AVCaptureConnection) {
-        sendFrame = !sendFrame
-        if !sendFrame {
-            return
-        }
-        if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
-           let imageData = cgBackedImage.jpegData(compressionQuality: 0.1),
-           let device = self.videoDeviceInput?.device {
-            frameSender ! RemoteCmd.SendFrame(data: imageData,
-                    sender: nil,
-                    fps: fps,
-                    camPosition: device.position,
-                    camOrientation: self.orientation)
-        }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        hevcEncoder?.encode(pixelBuffer, presentationTime: pts)
     }
+}
 
+// MARK: - VideoEncoderDelegate
+
+extension CameraViewController: VideoEncoderDelegate {
+    private static var frameSequence: UInt32 = 0
+
+    func videoEncoder(_ encoder: VideoEncoder, didEncodeFrame data: Data, isKeyframe: Bool, parameterSets: Data?) {
+        CameraViewController.frameSequence += 1
+        let seq = CameraViewController.frameSequence
+        let position = videoDeviceInput?.device.position ?? .back
+        let frame = RemoteCmd.SendFrame(
+            data: data,
+            sender: nil,
+            fps: streamingConfig.fps,
+            camPosition: position,
+            camOrientation: orientation,
+            isKeyframe: isKeyframe,
+            parameterSets: parameterSets,
+            sequenceNumber: seq
+        )
+        print("📹 FRAME #\(seq) encoded (\(data.count)B, kf=\(isKeyframe))")
+        frameSender ! frame
+    }
+}
+
+extension CameraViewController {
     func saveMovieToPhotosAppAndRemotePeer(_ sendVideoToPeer:Bool) {
         let outputFileURL = movieUrl()
         

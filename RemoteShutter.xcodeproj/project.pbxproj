@@ -142,6 +142,14 @@
 		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
 		E9256A91DEEB414C3FE6C48D /* ActorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4711EC884DF706A90B90662D /* ActorSystem.swift */; };
 		F32EBBCC678C33E1B4E62884 /* NSOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFE1C1E3BF1B4B2BD321763 /* NSOperationQueue.swift */; };
+		SC01A0022E950002000B2001 /* StreamingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC01A0012E950001000B2001 /* StreamingConfig.swift */; };
+		SC01A0042E950004000B2001 /* streaming_config.json in Resources */ = {isa = PBXBuildFile; fileRef = SC01A0032E950003000B2001 /* streaming_config.json */; };
+		VE01A0022E960002000B2001 /* VideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = VE01A0012E960001000B2001 /* VideoEncoder.swift */; };
+		VD01A0022E960002000B2001 /* VideoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = VD01A0012E960001000B2001 /* VideoDecoder.swift */; };
+		HP01000200000001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP01000100000001 /* main.swift */; };
+		HP01000200000002 /* VideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = VE01A0012E960001000B2001 /* VideoEncoder.swift */; };
+		HP01000200000003 /* VideoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = VD01A0012E960001000B2001 /* VideoDecoder.swift */; };
+		HP01000200000004 /* StreamingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC01A0012E950001000B2001 /* StreamingConfig.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -316,6 +324,12 @@
 		D74001DF2412690FAA394C74 /* Pods-RemoteShutterTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.debug.xcconfig"; sourceTree = "<group>"; };
 		E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ViewControllerActor.swift; sourceTree = "<group>"; };
 		F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
+		SC01A0012E950001000B2001 /* StreamingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingConfig.swift; sourceTree = "<group>"; };
+		SC01A0032E950003000B2001 /* streaming_config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = streaming_config.json; sourceTree = "<group>"; };
+		VE01A0012E960001000B2001 /* VideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEncoder.swift; sourceTree = "<group>"; };
+		VD01A0012E960001000B2001 /* VideoDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDecoder.swift; sourceTree = "<group>"; };
+		HP01000100000001 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		HP01000900000001 /* HEVCPlayground */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HEVCPlayground; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -337,6 +351,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		852E4303250D4B1D00F5151E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		HP01000500000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -436,6 +457,10 @@
 				6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */,
 				CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */,
 				1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */,
+				SC01A0012E950001000B2001 /* StreamingConfig.swift */,
+				SC01A0032E950003000B2001 /* streaming_config.json */,
+				VE01A0012E960001000B2001 /* VideoEncoder.swift */,
+				VD01A0012E960001000B2001 /* VideoDecoder.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -559,11 +584,13 @@
 				0692841D1BE5BF5B00AF4678 /* RemoteCam */,
 				069284321BE5BF5C00AF4678 /* RemoteCamTests */,
 				852E4307250D4B1D00F5151E /* RemoteShutterUITests */,
+				HP01000300000001 /* HEVCPlayground */,
 				1FEBF1D32E8FD6506AAEDD87 /* Frameworks */,
 				6E71D580DBCCE813F82C1948 /* Pods */,
 				85F118E5250ACBE100B73E48 /* RemoteShutter.app */,
 				85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */,
 				852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */,
+				HP01000900000001 /* HEVCPlayground */,
 			);
 			sourceTree = "<group>";
 		};
@@ -623,6 +650,14 @@
 				852E430A250D4B1D00F5151E /* Info.plist */,
 			);
 			path = RemoteShutterUITests;
+			sourceTree = "<group>";
+		};
+		HP01000300000001 /* HEVCPlayground */ = {
+			isa = PBXGroup;
+			children = (
+				HP01000100000001 /* main.swift */,
+			);
+			path = HEVCPlayground;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -686,6 +721,22 @@
 			productReference = 852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		HP01000600000001 /* HEVCPlayground */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = HP01000800000001 /* Build configuration list for PBXNativeTarget "HEVCPlayground" */;
+			buildPhases = (
+				HP01000400000001 /* Sources */,
+				HP01000500000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HEVCPlayground;
+			productName = HEVCPlayground;
+			productReference = HP01000900000001 /* HEVCPlayground */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -714,6 +765,10 @@
 						ProvisioningStyle = Automatic;
 						TestTargetID = 0692841B1BE5BF5B00AF4678;
 					};
+					HP01000600000001 = {
+						CreatedOnToolsVersion = 15.0;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 06E1D4ED1BB7699700E07321 /* Build configuration list for PBXProject "RemoteShutter" */;
@@ -736,6 +791,7 @@
 				0692841B1BE5BF5B00AF4678 /* RemoteShutter */,
 				0692842E1BE5BF5C00AF4678 /* RemoteShutterTests */,
 				852E4305250D4B1D00F5151E /* RemoteShutterUITests */,
+				HP01000600000001 /* HEVCPlayground */,
 			);
 		};
 /* End PBXProject section */
@@ -762,6 +818,7 @@
 				065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */,
 				0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */,
 				069284561BE5C12000AF4678 /* Main.storyboard in Resources */,
+				SC01A0042E950004000B2001 /* streaming_config.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -952,6 +1009,9 @@
 				6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */,
 				2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */,
 				30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */,
+				SC01A0022E950002000B2001 /* StreamingConfig.swift in Sources */,
+				VE01A0022E960002000B2001 /* VideoEncoder.swift in Sources */,
+				VD01A0022E960002000B2001 /* VideoDecoder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1000,6 +1060,17 @@
 				06BB79BD2E3884F00094E085 /* CameraProgressOverlayView.swift in Sources */,
 				068EF0B12531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
 				06BB79AF2E372D420094E085 /* RecordingTimer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		HP01000400000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				HP01000200000001 /* main.swift in Sources */,
+				HP01000200000002 /* VideoEncoder.swift in Sources */,
+				HP01000200000003 /* VideoDecoder.swift in Sources */,
+				HP01000200000004 /* StreamingConfig.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1333,6 +1404,36 @@
 			};
 			name = Release;
 		};
+		HP01000700000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = J5A8XNQSV9;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		HP01000700000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = J5A8XNQSV9;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1368,6 +1469,15 @@
 			buildConfigurations = (
 				852E430D250D4B1D00F5151E /* Debug */,
 				852E430E250D4B1D00F5151E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		HP01000800000001 /* Build configuration list for PBXNativeTarget "HEVCPlayground" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				HP01000700000001 /* Debug */,
+				HP01000700000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

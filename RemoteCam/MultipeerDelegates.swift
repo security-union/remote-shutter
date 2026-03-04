@@ -49,7 +49,10 @@ extension RemoteCamSession: MultipeerServiceDelegate {
             peerId: peer,
             fps: frame.fps,
             camPosition: frame.camPosition,
-            camOrientation: frame.camOrientation)
+            camOrientation: frame.camOrientation,
+            isKeyframe: frame.isKeyframe,
+            parameterSets: frame.parameterSets,
+            sequenceNumber: frame.sequenceNumber)
     }
 
     func peerDidConnect(_ peer: MCPeerID) {

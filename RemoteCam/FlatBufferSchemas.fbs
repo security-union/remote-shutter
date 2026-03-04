@@ -22,7 +22,8 @@ enum CommandAction : byte {
     SetFlashMode = 10,
     RequestFrame = 11,
     PeerBecameCamera = 12,
-    PeerBecameMonitor = 13
+    PeerBecameMonitor = 13,
+    RequestKeyframe = 14
 }
 
 enum CameraPosition : byte {
@@ -129,6 +130,9 @@ table FrameData {
     fps: int;
     camera_position: CameraPosition;
     orientation: int;
+    is_keyframe: bool;
+    parameter_sets: [ubyte];
+    sequence_number: uint32;
 }
 
 // MARK: - P2P Message Envelope

@@ -91,11 +91,18 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                 }
 
             case let f as RemoteCmd.OnFrame:
-                if let cgImage = UIImage(data: f.data) {
-                    OperationQueue.main.addOperation {[weak ctrl] in
-                        if let ctrl = ctrl?.value {
-                            ctrl.updateCameraImageInViewModel(cgImage)
-                        }
+                print("📺 FRAME #\(f.sequenceNumber) queued for decode (kf=\(f.isKeyframe), \(f.data.count)B)")
+                if let vc = ctrl.value {
+                    vc.decodeQueue.async { [weak vc] in
+                        guard let vc = vc else { return }
+                        let t0 = CACurrentMediaTime()
+                        vc.hevcDecoder.decode(
+                            frameData: f.data,
+                            isKeyframe: f.isKeyframe,
+                            parameterSets: f.parameterSets
+                        )
+                        let dt = (CACurrentMediaTime() - t0) * 1000
+                        print("📺 FRAME #\(f.sequenceNumber) decoded in \(String(format: "%.1f", dt))ms")
                     }
                 }
                 
@@ -213,6 +220,15 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     let monitor = RemoteCamSystem.shared.actorOf(clz: MonitorActor.self, name: "MonitorActor")!
 
+    // MARK: - Video Decoder
+    let decodeQueue = DispatchQueue(label: "com.remoteshutter.videodecode", qos: .userInteractive)
+
+    private(set) lazy var hevcDecoder: VideoDecoder = {
+        let decoder = VideoDecoder()
+        decoder.delegate = self
+        return decoder
+    }()
+
     let timer: RCTimer = RCTimer()
 
     let soundManager: CPSoundManager = CPSoundManager()
@@ -307,6 +323,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     deinit {
         print("🔍 DEBUG: MonitorViewController deinit - \(ObjectIdentifier(self))")
         print("stop monitor")
+        hevcDecoder.invalidate()
         self.timer.cancel()
         self.zoomLabelTimer?.invalidate()
         self.soundManager.stopPlayer()
@@ -401,5 +418,17 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
                 self.present(activityViewController, animated: true)
             }
         }
+    }
+}
+
+// MARK: - VideoDecoderDelegate
+
+extension MonitorViewController: VideoDecoderDelegate {
+    func videoDecoder(_ decoder: VideoDecoder, didDecodeFrame image: UIImage) {
+        updateCameraImageInViewModel(image)
+    }
+
+    func videoDecoderNeedsKeyframe(_ decoder: VideoDecoder) {
+        session ! RemoteCmd.RequestKeyframe(sender: nil)
     }
 }

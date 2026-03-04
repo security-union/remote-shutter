@@ -24,9 +24,13 @@ extension MonitorVideoStates {
                 monitor ! UICmd.RenderVideoMode()
                 self.requestFrame([peer])
 
-            case is RemoteCmd.OnFrame:
+            case let f as RemoteCmd.OnFrame:
+                print("📺 FRAME #\(f.sequenceNumber) received by session (video), forwarding to monitor")
                 monitor ! msg
                 self.requestFrame([peer])
+
+            case is RemoteCmd.RequestKeyframe:
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestKeyframe(sender: self.this))
 
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: self.states.connected)
@@ -127,10 +131,14 @@ extension MonitorVideoStates {
                 monitor ! UICmd.RenderVideoModeRecording()
                 self.requestFrame([peer])
 
-            case is RemoteCmd.OnFrame:
+            case let f as RemoteCmd.OnFrame:
+                print("📺 FRAME #\(f.sequenceNumber) received by session (recording), forwarding to monitor")
                 monitor ! msg
                 self.requestFrame([peer])
-                
+
+            case is RemoteCmd.RequestKeyframe:
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestKeyframe(sender: self.this))
+
             case let ack as RemoteCmd.StartRecordingVideoAck:
                 // Check if this is an error response
                 if let error = ack.error {

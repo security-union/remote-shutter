@@ -50,7 +50,9 @@ class FrameSender: Actor {
                 self.become(name: readyToSendFrame, state: readyToSend(s), discardOld: true)
                 
             case let s as RemoteCmd.SendFrame:
-                data.session?.sendCommandOrGoToScanning(peer: [data.peer], msg: s, mode: .unreliable)
+                print("📤 FRAME #\(s.sequenceNumber) sending")
+                data.session?.sendCommandOrGoToScanning(peer: [data.peer], msg: s, mode: .reliable)
+                print("📤 FRAME #\(s.sequenceNumber) sent, waiting for ack")
                 self.become(name: waitingForAckName, state: waitingForAck(data), discardOld: true)
             default:
                 self.receive(msg: msg)
@@ -63,12 +65,13 @@ class FrameSender: Actor {
             switch msg {
             case is OnEnter:
                 break
-            case is RemoteCmd.SendFrame:
-                break
+            case let s as RemoteCmd.SendFrame:
+                print("📤 FRAME #\(s.sequenceNumber) DROPPED (waiting for ack)")
             case let s as SetSession:
                 self.become(name: readyToSendFrame, state: readyToSend(s), discardOld: true)
 
             case is RemoteCmd.RequestFrame:
+                print("📤 ACK received, ready for next frame")
                 self.become(name: readyToSendFrame, state: readyToSend(session), discardOld: true)
 
             default:

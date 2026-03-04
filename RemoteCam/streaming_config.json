@@ -1,0 +1,7 @@
+{
+    "bitrate": 2000000,
+    "maxKeyFrameInterval": 30,
+    "fps": 30,
+    "width": 1280,
+    "height": 720
+}

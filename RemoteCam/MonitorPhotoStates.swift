@@ -48,9 +48,13 @@ extension RemoteCamSession {
                 monitor ! UICmd.RenderPhotoMode()
                 self.requestFrame([peer])
 
-            case is RemoteCmd.OnFrame:
+            case let f as RemoteCmd.OnFrame:
+                print("📺 FRAME #\(f.sequenceNumber) received by session, forwarding to monitor")
                 monitor ! msg
                 self.requestFrame([peer])
+
+            case is RemoteCmd.RequestKeyframe:
+                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestKeyframe(sender: self.this))
 
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: self.states.connected)

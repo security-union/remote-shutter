@@ -42,6 +42,7 @@ func serializeToFlatBuffer(_ msg: Actor.Message) -> Data? {
     case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
+    case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
     default: return nil
     }
 }
@@ -284,12 +285,16 @@ extension RemoteCmd.SendFrame {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         let imageOffset = fbb.createVector(bytes: data)
+        let psOffset = parameterSets.map { fbb.createVector(bytes: $0) } ?? Offset()
         let frame = RemoteShutter_FrameData.createFrameData(
             &fbb,
             imageDataVectorOffset: imageOffset,
             fps: Int32(fps),
             cameraPosition: toFBCamPos(camPosition),
-            orientation: Int32(camOrientation.rawValue)
+            orientation: Int32(camOrientation.rawValue),
+            isKeyframe: isKeyframe,
+            parameterSetsVectorOffset: psOffset,
+            sequenceNumber: sequenceNumber
         )
         return buildFrame(&fbb, frame: frame)
     }
@@ -299,6 +304,13 @@ extension RemoteCmd.RequestFrame {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         return buildCommand(&fbb, action: .requestframe)
+    }
+}
+
+extension RemoteCmd.RequestKeyframe {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        return buildCommand(&fbb, action: .requestkeyframe)
     }
 }
 
@@ -649,6 +661,9 @@ extension RemoteCmd {
 
         case .requestcapabilities:
             return RequestCameraCapabilities()
+
+        case .requestkeyframe:
+            return RequestKeyframe(sender: nil)
         }
     }
 
@@ -756,13 +771,18 @@ extension RemoteCmd {
         let imageData = Data(frame.imageData)
         let position = fromFBCamPos(frame.cameraPosition)
         let orientation = UIInterfaceOrientation(rawValue: Int(frame.orientation)) ?? .portrait
+        let isKeyframe = frame.isKeyframe
+        let parameterSets: Data? = frame.hasParameterSets ? Data(frame.parameterSets) : nil
 
         return SendFrame(
             data: imageData,
             sender: nil,
             fps: Int(frame.fps),
             camPosition: position,
-            camOrientation: orientation
+            camOrientation: orientation,
+            isKeyframe: isKeyframe,
+            parameterSets: parameterSets,
+            sequenceNumber: frame.sequenceNumber
         )
     }
 }

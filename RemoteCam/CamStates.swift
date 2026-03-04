@@ -137,6 +137,9 @@ extension RemoteCamSession {
                 
             case is RemoteCmd.SendFrame:
                 self.receive(msg: msg)
+
+            case is RemoteCmd.RequestKeyframe:
+                ctrl.hevcEncoder?.forceKeyframe()
                 
             case let m as UICmd.ToggleCameraResp:
                 self.sendCommandOrGoToScanning(
