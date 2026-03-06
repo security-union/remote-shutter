@@ -114,7 +114,7 @@ public class RolePickerController: UIViewController {
     }
 
     @IBAction func showSettings(sender: UIButton) {
-        let ctrl = CMConfigurationsViewController()
+        let ctrl = UIHostingController(rootView: SettingsView())
         self.navigationController?.pushViewController(ctrl, animated: true)
     }
 

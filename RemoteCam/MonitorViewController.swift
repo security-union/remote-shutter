@@ -346,7 +346,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     // Legacy @objc and @IBAction methods removed - using SwiftUI callbacks instead
 
     @IBAction func showSettings(sender: UIButton) {
-        let ctrl = CMConfigurationsViewController()
+        let ctrl = UIHostingController(rootView: SettingsView())
         self.navigationController?.pushViewController(ctrl, animated: true)
     }
 

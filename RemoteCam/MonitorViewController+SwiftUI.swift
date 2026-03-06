@@ -136,10 +136,11 @@ extension MonitorViewController {
     }
     
     private func executeAction() {
-        // Use existing UICmd.TakePicture logic
-        let shouldSendMedia = CMConfigurationsViewController.sendMediaToRemote()
+        let defaults = UserDefaults.standard
+        let shouldSendMedia = defaults.object(forKey: "sendMediaToRemote") == nil
+            ? true
+            : defaults.bool(forKey: "sendMediaToRemote")
         session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: shouldSendMedia)
-        print("🔴 DEBUG: UICmd.TakePicture sent to session with sendMediaToRemote: \(shouldSendMedia)")
     }
     
     private func resetTimerUI() {
@@ -246,8 +247,7 @@ extension MonitorViewController {
     }
     
     private func showSettings() {
-        // Create settings controller directly (not from storyboard)
-        let ctrl = CMConfigurationsViewController()
+        let ctrl = UIHostingController(rootView: SettingsView())
         navigationController?.pushViewController(ctrl, animated: true)
     }
 }

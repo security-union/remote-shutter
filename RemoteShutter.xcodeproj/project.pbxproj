@@ -29,8 +29,6 @@
 		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */; };
 		065024101BEA407F00311C8A /* AcknowledgmentsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */; };
-		065024121BEA407F00311C8A /* CMConfigurationsViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0650240B1BEA407F00311C8A /* CMConfigurationsViewController.mm */; };
-		065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0650240C1BEA407F00311C8A /* CMConfigurationsViewController.xib */; };
 		0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024161BEA413900311C8A /* PurchasesRestorer.m */; };
 		0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024181BEA413900311C8A /* InAppPurchasesManager.m */; };
 		06503C552E2CDB55003DEAFA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 06503C542E2CDB55003DEAFA /* Localizable.strings */; };
@@ -118,6 +116,7 @@
 		2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */; };
 		30425A0C926DE812ECA4528E /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1681D37E731D371A697244F7 /* Try.swift */; };
 		30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */; };
+		3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */; };
 		6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */; };
 		69F9B5912B122CD3FFA41F78 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC390F40AB4C16ED4E8124 /* Message.swift */; };
 		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
@@ -130,6 +129,7 @@
 		85D3382E258D25D80091972B /* RolePickerOptionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D3382D258D25D80091972B /* RolePickerOptionController.swift */; };
 		85D33832258D489C0091972B /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33831258D489C0091972B /* UIView.swift */; };
 		85D33836258D48C30091972B /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33835258D48C30091972B /* UIViewController.swift */; };
+		8D834E942E3DF65BDAE055C5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9E06E2C406307CD182CFB2 /* SettingsView.swift */; };
 		A4EC3AB20B8661FEE10AD6DC /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */; };
 		AA0001012E940001000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
 		AA0001042E940004000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
@@ -140,6 +140,7 @@
 		AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		ABBA2C4CD92C4E137A90F275 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */; };
 		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
+		DCDBA5102EA8C85C82D8E2FC /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */; };
 		E9256A91DEEB414C3FE6C48D /* ActorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4711EC884DF706A90B90662D /* ActorSystem.swift */; };
 		F32EBBCC678C33E1B4E62884 /* NSOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFE1C1E3BF1B4B2BD321763 /* NSOperationQueue.swift */; };
 /* End PBXBuildFile section */
@@ -175,6 +176,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
 		0602E4EA1BEA4FC90015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4EC1BEA4FDE0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4EE1BEA504D0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
@@ -204,9 +206,6 @@
 		065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AcknowledgmentsViewController.h; sourceTree = "<group>"; };
 		065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AcknowledgmentsViewController.m; sourceTree = "<group>"; };
 		065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = AcknowledgmentsViewController.xib; sourceTree = "<group>"; };
-		0650240A1BEA407F00311C8A /* CMConfigurationsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMConfigurationsViewController.h; sourceTree = "<group>"; };
-		0650240B1BEA407F00311C8A /* CMConfigurationsViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CMConfigurationsViewController.mm; sourceTree = "<group>"; };
-		0650240C1BEA407F00311C8A /* CMConfigurationsViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = CMConfigurationsViewController.xib; sourceTree = "<group>"; };
 		065024151BEA413900311C8A /* PurchasesRestorer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PurchasesRestorer.h; sourceTree = "<group>"; };
 		065024161BEA413900311C8A /* PurchasesRestorer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PurchasesRestorer.m; sourceTree = "<group>"; };
 		065024171BEA413900311C8A /* InAppPurchasesManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InAppPurchasesManager.h; sourceTree = "<group>"; };
@@ -286,6 +285,7 @@
 		1681D37E731D371A697244F7 /* Try.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Try.swift; sourceTree = "<group>"; };
 		1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCmdFlatBuffers.swift; sourceTree = "<group>"; };
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		3CB14475747F8CECCE476895 /* Actor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Actor.swift; sourceTree = "<group>"; };
 		4711EC884DF706A90B90662D /* ActorSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActorSystem.swift; sourceTree = "<group>"; };
 		4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.debug.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.debug.xcconfig"; sourceTree = "<group>"; };
@@ -304,6 +304,7 @@
 		85D33835258D48C30091972B /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
 		85F118E5250ACBE100B73E48 /* RemoteShutter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8C9E06E2C406307CD182CFB2 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AA0001032E940003000A1001 /* AlertPresenting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenting.swift; sourceTree = "<group>"; };
 		AA0001062E940006000A1001 /* UIAlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAlertPresenter.swift; sourceTree = "<group>"; };
 		AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamSessionTests.swift; sourceTree = "<group>"; };
@@ -368,9 +369,6 @@
 				065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */,
 				065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */,
 				065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */,
-				0650240A1BEA407F00311C8A /* CMConfigurationsViewController.h */,
-				0650240B1BEA407F00311C8A /* CMConfigurationsViewController.mm */,
-				0650240C1BEA407F00311C8A /* CMConfigurationsViewController.xib */,
 			);
 			name = Settings;
 			sourceTree = "<group>";
@@ -436,6 +434,8 @@
 				6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */,
 				CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */,
 				1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */,
+				8C9E06E2C406307CD182CFB2 /* SettingsView.swift */,
+				2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -446,6 +446,7 @@
 				AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */,
 				AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */,
 				069284351BE5BF5C00AF4678 /* Info.plist */,
+				036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */,
 			);
 			path = RemoteCamTests;
 			sourceTree = "<group>";
@@ -759,7 +760,6 @@
 				069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */,
 				069284661BE5C71800AF4678 /* Media.xcassets in Resources */,
 				06B1D8152536C3FA0029CCB6 /* recording.gif in Resources */,
-				065024141BEA407F00311C8A /* CMConfigurationsViewController.xib in Resources */,
 				0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */,
 				069284561BE5C12000AF4678 /* Main.storyboard in Resources */,
 			);
@@ -929,7 +929,6 @@
 				0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */,
 				068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
 				06E965212535199400E5A8B3 /* MediaProcessors.swift in Sources */,
-				065024121BEA407F00311C8A /* CMConfigurationsViewController.mm in Sources */,
 				06D114CF2532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
 				06184D41258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */,
 				0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */,
@@ -952,6 +951,8 @@
 				6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */,
 				2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */,
 				30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */,
+				8D834E942E3DF65BDAE055C5 /* SettingsView.swift in Sources */,
+				DCDBA5102EA8C85C82D8E2FC /* SettingsViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -961,6 +962,7 @@
 			files = (
 				AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */,
 				AABB00042E930002009TESTS /* RemoteCmdSerializationTests.swift in Sources */,
+				3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
