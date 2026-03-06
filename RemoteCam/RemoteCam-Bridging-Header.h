@@ -7,4 +7,3 @@
 #import "CPSoundManager.h"
 #import "InAppPurchasesManager.h"
 #import "Constants.h"
-#import "AcknowledgmentsViewController.h"

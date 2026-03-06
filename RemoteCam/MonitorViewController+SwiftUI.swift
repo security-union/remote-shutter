@@ -248,7 +248,8 @@ extension MonitorViewController {
     
     private func showSettings() {
         let ctrl = UIHostingController(rootView: SettingsView())
-        navigationController?.pushViewController(ctrl, animated: true)
+        ctrl.modalPresentationStyle = .pageSheet
+        present(ctrl, animated: true)
     }
 }
 

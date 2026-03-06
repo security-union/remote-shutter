@@ -347,7 +347,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     @IBAction func showSettings(sender: UIButton) {
         let ctrl = UIHostingController(rootView: SettingsView())
-        self.navigationController?.pushViewController(ctrl, animated: true)
+        ctrl.modalPresentationStyle = .pageSheet
+        self.present(ctrl, animated: true)
     }
 
     @IBAction func showGallery(sender: UIButton) {

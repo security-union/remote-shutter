@@ -3,23 +3,39 @@ import StoreKit
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        List {
-            upgradesSection
-            settingsSection
-            aboutSection
-        }
-        .navigationTitle(NSLocalizedString("Settings", comment: ""))
-        .navigationBarTitleDisplayMode(.large)
-        .alert(
-            NSLocalizedString("In-App Purchases", comment: ""),
-            isPresented: $viewModel.showAlert
-        ) {
-            Button(NSLocalizedString("OK", comment: ""), role: .cancel) {}
-        } message: {
-            if let msg = viewModel.alertMessage {
-                Text(msg)
+        NavigationView {
+            List {
+                upgradesSection
+                settingsSection
+                aboutSection
+            }
+            .navigationTitle(NSLocalizedString("Settings", comment: ""))
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 17, weight: .semibold))
+                            Text(NSLocalizedString("Back", comment: ""))
+                        }
+                    }
+                }
+            }
+            .alert(
+                NSLocalizedString("In-App Purchases", comment: ""),
+                isPresented: $viewModel.showAlert
+            ) {
+                Button(NSLocalizedString("OK", comment: ""), role: .cancel) {}
+            } message: {
+                if let msg = viewModel.alertMessage {
+                    Text(msg)
+                }
             }
         }
     }
@@ -96,7 +112,7 @@ struct SettingsView: View {
             )
 
             NavigationLink {
-                AcknowledgmentsViewWrapper()
+                AcknowledgmentsView()
                     .navigationTitle(NSLocalizedString("Acknowledgments", comment: ""))
                     .navigationBarTitleDisplayMode(.inline)
             } label: {
@@ -179,19 +195,59 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Acknowledgments Wrapper
+// MARK: - Acknowledgments View
 
-struct AcknowledgmentsViewWrapper: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> AcknowledgmentsViewController {
-        let vc = AcknowledgmentsViewController(
-            nibName: "AcknowledgmentsViewController",
-            bundle: nil
-        )
-        vc.url = Bundle.main.url(forResource: "Acknowledgments", withExtension: "html")
-        return vc
+struct AcknowledgmentsView: View {
+    private let credits: [(role: String, name: String)] = [
+        ("QA", "Mariela Cruz Rodriguez"),
+        ("Dev", "Griffin Obeid"),
+        ("Dev", "Dario A Lencina Talarico"),
+        ("Logo", "Franco Talarico"),
+        ("Translations", "Romina Lencina Talarico"),
+        ("Translations", "Oskar Roar Andersen"),
+    ]
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(credits, id: \.name) { credit in
+                    HStack {
+                        Text(credit.name)
+                        Spacer()
+                        Text(credit.role)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Security Union")
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Theater Framework")
+                        .font(.headline)
+                    Text("Created by Dario Talarico, 2015.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("Licensed under the Apache License, Version 2.0. You may obtain a copy at apache.org/licenses/LICENSE-2.0.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Open Source")
+            }
+
+            Section {
+                Text("To my Wife Mariela for supporting me at all times. To Franco Talarico for helping me out and trusting me. To my family, Laura Talarico, my sis Romina and Ruben Lencina for helping me to test this app.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Special Thanks")
+            }
+        }
     }
-
-    func updateUIViewController(_ uiViewController: AcknowledgmentsViewController, context: Context) {}
 }
 
 // MARK: - Preview
