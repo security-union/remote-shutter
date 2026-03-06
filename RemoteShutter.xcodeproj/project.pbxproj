@@ -27,12 +27,16 @@
 		0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
+		B1C0DE0300000006 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
+		B1C0DE0300000003 /* DeviceScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000001 /* DeviceScannerViewModel.swift */; };
 		0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */; };
 		065024101BEA407F00311C8A /* AcknowledgmentsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */; };
 		0650241A1BEA413900311C8A /* PurchasesRestorer.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024161BEA413900311C8A /* PurchasesRestorer.m */; };
 		0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024181BEA413900311C8A /* InAppPurchasesManager.m */; };
 		06503C552E2CDB55003DEAFA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 06503C542E2CDB55003DEAFA /* Localizable.strings */; };
 		065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
+		B1C0DE0300000005 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
+		B1C0DE0300000002 /* DeviceScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000001 /* DeviceScannerViewModel.swift */; };
 		065532F8258C4BF4000C2339 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
 		B1C0DE0200000002 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0200000001 /* AppTheme.swift */; };
 		B1C0DE0100000002 /* RolePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0100000001 /* RolePickerView.swift */; };
@@ -121,6 +125,7 @@
 		30425A0C926DE812ECA4528E /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1681D37E731D371A697244F7 /* Try.swift */; };
 		30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */; };
 		3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */; };
+		B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */; };
 		5647F1F78AAC80CEE4E20340 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0E951625230646938980B1 /* WelcomeView.swift */; };
 		6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */; };
 		69F9B5912B122CD3FFA41F78 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC390F40AB4C16ED4E8124 /* Message.swift */; };
@@ -183,6 +188,7 @@
 
 /* Begin PBXFileReference section */
 		036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
+		B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModelTests.swift; sourceTree = "<group>"; };
 		0602E4EA1BEA4FC90015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4EC1BEA4FDE0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4EE1BEA504D0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
@@ -209,6 +215,8 @@
 		0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToCameraView~ipad.xib"; sourceTree = "<group>"; };
 		0631D180256DFC960006CAF3 /* FrameSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSender.swift; sourceTree = "<group>"; };
 		0634594925886387009F9BE0 /* DeviceScannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewController.swift; sourceTree = "<group>"; };
+		B1C0DE0300000004 /* DeviceScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerView.swift; sourceTree = "<group>"; };
+		B1C0DE0300000001 /* DeviceScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModel.swift; sourceTree = "<group>"; };
 		065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AcknowledgmentsViewController.h; sourceTree = "<group>"; };
 		065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AcknowledgmentsViewController.m; sourceTree = "<group>"; };
 		065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = AcknowledgmentsViewController.xib; sourceTree = "<group>"; };
@@ -459,6 +467,7 @@
 				AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */,
 				069284351BE5BF5C00AF4678 /* Info.plist */,
 				036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */,
+				B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */,
 			);
 			path = RemoteCamTests;
 			sourceTree = "<group>";
@@ -478,6 +487,8 @@
 				065024061BEA406B00311C8A /* Settings */,
 				066959602575F00200E8B579 /* WelcomeViewController.swift */,
 				0634594925886387009F9BE0 /* DeviceScannerViewController.swift */,
+				B1C0DE0300000004 /* DeviceScannerView.swift */,
+				B1C0DE0300000001 /* DeviceScannerViewModel.swift */,
 				069284481BE5C0E600AF4678 /* RolePickerController.swift */,
 				B1C0DE0200000001 /* AppTheme.swift */,
 				B1C0DE0100000001 /* RolePickerView.swift */,
@@ -927,6 +938,8 @@
 				06BB79BF2E3884FA0094E085 /* CameraViewModel.swift in Sources */,
 				067BEFCC2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift in Sources */,
 				0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */,
+				B1C0DE0300000006 /* DeviceScannerView.swift in Sources */,
+				B1C0DE0300000003 /* DeviceScannerViewModel.swift in Sources */,
 				0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */,
 				85D33832258D489C0091972B /* UIView.swift in Sources */,
 				06CDFB1E252E9CD200EA56FB /* UICmds.swift in Sources */,
@@ -981,6 +994,7 @@
 				AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */,
 				AABB00042E930002009TESTS /* RemoteCmdSerializationTests.swift in Sources */,
 				3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */,
+				B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -995,6 +1009,8 @@
 				0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
 				06BB79B92E374D410094E085 /* FeatureFlags.swift in Sources */,
 				065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */,
+				B1C0DE0300000005 /* DeviceScannerView.swift in Sources */,
+				B1C0DE0300000002 /* DeviceScannerViewModel.swift in Sources */,
 				85C11C0D2582F6FA00618F32 /* PKIAPHandler.swift in Sources */,
 				068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
 				AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */,

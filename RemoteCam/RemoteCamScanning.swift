@@ -22,26 +22,22 @@ extension RemoteCamSession {
                  is UICmd.BecomeCamera,
                  is UICmd.BecomeMonitor,
                  is UICmd.StartScanning:
-                ^{
-                    lobby.splash.stopAnimating()
-                }
                 self.startScanning(lobby: lobby)
             case is RemoteShutter.DisconnectPeer:
                 ^{
                     let alert = UIAlertController(title: "Error", message: "Unable to connect")
                     alert.simpleOkAction()
                     alert.show(true)
-                    lobby.splash.stopAnimating()
                 }
                 self.startScanning(lobby: lobby)
             case let w as ConnectToDevice:
                 self.multipeerService.invitePeer(w.peer, timeout: 5)
                 ^{
-                    lobby.splash.startAnimating()
+                    lobby.scannerViewModel.connectingToPeer()
                 }
             case let w as OnConnectToDevice:
                 ^{
-                    lobby.splash.stopAnimating()
+                    lobby.scannerViewModel.connectedToPeer()
                 }
                 self.become(
                     name: self.states.connected,
@@ -53,25 +49,17 @@ extension RemoteCamSession {
 
             case let m as UICmd.BrowserFoundPeer:
                 ^{
-                    if !lobby.connectedPeers.contains(m.peer) {
-                        lobby.connectedPeers.append(m.peer)
-                    }
-                    lobby.speedRunScanning = true
-                    lobby.tableView.reloadData()
+                    lobby.scannerViewModel.addPeer(m.peer)
                 }
 
             case let m as UICmd.BrowserLostPeer:
                 ^{
-                    lobby.connectedPeers.removeAll { $0 == m.peer }
-                    lobby.tableView.reloadData()
+                    lobby.scannerViewModel.removePeer(m.peer)
                 }
 
-            case let m as UICmd.BrowserFailed:
+            case _ as UICmd.BrowserFailed:
                 ^{
-                    lobby.speedRunScanning = false
-                    lobby.hasScanningError = true
-                    lobby.isScanning = false
-                    lobby.tableView.reloadData()
+                    lobby.scannerViewModel.scanningFailed()
 
                     let alert = UIAlertController(
                         title: NSLocalizedString("Scanning Error", comment: ""),
@@ -85,7 +73,6 @@ extension RemoteCamSession {
                     ))
                     lobby.present(alert, animated: true)
                 }
-                _ = m // suppress unused warning
 
             default:
                 self.receive(msg: msg)

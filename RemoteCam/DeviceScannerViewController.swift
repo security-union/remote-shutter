@@ -23,10 +23,13 @@ func generateQRCode(_ string: String) -> UIImage? {
 
     if let filter = CIFilter(name: "CIQRCodeGenerator") {
         filter.setValue(data, forKey: "inputMessage")
-        let transform = CGAffineTransform(scaleX: 3, y: 3)
+        let transform = CGAffineTransform(scaleX: 10, y: 10)
 
         if let output = filter.outputImage?.transformed(by: transform) {
-            return UIImage(ciImage: output)
+            let context = CIContext()
+            if let cgImage = context.createCGImage(output, from: output.extent) {
+                return UIImage(cgImage: cgImage)
+            }
         }
     }
     return nil
@@ -40,43 +43,46 @@ class DeviceScannerPlaceholder: UITableViewCell {
 }
 
 public class DeviceScannerViewController: UIViewController {
-    
-    @IBOutlet var tableView: UITableView!    
 
-    lazy var qrCodeImage = {
-        generateQRCode(remoteShutterUrl)
-    }()
+    // MARK: - Storyboard outlets (keep wired but unused so storyboard doesn't crash)
+    @IBOutlet var tableView: UITableView!
+
+    // MARK: - SwiftUI ViewModel
+
+    let scannerViewModel = DeviceScannerViewModel()
+    private var swiftUIHostingController: UIHostingController<DeviceScannerView>?
+
+    // MARK: - Legacy compatibility (actor system reads these)
+
+    var connectedPeers: [MCPeerID] {
+        get { scannerViewModel.connectedPeers }
+        set { scannerViewModel.connectedPeers = newValue }
+    }
+
+    var isScanning: Bool {
+        get { scannerViewModel.isScanning }
+        set { scannerViewModel.isScanning = newValue }
+    }
+
+    var hasLocalNetworkAccess: Bool {
+        get { scannerViewModel.hasLocalNetworkAccess }
+        set { scannerViewModel.hasLocalNetworkAccess = newValue }
+    }
+
+    var hasScanningError: Bool {
+        get { scannerViewModel.hasScanningError }
+        set { scannerViewModel.hasScanningError = newValue }
+    }
+
+    var speedRunScanning: Bool {
+        get { scannerViewModel.speedRunScanning }
+        set { scannerViewModel.speedRunScanning = newValue }
+    }
+
+    // MARK: - Peer ID
 
     var peerID: MCPeerID = MCPeerID(displayName: "null")
-    
-    var connectedPeers: [MCPeerID] = []
-    
-    // Add state tracking
-    var isScanning: Bool = false
-    var hasLocalNetworkAccess: Bool = true
-    var hasScanningError: Bool = false
-    
-    // Modern Swift UserDefaults property
-    var speedRunScanning: Bool {
-        get {
-            UserDefaults.standard.bool(forKey: userDefaultsSpeedRunScanning)
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: userDefaultsSpeedRunScanning)
-            // Update UI when flag changes
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
-        }
-    }
-    
-    lazy var splash = {
-        CoolActivityIndicator(currentController: self)
-    }()
-    
-    // Add network browser for checking local network access
-    var networkBrowser: NWBrowser?
-    
+
     private lazy var _peerIDInitialized: Bool = {
         initializePeerID()
         return true
@@ -104,124 +110,123 @@ public class DeviceScannerViewController: UIViewController {
             self.peerID = peerID
         }
     }
-    
-    
+
+    // MARK: - Actors
+
     let frameSender: ActorRef! = RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
-    
+
     let remoteCamSession: ActorRef! = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
+
+    // MARK: - Activity Indicator (legacy, used by actor)
+
+    lazy var splash = {
+        CoolActivityIndicator(currentController: self)
+    }()
+
+    // MARK: - Network Browser
+
+    var networkBrowser: NWBrowser?
+
+    // MARK: - Lifecycle
 
     public override func viewDidLoad() {
         super.viewDidLoad()
         _ = _peerIDInitialized
         self.remoteCamSession ! SetViewCtrl(ctrl: self)
-        self.setupStyle()
-        setupHelpButton()
-        tableView.delegate = self
-        tableView.dataSource = self
+        setupSwiftUIView()
     }
-    
-    private func setupHelpButton() {
-        let helpButton = UIBarButtonItem(
+
+    public override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.isNavigationBarHidden = false
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.title = NSLocalizedString("Scan for devices", comment: "")
+
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "questionmark.circle"),
             style: .plain,
             target: self,
             action: #selector(showHelpModal)
         )
-        helpButton.tintColor = UIColor.systemBlue
-        navigationItem.rightBarButtonItem = helpButton
+        navigationItem.rightBarButtonItem?.tintColor = UIColor(AppTheme.accent)
     }
-    
-    @objc private func showHelpModal() {
-        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
-            self?.dismiss(animated: true)
-        })
-        
-        let hostingController = UIHostingController(rootView: helpView)
-        hostingController.modalPresentationStyle = .pageSheet
-        
-        if let sheet = hostingController.sheetPresentationController {
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-            sheet.preferredCornerRadius = 20
-        }
-        
-        present(hostingController, animated: true)
-    }
-    
-    public override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        self.navigationController?.isNavigationBarHidden = false
-    }
-    
+
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        self.remoteCamSession ! Disconnect()
-        
-        // Reload table data in case user returned from system permission dialog
-        DispatchQueue.main.async {
-            self.tableView.reloadData()
-        }
-        
-        // Check if user has successfully found peers before (speed run mode)
+        remoteCamSession ! Disconnect()
+
         if speedRunScanning {
-            // Auto-start scanning for experienced users
             checkLocalNetworkAccessAndStartScanning()
         }
-        // First-time users will see the button and educational flow
     }
-    
+
     public override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let backItem = UIBarButtonItem()
         backItem.title = NSLocalizedString("Disconnect", comment: "")
         navigationItem.backBarButtonItem = backItem
     }
-    
-    func setupStyle() {
-        navigationController?.navigationBar.prefersLargeTitles = true
-        self.navigationItem.title = NSLocalizedString("Scan for devices", comment: "")
-        self.navigationItem.prompt = NSLocalizedString("You need at least 2 devices running remote shutter", comment: "")
-    }
-    
-    func startScanning() {
-        splash.stopAnimating()
-        connectedPeers.removeAll()
-        isScanning = true
-        hasScanningError = false
-        DispatchQueue.main.async {
-            self.tableView.reloadData()
-        }
+
+    // MARK: - SwiftUI Setup
+
+    private func setupSwiftUIView() {
+        view.subviews.forEach { $0.removeFromSuperview() }
+
+        let scannerView = DeviceScannerView(
+            viewModel: scannerViewModel,
+            onStartScanning: { [weak self] in
+                self?.startScanningDevices()
+            },
+            onStopScanning: { [weak self] in
+                self?.stopScanningDevices()
+            },
+            onSelectPeer: { [weak self] peer in
+                guard let self = self else { return }
+                self.remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
+                self.scannerViewModel.connectingToPeer()
+            },
+            onShareApp: { [weak self] in
+                self?.shareAppLink()
+            },
+            onOpenSettings: { [weak self] in
+                self?.goToAppSettings()
+            },
+            onHelp: { [weak self] in
+                self?.showHelpModal()
+            }
+        )
+
+        let hostingController = UIHostingController(rootView: scannerView)
+        addChild(hostingController)
+        view.addSubview(hostingController.view)
+        hostingController.didMove(toParent: self)
+
+        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
+            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        swiftUIHostingController = hostingController
     }
 
-    func stopScanning() {
-        splash.stopAnimating()
-        connectedPeers.removeAll()
-        isScanning = false
-        DispatchQueue.main.async {
-            self.tableView.reloadData()
-        }
-    }
-    
+    // MARK: - Scanning
+
     @IBAction func startScanningDevices() {
         showScanningPermissionAlert()
     }
-    
+
     func showScanningPermissionAlert() {
         let permissionView = LocalNetworkPermissionView(
-            permissionType: LocalNetworkPermissionView.PermissionType.initial,
+            permissionType: .initial,
             onAllow: { [weak self] in
                 self?.dismiss(animated: true) {
                     self?.checkLocalNetworkAccessAndStartScanning()
-                    DispatchQueue.main.async {
-                        self?.tableView.reloadData()
-                    }
                 }
             },
             onNotNow: { [weak self] in
-                self?.dismiss(animated: true) {
-                    DispatchQueue.main.async {
-                        self?.tableView.reloadData()
-                    }
-                }
+                self?.dismiss(animated: true)
             },
             onOpenSettings: { [weak self] in
                 self?.dismiss(animated: true) {
@@ -229,24 +234,23 @@ public class DeviceScannerViewController: UIViewController {
                 }
             }
         )
-        
+
         let hostingController = UIHostingController(rootView: permissionView)
-        hostingController.modalPresentationStyle = UIModalPresentationStyle.fullScreen
+        hostingController.modalPresentationStyle = .fullScreen
         present(hostingController, animated: true)
     }
-    
+
     func checkLocalNetworkAccessAndStartScanning() {
-        // Use Bonjour to check local network access
         let parameters = NWParameters()
         parameters.includePeerToPeer = true
-        
+
         let browserDescriptor = NWBrowser.Descriptor.bonjourWithTXTRecord(
             type: "_remotecam._tcp",
             domain: "local."
         )
-        
+
         networkBrowser = NWBrowser(for: browserDescriptor, using: parameters)
-        
+
         networkBrowser?.stateUpdateHandler = { [weak self] state in
             DispatchQueue.main.async {
                 switch state {
@@ -254,67 +258,61 @@ public class DeviceScannerViewController: UIViewController {
                     print("Network browser waiting with error: \(error)")
                     if case .dns(let dnsError) = error {
                         let dnsCode = Int(dnsError)
-                        print("DNS error code: \(dnsCode)")
                         if dnsCode == Int(kDNSServiceErr_PolicyDenied) {
-                            // No local network access - reset speed run mode and set error state
-                            self?.speedRunScanning = false
-                            self?.hasLocalNetworkAccess = false
-                            self?.hasScanningError = true
+                            self?.scannerViewModel.networkAccessDenied()
                             self?.showLocalNetworkAccessDeniedAlert()
                             return
                         }
                     }
-                    // Other waiting states - continue with scanning, clear error state
-                    self?.hasLocalNetworkAccess = true
-                    self?.hasScanningError = false
+                    self?.scannerViewModel.networkAccessGranted()
                     self?.startActualScanning()
                 case .ready:
-                    print("Network browser ready")
-                    // Network access is available - clear error state
-                    self?.hasLocalNetworkAccess = true
-                    self?.hasScanningError = false
+                    self?.scannerViewModel.networkAccessGranted()
                     self?.startActualScanning()
-                case .failed(let error):
-                    print("Network browser failed: \(error)")
-                    // Permission denied - likely local network access denied
-                    self?.speedRunScanning = false
-                    self?.hasLocalNetworkAccess = false
-                    self?.hasScanningError = true
+                case .failed:
+                    self?.scannerViewModel.networkAccessDenied()
                     self?.showLocalNetworkAccessDeniedAlert()
                 default:
-                    print("Network browser state: \(state)")
                     break
                 }
             }
         }
-        
+
         networkBrowser?.start(queue: .main)
-        
-        // Stop the browser after a short check
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             self.networkBrowser?.cancel()
         }
     }
-    
+
     func startActualScanning() {
-        self.remoteCamSession ! UICmd.StartScanning(sender: nil)
+        remoteCamSession ! UICmd.StartScanning(sender: nil)
     }
-    
+
+    func startScanning() {
+        scannerViewModel.startedScanning()
+    }
+
+    func stopScanning() {
+        scannerViewModel.stoppedScanning()
+    }
+
+    @objc func stopScanningDevices() {
+        scannerViewModel.stoppedScanning()
+        scannerViewModel.clearPeers()
+        remoteCamSession ! Disconnect()
+    }
+
     func showLocalNetworkAccessDeniedAlert() {
         let permissionView = LocalNetworkPermissionView(
-            permissionType: LocalNetworkPermissionView.PermissionType.denied,
+            permissionType: .denied,
             onAllow: { [weak self] in
-                // This won't be called for denied type, but keeping for consistency
                 self?.dismiss(animated: true) {
                     self?.goToAppSettings()
                 }
             },
             onNotNow: { [weak self] in
-                self?.dismiss(animated: true) {
-                    DispatchQueue.main.async {
-                        self?.tableView.reloadData()
-                    }
-                }
+                self?.dismiss(animated: true)
             },
             onOpenSettings: { [weak self] in
                 self?.dismiss(animated: true) {
@@ -322,33 +320,52 @@ public class DeviceScannerViewController: UIViewController {
                 }
             }
         )
-        
+
         let hostingController = UIHostingController(rootView: permissionView)
-        hostingController.modalPresentationStyle = UIModalPresentationStyle.fullScreen
+        hostingController.modalPresentationStyle = .fullScreen
         present(hostingController, animated: true)
     }
-    
+
+    // MARK: - Navigation
+
     @IBAction func goToRolePicker() {
-        self.performSegue(withIdentifier: goToRolePickerController, sender: self)
+        scannerViewModel.connectedToPeer()
+        performSegue(withIdentifier: goToRolePickerController, sender: self)
     }
-    
+
     @IBAction func goToAppSettings() {
         goToSettings()
     }
-    
+
     @IBAction func shareAppLink() {
-        let items = [String(format:NSLocalizedString("call_to_download", comment: ""), remoteShutterUrl)]
+        let items = [String(format: NSLocalizedString("call_to_download", comment: ""), remoteShutterUrl)]
         let activityViewController = UIActivityViewController(activityItems: items, applicationActivities: nil)
         activityViewController.excludedActivityTypes = [.airDrop]
-        // This code is required to support iPad and iPhone
         if let popoverController = activityViewController.popoverPresentationController {
             popoverController.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2, width: 0, height: 0)
             popoverController.sourceView = self.view
             popoverController.permittedArrowDirections = UIPopoverArrowDirection(rawValue: 0)
         }
-        self.present(activityViewController, animated: true, completion: nil)
+        present(activityViewController, animated: true, completion: nil)
     }
-    
+
+    @objc private func showHelpModal() {
+        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
+            self?.dismiss(animated: true)
+        })
+
+        let hostingController = UIHostingController(rootView: helpView)
+        hostingController.modalPresentationStyle = .pageSheet
+
+        if let sheet = hostingController.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+        }
+
+        present(hostingController, animated: true)
+    }
+
     deinit {
         print("deinit DeviceScanners")
         networkBrowser?.cancel()
@@ -356,96 +373,3 @@ public class DeviceScannerViewController: UIViewController {
         remoteCamSession ! Actor.Harakiri(sender: nil)
     }
 }
-
-extension DeviceScannerViewController: UITableViewDataSource, UITableViewDelegate {
-    public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        connectedPeers.count > 0 ? connectedPeers.count : 1
-    }
-    
-    public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if (connectedPeers.count > 0) {
-            let cell = UITableViewCell()
-            cell.textLabel?.text = connectedPeers[indexPath.row].displayName
-            return cell
-        } else {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "instructions") as! DeviceScannerPlaceholder
-            cell.qrCode.image = qrCodeImage
-            cell.qrCodeInstructionLabel?.text = NSLocalizedString("qr_code_download_instruction", comment: "")
-            
-            // If no local network access, hide scanning buttons and only show settings
-            if !hasLocalNetworkAccess {
-                cell.shareButton.isHidden = true
-                cell.goToSettings.isHidden = false
-            } else {
-                // Configure start scanning button when network access is available
-                cell.shareButton.isHidden = false
-                if !isScanning {
-                    cell.shareButton.setTitle(NSLocalizedString("Start Scanning Devices", comment: ""), for: .normal)
-                    cell.shareButton.removeTarget(nil, action: nil, for: .allEvents)
-                    cell.shareButton.addTarget(self, action: #selector(startScanningDevices), for: .touchUpInside)
-                    cell.shareButton.styleButton(
-                        backgroundColor: UIColor.systemGreen,
-                        borderColor: UIColor.clear,
-                        textColor: UIColor.white
-                    )
-                } else {
-                    cell.shareButton.setTitle(NSLocalizedString("Stop Scanning", comment: ""), for: .normal)
-                    cell.shareButton.removeTarget(nil, action: nil, for: .allEvents)
-                    cell.shareButton.addTarget(self, action: #selector(stopScanningDevices), for: .touchUpInside)
-                    cell.shareButton.styleButton(
-                        backgroundColor: UIColor.systemRed,
-                        borderColor: UIColor.clear,
-                        textColor: UIColor.white
-                    )
-                }
-                cell.shareButton.setNeedsDisplay()
-                
-                // Configure settings button - only show when there's a scanning error
-                if #available(iOS 14.0, *) {
-                    cell.goToSettings.isHidden = !hasScanningError
-                } else {
-                    cell.goToSettings.isHidden = true
-                }
-            }
-            
-            // Always configure settings button styling when visible
-            cell.goToSettings.styleButton(
-                backgroundColor: UIColor.systemGray,
-                borderColor: UIColor.clear,
-                textColor: UIColor.white
-            )
-            cell.goToSettings.setNeedsDisplay()
-            return cell
-        }
-    }
-    
-    @objc func stopScanningDevices() {
-        isScanning = false
-        connectedPeers.removeAll()
-        tableView.reloadData()
-        self.remoteCamSession ! Disconnect()
-    }
-    
-    public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-        if (connectedPeers.count == 0) {
-            return
-        }
-        let peer = connectedPeers[indexPath.row]
-        remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
-    }
-    
-    public func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        if !isScanning {
-            if hasScanningError {
-                return NSLocalizedString("SCANNING ERROR - CHECK NETWORK SETTINGS", comment: "")
-            } else {
-                return NSLocalizedString("TAP THE GREEN BUTTON TO GET STARTED", comment: "")
-            }
-        } else {
-            return NSLocalizedString("SEARCHING FOR NEARBY DEVICES...", comment: "")
-        }
-    }
-}
-
-

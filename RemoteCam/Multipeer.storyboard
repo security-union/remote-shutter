@@ -850,8 +850,6 @@
                                     </tableViewCell>
                                 </prototypes>
                                 <connections>
-                                    <outlet property="dataSource" destination="c2Z-OF-8fH" id="zbF-Cj-Dlb"/>
-                                    <outlet property="delegate" destination="c2Z-OF-8fH" id="Gqo-PM-Oi6"/>
                                 </connections>
                             </tableView>
                         </subviews>
