@@ -167,14 +167,11 @@ struct MonitorView: View {
                         )
                         .frame(width: 140, height: 8)
                     
-                    // Progress fill with beautiful gradient
+                    // Progress fill
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
                             LinearGradient(
-                                colors: [
-                                    Color(red: 0.0, green: 0.48, blue: 1.0), // iOS blue
-                                    Color(red: 0.0, green: 0.68, blue: 1.0)  // Lighter blue
-                                ],
+                                colors: [AppTheme.accent, AppTheme.accentLight],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -183,7 +180,7 @@ struct MonitorView: View {
                             width: CGFloat(140 * Double((viewModel.currentZoomFactor - 1.0) / (viewModel.maxZoomFactor - 1.0))), 
                             height: 8
                         )
-                        .shadow(color: Color.blue.opacity(0.3), radius: 2, x: 0, y: 1)
+                        .shadow(color: AppTheme.accent.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
                 
                 // End label
@@ -273,8 +270,8 @@ struct MonitorView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(
-                    viewModel.currentMode == mode ? 
-                    Color.blue : Color.clear
+                    viewModel.currentMode == mode ?
+                    AppTheme.accent : Color.clear
                 )
                 .cornerRadius(6)
         }
@@ -298,7 +295,7 @@ struct MonitorView: View {
                 in: 0...viewModel.maxTimerValue,
                 step: 1
             )
-            .accentColor(.blue)
+            .accentColor(AppTheme.accent)
             .disabled(!viewModel.isTimerSliderEnabled)
             
             Text("\(Int(viewModel.timerSliderValue))s")
@@ -330,8 +327,8 @@ struct MonitorView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
-                    viewModel.currentLensType == lensType ? 
-                    Color.blue : Color.gray.opacity(0.3)
+                    viewModel.currentLensType == lensType ?
+                    AppTheme.accent : Color.gray.opacity(0.3)
                 )
                 .cornerRadius(6)
         }

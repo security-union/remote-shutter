@@ -25,8 +25,10 @@ struct SettingsView: View {
                             Text(NSLocalizedString("Back", comment: ""))
                         }
                     }
+                    .foregroundColor(AppTheme.accent)
                 }
             }
+            .tint(AppTheme.accent)
             .alert(
                 NSLocalizedString("In-App Purchases", comment: ""),
                 isPresented: $viewModel.showAlert
@@ -44,17 +46,17 @@ struct SettingsView: View {
 
     private var upgradesSection: some View {
         Section {
-            purchaseRow(item: viewModel.proMode, icon: "star.fill", tint: .purple)
-            purchaseRow(item: viewModel.removeAds, icon: "eye.slash.fill", tint: .blue)
-            purchaseRow(item: viewModel.enableTorch, icon: "flashlight.on.fill", tint: .orange)
-            purchaseRow(item: viewModel.enableVideo, icon: "video.fill", tint: .red)
+            purchaseRow(item: viewModel.proMode, icon: "star.fill")
+            purchaseRow(item: viewModel.removeAds, icon: "eye.slash.fill")
+            purchaseRow(item: viewModel.enableTorch, icon: "flashlight.on.fill")
+            purchaseRow(item: viewModel.enableVideo, icon: "video.fill")
 
             Button {
                 viewModel.restorePurchases()
             } label: {
                 HStack {
                     Image(systemName: "arrow.clockwise")
-                        .foregroundStyle(.blue)
+                        .foregroundColor(AppTheme.accent)
                         .frame(width: 28)
                     Text(NSLocalizedString("Restore Purchases", comment: ""))
                     Spacer()
@@ -76,11 +78,12 @@ struct SettingsView: View {
             Toggle(isOn: $viewModel.sendMediaToRemote) {
                 HStack {
                     Image(systemName: "paperplane.fill")
-                        .foregroundStyle(.green)
+                        .foregroundColor(AppTheme.secondary)
                         .frame(width: 28)
                     Text(NSLocalizedString("Send Media to Remote", comment: ""))
                 }
             }
+            .tint(AppTheme.accent)
         } header: {
             Text(NSLocalizedString("Settings", comment: ""))
         }
@@ -92,21 +95,18 @@ struct SettingsView: View {
         Section {
             linkRow(
                 icon: "envelope.fill",
-                tint: .blue,
                 title: NSLocalizedString("Contact Support", comment: ""),
                 urlString: "mailto:remoteshutter@securityunion.dev"
             )
 
             linkRow(
                 icon: "bubble.left.and.bubble.right.fill",
-                tint: .indigo,
                 title: NSLocalizedString("Discord Community", comment: ""),
                 urlString: "https://discord.gg/vJ7EqZCmJ7"
             )
 
             linkRow(
                 icon: "chevron.left.forwardslash.chevron.right",
-                tint: .gray,
                 title: NSLocalizedString("Source Code", comment: ""),
                 urlString: "https://github.com/security-union/remote-shutter"
             )
@@ -118,7 +118,7 @@ struct SettingsView: View {
             } label: {
                 HStack {
                     Image(systemName: "doc.text.fill")
-                        .foregroundStyle(.brown)
+                        .foregroundColor(AppTheme.accent)
                         .frame(width: 28)
                     Text(NSLocalizedString("Acknowledgments", comment: ""))
                 }
@@ -126,12 +126,12 @@ struct SettingsView: View {
 
             HStack {
                 Image(systemName: "info.circle.fill")
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
                     .frame(width: 28)
                 Text(NSLocalizedString("Version", comment: ""))
                 Spacer()
                 Text(viewModel.appVersion)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
             }
         } header: {
             Text(NSLocalizedString("About", comment: ""))
@@ -142,39 +142,38 @@ struct SettingsView: View {
 
     private func purchaseRow(
         item: SettingsViewModel.PurchaseItem,
-        icon: String,
-        tint: Color
+        icon: String
     ) -> some View {
         Button {
             viewModel.purchase(item)
         } label: {
             HStack {
                 Image(systemName: item.isPurchased ? "checkmark.seal.fill" : icon)
-                    .foregroundStyle(item.isPurchased ? .green : tint)
+                    .foregroundColor(item.isPurchased ? AppTheme.success : AppTheme.accent)
                     .frame(width: 28)
 
                 Text(item.title)
-                    .foregroundStyle(item.isPurchased ? .secondary : .primary)
+                    .foregroundColor(item.isPurchased ? .secondary : .primary)
 
                 Spacer()
 
                 if item.isPurchased {
                     Text(NSLocalizedString("Purchased", comment: ""))
                         .font(.subheadline)
-                        .foregroundStyle(.green)
+                        .foregroundColor(AppTheme.success)
                 } else if item.price.isEmpty {
                     ProgressView()
                 } else {
                     Text(item.price)
                         .font(.subheadline)
-                        .foregroundStyle(.blue)
+                        .foregroundColor(AppTheme.accent)
                 }
             }
         }
         .disabled(item.isPurchased || viewModel.isPurchasing)
     }
 
-    private func linkRow(icon: String, tint: Color, title: String, urlString: String) -> some View {
+    private func linkRow(icon: String, title: String, urlString: String) -> some View {
         Button {
             if let url = URL(string: urlString) {
                 UIApplication.shared.open(url)
@@ -182,14 +181,14 @@ struct SettingsView: View {
         } label: {
             HStack {
                 Image(systemName: icon)
-                    .foregroundStyle(tint)
+                    .foregroundColor(AppTheme.accent)
                     .frame(width: 28)
                 Text(title)
-                    .foregroundStyle(.primary)
+                    .foregroundColor(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.right")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
             }
         }
     }
@@ -216,7 +215,7 @@ struct AcknowledgmentsView: View {
                         Spacer()
                         Text(credit.role)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(.secondary)
                     }
                 }
             } header: {
@@ -229,10 +228,10 @@ struct AcknowledgmentsView: View {
                         .font(.headline)
                     Text("Created by Dario Talarico, 2015.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                     Text("Licensed under the Apache License, Version 2.0. You may obtain a copy at apache.org/licenses/LICENSE-2.0.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 4)
             } header: {
@@ -242,7 +241,7 @@ struct AcknowledgmentsView: View {
             Section {
                 Text("To my Wife Mariela for supporting me at all times. To Franco Talarico for helping me out and trusting me. To my family, Laura Talarico, my sis Romina and Ruben Lencina for helping me to test this app.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
             } header: {
                 Text("Special Thanks")
             }

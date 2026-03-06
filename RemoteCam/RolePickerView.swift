@@ -5,94 +5,159 @@ struct RolePickerView: View {
     let onRemote: () -> Void
     let onSettings: () -> Void
 
+    @State private var appeared = false
+
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        ZStack {
+            AppTheme.backgroundGradient
 
-            VStack(spacing: 24) {
-                roleCard(
-                    icon: "camera.fill",
-                    title: NSLocalizedString("Camera", comment: ""),
-                    description: NSLocalizedString("The device that captures the photo.", comment: ""),
-                    tip: NSLocalizedString("Choose the device with the best camera.", comment: ""),
-                    tint: .blue,
-                    action: onCamera
+            VStack(spacing: 0) {
+                // Connected pill
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(AppTheme.success)
+                        .frame(width: 8, height: 8)
+                        .overlay(
+                            Circle()
+                                .fill(AppTheme.success.opacity(0.4))
+                                .frame(width: 16, height: 16)
+                        )
+                    Text(NSLocalizedString("Connected", comment: ""))
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 14)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
                 )
+                .padding(.top, 4)
+                .padding(.bottom, 16)
 
-                roleCard(
-                    icon: "antenna.radiowaves.left.and.right",
-                    title: NSLocalizedString("Remote", comment: ""),
-                    description: NSLocalizedString("The device that triggers the shutter.", comment: ""),
-                    tip: NSLocalizedString("Works from up to 50 feet away.", comment: ""),
-                    tint: .red,
-                    action: onRemote
-                )
+                // Two glass panels
+                VStack(spacing: 12) {
+                    Button(action: onCamera) {
+                        glassPanel(
+                            icon: "camera.fill",
+                            title: NSLocalizedString("Camera", comment: ""),
+                            subtitle: NSLocalizedString("Capture photos & video", comment: ""),
+                            detail: NSLocalizedString("Use the device with the best lens", comment: ""),
+                            tint: AppTheme.accent
+                        )
+                    }
+                    .buttonStyle(GlassButtonStyle())
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 20)
+
+                    Button(action: onRemote) {
+                        glassPanel(
+                            icon: "antenna.radiowaves.left.and.right",
+                            title: NSLocalizedString("Remote", comment: ""),
+                            subtitle: NSLocalizedString("Control the shutter", comment: ""),
+                            detail: NSLocalizedString("Works up to 50 feet away", comment: ""),
+                            tint: AppTheme.secondary
+                        )
+                    }
+                    .buttonStyle(GlassButtonStyle())
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 20)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, 20)
-
-            Spacer()
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.5).delay(0.1)) {
+                appeared = true
+            }
+        }
     }
 
-    // MARK: - Role Card
+    // MARK: - Glass Panel
 
-    private func roleCard(
+    private func glassPanel(
         icon: String,
         title: String,
-        description: String,
-        tip: String,
-        tint: Color,
-        action: @escaping () -> Void
+        subtitle: String,
+        detail: String,
+        tint: Color
     ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 16) {
-                // Icon
-                Image(systemName: icon)
-                    .font(.system(size: 28))
-                    .foregroundColor(tint)
-                    .frame(width: 56, height: 56)
-                    .background(tint.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+        ZStack {
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
+                )
+                .shadow(color: AppTheme.glassShadow, radius: 16, y: 8)
 
-                // Text
-                VStack(alignment: .leading, spacing: 4) {
+            VStack(spacing: 12) {
+                Spacer()
+
+                // Icon with glow
+                ZStack {
+                    Circle()
+                        .fill(tint.opacity(0.12))
+                        .frame(width: 80, height: 80)
+
+                    Circle()
+                        .strokeBorder(tint.opacity(0.25), lineWidth: 1.5)
+                        .frame(width: 80, height: 80)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 32, weight: .medium))
+                        .foregroundColor(tint)
+                }
+
+                VStack(spacing: 6) {
                     Text(title)
-                        .font(.title3)
-                        .fontWeight(.semibold)
+                        .font(.title2)
+                        .fontWeight(.bold)
                         .foregroundColor(.primary)
 
-                    Text(description)
-                        .font(.subheadline)
+                    Text(subtitle)
+                        .font(.body)
                         .foregroundColor(.secondary)
-
-                    HStack(spacing: 4) {
-                        Image(systemName: "lightbulb.fill")
-                            .font(.caption2)
-                            .foregroundColor(.orange)
-                        Text(tip)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 2)
                 }
 
                 Spacer()
 
-                // Chevron
-                Image(systemName: "chevron.right")
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(tint.opacity(0.5))
+                // Bottom detail
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkle")
+                        .font(.caption2)
+                        .foregroundColor(tint.opacity(0.7))
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(tint)
+                }
+                .padding(12)
+                .background(tint.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
-            .padding(16)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(tint.opacity(0.15), lineWidth: 0.5)
-            )
+            .multilineTextAlignment(.center)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Press Effect
+
+private struct GlassButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 
