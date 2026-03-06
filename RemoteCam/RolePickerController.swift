@@ -114,8 +114,9 @@ public class RolePickerController: UIViewController {
     }
 
     @IBAction func showSettings(sender: UIButton) {
-        let ctrl = CMConfigurationsViewController()
-        self.navigationController?.pushViewController(ctrl, animated: true)
+        let ctrl = UIHostingController(rootView: SettingsView())
+        ctrl.modalPresentationStyle = .pageSheet
+        self.present(ctrl, animated: true)
     }
 
     @IBAction func becomeMonitor() {
