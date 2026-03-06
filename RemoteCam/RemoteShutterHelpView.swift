@@ -3,21 +3,18 @@ import SwiftUI
 struct RemoteShutterHelpView: View {
     let onDismiss: () -> Void
     @State private var selectedPage = 0
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Header
                 VStack(spacing: 16) {
-                    Image(systemName: "camera.circle.fill")
-                        .font(.system(size: 60, weight: .medium))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                    Image("AppLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
                     
                     VStack(spacing: 8) {
                         Text(NSLocalizedString("help_title", comment: "Help modal title"))
