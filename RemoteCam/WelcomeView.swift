@@ -42,16 +42,12 @@ struct WelcomeView: View {
 
     private var headerSection: some View {
         VStack(spacing: 16) {
-            Image(systemName: "camera.circle.fill")
-                .font(.system(size: 72, weight: .thin))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.blue, .purple],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .shadow(color: .blue.opacity(0.3), radius: 12, y: 6)
+            Image("AppLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 100, height: 100)
+                .clipShape(RoundedRectangle(cornerRadius: 22))
+                .shadow(color: .black.opacity(0.15), radius: 12, y: 6)
 
             Text("Remote Shutter")
                 .font(.largeTitle)
@@ -111,38 +107,43 @@ struct WelcomeView: View {
                 HStack {
                     Image(systemName: "star.fill")
                         .font(.title2)
+                        .foregroundStyle(.purple)
                     Text(item.title)
                         .font(.headline)
+                        .foregroundStyle(.primary)
                     Spacer()
                 }
-                .foregroundStyle(.white)
 
                 Text(NSLocalizedString("Unlock all features: video recording, torch control, and ad-free experience.", comment: ""))
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 if item.price.isEmpty {
                     ProgressView()
-                        .tint(.white)
                 } else {
                     Text(item.price)
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.purple)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
             .padding(16)
-            .background(
-                LinearGradient(
-                    colors: [.purple, .blue],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
+            .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .purple.opacity(0.3), radius: 8, y: 4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.purple.opacity(0.5), .blue.opacity(0.3)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: .purple.opacity(0.15), radius: 8, y: 4)
         }
         .disabled(viewModel.isPurchasing)
     }
