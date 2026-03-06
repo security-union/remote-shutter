@@ -211,7 +211,8 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     let session = getRemoteCamSession()!
 
-    let monitor = RemoteCamSystem.shared.actorOf(clz: MonitorActor.self, name: "MonitorActor")!
+    private(set) var monitor: ActorRef!
+    private var monitorInstanceId: ObjectIdentifier?
 
     let timer: RCTimer = RCTimer()
 
@@ -224,31 +225,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private let sliderColor1 = UIColor(red: 0.150, green: 0.670, blue: 0.80, alpha: 1)
     private let sliderColor2 = UIColor(red: 0.060, green: 0.100, blue: 0.160, alpha: 1)
 
-    // MARK: - Legacy outlets (kept for storyboard compatibility, not used)
-    @IBOutlet weak var backButton: UIButton?
-    @IBOutlet weak var flashButton: UIButton?
-    @IBOutlet weak var flashStatus: UILabel?
-    @IBOutlet weak var galleryButton: UIButton?
-    @IBOutlet weak var imageView: UIImageView?
-    @IBOutlet weak var settingsButton: UIButton?
-    @IBOutlet weak var sliderContainer: UIView?
-    @IBOutlet weak var takePicture: UIButton?
-    @IBOutlet weak var timerLabel: UILabel?
-    @IBOutlet weak var timerSlider: UISlider?
-    @IBOutlet weak var toggleCamera: UIButton?
-    @IBOutlet weak var controlsView: UIView?
-    @IBOutlet weak var segmentedControl: UISegmentedControl?
-    @IBOutlet weak var recordingView: UIImageView?
     // Note: bannerView, bannerHeight, bottomBannerConstraint inherited from BaseViewController
-    
-    // Programmatic UI Controls
-    private var programmaticZoomSlider: UISlider!
-    private var programmaticZoomLabel: UILabel!
-    private var programmaticLensSegmentedControl: UISegmentedControl!
-    private var zoomControlsContainer: UIView!
-    private var lensControlsContainer: UIView!
-    private var programmaticToggleCameraButton: UIButton!
-    var programmaticTorchButton: UIButton!
     
     // Pinch Gesture for Zoom
     private var pinchGestureRecognizer: UIPinchGestureRecognizer!
@@ -281,6 +258,14 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     override public func viewDidLoad() {
         super.viewDidLoad()
         print("🔍 DEBUG: MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
+
+        let m = createOrReplaceActor(
+            clz: MonitorActor.self,
+            name: "MonitorActor"
+        )
+        monitor = m.ref
+        monitorInstanceId = m.instanceId
+
         monitor ! SetViewCtrl(ctrl: self)
         
         // Setup SwiftUI view instead of storyboard
@@ -305,20 +290,12 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     }
 
     deinit {
-        print("🔍 DEBUG: MonitorViewController deinit - \(ObjectIdentifier(self))")
-        print("stop monitor")
+        print("MonitorViewController deinit")
         self.timer.cancel()
         self.zoomLabelTimer?.invalidate()
         self.soundManager.stopPlayer()
         session ! UICmd.UnbecomeMonitor(sender: nil)
-        
-        // Video transfer progress is handled by MonitorActor - no cleanup needed
-        print("📺 DEBUG: MonitorViewController - Removed notification observers")
-        
-        // Delay actor destruction to allow pending messages to arrive
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [monitor] in
-            monitor ! Actor.Harakiri(sender: nil)
-        }
+        stopActorIfCurrent(ref: monitor, instanceId: monitorInstanceId)
     }
 
     let buttonPromptPhotoMode = NSLocalizedString("Taking picture", comment: "")
@@ -345,31 +322,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     
     // Legacy @objc and @IBAction methods removed - using SwiftUI callbacks instead
 
-    @IBAction func showSettings(sender: UIButton) {
-        let ctrl = UIHostingController(rootView: SettingsView())
-        ctrl.modalPresentationStyle = .pageSheet
-        self.present(ctrl, animated: true)
-    }
-
-    @IBAction func showGallery(sender: UIButton) {
-        let pickerController = UIImagePickerController()
-        pickerController.delegate = self
-        pickerController.allowsEditing = true
-        pickerController.videoMaximumDuration = 60 * 60
-        pickerController.mediaTypes = ["public.image", "public.movie"]
-        pickerController.sourceType = .savedPhotosAlbum
-        #if targetEnvironment(macCatalyst)
-        pickerController.modalPresentationStyle = UIModalPresentationStyle.pageSheet
-        #else
-        pickerController.modalPresentationStyle = UIModalPresentationStyle.popover
-        pickerController.popoverPresentationController?.sourceView = sender
-        #endif
-        self.present(pickerController, animated: true)
-    }
-
-    @IBAction func goBack(sender: UIButton) {
-        self.navigationController?.popViewController(animated: true)
-    }
 
     /**
      Take picture contains the logic to kick off the Timer for the picture.

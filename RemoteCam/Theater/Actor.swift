@@ -97,18 +97,21 @@ open class Actor : NSObject {
         actorOf(clz: clz, name: UUID.init().uuidString)
     }
     
-    public func actorOf(clz : Actor.Type, name : String) -> Try<ActorRef> {
-        //TODO: should we kill or throw an error when user wants to reuse address of actor?
+    public func actorOf(clz : Actor.Type, name : String, replace: Bool = false) -> Try<ActorRef> {
         let completePath = "\(self.this.path.asString)/\(name)"
-        if self.children[completePath] != nil {
-            return Failure(error: ActorCreationError.reason("Actor exists"))
+        if let existing = self.children[completePath] {
+            if replace {
+                (existing as! Actor).willStop()
+            } else {
+                return Failure(error: ActorCreationError.reason("Actor exists"))
+            }
         }
         let ref = ActorRef(context:self.context, path:ActorPath(path:completePath))
         let actorInstance : Actor = clz.init(context: self.context, ref: ref)
         let mutableDict = NSMutableDictionary(dictionary: self.children)
         mutableDict.setValue(actorInstance, forKey: completePath)
         self.children = NSDictionary(dictionary: mutableDict)
-        
+
         return Success(ref)
     }
     

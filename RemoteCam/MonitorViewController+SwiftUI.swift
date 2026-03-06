@@ -7,9 +7,6 @@ extension MonitorViewController {
     
     // MARK: - SwiftUI Setup
     func setupSwiftUIView() {
-        // Remove all existing subviews (storyboard remnants)
-        view.subviews.forEach { $0.removeFromSuperview() }
-        
         // Create SwiftUI view with callbacks
         let monitorView = MonitorView(
             viewModel: viewModel,

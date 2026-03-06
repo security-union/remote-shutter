@@ -72,7 +72,6 @@
 		069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284251BE5BF5B00AF4678 /* Assets.xcassets */; };
 		0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284421BE5C0E600AF4678 /* CameraViewController.swift */; };
 		0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284431BE5C0E600AF4678 /* MonitorViewController.swift */; };
-		0692844E1BE5C0E600AF4678 /* Multipeer.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 069284441BE5C0E600AF4678 /* Multipeer.storyboard */; };
 		0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284451BE5C0E600AF4678 /* MultipeerMessages.swift */; };
 		069284511BE5C0E600AF4678 /* RemoteCamSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284471BE5C0E600AF4678 /* RemoteCamSession.swift */; };
 		069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
@@ -80,7 +79,6 @@
 		B1C0DE0100000003 /* RolePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0100000001 /* RolePickerView.swift */; };
 		069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284491BE5C0E600AF4678 /* RemoteCamStateNames.swift */; };
 		069284541BE5C0E600AF4678 /* UIImage+ImageProcessing.m in Sources */ = {isa = PBXBuildFile; fileRef = 0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */; };
-		069284561BE5C12000AF4678 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 069284551BE5C12000AF4678 /* Main.storyboard */; };
 		069284661BE5C71800AF4678 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284651BE5C71800AF4678 /* Media.xcassets */; };
 		069284691BE5C7DB00AF4678 /* Acknowledgments.html in Resources */ = {isa = PBXBuildFile; fileRef = 069284671BE5C7DB00AF4678 /* Acknowledgments.html */; };
 		069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 069284701BE5C82E00AF4678 /* InfoPlist.strings */; };
@@ -260,7 +258,6 @@
 		069284411BE5C0E500AF4678 /* RemoteCam-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteCam-Bridging-Header.h"; sourceTree = "<group>"; };
 		069284421BE5C0E600AF4678 /* CameraViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraViewController.swift; sourceTree = "<group>"; };
 		069284431BE5C0E600AF4678 /* MonitorViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorViewController.swift; sourceTree = "<group>"; };
-		069284441BE5C0E600AF4678 /* Multipeer.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Multipeer.storyboard; sourceTree = "<group>"; };
 		069284451BE5C0E600AF4678 /* MultipeerMessages.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MultipeerMessages.swift; sourceTree = "<group>"; };
 		069284471BE5C0E600AF4678 /* RemoteCamSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteCamSession.swift; sourceTree = "<group>"; };
 		069284481BE5C0E600AF4678 /* RolePickerController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RolePickerController.swift; sourceTree = "<group>"; };
@@ -269,7 +266,6 @@
 		069284491BE5C0E600AF4678 /* RemoteCamStateNames.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteCamStateNames.swift; sourceTree = "<group>"; };
 		0692844A1BE5C0E600AF4678 /* UIImage+ImageProcessing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImage+ImageProcessing.h"; sourceTree = "<group>"; };
 		0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+ImageProcessing.m"; sourceTree = "<group>"; };
-		069284551BE5C12000AF4678 /* Main.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main.storyboard; sourceTree = "<group>"; };
 		069284651BE5C71800AF4678 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
 		069284671BE5C7DB00AF4678 /* Acknowledgments.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Acknowledgments.html; sourceTree = "<group>"; };
 		069284701BE5C82E00AF4678 /* InfoPlist.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = InfoPlist.strings; sourceTree = "<group>"; };
@@ -542,10 +538,8 @@
 				069284251BE5BF5B00AF4678 /* Assets.xcassets */,
 				069284651BE5C71800AF4678 /* Media.xcassets */,
 				069284671BE5C7DB00AF4678 /* Acknowledgments.html */,
-				069284551BE5C12000AF4678 /* Main.storyboard */,
 				06503C542E2CDB55003DEAFA /* Localizable.strings */,
 				069284701BE5C82E00AF4678 /* InfoPlist.strings */,
-				069284441BE5C0E600AF4678 /* Multipeer.storyboard */,
 			);
 			name = Assets;
 			sourceTree = "<group>";
@@ -767,7 +761,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0692844E1BE5C0E600AF4678 /* Multipeer.storyboard in Resources */,
 				060866BE2522519B001B59FC /* Configuration.storekit in Resources */,
 				0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */,
 				0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */,
@@ -782,7 +775,6 @@
 				069284661BE5C71800AF4678 /* Media.xcassets in Resources */,
 				06B1D8152536C3FA0029CCB6 /* recording.gif in Resources */,
 				0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */,
-				069284561BE5C12000AF4678 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

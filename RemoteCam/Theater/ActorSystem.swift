@@ -116,6 +116,29 @@ open class ActorSystem  {
     public func stop(actorRef : ActorRef) -> Void {
         supervisor?.stop(actorRef: actorRef)
     }
+
+    /**
+     Stops the actor at the given path ONLY if it is the exact same instance
+     identified by expectedId. If the actor was already replaced by a new
+     instance (different ObjectIdentifier), this is a no-op.
+
+     This solves the "deinit kills replacement" race: a VC stores the
+     ObjectIdentifier of the actor it created. In deinit it calls this
+     method. If another VC already called createOrReplaceActor (which
+     overwrites the path with a new instance), the identifiers won't
+     match and the new actor is left alone.
+     */
+    public func stopIfSameInstance(path: String, expectedId: ObjectIdentifier) {
+        guard let supervisor = supervisor,
+              let actor = supervisor.children[path] as? Actor,
+              ObjectIdentifier(actor) == expectedId else {
+            return
+        }
+        actor.willStop()
+        let mutableDict = NSMutableDictionary(dictionary: supervisor.children)
+        mutableDict.removeObject(forKey: path)
+        supervisor.children = NSDictionary(dictionary: mutableDict)
+    }
     
     public func stop() {
         supervisor?.stop()
@@ -135,8 +158,8 @@ open class ActorSystem  {
      ```
     */
     
-    public func actorOf(clz : Actor.Type, name : String) -> ActorRef? {
-        supervisor?.actorOf(clz: clz, name: name).toOptional()
+    public func actorOf(clz : Actor.Type, name : String, replace: Bool = false) -> ActorRef? {
+        supervisor?.actorOf(clz: clz, name: name, replace: replace).toOptional()
     }
     
     /**
@@ -165,6 +188,15 @@ open class ActorSystem  {
     
     func actorForRef(ref : ActorRef) -> Actor? {
         self.supervisor?.actorForRef(ref: ref)
+    }
+
+    /**
+     Returns the ObjectIdentifier of the actor currently at the given ref's path.
+     Used together with stopIfSameInstance to enable instance-aware cleanup.
+     */
+    public func instanceId(forRef ref: ActorRef) -> ObjectIdentifier? {
+        guard let actor = actorForRef(ref: ref) else { return nil }
+        return ObjectIdentifier(actor)
     }
     
     /**

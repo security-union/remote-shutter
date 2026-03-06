@@ -2,23 +2,11 @@ import UIKit
 import StoreKit
 import SwiftUI
 
-let goToConnectViewControllerSegue = "goToConnectViewControllerSegue"
-
 class WelcomeViewController: UIViewController {
 
     let viewModel = WelcomeViewModel()
     private var swiftUIHostingController: UIHostingController<WelcomeView>?
     private var isInitialAppLaunch = true
-
-    // MARK: - Storyboard outlets (keep wired but unused so storyboard doesn't crash)
-    @IBOutlet weak var continueButton: UIButton!
-    @IBOutlet weak var disableAdsButton: UIButton!
-    @IBOutlet weak var buyProButton: UIButton!
-    @IBOutlet weak var enableTorchButton: UIButton!
-    @IBOutlet weak var enableVideoOnlyButton: UIButton!
-    @IBOutlet weak var restorePurchaseButton: UIButton!
-    @IBOutlet weak var reviewAppButton: UIButton!
-    @IBOutlet weak var welcomeDescLabel: UILabel!
 
     // MARK: - Lifecycle
 
@@ -52,9 +40,6 @@ class WelcomeViewController: UIViewController {
     // MARK: - SwiftUI Setup
 
     private func setupSwiftUIView() {
-        // Remove storyboard subviews
-        view.subviews.forEach { $0.removeFromSuperview() }
-
         let welcomeView = WelcomeView(
             viewModel: viewModel,
             onContinue: { [weak self] in
@@ -86,11 +71,12 @@ class WelcomeViewController: UIViewController {
 
     // MARK: - Navigation
 
-    @IBAction func goToConnectViewController() {
-        performSegue(withIdentifier: goToConnectViewControllerSegue, sender: nil)
+    func goToConnectViewController() {
+        let scanner = DeviceScannerViewController()
+        navigationController?.pushViewController(scanner, animated: true)
     }
 
-    @IBAction func showHelp() {
+    func showHelp() {
         let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
             self?.dismiss(animated: true)
         })
@@ -124,11 +110,4 @@ class WelcomeViewController: UIViewController {
         }
     }
 
-    // MARK: - Legacy IBAction stubs (storyboard wiring)
-    @IBAction func disableAds() {}
-    @IBAction func enableVideo() {}
-    @IBAction func enableTorch() {}
-    @IBAction func enableVideoOnly() {}
-    @IBAction func restorePurchases() {}
-    @IBAction func reviewApp(_ sender: Any) { reviewApp() }
 }

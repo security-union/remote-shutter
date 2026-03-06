@@ -84,12 +84,10 @@ class TestableRemoteCamSession: RemoteCamSession {
 
 // MARK: - Test ViewController
 
-/// Subclass that prevents crashes from nil IBOutlets and storyboard-dependent code.
-/// The real `DeviceScannerViewController` has IBOutlets (tableView, etc.) that are
-/// nil when created programmatically. This subclass makes the VC safe for tests.
+/// Subclass that prevents actor system registration in tests.
 class TestDeviceScannerViewController: DeviceScannerViewController {
     override public func viewDidLoad() {
-        // Skip super — avoids accessing nil IBOutlets and actor system registration
+        // Skip super — avoids actor system registration
     }
 
     override func stopScanning() {
@@ -197,9 +195,7 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - Helpers
 
     /// Pushes a no-op scanning state onto the state stack.
-    /// The real `scanning` state accesses storyboard IBOutlets (splash, tableView)
-    /// which crash when the VC is created programmatically. This placeholder
-    /// gives `popAndStartScanning()` a target to pop back to.
+    /// This placeholder gives `popAndStartScanning()` a target to pop back to.
     private func pushScanningState() {
         let noOpScanning: Receive = { [weak self] _ in
             // Minimal handler — just accept OnEnter without touching UI
