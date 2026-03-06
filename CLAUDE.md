@@ -27,6 +27,15 @@ fastlane release
 
 Always use `RemoteShutter.xcworkspace` (not `.xcodeproj`) due to CocoaPods. The scheme is `RemoteCam`. Minimum deployment target is iOS 15.0.
 
+## Deployment
+
+Releases are deployed via GitHub Actions CI. The workflow is:
+1. Commit and push the branch to GitHub
+2. Create a PR to `master`
+3. CI runs `fastlane release` which builds, signs (via `match`), and uploads to App Store Connect
+
+Never attempt to run `fastlane release` locally — it requires CI environment variables (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_CONTENT`, `MATCH_GIT_URL`) and `setup_ci`. Always push to GitHub and let CI handle it.
+
 ## Architecture
 
 ### Actor Model (Theater framework)
