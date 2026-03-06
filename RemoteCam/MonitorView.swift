@@ -13,7 +13,6 @@ struct MonitorView: View {
     let onToggleTorch: () -> Void
     let onTimerChange: (Int) -> Void
     let onModeChange: (RecordingMode) -> Void
-    let onBackTapped: () -> Void
     let onGalleryTapped: () -> Void
     let onSettingsTapped: () -> Void
     let onZoomChange: (CGFloat) -> Void
@@ -35,7 +34,7 @@ struct MonitorView: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+        .ignoresSafeArea(edges: .top)
         .statusBarHidden()
     }
     
@@ -411,16 +410,8 @@ struct MonitorView: View {
     // MARK: - Bottom Navigation
     private var bottomNavigation: some View {
         HStack {
-            // Back Button
-            Button(action: onBackTapped) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
-            }
-            .disabled(!viewModel.isBackEnabled)
-            
             Spacer()
-            
+
             // Flash/Torch Controls (context-dependent)
             if viewModel.uiState == .photoMode {
                 // Show both flash and torch for photo mode
@@ -431,9 +422,9 @@ struct MonitorView: View {
             } else if viewModel.uiState == .videoMode || viewModel.uiState == .shortsMode {
                 torchButton
             }
-            
+
             Spacer()
-            
+
             // Settings Button
             Button(action: onSettingsTapped) {
                 Image(systemName: "gearshape")
@@ -474,7 +465,6 @@ struct MonitorView_Previews: PreviewProvider {
             onToggleTorch: {},
             onTimerChange: { _ in },
             onModeChange: { _ in },
-            onBackTapped: {},
             onGalleryTapped: {},
             onSettingsTapped: {},
             onZoomChange: { _ in },

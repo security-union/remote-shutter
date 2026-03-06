@@ -251,8 +251,13 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        print("🔍 DEBUG: MonitorViewController viewWillAppear - \(ObjectIdentifier(self))")
-        self.navigationController?.isNavigationBarHidden = true
+        self.navigationController?.setNavigationBarHidden(false, animated: animated)
+
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+        navigationController?.navigationBar.tintColor = .white
     }
 
     override public func viewDidLoad() {
