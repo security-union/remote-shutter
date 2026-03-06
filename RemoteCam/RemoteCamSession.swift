@@ -71,10 +71,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
         ^{
             lobby.navigationController?.popToViewController(lobby, animated: true)
-            lobby.connectedPeers.removeAll()
-            lobby.isScanning = true
-            lobby.hasScanningError = false
-            lobby.tableView.reloadData()
+            lobby.scannerViewModel.startedScanning()
         }
     }
 

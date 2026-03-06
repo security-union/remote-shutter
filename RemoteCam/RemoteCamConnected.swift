@@ -26,9 +26,8 @@ extension RemoteCamSession {
             case is OnEnter:
                 self.multipeerService?.stopAdvertisingAndBrowsing()
                 ^{
-                    lobby.isScanning = false
-                    lobby.connectedPeers.removeAll()
-                    lobby.tableView?.reloadData()
+                    lobby.scannerViewModel.stoppedScanning()
+                    lobby.scannerViewModel.clearPeers()
                 }
 
             case let m as UICmd.BecomeCamera:
