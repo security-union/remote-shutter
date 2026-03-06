@@ -17,8 +17,6 @@
 		0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
 		061596F6251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
 		061596F8251FCFDA0032289B /* Constants.m in Sources */ = {isa = PBXBuildFile; fileRef = 061596F5251FCFDA0032289B /* Constants.m */; };
-		06184D41258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06184D40258EF4C500F63172 /* CoolActivityIndicator.swift */; };
-		06184D43258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06184D40258EF4C500F63172 /* CoolActivityIndicator.swift */; };
 		0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0624C0401BE8616E001CC738 /* CameraAccess.swift */; };
 		0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */; };
 		0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */; };
@@ -207,7 +205,6 @@
 		061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteShutterUITests-Bridging-Header.h"; sourceTree = "<group>"; };
 		061596F4251FCFDA0032289B /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
 		061596F5251FCFDA0032289B /* Constants.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Constants.m; sourceTree = "<group>"; };
-		06184D40258EF4C500F63172 /* CoolActivityIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoolActivityIndicator.swift; sourceTree = "<group>"; };
 		0624C0401BE8616E001CC738 /* CameraAccess.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraAccess.swift; sourceTree = "<group>"; };
 		0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BFDeniedAccessToAssetsView.xib; sourceTree = "<group>"; };
 		0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToAssetsView~ipad.xib"; sourceTree = "<group>"; };
@@ -504,7 +501,6 @@
 				061596F2251FCFDA0032289B /* RemoteShutterTests-Bridging-Header.h */,
 				061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */,
 				85D3382D258D25D80091972B /* RolePickerOptionController.swift */,
-				06184D40258EF4C500F63172 /* CoolActivityIndicator.swift */,
 				0673275E2E2DF163003E5F94 /* CameraPermissionsView.swift */,
 				067327572E2DF11F003E5F94 /* CameraPermissionErrorView.swift */,
 				067327682E2E0293003E5F94 /* RemoteShutterHelpView.swift */,
@@ -959,7 +955,6 @@
 				068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
 				06E965212535199400E5A8B3 /* MediaProcessors.swift in Sources */,
 				06D114CF2532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
-				06184D41258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */,
 				0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */,
 				067327582E2DF11F003E5F94 /* CameraPermissionErrorView.swift in Sources */,
 				0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */,
@@ -1005,7 +1000,6 @@
 				065532F8258C4BF4000C2339 /* RolePickerController.swift in Sources */,
 				B1C0DE0200000002 /* AppTheme.swift in Sources */,
 				B1C0DE0100000002 /* RolePickerView.swift in Sources */,
-				06184D43258EF4C500F63172 /* CoolActivityIndicator.swift in Sources */,
 				0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
 				06BB79B92E374D410094E085 /* FeatureFlags.swift in Sources */,
 				065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */,

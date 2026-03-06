@@ -35,49 +35,15 @@ func generateQRCode(_ string: String) -> UIImage? {
     return nil
 }
 
-class DeviceScannerPlaceholder: UITableViewCell {
-    @IBOutlet weak var shareButton: UIButton!
-    @IBOutlet weak var goToSettings: UIButton!
-    @IBOutlet weak var qrCode: UIImageView!
-    @IBOutlet weak var qrCodeInstructionLabel: UILabel!
-}
-
 public class DeviceScannerViewController: UIViewController {
 
-    // MARK: - Storyboard outlets (keep wired but unused so storyboard doesn't crash)
+    // MARK: - Storyboard outlets (keep wired so storyboard doesn't crash)
     @IBOutlet var tableView: UITableView!
 
     // MARK: - SwiftUI ViewModel
 
     let scannerViewModel = DeviceScannerViewModel()
     private var swiftUIHostingController: UIHostingController<DeviceScannerView>?
-
-    // MARK: - Legacy compatibility (actor system reads these)
-
-    var connectedPeers: [MCPeerID] {
-        get { scannerViewModel.connectedPeers }
-        set { scannerViewModel.connectedPeers = newValue }
-    }
-
-    var isScanning: Bool {
-        get { scannerViewModel.isScanning }
-        set { scannerViewModel.isScanning = newValue }
-    }
-
-    var hasLocalNetworkAccess: Bool {
-        get { scannerViewModel.hasLocalNetworkAccess }
-        set { scannerViewModel.hasLocalNetworkAccess = newValue }
-    }
-
-    var hasScanningError: Bool {
-        get { scannerViewModel.hasScanningError }
-        set { scannerViewModel.hasScanningError = newValue }
-    }
-
-    var speedRunScanning: Bool {
-        get { scannerViewModel.speedRunScanning }
-        set { scannerViewModel.speedRunScanning = newValue }
-    }
 
     // MARK: - Peer ID
 
@@ -117,12 +83,6 @@ public class DeviceScannerViewController: UIViewController {
 
     let remoteCamSession: ActorRef! = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
 
-    // MARK: - Activity Indicator (legacy, used by actor)
-
-    lazy var splash = {
-        CoolActivityIndicator(currentController: self)
-    }()
-
     // MARK: - Network Browser
 
     var networkBrowser: NWBrowser?
@@ -155,7 +115,7 @@ public class DeviceScannerViewController: UIViewController {
         super.viewDidAppear(animated)
         remoteCamSession ! Disconnect()
 
-        if speedRunScanning {
+        if scannerViewModel.speedRunScanning {
             checkLocalNetworkAccessAndStartScanning()
         }
     }

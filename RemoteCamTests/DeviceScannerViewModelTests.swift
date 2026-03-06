@@ -300,41 +300,6 @@ final class DeviceScannerViewModelTests: XCTestCase {
             "Removing by identity should only remove the matching instance")
     }
 
-    // MARK: - VC Bridge Tests
-
-    func testVCBridgeConnectedPeersGetter() {
-        let vm = DeviceScannerViewModel()
-        let peer = MCPeerID(displayName: "Test")
-        vm.addPeer(peer)
-
-        // Simulate what the VC computed property does
-        let fromVM: [MCPeerID] = vm.connectedPeers
-        XCTAssertEqual(fromVM.count, 1)
-        XCTAssertEqual(fromVM.first?.displayName, "Test")
-    }
-
-    func testVCBridgeConnectedPeersSetter() {
-        let vm = DeviceScannerViewModel()
-        let peer = MCPeerID(displayName: "Test")
-
-        // Simulate the VC setter: scannerViewModel.connectedPeers = newValue
-        vm.connectedPeers = [peer]
-        XCTAssertEqual(vm.connectedPeers.count, 1)
-        XCTAssertTrue(vm.hasPeers)
-    }
-
-    func testVCBridgeIsScanningBidirectional() {
-        let vm = DeviceScannerViewModel()
-
-        // Through ViewModel method
-        vm.startedScanning()
-        XCTAssertTrue(vm.isScanning)
-
-        // Direct property set (simulating VC setter)
-        vm.isScanning = false
-        XCTAssertFalse(vm.isScanning)
-    }
-
     // MARK: - Combine Publishing Tests
 
     func testAddPeerTriggersPublishedUpdate() {
