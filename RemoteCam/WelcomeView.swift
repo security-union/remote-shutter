@@ -9,25 +9,28 @@ struct WelcomeView: View {
     let onReviewApp: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                headerSection
-                    .padding(.top, 20)
+        ZStack {
+            AppTheme.backgroundGradient
 
-                if !viewModel.hasAllFeatures {
-                    upgradesSection
+            ScrollView {
+                VStack(spacing: 32) {
+                    headerSection
+                        .padding(.top, 20)
+
+                    if !viewModel.hasAllFeatures {
+                        upgradesSection
+                    }
+
+                    continueButton
+
+                    if viewModel.hasAnyPurchase {
+                        thankYouSection
+                    }
                 }
-
-                continueButton
-
-                if viewModel.hasAnyPurchase {
-                    thankYouSection
-                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 40)
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .alert(
             viewModel.alertTitle,
             isPresented: $viewModel.showAlert
@@ -55,7 +58,7 @@ struct WelcomeView: View {
 
             Text(NSLocalizedString("Turn two devices into a professional remote camera system", comment: ""))
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
         }
@@ -92,7 +95,7 @@ struct WelcomeView: View {
             } label: {
                 Text(NSLocalizedString("Restore Purchases", comment: ""))
                     .font(.subheadline)
-                    .foregroundStyle(.blue)
+                    .foregroundColor(AppTheme.accent)
             }
             .disabled(viewModel.isPurchasing)
             .padding(.top, 4)
@@ -107,16 +110,16 @@ struct WelcomeView: View {
                 HStack {
                     Image(systemName: "star.fill")
                         .font(.title2)
-                        .foregroundStyle(.purple)
+                        .foregroundColor(AppTheme.accent)
                     Text(item.title)
                         .font(.headline)
-                        .foregroundStyle(.primary)
+                        .foregroundColor(.primary)
                     Spacer()
                 }
 
                 Text(NSLocalizedString("Unlock all features: video recording, torch control, and ad-free experience.", comment: ""))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 if item.price.isEmpty {
@@ -125,7 +128,7 @@ struct WelcomeView: View {
                     Text(item.price)
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.purple)
+                        .foregroundColor(AppTheme.accent)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
@@ -134,16 +137,9 @@ struct WelcomeView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.purple.opacity(0.5), .blue.opacity(0.3)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
+                    .strokeBorder(AppTheme.accent.opacity(0.3), lineWidth: 0.5)
             )
-            .shadow(color: .purple.opacity(0.15), radius: 8, y: 4)
+            .shadow(color: AppTheme.accent.opacity(0.1), radius: 8, y: 4)
         }
         .disabled(viewModel.isPurchasing)
     }
@@ -155,14 +151,14 @@ struct WelcomeView: View {
             HStack(spacing: 12) {
                 Image(systemName: item.icon)
                     .font(.body)
-                    .foregroundStyle(tintColor(for: item.tint))
+                    .foregroundColor(AppTheme.accent)
                     .frame(width: 32, height: 32)
-                    .background(tintColor(for: item.tint).opacity(0.12))
+                    .background(AppTheme.accentSubtle)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 Text(item.title)
                     .font(.body)
-                    .foregroundStyle(.primary)
+                    .foregroundColor(.primary)
 
                 Spacer()
 
@@ -172,7 +168,7 @@ struct WelcomeView: View {
                     Text(item.price)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundStyle(.blue)
+                        .foregroundColor(AppTheme.accent)
                 }
             }
             .padding(.horizontal, 16)
@@ -191,18 +187,18 @@ struct WelcomeView: View {
                 Image(systemName: "arrow.right")
                     .font(.headline)
             }
-            .foregroundStyle(.white)
+            .foregroundColor(.black)
             .frame(maxWidth: .infinity)
             .frame(height: 54)
             .background(
                 LinearGradient(
-                    colors: [.blue, Color(red: 0.0, green: 0.4, blue: 0.9)],
+                    colors: [AppTheme.accent, AppTheme.accentLight],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
             .clipShape(RoundedRectangle(cornerRadius: 14))
-            .shadow(color: .blue.opacity(0.3), radius: 8, y: 4)
+            .shadow(color: AppTheme.accent.opacity(0.3), radius: 8, y: 4)
         }
     }
 
@@ -212,7 +208,7 @@ struct WelcomeView: View {
         VStack(spacing: 12) {
             Text(NSLocalizedString("Thank you for your support!", comment: ""))
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
 
             if viewModel.canShowReview {
                 Button {
@@ -224,21 +220,9 @@ struct WelcomeView: View {
                         Text(NSLocalizedString("Rate on App Store", comment: ""))
                             .font(.subheadline)
                     }
-                    .foregroundStyle(.pink)
+                    .foregroundColor(AppTheme.accent)
                 }
             }
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func tintColor(for name: String) -> Color {
-        switch name {
-        case "purple": return .purple
-        case "blue": return .blue
-        case "orange": return .orange
-        case "red": return .red
-        default: return .blue
         }
     }
 }

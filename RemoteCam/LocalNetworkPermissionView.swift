@@ -173,12 +173,12 @@ struct FeatureCard: View {
             // Icon
             ZStack {
                 Circle()
-                    .fill(Color.blue.opacity(0.1))
+                    .fill(AppTheme.accentSubtle)
                     .frame(width: 40, height: 40)
-                
+
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppTheme.accent)
             }
             
             // Content
