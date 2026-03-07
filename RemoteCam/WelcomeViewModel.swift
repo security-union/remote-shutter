@@ -2,7 +2,7 @@ import Foundation
 import StoreKit
 import Combine
 
-final class WelcomeViewModel: ObservableObject {
+final class WelcomeViewModel: ObservableObject, PurchaseManaging {
 
     struct UpgradeItem: Identifiable {
         let id: String
@@ -25,7 +25,7 @@ final class WelcomeViewModel: ObservableObject {
 
     // MARK: - Private
 
-    private var notificationObservers: [NSObjectProtocol] = []
+    var notificationObservers: [NSObjectProtocol] = []
 
     // MARK: - Init
 
@@ -36,7 +36,7 @@ final class WelcomeViewModel: ObservableObject {
     }
 
     deinit {
-        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        removeNotificationObservers()
     }
 
     // MARK: - Product Loading
@@ -52,23 +52,13 @@ final class WelcomeViewModel: ObservableObject {
 
     func purchase(_ item: UpgradeItem) {
         guard !item.isPurchased else { return }
-        guard let product = StoreManager.shared.products.first(where: { $0.id == item.id }) else { return }
+        purchaseProduct(id: item.id)
+    }
 
-        isPurchasing = true
-        Task { @MainActor in
-            do {
-                let transaction = try await StoreManager.shared.purchase(product)
-                isPurchasing = false
-                if transaction != nil {
-                    refreshPurchaseStates()
-                }
-            } catch {
-                isPurchasing = false
-                alertTitle = NSLocalizedString("Purchase", comment: "")
-                alertMessage = error.localizedDescription
-                showAlert = true
-            }
-        }
+    func handlePurchaseError(_ error: Error) {
+        alertTitle = NSLocalizedString("Purchase", comment: "")
+        alertMessage = error.localizedDescription
+        showAlert = true
     }
 
     func restorePurchases() {
@@ -125,7 +115,7 @@ final class WelcomeViewModel: ObservableObject {
         }
     }
 
-    private func refreshPurchaseStates() {
+    func refreshPurchaseStates() {
         let store = StoreManager.shared
         for i in upgrades.indices {
             switch upgrades[i].id {
@@ -151,17 +141,4 @@ final class WelcomeViewModel: ObservableObject {
             || store.hasVideoRecordingFeature() || store.hasProMode()
     }
 
-    private func observePurchaseNotifications() {
-        let names: [Notification.Name] = [
-            .removeAds, .proModeAcquired, .enableTorch, .enableVideoOnly
-        ]
-        for name in names {
-            let observer = NotificationCenter.default.addObserver(
-                forName: name, object: nil, queue: .main
-            ) { [weak self] _ in
-                self?.refreshPurchaseStates()
-            }
-            notificationObservers.append(observer)
-        }
-    }
 }

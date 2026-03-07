@@ -4,7 +4,7 @@ import Combine
 
 private let sendMediaToRemoteKey = "sendMediaToRemote"
 
-final class SettingsViewModel: ObservableObject {
+final class SettingsViewModel: ObservableObject, PurchaseManaging {
 
     // MARK: - Purchase State
 
@@ -44,7 +44,7 @@ final class SettingsViewModel: ObservableObject {
 
     // MARK: - Private
 
-    private var notificationObservers: [NSObjectProtocol] = []
+    var notificationObservers: [NSObjectProtocol] = []
 
     // MARK: - Init
 
@@ -61,7 +61,7 @@ final class SettingsViewModel: ObservableObject {
     }
 
     deinit {
-        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        removeNotificationObservers()
     }
 
     // MARK: - Product Loading
@@ -77,22 +77,12 @@ final class SettingsViewModel: ObservableObject {
 
     func purchase(_ item: PurchaseItem) {
         guard !item.isPurchased else { return }
-        guard let product = StoreManager.shared.products.first(where: { $0.id == item.id }) else { return }
+        purchaseProduct(id: item.id)
+    }
 
-        isPurchasing = true
-        Task { @MainActor in
-            do {
-                let transaction = try await StoreManager.shared.purchase(product)
-                isPurchasing = false
-                if transaction != nil {
-                    refreshPurchaseStates()
-                }
-            } catch {
-                isPurchasing = false
-                alertMessage = error.localizedDescription
-                showAlert = true
-            }
-        }
+    func handlePurchaseError(_ error: Error) {
+        alertMessage = error.localizedDescription
+        showAlert = true
     }
 
     func restorePurchases() {
@@ -135,7 +125,7 @@ final class SettingsViewModel: ObservableObject {
         }
     }
 
-    private func refreshPurchaseStates() {
+    func refreshPurchaseStates() {
         let store = StoreManager.shared
         proMode.isPurchased = store.hasProMode()
         removeAds.isPurchased = store.hasAdRemovalFeature()
@@ -143,17 +133,4 @@ final class SettingsViewModel: ObservableObject {
         enableVideo.isPurchased = store.hasVideoRecordingFeature()
     }
 
-    private func observePurchaseNotifications() {
-        let names: [Notification.Name] = [
-            .removeAds, .proModeAcquired, .enableTorch, .enableVideoOnly
-        ]
-        for name in names {
-            let observer = NotificationCenter.default.addObserver(
-                forName: name, object: nil, queue: .main
-            ) { [weak self] _ in
-                self?.refreshPurchaseStates()
-            }
-            notificationObservers.append(observer)
-        }
-    }
 }

@@ -120,6 +120,7 @@
 		85C11C072582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
 		AA00020000000002 /* StoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00020000000001 /* StoreManager.swift */; };
 		AA00020000000004 /* StoreManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00020000000003 /* StoreManagerTests.swift */; };
+		AA00020000000006 /* PurchaseManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00020000000005 /* PurchaseManaging.swift */; };
 		85D3382E258D25D80091972B /* RolePickerOptionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D3382D258D25D80091972B /* RolePickerOptionController.swift */; };
 		85D33832258D489C0091972B /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33831258D489C0091972B /* UIView.swift */; };
 		85D33836258D48C30091972B /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33835258D48C30091972B /* UIViewController.swift */; };
@@ -196,6 +197,7 @@
 		B1C0DE0300000001 /* DeviceScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModel.swift; sourceTree = "<group>"; };
 		AA00020000000001 /* StoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManager.swift; sourceTree = "<group>"; };
 		AA00020000000003 /* StoreManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManagerTests.swift; sourceTree = "<group>"; };
+		AA00020000000005 /* PurchaseManaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseManaging.swift; sourceTree = "<group>"; };
 		06503C532E2CDB55003DEAFA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		06503C562E2CDB93003DEAFA /* fr-FR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "fr-FR"; path = "fr-FR.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		06503C572E2CDBA7003DEAFA /* es-MX */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "es-MX"; path = "es-MX.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -358,6 +360,7 @@
 		0650241D1BEA414200311C8A /* InAppPurchases */ = {
 			isa = PBXGroup;
 			children = (
+				AA00020000000005 /* PurchaseManaging.swift */,
 				AA00020000000001 /* StoreManager.swift */,
 			);
 			name = InAppPurchases;
@@ -865,6 +868,7 @@
 				0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */,
 				068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
 				AA00020000000002 /* StoreManager.swift in Sources */,
+				AA00020000000006 /* PurchaseManaging.swift in Sources */,
 				06CDFB17252E9A7900EA56FB /* RemoteCmds.swift in Sources */,
 				0673275D2E2DF142003E5F94 /* PermissionManager.swift in Sources */,
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
