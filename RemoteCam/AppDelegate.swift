@@ -24,6 +24,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
 
         UIApplication.shared.isIdleTimerDisabled = true
+
+        let window = UIWindow(frame: UIScreen.main.bounds)
+        let navController = UINavigationController(rootViewController: WelcomeViewController())
+        window.rootViewController = navController
+        window.makeKeyAndVisible()
+        self.window = window
+
         return true
     }
 

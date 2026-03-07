@@ -7,9 +7,6 @@ extension MonitorViewController {
     
     // MARK: - SwiftUI Setup
     func setupSwiftUIView() {
-        // Remove all existing subviews (storyboard remnants)
-        view.subviews.forEach { $0.removeFromSuperview() }
-        
         // Create SwiftUI view with callbacks
         let monitorView = MonitorView(
             viewModel: viewModel,
@@ -30,9 +27,6 @@ extension MonitorViewController {
             },
             onModeChange: { [weak self] mode in
                 self?.handleModeChange(mode)
-            },
-            onBackTapped: { [weak self] in
-                self?.handleBackTapped()
             },
             onGalleryTapped: { [weak self] in
                 self?.handleGalleryTapped()
@@ -205,10 +199,6 @@ extension MonitorViewController {
         }
     }
     
-    private func handleBackTapped() {
-        navigationController?.popViewController(animated: true)
-    }
-    
     private func handleGalleryTapped() {
         showGallery()
     }
@@ -259,20 +249,24 @@ extension MonitorViewController {
     func swiftUIConfigurePhotoMode() {
         viewModel.configurePhotoMode()
         viewModel.currentMode = .Photo
+        navigationController?.setNavigationBarHidden(false, animated: true)
     }
-    
+
     func swiftUIConfigureVideoMode() {
         viewModel.configureVideoMode()
         viewModel.currentMode = .Video
+        navigationController?.setNavigationBarHidden(false, animated: true)
     }
-    
+
     func swiftUIConfigureVideoRecording() {
         viewModel.configureVideoRecording()
+        navigationController?.setNavigationBarHidden(true, animated: true)
     }
-    
+
     func swiftUIConfigureShortsMode() {
         viewModel.configureShortsMode()
         viewModel.currentMode = .Shorts
+        navigationController?.setNavigationBarHidden(false, animated: true)
     }
     
     // MARK: - Update Methods for Actor Integration

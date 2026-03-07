@@ -12,7 +12,6 @@ import MultipeerConnectivity
 import Network
 import dnssd
 
-let goToRolePickerController = "goToRolePickerController"
 let service: String = "RemoteCam"
 let userDefaultsPeerId = "peerID"
 let userDefaultsSpeedRunScanning = "speedrunscanning"
@@ -36,9 +35,6 @@ func generateQRCode(_ string: String) -> UIImage? {
 }
 
 public class DeviceScannerViewController: UIViewController {
-
-    // MARK: - Storyboard outlets (keep wired so storyboard doesn't crash)
-    @IBOutlet var tableView: UITableView!
 
     // MARK: - SwiftUI ViewModel
 
@@ -79,9 +75,10 @@ public class DeviceScannerViewController: UIViewController {
 
     // MARK: - Actors
 
-    let frameSender: ActorRef! = RemoteCamSystem.shared.actorOf(clz: FrameSender.self, name: "FrameSender")!
-
-    let remoteCamSession: ActorRef! = RemoteCamSystem.shared.actorOf(clz: RemoteCamSession.self, name: "RemoteCam Session")
+    private(set) var frameSender: ActorRef!
+    private var frameSenderInstanceId: ObjectIdentifier?
+    private(set) var remoteCamSession: ActorRef!
+    private var remoteCamSessionInstanceId: ObjectIdentifier?
 
     // MARK: - Network Browser
 
@@ -92,6 +89,18 @@ public class DeviceScannerViewController: UIViewController {
     public override func viewDidLoad() {
         super.viewDidLoad()
         _ = _peerIDInitialized
+        let fs = createOrReplaceActor(
+            clz: FrameSender.self,
+            name: "FrameSender"
+        )
+        frameSender = fs.ref
+        frameSenderInstanceId = fs.instanceId
+        let rcs = createOrReplaceActor(
+            clz: RemoteCamSession.self,
+            name: "RemoteCam Session"
+        )
+        remoteCamSession = rcs.ref
+        remoteCamSessionInstanceId = rcs.instanceId
         self.remoteCamSession ! SetViewCtrl(ctrl: self)
         setupSwiftUIView()
     }
@@ -120,16 +129,9 @@ public class DeviceScannerViewController: UIViewController {
         }
     }
 
-    public override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        let backItem = UIBarButtonItem()
-        backItem.title = NSLocalizedString("Disconnect", comment: "")
-        navigationItem.backBarButtonItem = backItem
-    }
-
     // MARK: - SwiftUI Setup
 
     private func setupSwiftUIView() {
-        view.subviews.forEach { $0.removeFromSuperview() }
 
         let scannerView = DeviceScannerView(
             viewModel: scannerViewModel,
@@ -173,7 +175,7 @@ public class DeviceScannerViewController: UIViewController {
 
     // MARK: - Scanning
 
-    @IBAction func startScanningDevices() {
+    func startScanningDevices() {
         showScanningPermissionAlert()
     }
 
@@ -288,16 +290,20 @@ public class DeviceScannerViewController: UIViewController {
 
     // MARK: - Navigation
 
-    @IBAction func goToRolePicker() {
+    func goToRolePicker() {
         scannerViewModel.connectedToPeer()
-        performSegue(withIdentifier: goToRolePickerController, sender: self)
+        let backItem = UIBarButtonItem()
+        backItem.title = NSLocalizedString("Disconnect", comment: "")
+        navigationItem.backBarButtonItem = backItem
+        let rolePicker = RolePickerController()
+        navigationController?.pushViewController(rolePicker, animated: true)
     }
 
-    @IBAction func goToAppSettings() {
+    func goToAppSettings() {
         goToSettings()
     }
 
-    @IBAction func shareAppLink() {
+    func shareAppLink() {
         let items = [String(format: NSLocalizedString("call_to_download", comment: ""), remoteShutterUrl)]
         let activityViewController = UIActivityViewController(activityItems: items, applicationActivities: nil)
         activityViewController.excludedActivityTypes = [.airDrop]
@@ -329,7 +335,7 @@ public class DeviceScannerViewController: UIViewController {
     deinit {
         print("deinit DeviceScanners")
         networkBrowser?.cancel()
-        frameSender ! Actor.Harakiri(sender: nil)
-        remoteCamSession ! Actor.Harakiri(sender: nil)
+        stopActorIfCurrent(ref: frameSender, instanceId: frameSenderInstanceId)
+        stopActorIfCurrent(ref: remoteCamSession, instanceId: remoteCamSessionInstanceId)
     }
 }

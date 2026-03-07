@@ -29,13 +29,18 @@ public class iAdViewController: UIViewController {
     let AdBanner: GADBannerView = GADBannerView()
     var AdConstraints: [NSLayoutConstraint]?
 
-    @IBOutlet weak var bannerView: UIView!
-    @IBOutlet weak var bottomBannerConstraint: NSLayoutConstraint?
-    @IBOutlet weak var bannerHeight: NSLayoutConstraint?
+    var bannerView: UIView!
+    var bottomBannerConstraint: NSLayoutConstraint?
+    var bannerHeight: NSLayoutConstraint?
 
     override public func viewDidLoad() {
         super.viewDidLoad()
-        self.shouldHideBanner()
+
+        if bannerView == nil {
+            setupBannerView()
+        }
+
+        shouldHideBanner()
 
         if !InAppPurchasesManager.shared().hasAdRemovalFeature() {
             self.setupAdNetwork()
@@ -45,17 +50,38 @@ public class iAdViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(iAdViewController.ShouldHideAds(notification:)), name: NSNotification.Name(rawValue: Constants.proModeAquired()), object: nil)
     }
 
+    private func setupBannerView() {
+        let banner = UIView()
+        banner.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(banner)
+
+        let bottom = banner.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: 40)
+        let height = banner.heightAnchor.constraint(equalToConstant: 50)
+        NSLayoutConstraint.activate([
+            banner.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            banner.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottom,
+            height,
+        ])
+
+        bannerView = banner
+        bottomBannerConstraint = bottom
+        bannerHeight = height
+    }
+
     func shouldHideBanner() {
-        UIView.animate(withDuration: 0.3) { () -> Void in
-            self.bottomBannerConstraint!.constant = 40
+        guard let bottomBannerConstraint else { return }
+        UIView.animate(withDuration: 0.3) {
+            bottomBannerConstraint.constant = 40
             self.view.layoutSubviews()
         }
     }
 
     func shouldShowBanner() {
-        UIView.animate(withDuration: 0.3) { () -> Void in
+        guard let bottomBannerConstraint else { return }
+        UIView.animate(withDuration: 0.3) {
             let value = 40 - self.AdBanner.frame.size.height
-            self.bottomBannerConstraint!.constant = value
+            bottomBannerConstraint.constant = value
             self.view.layoutSubviews()
         }
     }
@@ -87,10 +113,6 @@ public class iAdViewController: UIViewController {
 
         self.AdConstraints = [top, width, leading]
         return self.AdConstraints!
-    }
-
-    public required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
     }
 
 }

@@ -83,9 +83,34 @@ public class CameraViewController: UIViewController,
     let cameraViewModel = CameraViewModel()
     private var progressOverlayController: UIHostingController<CameraProgressOverlayView>?
 
-    @IBOutlet weak var back: UIButton!
-    @IBOutlet var recordingView: UIImageView!
-    @IBOutlet var activityIndicator: UIActivityIndicatorView!
+    let recordingView = UIImageView()
+    let activityIndicator = UIActivityIndicatorView(style: .large)
+
+    public override func loadView() {
+        let root = UIView()
+        root.backgroundColor = .black
+
+        recordingView.contentMode = .scaleAspectFit
+        recordingView.translatesAutoresizingMaskIntoConstraints = false
+        root.addSubview(recordingView)
+
+        activityIndicator.color = .white
+        activityIndicator.hidesWhenStopped = true
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        root.addSubview(activityIndicator)
+
+        NSLayoutConstraint.activate([
+            recordingView.widthAnchor.constraint(equalToConstant: 45),
+            recordingView.heightAnchor.constraint(equalToConstant: 45),
+            recordingView.centerXAnchor.constraint(equalTo: root.centerXAnchor),
+            recordingView.topAnchor.constraint(equalTo: root.safeAreaLayoutGuide.topAnchor, constant: 17),
+
+            activityIndicator.centerXAnchor.constraint(equalTo: root.centerXAnchor),
+            activityIndicator.centerYAnchor.constraint(equalTo: root.centerYAnchor),
+        ])
+
+        self.view = root
+    }
 
     override public func viewDidLoad() {
         super.viewDidLoad()
@@ -94,22 +119,19 @@ public class CameraViewController: UIViewController,
         configureIdleMode()
         setupRecordingTimerOverlay()
         setupProgressOverlay()
-        ensureBackButtonIsOnTop()
-    }
-
-    // MARK: - Back Button Management
-    private func ensureBackButtonIsOnTop() {
-        
-        if let backButton = back {
-            view.bringSubviewToFront(backButton)
-        }
     }
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.navigationController?.isNavigationBarHidden = true
+        self.navigationController?.setNavigationBarHidden(false, animated: animated)
+
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+        navigationController?.navigationBar.tintColor = .white
+
         orientation = getOrientation()
-        ensureBackButtonIsOnTop()
     }
 
     override public func viewDidAppear(_ animated: Bool) {
@@ -227,14 +249,14 @@ public class CameraViewController: UIViewController,
 
     func configureIdleMode() {
         recordingView.isHidden = true
-        back.isHidden = false
+        navigationController?.isNavigationBarHidden = false
         activityIndicator.style = UIActivityIndicatorView.Style.large
         activityIndicator.color = UIColor.white
     }
 
     func configureVideoModeRecording() {
         recordingView.isHidden = false
-        back.isHidden = true
+        navigationController?.isNavigationBarHidden = true
     }
 
     public override var shouldAutorotate: Bool {
@@ -245,10 +267,6 @@ public class CameraViewController: UIViewController,
     public override func willAnimateRotation(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
         orientation = getOrientation()
         self.rotateCameraToOrientation(orientation: toInterfaceOrientation)
-    }
-
-    @IBAction func goBack(sender: UIButton) {
-        self.navigationController?.popViewController(animated: true)
     }
 
     func setupCamera() {

@@ -52,31 +52,20 @@ public class RolePickerController: UIViewController {
         let disconnect = "Disconnect"
     }
 
-    enum Segues {
-        static let cameraRole = "cameraRole"
-        static let remoteRole = "remoteRole"
-        static let showCamera = "showCamera"
-        static let showRemote = "showRemote"
-        static let presentPhonePicker = "presentPhonePicker"
-    }
-
     public let states = States()
     private var swiftUIHostingController: UIHostingController<RolePickerView>?
 
-    // MARK: - Storyboard outlets (keep wired but unused so storyboard doesn't crash)
-    @IBOutlet var cameraButton: UIButton!
-    @IBOutlet var remoteButton: UIButton!
-    @IBOutlet var cameraView: UIView!
-    @IBOutlet var remoteView: UIView!
-    @IBOutlet var stackView: UIStackView!
-
-    var rolePicker: ActorRef! = RemoteCamSystem.shared.actorOf(
-        clz: RolePickerActor.self,
-        name: "RolePickerActor"
-    )
+    private(set) var rolePicker: ActorRef!
+    private var rolePickerInstanceId: ObjectIdentifier?
 
     override public func viewDidLoad() {
         super.viewDidLoad()
+        let rp = createOrReplaceActor(
+            clz: RolePickerActor.self,
+            name: "RolePickerActor"
+        )
+        rolePicker = rp.ref
+        rolePickerInstanceId = rp.instanceId
         setupSwiftUIView()
         rolePicker ! SetViewCtrl(ctrl: self)
     }
@@ -98,8 +87,6 @@ public class RolePickerController: UIViewController {
     // MARK: - SwiftUI Setup
 
     private func setupSwiftUIView() {
-        view.subviews.forEach { $0.removeFromSuperview() }
-
         let rolePickerView = RolePickerView(
             onCamera: { [weak self] in
                 self?.becomeCamera()
@@ -130,26 +117,18 @@ public class RolePickerController: UIViewController {
 
     // MARK: - Navigation
 
-    public func showPhonePickerViewController() {
-        self.performSegue(withIdentifier: Segues.presentPhonePicker, sender: self)
-    }
-
     @objc private func showSettingsAction() {
         let ctrl = UIHostingController(rootView: SettingsView())
         ctrl.modalPresentationStyle = .pageSheet
         self.present(ctrl, animated: true)
     }
 
-    // Legacy storyboard wiring
-    @IBAction func showSettings(sender: UIButton) {
-        showSettingsAction()
+    func becomeMonitor() {
+        let monitor = MonitorViewController()
+        navigationController?.pushViewController(monitor, animated: true)
     }
 
-    @IBAction func becomeMonitor() {
-        self.performSegue(withIdentifier: Segues.showRemote, sender: self)
-    }
-
-    @IBAction func becomeCamera() {
+    func becomeCamera() {
         checkCameraPermissionsAndProceed()
     }
 
@@ -158,7 +137,8 @@ public class RolePickerController: UIViewController {
         permissionManager.updatePermissionStatuses()
 
         if permissionManager.areCameraAndPhotosGranted {
-            self.performSegue(withIdentifier: Segues.showCamera, sender: self)
+            let camera = CameraViewController()
+            navigationController?.pushViewController(camera, animated: true)
         } else if permissionManager.areCameraAndPhotosDenied {
             showCameraPermissionsModal(permissionType: .denied)
         } else {
@@ -193,7 +173,8 @@ public class RolePickerController: UIViewController {
         PermissionManager.shared.requestCameraAndPhotosPermissions { [weak self] granted in
             DispatchQueue.main.async {
                 if granted {
-                    self?.performSegue(withIdentifier: Segues.showCamera, sender: self)
+                    let camera = CameraViewController()
+                    self?.navigationController?.pushViewController(camera, animated: true)
                 } else {
                     self?.showCameraPermissionsModal(permissionType: .denied)
                 }
@@ -203,7 +184,7 @@ public class RolePickerController: UIViewController {
 
     deinit {
         print("killing RolePickerController")
-        rolePicker ! Actor.Harakiri(sender: nil)
+        stopActorIfCurrent(ref: rolePicker, instanceId: rolePickerInstanceId)
     }
 
 }

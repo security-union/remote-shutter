@@ -22,6 +22,28 @@ func getMonitorActor() -> ActorRef? {
     RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/MonitorActor")
 }
 
+func getRolePickerActor() -> ActorRef? {
+    RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RolePickerActor")
+}
+
+/// Creates a named actor, replacing any stale instance that may still exist.
+/// Returns both the ActorRef and the ObjectIdentifier of the concrete instance,
+/// so callers can later call stopActorIfCurrent in deinit without risking
+/// killing a replacement actor at the same path.
+func createOrReplaceActor(clz: Actor.Type, name: String) -> (ref: ActorRef, instanceId: ObjectIdentifier) {
+    let ref = RemoteCamSystem.shared.actorOf(clz: clz, name: name, replace: true)!
+    let instanceId = RemoteCamSystem.shared.instanceId(forRef: ref)!
+    return (ref, instanceId)
+}
+
+/// Stops the actor at ref's path only if it is still the same instance
+/// identified by instanceId. Safe to call from deinit — if the actor was
+/// already replaced by createOrReplaceActor, this is a no-op.
+func stopActorIfCurrent(ref: ActorRef?, instanceId: ObjectIdentifier?) {
+    guard let ref = ref, let instanceId = instanceId else { return }
+    RemoteCamSystem.shared.stopIfSameInstance(path: ref.path.asString, expectedId: instanceId)
+}
+
 public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
     let states = RemoteCamStates()
