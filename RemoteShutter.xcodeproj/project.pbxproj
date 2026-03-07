@@ -16,17 +16,11 @@
 		0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
 		0613BBD22530887500A6C24F /* UIOrientationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0613BBCF2530887500A6C24F /* UIOrientationHelpers.swift */; };
 		0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0624C0401BE8616E001CC738 /* CameraAccess.swift */; };
-		0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */; };
-		0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */; };
-		0624C04B1BE8662D001CC738 /* BFDeniedAccessToCameraView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */; };
-		0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */; };
 		0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		B1C0DE0300000006 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
 		B1C0DE0300000003 /* DeviceScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000001 /* DeviceScannerViewModel.swift */; };
-		0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */; };
-		065024101BEA407F00311C8A /* AcknowledgmentsViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */; };
 		06503C552E2CDB55003DEAFA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 06503C542E2CDB55003DEAFA /* Localizable.strings */; };
 		065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		B1C0DE0300000005 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
@@ -78,7 +72,6 @@
 		069284661BE5C71800AF4678 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284651BE5C71800AF4678 /* Media.xcassets */; };
 		069284691BE5C7DB00AF4678 /* Acknowledgments.html in Resources */ = {isa = PBXBuildFile; fileRef = 069284671BE5C7DB00AF4678 /* Acknowledgments.html */; };
 		069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 069284701BE5C82E00AF4678 /* InfoPlist.strings */; };
-		06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */; };
 		06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AEE43325333B4A00C2ED90 /* UIAlertController.swift */; };
 		06AEE43625333B4A00C2ED90 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06AEE43325333B4A00C2ED90 /* UIAlertController.swift */; };
 		06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */; };
@@ -197,17 +190,10 @@
 		061596F2251FCFDA0032289B /* RemoteShutterTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteShutterTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteShutterUITests-Bridging-Header.h"; sourceTree = "<group>"; };
 		0624C0401BE8616E001CC738 /* CameraAccess.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraAccess.swift; sourceTree = "<group>"; };
-		0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BFDeniedAccessToAssetsView.xib; sourceTree = "<group>"; };
-		0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToAssetsView~ipad.xib"; sourceTree = "<group>"; };
-		0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BFDeniedAccessToCameraView.xib; sourceTree = "<group>"; };
-		0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "BFDeniedAccessToCameraView~ipad.xib"; sourceTree = "<group>"; };
 		0631D180256DFC960006CAF3 /* FrameSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSender.swift; sourceTree = "<group>"; };
 		0634594925886387009F9BE0 /* DeviceScannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewController.swift; sourceTree = "<group>"; };
 		B1C0DE0300000004 /* DeviceScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerView.swift; sourceTree = "<group>"; };
 		B1C0DE0300000001 /* DeviceScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModel.swift; sourceTree = "<group>"; };
-		065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AcknowledgmentsViewController.h; sourceTree = "<group>"; };
-		065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AcknowledgmentsViewController.m; sourceTree = "<group>"; };
-		065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = AcknowledgmentsViewController.xib; sourceTree = "<group>"; };
 		AA00020000000001 /* StoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManager.swift; sourceTree = "<group>"; };
 		AA00020000000003 /* StoreManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManagerTests.swift; sourceTree = "<group>"; };
 		06503C532E2CDB55003DEAFA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -260,7 +246,6 @@
 		069284651BE5C71800AF4678 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
 		069284671BE5C7DB00AF4678 /* Acknowledgments.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = Acknowledgments.html; sourceTree = "<group>"; };
 		069284701BE5C82E00AF4678 /* InfoPlist.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = InfoPlist.strings; sourceTree = "<group>"; };
-		06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorViewController.swift; sourceTree = "<group>"; };
 		06AEE43325333B4A00C2ED90 /* UIAlertController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIAlertController.swift; sourceTree = "<group>"; };
 		06B1D80E2536C2330029CCB6 /* UIImage+gif.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+gif.swift"; sourceTree = "<group>"; };
 		06B1D8142536C3F90029CCB6 /* recording.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = recording.gif; sourceTree = "<group>"; };
@@ -366,9 +351,6 @@
 			isa = PBXGroup;
 			children = (
 				0650241D1BEA414200311C8A /* InAppPurchases */,
-				065024071BEA407F00311C8A /* AcknowledgmentsViewController.h */,
-				065024081BEA407F00311C8A /* AcknowledgmentsViewController.m */,
-				065024091BEA407F00311C8A /* AcknowledgmentsViewController.xib */,
 			);
 			name = Settings;
 			sourceTree = "<group>";
@@ -477,7 +459,6 @@
 				060B1E241BE710FE00077BCC /* BaseViewController.swift */,
 				0624C0401BE8616E001CC738 /* CameraAccess.swift */,
 				0609A4DA251BFED80090DEB7 /* Photos.swift */,
-				06AE9C5F251D8D1C00179F0F /* ErrorViewController.swift */,
 				061596F2251FCFDA0032289B /* RemoteShutterTests-Bridging-Header.h */,
 				061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */,
 				85D3382D258D25D80091972B /* RolePickerOptionController.swift */,
@@ -512,10 +493,6 @@
 			isa = PBXGroup;
 			children = (
 				06B1D8142536C3F90029CCB6 /* recording.gif */,
-				0624C04C1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib */,
-				0624C0491BE8662D001CC738 /* BFDeniedAccessToCameraView.xib */,
-				0624C0431BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib */,
-				0624C0441BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib */,
 				0684A2E61BE7049800F0B238 /* beep.m4a */,
 				0684A2E91BE704C600F0B238 /* fastBeep.aif */,
 				069284251BE5BF5B00AF4678 /* Assets.xcassets */,
@@ -745,19 +722,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				060866BE2522519B001B59FC /* Configuration.storekit in Resources */,
-				0624C0481BE8636D001CC738 /* BFDeniedAccessToAssetsView~ipad.xib in Resources */,
-				0624C0461BE8636D001CC738 /* BFDeniedAccessToAssetsView.xib in Resources */,
 				069284741BE5C82E00AF4678 /* InfoPlist.strings in Resources */,
 				06503C552E2CDB55003DEAFA /* Localizable.strings in Resources */,
-				065024101BEA407F00311C8A /* AcknowledgmentsViewController.xib in Resources */,
-				0624C04B1BE8662D001CC738 /* BFDeniedAccessToCameraView.xib in Resources */,
 				069284691BE5C7DB00AF4678 /* Acknowledgments.html in Resources */,
 				0684A2E81BE7049800F0B238 /* beep.m4a in Resources */,
 				0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */,
 				069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */,
 				069284661BE5C71800AF4678 /* Media.xcassets in Resources */,
 				06B1D8152536C3FA0029CCB6 /* recording.gif in Resources */,
-				0624C04E1BE86636001CC738 /* BFDeniedAccessToCameraView~ipad.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -895,7 +867,6 @@
 				AA00020000000002 /* StoreManager.swift in Sources */,
 				06CDFB17252E9A7900EA56FB /* RemoteCmds.swift in Sources */,
 				0673275D2E2DF142003E5F94 /* PermissionManager.swift in Sources */,
-				06AE9C60251D8D1C00179F0F /* ErrorViewController.swift in Sources */,
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
 				06BB79B82E374D410094E085 /* FeatureFlags.swift in Sources */,
 				0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */,
@@ -927,7 +898,6 @@
 				068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */,
 				06E965212535199400E5A8B3 /* MediaProcessors.swift in Sources */,
 				06D114CF2532DDE100FB6F86 /* MonitorPhotoStates.swift in Sources */,
-				0650240E1BEA407F00311C8A /* AcknowledgmentsViewController.m in Sources */,
 				067327582E2DF11F003E5F94 /* CameraPermissionErrorView.swift in Sources */,
 				0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */,
 				0673275F2E2DF163003E5F94 /* CameraPermissionsView.swift in Sources */,
