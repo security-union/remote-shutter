@@ -17,11 +17,8 @@ func goToPhotos() {
 }
 
 func getOrientation() -> UIInterfaceOrientation {
-    if #available(iOS 13.0, *) {
-        return UIApplication.shared.windows.first?
-                .windowScene?
-                .interfaceOrientation ?? UIApplication.shared.statusBarOrientation
-    } else {
-        return UIApplication.shared.statusBarOrientation
-    }
+    return UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .first(where: { $0.activationState == .foregroundActive })?
+        .interfaceOrientation ?? .portrait
 }

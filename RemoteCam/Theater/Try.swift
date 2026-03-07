@@ -75,12 +75,7 @@ public class Try<T> : NSCoder {
     }
     
     class func gen(r: T) -> Try<T> {
-        do {
-            let s = Success(r)
-            return s
-        } catch let error as Error {
-            return Failure(error : error)
-        }
+        return Success(r)
     }
     
     override public init() {

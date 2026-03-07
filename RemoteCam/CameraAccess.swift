@@ -16,8 +16,8 @@ Permissions verification extensions
 
 extension UIViewController {
 
-    private struct AssociatedKeys {
-        static var errorViewController = "errorViewController"
+    private enum AssociatedKeys {
+        nonisolated(unsafe) static var errorViewController: UInt8 = 0
     }
 
     private func setErrorViewController(_ ctrl: UIViewController?) {

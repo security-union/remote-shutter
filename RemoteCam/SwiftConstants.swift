@@ -29,14 +29,17 @@ func privateShowReviewPromptIfAppropriate() {
     let lastVersionPromptedForReview = UserDefaults.standard.string(forKey: lastVersionPromptedForReviewKey)
     
     if reviewCount <= 4 && currentVersion != lastVersionPromptedForReview {
-        if let topViewController = UIApplication.shared.keyWindow?.rootViewController {
+        if let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive }),
+           let topViewController = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
             var presentedVC = topViewController
             while let presented = presentedVC.presentedViewController {
                 presentedVC = presented
             }
-            
+
             if !(presentedVC is WelcomeViewController) {
-                SKStoreReviewController.requestReview()
+                SKStoreReviewController.requestReview(in: windowScene)
                 UserDefaults.standard.set(currentVersion, forKey: lastVersionPromptedForReviewKey)
                 var count = UserDefaults.standard.integer(forKey: reviewCounterKey)
                 count += 1
