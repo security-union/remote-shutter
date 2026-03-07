@@ -62,14 +62,14 @@ final class SettingsViewModelTests: XCTestCase {
 
     // MARK: - Purchase State Initialization
 
-    func testInitialPurchaseStatesMatchManager() {
+    func testInitialPurchaseStatesMatchStoreManager() {
         let vm = SettingsViewModel()
-        let manager = InAppPurchasesManager.shared()!
+        let store = StoreManager.shared
 
-        XCTAssertEqual(vm.proMode.isPurchased, manager.hasProMode())
-        XCTAssertEqual(vm.removeAds.isPurchased, manager.hasAdRemovalFeature())
-        XCTAssertEqual(vm.enableTorch.isPurchased, manager.hasTorchFeature())
-        XCTAssertEqual(vm.enableVideo.isPurchased, manager.hasVideoRecordingFeature())
+        XCTAssertEqual(vm.proMode.isPurchased, store.hasProMode())
+        XCTAssertEqual(vm.removeAds.isPurchased, store.hasAdRemovalFeature())
+        XCTAssertEqual(vm.enableTorch.isPurchased, store.hasTorchFeature())
+        XCTAssertEqual(vm.enableVideo.isPurchased, store.hasVideoRecordingFeature())
     }
 
     func testPurchaseItemIdsMatchProductConstants() {
@@ -90,11 +90,8 @@ final class SettingsViewModelTests: XCTestCase {
         let oldValue = UserDefaults.standard.bool(forKey: key)
         UserDefaults.standard.set(true, forKey: key)
 
-        // Post notification (same as InAppPurchasesManager does on purchase)
-        NotificationCenter.default.post(
-            name: NSNotification.Name(rawValue: Constants.enableTorch()),
-            object: nil
-        )
+        // Post notification (same as StoreManager does on purchase)
+        NotificationCenter.default.post(name: .enableTorch, object: nil)
 
         // The ViewModel should have refreshed
         XCTAssertTrue(vm.enableTorch.isPurchased, "Should refresh purchase state on notification")

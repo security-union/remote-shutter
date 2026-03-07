@@ -5,5 +5,3 @@
 #import "UIImage+ImageProcessing.h"
 #import "RCTimer.h"
 #import "CPSoundManager.h"
-#import "InAppPurchasesManager.h"
-#import "Constants.h"

@@ -44,13 +44,12 @@ final class SettingsViewModel: ObservableObject {
 
     // MARK: - Private
 
-    private var products: [SKProduct] = []
     private var notificationObservers: [NSObjectProtocol] = []
 
     // MARK: - Init
 
     init() {
-        // Read current value; default to true if key doesn't exist (matches ObjC behavior)
+        // Read current value; default to true if key doesn't exist
         if UserDefaults.standard.object(forKey: sendMediaToRemoteKey) != nil {
             self.sendMediaToRemote = UserDefaults.standard.bool(forKey: sendMediaToRemoteKey)
         } else {
@@ -68,19 +67,9 @@ final class SettingsViewModel: ObservableObject {
     // MARK: - Product Loading
 
     func loadProducts() {
-        let manager = InAppPurchasesManager.shared()!
-        let existingProducts = manager.products as? [SKProduct] ?? []
-
-        if !existingProducts.isEmpty {
-            updateItems(with: existingProducts)
-        } else {
-            manager.reloadProducts { [weak self] _, error in
-                guard error == nil, let self else { return }
-                let loaded = manager.products as? [SKProduct] ?? []
-                DispatchQueue.main.async {
-                    self.updateItems(with: loaded)
-                }
-            }
+        Task { @MainActor in
+            await StoreManager.shared.loadProducts()
+            updateItems(with: StoreManager.shared.products)
         }
     }
 
@@ -88,68 +77,58 @@ final class SettingsViewModel: ObservableObject {
 
     func purchase(_ item: PurchaseItem) {
         guard !item.isPurchased else { return }
-        let manager = InAppPurchasesManager.shared()!
+        guard let product = StoreManager.shared.products.first(where: { $0.id == item.id }) else { return }
 
         isPurchasing = true
-        manager.userWants(toBuyFeature: item.id) { [weak self] _, error in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.isPurchasing = false
-                if let error {
-                    self.alertMessage = error.localizedDescription
-                    self.showAlert = true
-                } else {
-                    self.refreshPurchaseStates()
+        Task { @MainActor in
+            do {
+                let transaction = try await StoreManager.shared.purchase(product)
+                isPurchasing = false
+                if transaction != nil {
+                    refreshPurchaseStates()
                 }
+            } catch {
+                isPurchasing = false
+                alertMessage = error.localizedDescription
+                showAlert = true
             }
         }
     }
 
     func restorePurchases() {
         isRestoringPurchases = true
-        InAppPurchasesManager.shared().restorePurchases { [weak self] _, error in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.isRestoringPurchases = false
-                if error == nil {
-                    self.refreshPurchaseStates()
-                    self.alertMessage = NSLocalizedString("Purchases restored successfully.", comment: "")
-                } else {
-                    self.alertMessage = error?.localizedDescription
-                }
-                self.showAlert = true
-            }
+        Task { @MainActor in
+            await StoreManager.shared.restorePurchases()
+            isRestoringPurchases = false
+            refreshPurchaseStates()
+            alertMessage = NSLocalizedString("Purchases restored successfully.", comment: "")
+            showAlert = true
         }
     }
 
     // MARK: - Private Helpers
 
-    private func updateItems(with products: [SKProduct]) {
-        self.products = products
-        let manager = InAppPurchasesManager.shared()!
-        let formatter = manager.currencyFormatter()!
+    private func updateItems(with products: [Product]) {
+        let store = StoreManager.shared
 
         for product in products {
-            formatter.locale = product.priceLocale
-            let price = formatter.string(from: product.price) ?? ""
-
-            switch product.productIdentifier {
+            switch product.id {
             case enableVideoPID:
-                proMode.title = product.localizedTitle
-                proMode.price = price
-                proMode.isPurchased = manager.hasProMode()
+                proMode.title = product.displayName
+                proMode.price = product.displayPrice
+                proMode.isPurchased = store.hasProMode()
             case disableAdsPID:
-                removeAds.title = product.localizedTitle
-                removeAds.price = price
-                removeAds.isPurchased = manager.hasAdRemovalFeature()
+                removeAds.title = product.displayName
+                removeAds.price = product.displayPrice
+                removeAds.isPurchased = store.hasAdRemovalFeature()
             case enableTorchPID:
-                enableTorch.title = product.localizedTitle
-                enableTorch.price = price
-                enableTorch.isPurchased = manager.hasTorchFeature()
+                enableTorch.title = product.displayName
+                enableTorch.price = product.displayPrice
+                enableTorch.isPurchased = store.hasTorchFeature()
             case enableVideoOnlyPID:
-                enableVideo.title = product.localizedTitle
-                enableVideo.price = price
-                enableVideo.isPurchased = manager.hasVideoRecordingFeature()
+                enableVideo.title = product.displayName
+                enableVideo.price = product.displayPrice
+                enableVideo.isPurchased = store.hasVideoRecordingFeature()
             default:
                 break
             }
@@ -157,25 +136,20 @@ final class SettingsViewModel: ObservableObject {
     }
 
     private func refreshPurchaseStates() {
-        let manager = InAppPurchasesManager.shared()!
-        proMode.isPurchased = manager.hasProMode()
-        removeAds.isPurchased = manager.hasAdRemovalFeature()
-        enableTorch.isPurchased = manager.hasTorchFeature()
-        enableVideo.isPurchased = manager.hasVideoRecordingFeature()
+        let store = StoreManager.shared
+        proMode.isPurchased = store.hasProMode()
+        removeAds.isPurchased = store.hasAdRemovalFeature()
+        enableTorch.isPurchased = store.hasTorchFeature()
+        enableVideo.isPurchased = store.hasVideoRecordingFeature()
     }
 
     private func observePurchaseNotifications() {
-        let names: [String] = [
-            Constants.removeAds(),
-            Constants.proModeAquired(),
-            Constants.enableTorch(),
-            Constants.enableVideoOnly()
+        let names: [Notification.Name] = [
+            .removeAds, .proModeAcquired, .enableTorch, .enableVideoOnly
         ]
         for name in names {
             let observer = NotificationCenter.default.addObserver(
-                forName: NSNotification.Name(rawValue: name),
-                object: nil,
-                queue: .main
+                forName: name, object: nil, queue: .main
             ) { [weak self] _ in
                 self?.refreshPurchaseStates()
             }

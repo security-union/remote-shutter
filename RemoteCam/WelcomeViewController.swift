@@ -26,7 +26,7 @@ class WelcomeViewController: UIViewController {
 
         if isInitialAppLaunch {
             isInitialAppLaunch = false
-            if InAppPurchasesManager.shared()!.hasProMode() {
+            if StoreManager.shared.hasProMode() {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                     self?.goToConnectViewController()
                 }

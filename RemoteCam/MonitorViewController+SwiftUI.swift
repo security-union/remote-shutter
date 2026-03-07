@@ -160,7 +160,7 @@ extension MonitorViewController {
     }
     
     private func handleToggleTorch() {
-        if InAppPurchasesManager.shared().hasTorchFeature() {
+        if StoreManager.shared.hasTorchFeature() {
             session ! UICmd.ToggleTorch()
         } else {
             handleSettingsTapped()
@@ -175,7 +175,7 @@ extension MonitorViewController {
     private func handleModeChange(_ mode: RecordingMode) {
         // Check permissions for video/shorts
         if mode == .Video || mode == .Shorts {
-            if InAppPurchasesManager.shared().hasVideoRecordingFeature() {
+            if StoreManager.shared.hasVideoRecordingFeature() {
                 session ! UICmd.BecomeMonitor(nil, mode: mode)
                 
                 // Immediately configure the appropriate UI mode

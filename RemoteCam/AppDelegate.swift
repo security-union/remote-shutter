@@ -16,10 +16,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        InAppPurchasesManager.shared().reloadProducts { (_, _) in
-
-        }
-        if !InAppPurchasesManager.shared().hasAdRemovalFeature() {
+        Task { await StoreManager.shared.loadProducts() }
+        if !StoreManager.shared.hasAdRemovalFeature() {
             GADMobileAds.sharedInstance().start(completionHandler: nil)
         }
 

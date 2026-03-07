@@ -19,10 +19,8 @@ You are an expert Swift code reviewer for the Remote Shutter project — an iOS 
 - Check error/disconnect handling falls back to scanning state
 - Ensure `OnEnter` handlers don't have side effects that break on re-entry
 
-### NSCoding Compliance
-- RemoteCmd subclasses must have `@objc` name annotations
-- Both `encode(with:)` and `init?(coder:)` must be implemented
-- Serialization must be backward compatible
+### Flatbuffers
+- Master efficient flatbuffer creation, deserializaton, and packing. 
 
 ### Swift Best Practices
 - Memory management (retain cycles, weak references in closures)
