@@ -100,7 +100,6 @@
 		06BB79BD2E3884F00094E085 /* CameraProgressOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */; };
 		06BB79BF2E3884FA0094E085 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79BE2E3884FA0094E085 /* CameraViewModel.swift */; };
 		06BB79C12E38852B0094E085 /* VideoTransferProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */; };
-		06BB79C32E388D4B0094E085 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C22E388D4B0094E085 /* CameraViewModel.swift */; };
 		06BB79C42E389D6D0094E085 /* VideoTransferProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */; };
 		06C32C3C2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
 		06C32C3E2533A41800C18687 /* RemoteCamConnected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */; };
@@ -279,7 +278,6 @@
 		06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraProgressOverlayView.swift; sourceTree = "<group>"; };
 		06BB79BE2E3884FA0094E085 /* CameraViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModel.swift; sourceTree = "<group>"; };
 		06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTransferProgressView.swift; sourceTree = "<group>"; };
-		06BB79C22E388D4B0094E085 /* CameraViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModel.swift; sourceTree = "<group>"; };
 		06C32C3B2533A41800C18687 /* RemoteCamConnected.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamConnected.swift; sourceTree = "<group>"; };
 		06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCmds.swift; sourceTree = "<group>"; };
 		06CDFB1D252E9CD200EA56FB /* UICmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICmds.swift; sourceTree = "<group>"; };
@@ -486,7 +484,6 @@
 				B1C0DE0200000001 /* AppTheme.swift */,
 				B1C0DE0100000001 /* RolePickerView.swift */,
 				069284421BE5C0E600AF4678 /* CameraViewController.swift */,
-				06BB79C22E388D4B0094E085 /* CameraViewModel.swift */,
 				069284431BE5C0E600AF4678 /* MonitorViewController.swift */,
 				060B1E241BE710FE00077BCC /* BaseViewController.swift */,
 				0624C0401BE8616E001CC738 /* CameraAccess.swift */,
@@ -931,7 +928,6 @@
 				0650241C1BEA413900311C8A /* InAppPurchasesManager.m in Sources */,
 				85D33832258D489C0091972B /* UIView.swift in Sources */,
 				06CDFB1E252E9CD200EA56FB /* UICmds.swift in Sources */,
-				06BB79C32E388D4B0094E085 /* CameraViewModel.swift in Sources */,
 				06BB79C12E38852B0094E085 /* VideoTransferProgressView.swift in Sources */,
 				068EF0B82531844B00A84DFA /* CameraVideoStates.swift in Sources */,
 				0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */,
@@ -1064,7 +1060,6 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = RemoteShutter.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -1103,7 +1098,6 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = RemoteShutter.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
