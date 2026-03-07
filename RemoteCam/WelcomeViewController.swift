@@ -104,7 +104,9 @@ class WelcomeViewController: UIViewController {
         if count <= 4 && currentVersion != lastVersionPrompted {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                 guard self?.navigationController?.topViewController is WelcomeViewController else { return }
-                SKStoreReviewController.requestReview()
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                    SKStoreReviewController.requestReview(in: windowScene)
+                }
                 UserDefaults.standard.set(currentVersion, forKey: lastVersionPromptedForReviewKey)
             }
         }

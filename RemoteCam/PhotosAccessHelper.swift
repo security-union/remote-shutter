@@ -61,10 +61,13 @@ extension UIViewController {
     }
     
     private func getTopMostViewController() -> UIViewController? {
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) else {
+        guard let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive })?
+            .windows.first(where: { $0.isKeyWindow }) else {
             return nil
         }
-        
+
         var topController = window.rootViewController
         while let presentedController = topController?.presentedViewController {
             topController = presentedController
@@ -74,8 +77,8 @@ extension UIViewController {
     }
 }
 
-private struct PhotosAccessAssociatedKeys {
-    static var photosAccessController = "photosAccessController"
+private enum PhotosAccessAssociatedKeys {
+    nonisolated(unsafe) static var photosAccessController: UInt8 = 0
 }
 
 // Global flag to track modal state
@@ -93,17 +96,20 @@ func showPhotosAccessDeniedModal(for contentType: PhotosAccessDeniedView.Content
         }
         
         // Get the top-most view controller and show the modal
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+        guard let window = UIApplication.shared.connectedScenes
+              .compactMap({ $0 as? UIWindowScene })
+              .first(where: { $0.activationState == .foregroundActive })?
+              .windows.first(where: { $0.isKeyWindow }),
               let rootViewController = window.rootViewController else {
             print("⚠️ Could not find root view controller to show photos access modal")
             return
         }
-        
+
         var topController = rootViewController
         while let presentedController = topController.presentedViewController {
             topController = presentedController
         }
-        
+
         print("📱 Showing photos access modal for \(contentType)")
         topController.showPhotosAccessDeniedModal(for: contentType)
     }
@@ -116,7 +122,10 @@ func dismissPhotosAccessModalGlobally() {
         print("📱 Global flag _isPhotosAccessModalShowing: \(_isPhotosAccessModalShowing)")
         
         // Find the top-most view controller and dismiss the modal
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+        guard let window = UIApplication.shared.connectedScenes
+              .compactMap({ $0 as? UIWindowScene })
+              .first(where: { $0.activationState == .foregroundActive })?
+              .windows.first(where: { $0.isKeyWindow }),
               let rootViewController = window.rootViewController else {
             print("⚠️ Could not find root view controller to dismiss photos access modal")
             return
@@ -183,7 +192,10 @@ func isPhotosAccessModalCurrentlyShowing() -> Bool {
         return true
     }
     
-    guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+    guard let window = UIApplication.shared.connectedScenes
+          .compactMap({ $0 as? UIWindowScene })
+          .first(where: { $0.activationState == .foregroundActive })?
+          .windows.first(where: { $0.isKeyWindow }),
           let rootViewController = window.rootViewController else {
         return false
     }

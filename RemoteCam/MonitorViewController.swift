@@ -123,7 +123,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
             case let zoom as UICmd.SetZoomResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl?.value, let zoomFactor = zoom.zoomFactor {
-                        let maxZoom = zoom.zoomRange?.maxZoom ?? ctrl.maxZoomFactor ?? 10.0
+                        let maxZoom = zoom.zoomRange?.maxZoom ?? ctrl.maxZoomFactor
                         ctrl.updateZoomInViewModel(zoomFactor, maxFactor: maxZoom)
                     }
                 }
@@ -131,7 +131,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
             case let zoomRemote as RemoteCmd.SetZoomResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl?.value, let zoomFactor = zoomRemote.zoomFactor {
-                        let maxZoom = zoomRemote.zoomRange?.maxZoom ?? ctrl.maxZoomFactor ?? 10.0
+                        let maxZoom = zoomRemote.zoomRange?.maxZoom ?? ctrl.maxZoomFactor
                         ctrl.updateZoomInViewModel(zoomFactor, maxFactor: maxZoom)
                     }
                 }
@@ -184,7 +184,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     print("📺 DEBUG: MonitorActor - Video transfer progress: \(Int(progress.progress * 100))% - Speed: \(String(format: "%.1f", progress.transferSpeed / 1024 / 1024)) MB/s")
                 }
                 
-            case let completed as UICmd.VideoResourceTransferCompleted:
+            case is UICmd.VideoResourceTransferCompleted:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     ctrl?.value?.viewModel.finishVideoTransfer()
                     print("📺 DEBUG: MonitorActor - Video transfer completed")

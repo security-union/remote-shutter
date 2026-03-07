@@ -14,8 +14,8 @@ extension UIAlertController {
         self.init(title: title, message: message, preferredStyle: .alert)
     }
 
-    private struct AssociatedKeys {
-        static var window = "window"
+    private enum AssociatedKeys {
+        nonisolated(unsafe) static var window: UInt8 = 0
     }
 
     private var alertWindow: UIWindow? {

@@ -26,8 +26,8 @@ let fps = 30
 public class CameraViewController: UIViewController,
         AVCapturePhotoCaptureDelegate {
     
-    private struct AssociatedKeys {
-        static var microphonePromptController = "microphonePromptController"
+    private enum AssociatedKeys {
+        nonisolated(unsafe) static var microphonePromptController: UInt8 = 0
     }
 
     var captureSession: AVCaptureSession = AVCaptureSession()
@@ -595,11 +595,6 @@ public class CameraViewController: UIViewController,
     
     func sendCameraCapabilities() {
         guard let currentDevice = self.videoDeviceInput?.device else { return }
-        
-        let currentZoomRange = RemoteCmd.ZoomRange(
-            minZoom: currentDevice.minAvailableVideoZoomFactor,
-            maxZoom: currentDevice.maxAvailableVideoZoomFactor
-        )
         
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo,
