@@ -46,8 +46,6 @@ func stopActorIfCurrent(ref: ActorRef?, instanceId: ObjectIdentifier?) {
 
 public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
-    let states = RemoteCamStates()
-
     var alertPresenter: AlertPresenting = UIAlertPresenter()
 
     var multipeerService: (any MultipeerServiceProtocol)!
@@ -55,6 +53,27 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
     var session: MCSession! { multipeerService?.session }
 
     var connectedPeers: [MCPeerID] { multipeerService?.connectedPeers ?? [] }
+
+    var _timeoutGeneration: Int = 0
+
+    // MARK: - Type-safe state machine wrappers
+
+    func become(name: RemoteCamState, state: @escaping Receive) {
+        become(name: name.rawValue, state: state)
+    }
+
+    func become(name: RemoteCamState, state: @escaping Receive, discardOld: Bool) {
+        become(name: name.rawValue, state: state, discardOld: discardOld)
+    }
+
+    func popToState(name: RemoteCamState) {
+        popToState(name: name.rawValue)
+    }
+
+    func currentStateName() -> RemoteCamState? {
+        guard let name = currentState()?.0 else { return nil }
+        return RemoteCamState(rawValue: name)
+    }
 
     public required init(context: ActorSystem, ref: ActorRef) {
         super.init(context: context, ref: ref)
@@ -68,7 +87,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         return { [unowned self](msg: Message) in
             switch msg {
             case is UICmd.StartScanning:
-                self.become(name: self.states.scanning, state: self.scanning(ctrl))
+                self.become(name: .scanning, state: self.scanning(ctrl))
 
             default:
                 self.receive(msg: msg)
@@ -77,7 +96,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
     }
 
     func popAndStartScanning() {
-        self.popToState(name: self.states.scanning)
+        self.popToState(name: .scanning)
     }
 
     func startScanning(lobby: DeviceScannerViewController) {
@@ -226,7 +245,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         
         if self.sendMessage(peer: self.connectedPeers, msg: msg).isFailure() {
             print("❌ DEBUG: sendCommandOrGoToScanning failed to send message")
-            self.popToState(name: self.states.scanning)
+            self.popToState(name: .scanning)
             ^{ [weak self] in
                 self?.alertPresenter.showError(
                     title: NSLocalizedString("Connection error", comment: "")

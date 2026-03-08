@@ -31,18 +31,18 @@ extension RemoteCamSession {
                 }
 
             case let m as UICmd.BecomeCamera:
-                self.become(name: self.states.camera, state: self.camera(peer: peer, ctrl: m.ctrl, lobbyWrapper: lobbyWrapper))
+                self.become(name: .camera, state: self.camera(peer: peer, ctrl: m.ctrl, lobbyWrapper: lobbyWrapper))
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.PeerBecameCamera.createWithDefaults())
 
             case let m as UICmd.BecomeMonitor:
                 switch m.mode {
                 case .Video:
                     self.become(
-                        name: self.states.monitor,
+                        name: .monitor,
                         state: self.monitorVideoMode(monitor: m.sender!, peer: peer, lobby: lobbyWrapper))
                 default:
                     self.become(
-                        name: self.states.monitor,
+                        name: .monitor,
                         state: self.monitorPhotoMode(monitor: m.sender!, peer: peer, lobby: lobbyWrapper))
                 }
 

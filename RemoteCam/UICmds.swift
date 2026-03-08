@@ -28,6 +28,19 @@ public struct ZoomRange: Codable {
 
 public class UICmd {
 
+    /// Sent by a transient state to itself after a delay to prevent getting stuck
+    /// waiting for a response that never arrives. The generation counter ensures
+    /// stale timeouts from a previous entry into the same state are ignored.
+    public class StateTimeout: Actor.Message {
+        let stateName: RemoteCamState
+        let generation: Int
+        init(stateName: RemoteCamState, generation: Int) {
+            self.stateName = stateName
+            self.generation = generation
+            super.init(sender: nil)
+        }
+    }
+
     public class RenderPhotoMode: Actor.Message {}
 
     public class RenderVideoMode: Actor.Message {}

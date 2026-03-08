@@ -12,6 +12,19 @@ import Photos
 
 extension RemoteCamSession {
 
+    private static let transientStateTimeout: TimeInterval = 10.0
+
+    func scheduleTimeout(stateName: RemoteCamState) -> Int {
+        _timeoutGeneration += 1
+        let generation = _timeoutGeneration
+        let actorRef = self.this
+        DispatchQueue.global().asyncAfter(deadline: .now() + Self.transientStateTimeout) { [weak self] in
+            guard self != nil else { return }
+            actorRef ! UICmd.StateTimeout(stateName: stateName, generation: generation)
+        }
+        return generation
+    }
+
     func requestFrame(_ peer : [MCPeerID]) {
         self.sendCommandOrGoToScanning(peer: peer, msg: RemoteCmd.RequestFrame(sender: self.this))
     }
@@ -23,13 +36,20 @@ extension RemoteCamSession {
         ^{ [weak self] in
             alertHandle = self?.alertPresenter.showAlert(title: "Requesting flash toggle")
         }
+        let gen = self.scheduleTimeout(stateName: .monitorTogglingFlash)
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
 
-            case is UICmd.ToggleFlash:
-                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleFlash()) as? Failure {
-                    self.this ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: f.error)
+            case let timeout as UICmd.StateTimeout:
+                if timeout.stateName == .monitorTogglingFlash && timeout.generation == gen {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    self.unbecome()
                 }
+
+            case is UICmd.ToggleFlash:
+                break // Already sent from parent state; ignore duplicate taps
 
             case let t as RemoteCmd.ToggleFlashResp:
                 if let _ = t.flashMode {
@@ -52,10 +72,10 @@ extension RemoteCamSession {
                 }
 
             case let c as DisconnectPeer:
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                }
                 if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
-                    ^{ [weak self] in
-                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
-                    }
                     self.popAndStartScanning()
                 }
 
@@ -69,7 +89,7 @@ extension RemoteCamSession {
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                self.popToState(name: self.states.connected)
+                self.popToState(name: .connected)
 
             default:
                 print("ignoring message")
@@ -85,13 +105,19 @@ extension RemoteCamSession {
         ^{ [weak self] in
             alertHandle = self?.alertPresenter.showAlert(title: "Switching lens")
         }
+        let gen = self.scheduleTimeout(stateName: .monitorSwitchingLens)
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
-            case let lensCmd as UICmd.SwitchLens:
-                if let f = self.sendMessage(
-                    peer: [peer], msg: RemoteCmd.SwitchLens(lensType: lensCmd.lensType)) as? Failure {
-                    self.this ! RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: f.error)
+            case let timeout as UICmd.StateTimeout:
+                if timeout.stateName == .monitorSwitchingLens && timeout.generation == gen {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    self.unbecome()
                 }
+
+            case is UICmd.SwitchLens:
+                break // Already sent from parent state; ignore duplicate taps
 
             case let lensResp as RemoteCmd.SwitchLensResp:
                 print("✅ DEBUG: Monitor received SwitchLensResp - lensType: \(lensResp.lensType?.displayName ?? "nil"), error: \(lensResp.error?.localizedDescription ?? "nil")")
@@ -128,11 +154,17 @@ extension RemoteCamSession {
                     self.popAndStartScanning()
                 }
 
+            case is Disconnect:
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                }
+                self.popAndStartScanning()
+
             case is UICmd.UnbecomeMonitor:
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                self.popToState(name: self.states.connected)
+                self.popToState(name: .connected)
 
             default:
                 print("ignoring lens message")
@@ -147,15 +179,19 @@ extension RemoteCamSession {
         ^{ [weak self] in
             alertHandle = self?.alertPresenter.showAlert(title: "Requesting camera toggle")
         }
+        let gen = self.scheduleTimeout(stateName: .monitorTogglingCamera)
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
-            case is UICmd.ToggleCamera:
-                if let f = self.sendMessage(
-                    peer: [peer], msg: RemoteCmd.ToggleCamera()) as? Failure {
-                    self.this ! RemoteCmd.ToggleCameraResp(
-                        cameraCapabilities: nil, error: f.error
-                    )
+            case let timeout as UICmd.StateTimeout:
+                if timeout.stateName == .monitorTogglingCamera && timeout.generation == gen {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    self.unbecome()
                 }
+
+            case is UICmd.ToggleCamera:
+                break // Already sent from parent state; ignore duplicate taps
 
             case let t as RemoteCmd.ToggleCameraResp:
                 print("🔍 DEBUG: Monitor received ToggleCameraResp with capabilities: \(t.cameraCapabilities != nil)")
@@ -191,10 +227,10 @@ extension RemoteCamSession {
                 }
 
             case let c as DisconnectPeer:
+                ^{ [weak self] in
+                    if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                }
                 if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
-                    ^{ [weak self] in
-                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
-                    }
                     self.popAndStartScanning()
                 }
 
@@ -208,7 +244,7 @@ extension RemoteCamSession {
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                self.popToState(name: self.states.connected)
+                self.popToState(name: .connected)
 
             default:
                 print("ignoring message")

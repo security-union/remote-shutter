@@ -26,7 +26,7 @@ extension RemoteCamSession {
                 let ack = RemoteCmd.StopRecordingVideoAck()
                 self.sendCommandOrGoToScanning(peer: [peer], msg: ack, mode: .reliable)
                 self.become(
-                    name: self.states.cameraTransmittingVideo,
+                    name: .cameraTransmittingVideo,
                     state: self.cameraTransmittingVideo(peer: peer, ctrl: ctrl, lobby: lobby)
                 )
 
@@ -42,14 +42,14 @@ extension RemoteCamSession {
 
             case is UICmd.UnbecomeCamera:
                 ctrl.stopRecordingVideo(false)
-                self.popToState(name: self.states.connected)
+                self.popToState(name: .connected)
             
             case let micError as UICmd.MicrophoneAccessDenied:
                 // Handle microphone access denied during recording
                 let ack = RemoteCmd.StopRecordingVideoAck()
                 self.sendCommandOrGoToScanning(peer: [peer], msg: ack, mode: .reliable)
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideoResp(sender: nil, error: micError.error), mode: .reliable)
-                self.popToState(name: self.states.camera)
+                self.popToState(name: .camera)
 
             default:
                 self.receive(msg: msg)
@@ -60,8 +60,9 @@ extension RemoteCamSession {
     func cameraTransmittingVideo(peer: MCPeerID,
                              ctrl: CameraViewController,
                              lobby: Weak<DeviceScannerViewController>) -> Receive {
-        // Note: Progress UI is now handled by SwiftUI VideoTransferProgressView
-        // Camera side progress updates are handled directly via ctrl reference
+        // No timeout here — video transfer can take arbitrarily long depending on
+        // file size and connection speed. Completion, failure, and disconnect are
+        // all handled explicitly below.
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
@@ -93,7 +94,7 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: c)
                 // Progress UI handled by SwiftUI - no alert to dismiss
                 self.mailbox.addOperation {
-                    self.popToState(name: self.states.camera)
+                    self.popToState(name: .camera)
                 }
                 
             case let c as DisconnectPeer:
