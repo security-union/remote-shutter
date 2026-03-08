@@ -201,13 +201,13 @@ class RemoteCamSessionTests: XCTestCase {
             // Minimal handler — just accept OnEnter without touching UI
             _ = self
         }
-        session.become(name: session.states.scanning, state: noOpScanning)
+        session.become(name: .scanning, state: noOpScanning)
         waitForMailbox(session, test: self) // let OnEnter process
     }
 
     /// Pushes the connected state on top of scanning.
     private func pushConnectedState() {
-        session.become(name: session.states.connected,
+        session.become(name: .connected,
                        state: session.connected(lobbyWrapper: lobbyWrapper, peer: peer))
         waitForMailbox(session, test: self) // let OnEnter process
     }
@@ -219,7 +219,7 @@ class RemoteCamSessionTests: XCTestCase {
         // Push connected as a named placeholder (real connected's OnEnter touches UI via stopScanning,
         // but our TestDeviceScannerViewController handles that).
         pushConnectedState()
-        session.become(name: session.states.monitor,
+        session.become(name: .monitor,
                        state: session.monitorPhotoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self) // let OnEnter process
         fakeMP.sentMessages.removeAll() // clear OnEnter side-effects
@@ -229,7 +229,7 @@ class RemoteCamSessionTests: XCTestCase {
     private func pushMonitorVideoModeState() {
         pushScanningState()
         pushConnectedState()
-        session.become(name: session.states.monitor,
+        session.become(name: .monitor,
                        state: session.monitorVideoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
         fakeMP.sentMessages.removeAll()
@@ -254,7 +254,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // Assert — should have popped back to scanning
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
         XCTAssertTrue(fakeMP.sentMessages.isEmpty,
                       "Disconnect should not send any remote messages")
     }
@@ -271,7 +271,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // Assert — state should be "monitor" (monitorPhotoMode)
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
 
         // Should have sent PeerBecameMonitor to the peer.
         // The monitorPhotoMode OnEnter may also send a message (e.g. RequestCameraCapabilities),
@@ -291,7 +291,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // Assert — state should be "monitor" (monitorVideoMode)
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
 
         // Should have sent PeerBecameMonitor to the peer.
         XCTAssertGreaterThanOrEqual(fakeMP.sentMessages.count, 1)
@@ -306,7 +306,7 @@ class RemoteCamSessionTests: XCTestCase {
 
         // Create a lobby wrapper and immediately nil the value to simulate a deallocated VC.
         let weakLobby = Weak(lobby!)
-        session.become(name: session.states.connected,
+        session.become(name: .connected,
                        state: session.connected(lobbyWrapper: weakLobby, peer: peer))
         waitForMailbox(session, test: self)
 
@@ -318,7 +318,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // Should have popped back to scanning
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - MonitorPhotoMode: OnEnter
@@ -328,7 +328,7 @@ class RemoteCamSessionTests: XCTestCase {
         pushConnectedState()
 
         // Push monitorPhotoMode — OnEnter sends RenderPhotoMode to monitor + RequestFrame to peer
-        session.become(name: session.states.monitor,
+        session.become(name: .monitor,
                        state: session.monitorPhotoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
 
@@ -346,7 +346,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.UnbecomeMonitor(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.connected)
+        XCTAssertEqual(session.currentStateName(), .connected)
     }
 
     // MARK: - MonitorPhotoMode: Disconnect
@@ -357,7 +357,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! Disconnect(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - MonitorPhotoMode: TakePicture transitions to monitorTakingPicture
@@ -368,7 +368,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTakingPicture)
+        XCTAssertEqual(session.currentStateName(), .monitorTakingPicture)
     }
 
     // MARK: - MonitorPhotoMode: ToggleFlash transitions to monitorTogglingFlash
@@ -379,7 +379,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.ToggleFlash()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTogglingFlash)
+        XCTAssertEqual(session.currentStateName(), .monitorTogglingFlash)
     }
 
     // MARK: - MonitorPhotoMode: ToggleCamera transitions to monitorTogglingCamera
@@ -390,7 +390,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.ToggleCamera()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTogglingCamera)
+        XCTAssertEqual(session.currentStateName(), .monitorTogglingCamera)
     }
 
     // MARK: - MonitorPhotoMode: Switch to Video mode
@@ -402,7 +402,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // Should have replaced the current state with monitorVideoMode
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorVideoMode)
+        XCTAssertEqual(session.currentStateName(), .monitorVideoMode)
     }
 
     // MARK: - MonitorPhotoMode: ToggleTorch sends remote command
@@ -414,7 +414,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // Should stay in monitor state and send ToggleTorch via sendMessage
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
         let torchMessages = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.ToggleTorch }
         XCTAssertEqual(torchMessages.count, 1)
     }
@@ -427,7 +427,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.RequestCameraCapabilities()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
         let capRequests = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.RequestCameraCapabilities }
         XCTAssertEqual(capRequests.count, 1)
     }
@@ -438,7 +438,7 @@ class RemoteCamSessionTests: XCTestCase {
         pushScanningState()
         pushConnectedState()
 
-        session.become(name: session.states.monitor,
+        session.become(name: .monitor,
                        state: session.monitorVideoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
 
@@ -454,7 +454,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.BecomeMonitor(ref, mode: .Photo)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorPhotoMode)
+        XCTAssertEqual(session.currentStateName(), .monitorPhotoMode)
     }
 
     // MARK: - MonitorVideoMode: Disconnect
@@ -465,7 +465,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! Disconnect(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - MonitorVideoMode: UnbecomeMonitor
@@ -476,7 +476,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.UnbecomeMonitor(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.connected)
+        XCTAssertEqual(session.currentStateName(), .connected)
     }
 
     // MARK: - MonitorPhotoMode: SwitchLens transitions to monitorSwitchingLens
@@ -487,7 +487,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.SwitchLens(lensType: .telephoto)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorSwitchingLens)
+        XCTAssertEqual(session.currentStateName(), .monitorSwitchingLens)
     }
 
     // MARK: - MonitorPhotoMode: SetZoom sends remote command
@@ -499,7 +499,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // Should stay in monitor state
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
         let zoomMessages = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.SetZoom }
         XCTAssertEqual(zoomMessages.count, 1)
     }
@@ -512,7 +512,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.PeerBecameCamera.createWithDefaults()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
         let capRequests = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.RequestCameraCapabilities }
         XCTAssertEqual(capRequests.count, 1)
     }
@@ -527,7 +527,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! DisconnectPeer(peer: peer, sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - MonitorVideoMode: TakePicture starts recording and transitions
@@ -542,7 +542,7 @@ class RemoteCamSessionTests: XCTestCase {
         let startMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.StartRecordingVideo }
         XCTAssertEqual(startMsgs.count, 1)
         // Should have transitioned to monitorRecordingVideo
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorRecordingVideo)
+        XCTAssertEqual(session.currentStateName(), .monitorRecordingVideo)
     }
 
     // MARK: - MonitorVideoMode: ToggleCamera transitions
@@ -553,7 +553,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.ToggleCamera()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTogglingCamera)
+        XCTAssertEqual(session.currentStateName(), .monitorTogglingCamera)
     }
 
     // MARK: - MonitorVideoMode: ToggleTorch sends command
@@ -564,7 +564,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.ToggleTorch()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
         let torchMessages = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.ToggleTorch }
         XCTAssertEqual(torchMessages.count, 1)
     }
@@ -577,7 +577,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.SwitchLens(lensType: .ultraWide)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorSwitchingLens)
+        XCTAssertEqual(session.currentStateName(), .monitorSwitchingLens)
     }
 
     // MARK: - MonitorVideoMode: SetZoom sends command
@@ -588,7 +588,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.SetZoom(zoomFactor: 3.0)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
         let zoomMessages = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.SetZoom }
         XCTAssertEqual(zoomMessages.count, 1)
     }
@@ -601,7 +601,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.RequestCameraCapabilities()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
         let capRequests = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.RequestCameraCapabilities }
         XCTAssertEqual(capRequests.count, 1)
     }
@@ -614,7 +614,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.PeerBecameCamera.createWithDefaults()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
         let capRequests = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.RequestCameraCapabilities }
         XCTAssertEqual(capRequests.count, 1)
     }
@@ -629,14 +629,14 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! DisconnectPeer(peer: peer, sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - MonitorTakingPicture Helpers
 
     private func pushMonitorTakingPictureState() {
         pushMonitorPhotoModeState()
-        session.become(name: session.states.monitorTakingPicture,
+        session.become(name: .monitorTakingPicture,
                        state: session.monitorTakingPicture(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
         fakeMP.sentMessages.removeAll()
@@ -652,7 +652,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // unbecome() pops monitorTakingPicture → back to monitorPhotoMode
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     // MARK: - MonitorTakingPicture: TakePicResp with picture unbecomes
@@ -665,7 +665,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // unbecome() pops monitorTakingPicture → back to monitorPhotoMode
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     // MARK: - MonitorTakingPicture: TakePicAck forwards to peer
@@ -677,7 +677,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // Should stay in monitorTakingPicture and send the ack to the camera peer
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTakingPicture)
+        XCTAssertEqual(session.currentStateName(), .monitorTakingPicture)
         let ackMessages = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.TakePicAck }
         XCTAssertEqual(ackMessages.count, 1)
         XCTAssertEqual(ackMessages[0].peers, [peer])
@@ -691,10 +691,10 @@ class RemoteCamSessionTests: XCTestCase {
     private func pushMonitorRecordingVideoState() {
         pushScanningState()
         pushConnectedState()
-        session.become(name: session.states.monitor,
+        session.become(name: .monitor,
                        state: session.monitorVideoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
-        session.become(name: session.states.monitorRecordingVideo,
+        session.become(name: .monitorRecordingVideo,
                        state: session.monitorRecordingVideo(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
         fakeMP.sentMessages.removeAll()
@@ -705,12 +705,12 @@ class RemoteCamSessionTests: XCTestCase {
     func testMonitorRecordingVideoOnEnter() throws {
         pushScanningState()
         pushConnectedState()
-        session.become(name: session.states.monitorVideoMode,
+        session.become(name: .monitorVideoMode,
                        state: session.monitorVideoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
         fakeMP.sentMessages.removeAll()
 
-        session.become(name: session.states.monitorRecordingVideo,
+        session.become(name: .monitorRecordingVideo,
                        state: session.monitorRecordingVideo(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
 
@@ -728,7 +728,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil, error: error)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     // MARK: - MonitorRecordingVideo: TakePicture sends StopRecordingVideo
@@ -742,7 +742,7 @@ class RemoteCamSessionTests: XCTestCase {
         let stopMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.StopRecordingVideo }
         XCTAssertEqual(stopMsgs.count, 1)
         // Should still be in recording state (waiting for ack)
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorRecordingVideo)
+        XCTAssertEqual(session.currentStateName(), .monitorRecordingVideo)
     }
 
     // MARK: - MonitorRecordingVideo: StopRecordingVideoAck transitions to monitorWaitingForVideo
@@ -753,7 +753,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.StopRecordingVideoAck()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorWaitingForVideo)
+        XCTAssertEqual(session.currentStateName(), .monitorWaitingForVideo)
     }
 
     // MARK: - MonitorRecordingVideo: StopRecordingVideoResp with error pops to video mode
@@ -765,7 +765,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: error)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     // MARK: - MonitorRecordingVideo: Disconnect pops to scanning
@@ -776,7 +776,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! Disconnect(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - MonitorRecordingVideo: DisconnectPeer pops to scanning
@@ -789,14 +789,25 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! DisconnectPeer(peer: peer, sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
+    }
+
+    // MARK: - MonitorRecordingVideo: UnbecomeMonitor pops to connected
+
+    func testMonitorRecordingVideoUnbecomeMonitorPopsToConnected() throws {
+        pushMonitorRecordingVideoState()
+
+        ref ! UICmd.UnbecomeMonitor(sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentStateName(), .connected)
     }
 
     // MARK: - MonitorWaitingForVideo Helpers
 
     private func pushMonitorWaitingForVideoState() {
         pushMonitorRecordingVideoState()
-        session.become(name: session.states.monitorWaitingForVideo,
+        session.become(name: .monitorWaitingForVideo,
                        state: session.monitorWaitingForVideo(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
         fakeMP.sentMessages.removeAll()
@@ -810,7 +821,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     // MARK: - MonitorWaitingForVideo: Disconnect pops to scanning
@@ -821,7 +832,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! Disconnect(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - MonitorWaitingForVideo: DisconnectPeer pops to scanning
@@ -834,7 +845,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! DisconnectPeer(peer: peer, sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - Connected: DisconnectPeer pops to scanning when no peers
@@ -848,7 +859,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! DisconnectPeer(peer: peer, sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - FakeMultipeerService: Connected sends PeerBecameCamera
@@ -880,7 +891,7 @@ class RemoteCamSessionTests: XCTestCase {
         pushConnectedState()
         fakeMP.sentMessages.removeAll()
 
-        session.become(name: session.states.monitor,
+        session.become(name: .monitor,
                        state: session.monitorPhotoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
 
@@ -901,12 +912,12 @@ class RemoteCamSessionTests: XCTestCase {
 
         // Push monitor photo mode — OnEnter calls sendCommandOrGoToScanning(RequestFrame)
         // which will fail and trigger popToState(scanning)
-        session.become(name: session.states.monitor,
+        session.become(name: .monitor,
                        state: session.monitorPhotoMode(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
 
         // Should have popped to scanning due to send failure
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - FakeMultipeerService: MonitorVideoMode StartRecordingVideo sent to peer
@@ -941,7 +952,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     private func pushMonitorTogglingFlashState() {
         pushMonitorPhotoModeState()
-        session.become(name: session.states.monitorTogglingFlash,
+        session.become(name: .monitorTogglingFlash,
                        state: session.monitorTogglingFlash(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
         fakeMP.sentMessages.removeAll()
@@ -949,17 +960,18 @@ class RemoteCamSessionTests: XCTestCase {
         fakeAlerts.shownErrors.removeAll()
     }
 
-    // MARK: - MonitorTogglingFlash: ToggleFlash sends command and response unbecomes
+    // MARK: - MonitorTogglingFlash: duplicate tap ignored, response unbecomes
 
-    func testMonitorTogglingFlashSendsCommand() throws {
+    func testMonitorTogglingFlashIgnoresDuplicateTap() throws {
         pushMonitorTogglingFlashState()
 
         ref ! UICmd.ToggleFlash()
         waitForMailbox(session, test: self)
 
+        // Duplicate tap is ignored — no remote command sent
         let toggleMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.ToggleFlash }
-        XCTAssertEqual(toggleMsgs.count, 1)
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTogglingFlash)
+        XCTAssertEqual(toggleMsgs.count, 0)
+        XCTAssertEqual(session.currentStateName(), .monitorTogglingFlash)
     }
 
     func testMonitorTogglingFlashSuccessResponseUnbecomes() throws {
@@ -968,7 +980,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.ToggleFlashResp(flashMode: .on, error: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     func testMonitorTogglingFlashErrorResponseUnbecomes() throws {
@@ -978,7 +990,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: error)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     func testMonitorTogglingFlashNilNilResponseUnbecomes() throws {
@@ -987,7 +999,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
+        XCTAssertEqual(session.currentStateName(), .monitor,
                        "State should unbecome even when both flashMode and error are nil")
     }
 
@@ -997,7 +1009,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! Disconnect(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     func testMonitorTogglingFlashDisconnectPeerPopsToScanning() throws {
@@ -1007,7 +1019,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! DisconnectPeer(peer: peer, sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     func testMonitorTogglingFlashUnbecomeMonitorPopsToConnected() throws {
@@ -1016,14 +1028,14 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.UnbecomeMonitor(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.connected)
+        XCTAssertEqual(session.currentStateName(), .connected)
     }
 
     // MARK: - MonitorTogglingCamera Helpers
 
     private func pushMonitorTogglingCameraState() {
         pushMonitorPhotoModeState()
-        session.become(name: session.states.monitorTogglingCamera,
+        session.become(name: .monitorTogglingCamera,
                        state: session.monitorTogglingCamera(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
         fakeMP.sentMessages.removeAll()
@@ -1031,17 +1043,18 @@ class RemoteCamSessionTests: XCTestCase {
         fakeAlerts.shownErrors.removeAll()
     }
 
-    // MARK: - MonitorTogglingCamera: ToggleCamera sends command and response unbecomes
+    // MARK: - MonitorTogglingCamera: duplicate tap ignored, response unbecomes
 
-    func testMonitorTogglingCameraSendsCommand() throws {
+    func testMonitorTogglingCameraIgnoresDuplicateTap() throws {
         pushMonitorTogglingCameraState()
 
         ref ! UICmd.ToggleCamera()
         waitForMailbox(session, test: self)
 
+        // Duplicate tap is ignored — no remote command sent
         let toggleMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.ToggleCamera }
-        XCTAssertEqual(toggleMsgs.count, 1)
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTogglingCamera)
+        XCTAssertEqual(toggleMsgs.count, 0)
+        XCTAssertEqual(session.currentStateName(), .monitorTogglingCamera)
     }
 
     func testMonitorTogglingCameraSuccessResponseUnbecomes() throws {
@@ -1053,7 +1066,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     func testMonitorTogglingCameraErrorResponseUnbecomes() throws {
@@ -1063,7 +1076,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: error)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     func testMonitorTogglingCameraNilNilResponseUnbecomes() throws {
@@ -1072,7 +1085,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
+        XCTAssertEqual(session.currentStateName(), .monitor,
                        "State should unbecome even when both capabilities and error are nil")
     }
 
@@ -1082,7 +1095,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! Disconnect(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     func testMonitorTogglingCameraDisconnectPeerPopsToScanning() throws {
@@ -1092,7 +1105,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! DisconnectPeer(peer: peer, sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     func testMonitorTogglingCameraUnbecomeMonitorPopsToConnected() throws {
@@ -1101,14 +1114,14 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.UnbecomeMonitor(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.connected)
+        XCTAssertEqual(session.currentStateName(), .connected)
     }
 
     // MARK: - MonitorSwitchingLens Helpers
 
     private func pushMonitorSwitchingLensState() {
         pushMonitorPhotoModeState()
-        session.become(name: session.states.monitorSwitchingLens,
+        session.become(name: .monitorSwitchingLens,
                        state: session.monitorSwitchingLens(monitor: ref, peer: peer, lobby: lobbyWrapper))
         waitForMailbox(session, test: self)
         fakeMP.sentMessages.removeAll()
@@ -1116,17 +1129,18 @@ class RemoteCamSessionTests: XCTestCase {
         fakeAlerts.shownErrors.removeAll()
     }
 
-    // MARK: - MonitorSwitchingLens: SwitchLens sends command and response unbecomes
+    // MARK: - MonitorSwitchingLens: duplicate tap ignored, response unbecomes
 
-    func testMonitorSwitchingLensSendsCommand() throws {
+    func testMonitorSwitchingLensIgnoresDuplicateTap() throws {
         pushMonitorSwitchingLensState()
 
         ref ! UICmd.SwitchLens(lensType: .telephoto)
         waitForMailbox(session, test: self)
 
+        // Duplicate tap is ignored — no remote command sent
         let switchMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.SwitchLens }
-        XCTAssertEqual(switchMsgs.count, 1)
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorSwitchingLens)
+        XCTAssertEqual(switchMsgs.count, 0)
+        XCTAssertEqual(session.currentStateName(), .monitorSwitchingLens)
     }
 
     func testMonitorSwitchingLensSuccessResponseUnbecomes() throws {
@@ -1135,7 +1149,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.SwitchLensResp(lensType: .telephoto, availableLenses: [.wideAngle, .telephoto], currentZoom: 2.0, zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0), error: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     func testMonitorSwitchingLensErrorResponseUnbecomes() throws {
@@ -1145,7 +1159,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
     func testMonitorSwitchingLensNilNilResponseUnbecomes() throws {
@@ -1154,7 +1168,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
+        XCTAssertEqual(session.currentStateName(), .monitor,
                        "State should unbecome even when both lensType and error are nil")
     }
 
@@ -1165,7 +1179,16 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! DisconnectPeer(peer: peer, sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
+    }
+
+    func testMonitorSwitchingLensDisconnectPopsToScanning() throws {
+        pushMonitorSwitchingLensState()
+
+        ref ! Disconnect(sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     func testMonitorSwitchingLensUnbecomeMonitorPopsToConnected() throws {
@@ -1174,7 +1197,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.UnbecomeMonitor(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.connected)
+        XCTAssertEqual(session.currentStateName(), .connected)
     }
 
     // MARK: - MonitorTakingPicture: TakePicture sends command directly
@@ -1187,7 +1210,7 @@ class RemoteCamSessionTests: XCTestCase {
 
         let takePicMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.TakePic }
         XCTAssertEqual(takePicMsgs.count, 1)
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTakingPicture)
+        XCTAssertEqual(session.currentStateName(), .monitorTakingPicture)
     }
 
     // MARK: - MonitorTakingPicture: TakePicAck updates alert title
@@ -1218,7 +1241,7 @@ class RemoteCamSessionTests: XCTestCase {
         // Pump run loop so ^{} dispatches execute
         RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor)
+        XCTAssertEqual(session.currentStateName(), .monitor)
         XCTAssertTrue(fakeAlerts.shownErrors.contains("PicError"))
     }
 
@@ -1230,7 +1253,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! Disconnect(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.scanning)
+        XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
     // MARK: - MonitorTakingPicture: UnbecomeMonitor pops to connected
@@ -1241,7 +1264,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.UnbecomeMonitor(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.connected)
+        XCTAssertEqual(session.currentStateName(), .connected)
     }
 
     // ==========================================================================
@@ -1275,7 +1298,7 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(startMsgs.count, 1, "Should have sent StartRecordingVideo to peer")
 
         // FIXED: Monitor only transitions after successful send
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorRecordingVideo,
+        XCTAssertEqual(session.currentStateName(), .monitorRecordingVideo,
                        "Monitor transitions to recording after successful send")
     }
 
@@ -1293,7 +1316,7 @@ class RemoteCamSessionTests: XCTestCase {
         // Step 1: Monitor requests recording — immediately goes to monitorRecordingVideo
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
         waitForMailbox(session, test: self)
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorRecordingVideo)
+        XCTAssertEqual(session.currentStateName(), .monitorRecordingVideo)
 
         // Step 2: Camera reports error via StartRecordingVideoAck
         let error = NSError(domain: "MicrophoneDenied", code: 1, userInfo: nil)
@@ -1301,7 +1324,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // FIXED: popToState now uses correct name "monitor"
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
+        XCTAssertEqual(session.currentStateName(), .monitor,
                        "popToState correctly finds video mode state")
     }
 
@@ -1312,8 +1335,8 @@ class RemoteCamSessionTests: XCTestCase {
     func testBug_existingRecordingErrorTest_usesNonProductionStateName() throws {
         // This matches production: video mode pushed with name "monitor"
         pushMonitorVideoModeState()
-        let productionVideoModeName = session.currentState()?.0
-        XCTAssertEqual(productionVideoModeName, session.states.monitor,
+        let productionVideoModeName = session.currentStateName()
+        XCTAssertEqual(productionVideoModeName, .monitor,
                        "Production pushes video mode with name 'monitor'")
 
         // pushMonitorRecordingVideoState uses "monitorVideoMode" which does NOT match
@@ -1331,7 +1354,7 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         // Command sent directly from parent state, then transition
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTogglingCamera)
+        XCTAssertEqual(session.currentStateName(), .monitorTogglingCamera)
         let toggleMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.ToggleCamera }
         XCTAssertEqual(toggleMsgs.count, 1)
     }
@@ -1343,12 +1366,70 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.ToggleCamera()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTogglingCamera)
+        XCTAssertEqual(session.currentStateName(), .monitorTogglingCamera)
         let toggleMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.ToggleCamera }
         XCTAssertEqual(toggleMsgs.count, 1)
     }
 
     // MARK: - Bug 4: Toggle flash transitions before command is sent
+
+    // MARK: - Timeout: transient states unbecome after timeout
+
+    func testTimeout_monitorTogglingFlash_unbecomes() throws {
+        pushMonitorTogglingFlashState()
+
+        // Simulate a timeout for the current generation
+        ref ! UICmd.StateTimeout(stateName: .monitorTogglingFlash,
+                                 generation: session._timeoutGeneration)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentStateName(), .monitor,
+                       "Timeout should unbecome back to photo mode")
+    }
+
+    func testTimeout_staleGeneration_ignored() throws {
+        pushMonitorTogglingFlashState()
+
+        // Send a timeout with an old generation — should be ignored
+        ref ! UICmd.StateTimeout(stateName: .monitorTogglingFlash,
+                                 generation: session._timeoutGeneration - 1)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentStateName(), .monitorTogglingFlash,
+                       "Stale timeout should be ignored")
+    }
+
+    func testTimeout_monitorTogglingCamera_unbecomes() throws {
+        pushMonitorTogglingCameraState()
+
+        ref ! UICmd.StateTimeout(stateName: .monitorTogglingCamera,
+                                 generation: session._timeoutGeneration)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentStateName(), .monitor)
+    }
+
+    func testTimeout_monitorSwitchingLens_unbecomes() throws {
+        pushMonitorSwitchingLensState()
+
+        ref ! UICmd.StateTimeout(stateName: .monitorSwitchingLens,
+                                 generation: session._timeoutGeneration)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentStateName(), .monitor)
+    }
+
+    func testTimeout_monitorTakingPicture_unbecomes() throws {
+        pushMonitorTakingPictureState()
+
+        ref ! UICmd.StateTimeout(stateName: .monitorTakingPicture,
+                                 generation: session._timeoutGeneration)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentStateName(), .monitor)
+    }
+
+    // MARK: - Send-before-become: commands sent directly from parent state
 
     /// FIXED: ToggleFlash now sends command before transitioning.
     func testFixed_monitorPhotoMode_toggleFlash_sendsBeforeTransition() throws {
@@ -1357,7 +1438,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.ToggleFlash()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTogglingFlash)
+        XCTAssertEqual(session.currentStateName(), .monitorTogglingFlash)
         let flashMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.ToggleFlash }
         XCTAssertEqual(flashMsgs.count, 1)
     }
@@ -1371,7 +1452,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorTakingPicture)
+        XCTAssertEqual(session.currentStateName(), .monitorTakingPicture)
         let takePicMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.TakePic }
         XCTAssertEqual(takePicMsgs.count, 1)
     }
@@ -1385,7 +1466,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.SwitchLens(lensType: .telephoto)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorSwitchingLens)
+        XCTAssertEqual(session.currentStateName(), .monitorSwitchingLens)
         let switchMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.SwitchLens }
         XCTAssertEqual(switchMsgs.count, 1)
     }
@@ -1397,7 +1478,7 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.SwitchLens(lensType: .ultraWide)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorSwitchingLens)
+        XCTAssertEqual(session.currentStateName(), .monitorSwitchingLens)
         let switchMsgs = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.SwitchLens }
         XCTAssertEqual(switchMsgs.count, 1)
     }
@@ -1425,13 +1506,13 @@ class RemoteCamSessionTests: XCTestCase {
         waitForMailbox(session, test: self)
         waitForMailbox(session, test: self) // drain self-sent ToggleFlashResp
 
-        // FIXED: Send failure in parent state shows error, stays in photo mode
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
-                       "Send failure stays in photo mode instead of cascading to scanning")
+        // Send failure pops to scanning as an escape hatch
+        XCTAssertEqual(session.currentStateName(), .scanning,
+                       "Send failure pops to scanning")
     }
 
     /// Same test for toggle camera send failure.
-    func testBug_toggleCamera_sendFailure_staysInPhotoMode() throws {
+    func testFixed_toggleCamera_sendFailure_popsToScanning() throws {
         pushMonitorPhotoModeState()
 
         fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
@@ -1439,12 +1520,12 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.ToggleCamera()
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
-                       "Send failure stays in photo mode instead of cascading to scanning")
+        XCTAssertEqual(session.currentStateName(), .scanning,
+                       "Send failure pops to scanning")
     }
 
     /// Same test for switch lens send failure.
-    func testBug_switchLens_sendFailure_staysInPhotoMode() throws {
+    func testFixed_switchLens_sendFailure_popsToScanning() throws {
         pushMonitorPhotoModeState()
 
         fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
@@ -1452,8 +1533,8 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.SwitchLens(lensType: .telephoto)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
-                       "Send failure stays in photo mode instead of cascading to scanning")
+        XCTAssertEqual(session.currentStateName(), .scanning,
+                       "Send failure pops to scanning")
     }
 
     /// When the monitor transitions to monitorRecordingVideo before confirmation
@@ -1468,9 +1549,9 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
         waitForMailbox(session, test: self)
 
-        // FIXED: Send failure shows error, stays in video mode
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
-                       "Send failure stays in video mode instead of popping to scanning")
+        // Send failure pops to scanning as escape hatch
+        XCTAssertEqual(session.currentStateName(), .scanning,
+                       "Send failure pops to scanning")
     }
 
     // MARK: - Bug: Monitor shows recording UI before camera confirms
@@ -1491,7 +1572,7 @@ class RemoteCamSessionTests: XCTestCase {
 
         // FIXED: Monitor transitions to recording only after successful send.
         // OnEnter shows recording UI after the command was at least sent successfully.
-        XCTAssertEqual(session.currentState()?.0, session.states.monitorRecordingVideo,
+        XCTAssertEqual(session.currentStateName(), .monitorRecordingVideo,
                        "Monitor shows recording UI after successful send")
     }
 
@@ -1509,9 +1590,9 @@ class RemoteCamSessionTests: XCTestCase {
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
         waitForMailbox(session, test: self)
 
-        // FIXED: Send failure in parent state shows error, stays in photo mode
-        XCTAssertEqual(session.currentState()?.0, session.states.monitor,
-                       "Send failure stays in photo mode instead of popping to scanning")
+        // Send failure pops to scanning as escape hatch
+        XCTAssertEqual(session.currentStateName(), .scanning,
+                       "Send failure pops to scanning")
     }
 
 }
