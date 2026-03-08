@@ -469,6 +469,7 @@ class RemoteCamSessionTests: XCTestCase {
 
         ref ! RemoteCmd.PeerBecameCamera.createWithDefaults()
         waitForMailbox(session, test: self)
+        waitForMailbox(session, test: self) // drain any follow-up mailbox ops
 
         XCTAssertEqual(session.currentStateName(), .monitor)
         let capRequests = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.RequestCameraCapabilities }
@@ -569,6 +570,7 @@ class RemoteCamSessionTests: XCTestCase {
 
         ref ! RemoteCmd.PeerBecameCamera.createWithDefaults()
         waitForMailbox(session, test: self)
+        waitForMailbox(session, test: self) // drain any follow-up mailbox ops
 
         XCTAssertEqual(session.currentStateName(), .monitor)
         let capRequests = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.RequestCameraCapabilities }
