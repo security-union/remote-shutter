@@ -33,7 +33,7 @@ extension MonitorVideoStates {
 
             case let mode as UICmd.BecomeMonitor:
                 if mode.mode == RecordingMode.Photo {
-                    self.become(name: .monitorPhotoMode,
+                    self.become(name: .monitor,
                                 state: self.monitorPhotoMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
                 }
@@ -219,6 +219,9 @@ extension MonitorVideoStates {
             case is Disconnect:
                 // Progress UI handled by SwiftUI - no alert to dismiss
                 self.popAndStartScanning()
+
+            case is UICmd.UnbecomeMonitor:
+                self.popToState(name: .connected)
 
             case let c as DisconnectPeer:
                 if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {

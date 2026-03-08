@@ -73,9 +73,13 @@ extension RemoteCamSession {
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                     }
                     let error = NSError(domain: "Photo capture timed out", code: 0)
-                    self.sendCommandOrGoToScanning(peer: [peer],
-                        msg: RemoteCmd.TakePicResp(sender: self.this, error: error))
-                    self.unbecome()
+                    if self.sendMessage(
+                        peer: [peer],
+                        msg: RemoteCmd.TakePicResp(sender: self.this, error: error)).isSuccess() {
+                        self.unbecome()
+                    } else {
+                        self.popAndStartScanning()
+                    }
                 }
 
             case let t as UICmd.OnPicture:

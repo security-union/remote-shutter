@@ -142,13 +142,8 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
 
             case let mode as UICmd.BecomeMonitor:
-                if mode.mode == RecordingMode.Video {
-                    self.become(name: .monitorVideoMode,
-                                state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby),
-                                discardOld: true)
-                } else if mode.mode == RecordingMode.Shorts {
-                    // For now, shorts mode uses video recording with enhanced UI
-                    self.become(name: .monitorVideoMode,
+                if mode.mode == RecordingMode.Video || mode.mode == RecordingMode.Shorts {
+                    self.become(name: .monitor,
                                 state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
                 }
