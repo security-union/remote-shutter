@@ -41,16 +41,22 @@ extension MonitorVideoStates {
                 // UI differences are handled in SwiftUI view
 
             case is UICmd.TakePicture:
-                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this))
-                self.become(
-                    name: self.states.monitorRecordingVideo,
-                    state: self.monitorRecordingVideo(monitor: monitor, peer: peer, lobby: lobby)
-                )
+                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this)) as? Failure {
+                    showError(f.tryError.localizedDescription)
+                } else {
+                    self.become(
+                        name: self.states.monitorRecordingVideo,
+                        state: self.monitorRecordingVideo(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                }
 
             case is UICmd.ToggleCamera:
-                self.become(name: self.states.monitorTogglingCamera, state:
-                self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
-                self.this ! msg
+                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleCamera()) as? Failure {
+                    showError(f.tryError.localizedDescription)
+                } else {
+                    self.become(name: self.states.monitorTogglingCamera, state:
+                    self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
+                }
 
             case is UICmd.ToggleTorch:
                 // Handle torch toggle directly in video mode
@@ -88,12 +94,16 @@ extension MonitorVideoStates {
                 }
                 monitor ! torchResp
                 
-            case is UICmd.SwitchLens:
-                self.become(
-                    name: self.states.monitorSwitchingLens,
-                    state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
-                )
-                self.this ! msg
+            case let lensCmd as UICmd.SwitchLens:
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SwitchLens(lensType: lensCmd.lensType)) as? Failure {
+                    showError(f.tryError.localizedDescription)
+                } else {
+                    self.become(
+                        name: self.states.monitorSwitchingLens,
+                        state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                }
                 
             case is UICmd.RequestCameraCapabilities:
                 // Request capabilities from camera
@@ -137,7 +147,7 @@ extension MonitorVideoStates {
                     print("❌ DEBUG: StartRecordingVideoAck received with error - device not in camera mode")
                     showError(error.localizedDescription)
                     // Transition back to video mode state
-                    self.popToState(name: self.states.monitorVideoMode)
+                    self.popToState(name: self.states.monitor)
                 } else if let startTime = ack.recordingStartTime {
                     // Synchronize recording start time with camera
                     monitor ! UICmd.SyncRecordingStartTime(startTime: startTime)
@@ -170,7 +180,7 @@ extension MonitorVideoStates {
                 // Handle immediate error response (e.g., microphone access denied)
                 if errorResp.error != nil {
                     saveVideo(errorResp)
-                    self.popToState(name: self.states.monitorVideoMode)
+                    self.popToState(name: self.states.monitor)
                 }
                 
             case is Disconnect:
@@ -201,7 +211,7 @@ extension MonitorVideoStates {
             case let w as RemoteCmd.StopRecordingVideoResp:
                 // Progress UI will be dismissed by SwiftUI when transfer completes
                 saveVideo(w)
-                self.popToState(name: self.states.monitorVideoMode)
+                self.popToState(name: self.states.monitor)
 
             case is Disconnect:
                 // Progress UI handled by SwiftUI - no alert to dismiss

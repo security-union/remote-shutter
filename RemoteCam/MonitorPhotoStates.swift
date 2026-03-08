@@ -56,18 +56,24 @@ extension RemoteCamSession {
                 self.popToState(name: self.states.connected)
 
             case is UICmd.ToggleCamera:
-                self.become(
-                    name: self.states.monitorTogglingCamera,
-                    state: self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby)
-                )
-                self.this ! msg
+                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleCamera()) as? Failure {
+                    showError(f.tryError.localizedDescription)
+                } else {
+                    self.become(
+                        name: self.states.monitorTogglingCamera,
+                        state: self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                }
 
             case is UICmd.ToggleFlash:
-                self.become(
-                    name: self.states.monitorTogglingFlash,
-                    state: self.monitorTogglingFlash(monitor: monitor, peer: peer, lobby: lobby)
-                )
-                self.this ! msg
+                if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleFlash()) as? Failure {
+                    showError(f.tryError.localizedDescription)
+                } else {
+                    self.become(
+                        name: self.states.monitorTogglingFlash,
+                        state: self.monitorTogglingFlash(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                }
 
             case is UICmd.ToggleTorch:
                 // Handle torch toggle directly in photo mode
@@ -75,10 +81,15 @@ extension RemoteCamSession {
                     print("❌ DEBUG: Failed to send torch toggle command in photo mode: \(f.tryError.localizedDescription)")
                 }
 
-            case is UICmd.TakePicture:
-                self.become(name: self.states.monitorTakingPicture, state:
-                self.monitorTakingPicture(monitor: monitor, peer: peer, lobby: lobby))
-                self.this ! msg
+            case let cmd as UICmd.TakePicture:
+                if let f = self.sendMessage(
+                    peer: [peer],
+                    msg: RemoteCmd.TakePic(sender: self.this, sendMediaToPeer: cmd.sendMediaToRemote)) as? Failure {
+                    showError(f.tryError.localizedDescription)
+                } else {
+                    self.become(name: self.states.monitorTakingPicture, state:
+                    self.monitorTakingPicture(monitor: monitor, peer: peer, lobby: lobby))
+                }
                 
             // MARK: - Camera Capabilities Handling
             case let capabilities as RemoteCmd.CameraCapabilitiesResp:
@@ -110,12 +121,16 @@ extension RemoteCamSession {
                 }
                 monitor ! torchResp
                 
-            case is UICmd.SwitchLens:
-                self.become(
-                    name: self.states.monitorSwitchingLens,
-                    state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
-                )
-                self.this ! msg
+            case let lensCmd as UICmd.SwitchLens:
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SwitchLens(lensType: lensCmd.lensType)) as? Failure {
+                    showError(f.tryError.localizedDescription)
+                } else {
+                    self.become(
+                        name: self.states.monitorSwitchingLens,
+                        state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                }
                 
             case is UICmd.RequestCameraCapabilities:
                 // Request capabilities from camera
