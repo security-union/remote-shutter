@@ -40,7 +40,7 @@ extension RemoteCamSession {
                     lobby.scannerViewModel.connectedToPeer()
                 }
                 self.become(
-                    name: self.states.connected,
+                    name: .connected,
                     state: self.connected(lobbyWrapper: lobbyWrapper, peer: w.peer)
                 )
                 ^{

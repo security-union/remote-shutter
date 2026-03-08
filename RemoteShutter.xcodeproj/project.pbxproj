@@ -19,15 +19,9 @@
 		0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
-		B1C0DE0300000006 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
-		B1C0DE0300000003 /* DeviceScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000001 /* DeviceScannerViewModel.swift */; };
 		06503C552E2CDB55003DEAFA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 06503C542E2CDB55003DEAFA /* Localizable.strings */; };
 		065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
-		B1C0DE0300000005 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
-		B1C0DE0300000002 /* DeviceScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000001 /* DeviceScannerViewModel.swift */; };
 		065532F8258C4BF4000C2339 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
-		B1C0DE0200000002 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0200000001 /* AppTheme.swift */; };
-		B1C0DE0100000002 /* RolePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0100000001 /* RolePickerView.swift */; };
 		065DE66C253A43BA0022193C /* AppTrackingTransparency.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 065DE66B253A43BA0022193C /* AppTrackingTransparency.framework */; platformFilter = ios; settings = {ATTRIBUTES = (Weak, ); }; };
 		066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066427741BE924DD003EDD41 /* EnumExtensions.swift */; };
 		066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066959602575F00200E8B579 /* WelcomeViewController.swift */; };
@@ -65,8 +59,6 @@
 		0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284451BE5C0E600AF4678 /* MultipeerMessages.swift */; };
 		069284511BE5C0E600AF4678 /* RemoteCamSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284471BE5C0E600AF4678 /* RemoteCamSession.swift */; };
 		069284521BE5C0E600AF4678 /* RolePickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284481BE5C0E600AF4678 /* RolePickerController.swift */; };
-		B1C0DE0200000003 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0200000001 /* AppTheme.swift */; };
-		B1C0DE0100000003 /* RolePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0100000001 /* RolePickerView.swift */; };
 		069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284491BE5C0E600AF4678 /* RemoteCamStateNames.swift */; };
 		069284541BE5C0E600AF4678 /* UIImage+ImageProcessing.m in Sources */ = {isa = PBXBuildFile; fileRef = 0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */; };
 		069284661BE5C71800AF4678 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284651BE5C71800AF4678 /* Media.xcassets */; };
@@ -109,7 +101,6 @@
 		30425A0C926DE812ECA4528E /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1681D37E731D371A697244F7 /* Try.swift */; };
 		30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */; };
 		3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */; };
-		B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */; };
 		5647F1F78AAC80CEE4E20340 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0E951625230646938980B1 /* WelcomeView.swift */; };
 		6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */; };
 		69F9B5912B122CD3FFA41F78 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC390F40AB4C16ED4E8124 /* Message.swift */; };
@@ -118,9 +109,6 @@
 		855990C925275177E07AA346 /* Stack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */; };
 		85C11C052582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
 		85C11C072582F3FC00618F32 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C11C042582F3FC00618F32 /* UIButton.swift */; };
-		AA00020000000002 /* StoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00020000000001 /* StoreManager.swift */; };
-		AA00020000000004 /* StoreManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00020000000003 /* StoreManagerTests.swift */; };
-		AA00020000000006 /* PurchaseManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00020000000005 /* PurchaseManaging.swift */; };
 		85D3382E258D25D80091972B /* RolePickerOptionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D3382D258D25D80091972B /* RolePickerOptionController.swift */; };
 		85D33832258D489C0091972B /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33831258D489C0091972B /* UIView.swift */; };
 		85D33836258D48C30091972B /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33835258D48C30091972B /* UIViewController.swift */; };
@@ -130,10 +118,22 @@
 		AA0001042E940004000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
 		AA0001052E940005000A1001 /* UIAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062E940006000A1001 /* UIAlertPresenter.swift */; };
 		AA0001072E940007000A1001 /* UIAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062E940006000A1001 /* UIAlertPresenter.swift */; };
+		AA00020000000002 /* StoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00020000000001 /* StoreManager.swift */; };
+		AA00020000000004 /* StoreManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00020000000003 /* StoreManagerTests.swift */; };
+		AA00020000000006 /* PurchaseManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00020000000005 /* PurchaseManaging.swift */; };
 		AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */; };
 		AABB00042E930002009TESTS /* RemoteCmdSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */; };
 		AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		ABBA2C4CD92C4E137A90F275 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7CD8849B0DBF07A61E6CB266 /* Pods_RemoteShutterTests.framework */; };
+		B1C0DE0100000002 /* RolePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0100000001 /* RolePickerView.swift */; };
+		B1C0DE0100000003 /* RolePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0100000001 /* RolePickerView.swift */; };
+		B1C0DE0200000002 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0200000001 /* AppTheme.swift */; };
+		B1C0DE0200000003 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0200000001 /* AppTheme.swift */; };
+		B1C0DE0300000002 /* DeviceScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000001 /* DeviceScannerViewModel.swift */; };
+		B1C0DE0300000003 /* DeviceScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000001 /* DeviceScannerViewModel.swift */; };
+		B1C0DE0300000005 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
+		B1C0DE0300000006 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
+		B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */; };
 		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
 		DCDBA5102EA8C85C82D8E2FC /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */; };
 		E602233EB8B13D1B2BB12016 /* WelcomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */; };
@@ -173,7 +173,6 @@
 
 /* Begin PBXFileReference section */
 		036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
-		B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModelTests.swift; sourceTree = "<group>"; };
 		0602E4EA1BEA4FC90015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4EC1BEA4FDE0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
 		0602E4EE1BEA504D0015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
@@ -193,11 +192,6 @@
 		0624C0401BE8616E001CC738 /* CameraAccess.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraAccess.swift; sourceTree = "<group>"; };
 		0631D180256DFC960006CAF3 /* FrameSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSender.swift; sourceTree = "<group>"; };
 		0634594925886387009F9BE0 /* DeviceScannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewController.swift; sourceTree = "<group>"; };
-		B1C0DE0300000004 /* DeviceScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerView.swift; sourceTree = "<group>"; };
-		B1C0DE0300000001 /* DeviceScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModel.swift; sourceTree = "<group>"; };
-		AA00020000000001 /* StoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManager.swift; sourceTree = "<group>"; };
-		AA00020000000003 /* StoreManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManagerTests.swift; sourceTree = "<group>"; };
-		AA00020000000005 /* PurchaseManaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseManaging.swift; sourceTree = "<group>"; };
 		06503C532E2CDB55003DEAFA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		06503C562E2CDB93003DEAFA /* fr-FR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "fr-FR"; path = "fr-FR.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		06503C572E2CDBA7003DEAFA /* es-MX */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "es-MX"; path = "es-MX.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -240,8 +234,6 @@
 		069284451BE5C0E600AF4678 /* MultipeerMessages.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MultipeerMessages.swift; sourceTree = "<group>"; };
 		069284471BE5C0E600AF4678 /* RemoteCamSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteCamSession.swift; sourceTree = "<group>"; };
 		069284481BE5C0E600AF4678 /* RolePickerController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RolePickerController.swift; sourceTree = "<group>"; };
-		B1C0DE0200000001 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
-		B1C0DE0100000001 /* RolePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RolePickerView.swift; sourceTree = "<group>"; };
 		069284491BE5C0E600AF4678 /* RemoteCamStateNames.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteCamStateNames.swift; sourceTree = "<group>"; };
 		0692844A1BE5C0E600AF4678 /* UIImage+ImageProcessing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImage+ImageProcessing.h"; sourceTree = "<group>"; };
 		0692844B1BE5C0E600AF4678 /* UIImage+ImageProcessing.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+ImageProcessing.m"; sourceTree = "<group>"; };
@@ -294,8 +286,16 @@
 		8C9E06E2C406307CD182CFB2 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AA0001032E940003000A1001 /* AlertPresenting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenting.swift; sourceTree = "<group>"; };
 		AA0001062E940006000A1001 /* UIAlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAlertPresenter.swift; sourceTree = "<group>"; };
+		AA00020000000001 /* StoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManager.swift; sourceTree = "<group>"; };
+		AA00020000000003 /* StoreManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManagerTests.swift; sourceTree = "<group>"; };
+		AA00020000000005 /* PurchaseManaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseManaging.swift; sourceTree = "<group>"; };
 		AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamSessionTests.swift; sourceTree = "<group>"; };
 		AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCmdSerializationTests.swift; sourceTree = "<group>"; };
+		B1C0DE0100000001 /* RolePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RolePickerView.swift; sourceTree = "<group>"; };
+		B1C0DE0200000001 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		B1C0DE0300000001 /* DeviceScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModel.swift; sourceTree = "<group>"; };
+		B1C0DE0300000004 /* DeviceScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerView.swift; sourceTree = "<group>"; };
+		B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModelTests.swift; sourceTree = "<group>"; };
 		B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
 		BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4415A8FAB4FB271F412749F /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
@@ -1021,7 +1021,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 75;
+				CURRENT_PROJECT_VERSION = 76;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -1033,7 +1033,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.2.0;
+				MARKETING_VERSION = 5.2.1;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1059,7 +1059,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 75;
+				CURRENT_PROJECT_VERSION = 76;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -1071,7 +1071,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 5.2.0;
+				MARKETING_VERSION = 5.2.1;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";

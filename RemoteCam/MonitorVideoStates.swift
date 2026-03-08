@@ -29,11 +29,11 @@ extension MonitorVideoStates {
                 self.requestFrame([peer])
 
             case is UICmd.UnbecomeMonitor:
-                self.popToState(name: self.states.connected)
+                self.popToState(name: .connected)
 
             case let mode as UICmd.BecomeMonitor:
                 if mode.mode == RecordingMode.Photo {
-                    self.become(name: states.monitorPhotoMode,
+                    self.become(name: .monitor,
                                 state: self.monitorPhotoMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
                 }
@@ -41,16 +41,22 @@ extension MonitorVideoStates {
                 // UI differences are handled in SwiftUI view
 
             case is UICmd.TakePicture:
-                self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this))
-                self.become(
-                    name: self.states.monitorRecordingVideo,
-                    state: self.monitorRecordingVideo(monitor: monitor, peer: peer, lobby: lobby)
-                )
+                if self.sendMessage(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this)).isSuccess() {
+                    self.become(
+                        name: .monitorRecordingVideo,
+                        state: self.monitorRecordingVideo(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                } else {
+                    self.popAndStartScanning()
+                }
 
             case is UICmd.ToggleCamera:
-                self.become(name: self.states.monitorTogglingCamera, state:
-                self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
-                self.this ! msg
+                if self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleCamera()).isSuccess() {
+                    self.become(name: .monitorTogglingCamera, state:
+                    self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby))
+                } else {
+                    self.popAndStartScanning()
+                }
 
             case is UICmd.ToggleTorch:
                 // Handle torch toggle directly in video mode
@@ -88,12 +94,16 @@ extension MonitorVideoStates {
                 }
                 monitor ! torchResp
                 
-            case is UICmd.SwitchLens:
-                self.become(
-                    name: self.states.monitorSwitchingLens,
-                    state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
-                )
-                self.this ! msg
+            case let lensCmd as UICmd.SwitchLens:
+                if self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SwitchLens(lensType: lensCmd.lensType)).isSuccess() {
+                    self.become(
+                        name: .monitorSwitchingLens,
+                        state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                } else {
+                    self.popAndStartScanning()
+                }
                 
             case is UICmd.RequestCameraCapabilities:
                 // Request capabilities from camera
@@ -137,7 +147,7 @@ extension MonitorVideoStates {
                     print("❌ DEBUG: StartRecordingVideoAck received with error - device not in camera mode")
                     showError(error.localizedDescription)
                     // Transition back to video mode state
-                    self.popToState(name: self.states.monitorVideoMode)
+                    self.popToState(name: .monitor)
                 } else if let startTime = ack.recordingStartTime {
                     // Synchronize recording start time with camera
                     monitor ! UICmd.SyncRecordingStartTime(startTime: startTime)
@@ -162,7 +172,7 @@ extension MonitorVideoStates {
 
             case is RemoteCmd.StopRecordingVideoAck:
                 self.become(
-                    name: self.states.monitorWaitingForVideo,
+                    name: .monitorWaitingForVideo,
                     state: self.monitorWaitingForVideo(monitor: monitor, peer: peer, lobby: lobby)
                 )
             
@@ -170,9 +180,12 @@ extension MonitorVideoStates {
                 // Handle immediate error response (e.g., microphone access denied)
                 if errorResp.error != nil {
                     saveVideo(errorResp)
-                    self.popToState(name: self.states.monitorVideoMode)
+                    self.popToState(name: .monitor)
                 }
                 
+            case is UICmd.UnbecomeMonitor:
+                self.popToState(name: .connected)
+
             case is Disconnect:
                 self.popAndStartScanning()
 
@@ -201,11 +214,14 @@ extension MonitorVideoStates {
             case let w as RemoteCmd.StopRecordingVideoResp:
                 // Progress UI will be dismissed by SwiftUI when transfer completes
                 saveVideo(w)
-                self.popToState(name: self.states.monitorVideoMode)
+                self.popToState(name: .monitor)
 
             case is Disconnect:
                 // Progress UI handled by SwiftUI - no alert to dismiss
                 self.popAndStartScanning()
+
+            case is UICmd.UnbecomeMonitor:
+                self.popToState(name: .connected)
 
             case let c as DisconnectPeer:
                 if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {

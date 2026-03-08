@@ -64,8 +64,24 @@ extension RemoteCamSession {
         ^{ [weak self] in
             alertHandle = self?.alertPresenter.showAlert(title: "Taking picture")
         }
+        let gen = self.scheduleTimeout(stateName: .cameraTakingPic)
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+            case let timeout as UICmd.StateTimeout:
+                if timeout.stateName == .cameraTakingPic && timeout.generation == gen {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    let error = NSError(domain: "Photo capture timed out", code: 0)
+                    if self.sendMessage(
+                        peer: [peer],
+                        msg: RemoteCmd.TakePicResp(sender: self.this, error: error)).isSuccess() {
+                        self.unbecome()
+                    } else {
+                        self.popAndStartScanning()
+                    }
+                }
+
             case let t as UICmd.OnPicture:
                 if let imageData = t.pic {
                     savePicture(imageData)
@@ -76,13 +92,13 @@ extension RemoteCamSession {
                 if self.sendMessage(
                     peer: [peer],
                     msg: RemoteCmd.TakePicAck(sender: self.this)).isFailure() {
-                    self.popToState(name: self.states.scanning)
+                    self.popToState(name: .scanning)
                     return
                 }
                 if self.sendMessage(
                     peer: [peer],
                     msg: RemoteCmd.TakePicResp(sender: self.this, pic: sendMediaToPeer ? t.pic : nil, error: t.error)).isFailure() {
-                    self.popToState(name: self.states.scanning)
+                    self.popToState(name: .scanning)
                     return
                 }
                 self.unbecome()
@@ -147,7 +163,7 @@ extension RemoteCamSession {
             case is RemoteCmd.StartRecordingVideo:
                 ctrl.startRecordingVideo()
                 self.become(
-                        name: self.states.cameraRecordingVideo,
+                        name: .cameraRecordingVideo,
                         state: self.cameraShootingVideo(peer: peer,
                                 ctrl: ctrl,
                                 lobby: lobbyWrapper)
@@ -161,7 +177,7 @@ extension RemoteCamSession {
 
             case let cmd as RemoteCmd.TakePic:
                 ctrl.takePicture(cmd.sendMediaToPeer)
-                self.become(name: self.states.cameraTakingPic,
+                self.become(name: .cameraTakingPic,
                             state: self.cameraTakingPic(peer: peer, ctrl: ctrl, lobby: lobbyWrapper, sendMediaToPeer: cmd.sendMediaToPeer))
 
             case is RemoteCmd.ToggleCamera:
@@ -254,7 +270,7 @@ extension RemoteCamSession {
 
             case is UICmd.UnbecomeCamera:
                 print("🔍 DEBUG: Camera explicitly unbecoming - going to connected state")
-                self.popToState(name: self.states.connected)
+                self.popToState(name: .connected)
 
             default:
                 self.receive(msg: msg)

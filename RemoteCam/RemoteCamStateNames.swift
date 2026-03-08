@@ -8,21 +8,21 @@
 
 import Foundation
 
-struct RemoteCamStates {
-    let scanning = "scanning"
-    let idle = "idle"
-    let connected = "connected"
-    let camera = "camera"
-    let monitor = "monitor"
-    let cameraTakingPic = "cameraTakingPic"
-    let cameraRecordingVideo = "cameraRecordingVideo"
-    let cameraTransmittingVideo = "cameraTransmittingVideo"
-    let monitorTakingPicture = "monitorTakingPicture"
-    let monitorTogglingFlash = "monitorTogglingFlash"
-    let monitorTogglingCamera = "monitorTogglingCamera"
-    let monitorRecordingVideo = "monitorRecordingVideo"
-    let monitorPhotoMode = "monitorPhotoMode"
-    let monitorVideoMode = "monitorVideoMode"
-    let monitorWaitingForVideo = "monitorWaitingForVideo"
-    let monitorSwitchingLens = "monitorSwitchingLens"
+enum RemoteCamState: String {
+    case scanning
+    case idle
+    case connected
+    case camera
+    case monitor
+    case cameraTakingPic
+    case cameraRecordingVideo
+    case cameraTransmittingVideo
+    case monitorTakingPicture
+    case monitorTogglingFlash
+    case monitorTogglingCamera
+    case monitorRecordingVideo
+    case monitorPhotoMode
+    case monitorVideoMode
+    case monitorWaitingForVideo
+    case monitorSwitchingLens
 }

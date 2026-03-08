@@ -53,21 +53,27 @@ extension RemoteCamSession {
                 self.requestFrame([peer])
 
             case is UICmd.UnbecomeMonitor:
-                self.popToState(name: self.states.connected)
+                self.popToState(name: .connected)
 
             case is UICmd.ToggleCamera:
-                self.become(
-                    name: self.states.monitorTogglingCamera,
-                    state: self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby)
-                )
-                self.this ! msg
+                if self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleCamera()).isSuccess() {
+                    self.become(
+                        name: .monitorTogglingCamera,
+                        state: self.monitorTogglingCamera(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                } else {
+                    self.popAndStartScanning()
+                }
 
             case is UICmd.ToggleFlash:
-                self.become(
-                    name: self.states.monitorTogglingFlash,
-                    state: self.monitorTogglingFlash(monitor: monitor, peer: peer, lobby: lobby)
-                )
-                self.this ! msg
+                if self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleFlash()).isSuccess() {
+                    self.become(
+                        name: .monitorTogglingFlash,
+                        state: self.monitorTogglingFlash(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                } else {
+                    self.popAndStartScanning()
+                }
 
             case is UICmd.ToggleTorch:
                 // Handle torch toggle directly in photo mode
@@ -75,10 +81,15 @@ extension RemoteCamSession {
                     print("❌ DEBUG: Failed to send torch toggle command in photo mode: \(f.tryError.localizedDescription)")
                 }
 
-            case is UICmd.TakePicture:
-                self.become(name: self.states.monitorTakingPicture, state:
-                self.monitorTakingPicture(monitor: monitor, peer: peer, lobby: lobby))
-                self.this ! msg
+            case let cmd as UICmd.TakePicture:
+                if self.sendMessage(
+                    peer: [peer],
+                    msg: RemoteCmd.TakePic(sender: self.this, sendMediaToPeer: cmd.sendMediaToRemote)).isSuccess() {
+                    self.become(name: .monitorTakingPicture, state:
+                    self.monitorTakingPicture(monitor: monitor, peer: peer, lobby: lobby))
+                } else {
+                    self.popAndStartScanning()
+                }
                 
             // MARK: - Camera Capabilities Handling
             case let capabilities as RemoteCmd.CameraCapabilitiesResp:
@@ -110,12 +121,16 @@ extension RemoteCamSession {
                 }
                 monitor ! torchResp
                 
-            case is UICmd.SwitchLens:
-                self.become(
-                    name: self.states.monitorSwitchingLens,
-                    state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
-                )
-                self.this ! msg
+            case let lensCmd as UICmd.SwitchLens:
+                if self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SwitchLens(lensType: lensCmd.lensType)).isSuccess() {
+                    self.become(
+                        name: .monitorSwitchingLens,
+                        state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                } else {
+                    self.popAndStartScanning()
+                }
                 
             case is UICmd.RequestCameraCapabilities:
                 // Request capabilities from camera
@@ -127,13 +142,8 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
 
             case let mode as UICmd.BecomeMonitor:
-                if mode.mode == RecordingMode.Video {
-                    self.become(name: states.monitorVideoMode,
-                                state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby),
-                                discardOld: true)
-                } else if mode.mode == RecordingMode.Shorts {
-                    // For now, shorts mode uses video recording with enhanced UI
-                    self.become(name: states.monitorVideoMode,
+                if mode.mode == RecordingMode.Video || mode.mode == RecordingMode.Shorts {
+                    self.become(name: .monitor,
                                 state: self.monitorVideoMode(monitor: monitor, peer: peer, lobby: lobby),
                                 discardOld: true)
                 }
@@ -159,8 +169,17 @@ extension RemoteCamSession {
         ^{ [weak self] in
             alertHandle = self?.alertPresenter.showAlert(title: "Requesting picture")
         }
+        let gen = self.scheduleTimeout(stateName: .monitorTakingPicture)
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+
+            case let timeout as UICmd.StateTimeout:
+                if timeout.stateName == .monitorTakingPicture && timeout.generation == gen {
+                    ^{ [weak self] in
+                        if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
+                    }
+                    self.unbecome()
+                }
 
             case is RemoteCmd.TakePicAck:
                 ^{ [weak self] in
@@ -192,7 +211,7 @@ extension RemoteCamSession {
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                self.popToState(name: self.states.connected)
+                self.popToState(name: .connected)
 
             case let c as DisconnectPeer:
                 if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
