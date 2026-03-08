@@ -811,9 +811,9 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
-    // MARK: - FakeMultipeerService: Connected sends PeerBecameCamera
+    // MARK: - FakeMultipeerService: Connected sends PeerBecameMonitor
 
-    func testConnectedStateBecameCameraSendsPeerBecameCamera() throws {
+    func testConnectedStateBecomeMonitorSendsPeerBecameMonitor() throws {
         pushScanningState()
         pushConnectedState()
         fakeMP.sentMessages.removeAll()
@@ -1202,10 +1202,10 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .connected)
     }
 
-    // MARK: - Regression: Premature Transition Bugs
+    // MARK: - Recording transition
 
     /// Verifies monitor transitions to recording only after successful send.
-    func testBug_monitorVideoMode_transitionsToRecordingBeforeConfirmation() throws {
+    func testMonitorVideoModeTransitionsToRecordingAfterSend() throws {
         pushMonitorVideoModeState()
 
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
@@ -1217,7 +1217,7 @@ class RemoteCamSessionTests: XCTestCase {
     }
 
     /// Verifies popToState(.monitor) finds the video mode state after error ack.
-    func testBug_monitorRecordingVideo_errorAckPopToState_usesWrongStateName() throws {
+    func testMonitorRecordingVideoErrorAckPopsToMonitor() throws {
         pushMonitorVideoModeState()
 
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
@@ -1232,14 +1232,14 @@ class RemoteCamSessionTests: XCTestCase {
     }
 
     /// Verifies production pushes video mode with name .monitor (not .monitorVideoMode).
-    func testBug_existingRecordingErrorTest_usesNonProductionStateName() throws {
+    func testVideoModePushedWithMonitorStateName() throws {
         pushMonitorVideoModeState()
         XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
-    // MARK: - Regression: Send-before-become pattern
+    // MARK: - Send-before-become pattern
 
-    func testFixed_monitorPhotoMode_toggleCamera_sendsBeforeTransition() throws {
+    func testMonitorPhotoModeToggleCameraSendsBeforeTransition() throws {
         pushMonitorPhotoModeState()
 
         ref ! UICmd.ToggleCamera()
@@ -1250,7 +1250,7 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(toggleMsgs.count, 1)
     }
 
-    func testFixed_monitorVideoMode_toggleCamera_sendsBeforeTransition() throws {
+    func testMonitorVideoModeToggleCameraSendsBeforeTransition() throws {
         pushMonitorVideoModeState()
 
         ref ! UICmd.ToggleCamera()
@@ -1317,7 +1317,7 @@ class RemoteCamSessionTests: XCTestCase {
 
     // MARK: - Send-before-become: commands sent directly from parent state
 
-    func testFixed_monitorPhotoMode_toggleFlash_sendsBeforeTransition() throws {
+    func testMonitorPhotoModeToggleFlashSendsBeforeTransition() throws {
         pushMonitorPhotoModeState()
 
         ref ! UICmd.ToggleFlash()
@@ -1328,7 +1328,7 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(flashMsgs.count, 1)
     }
 
-    func testFixed_monitorPhotoMode_takePicture_sendsBeforeTransition() throws {
+    func testMonitorPhotoModeTakePictureSendsBeforeTransition() throws {
         pushMonitorPhotoModeState()
 
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
@@ -1339,7 +1339,7 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(takePicMsgs.count, 1)
     }
 
-    func testFixed_monitorPhotoMode_switchLens_sendsBeforeTransition() throws {
+    func testMonitorPhotoModeSwitchLensSendsBeforeTransition() throws {
         pushMonitorPhotoModeState()
 
         ref ! UICmd.SwitchLens(lensType: .telephoto)
@@ -1350,7 +1350,7 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(switchMsgs.count, 1)
     }
 
-    func testFixed_monitorVideoMode_switchLens_sendsBeforeTransition() throws {
+    func testMonitorVideoModeSwitchLensSendsBeforeTransition() throws {
         pushMonitorVideoModeState()
 
         ref ! UICmd.SwitchLens(lensType: .ultraWide)
@@ -1364,7 +1364,7 @@ class RemoteCamSessionTests: XCTestCase {
     // MARK: - Send failure recovery
 
     /// Send failure pops to scanning as an escape hatch.
-    func testBug_toggleFlash_sendFailure_cascadesToScanning() throws {
+    func testMonitorPhotoModeToggleFlashSendFailurePopsToScanning() throws {
         pushMonitorPhotoModeState()
 
         // Make sends fail
@@ -1377,7 +1377,7 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
-    func testFixed_toggleCamera_sendFailure_popsToScanning() throws {
+    func testMonitorPhotoModeToggleCameraSendFailurePopsToScanning() throws {
         pushMonitorPhotoModeState()
 
         fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
@@ -1388,7 +1388,7 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
-    func testFixed_switchLens_sendFailure_popsToScanning() throws {
+    func testMonitorPhotoModeSwitchLensSendFailurePopsToScanning() throws {
         pushMonitorPhotoModeState()
 
         fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
@@ -1399,7 +1399,7 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
-    func testBug_startRecording_sendFailure_popsToScanning() throws {
+    func testMonitorVideoModeStartRecordingSendFailurePopsToScanning() throws {
         pushMonitorVideoModeState()
 
         fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
@@ -1411,7 +1411,7 @@ class RemoteCamSessionTests: XCTestCase {
     }
 
     /// Verifies recording UI only shows after successful send.
-    func testBug_monitorRecordingVideo_onEnter_sendsRecordingUIBeforeConfirmation() throws {
+    func testMonitorRecordingVideoOnEnterShowsRecordingUI() throws {
         pushMonitorVideoModeState()
 
         ref ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
@@ -1420,7 +1420,7 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .monitorRecordingVideo)
     }
 
-    func testBug_takePicture_sendFailure_popsToScanning() throws {
+    func testMonitorPhotoModeTakePictureSendFailurePopsToScanning() throws {
         pushMonitorPhotoModeState()
 
         fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
@@ -1431,10 +1431,10 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
-    // MARK: - cameraTakingPic timeout with send failure
+    // MARK: - CameraTakingPic: timeout with send failure
 
     /// Verifies timeout + send failure lands on scanning (not nil from double-pop).
-    func testFixed_cameraTakingPicTimeout_sendFails_landsOnScanning() throws {
+    func testCameraTakingPicTimeoutSendFailurePopsToScanning() throws {
         pushScanningState()
         pushConnectedState()
 
@@ -1468,9 +1468,9 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .scanning)
     }
 
-    // MARK: - monitorWaitingForVideo: UnbecomeMonitor handler
+    // MARK: - MonitorWaitingForVideo: UnbecomeMonitor
 
-    func testBug_monitorWaitingForVideo_unbecomeMonitor_shouldPopToConnected() throws {
+    func testMonitorWaitingForVideoUnbecomeMonitorPopsToConnected() throws {
         pushMonitorWaitingForVideoState()
 
         ref ! UICmd.UnbecomeMonitor(sender: nil)
@@ -1479,9 +1479,9 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .connected)
     }
 
-    // MARK: - popToState(.monitor) works after mode switch
+    // MARK: - PopToState after mode switch
 
-    func testFixed_modeSwitch_thenPopToMonitor_findsVideoMode() throws {
+    func testPopToMonitorWorksAfterModeSwitch() throws {
         pushScanningState()
         pushConnectedState()
 
