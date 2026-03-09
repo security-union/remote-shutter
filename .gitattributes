@@ -1,2 +1,5 @@
 *.png filter=lfs diff=lfs merge=lfs -text
 *.svg filter=lfs diff=lfs merge=lfs -text
+website/public/**/*.png !filter !diff !merge text=auto
+website/public/**/*.svg !filter !diff !merge text=auto
+website/public/**/*.jpg !filter !diff !merge text=auto
