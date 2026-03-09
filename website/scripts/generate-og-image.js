@@ -2,18 +2,30 @@ const sharp = require('sharp');
 const path = require('path');
 
 const PUBLIC = path.join(__dirname, '..', 'public');
+const REPO = path.join(__dirname, '..', '..');
 
 async function generate() {
   const width = 1200;
   const height = 630;
-  const iconSize = 200;
-  const screenshotHeight = 480;
-  const screenshotWidth = Math.round(screenshotHeight * (1290 / 2796));
-  const gap = 16;
 
-  // Load and resize app icon with rounded corners
-  const icon = await sharp(path.join(PUBLIC, 'app-icon.png'))
+  const iconSize = 90;
+  const screenshotHeight = 460;
+  const screenshotWidth = Math.round(screenshotHeight * (1290 / 2796)); // ~212
+  const gap = 10;
+
+  // Load app icon with rounded corners
+  const radius = Math.round(iconSize * 0.22);
+  const roundedMask = Buffer.from(
+    `<svg width="${iconSize}" height="${iconSize}">
+      <rect x="0" y="0" width="${iconSize}" height="${iconSize}" rx="${radius}" ry="${radius}" fill="white"/>
+    </svg>`
+  );
+  // Use the original 1024x1024 icon from the app assets for max quality
+  const icon = await sharp(
+    path.join(REPO, 'RemoteCam/Assets.xcassets/AppIcon.appiconset/1024.png')
+  )
     .resize(iconSize, iconSize)
+    .composite([{ input: roundedMask, blend: 'dest-in' }])
     .png()
     .toBuffer();
 
@@ -28,39 +40,49 @@ async function generate() {
   const screenshots = await Promise.all(
     screenshotFiles.map((f) =>
       sharp(path.join(PUBLIC, 'screenshots', f))
-        .resize(screenshotWidth, screenshotHeight, { fit: 'contain' })
+        .resize(screenshotWidth, screenshotHeight, { fit: 'cover' })
         .png()
         .toBuffer()
     )
   );
 
+  // Screenshots on the right
   const totalScreenshotsWidth =
     screenshots.length * screenshotWidth + (screenshots.length - 1) * gap;
-  const screenshotsStartX = Math.round((width - totalScreenshotsWidth) / 2);
-  const screenshotsY = height - screenshotHeight - 20;
+  const screenshotsStartX = width - totalScreenshotsWidth - 40;
+  const screenshotsY = Math.round((height - screenshotHeight) / 2);
 
-  // Create SVG text overlay
-  const textSvg = `<svg width="${width}" height="${height}">
-    <text x="${width / 2}" y="100" text-anchor="middle"
+  // Left panel
+  const leftCenterX = Math.round(screenshotsStartX / 2);
+
+  const textSvg = `<svg width="${screenshotsStartX}" height="${height}">
+    <text x="${leftCenterX}" y="330" text-anchor="middle"
       font-family="-apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="42" font-weight="700" fill="#EDEDED">
+      font-size="32" font-weight="700" fill="#EDEDED">
       Remote Shutter
     </text>
-    <text x="${width / 2}" y="145" text-anchor="middle"
+    <text x="${leftCenterX}" y="368" text-anchor="middle"
       font-family="-apple-system, BlinkMacSystemFont, sans-serif"
-      font-size="22" fill="#9CA3AF">
-      Turn Two iPhones Into a Remote Camera System
+      font-size="15" fill="#D8A54C">
+      Wireless Camera Remote for iPhone
+    </text>
+    <text x="${leftCenterX}" y="415" text-anchor="middle"
+      font-family="-apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="13" fill="#9CA3AF">
+      Turn two devices into a
+    </text>
+    <text x="${leftCenterX}" y="433" text-anchor="middle"
+      font-family="-apple-system, BlinkMacSystemFont, sans-serif"
+      font-size="13" fill="#9CA3AF">
+      remote camera system
     </text>
   </svg>`;
 
   const composites = [
-    // App icon centered at top
-    { input: icon, left: Math.round((width - iconSize) / 2) - 240, top: 55 },
-    // Text overlay
+    { input: icon, left: Math.round(leftCenterX - iconSize / 2), top: 170 },
     { input: Buffer.from(textSvg), left: 0, top: 0 },
   ];
 
-  // Add screenshots side by side
   screenshots.forEach((buf, i) => {
     composites.push({
       input: buf,
@@ -78,7 +100,7 @@ async function generate() {
     },
   })
     .composite(composites)
-    .jpeg({ quality: 85 })
+    .jpeg({ quality: 95 })
     .toFile(path.join(PUBLIC, 'og-image.jpg'));
 
   console.log('Generated og-image.jpg');
