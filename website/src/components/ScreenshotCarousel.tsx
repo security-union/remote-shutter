@@ -2,15 +2,14 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
+import { BASE_PATH } from '@/lib/constants';
 import styles from './ScreenshotCarousel.module.css';
 
-const basePath = '/remote-shutter';
-
 const screenshots = [
-  { src: `${basePath}/screenshots/0_APP_IPHONE_67_0.png`, alt: 'Remote Shutter - Device scanning' },
-  { src: `${basePath}/screenshots/1_APP_IPHONE_67_1.png`, alt: 'Remote Shutter - Role selection' },
-  { src: `${basePath}/screenshots/2_APP_IPHONE_67_2.png`, alt: 'Remote Shutter - Camera view' },
-  { src: `${basePath}/screenshots/3_APP_IPHONE_67_3.png`, alt: 'Remote Shutter - Monitor view' },
+  { src: `${BASE_PATH}/screenshots/0_APP_IPHONE_67_0.png`, alt: 'Remote Shutter - Device scanning' },
+  { src: `${BASE_PATH}/screenshots/1_APP_IPHONE_67_1.png`, alt: 'Remote Shutter - Role selection' },
+  { src: `${BASE_PATH}/screenshots/2_APP_IPHONE_67_2.png`, alt: 'Remote Shutter - Camera view' },
+  { src: `${BASE_PATH}/screenshots/3_APP_IPHONE_67_3.png`, alt: 'Remote Shutter - Monitor view' },
 ];
 
 export default function ScreenshotCarousel() {

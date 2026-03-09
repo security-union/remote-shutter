@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { GITHUB_URL } from '@/lib/constants';
 import styles from './Footer.module.css';
 
 export default function Footer() {
@@ -9,7 +10,7 @@ export default function Footer() {
         <div className={styles.links}>
           <Link href="/privacy">Privacy Policy</Link>
           <a
-            href="https://github.com/darioalessandro/remote-shutter"
+            href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
           >

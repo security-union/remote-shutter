@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/constants';
 import './globals.css';
 
-const siteUrl = 'https://darioalessandro.github.io/remote-shutter';
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'Remote Shutter - Turn Two iPhones Into a Remote Camera System',
     template: '%s | Remote Shutter',
@@ -35,7 +34,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     siteName: 'Remote Shutter',
-    url: siteUrl,
+    url: SITE_URL,
     images: [
       {
         url: '/og-image.jpg',
