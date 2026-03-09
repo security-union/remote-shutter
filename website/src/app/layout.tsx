@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
-const siteUrl = 'https://darioalessandro.github.io/remote-shutter';
+const siteUrl = 'https://security-union.github.io/remote-shutter';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

@@ -60,14 +60,14 @@ export default async function BlogPost({ params }: Props) {
       name: 'Remote Shutter',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://darioalessandro.github.io/remote-shutter/app-icon.png',
+        url: 'https://security-union.github.io/remote-shutter/app-icon.png',
       },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://darioalessandro.github.io/remote-shutter/blog/${slug}`,
+      '@id': `https://security-union.github.io/remote-shutter/blog/${slug}`,
     },
-    image: 'https://darioalessandro.github.io/remote-shutter/og-image.jpg',
+    image: 'https://security-union.github.io/remote-shutter/og-image.jpg',
   };
 
   const breadcrumbSchema = {
@@ -78,13 +78,13 @@ export default async function BlogPost({ params }: Props) {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://darioalessandro.github.io/remote-shutter',
+        item: 'https://security-union.github.io/remote-shutter',
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Blog',
-        item: 'https://darioalessandro.github.io/remote-shutter/blog',
+        item: 'https://security-union.github.io/remote-shutter/blog',
       },
       {
         '@type': 'ListItem',

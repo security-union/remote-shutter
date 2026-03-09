@@ -70,7 +70,7 @@ export default function Privacy() {
           If you have questions about this privacy policy, please open an issue
           on our{' '}
           <a
-            href="https://github.com/darioalessandro/remote-shutter"
+            href="https://github.com/security-union/remote-shutter"
             target="_blank"
             rel="noopener noreferrer"
           >

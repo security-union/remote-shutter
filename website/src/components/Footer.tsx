@@ -9,7 +9,7 @@ export default function Footer() {
         <div className={styles.links}>
           <Link href="/privacy">Privacy Policy</Link>
           <a
-            href="https://github.com/darioalessandro/remote-shutter"
+            href="https://github.com/security-union/remote-shutter"
             target="_blank"
             rel="noopener noreferrer"
           >

@@ -8,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: '/',
     },
-    sitemap: 'https://darioalessandro.github.io/remote-shutter/sitemap.xml',
+    sitemap: 'https://security-union.github.io/remote-shutter/sitemap.xml',
   };
 }

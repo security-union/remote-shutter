@@ -15,7 +15,7 @@ const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Remote Shutter',
-  url: 'https://darioalessandro.github.io/remote-shutter',
+  url: 'https://security-union.github.io/remote-shutter',
 };
 
 const appSchema = {
@@ -27,7 +27,7 @@ const appSchema = {
   description:
     'Turn two Apple devices into a wireless remote-controlled camera system. One device is the camera, the other is the remote control with live preview.',
   url: 'https://apps.apple.com/us/app/remote-shutter/id633274861',
-  image: 'https://darioalessandro.github.io/remote-shutter/app-icon.png',
+  image: 'https://security-union.github.io/remote-shutter/app-icon.png',
   offers: {
     '@type': 'Offer',
     price: '0',
