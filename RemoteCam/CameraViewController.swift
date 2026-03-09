@@ -125,6 +125,9 @@ public class CameraViewController: UIViewController,
         super.viewWillAppear(animated)
         self.navigationController?.setNavigationBarHidden(false, animated: animated)
 
+        navigationItem.title = nil
+        navigationController?.navigationBar.prefersLargeTitles = false
+
         let appearance = UINavigationBarAppearance()
         appearance.configureWithTransparentBackground()
         navigationController?.navigationBar.standardAppearance = appearance
