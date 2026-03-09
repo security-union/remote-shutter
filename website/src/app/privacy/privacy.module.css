@@ -1,0 +1,22 @@
+.main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+  line-height: 1.8;
+}
+
+.main h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.main h2 {
+  font-size: 1.35rem;
+  margin: 2rem 0 0.75rem;
+}
+
+.main p {
+  margin-bottom: 1rem;
+  color: var(--muted);
+}

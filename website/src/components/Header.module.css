@@ -1,0 +1,35 @@
+.header {
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--background);
+  z-index: 10;
+}
+
+.nav {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent) !important;
+}
+
+.links {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 640px) {
+  .links {
+    gap: 1rem;
+    font-size: 0.85rem;
+  }
+}
