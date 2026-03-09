@@ -1,0 +1,55 @@
+.main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.postList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.postItem {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: border-color 0.2s;
+}
+
+.postItem:hover {
+  border-color: var(--accent);
+}
+
+.postItem h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.meta {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.meta span:first-child {
+  color: var(--accent);
+}
+
+.description {
+  color: var(--muted);
+  font-size: 0.95rem;
+}

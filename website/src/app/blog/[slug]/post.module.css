@@ -1,0 +1,92 @@
+.main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.breadcrumb {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 2rem;
+}
+
+.breadcrumb a {
+  color: var(--accent);
+}
+
+.breadcrumb span:last-child {
+  color: var(--foreground);
+}
+
+.article header {
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.meta {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.author {
+  color: var(--accent);
+}
+
+.date {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.content {
+  line-height: 1.8;
+}
+
+.content h2 {
+  font-size: 1.5rem;
+  margin: 2rem 0 1rem;
+}
+
+.content h3 {
+  font-size: 1.25rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.content p {
+  margin-bottom: 1.25rem;
+}
+
+.content ul,
+.content ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.content code {
+  background: var(--border);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.content pre {
+  background: var(--border);
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 1.25rem;
+}
+
+.content img {
+  max-width: 100%;
+  border-radius: 8px;
+}
