@@ -3,6 +3,7 @@ import { getAllPostSlugs, getPost } from '@/lib/blog';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import JsonLd from '@/components/JsonLd';
+import { SITE_URL, BASE_PATH } from '@/lib/constants';
 import styles from './post.module.css';
 
 interface Props {
@@ -60,14 +61,14 @@ export default async function BlogPost({ params }: Props) {
       name: 'Remote Shutter',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://security-union.github.io/remote-shutter/app-icon.png',
+        url: `${SITE_URL}/app-icon.png`,
       },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://security-union.github.io/remote-shutter/blog/${slug}`,
+      '@id': `${SITE_URL}/blog/${slug}`,
     },
-    image: 'https://security-union.github.io/remote-shutter/og-image.jpg',
+    image: `${SITE_URL}/og-image.jpg`,
   };
 
   const breadcrumbSchema = {
@@ -78,13 +79,13 @@ export default async function BlogPost({ params }: Props) {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://security-union.github.io/remote-shutter',
+        item: SITE_URL,
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Blog',
-        item: 'https://security-union.github.io/remote-shutter/blog',
+        item: `${SITE_URL}/blog`,
       },
       {
         '@type': 'ListItem',
@@ -101,9 +102,9 @@ export default async function BlogPost({ params }: Props) {
       <Header />
       <main className={styles.main}>
         <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-          <a href="/remote-shutter">Home</a>
+          <a href={BASE_PATH}>Home</a>
           <span aria-hidden="true">/</span>
-          <a href="/remote-shutter/blog">Blog</a>
+          <a href={`${BASE_PATH}/blog`}>Blog</a>
           <span aria-hidden="true">/</span>
           <span>{post.title}</span>
         </nav>

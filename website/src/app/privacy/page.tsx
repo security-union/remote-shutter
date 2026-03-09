@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { GITHUB_URL } from '@/lib/constants';
 import styles from './privacy.module.css';
 
 export const metadata: Metadata = {
@@ -70,7 +71,7 @@ export default function Privacy() {
           If you have questions about this privacy policy, please open an issue
           on our{' '}
           <a
-            href="https://github.com/security-union/remote-shutter"
+            href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
           >

@@ -4,18 +4,14 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ScreenshotCarousel from '@/components/ScreenshotCarousel';
 import JsonLd from '@/components/JsonLd';
+import { SITE_URL, BASE_PATH, APP_STORE_URL } from '@/lib/constants';
 import styles from './page.module.css';
-
-const APP_STORE_URL =
-  'https://apps.apple.com/us/app/remote-shutter/id633274861';
-
-const basePath = '/remote-shutter';
 
 const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Remote Shutter',
-  url: 'https://security-union.github.io/remote-shutter',
+  url: SITE_URL,
 };
 
 const appSchema = {
@@ -26,8 +22,8 @@ const appSchema = {
   applicationCategory: 'PhotographyApplication',
   description:
     'Turn two Apple devices into a wireless remote-controlled camera system. One device is the camera, the other is the remote control with live preview.',
-  url: 'https://apps.apple.com/us/app/remote-shutter/id633274861',
-  image: 'https://security-union.github.io/remote-shutter/app-icon.png',
+  url: APP_STORE_URL,
+  image: `${SITE_URL}/app-icon.png`,
   offers: {
     '@type': 'Offer',
     price: '0',
@@ -44,7 +40,7 @@ export default function Home() {
       <main className={styles.main}>
         <section className={styles.hero}>
           <Image
-            src={`${basePath}/app-icon.png`}
+            src={`${BASE_PATH}/app-icon.png`}
             alt="Remote Shutter app icon"
             width={120}
             height={120}
@@ -65,7 +61,7 @@ export default function Home() {
               rel="noopener noreferrer"
             >
               <Image
-                src={`${basePath}/apple_app_store_badge.svg`}
+                src={`${BASE_PATH}/apple_app_store_badge.svg`}
                 alt="Download on the App Store"
                 width={200}
                 height={67}
