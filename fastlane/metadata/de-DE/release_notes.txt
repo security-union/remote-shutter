@@ -1,2 +1,5 @@
-- Verbindungsfehler behoben
-- Anzahl der Schritte zum Verbinden der Geräte reduziert
+- Kamera zeigt jetzt aktuellen Modus und Qualitatseinstellungen (Foto/Video, Auflosung, fps)
+- Timer-Countdown auf der Kamera mit grossen Zahlen, Signaltonen und Blitzlicht
+- Foto- und Videoqualitatssteuerung auf der Fernbedienung (Auflosung, fps, Format, HDR)
+- Einstellungen werden nach Kamerawechsel zwischen Fernbedienung und Kamera synchronisiert
+- Eingeklappter Zustand der Steuerung bleibt zwischen Sitzungen erhalten

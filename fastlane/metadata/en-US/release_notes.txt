@@ -1,2 +1,5 @@
-- Fixed connectivity bugs
-- Reduced number of steps to connect devices
+- Camera now shows current mode and quality settings (Photo/Video, resolution, fps)
+- Timer countdown displayed on camera with big numbers, chimes, and torch blink
+- Photo and video quality controls on the remote (resolution, fps, format, HDR)
+- Settings sync between remote and camera after toggling cameras
+- Controls collapse state now persists across sessions

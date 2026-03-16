@@ -1,2 +1,5 @@
-- Rettet forbindelsesfejl
-- Reduceret antal trin for at forbinde enheder
+- Kameraet viser nu aktuel tilstand og kvalitetsindstillinger (foto/video, oplosning, fps)
+- Timernedtaelling vises pa kameraet med store tal, bip-lyde og blinkende lommelygte
+- Foto- og videokvalitetskontrol pa fjernbetjeningen (oplosning, fps, format, HDR)
+- Indstillinger synkroniseres mellem fjernbetjening og kamera efter kameraskift
+- Kontrolpanelets sammenklappede tilstand huskes mellem sessioner
