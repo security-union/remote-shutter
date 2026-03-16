@@ -40,6 +40,14 @@ extension MonitorVideoStates {
                 // Video and Shorts modes stay in video state
                 // UI differences are handled in SwiftUI view
 
+            case let countdown as UICmd.TimerCountdown:
+                // Fire-and-forget: send timer countdown to camera
+                let _ = self.sendMessage(peer: [peer], msg: RemoteCmd.TimerCountdown(value: countdown.value))
+
+            case let sync as UICmd.SyncMonitorSettings:
+                // Fire-and-forget: sync monitor mode to camera for display
+                let _ = self.sendMessage(peer: [peer], msg: RemoteCmd.SyncMonitorSettings(mode: sync.mode))
+
             case is UICmd.TakePicture:
                 if self.sendMessage(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this)).isSuccess() {
                     self.become(
@@ -105,6 +113,30 @@ extension MonitorVideoStates {
                     self.popAndStartScanning()
                 }
                 
+            // MARK: - Video Quality Command Handling
+            case let cmd as UICmd.SetVideoQuality:
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SetVideoQuality(resolution: cmd.resolution, frameRate: cmd.frameRate)) as? Failure {
+                    print("Failed to send video quality command: \(f.tryError)")
+                }
+
+            case let resp as RemoteCmd.SetVideoQualityResp:
+                if resp.error == nil {
+                    monitor ! resp
+                }
+
+            // MARK: - Photo Quality Command Handling (allow changing photo settings from video mode)
+            case let cmd as UICmd.SetPhotoQuality:
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SetPhotoQuality(format: cmd.format, hdrMode: cmd.hdrMode)) as? Failure {
+                    print("Failed to send photo quality command: \(f.tryError)")
+                }
+
+            case let resp as RemoteCmd.SetPhotoQualityResp:
+                if resp.error == nil {
+                    monitor ! resp
+                }
+
             case is UICmd.RequestCameraCapabilities:
                 // Request capabilities from camera
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())

@@ -1,2 +1,5 @@
-- Risolti bug di connettività
-- Ridotto il numero di passaggi per connettere i dispositivi
+- La fotocamera ora mostra modalita e impostazioni di qualita correnti (foto/video, risoluzione, fps)
+- Conto alla rovescia del timer sulla fotocamera con numeri grandi, segnali acustici e flash della torcia
+- Controlli di qualita foto e video sul telecomando (risoluzione, fps, formato, HDR)
+- Le impostazioni si sincronizzano tra telecomando e fotocamera dopo il cambio di fotocamera
+- Lo stato compresso dei controlli viene mantenuto tra le sessioni

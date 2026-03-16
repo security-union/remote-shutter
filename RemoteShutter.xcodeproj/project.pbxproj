@@ -104,6 +104,7 @@
 		5647F1F78AAC80CEE4E20340 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0E951625230646938980B1 /* WelcomeView.swift */; };
 		6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */; };
 		69F9B5912B122CD3FFA41F78 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC390F40AB4C16ED4E8124 /* Message.swift */; };
+		6AFBFC4B9D8E918C026E1A8D /* CameraCountdownTorch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */; };
 		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		855990C925275177E07AA346 /* Stack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */; };
@@ -268,6 +269,7 @@
 		4711EC884DF706A90B90662D /* ActorSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActorSystem.swift; sourceTree = "<group>"; };
 		4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.debug.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.debug.xcconfig"; sourceTree = "<group>"; };
 		52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WelcomeViewModel.swift; sourceTree = "<group>"; };
+		5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraCountdownTorch.swift; sourceTree = "<group>"; };
 		68EC390F40AB4C16ED4E8124 /* Message.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		69E2751E42D4D3ED3B0395F8 /* Pods-RemoteCam.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.release.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.release.xcconfig"; sourceTree = "<group>"; };
 		6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FlatBufferSchemas_generated.swift; sourceTree = "<group>"; };
@@ -420,6 +422,7 @@
 				2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */,
 				7C0E951625230646938980B1 /* WelcomeView.swift */,
 				52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */,
+				5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -924,6 +927,7 @@
 				DCDBA5102EA8C85C82D8E2FC /* SettingsViewModel.swift in Sources */,
 				5647F1F78AAC80CEE4E20340 /* WelcomeView.swift in Sources */,
 				E602233EB8B13D1B2BB12016 /* WelcomeViewModel.swift in Sources */,
+				6AFBFC4B9D8E918C026E1A8D /* CameraCountdownTorch.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

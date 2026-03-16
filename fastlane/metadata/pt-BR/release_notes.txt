@@ -1,2 +1,5 @@
-- Correção de bugs de conectividade
-- Redução do número de etapas para conectar dispositivos
+- A camera agora mostra o modo e configuracoes de qualidade atuais (foto/video, resolucao, fps)
+- Contagem regressiva do temporizador exibida na camera com numeros grandes, bipes e flash da lanterna
+- Controles de qualidade de foto e video no controle remoto (resolucao, fps, formato, HDR)
+- Configuracoes sincronizadas entre controle remoto e camera apos trocar de camera
+- O estado recolhido dos controles e mantido entre sessoes

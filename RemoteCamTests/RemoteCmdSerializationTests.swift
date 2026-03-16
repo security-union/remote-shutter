@@ -61,6 +61,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
         case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetPhotoQualityResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
+        case let m as RemoteCmd.SyncMonitorSettings: return m.toFlatBuffer()
         default:
             XCTFail("No toFlatBuffer() for \(type(of: msg))")
             fatalError()
@@ -671,5 +677,146 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(caps[.telephoto]?.minZoom, 2.0)
         XCTAssertEqual(caps[.telephoto]?.maxZoom, 20.0)
         XCTAssertEqual(Double(decoded.cameraCapabilities?.currentZoom ?? 0), 3.0, accuracy: 0.001)
+    }
+
+    // MARK: - 26. SetVideoQuality
+
+    func testSetVideoQuality_roundTrip() {
+        let original = RemoteCmd.SetVideoQuality(resolution: .uhd4k, frameRate: .fps60)
+        let decoded: RemoteCmd.SetVideoQuality = roundTrip(original)
+        XCTAssertEqual(decoded.resolution, .uhd4k)
+        XCTAssertEqual(decoded.frameRate, .fps60)
+    }
+
+    func testSetVideoQuality_hd1080p_24fps() {
+        let original = RemoteCmd.SetVideoQuality(resolution: .hd1080p, frameRate: .fps24)
+        let decoded: RemoteCmd.SetVideoQuality = roundTrip(original)
+        XCTAssertEqual(decoded.resolution, .hd1080p)
+        XCTAssertEqual(decoded.frameRate, .fps24)
+    }
+
+    // MARK: - 27. SetVideoQualityResp
+
+    func testSetVideoQualityResp_success() {
+        let original = RemoteCmd.SetVideoQualityResp(resolution: .uhd4k, frameRate: .fps30, error: nil)
+        let decoded: RemoteCmd.SetVideoQualityResp = roundTrip(original)
+        XCTAssertEqual(decoded.resolution, .uhd4k)
+        XCTAssertEqual(decoded.frameRate, .fps30)
+        XCTAssertNil(decoded.error)
+    }
+
+    func testSetVideoQualityResp_withError() {
+        let error = NSError(domain: "quality", code: -1, userInfo: [NSLocalizedDescriptionKey: "4K not supported"])
+        let original = RemoteCmd.SetVideoQualityResp(resolution: nil, frameRate: nil, error: error)
+        let decoded: RemoteCmd.SetVideoQualityResp = roundTrip(original)
+        XCTAssertNil(decoded.resolution)
+        XCTAssertNil(decoded.frameRate)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "4K not supported")
+    }
+
+    // MARK: - 28. SetPhotoQuality
+
+    func testSetPhotoQuality_roundTrip() {
+        let original = RemoteCmd.SetPhotoQuality(format: .heif, hdrMode: .on)
+        let decoded: RemoteCmd.SetPhotoQuality = roundTrip(original)
+        XCTAssertEqual(decoded.format, .heif)
+        XCTAssertEqual(decoded.hdrMode, .on)
+    }
+
+    func testSetPhotoQuality_jpeg_hdrOff() {
+        let original = RemoteCmd.SetPhotoQuality(format: .jpeg, hdrMode: .off)
+        let decoded: RemoteCmd.SetPhotoQuality = roundTrip(original)
+        XCTAssertEqual(decoded.format, .jpeg)
+        XCTAssertEqual(decoded.hdrMode, .off)
+    }
+
+    // MARK: - 29. SetPhotoQualityResp
+
+    func testSetPhotoQualityResp_success() {
+        let original = RemoteCmd.SetPhotoQualityResp(format: .heif, hdrMode: .on, error: nil)
+        let decoded: RemoteCmd.SetPhotoQualityResp = roundTrip(original)
+        XCTAssertEqual(decoded.format, .heif)
+        XCTAssertEqual(decoded.hdrMode, .on)
+        XCTAssertNil(decoded.error)
+    }
+
+    func testSetPhotoQualityResp_withError() {
+        let error = NSError(domain: "quality", code: -1, userInfo: [NSLocalizedDescriptionKey: "HEIF not supported"])
+        let original = RemoteCmd.SetPhotoQualityResp(format: nil, hdrMode: nil, error: error)
+        let decoded: RemoteCmd.SetPhotoQualityResp = roundTrip(original)
+        XCTAssertNil(decoded.format)
+        XCTAssertNil(decoded.hdrMode)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "HEIF not supported")
+    }
+
+    // MARK: - 31. TimerCountdown
+
+    func testTimerCountdown_positive() {
+        let original = RemoteCmd.TimerCountdown(value: 5)
+        let decoded: RemoteCmd.TimerCountdown = roundTrip(original)
+        XCTAssertEqual(decoded.value, 5)
+    }
+
+    func testTimerCountdown_zero() {
+        let original = RemoteCmd.TimerCountdown(value: 0)
+        let decoded: RemoteCmd.TimerCountdown = roundTrip(original)
+        XCTAssertEqual(decoded.value, 0)
+    }
+
+    func testTimerCountdown_cancelled() {
+        let original = RemoteCmd.TimerCountdown(value: -1)
+        let decoded: RemoteCmd.TimerCountdown = roundTrip(original)
+        XCTAssertEqual(decoded.value, -1)
+    }
+
+    // MARK: - 32. SyncMonitorSettings
+
+    func testSyncMonitorSettings_photoMode() {
+        let original = RemoteCmd.SyncMonitorSettings(mode: .Photo)
+        let decoded: RemoteCmd.SyncMonitorSettings = roundTrip(original)
+        XCTAssertEqual(decoded.mode, .Photo)
+    }
+
+    func testSyncMonitorSettings_videoMode() {
+        let original = RemoteCmd.SyncMonitorSettings(mode: .Video)
+        let decoded: RemoteCmd.SyncMonitorSettings = roundTrip(original)
+        XCTAssertEqual(decoded.mode, .Video)
+    }
+
+    func testSyncMonitorSettings_shortsMode() {
+        let original = RemoteCmd.SyncMonitorSettings(mode: .Shorts)
+        let decoded: RemoteCmd.SyncMonitorSettings = roundTrip(original)
+        XCTAssertEqual(decoded.mode, .Shorts)
+    }
+
+    // MARK: - 30. CameraInfo with Quality Capabilities
+
+    func testCameraInfo_withQualityCapabilities() {
+        let backCamera = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle],
+            hasFlash: true,
+            hasTorch: true,
+            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0)],
+            supportedResolutions: [.hd1080p, .uhd4k],
+            supportedFrameRates: [.fps24, .fps30, .fps60],
+            resolutionFrameRates: [.uhd4k: [.fps24, .fps30]],
+            supportsHEIF: true,
+            supportsHDR: true
+        )
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: backCamera,
+            currentCamera: .back, currentLens: .wideAngle,
+            currentZoom: 1.0, error: nil
+        )
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        let info = decoded.backCamera!
+        XCTAssertEqual(info.supportedResolutions, [.hd1080p, .uhd4k])
+        XCTAssertEqual(info.supportedFrameRates, [.fps24, .fps30, .fps60])
+        XCTAssertTrue(info.supportsHEIF)
+        XCTAssertTrue(info.supportsHDR)
+        let rfr = info.getResolutionFrameRates()
+        XCTAssertEqual(rfr[.uhd4k], [.fps24, .fps30])
     }
 }

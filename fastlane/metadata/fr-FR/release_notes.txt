@@ -1,2 +1,5 @@
-- Correction de bugs de connectivité
-- Réduction du nombre d'étapes pour connecter les appareils
+- L'appareil photo affiche maintenant le mode et les reglages de qualite (photo/video, resolution, fps)
+- Compte a rebours affiche sur l'appareil photo avec grands chiffres, bips et flash de torche
+- Controles de qualite photo et video sur la telecommande (resolution, fps, format, HDR)
+- Synchronisation des reglages entre la telecommande et l'appareil photo apres changement de camera
+- L'etat replie des controles est conserve entre les sessions

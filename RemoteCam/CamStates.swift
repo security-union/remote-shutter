@@ -161,6 +161,8 @@ extension RemoteCamSession {
                                                     error: m.error))
 
             case is RemoteCmd.StartRecordingVideo:
+                ctrl.currentCameraMode = .Video
+                ctrl.updateCameraStatus()
                 ctrl.startRecordingVideo()
                 self.become(
                         name: .cameraRecordingVideo,
@@ -176,6 +178,8 @@ extension RemoteCamSession {
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideoResp(sender: nil, error: micError.error), mode: .reliable)
 
             case let cmd as RemoteCmd.TakePic:
+                ctrl.currentCameraMode = .Photo
+                ctrl.updateCameraStatus()
                 ctrl.takePicture(cmd.sendMediaToPeer)
                 self.become(name: .cameraTakingPic,
                             state: self.cameraTakingPic(peer: peer, ctrl: ctrl, lobby: lobbyWrapper, sendMediaToPeer: cmd.sendMediaToPeer))
@@ -257,6 +261,46 @@ extension RemoteCamSession {
                 
 
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
+
+            // MARK: - Sync Monitor Settings
+            case let sync as RemoteCmd.SyncMonitorSettings:
+                ^{
+                    ctrl.currentCameraMode = sync.mode
+                    ctrl.updateCameraStatus()
+                }
+
+            // MARK: - Timer Countdown Handling
+            case let countdown as RemoteCmd.TimerCountdown:
+                ^{
+                    if countdown.value > 0 {
+                        ctrl.cameraViewModel.showCountdown(countdown.value)
+                        ctrl.playCountdownChime(remaining: countdown.value)
+                    } else if countdown.value == 0 {
+                        ctrl.cameraViewModel.clearCountdown()
+                        ctrl.ensureTorchOff()
+                    } else {
+                        ctrl.cameraViewModel.cancelCountdown()
+                        ctrl.ensureTorchOff()
+                    }
+                }
+
+            // MARK: - Video Quality Command Handling
+            case let cmd as RemoteCmd.SetVideoQuality:
+                if let (resolution, frameRate) = ctrl.setVideoQuality(resolution: cmd.resolution, frameRate: cmd.frameRate) {
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.SetVideoQualityResp(resolution: resolution, frameRate: frameRate, error: nil))
+                } else {
+                    let error = NSError(domain: "RemoteShutter", code: -1, userInfo: [NSLocalizedDescriptionKey: "Video quality not supported"])
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.SetVideoQualityResp(resolution: nil, frameRate: nil, error: error))
+                }
+
+            // MARK: - Photo Quality Command Handling
+            case let cmd as RemoteCmd.SetPhotoQuality:
+                if let (format, hdrMode) = ctrl.setPhotoQuality(format: cmd.format, hdrMode: cmd.hdrMode) {
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.SetPhotoQualityResp(format: format, hdrMode: hdrMode, error: nil))
+                } else {
+                    let error = NSError(domain: "RemoteShutter", code: -1, userInfo: [NSLocalizedDescriptionKey: "Photo quality not supported"])
+                    self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.SetPhotoQualityResp(format: nil, hdrMode: nil, error: error))
+                }
 
             case let c as DisconnectPeer:
                 if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {

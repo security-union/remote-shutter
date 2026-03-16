@@ -9,7 +9,7 @@
 import Foundation
 import StoreKit
 
-public let tempFile = "tempfile.mov"
+public let tempFile = "remoteshutter_video.mov"
 public let disableAdsPID = "05"
 public let enableVideoPID = "06"
 public let enableTorchPID = "07"

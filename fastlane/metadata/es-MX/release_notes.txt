@@ -1,2 +1,5 @@
-- Corrección de errores de conectividad
-- Reducción del número de pasos para conectar dispositivos
+- La camara ahora muestra el modo y ajustes de calidad actuales (foto/video, resolucion, fps)
+- Cuenta regresiva del temporizador en la camara con numeros grandes, sonidos y destello de linterna
+- Controles de calidad de foto y video en el control remoto (resolucion, fps, formato, HDR)
+- Los ajustes se sincronizan entre el control remoto y la camara al cambiar de camara
+- El estado colapsado de los controles se mantiene entre sesiones
