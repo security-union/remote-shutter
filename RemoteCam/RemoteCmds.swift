@@ -192,18 +192,41 @@ public class RemoteCmd: Actor.Message {
         public let hasFlash: Bool
         public let hasTorch: Bool
         public let zoomCapabilities: [Int: ZoomRange] // CameraLensType.rawValue -> ZoomRange
+        public let supportedResolutions: [VideoResolution]
+        public let supportedFrameRates: [VideoFrameRate]
+        public let resolutionFrameRates: [Int: [VideoFrameRate]] // VideoResolution.rawValue -> supported FPS
+        public let supportsHEIF: Bool
+        public let supportsHDR: Bool
 
-        public init(availableLenses: [CameraLensType], hasFlash: Bool, hasTorch: Bool, zoomCapabilities: [CameraLensType: ZoomRange]) {
+        public init(availableLenses: [CameraLensType], hasFlash: Bool, hasTorch: Bool,
+                    zoomCapabilities: [CameraLensType: ZoomRange],
+                    supportedResolutions: [VideoResolution] = [.hd1080p],
+                    supportedFrameRates: [VideoFrameRate] = [.fps30],
+                    resolutionFrameRates: [VideoResolution: [VideoFrameRate]] = [:],
+                    supportsHEIF: Bool = false,
+                    supportsHDR: Bool = false) {
             self.availableLenses = availableLenses
             self.hasFlash = hasFlash
             self.hasTorch = hasTorch
             self.zoomCapabilities = Dictionary(uniqueKeysWithValues: zoomCapabilities.map { key, value in (key.rawValue, value) })
+            self.supportedResolutions = supportedResolutions
+            self.supportedFrameRates = supportedFrameRates
+            self.resolutionFrameRates = Dictionary(uniqueKeysWithValues: resolutionFrameRates.map { key, value in (key.rawValue, value) })
+            self.supportsHEIF = supportsHEIF
+            self.supportsHDR = supportsHDR
         }
 
         public func getZoomCapabilities() -> [CameraLensType: ZoomRange] {
             return Dictionary(uniqueKeysWithValues: zoomCapabilities.compactMap { (rawValue, range) in
                 guard let lensType = CameraLensType(rawValue: rawValue) else { return nil }
                 return (lensType, range)
+            })
+        }
+
+        public func getResolutionFrameRates() -> [VideoResolution: [VideoFrameRate]] {
+            return Dictionary(uniqueKeysWithValues: resolutionFrameRates.compactMap { (rawValue, rates) in
+                guard let resolution = VideoResolution(rawValue: rawValue) else { return nil }
+                return (resolution, rates)
             })
         }
     }
@@ -226,16 +249,29 @@ public class RemoteCmd: Actor.Message {
         public let currentCamera: AVCaptureDevice.Position
         public let currentLens: CameraLensType
         public let currentZoom: CGFloat
+        public let currentVideoResolution: VideoResolution
+        public let currentVideoFrameRate: VideoFrameRate
+        public let currentPhotoFormat: PhotoFormat
+        public let currentHDRMode: HDRMode
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
                    currentCamera: AVCaptureDevice.Position, currentLens: CameraLensType,
-                   currentZoom: CGFloat, error: Error?) {
+                   currentZoom: CGFloat,
+                   currentVideoResolution: VideoResolution = .hd1080p,
+                   currentVideoFrameRate: VideoFrameRate = .fps30,
+                   currentPhotoFormat: PhotoFormat = .jpeg,
+                   currentHDRMode: HDRMode = .off,
+                   error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
             self.currentCamera = currentCamera
             self.currentLens = currentLens
             self.currentZoom = currentZoom
+            self.currentVideoResolution = currentVideoResolution
+            self.currentVideoFrameRate = currentVideoFrameRate
+            self.currentPhotoFormat = currentPhotoFormat
+            self.currentHDRMode = currentHDRMode
             self.error = error
             super.init(sender: nil)
         }
@@ -396,6 +432,58 @@ public class RemoteCmd: Actor.Message {
 
     public class RequestCameraCapabilities: Actor.Message {
         public init() {
+            super.init(sender: nil)
+        }
+    }
+
+    // MARK: - Video Quality Commands
+
+    public class SetVideoQuality: Actor.Message {
+        public let resolution: VideoResolution
+        public let frameRate: VideoFrameRate
+
+        public init(resolution: VideoResolution, frameRate: VideoFrameRate) {
+            self.resolution = resolution
+            self.frameRate = frameRate
+            super.init(sender: nil)
+        }
+    }
+
+    public class SetVideoQualityResp: Actor.Message {
+        public let resolution: VideoResolution?
+        public let frameRate: VideoFrameRate?
+        public let error: Error?
+
+        public init(resolution: VideoResolution?, frameRate: VideoFrameRate?, error: Error?) {
+            self.resolution = resolution
+            self.frameRate = frameRate
+            self.error = error
+            super.init(sender: nil)
+        }
+    }
+
+    // MARK: - Photo Quality Commands
+
+    public class SetPhotoQuality: Actor.Message {
+        public let format: PhotoFormat
+        public let hdrMode: HDRMode
+
+        public init(format: PhotoFormat, hdrMode: HDRMode) {
+            self.format = format
+            self.hdrMode = hdrMode
+            super.init(sender: nil)
+        }
+    }
+
+    public class SetPhotoQualityResp: Actor.Message {
+        public let format: PhotoFormat?
+        public let hdrMode: HDRMode?
+        public let error: Error?
+
+        public init(format: PhotoFormat?, hdrMode: HDRMode?, error: Error?) {
+            self.format = format
+            self.hdrMode = hdrMode
+            self.error = error
             super.init(sender: nil)
         }
     }

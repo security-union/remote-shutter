@@ -39,6 +39,12 @@ extension MonitorViewController {
             },
             onLensChange: { [weak self] lensType in
                 self?.handleLensChange(lensType)
+            },
+            onVideoQualityChange: { [weak self] resolution, frameRate in
+                self?.handleVideoQualityChange(resolution, frameRate)
+            },
+            onPhotoQualityChange: { [weak self] format, hdrMode in
+                self?.handlePhotoQualityChange(format, hdrMode)
             }
         )
         
@@ -215,6 +221,14 @@ extension MonitorViewController {
     private func handleLensChange(_ lensType: CameraLensType) {
         currentLensType = lensType
         session ! UICmd.SwitchLens(lensType: lensType)
+    }
+
+    private func handleVideoQualityChange(_ resolution: VideoResolution, _ frameRate: VideoFrameRate) {
+        session ! UICmd.SetVideoQuality(resolution: resolution, frameRate: frameRate)
+    }
+
+    private func handlePhotoQualityChange(_ format: PhotoFormat, _ hdrMode: HDRMode) {
+        session ! UICmd.SetPhotoQuality(format: format, hdrMode: hdrMode)
     }
     
     // MARK: - Helper Methods

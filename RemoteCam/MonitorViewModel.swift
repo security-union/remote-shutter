@@ -70,6 +70,8 @@ class MonitorViewModel: ObservableObject {
     @Published var isSegmentedControlEnabled: Bool = true
     @Published var isLensControlEnabled: Bool = true
     @Published var isZoomSliderEnabled: Bool = true
+    @Published var isQualityControlEnabled: Bool = true
+    @Published var areControlsExpanded: Bool = true
     
     // MARK: - UI Configuration Methods
     func configurePhotoMode() {
@@ -86,10 +88,11 @@ class MonitorViewModel: ObservableObject {
             self.isSegmentedControlEnabled = true
             self.isLensControlEnabled = true
             self.isZoomSliderEnabled = true
+            self.isQualityControlEnabled = true
             self.buttonPrompt = NSLocalizedString("Taking photo", comment: "")
         }
     }
-    
+
     func configureVideoMode() {
         DispatchQueue.main.async {
             self.uiState = .videoMode
@@ -106,10 +109,11 @@ class MonitorViewModel: ObservableObject {
             self.isSegmentedControlEnabled = true
             self.isLensControlEnabled = true
             self.isZoomSliderEnabled = true
+            self.isQualityControlEnabled = true
             self.buttonPrompt = NSLocalizedString("Starting video", comment: "")
         }
     }
-    
+
     func configureVideoRecording() {
         DispatchQueue.main.async {
             self.uiState = .videoRecording
@@ -126,6 +130,7 @@ class MonitorViewModel: ObservableObject {
             self.isSegmentedControlEnabled = false
             self.isLensControlEnabled = false
             self.isZoomSliderEnabled = false
+            self.isQualityControlEnabled = false
             self.buttonPrompt = NSLocalizedString("Stopping video", comment: "")
         }
     }
@@ -182,6 +187,50 @@ class MonitorViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Video Quality Properties
+    @Published var currentVideoResolution: VideoResolution = .hd1080p
+    @Published var currentVideoFrameRate: VideoFrameRate = .fps30
+    @Published var supportedResolutions: [VideoResolution] = [.hd1080p]
+    @Published var supportedFrameRates: [VideoFrameRate] = [.fps30]
+    @Published var resolutionFrameRates: [VideoResolution: [VideoFrameRate]] = [:]
+
+    // MARK: - Photo Quality Properties
+    @Published var currentPhotoFormat: PhotoFormat = .jpeg
+    @Published var currentHDRMode: HDRMode = .off
+    @Published var supportsHEIF: Bool = false
+    @Published var supportsHDR: Bool = false
+
+    // MARK: - Video Quality Update Methods
+    func updateVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) {
+        DispatchQueue.main.async {
+            self.currentVideoResolution = resolution
+            self.currentVideoFrameRate = frameRate
+        }
+    }
+
+    func updateVideoCapabilities(resolutions: [VideoResolution], frameRates: [VideoFrameRate], resolutionFrameRates: [VideoResolution: [VideoFrameRate]]) {
+        DispatchQueue.main.async {
+            self.supportedResolutions = resolutions
+            self.supportedFrameRates = frameRates
+            self.resolutionFrameRates = resolutionFrameRates
+        }
+    }
+
+    // MARK: - Photo Quality Update Methods
+    func updatePhotoQuality(format: PhotoFormat, hdrMode: HDRMode) {
+        DispatchQueue.main.async {
+            self.currentPhotoFormat = format
+            self.currentHDRMode = hdrMode
+        }
+    }
+
+    func updatePhotoCapabilities(supportsHEIF: Bool, supportsHDR: Bool) {
+        DispatchQueue.main.async {
+            self.supportsHEIF = supportsHEIF
+            self.supportsHDR = supportsHDR
+        }
+    }
+
     func showZoomControlsTemporarily() {
         // Show controls immediately (already on main thread from SwiftUI)
         showZoomControls = true

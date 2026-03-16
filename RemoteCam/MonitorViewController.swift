@@ -108,7 +108,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                             cameraInfo.availableLenses,
                             current: capabilities.currentLens
                         )
-                        
+
                         // Update zoom controls in view model
                         if let zoomRange = cameraInfo.getZoomCapabilities()[capabilities.currentLens] {
                             ctrl.updateZoomInViewModel(
@@ -116,6 +116,23 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                                 maxFactor: zoomRange.maxZoom
                             )
                         }
+
+                        // Update quality capabilities in view model
+                        ctrl.viewModel.updateVideoCapabilities(
+                            resolutions: cameraInfo.supportedResolutions,
+                            frameRates: cameraInfo.supportedFrameRates,
+                            resolutionFrameRates: cameraInfo.getResolutionFrameRates())
+                        ctrl.viewModel.updatePhotoCapabilities(
+                            supportsHEIF: cameraInfo.supportsHEIF,
+                            supportsHDR: cameraInfo.supportsHDR)
+
+                        // Sync current quality settings from camera
+                        ctrl.viewModel.updateVideoQuality(
+                            resolution: capabilities.currentVideoResolution,
+                            frameRate: capabilities.currentVideoFrameRate)
+                        ctrl.viewModel.updatePhotoQuality(
+                            format: capabilities.currentPhotoFormat,
+                            hdrMode: capabilities.currentHDRMode)
                     }
                 }
                 
@@ -158,12 +175,30 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                        let lensType = lensRemote.lensType,
                        let availableLenses = lensRemote.availableLenses {
                         ctrl.updateLensTypesInViewModel(availableLenses, current: lensType)
-                        
+
                         // Update zoom controls if we have the new zoom info
                         if let currentZoom = lensRemote.currentZoom,
                            let zoomRange = lensRemote.zoomRange {
                             ctrl.updateZoomInViewModel(currentZoom, maxFactor: zoomRange.maxZoom)
                         }
+                    }
+                }
+
+            // MARK: - Video Quality Response Handling
+            case let videoQuality as RemoteCmd.SetVideoQualityResp:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    if let resolution = videoQuality.resolution,
+                       let frameRate = videoQuality.frameRate {
+                        ctrl?.value?.viewModel.updateVideoQuality(resolution: resolution, frameRate: frameRate)
+                    }
+                }
+
+            // MARK: - Photo Quality Response Handling
+            case let photoQuality as RemoteCmd.SetPhotoQualityResp:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    if let format = photoQuality.format,
+                       let hdrMode = photoQuality.hdrMode {
+                        ctrl?.value?.viewModel.updatePhotoQuality(format: format, hdrMode: hdrMode)
                     }
                 }
             

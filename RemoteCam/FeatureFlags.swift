@@ -18,6 +18,9 @@ struct FeatureFlags {
     /// Enable Shorts mode (short-form video recording)
     /// Set to true when Shorts mode implementation is complete
     static let ENABLE_SHORTS_MODE = false
+
+    /// Enable video/photo quality controls overlay on monitor
+    static let ENABLE_QUALITY_CONTROLS = true
     
     // MARK: - Future Feature Flags
     // Add new feature flags here as needed

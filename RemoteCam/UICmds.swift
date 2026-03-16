@@ -470,6 +470,32 @@ public class UICmd {
         }
     }
     
+    // MARK: - Video Quality Commands
+
+    public class SetVideoQuality: Actor.Message {
+        public let resolution: VideoResolution
+        public let frameRate: VideoFrameRate
+
+        public init(resolution: VideoResolution, frameRate: VideoFrameRate) {
+            self.resolution = resolution
+            self.frameRate = frameRate
+            super.init(sender: nil)
+        }
+    }
+
+    // MARK: - Photo Quality Commands
+
+    public class SetPhotoQuality: Actor.Message {
+        public let format: PhotoFormat
+        public let hdrMode: HDRMode
+
+        public init(format: PhotoFormat, hdrMode: HDRMode) {
+            self.format = format
+            self.hdrMode = hdrMode
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Browser Events
 
     public class BrowserFoundPeer: Actor.Message {

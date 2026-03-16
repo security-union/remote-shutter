@@ -17,7 +17,7 @@ import Combine
 Default fps, it would be neat if we would adjust this based on network conditions.
 */
 
-let fps = 30
+var fps = 30
 
 
 /**
@@ -55,6 +55,10 @@ public class CameraViewController: UIViewController,
 
     var captureVideoPreviewLayer: AVCaptureVideoPreviewLayer?
     var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
+    var currentVideoResolution: VideoResolution = .hd1080p
+    var currentVideoFrameRate: VideoFrameRate = .fps30
+    var currentPhotoFormat: PhotoFormat = .jpeg
+    var currentHDRMode: HDRMode = .off
     let session: ActorRef = getRemoteCamSession()!
     let frameSender: ActorRef = getFrameSender()!
     
@@ -250,16 +254,30 @@ public class CameraViewController: UIViewController,
         }
     }
 
+    var currentCameraMode: RecordingMode = .Photo
+
     func configureIdleMode() {
         recordingView.isHidden = true
         navigationController?.isNavigationBarHidden = false
         activityIndicator.style = UIActivityIndicatorView.Style.large
         activityIndicator.color = UIColor.white
+        updateCameraStatus()
     }
 
     func configureVideoModeRecording() {
         recordingView.isHidden = false
         navigationController?.isNavigationBarHidden = true
+        currentCameraMode = .Video
+        updateCameraStatus()
+    }
+
+    func updateCameraStatus() {
+        cameraViewModel.updateStatus(
+            mode: currentCameraMode,
+            resolution: currentVideoResolution,
+            frameRate: currentVideoFrameRate,
+            photoFormat: currentPhotoFormat,
+            hdrMode: currentHDRMode)
     }
 
     public override var shouldAutorotate: Bool {
@@ -588,11 +606,52 @@ public class CameraViewController: UIViewController,
             }
         }
         
+        // Gather quality capabilities — probe each resolution's actual FPS limits
+        let supportedResolutions = VideoResolution.selectableCases.filter { r in
+            captureSession.canSetSessionPreset(r.sessionPreset)
+        }
+
+        let currentPreset = captureSession.sessionPreset
+        var resolutionFrameRates: [VideoResolution: [VideoFrameRate]] = [:]
+        var allSupportedFrameRates: Set<VideoFrameRate> = []
+
+        for res in supportedResolutions {
+            // Temporarily switch preset to probe the active format's FPS ranges
+            captureSession.beginConfiguration()
+            captureSession.sessionPreset = res.sessionPreset
+            captureSession.commitConfiguration()
+
+            if let dev = videoDevices.first {
+                var maxFPS: Double = 30
+                for range in dev.activeFormat.videoSupportedFrameRateRanges {
+                    maxFPS = max(maxFPS, range.maxFrameRate)
+                }
+                let rates = VideoFrameRate.selectableCases.filter { $0.value <= Int(maxFPS) }
+                resolutionFrameRates[res] = rates
+                rates.forEach { allSupportedFrameRates.insert($0) }
+            }
+        }
+
+        // Restore original preset
+        captureSession.beginConfiguration()
+        captureSession.sessionPreset = currentPreset
+        captureSession.commitConfiguration()
+
+        let supportedFrameRates = VideoFrameRate.selectableCases.filter { allSupportedFrameRates.contains($0) }
+
+        let supportsHEIF = photoOutput.availablePhotoCodecTypes.contains(.hevc)
+        let supportsHDR = true
+
         return RemoteCmd.CameraInfo(
             availableLenses: availableLenses,
             hasFlash: hasFlash,
             hasTorch: hasTorch,
-            zoomCapabilities: zoomCapabilities
+            zoomCapabilities: zoomCapabilities,
+            supportedResolutions: supportedResolutions,
+            supportedFrameRates: supportedFrameRates,
+            resolutionFrameRates: resolutionFrameRates,
+            supportsHEIF: supportsHEIF,
+            supportsHDR: supportsHDR
         )
     }
     
@@ -605,9 +664,13 @@ public class CameraViewController: UIViewController,
             currentCamera: currentDevice.position,
             currentLens: currentLensType,
             currentZoom: currentZoomFactor,
+            currentVideoResolution: currentVideoResolution,
+            currentVideoFrameRate: currentVideoFrameRate,
+            currentPhotoFormat: currentPhotoFormat,
+            currentHDRMode: currentHDRMode,
             error: nil
         )
-        
+
         session ! capabilities
     }
 
@@ -631,9 +694,13 @@ public class CameraViewController: UIViewController,
             currentCamera: currentDevice.position,
             currentLens: currentLensType,
             currentZoom: currentZoomFactor,
+            currentVideoResolution: currentVideoResolution,
+            currentVideoFrameRate: currentVideoFrameRate,
+            currentPhotoFormat: currentPhotoFormat,
+            currentHDRMode: currentHDRMode,
             error: nil
         )
-        
+
         print("🔍 DEBUG: Created capabilities response successfully")
         return capabilities
     }
@@ -764,8 +831,77 @@ public class CameraViewController: UIViewController,
         videoDevice.unlockForConfiguration()
     }
 
+    func maxSupportedFPS(for device: AVCaptureDevice) -> Double {
+        var maxFPS: Double = 30
+        for range in device.activeFormat.videoSupportedFrameRateRanges {
+            maxFPS = max(maxFPS, range.maxFrameRate)
+        }
+        return maxFPS
+    }
+
+    func isFPSSupported(_ targetFPS: Int, for device: AVCaptureDevice) -> Bool {
+        let target = Double(targetFPS)
+        for range in device.activeFormat.videoSupportedFrameRateRanges {
+            if target >= range.minFrameRate && target <= range.maxFrameRate {
+                return true
+            }
+        }
+        return false
+    }
+
+    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) -> (VideoResolution, VideoFrameRate)? {
+        guard !isRecording else { return nil }
+        guard let device = videoDeviceInput?.device else { return nil }
+        guard captureSession.canSetSessionPreset(resolution.sessionPreset) else { return nil }
+
+        captureSession.beginConfiguration()
+        captureSession.sessionPreset = resolution.sessionPreset
+
+        // After changing preset, the activeFormat may change — validate FPS against it
+        var appliedFrameRate = frameRate
+        if !isFPSSupported(frameRate.value, for: device) {
+            // Fall back to highest supported FPS that's <= requested
+            let maxFPS = Int(maxSupportedFPS(for: device))
+            let fallback = VideoFrameRate.selectableCases
+                .filter { $0.value <= maxFPS }
+                .last ?? .fps30
+            appliedFrameRate = fallback
+        }
+
+        do {
+            try setFrameRate(framerate: appliedFrameRate.value, videoDevice: device)
+        } catch {
+            captureSession.commitConfiguration()
+            return nil
+        }
+        captureSession.commitConfiguration()
+
+        currentVideoResolution = resolution
+        currentVideoFrameRate = appliedFrameRate
+        fps = appliedFrameRate.value
+        updateCameraStatus()
+
+        return (resolution, appliedFrameRate)
+    }
+
+    func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) -> (PhotoFormat, HDRMode)? {
+        if format == .heif {
+            guard photoOutput.availablePhotoCodecTypes.contains(.hevc) else { return nil }
+        }
+
+        currentPhotoFormat = format
+        currentHDRMode = hdrMode
+        updateCameraStatus()
+        return (format, hdrMode)
+    }
+
     func cloneCameraSettings(_ settings: AVCapturePhotoSettings) -> AVCapturePhotoSettings {
-        let newSettings = AVCapturePhotoSettings()
+        let newSettings: AVCapturePhotoSettings
+        if currentPhotoFormat == .heif && photoOutput.availablePhotoCodecTypes.contains(.hevc) {
+            newSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+        } else {
+            newSettings = AVCapturePhotoSettings()
+        }
         newSettings.flashMode = settings.flashMode
         newSettings.isHighResolutionPhotoEnabled = settings.isHighResolutionPhotoEnabled
         return newSettings

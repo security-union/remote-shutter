@@ -47,6 +47,103 @@ public enum CameraLensType: Int, CaseIterable, Codable {
     }
 }
 
+// MARK: - Video Resolution
+public enum VideoResolution: Int, CaseIterable, Codable {
+    case unknown = 0
+    case hd1080p = 1
+    case uhd4k = 2
+
+    public var displayName: String {
+        switch self {
+        case .unknown: return "Unknown"
+        case .hd1080p: return "1080p"
+        case .uhd4k: return "4K"
+        }
+    }
+
+    public var sessionPreset: AVCaptureSession.Preset {
+        switch self {
+        case .unknown, .hd1080p: return .hd1920x1080
+        case .uhd4k: return .hd4K3840x2160
+        }
+    }
+
+    /// All user-selectable cases (excludes .unknown)
+    public static var selectableCases: [VideoResolution] {
+        return [.hd1080p, .uhd4k]
+    }
+}
+
+// MARK: - Video Frame Rate
+public enum VideoFrameRate: Int, CaseIterable, Codable {
+    case unknown = 0
+    case fps24 = 1
+    case fps30 = 2
+    case fps60 = 3
+
+    public var value: Int {
+        switch self {
+        case .unknown, .fps30: return 30
+        case .fps24: return 24
+        case .fps60: return 60
+        }
+    }
+
+    public var displayName: String {
+        switch self {
+        case .unknown: return "Unknown"
+        case .fps24: return "24"
+        case .fps30: return "30"
+        case .fps60: return "60"
+        }
+    }
+
+    /// All user-selectable cases (excludes .unknown)
+    public static var selectableCases: [VideoFrameRate] {
+        return [.fps24, .fps30, .fps60]
+    }
+}
+
+// MARK: - Photo Format
+public enum PhotoFormat: Int, CaseIterable, Codable {
+    case unknown = 0
+    case jpeg = 1
+    case heif = 2
+
+    public var displayName: String {
+        switch self {
+        case .unknown: return "Unknown"
+        case .jpeg: return "JPEG"
+        case .heif: return "HEIF"
+        }
+    }
+
+    /// All user-selectable cases (excludes .unknown)
+    public static var selectableCases: [PhotoFormat] {
+        return [.jpeg, .heif]
+    }
+}
+
+// MARK: - HDR Mode
+public enum HDRMode: Int, CaseIterable, Codable {
+    case unknown = 0
+    case off = 1
+    case on = 2
+
+    public var displayName: String {
+        switch self {
+        case .unknown: return "Unknown"
+        case .off: return "Off"
+        case .on: return "On"
+        }
+    }
+
+    /// All user-selectable cases (excludes .unknown)
+    public static var selectableCases: [HDRMode] {
+        return [.off, .on]
+    }
+}
+
 extension AVCaptureDevice.Position {
     public func toggle() -> Try<AVCaptureDevice.Position> {
         switch self {

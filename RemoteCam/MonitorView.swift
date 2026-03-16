@@ -17,17 +17,19 @@ struct MonitorView: View {
     let onSettingsTapped: () -> Void
     let onZoomChange: (CGFloat) -> Void
     let onLensChange: (CameraLensType) -> Void
+    let onVideoQualityChange: (VideoResolution, VideoFrameRate) -> Void
+    let onPhotoQualityChange: (PhotoFormat, HDRMode) -> Void
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 Color.black.ignoresSafeArea()
-                
+
                 VStack(spacing: 0) {
                     // MARK: - Camera Preview
                     cameraPreviewSection
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    
+
                     // MARK: - Controls Section
                     controlsSection
                         .background(Color.black.opacity(0.8))
@@ -113,6 +115,7 @@ struct MonitorView: View {
                     Spacer()
                 }
             }
+
         }
         .onTapGesture(count: 2) {
             // Double tap to toggle camera
@@ -217,26 +220,163 @@ struct MonitorView: View {
         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
     
+    // MARK: - Quality Controls
+    private var qualityControls: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                if viewModel.uiState == .videoMode {
+                    videoQualityButtons
+                } else if viewModel.uiState == .photoMode {
+                    photoQualityButtons
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+
+    @ViewBuilder
+    private var videoQualityButtons: some View {
+        // Resolution picker
+        if viewModel.supportedResolutions.count > 1 {
+            ForEach(viewModel.supportedResolutions, id: \.self) { resolution in
+                Button(action: {
+                    onVideoQualityChange(resolution, viewModel.currentVideoFrameRate)
+                }) {
+                    Text(resolution.displayName)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(viewModel.currentVideoResolution == resolution ? .black : .white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            viewModel.currentVideoResolution == resolution ?
+                            AppTheme.accent : Color.gray.opacity(0.3)
+                        )
+                        .cornerRadius(6)
+                }
+                .disabled(!viewModel.isQualityControlEnabled)
+            }
+
+            Divider()
+                .frame(height: 20)
+                .background(Color.gray.opacity(0.5))
+        }
+
+        // FPS picker
+        ForEach(availableFrameRates, id: \.self) { rate in
+            Button(action: {
+                onVideoQualityChange(viewModel.currentVideoResolution, rate)
+            }) {
+                Text("\(rate.displayName) fps")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(viewModel.currentVideoFrameRate == rate ? .black : .white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        viewModel.currentVideoFrameRate == rate ?
+                        AppTheme.accent : Color.gray.opacity(0.3)
+                    )
+                    .cornerRadius(6)
+            }
+            .disabled(!viewModel.isQualityControlEnabled)
+        }
+    }
+
+    private var availableFrameRates: [VideoFrameRate] {
+        let rates = viewModel.resolutionFrameRates[viewModel.currentVideoResolution]
+        return (rates?.isEmpty == false) ? rates! : viewModel.supportedFrameRates
+    }
+
+    @ViewBuilder
+    private var photoQualityButtons: some View {
+        // Format picker
+        if viewModel.supportsHEIF {
+            ForEach(PhotoFormat.selectableCases, id: \.self) { format in
+                Button(action: {
+                    onPhotoQualityChange(format, viewModel.currentHDRMode)
+                }) {
+                    Text(format.displayName)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(viewModel.currentPhotoFormat == format ? .black : .white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            viewModel.currentPhotoFormat == format ?
+                            AppTheme.accent : Color.gray.opacity(0.3)
+                        )
+                        .cornerRadius(6)
+                }
+                .disabled(!viewModel.isQualityControlEnabled)
+            }
+
+            Divider()
+                .frame(height: 20)
+                .background(Color.gray.opacity(0.5))
+        }
+
+        // HDR toggle
+        if viewModel.supportsHDR {
+            Button(action: {
+                let newHDR: HDRMode = viewModel.currentHDRMode == .on ? .off : .on
+                onPhotoQualityChange(viewModel.currentPhotoFormat, newHDR)
+            }) {
+                Text("HDR")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(viewModel.currentHDRMode == .on ? .black : .white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        viewModel.currentHDRMode == .on ?
+                        AppTheme.accent : Color.gray.opacity(0.3)
+                    )
+                    .cornerRadius(6)
+            }
+            .disabled(!viewModel.isQualityControlEnabled)
+        }
+    }
+
     // MARK: - Controls Section
     private var controlsSection: some View {
-        VStack(spacing: 20) {
-            // Mode Selector
-            modeSelector
-            
-            // Timer Controls (only for Photo/Video modes)
-            if viewModel.uiState != .shortsMode {
-                timerControls
+        VStack(spacing: viewModel.areControlsExpanded ? 20 : 12) {
+            // Mode Selector + expand/collapse toggle
+            HStack {
+                modeSelector
+
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.areControlsExpanded.toggle()
+                    }
+                }) {
+                    Image(systemName: viewModel.areControlsExpanded ? "chevron.down" : "chevron.up")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
+                        .frame(width: 24, height: 24)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(4)
+                }
             }
-            
-            // Lens Controls
-            if viewModel.availableLensTypes.count > 1 {
-                lensControls
+
+            if viewModel.areControlsExpanded {
+                // Quality Controls (video: resolution + fps, photo: format + HDR)
+                if FeatureFlags.ENABLE_QUALITY_CONTROLS
+                    && (viewModel.uiState == .videoMode || viewModel.uiState == .photoMode) {
+                    qualityControls
+                }
+
+                // Timer Controls (only for Photo/Video modes)
+                if viewModel.uiState != .shortsMode {
+                    timerControls
+                }
+
+                // Lens Controls
+                if viewModel.availableLensTypes.count > 1 {
+                    lensControls
+                }
             }
-            
-            // Main Action Buttons
+
+            // Main Action Buttons (always visible)
             mainActionButtons
-            
-            // Bottom Navigation
+
+            // Bottom Navigation (always visible)
             bottomNavigation
         }
         .padding(.horizontal, 20)
@@ -468,7 +608,9 @@ struct MonitorView_Previews: PreviewProvider {
             onGalleryTapped: {},
             onSettingsTapped: {},
             onZoomChange: { _ in },
-            onLensChange: { _ in }
+            onLensChange: { _ in },
+            onVideoQualityChange: { _, _ in },
+            onPhotoQualityChange: { _, _ in }
         )
         .preferredColorScheme(.dark)
     }

@@ -22,7 +22,9 @@ enum CommandAction : byte {
     SetFlashMode = 10,
     RequestFrame = 11,
     PeerBecameCamera = 12,
-    PeerBecameMonitor = 13
+    PeerBecameMonitor = 13,
+    SetVideoQuality = 14,
+    SetPhotoQuality = 15
 }
 
 enum CameraPosition : byte {
@@ -55,6 +57,33 @@ enum MessageType : byte {
     FrameData = 2
 }
 
+// New enums for quality controls (Unknown = 0 per project convention)
+
+enum VideoResolution : byte {
+    Unknown = 0,
+    HD1080p = 1,
+    UHD4K = 2
+}
+
+enum VideoFrameRate : byte {
+    Unknown = 0,
+    FPS24 = 1,
+    FPS30 = 2,
+    FPS60 = 3
+}
+
+enum PhotoFormat : byte {
+    Unknown = 0,
+    JPEG = 1,
+    HEIF = 2
+}
+
+enum HDRMode : byte {
+    Unknown = 0,
+    Off = 1,
+    On = 2
+}
+
 // MARK: - Command Parameters
 
 table CommandParameters {
@@ -66,6 +95,10 @@ table CommandParameters {
     bundle_version: int;
     short_version: string;
     platform: string;
+    video_resolution: VideoResolution;
+    video_frame_rate: VideoFrameRate;
+    photo_format: PhotoFormat;
+    hdr_mode: HDRMode;
 }
 
 // MARK: - Command Structure
@@ -87,11 +120,29 @@ table ZoomCapability {
     zoom_range: ZoomRange;
 }
 
+table ResolutionFrameRates {
+    resolution: VideoResolution;
+    supported_frame_rates: [VideoFrameRate];
+}
+
+table VideoQualityCapabilities {
+    supported_resolutions: [VideoResolution];
+    supported_frame_rates: [VideoFrameRate];
+    resolution_frame_rates: [ResolutionFrameRates];
+}
+
+table PhotoQualityCapabilities {
+    supports_heif: bool;
+    supports_hdr: bool;
+}
+
 table CameraInfo {
     available_lenses: [CameraLensType];
     has_flash: bool;
     has_torch: bool;
     zoom_capabilities: [ZoomCapability];
+    video_quality: VideoQualityCapabilities;
+    photo_quality: PhotoQualityCapabilities;
 }
 
 table CameraState {
@@ -100,6 +151,10 @@ table CameraState {
     zoom_factor: double;
     torch_mode: TorchMode;
     flash_mode: FlashMode;
+    video_resolution: VideoResolution;
+    video_frame_rate: VideoFrameRate;
+    photo_format: PhotoFormat;
+    hdr_mode: HDRMode;
 }
 
 table CameraCapabilities {

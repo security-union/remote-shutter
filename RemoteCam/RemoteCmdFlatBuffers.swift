@@ -42,6 +42,10 @@ func serializeToFlatBuffer(_ msg: Actor.Message) -> Data? {
     case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetPhotoQualityResp: return m.toFlatBuffer()
     default: return nil
     }
 }
@@ -135,6 +139,74 @@ private func fromFBFlash(_ mode: RemoteShutter_FlashMode) -> AVCaptureDevice.Fla
     }
 }
 
+// MARK: - Quality enum conversions
+
+private func toFBResolution(_ r: VideoResolution) -> RemoteShutter_VideoResolution {
+    switch r {
+    case .unknown: return .unknown
+    case .hd1080p: return .hd1080p
+    case .uhd4k: return .uhd4k
+    }
+}
+
+private func fromFBResolution(_ r: RemoteShutter_VideoResolution) -> VideoResolution {
+    switch r {
+    case .unknown: return .unknown
+    case .hd1080p: return .hd1080p
+    case .uhd4k: return .uhd4k
+    }
+}
+
+private func toFBFrameRate(_ f: VideoFrameRate) -> RemoteShutter_VideoFrameRate {
+    switch f {
+    case .unknown: return .unknown
+    case .fps24: return .fps24
+    case .fps30: return .fps30
+    case .fps60: return .fps60
+    }
+}
+
+private func fromFBFrameRate(_ f: RemoteShutter_VideoFrameRate) -> VideoFrameRate {
+    switch f {
+    case .unknown: return .unknown
+    case .fps24: return .fps24
+    case .fps30: return .fps30
+    case .fps60: return .fps60
+    }
+}
+
+private func toFBPhotoFormat(_ f: PhotoFormat) -> RemoteShutter_PhotoFormat {
+    switch f {
+    case .unknown: return .unknown
+    case .jpeg: return .jpeg
+    case .heif: return .heif
+    }
+}
+
+private func fromFBPhotoFormat(_ f: RemoteShutter_PhotoFormat) -> PhotoFormat {
+    switch f {
+    case .unknown: return .unknown
+    case .jpeg: return .jpeg
+    case .heif: return .heif
+    }
+}
+
+private func toFBHDRMode(_ m: HDRMode) -> RemoteShutter_HDRMode {
+    switch m {
+    case .unknown: return .unknown
+    case .off: return .off
+    case .on: return .on
+    }
+}
+
+private func fromFBHDRMode(_ m: RemoteShutter_HDRMode) -> HDRMode {
+    switch m {
+    case .unknown: return .unknown
+    case .off: return .off
+    case .on: return .on
+    }
+}
+
 // MARK: - CameraInfo encode helper
 
 private func encodeCameraInfo(_ info: RemoteCmd.CameraInfo, _ fbb: inout FlatBufferBuilder) -> Offset {
@@ -150,12 +222,43 @@ private func encodeCameraInfo(_ info: RemoteCmd.CameraInfo, _ fbb: inout FlatBuf
     }
     let zoomCapsVector = fbb.createVector(ofOffsets: zoomCapOffsets)
 
+    // Video quality capabilities
+    var videoQualityOffset = Offset()
+    if !info.supportedResolutions.isEmpty {
+        let resVector = fbb.createVector(info.supportedResolutions.map { toFBResolution($0) })
+        let allFrameRates = info.supportedFrameRates.map { toFBFrameRate($0) }
+        let frVector = fbb.createVector(allFrameRates)
+
+        let resFrameRates = info.getResolutionFrameRates()
+        var rfrOffsets: [Offset] = []
+        for (resolution, rates) in resFrameRates {
+            let ratesVec = fbb.createVector(rates.map { toFBFrameRate($0) })
+            let rfrOffset = RemoteShutter_ResolutionFrameRates.createResolutionFrameRates(
+                &fbb, resolution: toFBResolution(resolution),
+                supportedFrameRatesVectorOffset: ratesVec)
+            rfrOffsets.append(rfrOffset)
+        }
+        let rfrVector = fbb.createVector(ofOffsets: rfrOffsets)
+
+        videoQualityOffset = RemoteShutter_VideoQualityCapabilities.createVideoQualityCapabilities(
+            &fbb,
+            supportedResolutionsVectorOffset: resVector,
+            supportedFrameRatesVectorOffset: frVector,
+            resolutionFrameRatesVectorOffset: rfrVector)
+    }
+
+    // Photo quality capabilities
+    let photoQualityOffset = RemoteShutter_PhotoQualityCapabilities.createPhotoQualityCapabilities(
+        &fbb, supportsHeif: info.supportsHEIF, supportsHdr: info.supportsHDR)
+
     return RemoteShutter_CameraInfo.createCameraInfo(
         &fbb,
         availableLensesVectorOffset: lensesVector,
         hasFlash: info.hasFlash,
         hasTorch: info.hasTorch,
-        zoomCapabilitiesVectorOffset: zoomCapsVector
+        zoomCapabilitiesVectorOffset: zoomCapsVector,
+        videoQualityOffset: videoQualityOffset,
+        photoQualityOffset: photoQualityOffset
     )
 }
 
@@ -179,11 +282,49 @@ private func decodeCameraInfo(_ fb: RemoteShutter_CameraInfo) -> RemoteCmd.Camer
         }
     }
 
+    // Decode video quality capabilities
+    var supportedResolutions: [VideoResolution] = []
+    var supportedFrameRates: [VideoFrameRate] = []
+    var resolutionFrameRates: [VideoResolution: [VideoFrameRate]] = [:]
+    if let vq = fb.videoQuality {
+        for i in 0..<vq.supportedResolutionsCount {
+            if let r = vq.supportedResolutions(at: i) {
+                supportedResolutions.append(fromFBResolution(r))
+            }
+        }
+        for i in 0..<vq.supportedFrameRatesCount {
+            if let f = vq.supportedFrameRates(at: i) {
+                supportedFrameRates.append(fromFBFrameRate(f))
+            }
+        }
+        for i in 0..<vq.resolutionFrameRatesCount {
+            if let rfr = vq.resolutionFrameRates(at: i) {
+                let resolution = fromFBResolution(rfr.resolution)
+                var rates: [VideoFrameRate] = []
+                for j in 0..<rfr.supportedFrameRatesCount {
+                    if let f = rfr.supportedFrameRates(at: j) {
+                        rates.append(fromFBFrameRate(f))
+                    }
+                }
+                resolutionFrameRates[resolution] = rates
+            }
+        }
+    }
+
+    // Decode photo quality capabilities
+    let supportsHEIF = fb.photoQuality?.supportsHeif ?? false
+    let supportsHDR = fb.photoQuality?.supportsHdr ?? false
+
     return RemoteCmd.CameraInfo(
         availableLenses: lenses,
         hasFlash: fb.hasFlash,
         hasTorch: fb.hasTorch,
-        zoomCapabilities: zoomCaps
+        zoomCapabilities: zoomCaps,
+        supportedResolutions: supportedResolutions,
+        supportedFrameRates: supportedFrameRates,
+        resolutionFrameRates: resolutionFrameRates,
+        supportsHEIF: supportsHEIF,
+        supportsHDR: supportsHDR
     )
 }
 
@@ -354,7 +495,11 @@ extension RemoteCmd.CameraCapabilitiesResp {
             &fbb,
             currentCamera: toFBCamPos(currentCamera),
             currentLens: toFBLens(currentLens),
-            zoomFactor: Double(currentZoom)
+            zoomFactor: Double(currentZoom),
+            videoResolution: toFBResolution(currentVideoResolution),
+            videoFrameRate: toFBFrameRate(currentVideoFrameRate),
+            photoFormat: toFBPhotoFormat(currentPhotoFormat),
+            hdrMode: toFBHDRMode(currentHDRMode)
         )
 
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
@@ -575,6 +720,70 @@ extension RemoteCmd.RequestCameraCapabilities {
     }
 }
 
+// MARK: - Video/Photo Quality toFlatBuffer() extensions
+
+extension RemoteCmd.SetVideoQuality {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb, videoResolution: toFBResolution(resolution), videoFrameRate: toFBFrameRate(frameRate))
+        return buildCommand(&fbb, action: .setvideoquality, parameters: params)
+    }
+}
+
+extension RemoteCmd.SetVideoQualityResp {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+
+        var stateOffset = Offset()
+        if let res = resolution, let fr = frameRate {
+            stateOffset = RemoteShutter_CameraState.createCameraState(
+                &fbb, videoResolution: toFBResolution(res), videoFrameRate: toFBFrameRate(fr))
+        }
+
+        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &fbb,
+            action: .setvideoquality,
+            success: error == nil,
+            errorOffset: errorOffset,
+            currentStateOffset: stateOffset
+        )
+        return buildResponse(&fbb, action: .setvideoquality, response: resp)
+    }
+}
+
+extension RemoteCmd.SetPhotoQuality {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb, photoFormat: toFBPhotoFormat(format), hdrMode: toFBHDRMode(hdrMode))
+        return buildCommand(&fbb, action: .setphotoquality, parameters: params)
+    }
+}
+
+extension RemoteCmd.SetPhotoQualityResp {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+
+        var stateOffset = Offset()
+        if let fmt = format, let hdr = hdrMode {
+            stateOffset = RemoteShutter_CameraState.createCameraState(
+                &fbb, photoFormat: toFBPhotoFormat(fmt), hdrMode: toFBHDRMode(hdr))
+        }
+
+        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &fbb,
+            action: .setphotoquality,
+            success: error == nil,
+            errorOffset: errorOffset,
+            currentStateOffset: stateOffset
+        )
+        return buildResponse(&fbb, action: .setphotoquality, response: resp)
+    }
+}
+
 // MARK: - fromFlatBuffer() factory
 
 extension RemoteCmd {
@@ -649,6 +858,16 @@ extension RemoteCmd {
 
         case .requestcapabilities:
             return RequestCameraCapabilities()
+
+        case .setvideoquality:
+            let resolution = fromFBResolution(params?.videoResolution ?? .hd1080p)
+            let frameRate = fromFBFrameRate(params?.videoFrameRate ?? .fps30)
+            return SetVideoQuality(resolution: resolution, frameRate: frameRate)
+
+        case .setphotoquality:
+            let format = fromFBPhotoFormat(params?.photoFormat ?? .jpeg)
+            let hdrMode = fromFBHDRMode(params?.hdrMode ?? .off)
+            return SetPhotoQuality(format: format, hdrMode: hdrMode)
         }
     }
 
@@ -729,6 +948,18 @@ extension RemoteCmd {
             let capabilities = decodeCameraCapabilitiesResp(resp, error: nil)
             return ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
 
+        case .setvideoquality:
+            let state = resp.currentState
+            let resolution: VideoResolution? = state.map { fromFBResolution($0.videoResolution) }
+            let frameRate: VideoFrameRate? = state.map { fromFBFrameRate($0.videoFrameRate) }
+            return SetVideoQualityResp(resolution: resolution, frameRate: frameRate, error: nsError)
+
+        case .setphotoquality:
+            let state = resp.currentState
+            let format: PhotoFormat? = state.map { fromFBPhotoFormat($0.photoFormat) }
+            let hdrMode: HDRMode? = state.map { fromFBHDRMode($0.hdrMode) }
+            return SetPhotoQualityResp(format: format, hdrMode: hdrMode, error: nsError)
+
         default:
             return nil
         }
@@ -747,6 +978,10 @@ extension RemoteCmd {
             currentCamera: state.map { fromFBCamPos($0.currentCamera) } ?? .back,
             currentLens: state.map { fromFBLens($0.currentLens) } ?? .wideAngle,
             currentZoom: state.map { CGFloat($0.zoomFactor) } ?? 1.0,
+            currentVideoResolution: state.map { fromFBResolution($0.videoResolution) } ?? .hd1080p,
+            currentVideoFrameRate: state.map { fromFBFrameRate($0.videoFrameRate) } ?? .fps30,
+            currentPhotoFormat: state.map { fromFBPhotoFormat($0.photoFormat) } ?? .jpeg,
+            currentHDRMode: state.map { fromFBHDRMode($0.hdrMode) } ?? .off,
             error: error
         )
     }

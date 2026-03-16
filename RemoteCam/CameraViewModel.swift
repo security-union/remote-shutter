@@ -4,6 +4,25 @@ import Combine
 
 // MARK: - Camera View Model
 class CameraViewModel: ObservableObject {
+    // MARK: - Mode & Quality Status
+    @Published var currentMode: RecordingMode = .Photo
+    @Published var qualityInfo: String = "1080p 30fps"
+
+    func updateStatus(mode: RecordingMode, resolution: VideoResolution, frameRate: VideoFrameRate,
+                      photoFormat: PhotoFormat, hdrMode: HDRMode) {
+        DispatchQueue.main.async {
+            self.currentMode = mode
+            switch mode {
+            case .Video, .Shorts:
+                self.qualityInfo = "\(resolution.displayName) \(frameRate.displayName)fps"
+            case .Photo:
+                var info = photoFormat.displayName
+                if hdrMode == .on { info += " HDR" }
+                self.qualityInfo = info
+            }
+        }
+    }
+
     // MARK: - Video Transfer Progress Properties
     @Published var isVideoTransferring: Bool = false
     @Published var videoTransferProgress: Double = 0.0 // 0.0 to 1.0

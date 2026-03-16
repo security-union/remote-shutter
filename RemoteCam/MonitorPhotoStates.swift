@@ -132,6 +132,30 @@ extension RemoteCamSession {
                     self.popAndStartScanning()
                 }
                 
+            // MARK: - Photo Quality Command Handling
+            case let cmd as UICmd.SetPhotoQuality:
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SetPhotoQuality(format: cmd.format, hdrMode: cmd.hdrMode)) as? Failure {
+                    print("Failed to send photo quality command: \(f.tryError)")
+                }
+
+            case let resp as RemoteCmd.SetPhotoQualityResp:
+                if resp.error == nil {
+                    monitor ! resp
+                }
+
+            // MARK: - Video Quality Command Handling (allow changing video settings from photo mode)
+            case let cmd as UICmd.SetVideoQuality:
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SetVideoQuality(resolution: cmd.resolution, frameRate: cmd.frameRate)) as? Failure {
+                    print("Failed to send video quality command: \(f.tryError)")
+                }
+
+            case let resp as RemoteCmd.SetVideoQualityResp:
+                if resp.error == nil {
+                    monitor ! resp
+                }
+
             case is UICmd.RequestCameraCapabilities:
                 // Request capabilities from camera
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())

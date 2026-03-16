@@ -9,7 +9,29 @@ struct CameraProgressOverlayView: View {
         ZStack {
             // Transparent background
             Color.clear
-            
+
+            // Mode & quality status (bottom-left)
+            VStack {
+                Spacer()
+                HStack {
+                    HStack(spacing: 6) {
+                        Text(viewModel.currentMode == .Photo ? "Photo" : "Video")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white)
+                        Text(viewModel.qualityInfo)
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.black.opacity(0.5))
+                    .cornerRadius(6)
+                    .padding(.leading, 12)
+                    .padding(.bottom, 12)
+                    Spacer()
+                }
+            }
+
             // Progress overlay centered
             if viewModel.isVideoTransferring {
                 VideoTransferProgressView(
