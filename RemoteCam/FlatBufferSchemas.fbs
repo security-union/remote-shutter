@@ -24,7 +24,9 @@ enum CommandAction : byte {
     PeerBecameCamera = 12,
     PeerBecameMonitor = 13,
     SetVideoQuality = 14,
-    SetPhotoQuality = 15
+    SetPhotoQuality = 15,
+    TimerCountdown = 16,
+    SyncMonitorSettings = 17
 }
 
 enum CameraPosition : byte {
@@ -84,6 +86,13 @@ enum HDRMode : byte {
     On = 2
 }
 
+enum RecordingModeEnum : byte {
+    Unknown = 0,
+    Photo = 1,
+    Video = 2,
+    Shorts = 3
+}
+
 // MARK: - Command Parameters
 
 table CommandParameters {
@@ -99,6 +108,8 @@ table CommandParameters {
     video_frame_rate: VideoFrameRate;
     photo_format: PhotoFormat;
     hdr_mode: HDRMode;
+    countdown_value: int;
+    recording_mode: RecordingModeEnum;
 }
 
 // MARK: - Command Structure

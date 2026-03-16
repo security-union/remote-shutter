@@ -262,6 +262,28 @@ extension RemoteCamSession {
 
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp!)
 
+            // MARK: - Sync Monitor Settings
+            case let sync as RemoteCmd.SyncMonitorSettings:
+                ^{
+                    ctrl.currentCameraMode = sync.mode
+                    ctrl.updateCameraStatus()
+                }
+
+            // MARK: - Timer Countdown Handling
+            case let countdown as RemoteCmd.TimerCountdown:
+                ^{
+                    if countdown.value > 0 {
+                        ctrl.cameraViewModel.showCountdown(countdown.value)
+                        ctrl.playCountdownChime(remaining: countdown.value)
+                    } else if countdown.value == 0 {
+                        ctrl.cameraViewModel.clearCountdown()
+                        ctrl.ensureTorchOff()
+                    } else {
+                        ctrl.cameraViewModel.cancelCountdown()
+                        ctrl.ensureTorchOff()
+                    }
+                }
+
             // MARK: - Video Quality Command Handling
             case let cmd as RemoteCmd.SetVideoQuality:
                 if let (resolution, frameRate) = ctrl.setVideoQuality(resolution: cmd.resolution, frameRate: cmd.frameRate) {

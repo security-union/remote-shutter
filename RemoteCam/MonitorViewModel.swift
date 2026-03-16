@@ -71,7 +71,13 @@ class MonitorViewModel: ObservableObject {
     @Published var isLensControlEnabled: Bool = true
     @Published var isZoomSliderEnabled: Bool = true
     @Published var isQualityControlEnabled: Bool = true
-    @Published var areControlsExpanded: Bool = true
+    @Published var areControlsExpanded: Bool = UserDefaults.standard.object(forKey: "areControlsExpanded") == nil
+        ? true
+        : UserDefaults.standard.bool(forKey: "areControlsExpanded") {
+        didSet {
+            UserDefaults.standard.set(areControlsExpanded, forKey: "areControlsExpanded")
+        }
+    }
     
     // MARK: - UI Configuration Methods
     func configurePhotoMode() {

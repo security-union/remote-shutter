@@ -487,4 +487,26 @@ public class RemoteCmd: Actor.Message {
             super.init(sender: nil)
         }
     }
+
+    // MARK: - Timer Countdown Command
+
+    public class TimerCountdown: Actor.Message {
+        public let value: Int
+
+        public init(value: Int) {
+            self.value = value
+            super.init(sender: nil)
+        }
+    }
+
+    // MARK: - Sync Monitor Settings Command
+
+    public class SyncMonitorSettings: Actor.Message {
+        let mode: RecordingMode
+
+        init(mode: RecordingMode) {
+            self.mode = mode
+            super.init(sender: nil)
+        }
+    }
 }

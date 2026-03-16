@@ -87,6 +87,9 @@ public class CameraViewController: UIViewController,
     let cameraViewModel = CameraViewModel()
     private var progressOverlayController: UIHostingController<CameraProgressOverlayView>?
 
+    // MARK: - Sound Manager for Countdown Chimes
+    let cameraSoundManager = CPSoundManager()
+
     let recordingView = UIImageView()
     let activityIndicator = UIActivityIndicatorView(style: .large)
 
@@ -278,6 +281,87 @@ public class CameraViewController: UIViewController,
             frameRate: currentVideoFrameRate,
             photoFormat: currentPhotoFormat,
             hdrMode: currentHDRMode)
+    }
+
+    func playCountdownChime(remaining: Int) {
+        if remaining == 2 {
+            cameraSoundManager.playBeepSound(CPSoundManagerAudioTypeFast)
+            startTorchStrobe()
+        } else if remaining > 2 {
+            cameraSoundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
+            blinkTorchOnce()
+        }
+    }
+
+    // MARK: - Torch Blink (single flash for normal ticks)
+    private var isTorchBlinking = false
+
+    func blinkTorchOnce() {
+        stopTorchStrobe()
+        guard !isTorchBlinking else { return }
+        guard let device = videoDeviceInput?.device, device.hasTorch else { return }
+        isTorchBlinking = true
+        setTorchOn(device)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            self?.isTorchBlinking = false
+            self?.setTorchOff(device)
+        }
+    }
+
+    // MARK: - Torch Strobe (continuous rapid flashing for last 2 seconds)
+    private var torchStrobeTimer: DispatchSourceTimer?
+    private var torchStrobeOn = false
+
+    func startTorchStrobe() {
+        guard torchStrobeTimer == nil else { return }
+        guard let device = videoDeviceInput?.device, device.hasTorch else { return }
+        isTorchBlinking = true
+        torchStrobeOn = false
+
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now(), repeating: 0.12)
+        timer.setEventHandler { [weak self] in
+            guard let self = self else { return }
+            self.torchStrobeOn.toggle()
+            if self.torchStrobeOn {
+                self.setTorchOn(device)
+            } else {
+                self.setTorchOff(device)
+            }
+        }
+        timer.resume()
+        torchStrobeTimer = timer
+    }
+
+    func stopTorchStrobe() {
+        torchStrobeTimer?.cancel()
+        torchStrobeTimer = nil
+        torchStrobeOn = false
+        isTorchBlinking = false
+    }
+
+    private func setTorchOn(_ device: AVCaptureDevice) {
+        do {
+            try device.lockForConfiguration()
+            device.torchMode = .on
+            device.unlockForConfiguration()
+        } catch {}
+    }
+
+    private func setTorchOff(_ device: AVCaptureDevice) {
+        do {
+            try device.lockForConfiguration()
+            device.torchMode = .off
+            device.unlockForConfiguration()
+        } catch {}
+    }
+
+    /// Restores torch to off after countdown finishes or is cancelled.
+    func ensureTorchOff() {
+        stopTorchStrobe()
+        isTorchBlinking = false
+        guard let device = videoDeviceInput?.device, device.hasTorch, device.torchMode != .off else { return }
+        setTorchOff(device)
     }
 
     public override var shouldAutorotate: Bool {

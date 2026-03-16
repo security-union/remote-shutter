@@ -81,6 +81,14 @@ extension RemoteCamSession {
                     print("❌ DEBUG: Failed to send torch toggle command in photo mode: \(f.tryError.localizedDescription)")
                 }
 
+            case let countdown as UICmd.TimerCountdown:
+                // Fire-and-forget: send timer countdown to camera
+                let _ = self.sendMessage(peer: [peer], msg: RemoteCmd.TimerCountdown(value: countdown.value))
+
+            case let sync as UICmd.SyncMonitorSettings:
+                // Fire-and-forget: sync monitor mode to camera for display
+                let _ = self.sendMessage(peer: [peer], msg: RemoteCmd.SyncMonitorSettings(mode: sync.mode))
+
             case let cmd as UICmd.TakePicture:
                 if self.sendMessage(
                     peer: [peer],

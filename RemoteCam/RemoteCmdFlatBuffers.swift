@@ -46,6 +46,8 @@ func serializeToFlatBuffer(_ msg: Actor.Message) -> Data? {
     case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
     case let m as RemoteCmd.SetPhotoQualityResp: return m.toFlatBuffer()
+    case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
+    case let m as RemoteCmd.SyncMonitorSettings: return m.toFlatBuffer()
     default: return nil
     }
 }
@@ -697,7 +699,11 @@ extension RemoteCmd.ToggleCameraResp {
                 &fbb,
                 currentCamera: toFBCamPos(c.currentCamera),
                 currentLens: toFBLens(c.currentLens),
-                zoomFactor: Double(c.currentZoom)
+                zoomFactor: Double(c.currentZoom),
+                videoResolution: toFBResolution(c.currentVideoResolution),
+                videoFrameRate: toFBFrameRate(c.currentVideoFrameRate),
+                photoFormat: toFBPhotoFormat(c.currentPhotoFormat),
+                hdrMode: toFBHDRMode(c.currentHDRMode)
             )
         }
 
@@ -781,6 +787,47 @@ extension RemoteCmd.SetPhotoQualityResp {
             currentStateOffset: stateOffset
         )
         return buildResponse(&fbb, action: .setphotoquality, response: resp)
+    }
+}
+
+// MARK: - RecordingMode enum conversions
+
+private func toFBRecordingMode(_ m: RecordingMode) -> RemoteShutter_RecordingModeEnum {
+    switch m {
+    case .Photo: return .photo
+    case .Video: return .video
+    case .Shorts: return .shorts
+    }
+}
+
+private func fromFBRecordingMode(_ m: RemoteShutter_RecordingModeEnum) -> RecordingMode {
+    switch m {
+    case .photo: return .Photo
+    case .video: return .Video
+    case .shorts: return .Shorts
+    case .unknown: return .Photo
+    }
+}
+
+// MARK: - SyncMonitorSettings toFlatBuffer()
+
+extension RemoteCmd.SyncMonitorSettings {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb,
+            recordingMode: toFBRecordingMode(mode))
+        return buildCommand(&fbb, action: .syncmonitorsettings, parameters: params)
+    }
+}
+
+// MARK: - TimerCountdown toFlatBuffer()
+
+extension RemoteCmd.TimerCountdown {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, countdownValue: Int32(value))
+        return buildCommand(&fbb, action: .timercountdown, parameters: params)
     }
 }
 
@@ -868,6 +915,13 @@ extension RemoteCmd {
             let format = fromFBPhotoFormat(params?.photoFormat ?? .jpeg)
             let hdrMode = fromFBHDRMode(params?.hdrMode ?? .off)
             return SetPhotoQuality(format: format, hdrMode: hdrMode)
+
+        case .timercountdown:
+            return TimerCountdown(value: Int(params?.countdownValue ?? 0))
+
+        case .syncmonitorsettings:
+            let mode = fromFBRecordingMode(params?.recordingMode ?? .photo)
+            return SyncMonitorSettings(mode: mode)
         }
     }
 

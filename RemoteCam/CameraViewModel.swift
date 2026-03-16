@@ -78,4 +78,45 @@ class CameraViewModel: ObservableObject {
     var videoTransferSpeedText: String {
         VideoTransferProgressView.formatTransferSpeed(videoTransferSpeed)
     }
+
+    // MARK: - Timer Countdown Properties
+    @Published var countdownValue: Int = 0
+    @Published var countdownCancelled: Bool = false
+
+    // MARK: - Timer Countdown Methods
+    func showCountdown(_ value: Int) {
+        DispatchQueue.main.async {
+            self.countdownCancelled = false
+            self.countdownValue = value
+        }
+    }
+
+    func cancelCountdown() {
+        DispatchQueue.main.async {
+            self.countdownCancelled = true
+            self.countdownValue = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                self.countdownCancelled = false
+            }
+        }
+    }
+
+    func clearCountdown() {
+        DispatchQueue.main.async {
+            self.countdownValue = 0
+            self.countdownCancelled = false
+        }
+    }
+
+    // MARK: - Toast
+    @Published var showRemoteHint: Bool = false
+
+    func showRemoteControlHint() {
+        DispatchQueue.main.async {
+            self.showRemoteHint = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                self.showRemoteHint = false
+            }
+        }
+    }
 } 

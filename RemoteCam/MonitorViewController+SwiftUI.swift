@@ -76,6 +76,9 @@ extension MonitorViewController {
             print("🔴 DEBUG: Canceling timer countdown")
             self.timer.cancel()
             self.soundManager.stopPlayer() // Stop any playing sound
+            // Send cancellation to camera
+            session ! UICmd.TimerCountdown(value: -1)
+
             resetTimerUI()
             return
         }
@@ -97,22 +100,25 @@ extension MonitorViewController {
         // Update UI to show countdown starting
         viewModel.timerValue = duration
         viewModel.buttonPrompt = "\(duration)"
-        
+
         // Play initial countdown beep
         if duration == 2 {
             soundManager.playBeepSound(CPSoundManagerAudioTypeFast)
         }else  if duration > 2 {
-            // no op  
+            // no op
         } else {
             soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
         }
-        
+
+        // Send initial countdown tick to camera
+        session ! UICmd.TimerCountdown(value: duration)
+
         self.timer.start(withDuration: duration, withTickHandler: { [weak self] timer in
             DispatchQueue.main.async {
                 let remaining = timer!.timeRemaining()
                 self?.viewModel.timerValue = Int(remaining)
                 self?.viewModel.buttonPrompt = "\(remaining)"
-                
+
                 // Play countdown chimes
                 if remaining == 2 {
                     // Fast beep only for final second
@@ -123,12 +129,21 @@ extension MonitorViewController {
                     // Regular beep for all other countdown
                     self?.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
                 }
-                
+
+                // Send countdown tick to camera
+                if let session = self?.session {
+                    session ! UICmd.TimerCountdown(value: Int(remaining))
+                }
+
                 print("🔴 DEBUG: Timer tick - \(remaining) seconds remaining")
             }
         }, andCompletionHandler: { [weak self] _ in
             DispatchQueue.main.async {
                 print("🔴 DEBUG: Timer completed - taking picture")
+                // Send completion tick to camera
+                if let session = self?.session {
+                    session ! UICmd.TimerCountdown(value: 0)
+                }
                 self?.executeAction()
                 self?.resetTimerUI()
             }
@@ -183,7 +198,7 @@ extension MonitorViewController {
         if mode == .Video || mode == .Shorts {
             if StoreManager.shared.hasVideoRecordingFeature() {
                 session ! UICmd.BecomeMonitor(nil, mode: mode)
-                
+
                 // Immediately configure the appropriate UI mode
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     switch mode {
@@ -194,6 +209,7 @@ extension MonitorViewController {
                     default:
                         break
                     }
+                    self.sendSyncMonitorSettings()
                 }
             } else {
                 handleSettingsTapped()
@@ -202,6 +218,7 @@ extension MonitorViewController {
             }
         } else {
             session ! UICmd.BecomeMonitor(nil, mode: mode)
+            sendSyncMonitorSettings()
         }
     }
     
@@ -229,6 +246,11 @@ extension MonitorViewController {
 
     private func handlePhotoQualityChange(_ format: PhotoFormat, _ hdrMode: HDRMode) {
         session ! UICmd.SetPhotoQuality(format: format, hdrMode: hdrMode)
+    }
+
+    /// Sends the monitor's current mode to the camera device so its overlay shows the right mode
+    func sendSyncMonitorSettings() {
+        session ! UICmd.SyncMonitorSettings(mode: viewModel.currentMode)
     }
     
     // MARK: - Helper Methods
@@ -264,12 +286,14 @@ extension MonitorViewController {
         viewModel.configurePhotoMode()
         viewModel.currentMode = .Photo
         navigationController?.setNavigationBarHidden(false, animated: true)
+        sendSyncMonitorSettings()
     }
 
     func swiftUIConfigureVideoMode() {
         viewModel.configureVideoMode()
         viewModel.currentMode = .Video
         navigationController?.setNavigationBarHidden(false, animated: true)
+        sendSyncMonitorSettings()
     }
 
     func swiftUIConfigureVideoRecording() {
@@ -281,6 +305,7 @@ extension MonitorViewController {
         viewModel.configureShortsMode()
         viewModel.currentMode = .Shorts
         navigationController?.setNavigationBarHidden(false, animated: true)
+        sendSyncMonitorSettings()
     }
     
     // MARK: - Update Methods for Actor Integration

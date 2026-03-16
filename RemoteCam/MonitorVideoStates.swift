@@ -40,6 +40,14 @@ extension MonitorVideoStates {
                 // Video and Shorts modes stay in video state
                 // UI differences are handled in SwiftUI view
 
+            case let countdown as UICmd.TimerCountdown:
+                // Fire-and-forget: send timer countdown to camera
+                let _ = self.sendMessage(peer: [peer], msg: RemoteCmd.TimerCountdown(value: countdown.value))
+
+            case let sync as UICmd.SyncMonitorSettings:
+                // Fire-and-forget: sync monitor mode to camera for display
+                let _ = self.sendMessage(peer: [peer], msg: RemoteCmd.SyncMonitorSettings(mode: sync.mode))
+
             case is UICmd.TakePicture:
                 if self.sendMessage(peer: [peer], msg: RemoteCmd.StartRecordingVideo(sender: self.this)).isSuccess() {
                     self.become(
