@@ -200,16 +200,16 @@ extension MonitorViewController {
                 session ! UICmd.BecomeMonitor(nil, mode: mode)
 
                 // Immediately configure the appropriate UI mode
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // sendSyncMonitorSettings() is called inside each configure method
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                     switch mode {
                     case .Video:
-                        self.swiftUIConfigureVideoMode()
+                        self?.swiftUIConfigureVideoMode()
                     case .Shorts:
-                        self.swiftUIConfigureShortsMode()
+                        self?.swiftUIConfigureShortsMode()
                     default:
                         break
                     }
-                    self.sendSyncMonitorSettings()
                 }
             } else {
                 handleSettingsTapped()

@@ -92,11 +92,11 @@ class CameraViewModel: ObservableObject {
     }
 
     func cancelCountdown() {
-        DispatchQueue.main.async {
-            self.countdownCancelled = true
-            self.countdownValue = 0
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                self.countdownCancelled = false
+        DispatchQueue.main.async { [weak self] in
+            self?.countdownCancelled = true
+            self?.countdownValue = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.countdownCancelled = false
             }
         }
     }
@@ -112,10 +112,10 @@ class CameraViewModel: ObservableObject {
     @Published var showRemoteHint: Bool = false
 
     func showRemoteControlHint() {
-        DispatchQueue.main.async {
-            self.showRemoteHint = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                self.showRemoteHint = false
+        DispatchQueue.main.async { [weak self] in
+            self?.showRemoteHint = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                self?.showRemoteHint = false
             }
         }
     }

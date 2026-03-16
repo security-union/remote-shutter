@@ -240,6 +240,7 @@ public class CameraViewController: UIViewController,
 
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        ensureTorchOff()
         if self.isBeingDismissed || self.isMovingFromParent {
             if captureSession.isRunning {
                 cameraConfigQueue.async { [weak self] in
@@ -295,16 +296,20 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Torch Blink (single flash for normal ticks)
     private var isTorchBlinking = false
+    private var blinkGeneration = 0
 
     func blinkTorchOnce() {
         stopTorchStrobe()
         guard !isTorchBlinking else { return }
         guard let device = videoDeviceInput?.device, device.hasTorch else { return }
         isTorchBlinking = true
+        blinkGeneration += 1
+        let gen = blinkGeneration
         setTorchOn(device)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            self?.isTorchBlinking = false
-            self?.setTorchOff(device)
+            guard let self = self, self.blinkGeneration == gen else { return }
+            self.isTorchBlinking = false
+            self.setTorchOff(device)
         }
     }
 
@@ -313,7 +318,8 @@ public class CameraViewController: UIViewController,
     private var torchStrobeOn = false
 
     func startTorchStrobe() {
-        guard torchStrobeTimer == nil else { return }
+        stopTorchStrobe()
+        blinkGeneration += 1 // invalidate any pending blinkTorchOnce restore
         guard let device = videoDeviceInput?.device, device.hasTorch else { return }
         isTorchBlinking = true
         torchStrobeOn = false

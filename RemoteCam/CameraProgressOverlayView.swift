@@ -27,9 +27,9 @@ struct CameraProgressOverlayView: View {
             }
 
             // Toast: "Control settings from the remote"
-            if viewModel.showRemoteHint {
-                VStack {
-                    Spacer()
+            VStack {
+                Spacer()
+                if viewModel.showRemoteHint {
                     Text("Control settings from the remote")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white)
@@ -40,9 +40,9 @@ struct CameraProgressOverlayView: View {
                         .padding(.bottom, 60)
                         .transition(.opacity)
                 }
-                .animation(.easeInOut(duration: 0.3), value: viewModel.showRemoteHint)
-                .allowsHitTesting(false)
             }
+            .animation(.easeInOut(duration: 0.3), value: viewModel.showRemoteHint)
+            .allowsHitTesting(false)
 
             // Mode & quality status (bottom center) — tappable
             VStack {
