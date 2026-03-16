@@ -68,6 +68,13 @@ public enum VideoResolution: Int, CaseIterable, Codable {
         }
     }
 
+    public var dimensions: CMVideoDimensions {
+        switch self {
+        case .unknown, .hd1080p: return CMVideoDimensions(width: 1920, height: 1080)
+        case .uhd4k: return CMVideoDimensions(width: 3840, height: 2160)
+        }
+    }
+
     /// All user-selectable cases (excludes .unknown)
     public static var selectableCases: [VideoResolution] {
         return [.hd1080p, .uhd4k]

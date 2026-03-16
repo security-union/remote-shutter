@@ -27,7 +27,6 @@ class MonitorViewModel: ObservableObject {
     @Published var timerSliderValue: Double = 0 {
         didSet {
             UserDefaults.standard.set(Int(timerSliderValue), forKey: "timerDefault")
-            UserDefaults.standard.synchronize()
         }
     }
     @Published var maxTimerValue: Double = 20

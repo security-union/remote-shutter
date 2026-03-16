@@ -56,16 +56,17 @@ class CameraViewModel: ObservableObject {
     }
     
     func finishVideoTransfer() {
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
             self.isVideoTransferring = false
             self.videoTransferProgress = 1.0
             self.videoTransferSpeed = 0.0
-            
+
             // Hide the progress after a brief delay to show completion
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.videoTransferProgress = 0.0
-                self.videoTransferBytesCompleted = 0
-                self.videoTransferBytesTotal = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.videoTransferProgress = 0.0
+                self?.videoTransferBytesCompleted = 0
+                self?.videoTransferBytesTotal = 0
             }
         }
     }
@@ -82,6 +83,7 @@ class CameraViewModel: ObservableObject {
     // MARK: - Timer Countdown Properties
     @Published var countdownValue: Int = 0
     @Published var countdownCancelled: Bool = false
+    private var cancelGeneration: Int = 0
 
     // MARK: - Timer Countdown Methods
     func showCountdown(_ value: Int) {
@@ -93,10 +95,14 @@ class CameraViewModel: ObservableObject {
 
     func cancelCountdown() {
         DispatchQueue.main.async { [weak self] in
-            self?.countdownCancelled = true
-            self?.countdownValue = 0
+            guard let self else { return }
+            self.countdownCancelled = true
+            self.countdownValue = 0
+            self.cancelGeneration += 1
+            let expectedGeneration = self.cancelGeneration
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-                self?.countdownCancelled = false
+                guard let self, self.cancelGeneration == expectedGeneration else { return }
+                self.countdownCancelled = false
             }
         }
     }
@@ -110,13 +116,18 @@ class CameraViewModel: ObservableObject {
 
     // MARK: - Toast
     @Published var showRemoteHint: Bool = false
+    private var remoteHintWorkItem: DispatchWorkItem?
 
     func showRemoteControlHint() {
         DispatchQueue.main.async { [weak self] in
-            self?.showRemoteHint = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+            guard let self else { return }
+            self.remoteHintWorkItem?.cancel()
+            self.showRemoteHint = true
+            let workItem = DispatchWorkItem { [weak self] in
                 self?.showRemoteHint = false
             }
+            self.remoteHintWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
         }
     }
 } 

@@ -287,88 +287,19 @@ public class CameraViewController: UIViewController,
     func playCountdownChime(remaining: Int) {
         if remaining == 2 {
             cameraSoundManager.playBeepSound(CPSoundManagerAudioTypeFast)
-            startTorchStrobe()
+            countdownTorch.startStrobe(device: videoDeviceInput?.device)
         } else if remaining > 2 {
             cameraSoundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
-            blinkTorchOnce()
+            countdownTorch.blinkOnce(device: videoDeviceInput?.device)
         }
     }
 
-    // MARK: - Torch Blink (single flash for normal ticks)
-    private var isTorchBlinking = false
-    private var blinkGeneration = 0
-
-    func blinkTorchOnce() {
-        stopTorchStrobe()
-        guard !isTorchBlinking else { return }
-        guard let device = videoDeviceInput?.device, device.hasTorch else { return }
-        isTorchBlinking = true
-        blinkGeneration += 1
-        let gen = blinkGeneration
-        setTorchOn(device)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            guard let self = self, self.blinkGeneration == gen else { return }
-            self.isTorchBlinking = false
-            self.setTorchOff(device)
-        }
-    }
-
-    // MARK: - Torch Strobe (continuous rapid flashing for last 2 seconds)
-    private var torchStrobeTimer: DispatchSourceTimer?
-    private var torchStrobeOn = false
-
-    func startTorchStrobe() {
-        stopTorchStrobe()
-        blinkGeneration += 1 // invalidate any pending blinkTorchOnce restore
-        guard let device = videoDeviceInput?.device, device.hasTorch else { return }
-        isTorchBlinking = true
-        torchStrobeOn = false
-
-        let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now(), repeating: 0.12)
-        timer.setEventHandler { [weak self] in
-            guard let self = self else { return }
-            self.torchStrobeOn.toggle()
-            if self.torchStrobeOn {
-                self.setTorchOn(device)
-            } else {
-                self.setTorchOff(device)
-            }
-        }
-        timer.resume()
-        torchStrobeTimer = timer
-    }
-
-    func stopTorchStrobe() {
-        torchStrobeTimer?.cancel()
-        torchStrobeTimer = nil
-        torchStrobeOn = false
-        isTorchBlinking = false
-    }
-
-    private func setTorchOn(_ device: AVCaptureDevice) {
-        do {
-            try device.lockForConfiguration()
-            device.torchMode = .on
-            device.unlockForConfiguration()
-        } catch {}
-    }
-
-    private func setTorchOff(_ device: AVCaptureDevice) {
-        do {
-            try device.lockForConfiguration()
-            device.torchMode = .off
-            device.unlockForConfiguration()
-        } catch {}
-    }
-
-    /// Restores torch to off after countdown finishes or is cancelled.
     func ensureTorchOff() {
-        stopTorchStrobe()
-        isTorchBlinking = false
-        guard let device = videoDeviceInput?.device, device.hasTorch, device.torchMode != .off else { return }
-        setTorchOff(device)
+        countdownTorch.stop(device: videoDeviceInput?.device)
     }
+
+    // MARK: - Countdown Torch
+    let countdownTorch = CameraCountdownTorch()
 
     public override var shouldAutorotate: Bool {
         // Disable autorotation of the interface when recording is in progress.
@@ -483,6 +414,7 @@ public class CameraViewController: UIViewController,
         captureSession.removeOutput(photoOutput)
         if captureSession.canAddOutput(photoOutput) {
             photoOutput.isHighResolutionCaptureEnabled = true
+            photoOutput.maxPhotoQualityPrioritization = .quality
             captureSession.addOutput(photoOutput)
         } else {
             print("Could not add movie file output to the session")
@@ -701,36 +633,22 @@ public class CameraViewController: UIViewController,
             captureSession.canSetSessionPreset(r.sessionPreset)
         }
 
-        let currentPreset = captureSession.sessionPreset
         var resolutionFrameRates: [VideoResolution: [VideoFrameRate]] = [:]
         var allSupportedFrameRates: Set<VideoFrameRate> = []
 
-        for res in supportedResolutions {
-            // Temporarily switch preset to probe the active format's FPS ranges
-            captureSession.beginConfiguration()
-            captureSession.sessionPreset = res.sessionPreset
-            captureSession.commitConfiguration()
-
-            if let dev = videoDevices.first {
-                var maxFPS: Double = 30
-                for range in dev.activeFormat.videoSupportedFrameRateRanges {
-                    maxFPS = max(maxFPS, range.maxFrameRate)
-                }
+        if let dev = videoDevices.first {
+            for res in supportedResolutions {
+                let maxFPS = maxFPSAcrossFormats(for: dev, resolution: res)
                 let rates = VideoFrameRate.selectableCases.filter { $0.value <= Int(maxFPS) }
                 resolutionFrameRates[res] = rates
                 rates.forEach { allSupportedFrameRates.insert($0) }
             }
         }
 
-        // Restore original preset
-        captureSession.beginConfiguration()
-        captureSession.sessionPreset = currentPreset
-        captureSession.commitConfiguration()
-
         let supportedFrameRates = VideoFrameRate.selectableCases.filter { allSupportedFrameRates.contains($0) }
 
         let supportsHEIF = photoOutput.availablePhotoCodecTypes.contains(.hevc)
-        let supportsHDR = true
+        let supportsHDR = true // All iOS 15+ devices support .quality prioritization (HDR)
 
         return RemoteCmd.CameraInfo(
             availableLenses: availableLenses,
@@ -915,47 +833,79 @@ public class CameraViewController: UIViewController,
     }
 
     func setFrameRate(framerate: Int, videoDevice: AVCaptureDevice) throws {
+        let maxFPS = Int(maxSupportedFPS(for: videoDevice))
+        let safeFPS = max(1, min(framerate, maxFPS))
         try videoDevice.lockForConfiguration()
-        videoDevice.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: Int32(framerate))
-        videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(framerate))
+        videoDevice.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: Int32(safeFPS))
+        videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(safeFPS))
         videoDevice.unlockForConfiguration()
-    }
-
-    func maxSupportedFPS(for device: AVCaptureDevice) -> Double {
-        var maxFPS: Double = 30
-        for range in device.activeFormat.videoSupportedFrameRateRanges {
-            maxFPS = max(maxFPS, range.maxFrameRate)
+        if safeFPS != framerate {
+            RemoteShutter.fps = safeFPS
+            currentVideoFrameRate = VideoFrameRate.selectableCases.last(where: { $0.value <= safeFPS }) ?? .fps30
+            updateCameraStatus()
         }
-        return maxFPS
     }
 
-    func isFPSSupported(_ targetFPS: Int, for device: AVCaptureDevice) -> Bool {
-        let target = Double(targetFPS)
-        for range in device.activeFormat.videoSupportedFrameRateRanges {
-            if target >= range.minFrameRate && target <= range.maxFrameRate {
-                return true
+    /// Max FPS supported by the device's *current active format*.
+    func maxSupportedFPS(for device: AVCaptureDevice) -> Double {
+        device.activeFormat.videoSupportedFrameRateRanges.reduce(30.0) { max($0, $1.maxFrameRate) }
+    }
+
+    /// Max FPS across *all* device formats at a given resolution.
+    func maxFPSAcrossFormats(for device: AVCaptureDevice, resolution: VideoResolution) -> Double {
+        let targetDims = resolution.dimensions
+        var result: Double = 30
+        for format in device.formats {
+            let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            guard dims.width >= targetDims.width && dims.height >= targetDims.height else { continue }
+            for range in format.videoSupportedFrameRateRanges {
+                result = max(result, range.maxFrameRate)
             }
         }
-        return false
+        return result
+    }
+
+    /// Finds a device format supporting both the target resolution and FPS.
+    func findFormat(for device: AVCaptureDevice, resolution: VideoResolution, fps: Double) -> AVCaptureDevice.Format? {
+        let targetDims = resolution.dimensions
+        for format in device.formats {
+            let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            guard dims.width >= targetDims.width && dims.height >= targetDims.height else { continue }
+            if format.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= fps }) {
+                return format
+            }
+        }
+        return nil
     }
 
     func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) -> (VideoResolution, VideoFrameRate)? {
         guard !isRecording else { return nil }
         guard let device = videoDeviceInput?.device else { return nil }
-        guard captureSession.canSetSessionPreset(resolution.sessionPreset) else { return nil }
 
         captureSession.beginConfiguration()
-        captureSession.sessionPreset = resolution.sessionPreset
 
-        // After changing preset, the activeFormat may change — validate FPS against it
         var appliedFrameRate = frameRate
-        if !isFPSSupported(frameRate.value, for: device) {
-            // Fall back to highest supported FPS that's <= requested
+
+        if let format = findFormat(for: device, resolution: resolution, fps: Double(frameRate.value)) {
+            captureSession.sessionPreset = .inputPriority
+            do {
+                try device.lockForConfiguration()
+                device.activeFormat = format
+                device.unlockForConfiguration()
+            } catch {
+                captureSession.commitConfiguration()
+                return nil
+            }
+        } else {
+            guard captureSession.canSetSessionPreset(resolution.sessionPreset) else {
+                captureSession.commitConfiguration()
+                return nil
+            }
+            captureSession.sessionPreset = resolution.sessionPreset
             let maxFPS = Int(maxSupportedFPS(for: device))
-            let fallback = VideoFrameRate.selectableCases
+            appliedFrameRate = VideoFrameRate.selectableCases
                 .filter { $0.value <= maxFPS }
                 .last ?? .fps30
-            appliedFrameRate = fallback
         }
 
         do {
@@ -968,7 +918,7 @@ public class CameraViewController: UIViewController,
 
         currentVideoResolution = resolution
         currentVideoFrameRate = appliedFrameRate
-        fps = appliedFrameRate.value
+        RemoteShutter.fps = appliedFrameRate.value
         updateCameraStatus()
 
         return (resolution, appliedFrameRate)
@@ -994,6 +944,11 @@ public class CameraViewController: UIViewController,
         }
         newSettings.flashMode = settings.flashMode
         newSettings.isHighResolutionPhotoEnabled = settings.isHighResolutionPhotoEnabled
+        if currentHDRMode == .on {
+            newSettings.photoQualityPrioritization = .quality
+        } else {
+            newSettings.photoQualityPrioritization = .balanced
+        }
         return newSettings
     }
 
@@ -1274,34 +1229,9 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
 
    func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
+        // Get recommended settings and override codec to HEVC (H.265) for smaller files
         var videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
-        if #available(iOS 13, *) {
-            videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
-        } else {
-            // Please do not remove this code unless we drop iOS 12.
-            let dimensions = CMVideoFormatDescriptionGetDimensions(formatDescription)
-            var bitsPerPixel: Float
-            let numPixels = dimensions.width * dimensions.height
-            var bitsPerSecond: Int
-
-            // Assume that lower-than-SD resolutions are intended for streaming, and use a lower bitrate
-            if numPixels < 640 * 480 {
-                bitsPerPixel = 4.05 // This bitrate approximately matches the quality produced by AVCaptureSessionPresetMedium or Low.
-            } else {
-                bitsPerPixel = 10.1 // This bitrate approximately matches the quality produced by AVCaptureSessionPresetHigh.
-            }
-
-            bitsPerSecond = Int(Float(numPixels) * bitsPerPixel)
-
-            let compressionProperties: NSDictionary = [AVVideoAverageBitRateKey: bitsPerSecond,
-                                                       AVVideoExpectedSourceFrameRateKey: 24,
-                                                       AVVideoMaxKeyFrameIntervalKey: 24]
-
-            videoSettings = [AVVideoCodecKey: AVVideoCodecType.h264,
-                             AVVideoWidthKey: dimensions.width,
-                             AVVideoHeightKey: dimensions.height,
-                             AVVideoCompressionPropertiesKey: compressionProperties]
-        }
+        videoSettings?[AVVideoCodecKey] = AVVideoCodecType.hevc
 
         if assetWriter.canApply(outputSettings: videoSettings, forMediaType: .video) {
             videoInput = AVAssetWriterInput(
