@@ -161,7 +161,11 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
             )
             print("🔍 DEBUG: Default handler sending empty SwitchLensResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
             self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
-            
+
+        case is RemoteCmd.SetAspectRatio:
+            let l = RemoteCmd.SetAspectRatioResp(aspectRatio: nil, error: self.unableToProcessError(msg: msg))
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
+
         // MARK: - Video Recording Command Handling
         case is RemoteCmd.StartRecordingVideo:
             print("❌ DEBUG: Session default handler received StartRecordingVideo - NOT in camera state!")

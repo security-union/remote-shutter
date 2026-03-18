@@ -45,6 +45,9 @@ extension MonitorViewController {
             },
             onPhotoQualityChange: { [weak self] format, hdrMode in
                 self?.handlePhotoQualityChange(format, hdrMode)
+            },
+            onAspectRatioChange: { [weak self] ratio in
+                self?.handleAspectRatioChange(ratio)
             }
         )
         
@@ -246,6 +249,10 @@ extension MonitorViewController {
 
     private func handlePhotoQualityChange(_ format: PhotoFormat, _ hdrMode: HDRMode) {
         session ! UICmd.SetPhotoQuality(format: format, hdrMode: hdrMode)
+    }
+
+    private func handleAspectRatioChange(_ ratio: AspectRatio) {
+        session ! UICmd.SetAspectRatio(aspectRatio: ratio)
     }
 
     /// Sends the monitor's current mode to the camera device so its overlay shows the right mode

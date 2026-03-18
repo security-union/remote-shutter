@@ -66,10 +66,14 @@ public class CameraViewController: UIViewController,
     private var currentZoomFactor: CGFloat = 1.0
     private var currentLensType: CameraLensType = .wideAngle
     private var availableLensTypes: [CameraLensType] = []
-    
+    private var zoomStops: [CGFloat] = [1.0]
+
     // MARK: - Camera Capabilities
     private var frontCameraInfo: RemoteCmd.CameraInfo?
     private var backCameraInfo: RemoteCmd.CameraInfo?
+
+    // MARK: - Aspect Ratio
+    var currentAspectRatio: AspectRatio = .sixteenNine
     
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
 
@@ -325,7 +329,7 @@ public class CameraViewController: UIViewController,
         self.captureSession.beginConfiguration()
         self.captureSession.sessionPreset = .high
 
-        guard let videoDevice = AVCaptureDevice.default(for: AVMediaType.video) else {
+        guard let videoDevice = preferredBackCamera() ?? AVCaptureDevice.default(for: AVMediaType.video) else {
             return
         }
 
@@ -349,6 +353,7 @@ public class CameraViewController: UIViewController,
             
             // Initialize current state
             self.updateAvailableLensTypes(for: videoDevice.position)
+            self.zoomStops = self.discoverZoomStops(for: videoDevice)
             self.currentZoomFactor = videoDevice.videoZoomFactor
 
             // Camera capabilities are now sent through peer-to-peer communication in CamStates.swift
@@ -383,9 +388,10 @@ public class CameraViewController: UIViewController,
             configSessionOutput()
             try setFrameRate(framerate: fps, videoDevice: newDevice!)
             
-            // Update available lens types for new camera position
+            // Update available lens types and zoom stops for new camera position
             self.updateAvailableLensTypes(for: newPosition!)
-            
+            self.zoomStops = self.discoverZoomStops(for: newDevice!)
+
             do {
                 self.rotateCameraToOrientation(orientation: self.orientation)
                 let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
@@ -509,7 +515,59 @@ public class CameraViewController: UIViewController,
         return Success(mode)
     }
 
+    // MARK: - Virtual Device Preference
+
+    /// Returns the best virtual camera device for the back position, falling back to wide-angle.
+    /// Virtual devices automatically switch between physical cameras at appropriate zoom factors.
+    func preferredBackCamera() -> AVCaptureDevice? {
+        // Try triple camera first (iPhone 14 Pro+: ultra-wide + wide + telephoto)
+        if let triple = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: .back) {
+            return triple
+        }
+        // Try dual wide camera (iPhone 11+: ultra-wide + wide)
+        if let dualWide = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
+            return dualWide
+        }
+        // Try dual camera (iPhone 7+: wide + telephoto)
+        if let dual = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
+            return dual
+        }
+        // Fallback to wide angle
+        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+    }
+
+    /// Discovers zoom stop factors from a virtual device's switchOverVideoZoomFactors.
+    func discoverZoomStops(for device: AVCaptureDevice) -> [CGFloat] {
+        var stops: [CGFloat] = [1.0] // Always include 1x
+
+        if device.position == .front {
+            return stops // Front camera has no switchover factors
+        }
+
+        // Virtual devices expose switchOverVideoZoomFactors
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors
+        for factor in switchOverFactors {
+            let f = CGFloat(truncating: factor)
+            if !stops.contains(f) {
+                stops.append(f)
+            }
+        }
+
+        // Add ultra-wide stop if device supports zoom below 1.0
+        if device.minAvailableVideoZoomFactor < 0.9 {
+            let ultraWideStop = CGFloat(round(device.minAvailableVideoZoomFactor * 10) / 10)
+            if !stops.contains(ultraWideStop) {
+                stops.insert(ultraWideStop, at: 0)
+            }
+        }
+
+        return stops.sorted()
+    }
+
     func cameraForPosition(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        if position == .back {
+            return preferredBackCamera()
+        }
         return cameraForPositionAndLens(position: position, lensType: currentLensType)
     }
     
@@ -650,6 +708,15 @@ public class CameraViewController: UIViewController,
         let supportsHEIF = photoOutput.availablePhotoCodecTypes.contains(.hevc)
         let supportsHDR = true // All iOS 15+ devices support .quality prioritization (HDR)
 
+        // Discover zoom stops from virtual device
+        let preferredDevice: AVCaptureDevice?
+        if position == .back {
+            preferredDevice = preferredBackCamera()
+        } else {
+            preferredDevice = videoDevices.first
+        }
+        let discoveredZoomStops = preferredDevice.map { discoverZoomStops(for: $0) } ?? [1.0]
+
         return RemoteCmd.CameraInfo(
             availableLenses: availableLenses,
             hasFlash: hasFlash,
@@ -659,7 +726,8 @@ public class CameraViewController: UIViewController,
             supportedFrameRates: supportedFrameRates,
             resolutionFrameRates: resolutionFrameRates,
             supportsHEIF: supportsHEIF,
-            supportsHDR: supportsHDR
+            supportsHDR: supportsHDR,
+            zoomStops: discoveredZoomStops
         )
     }
     
@@ -924,6 +992,47 @@ public class CameraViewController: UIViewController,
         return (resolution, appliedFrameRate)
     }
 
+    // MARK: - Aspect Ratio Methods
+
+    func setAspectRatio(_ ratio: AspectRatio) -> AspectRatio {
+        currentAspectRatio = ratio
+        updateCameraStatus()
+        return ratio
+    }
+
+    /// Crops photo data to the selected aspect ratio using CGImage.
+    func cropPhotoData(_ data: Data, to aspectRatio: AspectRatio) -> Data? {
+        guard let image = UIImage(data: data),
+              let cgImage = image.cgImage else { return nil }
+
+        let imageWidth = CGFloat(cgImage.width)
+        let imageHeight = CGFloat(cgImage.height)
+
+        // Determine the target ratio for the image's actual orientation
+        let isLandscape = imageWidth > imageHeight
+        let targetRatio = isLandscape ? aspectRatio.widthToHeight : (1.0 / aspectRatio.widthToHeight)
+        let currentRatio = imageWidth / imageHeight
+
+        var cropRect: CGRect
+        if abs(currentRatio - targetRatio) < 0.01 {
+            return data // Already at the target aspect ratio
+        } else if currentRatio > targetRatio {
+            // Wider than target: crop sides
+            let newWidth = imageHeight * targetRatio
+            let xOffset = (imageWidth - newWidth) / 2
+            cropRect = CGRect(x: xOffset, y: 0, width: newWidth, height: imageHeight)
+        } else {
+            // Taller than target: crop top/bottom
+            let newHeight = imageWidth / targetRatio
+            let yOffset = (imageHeight - newHeight) / 2
+            cropRect = CGRect(x: 0, y: yOffset, width: imageWidth, height: newHeight)
+        }
+
+        guard let croppedCG = cgImage.cropping(to: cropRect) else { return nil }
+        let croppedImage = UIImage(cgImage: croppedCG, scale: image.scale, orientation: image.imageOrientation)
+        return croppedImage.jpegData(compressionQuality: 0.95)
+    }
+
     func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) -> (PhotoFormat, HDRMode)? {
         if format == .heif {
             guard photoOutput.availablePhotoCodecTypes.contains(.hevc) else { return nil }
@@ -967,7 +1076,13 @@ public class CameraViewController: UIViewController,
         guard let photoData = photo.fileDataRepresentation() else {
             return
         }
-        session ! UICmd.OnPicture(sender: nil, pic: photoData)
+        // Apply aspect ratio cropping if needed
+        if currentAspectRatio != .sixteenNine,
+           let croppedData = cropPhotoData(photoData, to: currentAspectRatio) {
+            session ! UICmd.OnPicture(sender: nil, pic: croppedData)
+        } else {
+            session ! UICmd.OnPicture(sender: nil, pic: photoData)
+        }
     }
 }
 

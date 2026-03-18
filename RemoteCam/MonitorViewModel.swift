@@ -41,6 +41,11 @@ class MonitorViewModel: ObservableObject {
     @Published var availableLensTypes: [CameraLensType] = [.wideAngle]
     @Published var currentLensType: CameraLensType = .wideAngle
     @Published var showZoomControls: Bool = false
+    @Published var zoomStops: [CGFloat] = [1.0]
+    @Published var activeZoomStop: CGFloat = 1.0
+
+    // MARK: - Aspect Ratio Properties
+    @Published var currentAspectRatio: AspectRatio = .sixteenNine
     
     // MARK: - Video Transfer Progress Properties
     @Published var isVideoTransferring: Bool = false
@@ -182,6 +187,7 @@ class MonitorViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.currentZoomFactor = factor
             self.maxZoomFactor = maxFactor
+            self.updateActiveZoomStop()
         }
     }
     
@@ -190,6 +196,25 @@ class MonitorViewModel: ObservableObject {
             self.availableLensTypes = lenses
             self.currentLensType = current
         }
+    }
+
+    func updateZoomStops(_ stops: [CGFloat]) {
+        DispatchQueue.main.async {
+            self.zoomStops = stops
+            self.updateActiveZoomStop()
+        }
+    }
+
+    func updateAspectRatio(_ ratio: AspectRatio) {
+        DispatchQueue.main.async {
+            self.currentAspectRatio = ratio
+        }
+    }
+
+    /// Finds the nearest zoom stop <= currentZoomFactor for button highlighting.
+    private func updateActiveZoomStop() {
+        let sorted = zoomStops.sorted()
+        activeZoomStop = sorted.last(where: { $0 <= currentZoomFactor + 0.05 }) ?? sorted.first ?? 1.0
     }
     
     // MARK: - Video Quality Properties

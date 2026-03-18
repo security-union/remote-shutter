@@ -302,6 +302,12 @@ extension RemoteCamSession {
                     self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.SetPhotoQualityResp(format: nil, hdrMode: nil, error: error))
                 }
 
+            // MARK: - Aspect Ratio Command Handling
+            case let cmd as RemoteCmd.SetAspectRatio:
+                let result = ctrl.setAspectRatio(cmd.aspectRatio)
+                self.sendCommandOrGoToScanning(peer: [peer],
+                    msg: RemoteCmd.SetAspectRatioResp(aspectRatio: result, error: nil))
+
             case let c as DisconnectPeer:
                 if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
                     print("🔍 DEBUG: Camera disconnecting peer - going to scanning")

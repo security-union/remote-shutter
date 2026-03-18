@@ -133,6 +133,9 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                         ctrl.viewModel.updatePhotoQuality(
                             format: capabilities.currentPhotoFormat,
                             hdrMode: capabilities.currentHDRMode)
+
+                        // Update zoom stops from camera capabilities
+                        ctrl.viewModel.updateZoomStops(cameraInfo.zoomStops)
                     }
                 }
                 
@@ -202,6 +205,14 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     }
                 }
             
+            // MARK: - Aspect Ratio Response Handling
+            case let ratioResp as RemoteCmd.SetAspectRatioResp:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    if let ratio = ratioResp.aspectRatio {
+                        ctrl?.value?.viewModel.updateAspectRatio(ratio)
+                    }
+                }
+
             // MARK: - Video Transfer Progress Handling
             case let started as UICmd.VideoResourceTransferStarted:
                 OperationQueue.main.addOperation {[weak ctrl] in

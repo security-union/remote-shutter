@@ -19,6 +19,7 @@ struct MonitorView: View {
     let onLensChange: (CameraLensType) -> Void
     let onVideoQualityChange: (VideoResolution, VideoFrameRate) -> Void
     let onPhotoQualityChange: (PhotoFormat, HDRMode) -> Void
+    let onAspectRatioChange: (AspectRatio) -> Void
     
     var body: some View {
         GeometryReader { geometry in
@@ -46,12 +47,18 @@ struct MonitorView: View {
             // Camera preview background
             Color.black
             
-            // Camera image
+            // Camera image with aspect ratio crop overlay
             if let image = viewModel.cameraImage {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .clipped()
+                    .overlay(
+                        AspectRatioCropOverlay(
+                            selectedRatio: viewModel.currentAspectRatio,
+                            imageSize: image.size
+                        )
+                    )
             } else {
                 // Placeholder
                 Rectangle()
@@ -367,10 +374,13 @@ struct MonitorView: View {
                     timerControls
                 }
 
-                // Lens Controls
-                if viewModel.availableLensTypes.count > 1 {
-                    lensControls
+                // Zoom Stop Controls (replaces lens buttons)
+                if viewModel.zoomStops.count > 1 {
+                    zoomStopControls
                 }
+
+                // Aspect Ratio Controls
+                aspectRatioControls
             }
 
             // Main Action Buttons (always visible)
@@ -444,34 +454,67 @@ struct MonitorView: View {
         }
     }
     
-    // MARK: - Lens Controls
-    private var lensControls: some View {
+    // MARK: - Zoom Stop Controls
+    private var zoomStopControls: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                ForEach(viewModel.availableLensTypes, id: \.self) { lensType in
-                    lensButton(for: lensType)
+                ForEach(viewModel.zoomStops, id: \.self) { stop in
+                    zoomStopButton(for: stop)
                 }
             }
             .padding(.horizontal, 20)
         }
     }
-    
-    private func lensButton(for lensType: CameraLensType) -> some View {
+
+    private func zoomStopButton(for stop: CGFloat) -> some View {
         Button(action: {
-            onLensChange(lensType)
+            onZoomChange(stop)
         }) {
-            Text(lensType.displayName)
+            Text(formatZoomStop(stop))
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(viewModel.currentLensType == lensType ? .black : .white)
+                .foregroundColor(viewModel.activeZoomStop == stop ? .black : .white)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
-                    viewModel.currentLensType == lensType ?
+                    viewModel.activeZoomStop == stop ?
                     AppTheme.accent : Color.gray.opacity(0.3)
                 )
                 .cornerRadius(6)
         }
         .disabled(!viewModel.isLensControlEnabled)
+    }
+
+    private func formatZoomStop(_ stop: CGFloat) -> String {
+        if stop == CGFloat(Int(stop)) {
+            return "\(Int(stop))x"
+        }
+        return String(format: "%.1fx", stop)
+    }
+
+    // MARK: - Aspect Ratio Controls
+    private var aspectRatioControls: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(AspectRatio.selectableCases, id: \.self) { ratio in
+                    Button(action: {
+                        onAspectRatioChange(ratio)
+                    }) {
+                        Text(ratio.displayName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(viewModel.currentAspectRatio == ratio ? .black : .white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                viewModel.currentAspectRatio == ratio ?
+                                AppTheme.accent : Color.gray.opacity(0.3)
+                            )
+                            .cornerRadius(6)
+                    }
+                    .disabled(!viewModel.isQualityControlEnabled)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
     }
     
     // MARK: - Main Action Buttons
@@ -610,8 +653,89 @@ struct MonitorView_Previews: PreviewProvider {
             onZoomChange: { _ in },
             onLensChange: { _ in },
             onVideoQualityChange: { _, _ in },
-            onPhotoQualityChange: { _, _ in }
+            onPhotoQualityChange: { _, _ in },
+            onAspectRatioChange: { _ in }
         )
         .preferredColorScheme(.dark)
     }
-} 
+}
+
+// MARK: - Aspect Ratio Crop Overlay
+
+/// Draws semi-transparent black bars over areas that will be cropped for the selected aspect ratio.
+struct AspectRatioCropOverlay: View {
+    let selectedRatio: AspectRatio
+    let imageSize: CGSize
+
+    var body: some View {
+        GeometryReader { geometry in
+            let viewSize = geometry.size
+            let imageRatio = imageSize.width / imageSize.height
+            let targetRatio: CGFloat = {
+                // For portrait images, invert the ratio
+                if imageSize.height > imageSize.width {
+                    return 1.0 / selectedRatio.widthToHeight
+                }
+                return selectedRatio.widthToHeight
+            }()
+
+            // No overlay needed if the image already matches the target
+            if abs(imageRatio - targetRatio) > 0.01 {
+                let fittedSize = fittedImageSize(viewSize: viewSize, imageRatio: imageRatio)
+                let cropSize = croppedSize(fittedSize: fittedSize, targetRatio: targetRatio)
+                let xOffset = (viewSize.width - fittedSize.width) / 2
+                let yOffset = (viewSize.height - fittedSize.height) / 2
+
+                // Determine bar positions
+                if fittedSize.width / fittedSize.height > targetRatio {
+                    // Crop sides
+                    let barWidth = (fittedSize.width - cropSize.width) / 2
+                    HStack(spacing: 0) {
+                        Color.black.opacity(0.5)
+                            .frame(width: barWidth)
+                        Color.clear
+                            .frame(width: cropSize.width)
+                        Color.black.opacity(0.5)
+                            .frame(width: barWidth)
+                    }
+                    .frame(width: fittedSize.width, height: fittedSize.height)
+                    .offset(x: xOffset, y: yOffset)
+                } else {
+                    // Crop top/bottom
+                    let barHeight = (fittedSize.height - cropSize.height) / 2
+                    VStack(spacing: 0) {
+                        Color.black.opacity(0.5)
+                            .frame(height: barHeight)
+                        Color.clear
+                            .frame(height: cropSize.height)
+                        Color.black.opacity(0.5)
+                            .frame(height: barHeight)
+                    }
+                    .frame(width: fittedSize.width, height: fittedSize.height)
+                    .offset(x: xOffset, y: yOffset)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func fittedImageSize(viewSize: CGSize, imageRatio: CGFloat) -> CGSize {
+        let viewRatio = viewSize.width / viewSize.height
+        if imageRatio > viewRatio {
+            let w = viewSize.width
+            return CGSize(width: w, height: w / imageRatio)
+        } else {
+            let h = viewSize.height
+            return CGSize(width: h * imageRatio, height: h)
+        }
+    }
+
+    private func croppedSize(fittedSize: CGSize, targetRatio: CGFloat) -> CGSize {
+        let currentRatio = fittedSize.width / fittedSize.height
+        if currentRatio > targetRatio {
+            return CGSize(width: fittedSize.height * targetRatio, height: fittedSize.height)
+        } else {
+            return CGSize(width: fittedSize.width, height: fittedSize.width / targetRatio)
+        }
+    }
+}

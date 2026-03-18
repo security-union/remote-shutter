@@ -137,10 +137,20 @@ extension MonitorVideoStates {
                     monitor ! resp
                 }
 
+            // MARK: - Aspect Ratio Command Handling
+            case let cmd as UICmd.SetAspectRatio:
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SetAspectRatio(aspectRatio: cmd.aspectRatio)) as? Failure {
+                    print("Failed to send aspect ratio command: \(f.tryError)")
+                }
+
+            case let resp as RemoteCmd.SetAspectRatioResp:
+                monitor ! resp
+
             case is UICmd.RequestCameraCapabilities:
                 // Request capabilities from camera
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
-                
+
             case is RemoteCmd.PeerBecameCamera:
                 // When peer becomes camera, request fresh capabilities
                 print("🔍 DEBUG: Monitor detected peer became camera - requesting fresh capabilities")

@@ -151,6 +151,37 @@ public enum HDRMode: Int, CaseIterable, Codable {
     }
 }
 
+// MARK: - Aspect Ratio
+public enum AspectRatio: Int, CaseIterable, Codable {
+    case unknown = 0
+    case fourThree = 1   // 4:3 (native sensor)
+    case sixteenNine = 2 // 16:9 (current default)
+    case oneOne = 3      // 1:1 (square)
+
+    public var displayName: String {
+        switch self {
+        case .unknown: return "Unknown"
+        case .fourThree: return "4:3"
+        case .sixteenNine: return "16:9"
+        case .oneOne: return "1:1"
+        }
+    }
+
+    /// Width / Height ratio (landscape orientation)
+    public var widthToHeight: CGFloat {
+        switch self {
+        case .unknown, .fourThree: return 4.0 / 3.0
+        case .sixteenNine: return 16.0 / 9.0
+        case .oneOne: return 1.0
+        }
+    }
+
+    /// All user-selectable cases (excludes .unknown)
+    public static var selectableCases: [AspectRatio] {
+        return [.fourThree, .sixteenNine, .oneOne]
+    }
+}
+
 extension AVCaptureDevice.Position {
     public func toggle() -> Try<AVCaptureDevice.Position> {
         switch self {

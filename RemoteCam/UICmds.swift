@@ -550,11 +550,22 @@ public class UICmd {
     @objc(_TtCC10ActorsDemo5UICmd25VideoResourceTransferFailed)public class VideoResourceTransferFailed: Actor.Message {
         public let error: Error
         public let resourceName: String
-        
+
         public init(error: Error, resourceName: String, sender: ActorRef?) {
             self.error = error
             self.resourceName = resourceName
             super.init(sender: sender)
+        }
+    }
+
+    // MARK: - Aspect Ratio
+
+    public class SetAspectRatio: Actor.Message {
+        public let aspectRatio: AspectRatio
+
+        public init(aspectRatio: AspectRatio) {
+            self.aspectRatio = aspectRatio
+            super.init(sender: nil)
         }
     }
 }
