@@ -1,5 +1,5 @@
-- Kameraet viser nu aktuel tilstand og kvalitetsindstillinger (foto/video, oplosning, fps)
-- Timernedtaelling vises pa kameraet med store tal, bip-lyde og blinkende lommelygte
-- Foto- og videokvalitetskontrol pa fjernbetjeningen (oplosning, fps, format, HDR)
-- Indstillinger synkroniseres mellem fjernbetjening og kamera efter kameraskift
-- Kontrolpanelets sammenklappede tilstand huskes mellem sessioner
+- Objektivvalg rettet: 2X bruger nu korrekt 2X-objektivet, ikke 5X
+- Zoom virker pa tvaers af alle objektiver (0.5x ultravidvinkel til 5x teleobjektiv)
+- Nye billedformatskontroller: optag i 4:3, 16:9 eller 1:1 (foto og video)
+- Glattere knib-til-zoom med logaritmisk folsomhed
+- Zoom og objektivskift virker nu under videooptagelse

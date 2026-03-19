@@ -332,7 +332,7 @@ public class CameraViewController: UIViewController,
         self.captureSession.beginConfiguration()
         self.captureSession.sessionPreset = .high
 
-        guard let videoDevice = preferredBackCamera() ?? AVCaptureDevice.default(for: AVMediaType.video) else {
+        guard let videoDevice = preferredCamera(for: .back) ?? AVCaptureDevice.default(for: AVMediaType.video) else {
             return
         }
         debugLog("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
@@ -529,23 +529,19 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Virtual Device Preference
 
-    /// Returns the best virtual camera device for the back position, falling back to wide-angle.
+    /// Returns the best camera device for the given position, preferring virtual devices.
     /// Virtual devices automatically switch between physical cameras at appropriate zoom factors.
-    func preferredBackCamera() -> AVCaptureDevice? {
-        // Try triple camera first (iPhone 14 Pro+: ultra-wide + wide + telephoto)
-        if let triple = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: .back) {
+    func preferredCamera(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        if let triple = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: position) {
             return triple
         }
-        // Try dual wide camera (iPhone 11+: ultra-wide + wide)
-        if let dualWide = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
+        if let dualWide = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: position) {
             return dualWide
         }
-        // Try dual camera (iPhone 7+: wide + telephoto)
-        if let dual = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
+        if let dual = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: position) {
             return dual
         }
-        // Fallback to wide angle
-        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position)
     }
 
     /// Discovers hardware zoom stop factors from a virtual device's switchOverVideoZoomFactors.
@@ -596,31 +592,7 @@ public class CameraViewController: UIViewController,
     }
 
     func cameraForPosition(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
-        if position == .back {
-            return preferredBackCamera()
-        }
-        return cameraForPositionAndLens(position: position, lensType: currentLensType)
-    }
-    
-    func cameraForPositionAndLens(position: AVCaptureDevice.Position, lensType: CameraLensType) -> AVCaptureDevice? {
-        let deviceTypes = getAllDeviceTypes()
-        let videoDevices = AVCaptureDevice.DiscoverySession.init(
-                deviceTypes: deviceTypes,
-                mediaType: .video, position: position).devices
-        
-        // First try to find the specific lens type
-        var filteredDevices = videoDevices.filter {
-            return $0.position == position && $0.deviceType == lensType.deviceType
-        }
-        
-        // If no specific lens found, fall back to wide angle
-        if filteredDevices.isEmpty {
-            filteredDevices = videoDevices.filter {
-                return $0.position == position && $0.deviceType == .builtInWideAngleCamera
-            }
-        }
-        
-        return filteredDevices.first
+        return preferredCamera(for: position)
     }
     
     func getAllDeviceTypes() -> [AVCaptureDevice.DeviceType] {
@@ -739,13 +711,8 @@ public class CameraViewController: UIViewController,
         let supportsHEIF = photoOutput.availablePhotoCodecTypes.contains(.hevc)
         let supportsHDR = true // All iOS 15+ devices support .quality prioritization (HDR)
 
-        // Discover zoom stops from virtual device
-        let preferredDevice: AVCaptureDevice?
-        if position == .back {
-            preferredDevice = preferredBackCamera()
-        } else {
-            preferredDevice = videoDevices.first
-        }
+        // Discover zoom stops from the preferred (virtual) device
+        let preferredDevice = preferredCamera(for: position)
         let discoveredZoomStops = preferredDevice.map { discoverZoomStops(for: $0) } ?? [1.0]
         let wideAngle = preferredDevice.map { wideAngleZoomFactor(for: $0) } ?? 1.0
 
@@ -913,64 +880,20 @@ public class CameraViewController: UIViewController,
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
 
-        // If using a virtual device, just set the zoom factor — the virtual device
-        // automatically switches physical cameras at the right zoom levels.
-        let isVirtualDevice = !device.virtualDeviceSwitchOverVideoZoomFactors.isEmpty
-                              || device.minAvailableVideoZoomFactor < 0.9
-
-        if isVirtualDevice {
-            let targetZoom = zoomFactorForLensType(lensType, device: device)
-            do {
-                try device.lockForConfiguration()
-                let clampedZoom = max(device.minAvailableVideoZoomFactor,
-                                     min(targetZoom, device.maxAvailableVideoZoomFactor))
-                device.videoZoomFactor = clampedZoom
-                currentZoomFactor = clampedZoom
-                currentLensType = lensType
-                device.unlockForConfiguration()
-
-                let zoomRange = RemoteCmd.ZoomRange(
-                    minZoom: device.minAvailableVideoZoomFactor,
-                    maxZoom: device.maxAvailableVideoZoomFactor
-                )
-                return Success((lensType, availableLensTypes, currentZoomFactor, zoomRange))
-            } catch let error as NSError {
-                return Failure(error: error)
-            }
-        }
-
-        // Fallback: swap physical devices for non-virtual cameras (e.g., front camera)
-        let position = device.position
-        guard let newDevice = cameraForPositionAndLens(position: position, lensType: lensType) else {
-            return Failure(error: NSError(domain: "Requested lens type not available", code: 0, userInfo: nil))
-        }
-
+        let targetZoom = zoomFactorForLensType(lensType, device: device)
         do {
-            let captureSession = self.captureSession
-            captureSession.beginConfiguration()
-
-            let newInput = try AVCaptureDeviceInput(device: newDevice)
-            captureSession.removeInput(self.videoDeviceInput)
-            captureSession.addInput(newInput)
-            self.videoDeviceInput = newInput
-            self.currentLensType = lensType
-
-            currentZoomFactor = 1.0
-
-            configSessionOutput()
-            try setFrameRate(framerate: fps, videoDevice: newDevice)
-
-            DispatchQueue.main.async {
-                self.rotateCameraToOrientation(orientation: self.orientation)
-            }
-
-            captureSession.commitConfiguration()
+            try device.lockForConfiguration()
+            let clampedZoom = max(device.minAvailableVideoZoomFactor,
+                                 min(targetZoom, device.maxAvailableVideoZoomFactor))
+            device.videoZoomFactor = clampedZoom
+            currentZoomFactor = clampedZoom
+            currentLensType = lensType
+            device.unlockForConfiguration()
 
             let zoomRange = RemoteCmd.ZoomRange(
-                minZoom: newDevice.minAvailableVideoZoomFactor,
-                maxZoom: newDevice.maxAvailableVideoZoomFactor
+                minZoom: device.minAvailableVideoZoomFactor,
+                maxZoom: device.maxAvailableVideoZoomFactor
             )
-
             return Success((lensType, availableLensTypes, currentZoomFactor, zoomRange))
         } catch let error as NSError {
             return Failure(error: error)

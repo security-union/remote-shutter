@@ -1,5 +1,5 @@
-- Kamera zeigt jetzt aktuellen Modus und Qualitatseinstellungen (Foto/Video, Auflosung, fps)
-- Timer-Countdown auf der Kamera mit grossen Zahlen, Signaltonen und Blitzlicht
-- Foto- und Videoqualitatssteuerung auf der Fernbedienung (Auflosung, fps, Format, HDR)
-- Einstellungen werden nach Kamerawechsel zwischen Fernbedienung und Kamera synchronisiert
-- Eingeklappter Zustand der Steuerung bleibt zwischen Sitzungen erhalten
+- Objektivauswahl korrigiert: 2X verwendet jetzt korrekt das 2X-Objektiv, nicht 5X
+- Zoom funktioniert uber alle Objektive (0.5x Ultraweitwinkel bis 5x Teleobjektiv)
+- Neue Seitenverhaltnis-Steuerung: Aufnahme in 4:3, 16:9 oder 1:1 (Foto und Video)
+- Flussigeres Pinch-to-Zoom mit logarithmischer Empfindlichkeit
+- Zoom und Objektivwechsel funktionieren jetzt wahrend der Videoaufnahme

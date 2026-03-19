@@ -1,5 +1,5 @@
-- La fotocamera ora mostra modalita e impostazioni di qualita correnti (foto/video, risoluzione, fps)
-- Conto alla rovescia del timer sulla fotocamera con numeri grandi, segnali acustici e flash della torcia
-- Controlli di qualita foto e video sul telecomando (risoluzione, fps, formato, HDR)
-- Le impostazioni si sincronizzano tra telecomando e fotocamera dopo il cambio di fotocamera
-- Lo stato compresso dei controlli viene mantenuto tra le sessioni
+- Selezione dell'obiettivo corretta: 2X ora utilizza correttamente l'obiettivo 2X, non il 5X
+- Lo zoom funziona su tutti gli obiettivi (0.5x ultra-grandangolare a 5x teleobiettivo)
+- Nuovi controlli per il rapporto d'aspetto: scatta in 4:3, 16:9 o 1:1 (foto e video)
+- Pinch-to-zoom piu fluido con sensibilita logaritmica
+- Lo zoom e il cambio di obiettivo ora funzionano durante la registrazione video

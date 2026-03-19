@@ -1,5 +1,5 @@
-- L'appareil photo affiche maintenant le mode et les reglages de qualite (photo/video, resolution, fps)
-- Compte a rebours affiche sur l'appareil photo avec grands chiffres, bips et flash de torche
-- Controles de qualite photo et video sur la telecommande (resolution, fps, format, HDR)
-- Synchronisation des reglages entre la telecommande et l'appareil photo apres changement de camera
-- L'etat replie des controles est conserve entre les sessions
+- Selection de l'objectif corrigee : 2X utilise maintenant correctement l'objectif 2X, pas le 5X
+- Le zoom fonctionne sur tous les objectifs (0.5x ultra grand-angle a 5x telephoto)
+- Nouveaux controles de ratio d'aspect : capturez en 4:3, 16:9 ou 1:1 (photo et video)
+- Pincement pour zoomer plus fluide avec sensibilite logarithmique
+- Le zoom et le changement d'objectif fonctionnent maintenant pendant l'enregistrement video
