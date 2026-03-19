@@ -138,8 +138,8 @@ class MonitorViewModel: ObservableObject {
             self.isToggleCameraEnabled = false
             self.isTimerSliderEnabled = false
             self.isSegmentedControlEnabled = false
-            self.isLensControlEnabled = false
-            self.isZoomSliderEnabled = false
+            self.isLensControlEnabled = true
+            self.isZoomSliderEnabled = true
             self.isQualityControlEnabled = false
             self.buttonPrompt = NSLocalizedString("Stopping video", comment: "")
         }

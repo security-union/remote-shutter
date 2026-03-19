@@ -21,6 +21,31 @@ extension RemoteCamSession {
             case is OnEnter:
                 getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
 
+            // MARK: - Zoom during recording
+            case let zoomCmd as RemoteCmd.SetZoom:
+                let result = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
+                var resp: Actor.Message
+                if let (zoomFactor, currentLens, zoomRange) = result.toOptional() {
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: zoomFactor, currentLens: currentLens, zoomRange: zoomRange, error: nil)
+                } else if let failure = result as? Failure {
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: failure.tryError)
+                } else {
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: nil)
+                }
+                self.sendCommandOrGoToScanning(peer: [peer], msg: resp)
+
+            case let lensCmd as RemoteCmd.SwitchLens:
+                let result = ctrl.switchLens(to: lensCmd.lensType)
+                var resp: Actor.Message
+                if let (lensType, availableLenses, currentZoom, zoomRange) = result.toOptional() {
+                    resp = RemoteCmd.SwitchLensResp(lensType: lensType, availableLenses: availableLenses, currentZoom: currentZoom, zoomRange: zoomRange, error: nil)
+                } else if let failure = result as? Failure {
+                    resp = RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: failure.error)
+                } else {
+                    resp = RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: nil)
+                }
+                self.sendCommandOrGoToScanning(peer: [peer], msg: resp)
+
             case let stop as RemoteCmd.StopRecordingVideo:
                 ctrl.stopRecordingVideo(stop.sendMediaToPeer)
                 let ack = RemoteCmd.StopRecordingVideoAck()

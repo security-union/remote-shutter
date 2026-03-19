@@ -199,14 +199,32 @@ extension MonitorVideoStates {
                 print("🔴 DEBUG: TakePicture received in monitorRecordingVideo state - stopping recording")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this,  sendMediaToPeer: cmd.sendMediaToRemote))
 
+            // MARK: - Zoom during recording
+            case let zoomCmd as UICmd.SetZoom:
+                if let f = self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SetZoom(zoomFactor: zoomCmd.zoomFactor)) as? Failure {
+                    print("❌ DEBUG: Failed to send zoom command during recording: \(f.tryError.localizedDescription)")
+                }
+
+            case let zoomResp as RemoteCmd.SetZoomResp:
+                monitor ! zoomResp
+
+            // MARK: - Lens switching during recording
+            case let lensCmd as UICmd.SwitchLens:
+                if self.sendMessage(
+                    peer: [peer], msg: RemoteCmd.SwitchLens(lensType: lensCmd.lensType)).isSuccess() {
+                    self.become(
+                        name: .monitorSwitchingLens,
+                        state: self.monitorSwitchingLens(monitor: monitor, peer: peer, lobby: lobby)
+                    )
+                }
+
             case is UICmd.ToggleTorch:
-                // Handle torch toggle during video recording
                 if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
                     print("❌ DEBUG: Failed to send torch toggle command during video recording: \(f.tryError.localizedDescription)")
                 }
-                
+
             case let torchResp as RemoteCmd.ToggleTorchResp:
-                // Handle torch response during video recording
                 if let error = torchResp.error {
                     print("❌ DEBUG: Video recording torch response error: \(error.localizedDescription)")
                 }
