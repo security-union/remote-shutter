@@ -69,14 +69,14 @@ extension MonitorVideoStates {
             case is UICmd.ToggleTorch:
                 // Handle torch toggle directly in video mode
                 if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
-                    print("❌ DEBUG: Failed to send torch toggle command in video mode: \(f.tryError.localizedDescription)")
+                    debugLog("❌ DEBUG: Failed to send torch toggle command in video mode: \(f.tryError.localizedDescription)")
                 }
                 
             // MARK: - Camera Capabilities Handling
             case let capabilities as RemoteCmd.CameraCapabilitiesResp:
-                print("🔍 DEBUG: Monitor video mode received camera capabilities")
+                debugLog("🔍 DEBUG: Monitor video mode received camera capabilities")
                 if let cameraInfo = capabilities.getCurrentCameraInfo() {
-                    print("🔍 DEBUG: Video mode available lenses: \(cameraInfo.availableLenses)")
+                    debugLog("🔍 DEBUG: Video mode available lenses: \(cameraInfo.availableLenses)")
                 }
                 monitor ! capabilities
                 
@@ -85,20 +85,20 @@ extension MonitorVideoStates {
                 // Send zoom command directly without showing alert for immediate feedback
                 if let f = self.sendMessage(
                     peer: [peer], msg: RemoteCmd.SetZoom(zoomFactor: zoomCmd.zoomFactor)) as? Failure {
-                    print("❌ DEBUG: Failed to send zoom command in video mode: \(f.tryError.localizedDescription)")
+                    debugLog("❌ DEBUG: Failed to send zoom command in video mode: \(f.tryError.localizedDescription)")
                 }
                 
             case let zoomResp as RemoteCmd.SetZoomResp:
                 // Handle zoom response directly without alert
                 if let error = zoomResp.error {
-                    print("❌ DEBUG: Video mode zoom response error: \(error.localizedDescription)")
+                    debugLog("❌ DEBUG: Video mode zoom response error: \(error.localizedDescription)")
                 }
                 monitor ! zoomResp
                 
             case let torchResp as RemoteCmd.ToggleTorchResp:
                 // Handle torch response directly without alert
                 if let error = torchResp.error {
-                    print("❌ DEBUG: Video mode torch response error: \(error.localizedDescription)")
+                    debugLog("❌ DEBUG: Video mode torch response error: \(error.localizedDescription)")
                 }
                 monitor ! torchResp
                 
@@ -153,7 +153,7 @@ extension MonitorVideoStates {
 
             case is RemoteCmd.PeerBecameCamera:
                 // When peer becomes camera, request fresh capabilities
-                print("🔍 DEBUG: Monitor detected peer became camera - requesting fresh capabilities")
+                debugLog("🔍 DEBUG: Monitor detected peer became camera - requesting fresh capabilities")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
 
             case let c as DisconnectPeer:
@@ -186,7 +186,7 @@ extension MonitorVideoStates {
             case let ack as RemoteCmd.StartRecordingVideoAck:
                 // Check if this is an error response
                 if let error = ack.error {
-                    print("❌ DEBUG: StartRecordingVideoAck received with error - device not in camera mode")
+                    debugLog("❌ DEBUG: StartRecordingVideoAck received with error - device not in camera mode")
                     showError(error.localizedDescription)
                     // Transition back to video mode state
                     self.popToState(name: .monitor)
@@ -196,14 +196,14 @@ extension MonitorVideoStates {
                 }
 
             case let cmd as UICmd.TakePicture:
-                print("🔴 DEBUG: TakePicture received in monitorRecordingVideo state - stopping recording")
+                debugLog("🔴 DEBUG: TakePicture received in monitorRecordingVideo state - stopping recording")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.StopRecordingVideo(sender: self.this,  sendMediaToPeer: cmd.sendMediaToRemote))
 
             // MARK: - Zoom during recording
             case let zoomCmd as UICmd.SetZoom:
                 if let f = self.sendMessage(
                     peer: [peer], msg: RemoteCmd.SetZoom(zoomFactor: zoomCmd.zoomFactor)) as? Failure {
-                    print("❌ DEBUG: Failed to send zoom command during recording: \(f.tryError.localizedDescription)")
+                    debugLog("❌ DEBUG: Failed to send zoom command during recording: \(f.tryError.localizedDescription)")
                 }
 
             case let zoomResp as RemoteCmd.SetZoomResp:
@@ -221,12 +221,12 @@ extension MonitorVideoStates {
 
             case is UICmd.ToggleTorch:
                 if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
-                    print("❌ DEBUG: Failed to send torch toggle command during video recording: \(f.tryError.localizedDescription)")
+                    debugLog("❌ DEBUG: Failed to send torch toggle command during video recording: \(f.tryError.localizedDescription)")
                 }
 
             case let torchResp as RemoteCmd.ToggleTorchResp:
                 if let error = torchResp.error {
-                    print("❌ DEBUG: Video recording torch response error: \(error.localizedDescription)")
+                    debugLog("❌ DEBUG: Video recording torch response error: \(error.localizedDescription)")
                 }
                 monitor ! torchResp
 

@@ -120,29 +120,29 @@ extension RemoteCamSession {
                 break // Already sent from parent state; ignore duplicate taps
 
             case let lensResp as RemoteCmd.SwitchLensResp:
-                print("✅ DEBUG: Monitor received SwitchLensResp - lensType: \(lensResp.lensType?.displayName ?? "nil"), error: \(lensResp.error?.localizedDescription ?? "nil")")
+                debugLog("✅ DEBUG: Monitor received SwitchLensResp - lensType: \(lensResp.lensType?.displayName ?? "nil"), error: \(lensResp.error?.localizedDescription ?? "nil")")
 
                 if let lensType = lensResp.lensType {
-                    print("✅ DEBUG: Lens switch response success - lens: \(lensType.displayName)")
+                    debugLog("✅ DEBUG: Lens switch response success - lens: \(lensType.displayName)")
                     monitor ! lensResp
                     ^{ [weak self] in
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                     }
-                    print("🔍 DEBUG: Monitor lens switching state unbecoming")
+                    debugLog("🔍 DEBUG: Monitor lens switching state unbecoming")
                     self.unbecome()
                 } else if let error = lensResp.error {
-                    print("❌ DEBUG: Lens switch response error: \(error.localizedDescription)")
+                    debugLog("❌ DEBUG: Lens switch response error: \(error.localizedDescription)")
                     ^{ [weak self] in
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                         self?.alertPresenter.showError(title: error._domain)
                     }
                     self.unbecome()
                 } else {
-                    print("❌ DEBUG: Received SwitchLensResp with no lensType and no error - this should not happen!")
+                    debugLog("❌ DEBUG: Received SwitchLensResp with no lensType and no error - this should not happen!")
                     ^{ [weak self] in
                         if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                     }
-                    print("🔍 DEBUG: Force unbecoming from stuck lens switching state")
+                    debugLog("🔍 DEBUG: Force unbecoming from stuck lens switching state")
                     self.unbecome()
                 }
 
@@ -194,7 +194,7 @@ extension RemoteCamSession {
                 break // Already sent from parent state; ignore duplicate taps
 
             case let t as RemoteCmd.ToggleCameraResp:
-                print("🔍 DEBUG: Monitor received ToggleCameraResp with capabilities: \(t.cameraCapabilities != nil)")
+                debugLog("🔍 DEBUG: Monitor received ToggleCameraResp with capabilities: \(t.cameraCapabilities != nil)")
 
                 // Extract camera position from capabilities
                 let camPosition = t.cameraCapabilities?.currentCamera
@@ -204,7 +204,7 @@ extension RemoteCamSession {
 
                 // IMPORTANT: Forward the new camera capabilities to update the UI
                 if let capabilities = t.cameraCapabilities {
-                    print("🔍 DEBUG: Forwarding new camera capabilities after toggle")
+                    debugLog("🔍 DEBUG: Forwarding new camera capabilities after toggle")
                     monitor ! capabilities
                 }
 

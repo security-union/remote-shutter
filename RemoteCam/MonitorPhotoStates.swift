@@ -78,7 +78,7 @@ extension RemoteCamSession {
             case is UICmd.ToggleTorch:
                 // Handle torch toggle directly in photo mode
                 if let f = self.sendMessage(peer: [peer], msg: RemoteCmd.ToggleTorch()) as? Failure {
-                    print("❌ DEBUG: Failed to send torch toggle command in photo mode: \(f.tryError.localizedDescription)")
+                    debugLog("❌ DEBUG: Failed to send torch toggle command in photo mode: \(f.tryError.localizedDescription)")
                 }
 
             case let countdown as UICmd.TimerCountdown:
@@ -101,9 +101,9 @@ extension RemoteCamSession {
                 
             // MARK: - Camera Capabilities Handling
             case let capabilities as RemoteCmd.CameraCapabilitiesResp:
-                print("🔍 DEBUG: Monitor received camera capabilities")
+                debugLog("🔍 DEBUG: Monitor received camera capabilities")
                 if let cameraInfo = capabilities.getCurrentCameraInfo() {
-                    print("🔍 DEBUG: Available lenses: \(cameraInfo.availableLenses)")
+                    debugLog("🔍 DEBUG: Available lenses: \(cameraInfo.availableLenses)")
                 }
                 monitor ! capabilities
                 
@@ -112,20 +112,20 @@ extension RemoteCamSession {
                 // Send zoom command directly without showing alert for immediate feedback
                 if let f = self.sendMessage(
                     peer: [peer], msg: RemoteCmd.SetZoom(zoomFactor: zoomCmd.zoomFactor)) as? Failure {
-                    print("❌ DEBUG: Failed to send zoom command: \(f.tryError.localizedDescription)")
+                    debugLog("❌ DEBUG: Failed to send zoom command: \(f.tryError.localizedDescription)")
                 }
                 
             case let zoomResp as RemoteCmd.SetZoomResp:
                 // Handle zoom response directly without alert
                 if let error = zoomResp.error {
-                    print("❌ DEBUG: Zoom response error: \(error.localizedDescription)")
+                    debugLog("❌ DEBUG: Zoom response error: \(error.localizedDescription)")
                 }
                 monitor ! zoomResp
                 
             case let torchResp as RemoteCmd.ToggleTorchResp:
                 // Handle torch response directly without alert
                 if let error = torchResp.error {
-                    print("❌ DEBUG: Photo mode torch response error: \(error.localizedDescription)")
+                    debugLog("❌ DEBUG: Photo mode torch response error: \(error.localizedDescription)")
                 }
                 monitor ! torchResp
                 
@@ -180,7 +180,7 @@ extension RemoteCamSession {
                 
             case is RemoteCmd.PeerBecameCamera:
                 // When peer becomes camera, request fresh capabilities
-                print("🔍 DEBUG: Monitor detected peer became camera - requesting fresh capabilities")
+                debugLog("🔍 DEBUG: Monitor detected peer became camera - requesting fresh capabilities")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
 
             case let mode as UICmd.BecomeMonitor:

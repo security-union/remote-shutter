@@ -332,7 +332,7 @@ public class CameraViewController: UIViewController,
         guard let videoDevice = preferredBackCamera() ?? AVCaptureDevice.default(for: AVMediaType.video) else {
             return
         }
-        print("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
+        debugLog("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
 
         self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
 
@@ -557,7 +557,7 @@ public class CameraViewController: UIViewController,
         }
 
         let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
-        print("🔍 ZOOM STOPS: device=\(device.localizedName) switchOverFactors=\(switchOverFactors) minZoom=\(device.minAvailableVideoZoomFactor) maxZoom=\(device.maxAvailableVideoZoomFactor)")
+        debugLog("🔍 ZOOM STOPS: device=\(device.localizedName) switchOverFactors=\(switchOverFactors) minZoom=\(device.minAvailableVideoZoomFactor) maxZoom=\(device.maxAvailableVideoZoomFactor)")
 
         // Start with the base (1.0) which is the widest constituent camera
         var stops: [CGFloat] = [device.minAvailableVideoZoomFactor]
@@ -575,7 +575,7 @@ public class CameraViewController: UIViewController,
         }
 
         let result = stops.sorted()
-        print("🔍 ZOOM STOPS: final=\(result)")
+        debugLog("🔍 ZOOM STOPS: final=\(result)")
         return result
     }
 
@@ -648,43 +648,43 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Camera Capabilities Gathering
     func gatherAllCameraCapabilities() {
-        print("🔍 DEBUG: gatherAllCameraCapabilities called")
+        debugLog("🔍 DEBUG: gatherAllCameraCapabilities called")
         
         // Gather front camera capabilities
         frontCameraInfo = gatherCameraInfo(for: .front)
-        print("🔍 DEBUG: Front camera info: \(frontCameraInfo != nil ? "available" : "nil")")
+        debugLog("🔍 DEBUG: Front camera info: \(frontCameraInfo != nil ? "available" : "nil")")
         
         // Gather back camera capabilities  
         backCameraInfo = gatherCameraInfo(for: .back)
-        print("🔍 DEBUG: Back camera info: \(backCameraInfo != nil ? "available" : "nil")")
+        debugLog("🔍 DEBUG: Back camera info: \(backCameraInfo != nil ? "available" : "nil")")
         
         if let backInfo = backCameraInfo {
-            print("🔍 DEBUG: - Back camera available lenses: \(backInfo.availableLenses)")
-            print("🔍 DEBUG: - Back camera has flash: \(backInfo.hasFlash)")
+            debugLog("🔍 DEBUG: - Back camera available lenses: \(backInfo.availableLenses)")
+            debugLog("🔍 DEBUG: - Back camera has flash: \(backInfo.hasFlash)")
         }
         
         if let frontInfo = frontCameraInfo {
-            print("🔍 DEBUG: - Front camera available lenses: \(frontInfo.availableLenses)")
-            print("🔍 DEBUG: - Front camera has flash: \(frontInfo.hasFlash)")
+            debugLog("🔍 DEBUG: - Front camera available lenses: \(frontInfo.availableLenses)")
+            debugLog("🔍 DEBUG: - Front camera has flash: \(frontInfo.hasFlash)")
         }
     }
     
     func gatherCameraInfo(for position: AVCaptureDevice.Position) -> RemoteCmd.CameraInfo? {
         let positionName = position == .front ? "Front" : "Back"
-        print("🔍 DEBUG: gatherCameraInfo for \(positionName) camera")
+        debugLog("🔍 DEBUG: gatherCameraInfo for \(positionName) camera")
         
         let deviceTypes = getAllDeviceTypes()
         let videoDevices = AVCaptureDevice.DiscoverySession.init(
                 deviceTypes: deviceTypes,
                 mediaType: .video, position: position).devices
         
-        print("🔍 DEBUG: - Found \(videoDevices.count) devices for \(positionName) position")
+        debugLog("🔍 DEBUG: - Found \(videoDevices.count) devices for \(positionName) position")
         for device in videoDevices {
-            print("🔍 DEBUG: - \(device.localizedName) (\(device.deviceType.rawValue))")
+            debugLog("🔍 DEBUG: - \(device.localizedName) (\(device.deviceType.rawValue))")
         }
         
         guard !videoDevices.isEmpty else { 
-            print("🔍 DEBUG: - No devices found for \(positionName) position")
+            debugLog("🔍 DEBUG: - No devices found for \(positionName) position")
             return nil 
         }
         
@@ -693,7 +693,7 @@ public class CameraViewController: UIViewController,
             return videoDevices.contains { $0.deviceType == lensType.deviceType }
         }
         
-        print("🔍 DEBUG: - Final available lenses: \(availableLenses.map { $0.displayName })")
+        debugLog("🔍 DEBUG: - Final available lenses: \(availableLenses.map { $0.displayName })")
         
         // Check if any camera on this position has flash
         let hasFlash = videoDevices.contains { $0.hasFlash }
@@ -782,17 +782,17 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Current Camera Capabilities for Toggle Response
     func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
-        print("🔍 DEBUG: gatherCurrentCameraCapabilities called")
+        debugLog("🔍 DEBUG: gatherCurrentCameraCapabilities called")
         
         guard let currentDevice = self.videoDeviceInput?.device else { 
-            print("❌ DEBUG: No videoDeviceInput.device available")
-            print("❌ DEBUG: videoDeviceInput is \(self.videoDeviceInput != nil ? "not nil" : "nil")")
+            debugLog("❌ DEBUG: No videoDeviceInput.device available")
+            debugLog("❌ DEBUG: videoDeviceInput is \(self.videoDeviceInput != nil ? "not nil" : "nil")")
             return nil 
         }
         
-        print("🔍 DEBUG: Current device: \(currentDevice.localizedName)")
-        print("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
-        print("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
+        debugLog("🔍 DEBUG: Current device: \(currentDevice.localizedName)")
+        debugLog("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
+        debugLog("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
         
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo,
@@ -807,22 +807,22 @@ public class CameraViewController: UIViewController,
             error: nil
         )
 
-        print("🔍 DEBUG: Created capabilities response successfully")
+        debugLog("🔍 DEBUG: Created capabilities response successfully")
         return capabilities
     }
     
     // MARK: - Enhanced Zoom Control Methods
     func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
-        print("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
+        debugLog("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
         
         guard let device = self.videoDeviceInput?.device else {
-            print("❌ DEBUG: No camera device available")
+            debugLog("❌ DEBUG: No camera device available")
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
         
-        print("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
-        print("🔍 DEBUG: Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
-        print("🔍 DEBUG: Current zoom: \(device.videoZoomFactor)")
+        debugLog("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
+        debugLog("🔍 DEBUG: Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
+        debugLog("🔍 DEBUG: Current zoom: \(device.videoZoomFactor)")
         
         do {
             try device.lockForConfiguration()
@@ -830,7 +830,7 @@ public class CameraViewController: UIViewController,
             let clampedZoom = max(device.minAvailableVideoZoomFactor, 
                                  min(zoomFactor, device.maxAvailableVideoZoomFactor))
             
-            print("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
+            debugLog("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
             device.videoZoomFactor = clampedZoom
             currentZoomFactor = clampedZoom
 
@@ -839,7 +839,7 @@ public class CameraViewController: UIViewController,
 
             device.unlockForConfiguration()
 
-            print("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor), lens: \(currentLensType.displayName)")
+            debugLog("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor), lens: \(currentLensType.displayName)")
 
             let zoomRange = RemoteCmd.ZoomRange(
                 minZoom: device.minAvailableVideoZoomFactor,
@@ -848,7 +848,7 @@ public class CameraViewController: UIViewController,
 
             return Success((clampedZoom, currentLensType, zoomRange))
         } catch let error as NSError {
-            print("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
+            debugLog("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
             return Failure(error: error)
         }
     }
@@ -1081,6 +1081,19 @@ public class CameraViewController: UIViewController,
             return nil
         }
         captureSession.commitConfiguration()
+
+        // Restore zoom factor — changing activeFormat/sessionPreset resets it to 1.0
+        let savedZoom = currentZoomFactor
+        do {
+            try device.lockForConfiguration()
+            let clampedZoom = max(device.minAvailableVideoZoomFactor,
+                                 min(savedZoom, device.maxAvailableVideoZoomFactor))
+            device.videoZoomFactor = clampedZoom
+            currentZoomFactor = clampedZoom
+            device.unlockForConfiguration()
+        } catch {
+            debugLog("❌ DEBUG: Failed to restore zoom after quality change: \(error)")
+        }
 
         currentVideoResolution = resolution
         currentVideoFrameRate = appliedFrameRate

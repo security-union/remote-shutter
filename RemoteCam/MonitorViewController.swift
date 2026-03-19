@@ -318,7 +318,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     override public func viewDidLoad() {
         super.viewDidLoad()
-        print("🔍 DEBUG: MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
+        debugLog("🔍 DEBUG: MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
 
         let m = createOrReplaceActor(
             clz: MonitorActor.self,
@@ -338,7 +338,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         // Request camera capabilities after MonitorActor is fully set up
         // This handles the race condition where capabilities arrive before viewDidLoad
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            print("🔍 DEBUG: Requesting camera capabilities after MonitorActor setup")
+            debugLog("🔍 DEBUG: Requesting camera capabilities after MonitorActor setup")
             if let session = self?.session {
                 session ! UICmd.RequestCameraCapabilities()
             }
