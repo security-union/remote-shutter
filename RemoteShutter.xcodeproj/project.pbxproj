@@ -140,7 +140,10 @@
 		E602233EB8B13D1B2BB12016 /* WelcomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */; };
 		E9256A91DEEB414C3FE6C48D /* ActorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4711EC884DF706A90B90662D /* ActorSystem.swift */; };
 		F32EBBCC678C33E1B4E62884 /* NSOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFE1C1E3BF1B4B2BD321763 /* NSOperationQueue.swift */; };
-/* End PBXBuildFile section */
+		DEADBEEF0001000000000002 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEADBEEF0001000000000001 /* DebugLog.swift */; };
+		DEADBEEF0001000000000003 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEADBEEF0001000000000001 /* DebugLog.swift */; };
+				CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0001000000000001 /* CropRectTests.swift */; };
+		/* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		069284301BE5BF5C00AF4678 /* PBXContainerItemProxy */ = {
@@ -306,7 +309,9 @@
 		D74001DF2412690FAA394C74 /* Pods-RemoteShutterTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.debug.xcconfig"; sourceTree = "<group>"; };
 		E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ViewControllerActor.swift; sourceTree = "<group>"; };
 		F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
-/* End PBXFileReference section */
+		DEADBEEF0001000000000001 /* DebugLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLog.swift; sourceTree = "<group>"; };
+				CAFEBABE0001000000000001 /* CropRectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropRectTests.swift; sourceTree = "<group>"; };
+		/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		069284191BE5BF5B00AF4678 /* Frameworks */ = {
@@ -432,6 +437,7 @@
 			children = (
 				AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */,
 				AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */,
+				CAFEBABE0001000000000001 /* CropRectTests.swift */,
 				069284351BE5BF5C00AF4678 /* Info.plist */,
 				036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */,
 				B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */,
@@ -482,6 +488,7 @@
 			isa = PBXGroup;
 			children = (
 				06BB79B72E374D410094E085 /* FeatureFlags.swift */,
+				DEADBEEF0001000000000001 /* DebugLog.swift */,
 				06CDFB1D252E9CD200EA56FB /* UICmds.swift */,
 				06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */,
 				069284451BE5C0E600AF4678 /* MultipeerMessages.swift */,
@@ -862,6 +869,7 @@
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
 				06AEE43425333B4A00C2ED90 /* UIAlertController.swift in Sources */,
 				068EF0C62531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				DEADBEEF0001000000000002 /* DebugLog.swift in Sources */,
 				77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */,
 				AA0001012E940001000A1001 /* AlertPresenting.swift in Sources */,
 				AA0001052E940005000A1001 /* UIAlertPresenter.swift in Sources */,
@@ -937,6 +945,7 @@
 			files = (
 				AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */,
 				AABB00042E930002009TESTS /* RemoteCmdSerializationTests.swift in Sources */,
+				CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */,
 				3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */,
 				B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */,
 				AA00020000000004 /* StoreManagerTests.swift in Sources */,
@@ -956,6 +965,7 @@
 				B1C0DE0300000005 /* DeviceScannerView.swift in Sources */,
 				B1C0DE0300000002 /* DeviceScannerViewModel.swift in Sources */,
 				068EF0C82531915A00A84DFA /* MultipeerDelegates.swift in Sources */,
+				DEADBEEF0001000000000003 /* DebugLog.swift in Sources */,
 				AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */,
 				AA0001042E940004000A1001 /* AlertPresenting.swift in Sources */,
 				AA0001072E940007000A1001 /* UIAlertPresenter.swift in Sources */,

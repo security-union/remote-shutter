@@ -74,6 +74,8 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Aspect Ratio
     var currentAspectRatio: AspectRatio = .sixteenNine
+    lazy var videoCropContext = CIContext()
+    var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
 
@@ -1111,35 +1113,36 @@ public class CameraViewController: UIViewController,
         return ratio
     }
 
-    /// Crops photo data to the selected aspect ratio using CGImage.
+    /// Computes a centered crop rect for the given aspect ratio within source dimensions.
+    /// Returns nil if the source already matches the target ratio.
+    static func cropRect(sourceWidth: CGFloat, sourceHeight: CGFloat, aspectRatio: AspectRatio) -> CGRect? {
+        let isLandscape = sourceWidth > sourceHeight
+        let targetRatio = isLandscape ? aspectRatio.widthToHeight : (1.0 / aspectRatio.widthToHeight)
+        let currentRatio = sourceWidth / sourceHeight
+
+        if abs(currentRatio - targetRatio) < 0.01 {
+            return nil // Already matches
+        } else if currentRatio > targetRatio {
+            let newWidth = sourceHeight * targetRatio
+            return CGRect(x: (sourceWidth - newWidth) / 2, y: 0, width: newWidth, height: sourceHeight)
+        } else {
+            let newHeight = sourceWidth / targetRatio
+            return CGRect(x: 0, y: (sourceHeight - newHeight) / 2, width: sourceWidth, height: newHeight)
+        }
+    }
+
+    /// Crops photo data to the selected aspect ratio.
     func cropPhotoData(_ data: Data, to aspectRatio: AspectRatio) -> Data? {
         guard let image = UIImage(data: data),
               let cgImage = image.cgImage else { return nil }
 
-        let imageWidth = CGFloat(cgImage.width)
-        let imageHeight = CGFloat(cgImage.height)
+        guard let rect = Self.cropRect(
+            sourceWidth: CGFloat(cgImage.width),
+            sourceHeight: CGFloat(cgImage.height),
+            aspectRatio: aspectRatio
+        ) else { return data }
 
-        // Determine the target ratio for the image's actual orientation
-        let isLandscape = imageWidth > imageHeight
-        let targetRatio = isLandscape ? aspectRatio.widthToHeight : (1.0 / aspectRatio.widthToHeight)
-        let currentRatio = imageWidth / imageHeight
-
-        var cropRect: CGRect
-        if abs(currentRatio - targetRatio) < 0.01 {
-            return data // Already at the target aspect ratio
-        } else if currentRatio > targetRatio {
-            // Wider than target: crop sides
-            let newWidth = imageHeight * targetRatio
-            let xOffset = (imageWidth - newWidth) / 2
-            cropRect = CGRect(x: xOffset, y: 0, width: newWidth, height: imageHeight)
-        } else {
-            // Taller than target: crop top/bottom
-            let newHeight = imageWidth / targetRatio
-            let yOffset = (imageHeight - newHeight) / 2
-            cropRect = CGRect(x: 0, y: yOffset, width: imageWidth, height: newHeight)
-        }
-
-        guard let croppedCG = cgImage.cropping(to: cropRect) else { return nil }
+        guard let croppedCG = cgImage.cropping(to: rect) else { return nil }
         let croppedImage = UIImage(cgImage: croppedCG, scale: image.scale, orientation: image.imageOrientation)
         return croppedImage.jpegData(compressionQuality: 0.95)
     }
@@ -1345,7 +1348,8 @@ extension CameraViewController {
                 self?.updateRecordingTimerDisplay()
             }
             self.assetWriter?.finishWriting {[weak self] in
-                self?.assetWriter=nil
+                self?.assetWriter = nil
+                self?.pixelBufferAdaptor = nil
                 self?.readyToRecordVideo = false
                 self?.readyToRecordAudio = false
                 self?.recordingWillBeStopped = false
@@ -1459,23 +1463,49 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         var videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
         videoSettings?[AVVideoCodecKey] = AVVideoCodecType.hevc
 
+        // Apply aspect ratio cropping to video output dimensions
+        if currentAspectRatio != .sixteenNine, var settings = videoSettings {
+            let dims = CMVideoFormatDescriptionGetDimensions(formatDescription)
+            let sourceWidth = CGFloat(dims.width)
+            let sourceHeight = CGFloat(dims.height)
+            let cropped = croppedVideoDimensions(sourceWidth: sourceWidth, sourceHeight: sourceHeight, aspectRatio: currentAspectRatio)
+            settings[AVVideoWidthKey] = Int(cropped.width)
+            settings[AVVideoHeightKey] = Int(cropped.height)
+            videoSettings = settings
+        }
+
         if assetWriter.canApply(outputSettings: videoSettings, forMediaType: .video) {
             videoInput = AVAssetWriterInput(
                 mediaType: .video,
                 outputSettings: videoSettings)
             videoInput.expectsMediaDataInRealTime = true
 
+            // Use pixel buffer adaptor for cropped frames when aspect ratio requires it
+            if currentAspectRatio != .sixteenNine {
+                pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
+                    assetWriterInput: videoInput,
+                    sourcePixelBufferAttributes: nil)
+            } else {
+                pixelBufferAdaptor = nil
+            }
+
             if assetWriter.canAdd(videoInput) {
                 assetWriter.add(videoInput)
             } else {
-                // TODO: manage
                 return false
             }
         } else {
-            // TODO: manage
             return false
         }
         return true
+    }
+
+    /// Computes cropped pixel dimensions for a given aspect ratio, rounded to even numbers for codec.
+    private func croppedVideoDimensions(sourceWidth: CGFloat, sourceHeight: CGFloat, aspectRatio: AspectRatio) -> CGSize {
+        if let rect = Self.cropRect(sourceWidth: sourceWidth, sourceHeight: sourceHeight, aspectRatio: aspectRatio) {
+            return CGSize(width: floor(rect.width / 2) * 2, height: floor(rect.height / 2) * 2)
+        }
+        return CGSize(width: sourceWidth, height: sourceHeight)
     }
 
     func setupAssetWriterAudioInput(_ formatDescription: CMFormatDescription,
@@ -1561,14 +1591,51 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                 }
             }
 
-            if let input = (mediaType == .video) ? self.videoInput : self.audioInput {
+            if mediaType == .video, let adaptor = self.pixelBufferAdaptor,
+               self.currentAspectRatio != .sixteenNine {
+                // Crop video frame for non-16:9 aspect ratios
+                if self.videoInput.isReadyForMoreMediaData,
+                   let croppedBuffer = self.cropSampleBuffer(sampleBuffer) {
+                    let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+                    adaptor.append(croppedBuffer, withPresentationTime: pts)
+                }
+            } else if let input = (mediaType == .video) ? self.videoInput : self.audioInput {
                 if input.isReadyForMoreMediaData {
-                    let success = input.append(sampleBuffer)
-                    if !success {
-                        // TODO: Error
-                    }
+                    input.append(sampleBuffer)
                 }
             }
         }
+    }
+
+    /// Crops a video sample buffer's pixel buffer to the current aspect ratio.
+    private func cropSampleBuffer(_ sampleBuffer: CMSampleBuffer) -> CVPixelBuffer? {
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
+
+        let sourceWidth = CGFloat(CVPixelBufferGetWidth(pixelBuffer))
+        let sourceHeight = CGFloat(CVPixelBufferGetHeight(pixelBuffer))
+
+        guard let rect = Self.cropRect(sourceWidth: sourceWidth, sourceHeight: sourceHeight, aspectRatio: currentAspectRatio) else {
+            return pixelBuffer // No crop needed
+        }
+
+        // Round to even for codec compatibility
+        let evenRect = CGRect(
+            x: floor(rect.origin.x / 2) * 2,
+            y: floor(rect.origin.y / 2) * 2,
+            width: floor(rect.width / 2) * 2,
+            height: floor(rect.height / 2) * 2
+        )
+
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer).cropped(to: evenRect)
+
+        var outputBuffer: CVPixelBuffer?
+        CVPixelBufferCreate(kCFAllocatorDefault,
+                           Int(evenRect.width), Int(evenRect.height),
+                           CVPixelBufferGetPixelFormatType(pixelBuffer),
+                           nil, &outputBuffer)
+
+        guard let output = outputBuffer else { return nil }
+        videoCropContext.render(ciImage, to: output)
+        return output
     }
 }
