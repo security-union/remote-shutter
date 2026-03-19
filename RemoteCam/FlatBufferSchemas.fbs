@@ -164,6 +164,7 @@ table CameraInfo {
     video_quality: VideoQualityCapabilities;
     photo_quality: PhotoQualityCapabilities;
     zoom_stops: [double];
+    wide_angle_zoom_factor: double;
 }
 
 table CameraState {

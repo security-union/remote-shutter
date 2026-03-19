@@ -131,10 +131,19 @@ struct MonitorView: View {
         .gesture(
             MagnificationGesture()
                 .onChanged { value in
-                    // Apply sensitivity multiplier to make zoom less sensitive
-                    let sensitivity: CGFloat = 0.5 // Reduce sensitivity by half
-                    let zoomChange = (value - 1.0) * sensitivity + 1.0
-                    let newZoom = max(1.0, min(viewModel.maxZoomFactor, viewModel.currentZoomFactor * zoomChange))
+                    // Logarithmic zoom: equal pinch distance = equal perceptual change
+                    // This gives fine control at low zooms (0.5-1x) and smooth control at high zooms
+                    let minZoom = viewModel.zoomStops.first ?? 1.0
+                    let maxZoom = viewModel.maxZoomFactor
+                    let sensitivity: CGFloat = 0.4
+
+                    let logMin = log2(minZoom)
+                    let logMax = log2(maxZoom)
+                    let logCurrent = log2(viewModel.currentZoomFactor)
+                    let logNew = logCurrent + (value - 1.0) * sensitivity
+                    let clamped = max(logMin, min(logMax, logNew))
+                    let newZoom = pow(2, clamped)
+
                     onZoomChange(newZoom)
                     viewModel.showZoomControlsTemporarily()
                 }
@@ -147,8 +156,8 @@ struct MonitorView: View {
     // MARK: - Zoom Controls Overlay
     private var zoomControlsOverlay: some View {
         VStack(spacing: 10) {
-            // Current zoom level - prominent display
-            Text("\(String(format: "%.1f", viewModel.currentZoomFactor))×")
+            // Current zoom level - display relative to wide-angle
+            Text("\(String(format: "%.1f", viewModel.currentZoomFactor / viewModel.wideAngleZoomFactor))×")
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
                 .tracking(0.5)
@@ -156,12 +165,16 @@ struct MonitorView: View {
             // Progress bar with refined styling
             HStack(spacing: 8) {
                 // Start label
-                Text("1×")
+                Text(formatZoomStop(viewModel.zoomStops.first ?? 1.0))
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
-                
+
                 // Enhanced progress bar
                 ZStack(alignment: .leading) {
+                    let minZoom = viewModel.zoomStops.first ?? 1.0
+                    let range = viewModel.maxZoomFactor - minZoom
+                    let progress = range > 0 ? (viewModel.currentZoomFactor - minZoom) / range : 0
+
                     // Background track with subtle gradient
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
@@ -175,7 +188,7 @@ struct MonitorView: View {
                             )
                         )
                         .frame(width: 140, height: 8)
-                    
+
                     // Progress fill
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
@@ -186,12 +199,12 @@ struct MonitorView: View {
                             )
                         )
                         .frame(
-                            width: CGFloat(140 * Double((viewModel.currentZoomFactor - 1.0) / (viewModel.maxZoomFactor - 1.0))), 
+                            width: CGFloat(140 * max(0, min(1, Double(progress)))),
                             height: 8
                         )
                         .shadow(color: AppTheme.accent.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
-                
+
                 // End label
                 Text("\(String(format: "%.0f", viewModel.maxZoomFactor))×")
                     .font(.system(size: 11, weight: .medium, design: .rounded))
@@ -374,9 +387,14 @@ struct MonitorView: View {
                     timerControls
                 }
 
-                // Zoom Stop Controls (replaces lens buttons)
+                // Zoom Stop Controls
                 if viewModel.zoomStops.count > 1 {
                     zoomStopControls
+                }
+
+                // Lens Controls
+                if viewModel.availableLensTypes.count > 1 {
+                    lensControls
                 }
 
                 // Aspect Ratio Controls
@@ -484,11 +502,41 @@ struct MonitorView: View {
         .disabled(!viewModel.isLensControlEnabled)
     }
 
-    private func formatZoomStop(_ stop: CGFloat) -> String {
-        if stop == CGFloat(Int(stop)) {
-            return "\(Int(stop))x"
+    /// Formats a hardware zoom factor as a user-facing label relative to the wide-angle camera.
+    /// e.g., hardware 1.0 with wideAngleFactor 2.0 → "0.5x", hardware 2.0 → "1x", hardware 6.0 → "3x"
+    private func formatZoomStop(_ hardwareZoom: CGFloat) -> String {
+        let displayZoom = hardwareZoom / viewModel.wideAngleZoomFactor
+        let rounded = round(displayZoom * 10) / 10
+        if rounded == CGFloat(Int(rounded)) {
+            return "\(Int(rounded))x"
         }
-        return String(format: "%.1fx", stop)
+        return String(format: "%.1fx", rounded)
+    }
+
+    // MARK: - Lens Controls
+    private var lensControls: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(viewModel.availableLensTypes, id: \.self) { lensType in
+                    Button(action: {
+                        onLensChange(lensType)
+                    }) {
+                        Text(lensType.displayName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(viewModel.currentLensType == lensType ? .black : .white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                viewModel.currentLensType == lensType ?
+                                AppTheme.accent : Color.gray.opacity(0.3)
+                            )
+                            .cornerRadius(6)
+                    }
+                    .disabled(!viewModel.isLensControlEnabled)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
     }
 
     // MARK: - Aspect Ratio Controls

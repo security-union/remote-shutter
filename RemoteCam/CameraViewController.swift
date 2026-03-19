@@ -332,6 +332,7 @@ public class CameraViewController: UIViewController,
         guard let videoDevice = preferredBackCamera() ?? AVCaptureDevice.default(for: AVMediaType.video) else {
             return
         }
+        print("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
 
         self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
 
@@ -354,6 +355,14 @@ public class CameraViewController: UIViewController,
             // Initialize current state
             self.updateAvailableLensTypes(for: videoDevice.position)
             self.zoomStops = self.discoverZoomStops(for: videoDevice)
+
+            // Start at the wide-angle zoom factor (matches native Camera app "1x")
+            let wideZoom = self.wideAngleZoomFactor(for: videoDevice)
+            if wideZoom > 1.0 {
+                try videoDevice.lockForConfiguration()
+                videoDevice.videoZoomFactor = wideZoom
+                videoDevice.unlockForConfiguration()
+            }
             self.currentZoomFactor = videoDevice.videoZoomFactor
 
             // Camera capabilities are now sent through peer-to-peer communication in CamStates.swift
@@ -536,32 +545,51 @@ public class CameraViewController: UIViewController,
         return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
     }
 
-    /// Discovers zoom stop factors from a virtual device's switchOverVideoZoomFactors.
+    /// Discovers hardware zoom stop factors from a virtual device's switchOverVideoZoomFactors.
+    ///
+    /// For builtInTripleCamera: base (1.0) = ultra-wide, switchovers e.g. [2.0, 6.0]
+    /// - Hardware 1.0 = ultra-wide (displayed as "0.5x" by dividing by wideAngleZoomFactor)
+    /// - Hardware 2.0 = wide-angle (displayed as "1x")
+    /// - Hardware 6.0 = telephoto (displayed as "3x")
     func discoverZoomStops(for device: AVCaptureDevice) -> [CGFloat] {
-        var stops: [CGFloat] = [1.0] // Always include 1x
-
         if device.position == .front {
-            return stops // Front camera has no switchover factors
+            return [1.0]
         }
 
-        // Virtual devices expose switchOverVideoZoomFactors
-        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors
-        for factor in switchOverFactors {
-            let f = CGFloat(truncating: factor)
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        print("🔍 ZOOM STOPS: device=\(device.localizedName) switchOverFactors=\(switchOverFactors) minZoom=\(device.minAvailableVideoZoomFactor) maxZoom=\(device.maxAvailableVideoZoomFactor)")
+
+        // Start with the base (1.0) which is the widest constituent camera
+        var stops: [CGFloat] = [device.minAvailableVideoZoomFactor]
+
+        // Add each switchover factor
+        for f in switchOverFactors {
             if !stops.contains(f) {
                 stops.append(f)
             }
         }
 
-        // Add ultra-wide stop if device supports zoom below 1.0
-        if device.minAvailableVideoZoomFactor < 0.9 {
-            let ultraWideStop = CGFloat(round(device.minAvailableVideoZoomFactor * 10) / 10)
-            if !stops.contains(ultraWideStop) {
-                stops.insert(ultraWideStop, at: 0)
-            }
+        // If no switchover factors, this is a single camera — just return [1.0]
+        if switchOverFactors.isEmpty && stops == [1.0] {
+            return [1.0]
         }
 
-        return stops.sorted()
+        let result = stops.sorted()
+        print("🔍 ZOOM STOPS: final=\(result)")
+        return result
+    }
+
+    /// Returns the hardware zoom factor that corresponds to the wide-angle camera.
+    /// For virtual devices with ultra-wide base, this is the first switchover factor.
+    /// For single cameras or dual (wide+telephoto), this is 1.0.
+    func wideAngleZoomFactor(for device: AVCaptureDevice) -> CGFloat {
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        // If there are switchover factors and the base zoom < 1.5 (i.e., ultra-wide is base),
+        // the first switchover is where the wide-angle starts
+        if let first = switchOverFactors.first, device.minAvailableVideoZoomFactor < 1.5 {
+            return first
+        }
+        return 1.0
     }
 
     func cameraForPosition(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
@@ -716,6 +744,7 @@ public class CameraViewController: UIViewController,
             preferredDevice = videoDevices.first
         }
         let discoveredZoomStops = preferredDevice.map { discoverZoomStops(for: $0) } ?? [1.0]
+        let wideAngle = preferredDevice.map { wideAngleZoomFactor(for: $0) } ?? 1.0
 
         return RemoteCmd.CameraInfo(
             availableLenses: availableLenses,
@@ -727,7 +756,8 @@ public class CameraViewController: UIViewController,
             resolutionFrameRates: resolutionFrameRates,
             supportsHEIF: supportsHEIF,
             supportsHDR: supportsHDR,
-            zoomStops: discoveredZoomStops
+            zoomStops: discoveredZoomStops,
+            wideAngleZoomFactor: wideAngle
         )
     }
     
@@ -803,16 +833,19 @@ public class CameraViewController: UIViewController,
             print("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
             device.videoZoomFactor = clampedZoom
             currentZoomFactor = clampedZoom
-            
+
+            // Update currentLensType based on which lens the virtual device is using
+            currentLensType = lensTypeForZoomFactor(clampedZoom, device: device)
+
             device.unlockForConfiguration()
-            
-            print("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor)")
-            
+
+            print("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor), lens: \(currentLensType.displayName)")
+
             let zoomRange = RemoteCmd.ZoomRange(
                 minZoom: device.minAvailableVideoZoomFactor,
                 maxZoom: device.maxAvailableVideoZoomFactor
             )
-            
+
             return Success((clampedZoom, currentLensType, zoomRange))
         } catch let error as NSError {
             print("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
@@ -833,43 +866,108 @@ public class CameraViewController: UIViewController,
     }
 
     // MARK: - Enhanced Lens Switching Methods
+
+    /// Determines which lens is active based on the current zoom factor and switchover points.
+    private func lensTypeForZoomFactor(_ zoom: CGFloat, device: AVCaptureDevice) -> CameraLensType {
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        guard !switchOverFactors.isEmpty else { return .wideAngle }
+
+        if switchOverFactors.count >= 2 && zoom >= switchOverFactors[1] {
+            return .telephoto
+        } else if zoom >= switchOverFactors[0] {
+            return .wideAngle
+        } else {
+            return .ultraWide
+        }
+    }
+
+    /// Maps a CameraLensType to the appropriate hardware zoom factor on the current virtual device.
+    ///
+    /// For builtInTripleCamera with switchOverFactors [2, 6]:
+    ///   .ultraWide → 1.0 (base = ultra-wide)
+    ///   .wideAngle → 2.0 (first switchover)
+    ///   .telephoto → 6.0 (second switchover)
+    private func zoomFactorForLensType(_ lensType: CameraLensType, device: AVCaptureDevice) -> CGFloat {
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+
+        switch lensType {
+        case .ultraWide:
+            // Ultra-wide is the base lens of the virtual device
+            return device.minAvailableVideoZoomFactor
+        case .wideAngle:
+            // Wide-angle is at the first switchover factor
+            return switchOverFactors.first ?? 1.0
+        case .telephoto:
+            // Telephoto is at the last switchover factor
+            return switchOverFactors.last ?? switchOverFactors.first ?? 2.0
+        case .dualCamera:
+            return switchOverFactors.first ?? 2.0
+        }
+    }
+
     func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)> {
-        guard let currentDevice = self.videoDeviceInput?.device else {
+        guard let device = self.videoDeviceInput?.device else {
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
-        
-        let position = currentDevice.position
+
+        // If using a virtual device, just set the zoom factor — the virtual device
+        // automatically switches physical cameras at the right zoom levels.
+        let isVirtualDevice = !device.virtualDeviceSwitchOverVideoZoomFactors.isEmpty
+                              || device.minAvailableVideoZoomFactor < 0.9
+
+        if isVirtualDevice {
+            let targetZoom = zoomFactorForLensType(lensType, device: device)
+            do {
+                try device.lockForConfiguration()
+                let clampedZoom = max(device.minAvailableVideoZoomFactor,
+                                     min(targetZoom, device.maxAvailableVideoZoomFactor))
+                device.videoZoomFactor = clampedZoom
+                currentZoomFactor = clampedZoom
+                currentLensType = lensType
+                device.unlockForConfiguration()
+
+                let zoomRange = RemoteCmd.ZoomRange(
+                    minZoom: device.minAvailableVideoZoomFactor,
+                    maxZoom: device.maxAvailableVideoZoomFactor
+                )
+                return Success((lensType, availableLensTypes, currentZoomFactor, zoomRange))
+            } catch let error as NSError {
+                return Failure(error: error)
+            }
+        }
+
+        // Fallback: swap physical devices for non-virtual cameras (e.g., front camera)
+        let position = device.position
         guard let newDevice = cameraForPositionAndLens(position: position, lensType: lensType) else {
             return Failure(error: NSError(domain: "Requested lens type not available", code: 0, userInfo: nil))
         }
-        
+
         do {
             let captureSession = self.captureSession
             captureSession.beginConfiguration()
-            
+
             let newInput = try AVCaptureDeviceInput(device: newDevice)
             captureSession.removeInput(self.videoDeviceInput)
             captureSession.addInput(newInput)
             self.videoDeviceInput = newInput
             self.currentLensType = lensType
-            
-            // Reset zoom to 1.0 when switching lenses
+
             currentZoomFactor = 1.0
-            
+
             configSessionOutput()
             try setFrameRate(framerate: fps, videoDevice: newDevice)
-            
+
             DispatchQueue.main.async {
                 self.rotateCameraToOrientation(orientation: self.orientation)
             }
-            
+
             captureSession.commitConfiguration()
-            
+
             let zoomRange = RemoteCmd.ZoomRange(
                 minZoom: newDevice.minAvailableVideoZoomFactor,
                 maxZoom: newDevice.maxAvailableVideoZoomFactor
             )
-            
+
             return Success((lensType, availableLensTypes, currentZoomFactor, zoomRange))
         } catch let error as NSError {
             return Failure(error: error)

@@ -135,7 +135,10 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                             hdrMode: capabilities.currentHDRMode)
 
                         // Update zoom stops from camera capabilities
-                        ctrl.viewModel.updateZoomStops(cameraInfo.zoomStops)
+                        ctrl.viewModel.updateZoomStops(
+                            cameraInfo.zoomStops,
+                            wideAngleZoomFactor: cameraInfo.wideAngleZoomFactor
+                        )
                     }
                 }
                 
@@ -145,41 +148,45 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     if let ctrl = ctrl?.value, let zoomFactor = zoom.zoomFactor {
                         let maxZoom = zoom.zoomRange?.maxZoom ?? ctrl.maxZoomFactor
                         ctrl.updateZoomInViewModel(zoomFactor, maxFactor: maxZoom)
+                        // Sync lens type so zoom and lens controls stay cohesive
+                        if let lens = zoom.currentLens {
+                            ctrl.viewModel.updateAvailableLenses(ctrl.viewModel.availableLensTypes, current: lens)
+                        }
                     }
                 }
-                
+
             case let zoomRemote as RemoteCmd.SetZoomResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl?.value, let zoomFactor = zoomRemote.zoomFactor {
                         let maxZoom = zoomRemote.zoomRange?.maxZoom ?? ctrl.maxZoomFactor
                         ctrl.updateZoomInViewModel(zoomFactor, maxFactor: maxZoom)
+                        // Sync lens type so zoom and lens controls stay cohesive
+                        if let lens = zoomRemote.currentLens {
+                            ctrl.viewModel.updateAvailableLenses(ctrl.viewModel.availableLensTypes, current: lens)
+                        }
                     }
                 }
                 
             // MARK: - Lens Response Handling
             case let lens as UICmd.SwitchLensResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl?.value, 
+                    if let ctrl = ctrl?.value,
                        let lensType = lens.lensType,
                        let availableLenses = lens.availableLenses {
                         ctrl.updateLensTypesInViewModel(availableLenses, current: lensType)
-                        
-                        // Update zoom controls if we have the new zoom info
                         if let currentZoom = lens.currentZoom,
                            let zoomRange = lens.zoomRange {
                             ctrl.updateZoomInViewModel(currentZoom, maxFactor: zoomRange.maxZoom)
                         }
                     }
                 }
-                
+
             case let lensRemote as RemoteCmd.SwitchLensResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl?.value,
                        let lensType = lensRemote.lensType,
                        let availableLenses = lensRemote.availableLenses {
                         ctrl.updateLensTypesInViewModel(availableLenses, current: lensType)
-
-                        // Update zoom controls if we have the new zoom info
                         if let currentZoom = lensRemote.currentZoom,
                            let zoomRange = lensRemote.zoomRange {
                             ctrl.updateZoomInViewModel(currentZoom, maxFactor: zoomRange.maxZoom)

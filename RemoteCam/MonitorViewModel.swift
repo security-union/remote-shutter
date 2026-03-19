@@ -43,6 +43,7 @@ class MonitorViewModel: ObservableObject {
     @Published var showZoomControls: Bool = false
     @Published var zoomStops: [CGFloat] = [1.0]
     @Published var activeZoomStop: CGFloat = 1.0
+    @Published var wideAngleZoomFactor: CGFloat = 1.0 // Hardware zoom for "1x" reference
 
     // MARK: - Aspect Ratio Properties
     @Published var currentAspectRatio: AspectRatio = .sixteenNine
@@ -183,10 +184,14 @@ class MonitorViewModel: ObservableObject {
         }
     }
     
+    /// Max display zoom (5x relative to wide-angle)
+    private static let maxDisplayZoom: CGFloat = 5.0
+
     func updateZoomFactor(_ factor: CGFloat, maxFactor: CGFloat) {
         DispatchQueue.main.async {
+            let maxHardwareZoom = Self.maxDisplayZoom * self.wideAngleZoomFactor
             self.currentZoomFactor = factor
-            self.maxZoomFactor = maxFactor
+            self.maxZoomFactor = min(maxFactor, maxHardwareZoom)
             self.updateActiveZoomStop()
         }
     }
@@ -198,9 +203,10 @@ class MonitorViewModel: ObservableObject {
         }
     }
 
-    func updateZoomStops(_ stops: [CGFloat]) {
+    func updateZoomStops(_ stops: [CGFloat], wideAngleZoomFactor: CGFloat) {
         DispatchQueue.main.async {
             self.zoomStops = stops
+            self.wideAngleZoomFactor = wideAngleZoomFactor
             self.updateActiveZoomStop()
         }
     }

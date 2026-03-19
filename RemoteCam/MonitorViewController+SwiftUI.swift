@@ -342,7 +342,7 @@ extension MonitorViewController {
     func updateZoomInViewModel(_ factor: CGFloat, maxFactor: CGFloat) {
         viewModel.updateZoomFactor(factor, maxFactor: maxFactor)
     }
-    
+
     func updateLensTypesInViewModel(_ lenses: [CameraLensType], current: CameraLensType) {
         viewModel.updateAvailableLenses(lenses, current: current)
     }

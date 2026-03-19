@@ -266,7 +266,8 @@ private func encodeCameraInfo(_ info: RemoteCmd.CameraInfo, _ fbb: inout FlatBuf
         zoomCapabilitiesVectorOffset: zoomCapsVector,
         videoQualityOffset: videoQualityOffset,
         photoQualityOffset: photoQualityOffset,
-        zoomStopsVectorOffset: zoomStopsVector
+        zoomStopsVectorOffset: zoomStopsVector,
+        wideAngleZoomFactor: Double(info.wideAngleZoomFactor)
     )
 }
 
@@ -332,6 +333,8 @@ private func decodeCameraInfo(_ fb: RemoteShutter_CameraInfo) -> RemoteCmd.Camer
         zoomStops = [1.0] // Default for backward compat
     }
 
+    let wideAngleZoomFactor = fb.wideAngleZoomFactor > 0 ? CGFloat(fb.wideAngleZoomFactor) : 1.0
+
     return RemoteCmd.CameraInfo(
         availableLenses: lenses,
         hasFlash: fb.hasFlash,
@@ -342,7 +345,8 @@ private func decodeCameraInfo(_ fb: RemoteShutter_CameraInfo) -> RemoteCmd.Camer
         resolutionFrameRates: resolutionFrameRates,
         supportsHEIF: supportsHEIF,
         supportsHDR: supportsHDR,
-        zoomStops: zoomStops
+        zoomStops: zoomStops,
+        wideAngleZoomFactor: wideAngleZoomFactor
     )
 }
 

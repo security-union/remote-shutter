@@ -596,6 +596,7 @@ public struct RemoteShutter_CameraInfo: FlatBufferObject, Verifiable {
     case videoQuality = 12
     case photoQuality = 14
     case zoomStops = 16
+    case wideAngleZoomFactor = 18
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -614,7 +615,8 @@ public struct RemoteShutter_CameraInfo: FlatBufferObject, Verifiable {
   public var zoomStopsCount: Int32 { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? 0 : _accessor.vector(count: o) }
   public func zoomStops(at index: Int32) -> Double { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? 0 : _accessor.directRead(of: Double.self, offset: _accessor.vector(at: o) + index * 8) }
   public var zoomStops: [Double] { return _accessor.getVector(at: VTOFFSET.zoomStops.v) ?? [] }
-  public static func startCameraInfo(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 7) }
+  public var wideAngleZoomFactor: Double { let o = _accessor.offset(VTOFFSET.wideAngleZoomFactor.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
+  public static func startCameraInfo(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 8) }
   public static func addVectorOf(availableLenses: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: availableLenses, at: VTOFFSET.availableLenses.p) }
   public static func add(hasFlash: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: hasFlash, def: false,
    at: VTOFFSET.hasFlash.p) }
@@ -624,6 +626,7 @@ public struct RemoteShutter_CameraInfo: FlatBufferObject, Verifiable {
   public static func add(videoQuality: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: videoQuality, at: VTOFFSET.videoQuality.p) }
   public static func add(photoQuality: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: photoQuality, at: VTOFFSET.photoQuality.p) }
   public static func addVectorOf(zoomStops: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: zoomStops, at: VTOFFSET.zoomStops.p) }
+  public static func add(wideAngleZoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: wideAngleZoomFactor, def: 0.0, at: VTOFFSET.wideAngleZoomFactor.p) }
   public static func endCameraInfo(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraInfo(
     _ fbb: inout FlatBufferBuilder,
@@ -633,7 +636,8 @@ public struct RemoteShutter_CameraInfo: FlatBufferObject, Verifiable {
     zoomCapabilitiesVectorOffset zoomCapabilities: Offset = Offset(),
     videoQualityOffset videoQuality: Offset = Offset(),
     photoQualityOffset photoQuality: Offset = Offset(),
-    zoomStopsVectorOffset zoomStops: Offset = Offset()
+    zoomStopsVectorOffset zoomStops: Offset = Offset(),
+    wideAngleZoomFactor: Double = 0.0
   ) -> Offset {
     let __start = RemoteShutter_CameraInfo.startCameraInfo(&fbb)
     RemoteShutter_CameraInfo.addVectorOf(availableLenses: availableLenses, &fbb)
@@ -643,6 +647,7 @@ public struct RemoteShutter_CameraInfo: FlatBufferObject, Verifiable {
     RemoteShutter_CameraInfo.add(videoQuality: videoQuality, &fbb)
     RemoteShutter_CameraInfo.add(photoQuality: photoQuality, &fbb)
     RemoteShutter_CameraInfo.addVectorOf(zoomStops: zoomStops, &fbb)
+    RemoteShutter_CameraInfo.add(wideAngleZoomFactor: wideAngleZoomFactor, &fbb)
     return RemoteShutter_CameraInfo.endCameraInfo(&fbb, start: __start)
   }
 
@@ -655,6 +660,7 @@ public struct RemoteShutter_CameraInfo: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.videoQuality.p, fieldName: "videoQuality", required: false, type: ForwardOffset<RemoteShutter_VideoQualityCapabilities>.self)
     try _v.visit(field: VTOFFSET.photoQuality.p, fieldName: "photoQuality", required: false, type: ForwardOffset<RemoteShutter_PhotoQualityCapabilities>.self)
     try _v.visit(field: VTOFFSET.zoomStops.p, fieldName: "zoomStops", required: false, type: ForwardOffset<Vector<Double, Double>>.self)
+    try _v.visit(field: VTOFFSET.wideAngleZoomFactor.p, fieldName: "wideAngleZoomFactor", required: false, type: Double.self)
     _v.finish()
   }
 }

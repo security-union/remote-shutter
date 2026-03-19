@@ -1507,4 +1507,29 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(session.currentStateName(), .monitor)
     }
 
+    // MARK: - Aspect Ratio Integration Tests
+
+    func testMonitorPhotoModeSetAspectRatioSendsCommand() throws {
+        pushMonitorPhotoModeState()
+
+        ref ! UICmd.SetAspectRatio(aspectRatio: .fourThree)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentStateName(), .monitor)
+        let ratioMessages = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.SetAspectRatio }
+        XCTAssertEqual(ratioMessages.count, 1)
+        let msg = ratioMessages[0].msg as! RemoteCmd.SetAspectRatio
+        XCTAssertEqual(msg.aspectRatio, .fourThree)
+    }
+
+    func testMonitorVideoModeSetAspectRatioSendsCommand() throws {
+        pushMonitorVideoModeState()
+
+        ref ! UICmd.SetAspectRatio(aspectRatio: .sixteenNine)
+        waitForMailbox(session, test: self)
+
+        let ratioMessages = fakeMP.sentMessages.filter { $0.msg is RemoteCmd.SetAspectRatio }
+        XCTAssertEqual(ratioMessages.count, 1)
+    }
+
 }

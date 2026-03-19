@@ -197,7 +197,8 @@ public class RemoteCmd: Actor.Message {
         public let resolutionFrameRates: [Int: [VideoFrameRate]] // VideoResolution.rawValue -> supported FPS
         public let supportsHEIF: Bool
         public let supportsHDR: Bool
-        public let zoomStops: [CGFloat] // Virtual device zoom stop factors (e.g., [0.5, 1.0, 2.0, 5.0])
+        public let zoomStops: [CGFloat] // Hardware zoom factors for each stop (e.g., [1.0, 2.0, 6.0])
+        public let wideAngleZoomFactor: CGFloat // Hardware zoom factor for the wide-angle camera (the "1x" reference)
 
         public init(availableLenses: [CameraLensType], hasFlash: Bool, hasTorch: Bool,
                     zoomCapabilities: [CameraLensType: ZoomRange],
@@ -206,7 +207,8 @@ public class RemoteCmd: Actor.Message {
                     resolutionFrameRates: [VideoResolution: [VideoFrameRate]] = [:],
                     supportsHEIF: Bool = false,
                     supportsHDR: Bool = false,
-                    zoomStops: [CGFloat] = [1.0]) {
+                    zoomStops: [CGFloat] = [1.0],
+                    wideAngleZoomFactor: CGFloat = 1.0) {
             self.availableLenses = availableLenses
             self.hasFlash = hasFlash
             self.hasTorch = hasTorch
@@ -217,6 +219,7 @@ public class RemoteCmd: Actor.Message {
             self.supportsHEIF = supportsHEIF
             self.supportsHDR = supportsHDR
             self.zoomStops = zoomStops
+            self.wideAngleZoomFactor = wideAngleZoomFactor
         }
 
         public func getZoomCapabilities() -> [CameraLensType: ZoomRange] {
