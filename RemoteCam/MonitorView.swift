@@ -5,7 +5,9 @@ import Combine
 // MARK: - Monitor View
 struct MonitorView: View {
     @ObservedObject var viewModel: MonitorViewModel
-    
+    @State private var zoomAtGestureStart: CGFloat?
+
+
     // Callbacks to MonitorViewController for Actor integration
     let onTakePicture: () -> Void
     let onToggleCamera: () -> Void
@@ -131,21 +133,29 @@ struct MonitorView: View {
         .gesture(
             MagnificationGesture()
                 .onChanged { value in
-                    // Logarithmic zoom: equal pinch distance = equal perceptual change
-                    // This gives fine control at low zooms (0.5-1x) and smooth control at high zooms
+                    // Capture zoom at gesture start (first onChanged)
+                    if zoomAtGestureStart == nil {
+                        zoomAtGestureStart = viewModel.currentZoomFactor
+                    }
+                    let start = zoomAtGestureStart!
+
+                    // Logarithmic zoom: newZoom = start * value^sensitivity
+                    // Operates in log2 space for uniform perceptual sensitivity
                     let minZoom = viewModel.zoomStops.first ?? 1.0
                     let maxZoom = viewModel.maxZoomFactor
-                    let sensitivity: CGFloat = 0.4
+                    let sensitivity: CGFloat = 0.6
 
-                    let logMin = log2(minZoom)
-                    let logMax = log2(maxZoom)
-                    let logCurrent = log2(viewModel.currentZoomFactor)
-                    let logNew = logCurrent + (value - 1.0) * sensitivity
-                    let clamped = max(logMin, min(logMax, logNew))
+                    let logStart = log2(start)
+                    let logDelta = log2(value) * sensitivity
+                    let logNew = logStart + logDelta
+                    let clamped = max(log2(minZoom), min(log2(maxZoom), logNew))
                     let newZoom = pow(2, clamped)
 
                     onZoomChange(newZoom)
                     viewModel.showZoomControlsTemporarily()
+                }
+                .onEnded { _ in
+                    zoomAtGestureStart = nil
                 }
         )
     }
