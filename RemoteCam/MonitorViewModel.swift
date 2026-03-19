@@ -42,7 +42,6 @@ class MonitorViewModel: ObservableObject {
     @Published var currentLensType: CameraLensType = .wideAngle
     @Published var showZoomControls: Bool = false
     @Published var zoomStops: [CGFloat] = [1.0]
-    @Published var activeZoomStop: CGFloat = 1.0
     @Published var wideAngleZoomFactor: CGFloat = 1.0 // Hardware zoom for "1x" reference
 
     // MARK: - Aspect Ratio Properties
@@ -192,7 +191,6 @@ class MonitorViewModel: ObservableObject {
             let maxHardwareZoom = Self.maxDisplayZoom * self.wideAngleZoomFactor
             self.currentZoomFactor = factor
             self.maxZoomFactor = min(maxFactor, maxHardwareZoom)
-            self.updateActiveZoomStop()
         }
     }
     
@@ -207,7 +205,6 @@ class MonitorViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.zoomStops = stops
             self.wideAngleZoomFactor = wideAngleZoomFactor
-            self.updateActiveZoomStop()
         }
     }
 
@@ -217,11 +214,6 @@ class MonitorViewModel: ObservableObject {
         }
     }
 
-    /// Finds the nearest zoom stop <= currentZoomFactor for button highlighting.
-    private func updateActiveZoomStop() {
-        let sorted = zoomStops.sorted()
-        activeZoomStop = sorted.last(where: { $0 <= currentZoomFactor + 0.05 }) ?? sorted.first ?? 1.0
-    }
     
     // MARK: - Video Quality Properties
     @Published var currentVideoResolution: VideoResolution = .hd1080p

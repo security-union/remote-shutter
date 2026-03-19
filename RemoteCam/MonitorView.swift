@@ -387,11 +387,6 @@ struct MonitorView: View {
                     timerControls
                 }
 
-                // Zoom Stop Controls
-                if viewModel.zoomStops.count > 1 {
-                    zoomStopControls
-                }
-
                 // Lens Controls
                 if viewModel.availableLensTypes.count > 1 {
                     lensControls
@@ -472,36 +467,6 @@ struct MonitorView: View {
         }
     }
     
-    // MARK: - Zoom Stop Controls
-    private var zoomStopControls: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(viewModel.zoomStops, id: \.self) { stop in
-                    zoomStopButton(for: stop)
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-
-    private func zoomStopButton(for stop: CGFloat) -> some View {
-        Button(action: {
-            onZoomChange(stop)
-        }) {
-            Text(formatZoomStop(stop))
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(viewModel.activeZoomStop == stop ? .black : .white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    viewModel.activeZoomStop == stop ?
-                    AppTheme.accent : Color.gray.opacity(0.3)
-                )
-                .cornerRadius(6)
-        }
-        .disabled(!viewModel.isLensControlEnabled)
-    }
-
     /// Formats a hardware zoom factor as a user-facing label relative to the wide-angle camera.
     /// e.g., hardware 1.0 with wideAngleFactor 2.0 → "0.5x", hardware 2.0 → "1x", hardware 6.0 → "3x"
     private func formatZoomStop(_ hardwareZoom: CGFloat) -> String {
