@@ -26,7 +26,8 @@ enum CommandAction : byte {
     SetVideoQuality = 14,
     SetPhotoQuality = 15,
     TimerCountdown = 16,
-    SyncMonitorSettings = 17
+    SyncMonitorSettings = 17,
+    SetAspectRatio = 18
 }
 
 enum CameraPosition : byte {
@@ -93,6 +94,13 @@ enum RecordingModeEnum : byte {
     Shorts = 3
 }
 
+enum AspectRatioEnum : byte {
+    Unknown = 0,
+    FourThree = 1,
+    SixteenNine = 2,
+    OneOne = 3
+}
+
 // MARK: - Command Parameters
 
 table CommandParameters {
@@ -110,6 +118,7 @@ table CommandParameters {
     hdr_mode: HDRMode;
     countdown_value: int;
     recording_mode: RecordingModeEnum;
+    aspect_ratio: AspectRatioEnum;
 }
 
 // MARK: - Command Structure
@@ -154,6 +163,8 @@ table CameraInfo {
     zoom_capabilities: [ZoomCapability];
     video_quality: VideoQualityCapabilities;
     photo_quality: PhotoQualityCapabilities;
+    zoom_stops: [double];
+    wide_angle_zoom_factor: double;
 }
 
 table CameraState {
@@ -166,6 +177,7 @@ table CameraState {
     video_frame_rate: VideoFrameRate;
     photo_format: PhotoFormat;
     hdr_mode: HDRMode;
+    aspect_ratio: AspectRatioEnum;
 }
 
 table CameraCapabilities {

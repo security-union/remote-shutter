@@ -5,7 +5,9 @@ import Combine
 // MARK: - Monitor View
 struct MonitorView: View {
     @ObservedObject var viewModel: MonitorViewModel
-    
+    @State private var zoomAtGestureStart: CGFloat?
+
+
     // Callbacks to MonitorViewController for Actor integration
     let onTakePicture: () -> Void
     let onToggleCamera: () -> Void
@@ -19,6 +21,7 @@ struct MonitorView: View {
     let onLensChange: (CameraLensType) -> Void
     let onVideoQualityChange: (VideoResolution, VideoFrameRate) -> Void
     let onPhotoQualityChange: (PhotoFormat, HDRMode) -> Void
+    let onAspectRatioChange: (AspectRatio) -> Void
     
     var body: some View {
         GeometryReader { geometry in
@@ -46,12 +49,18 @@ struct MonitorView: View {
             // Camera preview background
             Color.black
             
-            // Camera image
+            // Camera image with aspect ratio crop overlay
             if let image = viewModel.cameraImage {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .clipped()
+                    .overlay(
+                        AspectRatioCropOverlay(
+                            selectedRatio: viewModel.currentAspectRatio,
+                            imageSize: image.size
+                        )
+                    )
             } else {
                 // Placeholder
                 Rectangle()
@@ -124,12 +133,29 @@ struct MonitorView: View {
         .gesture(
             MagnificationGesture()
                 .onChanged { value in
-                    // Apply sensitivity multiplier to make zoom less sensitive
-                    let sensitivity: CGFloat = 0.5 // Reduce sensitivity by half
-                    let zoomChange = (value - 1.0) * sensitivity + 1.0
-                    let newZoom = max(1.0, min(viewModel.maxZoomFactor, viewModel.currentZoomFactor * zoomChange))
+                    // Capture zoom at gesture start (first onChanged)
+                    if zoomAtGestureStart == nil {
+                        zoomAtGestureStart = viewModel.currentZoomFactor
+                    }
+                    let start = zoomAtGestureStart!
+
+                    // Logarithmic zoom: newZoom = start * value^sensitivity
+                    // Operates in log2 space for uniform perceptual sensitivity
+                    let minZoom = viewModel.zoomStops.first ?? 1.0
+                    let maxZoom = viewModel.maxZoomFactor
+                    let sensitivity: CGFloat = 0.6
+
+                    let logStart = log2(start)
+                    let logDelta = log2(value) * sensitivity
+                    let logNew = logStart + logDelta
+                    let clamped = max(log2(minZoom), min(log2(maxZoom), logNew))
+                    let newZoom = pow(2, clamped)
+
                     onZoomChange(newZoom)
                     viewModel.showZoomControlsTemporarily()
+                }
+                .onEnded { _ in
+                    zoomAtGestureStart = nil
                 }
         )
     }
@@ -140,8 +166,8 @@ struct MonitorView: View {
     // MARK: - Zoom Controls Overlay
     private var zoomControlsOverlay: some View {
         VStack(spacing: 10) {
-            // Current zoom level - prominent display
-            Text("\(String(format: "%.1f", viewModel.currentZoomFactor))×")
+            // Current zoom level - display relative to wide-angle
+            Text("\(String(format: "%.1f", viewModel.currentZoomFactor / viewModel.wideAngleZoomFactor))×")
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
                 .tracking(0.5)
@@ -149,12 +175,16 @@ struct MonitorView: View {
             // Progress bar with refined styling
             HStack(spacing: 8) {
                 // Start label
-                Text("1×")
+                Text(formatZoomStop(viewModel.zoomStops.first ?? 1.0))
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
-                
+
                 // Enhanced progress bar
                 ZStack(alignment: .leading) {
+                    let minZoom = viewModel.zoomStops.first ?? 1.0
+                    let range = viewModel.maxZoomFactor - minZoom
+                    let progress = range > 0 ? (viewModel.currentZoomFactor - minZoom) / range : 0
+
                     // Background track with subtle gradient
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
@@ -168,7 +198,7 @@ struct MonitorView: View {
                             )
                         )
                         .frame(width: 140, height: 8)
-                    
+
                     // Progress fill
                     RoundedRectangle(cornerRadius: 4)
                         .fill(
@@ -179,12 +209,12 @@ struct MonitorView: View {
                             )
                         )
                         .frame(
-                            width: CGFloat(140 * Double((viewModel.currentZoomFactor - 1.0) / (viewModel.maxZoomFactor - 1.0))), 
+                            width: CGFloat(140 * max(0, min(1, Double(progress)))),
                             height: 8
                         )
                         .shadow(color: AppTheme.accent.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
-                
+
                 // End label
                 Text("\(String(format: "%.0f", viewModel.maxZoomFactor))×")
                     .font(.system(size: 11, weight: .medium, design: .rounded))
@@ -371,6 +401,9 @@ struct MonitorView: View {
                 if viewModel.availableLensTypes.count > 1 {
                     lensControls
                 }
+
+                // Aspect Ratio Controls
+                aspectRatioControls
             }
 
             // Main Action Buttons (always visible)
@@ -444,34 +477,67 @@ struct MonitorView: View {
         }
     }
     
+    /// Formats a hardware zoom factor as a user-facing label relative to the wide-angle camera.
+    /// e.g., hardware 1.0 with wideAngleFactor 2.0 → "0.5x", hardware 2.0 → "1x", hardware 6.0 → "3x"
+    private func formatZoomStop(_ hardwareZoom: CGFloat) -> String {
+        let displayZoom = hardwareZoom / viewModel.wideAngleZoomFactor
+        let rounded = round(displayZoom * 10) / 10
+        if rounded == CGFloat(Int(rounded)) {
+            return "\(Int(rounded))x"
+        }
+        return String(format: "%.1fx", rounded)
+    }
+
     // MARK: - Lens Controls
     private var lensControls: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 ForEach(viewModel.availableLensTypes, id: \.self) { lensType in
-                    lensButton(for: lensType)
+                    Button(action: {
+                        onLensChange(lensType)
+                    }) {
+                        Text(lensType.displayName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(viewModel.currentLensType == lensType ? .black : .white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                viewModel.currentLensType == lensType ?
+                                AppTheme.accent : Color.gray.opacity(0.3)
+                            )
+                            .cornerRadius(6)
+                    }
+                    .disabled(!viewModel.isLensControlEnabled)
                 }
             }
             .padding(.horizontal, 20)
         }
     }
-    
-    private func lensButton(for lensType: CameraLensType) -> some View {
-        Button(action: {
-            onLensChange(lensType)
-        }) {
-            Text(lensType.displayName)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(viewModel.currentLensType == lensType ? .black : .white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    viewModel.currentLensType == lensType ?
-                    AppTheme.accent : Color.gray.opacity(0.3)
-                )
-                .cornerRadius(6)
+
+    // MARK: - Aspect Ratio Controls
+    private var aspectRatioControls: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(AspectRatio.selectableCases, id: \.self) { ratio in
+                    Button(action: {
+                        onAspectRatioChange(ratio)
+                    }) {
+                        Text(ratio.displayName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(viewModel.currentAspectRatio == ratio ? .black : .white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                viewModel.currentAspectRatio == ratio ?
+                                AppTheme.accent : Color.gray.opacity(0.3)
+                            )
+                            .cornerRadius(6)
+                    }
+                    .disabled(!viewModel.isQualityControlEnabled)
+                }
+            }
+            .padding(.horizontal, 20)
         }
-        .disabled(!viewModel.isLensControlEnabled)
     }
     
     // MARK: - Main Action Buttons
@@ -610,8 +676,89 @@ struct MonitorView_Previews: PreviewProvider {
             onZoomChange: { _ in },
             onLensChange: { _ in },
             onVideoQualityChange: { _, _ in },
-            onPhotoQualityChange: { _, _ in }
+            onPhotoQualityChange: { _, _ in },
+            onAspectRatioChange: { _ in }
         )
         .preferredColorScheme(.dark)
     }
-} 
+}
+
+// MARK: - Aspect Ratio Crop Overlay
+
+/// Draws semi-transparent black bars over areas that will be cropped for the selected aspect ratio.
+struct AspectRatioCropOverlay: View {
+    let selectedRatio: AspectRatio
+    let imageSize: CGSize
+
+    var body: some View {
+        GeometryReader { geometry in
+            let viewSize = geometry.size
+            let imageRatio = imageSize.width / imageSize.height
+            let targetRatio: CGFloat = {
+                // For portrait images, invert the ratio
+                if imageSize.height > imageSize.width {
+                    return 1.0 / selectedRatio.widthToHeight
+                }
+                return selectedRatio.widthToHeight
+            }()
+
+            // No overlay needed if the image already matches the target
+            if abs(imageRatio - targetRatio) > 0.01 {
+                let fittedSize = fittedImageSize(viewSize: viewSize, imageRatio: imageRatio)
+                let cropSize = croppedSize(fittedSize: fittedSize, targetRatio: targetRatio)
+                let xOffset = (viewSize.width - fittedSize.width) / 2
+                let yOffset = (viewSize.height - fittedSize.height) / 2
+
+                // Determine bar positions
+                if fittedSize.width / fittedSize.height > targetRatio {
+                    // Crop sides
+                    let barWidth = (fittedSize.width - cropSize.width) / 2
+                    HStack(spacing: 0) {
+                        Color.black.opacity(0.5)
+                            .frame(width: barWidth)
+                        Color.clear
+                            .frame(width: cropSize.width)
+                        Color.black.opacity(0.5)
+                            .frame(width: barWidth)
+                    }
+                    .frame(width: fittedSize.width, height: fittedSize.height)
+                    .offset(x: xOffset, y: yOffset)
+                } else {
+                    // Crop top/bottom
+                    let barHeight = (fittedSize.height - cropSize.height) / 2
+                    VStack(spacing: 0) {
+                        Color.black.opacity(0.5)
+                            .frame(height: barHeight)
+                        Color.clear
+                            .frame(height: cropSize.height)
+                        Color.black.opacity(0.5)
+                            .frame(height: barHeight)
+                    }
+                    .frame(width: fittedSize.width, height: fittedSize.height)
+                    .offset(x: xOffset, y: yOffset)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func fittedImageSize(viewSize: CGSize, imageRatio: CGFloat) -> CGSize {
+        let viewRatio = viewSize.width / viewSize.height
+        if imageRatio > viewRatio {
+            let w = viewSize.width
+            return CGSize(width: w, height: w / imageRatio)
+        } else {
+            let h = viewSize.height
+            return CGSize(width: h * imageRatio, height: h)
+        }
+    }
+
+    private func croppedSize(fittedSize: CGSize, targetRatio: CGFloat) -> CGSize {
+        let currentRatio = fittedSize.width / fittedSize.height
+        if currentRatio > targetRatio {
+            return CGSize(width: fittedSize.height * targetRatio, height: fittedSize.height)
+        } else {
+            return CGSize(width: fittedSize.width, height: fittedSize.width / targetRatio)
+        }
+    }
+}

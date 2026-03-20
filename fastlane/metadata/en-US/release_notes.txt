@@ -1,5 +1,5 @@
-- Camera now shows current mode and quality settings (Photo/Video, resolution, fps)
-- Timer countdown displayed on camera with big numbers, chimes, and torch blink
-- Photo and video quality controls on the remote (resolution, fps, format, HDR)
-- Settings sync between remote and camera after toggling cameras
-- Controls collapse state now persists across sessions
+- Fixed lens selection: 2X now correctly uses the 2X lens, not 5X
+- Zoom works across all lenses (0.5x ultra-wide to 5x telephoto)
+- New aspect ratio controls: shoot in 4:3, 16:9, or 1:1 (photo and video)
+- Smoother pinch-to-zoom with logarithmic sensitivity
+- Zoom and lens switching now work during video recording

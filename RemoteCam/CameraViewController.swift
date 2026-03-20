@@ -66,10 +66,17 @@ public class CameraViewController: UIViewController,
     private var currentZoomFactor: CGFloat = 1.0
     private var currentLensType: CameraLensType = .wideAngle
     private var availableLensTypes: [CameraLensType] = []
-    
+    private var zoomStops: [CGFloat] = [1.0]
+
     // MARK: - Camera Capabilities
     private var frontCameraInfo: RemoteCmd.CameraInfo?
     private var backCameraInfo: RemoteCmd.CameraInfo?
+
+    // MARK: - Aspect Ratio
+    var currentAspectRatio: AspectRatio = .sixteenNine
+    let videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
+    var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
+    var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
     
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
 
@@ -325,9 +332,10 @@ public class CameraViewController: UIViewController,
         self.captureSession.beginConfiguration()
         self.captureSession.sessionPreset = .high
 
-        guard let videoDevice = AVCaptureDevice.default(for: AVMediaType.video) else {
+        guard let videoDevice = preferredCamera(for: .back) ?? AVCaptureDevice.default(for: AVMediaType.video) else {
             return
         }
+        debugLog("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
 
         self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
 
@@ -349,6 +357,15 @@ public class CameraViewController: UIViewController,
             
             // Initialize current state
             self.updateAvailableLensTypes(for: videoDevice.position)
+            self.zoomStops = self.discoverZoomStops(for: videoDevice)
+
+            // Start at the wide-angle zoom factor (matches native Camera app "1x")
+            let wideZoom = self.wideAngleZoomFactor(for: videoDevice)
+            if wideZoom > 1.0 {
+                try videoDevice.lockForConfiguration()
+                videoDevice.videoZoomFactor = wideZoom
+                videoDevice.unlockForConfiguration()
+            }
             self.currentZoomFactor = videoDevice.videoZoomFactor
 
             // Camera capabilities are now sent through peer-to-peer communication in CamStates.swift
@@ -383,9 +400,10 @@ public class CameraViewController: UIViewController,
             configSessionOutput()
             try setFrameRate(framerate: fps, videoDevice: newDevice!)
             
-            // Update available lens types for new camera position
+            // Update available lens types and zoom stops for new camera position
             self.updateAvailableLensTypes(for: newPosition!)
-            
+            self.zoomStops = self.discoverZoomStops(for: newDevice!)
+
             do {
                 self.rotateCameraToOrientation(orientation: self.orientation)
                 let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
@@ -509,29 +527,72 @@ public class CameraViewController: UIViewController,
         return Success(mode)
     }
 
-    func cameraForPosition(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
-        return cameraForPositionAndLens(position: position, lensType: currentLensType)
-    }
-    
-    func cameraForPositionAndLens(position: AVCaptureDevice.Position, lensType: CameraLensType) -> AVCaptureDevice? {
-        let deviceTypes = getAllDeviceTypes()
-        let videoDevices = AVCaptureDevice.DiscoverySession.init(
-                deviceTypes: deviceTypes,
-                mediaType: .video, position: position).devices
-        
-        // First try to find the specific lens type
-        var filteredDevices = videoDevices.filter {
-            return $0.position == position && $0.deviceType == lensType.deviceType
+    // MARK: - Virtual Device Preference
+
+    /// Returns the best camera device for the given position, preferring virtual devices.
+    /// Virtual devices automatically switch between physical cameras at appropriate zoom factors.
+    func preferredCamera(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        if let triple = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: position) {
+            return triple
         }
-        
-        // If no specific lens found, fall back to wide angle
-        if filteredDevices.isEmpty {
-            filteredDevices = videoDevices.filter {
-                return $0.position == position && $0.deviceType == .builtInWideAngleCamera
+        if let dualWide = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: position) {
+            return dualWide
+        }
+        if let dual = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: position) {
+            return dual
+        }
+        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position)
+    }
+
+    /// Discovers hardware zoom stop factors from a virtual device's switchOverVideoZoomFactors.
+    ///
+    /// For builtInTripleCamera: base (1.0) = ultra-wide, switchovers e.g. [2.0, 6.0]
+    /// - Hardware 1.0 = ultra-wide (displayed as "0.5x" by dividing by wideAngleZoomFactor)
+    /// - Hardware 2.0 = wide-angle (displayed as "1x")
+    /// - Hardware 6.0 = telephoto (displayed as "3x")
+    func discoverZoomStops(for device: AVCaptureDevice) -> [CGFloat] {
+        if device.position == .front {
+            return [1.0]
+        }
+
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        debugLog("🔍 ZOOM STOPS: device=\(device.localizedName) switchOverFactors=\(switchOverFactors) minZoom=\(device.minAvailableVideoZoomFactor) maxZoom=\(device.maxAvailableVideoZoomFactor)")
+
+        // Start with the base (1.0) which is the widest constituent camera
+        var stops: [CGFloat] = [device.minAvailableVideoZoomFactor]
+
+        // Add each switchover factor
+        for f in switchOverFactors {
+            if !stops.contains(f) {
+                stops.append(f)
             }
         }
-        
-        return filteredDevices.first
+
+        // If no switchover factors, this is a single camera — just return [1.0]
+        if switchOverFactors.isEmpty && stops == [1.0] {
+            return [1.0]
+        }
+
+        let result = stops.sorted()
+        debugLog("🔍 ZOOM STOPS: final=\(result)")
+        return result
+    }
+
+    /// Returns the hardware zoom factor that corresponds to the wide-angle camera.
+    /// For virtual devices with ultra-wide base, this is the first switchover factor.
+    /// For single cameras or dual (wide+telephoto), this is 1.0.
+    func wideAngleZoomFactor(for device: AVCaptureDevice) -> CGFloat {
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        // If there are switchover factors and the base zoom < 1.5 (i.e., ultra-wide is base),
+        // the first switchover is where the wide-angle starts
+        if let first = switchOverFactors.first, device.minAvailableVideoZoomFactor < 1.5 {
+            return first
+        }
+        return 1.0
+    }
+
+    func cameraForPosition(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        return preferredCamera(for: position)
     }
     
     func getAllDeviceTypes() -> [AVCaptureDevice.DeviceType] {
@@ -562,43 +623,43 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Camera Capabilities Gathering
     func gatherAllCameraCapabilities() {
-        print("🔍 DEBUG: gatherAllCameraCapabilities called")
+        debugLog("🔍 DEBUG: gatherAllCameraCapabilities called")
         
         // Gather front camera capabilities
         frontCameraInfo = gatherCameraInfo(for: .front)
-        print("🔍 DEBUG: Front camera info: \(frontCameraInfo != nil ? "available" : "nil")")
+        debugLog("🔍 DEBUG: Front camera info: \(frontCameraInfo != nil ? "available" : "nil")")
         
         // Gather back camera capabilities  
         backCameraInfo = gatherCameraInfo(for: .back)
-        print("🔍 DEBUG: Back camera info: \(backCameraInfo != nil ? "available" : "nil")")
+        debugLog("🔍 DEBUG: Back camera info: \(backCameraInfo != nil ? "available" : "nil")")
         
         if let backInfo = backCameraInfo {
-            print("🔍 DEBUG: - Back camera available lenses: \(backInfo.availableLenses)")
-            print("🔍 DEBUG: - Back camera has flash: \(backInfo.hasFlash)")
+            debugLog("🔍 DEBUG: - Back camera available lenses: \(backInfo.availableLenses)")
+            debugLog("🔍 DEBUG: - Back camera has flash: \(backInfo.hasFlash)")
         }
         
         if let frontInfo = frontCameraInfo {
-            print("🔍 DEBUG: - Front camera available lenses: \(frontInfo.availableLenses)")
-            print("🔍 DEBUG: - Front camera has flash: \(frontInfo.hasFlash)")
+            debugLog("🔍 DEBUG: - Front camera available lenses: \(frontInfo.availableLenses)")
+            debugLog("🔍 DEBUG: - Front camera has flash: \(frontInfo.hasFlash)")
         }
     }
     
     func gatherCameraInfo(for position: AVCaptureDevice.Position) -> RemoteCmd.CameraInfo? {
         let positionName = position == .front ? "Front" : "Back"
-        print("🔍 DEBUG: gatherCameraInfo for \(positionName) camera")
+        debugLog("🔍 DEBUG: gatherCameraInfo for \(positionName) camera")
         
         let deviceTypes = getAllDeviceTypes()
         let videoDevices = AVCaptureDevice.DiscoverySession.init(
                 deviceTypes: deviceTypes,
                 mediaType: .video, position: position).devices
         
-        print("🔍 DEBUG: - Found \(videoDevices.count) devices for \(positionName) position")
+        debugLog("🔍 DEBUG: - Found \(videoDevices.count) devices for \(positionName) position")
         for device in videoDevices {
-            print("🔍 DEBUG: - \(device.localizedName) (\(device.deviceType.rawValue))")
+            debugLog("🔍 DEBUG: - \(device.localizedName) (\(device.deviceType.rawValue))")
         }
         
         guard !videoDevices.isEmpty else { 
-            print("🔍 DEBUG: - No devices found for \(positionName) position")
+            debugLog("🔍 DEBUG: - No devices found for \(positionName) position")
             return nil 
         }
         
@@ -607,7 +668,7 @@ public class CameraViewController: UIViewController,
             return videoDevices.contains { $0.deviceType == lensType.deviceType }
         }
         
-        print("🔍 DEBUG: - Final available lenses: \(availableLenses.map { $0.displayName })")
+        debugLog("🔍 DEBUG: - Final available lenses: \(availableLenses.map { $0.displayName })")
         
         // Check if any camera on this position has flash
         let hasFlash = videoDevices.contains { $0.hasFlash }
@@ -650,6 +711,11 @@ public class CameraViewController: UIViewController,
         let supportsHEIF = photoOutput.availablePhotoCodecTypes.contains(.hevc)
         let supportsHDR = true // All iOS 15+ devices support .quality prioritization (HDR)
 
+        // Discover zoom stops from the preferred (virtual) device
+        let preferredDevice = preferredCamera(for: position)
+        let discoveredZoomStops = preferredDevice.map { discoverZoomStops(for: $0) } ?? [1.0]
+        let wideAngle = preferredDevice.map { wideAngleZoomFactor(for: $0) } ?? 1.0
+
         return RemoteCmd.CameraInfo(
             availableLenses: availableLenses,
             hasFlash: hasFlash,
@@ -659,7 +725,9 @@ public class CameraViewController: UIViewController,
             supportedFrameRates: supportedFrameRates,
             resolutionFrameRates: resolutionFrameRates,
             supportsHEIF: supportsHEIF,
-            supportsHDR: supportsHDR
+            supportsHDR: supportsHDR,
+            zoomStops: discoveredZoomStops,
+            wideAngleZoomFactor: wideAngle
         )
     }
     
@@ -684,17 +752,17 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Current Camera Capabilities for Toggle Response
     func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
-        print("🔍 DEBUG: gatherCurrentCameraCapabilities called")
+        debugLog("🔍 DEBUG: gatherCurrentCameraCapabilities called")
         
         guard let currentDevice = self.videoDeviceInput?.device else { 
-            print("❌ DEBUG: No videoDeviceInput.device available")
-            print("❌ DEBUG: videoDeviceInput is \(self.videoDeviceInput != nil ? "not nil" : "nil")")
+            debugLog("❌ DEBUG: No videoDeviceInput.device available")
+            debugLog("❌ DEBUG: videoDeviceInput is \(self.videoDeviceInput != nil ? "not nil" : "nil")")
             return nil 
         }
         
-        print("🔍 DEBUG: Current device: \(currentDevice.localizedName)")
-        print("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
-        print("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
+        debugLog("🔍 DEBUG: Current device: \(currentDevice.localizedName)")
+        debugLog("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
+        debugLog("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
         
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo,
@@ -709,22 +777,22 @@ public class CameraViewController: UIViewController,
             error: nil
         )
 
-        print("🔍 DEBUG: Created capabilities response successfully")
+        debugLog("🔍 DEBUG: Created capabilities response successfully")
         return capabilities
     }
     
     // MARK: - Enhanced Zoom Control Methods
     func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
-        print("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
+        debugLog("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
         
         guard let device = self.videoDeviceInput?.device else {
-            print("❌ DEBUG: No camera device available")
+            debugLog("❌ DEBUG: No camera device available")
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
         
-        print("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
-        print("🔍 DEBUG: Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
-        print("🔍 DEBUG: Current zoom: \(device.videoZoomFactor)")
+        debugLog("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
+        debugLog("🔍 DEBUG: Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
+        debugLog("🔍 DEBUG: Current zoom: \(device.videoZoomFactor)")
         
         do {
             try device.lockForConfiguration()
@@ -732,22 +800,25 @@ public class CameraViewController: UIViewController,
             let clampedZoom = max(device.minAvailableVideoZoomFactor, 
                                  min(zoomFactor, device.maxAvailableVideoZoomFactor))
             
-            print("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
+            debugLog("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
             device.videoZoomFactor = clampedZoom
             currentZoomFactor = clampedZoom
-            
+
+            // Update currentLensType based on which lens the virtual device is using
+            currentLensType = lensTypeForZoomFactor(clampedZoom, device: device)
+
             device.unlockForConfiguration()
-            
-            print("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor)")
-            
+
+            debugLog("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor), lens: \(currentLensType.displayName)")
+
             let zoomRange = RemoteCmd.ZoomRange(
                 minZoom: device.minAvailableVideoZoomFactor,
                 maxZoom: device.maxAvailableVideoZoomFactor
             )
-            
+
             return Success((clampedZoom, currentLensType, zoomRange))
         } catch let error as NSError {
-            print("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
+            debugLog("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
             return Failure(error: error)
         }
     }
@@ -765,43 +836,64 @@ public class CameraViewController: UIViewController,
     }
 
     // MARK: - Enhanced Lens Switching Methods
+
+    /// Determines which lens is active based on the current zoom factor and switchover points.
+    private func lensTypeForZoomFactor(_ zoom: CGFloat, device: AVCaptureDevice) -> CameraLensType {
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        guard !switchOverFactors.isEmpty else { return .wideAngle }
+
+        if switchOverFactors.count >= 2 && zoom >= switchOverFactors[1] {
+            return .telephoto
+        } else if zoom >= switchOverFactors[0] {
+            return .wideAngle
+        } else {
+            return .ultraWide
+        }
+    }
+
+    /// Maps a CameraLensType to the appropriate hardware zoom factor on the current virtual device.
+    ///
+    /// For builtInTripleCamera with switchOverFactors [2, 6]:
+    ///   .ultraWide → 1.0 (base = ultra-wide)
+    ///   .wideAngle → 2.0 (first switchover)
+    ///   .telephoto → 6.0 (second switchover)
+    private func zoomFactorForLensType(_ lensType: CameraLensType, device: AVCaptureDevice) -> CGFloat {
+        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+
+        switch lensType {
+        case .ultraWide:
+            // Ultra-wide is the base lens of the virtual device
+            return device.minAvailableVideoZoomFactor
+        case .wideAngle:
+            // Wide-angle is at the first switchover factor
+            return switchOverFactors.first ?? 1.0
+        case .telephoto:
+            // Telephoto is at the last switchover factor
+            return switchOverFactors.last ?? switchOverFactors.first ?? 2.0
+        case .dualCamera:
+            return switchOverFactors.first ?? 2.0
+        }
+    }
+
     func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)> {
-        guard let currentDevice = self.videoDeviceInput?.device else {
+        guard let device = self.videoDeviceInput?.device else {
             return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
         }
-        
-        let position = currentDevice.position
-        guard let newDevice = cameraForPositionAndLens(position: position, lensType: lensType) else {
-            return Failure(error: NSError(domain: "Requested lens type not available", code: 0, userInfo: nil))
-        }
-        
+
+        let targetZoom = zoomFactorForLensType(lensType, device: device)
         do {
-            let captureSession = self.captureSession
-            captureSession.beginConfiguration()
-            
-            let newInput = try AVCaptureDeviceInput(device: newDevice)
-            captureSession.removeInput(self.videoDeviceInput)
-            captureSession.addInput(newInput)
-            self.videoDeviceInput = newInput
-            self.currentLensType = lensType
-            
-            // Reset zoom to 1.0 when switching lenses
-            currentZoomFactor = 1.0
-            
-            configSessionOutput()
-            try setFrameRate(framerate: fps, videoDevice: newDevice)
-            
-            DispatchQueue.main.async {
-                self.rotateCameraToOrientation(orientation: self.orientation)
-            }
-            
-            captureSession.commitConfiguration()
-            
+            try device.lockForConfiguration()
+            let clampedZoom = max(device.minAvailableVideoZoomFactor,
+                                 min(targetZoom, device.maxAvailableVideoZoomFactor))
+            device.videoZoomFactor = clampedZoom
+            currentZoomFactor = clampedZoom
+            currentLensType = lensType
+            device.unlockForConfiguration()
+
             let zoomRange = RemoteCmd.ZoomRange(
-                minZoom: newDevice.minAvailableVideoZoomFactor,
-                maxZoom: newDevice.maxAvailableVideoZoomFactor
+                minZoom: device.minAvailableVideoZoomFactor,
+                maxZoom: device.maxAvailableVideoZoomFactor
             )
-            
             return Success((lensType, availableLensTypes, currentZoomFactor, zoomRange))
         } catch let error as NSError {
             return Failure(error: error)
@@ -916,12 +1008,73 @@ public class CameraViewController: UIViewController,
         }
         captureSession.commitConfiguration()
 
+        // Restore zoom factor — changing activeFormat/sessionPreset resets it to 1.0
+        let savedZoom = currentZoomFactor
+        do {
+            try device.lockForConfiguration()
+            let clampedZoom = max(device.minAvailableVideoZoomFactor,
+                                 min(savedZoom, device.maxAvailableVideoZoomFactor))
+            device.videoZoomFactor = clampedZoom
+            currentZoomFactor = clampedZoom
+            device.unlockForConfiguration()
+        } catch {
+            debugLog("❌ DEBUG: Failed to restore zoom after quality change: \(error)")
+        }
+
         currentVideoResolution = resolution
         currentVideoFrameRate = appliedFrameRate
         RemoteShutter.fps = appliedFrameRate.value
         updateCameraStatus()
 
         return (resolution, appliedFrameRate)
+    }
+
+    // MARK: - Aspect Ratio Methods
+
+    func setAspectRatio(_ ratio: AspectRatio) -> AspectRatio {
+        currentAspectRatio = ratio
+        updateCameraStatus()
+        return ratio
+    }
+
+    /// Computes a centered crop rect for the given aspect ratio within source dimensions.
+    /// Returns nil if the source already matches the target ratio.
+    static func cropRect(sourceWidth: CGFloat, sourceHeight: CGFloat, aspectRatio: AspectRatio) -> CGRect? {
+        let isLandscape = sourceWidth > sourceHeight
+        let targetRatio = isLandscape ? aspectRatio.widthToHeight : (1.0 / aspectRatio.widthToHeight)
+        let currentRatio = sourceWidth / sourceHeight
+
+        if abs(currentRatio - targetRatio) < 0.01 {
+            return nil // Already matches
+        } else if currentRatio > targetRatio {
+            let newWidth = sourceHeight * targetRatio
+            return CGRect(x: (sourceWidth - newWidth) / 2, y: 0, width: newWidth, height: sourceHeight)
+        } else {
+            let newHeight = sourceWidth / targetRatio
+            return CGRect(x: 0, y: (sourceHeight - newHeight) / 2, width: sourceWidth, height: newHeight)
+        }
+    }
+
+    /// Crops photo data to the selected aspect ratio.
+    func cropPhotoData(_ data: Data, to aspectRatio: AspectRatio) -> Data? {
+        guard let image = UIImage(data: data),
+              let cgImage = image.cgImage else {
+            debugLog("cropPhotoData: failed to create UIImage/CGImage from data (\(data.count) bytes)")
+            return nil
+        }
+
+        guard let rect = Self.cropRect(
+            sourceWidth: CGFloat(cgImage.width),
+            sourceHeight: CGFloat(cgImage.height),
+            aspectRatio: aspectRatio
+        ) else { return data }
+
+        guard let croppedCG = cgImage.cropping(to: rect) else {
+            debugLog("cropPhotoData: cgImage.cropping failed for rect \(rect)")
+            return nil
+        }
+        let croppedImage = UIImage(cgImage: croppedCG, scale: image.scale, orientation: image.imageOrientation)
+        return croppedImage.jpegData(compressionQuality: 0.95)
     }
 
     func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) -> (PhotoFormat, HDRMode)? {
@@ -967,7 +1120,13 @@ public class CameraViewController: UIViewController,
         guard let photoData = photo.fileDataRepresentation() else {
             return
         }
-        session ! UICmd.OnPicture(sender: nil, pic: photoData)
+        // Apply aspect ratio cropping if needed
+        if currentAspectRatio != .sixteenNine,
+           let croppedData = cropPhotoData(photoData, to: currentAspectRatio) {
+            session ! UICmd.OnPicture(sender: nil, pic: croppedData)
+        } else {
+            session ! UICmd.OnPicture(sender: nil, pic: photoData)
+        }
     }
 }
 
@@ -1119,7 +1278,9 @@ extension CameraViewController {
                 self?.updateRecordingTimerDisplay()
             }
             self.assetWriter?.finishWriting {[weak self] in
-                self?.assetWriter=nil
+                self?.assetWriter = nil
+                self?.pixelBufferAdaptor = nil
+                self?.cachedVideoCropRect = nil
                 self?.readyToRecordVideo = false
                 self?.readyToRecordAudio = false
                 self?.recordingWillBeStopped = false
@@ -1229,9 +1390,33 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
 
    func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
-        // Get recommended settings and override codec to HEVC (H.265) for smaller files
         var videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
         videoSettings?[AVVideoCodecKey] = AVVideoCodecType.hevc
+
+        let dims = CMVideoFormatDescriptionGetDimensions(formatDescription)
+        let sourceWidth = CGFloat(dims.width)
+        let sourceHeight = CGFloat(dims.height)
+
+        // Compute and cache the crop rect once — reused for every frame
+        let needsCrop = currentAspectRatio != .sixteenNine
+        if needsCrop, let rawRect = Self.cropRect(sourceWidth: sourceWidth, sourceHeight: sourceHeight, aspectRatio: currentAspectRatio) {
+            // Round to even for codec compatibility
+            let evenRect = CGRect(
+                x: floor(rawRect.origin.x / 2) * 2,
+                y: floor(rawRect.origin.y / 2) * 2,
+                width: floor(rawRect.width / 2) * 2,
+                height: floor(rawRect.height / 2) * 2
+            )
+            cachedVideoCropRect = evenRect
+
+            if var settings = videoSettings {
+                settings[AVVideoWidthKey] = Int(evenRect.width)
+                settings[AVVideoHeightKey] = Int(evenRect.height)
+                videoSettings = settings
+            }
+        } else {
+            cachedVideoCropRect = nil
+        }
 
         if assetWriter.canApply(outputSettings: videoSettings, forMediaType: .video) {
             videoInput = AVAssetWriterInput(
@@ -1239,14 +1424,26 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                 outputSettings: videoSettings)
             videoInput.expectsMediaDataInRealTime = true
 
+            if cachedVideoCropRect != nil {
+                // Pool attributes match output dimensions — avoids per-frame CVPixelBufferCreate
+                let poolAttrs: [String: Any] = [
+                    kCVPixelBufferWidthKey as String: Int(cachedVideoCropRect!.width),
+                    kCVPixelBufferHeightKey as String: Int(cachedVideoCropRect!.height),
+                    kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)
+                ]
+                pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
+                    assetWriterInput: videoInput,
+                    sourcePixelBufferAttributes: poolAttrs)
+            } else {
+                pixelBufferAdaptor = nil
+            }
+
             if assetWriter.canAdd(videoInput) {
                 assetWriter.add(videoInput)
             } else {
-                // TODO: manage
                 return false
             }
         } else {
-            // TODO: manage
             return false
         }
         return true
@@ -1335,14 +1532,42 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                 }
             }
 
-            if let input = (mediaType == .video) ? self.videoInput : self.audioInput {
+            if mediaType == .video, let adaptor = self.pixelBufferAdaptor,
+               self.currentAspectRatio != .sixteenNine {
+                // Crop video frame for non-16:9 aspect ratios
+                if self.videoInput.isReadyForMoreMediaData,
+                   let croppedBuffer = self.cropSampleBuffer(sampleBuffer) {
+                    let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+                    adaptor.append(croppedBuffer, withPresentationTime: pts)
+                }
+            } else if let input = (mediaType == .video) ? self.videoInput : self.audioInput {
                 if input.isReadyForMoreMediaData {
-                    let success = input.append(sampleBuffer)
-                    if !success {
-                        // TODO: Error
-                    }
+                    input.append(sampleBuffer)
                 }
             }
         }
+    }
+
+    /// Crops a video frame using the cached crop rect and the adaptor's pixel buffer pool.
+    /// Called on every video frame during recording — must be fast.
+    private func cropSampleBuffer(_ sampleBuffer: CMSampleBuffer) -> CVPixelBuffer? {
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
+
+        // No crop needed — pass through the original buffer
+        guard let cropRect = cachedVideoCropRect,
+              let pool = pixelBufferAdaptor?.pixelBufferPool else {
+            return pixelBuffer
+        }
+
+        // Get a buffer from the pool (reuses memory, no per-frame allocation)
+        var outputBuffer: CVPixelBuffer?
+        let status = CVPixelBufferPoolCreatePixelBuffer(nil, pool, &outputBuffer)
+        guard status == kCVReturnSuccess, let output = outputBuffer else { return nil }
+
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+            .cropped(to: cropRect)
+            .transformed(by: CGAffineTransform(translationX: -cropRect.origin.x, y: -cropRect.origin.y))
+        videoCropContext.render(ciImage, to: output)
+        return output
     }
 }

@@ -155,29 +155,33 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
             self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
             
         case is RemoteCmd.SwitchLens:
-            print("❌ DEBUG: Session default handler received SwitchLens - NOT in camera state!")
+            debugLog("❌ DEBUG: Session default handler received SwitchLens - NOT in camera state!")
             let l = RemoteCmd.SwitchLensResp(
                 lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: self.unableToProcessError(msg: msg)
             )
-            print("🔍 DEBUG: Default handler sending empty SwitchLensResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
+            debugLog("🔍 DEBUG: Default handler sending empty SwitchLensResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
             self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
-            
+
+        case is RemoteCmd.SetAspectRatio:
+            let l = RemoteCmd.SetAspectRatioResp(aspectRatio: nil, error: self.unableToProcessError(msg: msg))
+            self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
+
         // MARK: - Video Recording Command Handling
         case is RemoteCmd.StartRecordingVideo:
-            print("❌ DEBUG: Session default handler received StartRecordingVideo - NOT in camera state!")
+            debugLog("❌ DEBUG: Session default handler received StartRecordingVideo - NOT in camera state!")
             let l = RemoteCmd.StartRecordingVideoAck(sender: this, recordingStartTime: nil, error: self.unableToProcessError(msg: msg))
-            print("🔍 DEBUG: Default handler sending StartRecordingVideoAck with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
+            debugLog("🔍 DEBUG: Default handler sending StartRecordingVideoAck with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
             self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
             
         case is RemoteCmd.StopRecordingVideo:
-            print("❌ DEBUG: Session default handler received StopRecordingVideo - NOT in camera state!")
+            debugLog("❌ DEBUG: Session default handler received StopRecordingVideo - NOT in camera state!")
             let l = RemoteCmd.StopRecordingVideoResp(sender: this, pic: nil, error: self.unableToProcessError(msg: msg))
-            print("🔍 DEBUG: Default handler sending StopRecordingVideoResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
+            debugLog("🔍 DEBUG: Default handler sending StopRecordingVideoResp with error: \(self.unableToProcessError(msg: msg).localizedDescription)")
             self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: l)
             
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
             // Forward capabilities to connected peers (monitor)
-            print("🔍 DEBUG: Base session forwarding capabilities to peers")
+            debugLog("🔍 DEBUG: Base session forwarding capabilities to peers")
             self.sendCommandOrGoToScanning(peer: self.connectedPeers, msg: capabilities)
 
         // MARK: - Video Resource Transfer Handling
@@ -238,13 +242,13 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         
         // Debug log for SwitchLensResp
         if let switchResp = msg as? RemoteCmd.SwitchLensResp {
-            print("🔍 DEBUG: sendCommandOrGoToScanning - SwitchLensResp being sent:")
-            print("🔍 DEBUG: - Transmission lensType: \(switchResp.lensType?.displayName ?? "nil")")
-            print("🔍 DEBUG: - Transmission error: \(switchResp.error?.localizedDescription ?? "nil")")
+            debugLog("🔍 DEBUG: sendCommandOrGoToScanning - SwitchLensResp being sent:")
+            debugLog("🔍 DEBUG: - Transmission lensType: \(switchResp.lensType?.displayName ?? "nil")")
+            debugLog("🔍 DEBUG: - Transmission error: \(switchResp.error?.localizedDescription ?? "nil")")
         }
         
         if self.sendMessage(peer: self.connectedPeers, msg: msg).isFailure() {
-            print("❌ DEBUG: sendCommandOrGoToScanning failed to send message")
+            debugLog("❌ DEBUG: sendCommandOrGoToScanning failed to send message")
             self.popToState(name: .scanning)
             ^{ [weak self] in
                 self?.alertPresenter.showError(
@@ -252,7 +256,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
                 )
             }
         } else {
-//            print("✅ DEBUG: sendCommandOrGoToScanning successfully sent message")
+//            debugLog("✅ DEBUG: sendCommandOrGoToScanning successfully sent message")
         }
     }
     
@@ -269,7 +273,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         // Use the session's connected peers instead of relying on the message
         let connectedPeers = self.connectedPeers
         guard !connectedPeers.isEmpty else {
-            print("❌ DEBUG: No connected peers for video transfer")
+            debugLog("❌ DEBUG: No connected peers for video transfer")
             let error = NSError(domain: "VideoTransfer", code: 1, userInfo: [NSLocalizedDescriptionKey: "No connected peers"])
             let failedMsg = UICmd.VideoResourceTransferFailed(error: error, resourceName: "unknown", sender: self.this)
             self.this ! failedMsg
@@ -282,7 +286,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
             let attributes = try FileManager.default.attributesOfItem(atPath: sendVideo.videoURL.path)
             fileSize = attributes[.size] as? Int64 ?? 0
         } catch {
-            print("❌ DEBUG: Error getting video file size: \(error.localizedDescription)")
+            debugLog("❌ DEBUG: Error getting video file size: \(error.localizedDescription)")
             let failedMsg = UICmd.VideoResourceTransferFailed(error: error, resourceName: "unknown", sender: self.this)
             self.this ! failedMsg
             return
@@ -305,13 +309,13 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
             ) { [weak self] error in
                 DispatchQueue.main.async {
                     if let error = error {
-                        print("❌ DEBUG: Error sending video resource: \(error.localizedDescription)")
+                        debugLog("❌ DEBUG: Error sending video resource: \(error.localizedDescription)")
                         let failedMsg = UICmd.VideoResourceTransferFailed(error: error, resourceName: resourceName, sender: self?.this)
                         if let this = self?.this {
                             this ! failedMsg
                         }
                     } else {
-                        print("✅ DEBUG: Video resource sent successfully")
+                        debugLog("✅ DEBUG: Video resource sent successfully")
                         let completedMsg = UICmd.VideoResourceTransferCompleted(resourceName: resourceName, success: true, sender: self?.this)
                         if let this = self?.this {
                             this ! completedMsg
@@ -322,7 +326,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
             
             // Track sending progress using Combine (similar to receiving side)
             if let progress = sendProgress {
-                print("📤 DEBUG: Started tracking sending progress for resource: \(resourceName)")
+                debugLog("📤 DEBUG: Started tracking sending progress for resource: \(resourceName)")
                 
                 class SpeedTracker {
                     var lastUpdateTime = Date()
@@ -341,7 +345,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
                         let timeElapsed = currentTime.timeIntervalSince(speedTracker.lastUpdateTime)
                         let bytesTransferred = completedBytes - speedTracker.lastCompletedBytes
                         
-                        print("📤 DEBUG: Speed calc - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), lastCompleted: \(speedTracker.lastCompletedBytes), current: \(completedBytes)")
+                        debugLog("📤 DEBUG: Speed calc - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), lastCompleted: \(speedTracker.lastCompletedBytes), current: \(completedBytes)")
                         
                         let transferSpeed: Double
                         if timeElapsed > 0.5 && bytesTransferred > 0 {
@@ -349,13 +353,13 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
                             speedTracker.lastUpdateTime = currentTime
                             speedTracker.lastCompletedBytes = completedBytes
                             speedTracker.lastCalculatedSpeed = transferSpeed
-                            print("📤 DEBUG: Speed calculated: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
+                            debugLog("📤 DEBUG: Speed calculated: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
                         } else {
                             transferSpeed = speedTracker.lastCalculatedSpeed
-                            print("📤 DEBUG: Speed calculation skipped - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), using last speed: \(String(format: "%.1f", speedTracker.lastCalculatedSpeed / 1024 / 1024)) MB/s")
+                            debugLog("📤 DEBUG: Speed calculation skipped - timeElapsed: \(timeElapsed), bytesTransferred: \(bytesTransferred), using last speed: \(String(format: "%.1f", speedTracker.lastCalculatedSpeed / 1024 / 1024)) MB/s")
                         }
                         
-                        print("📤 DEBUG: Camera sending progress: \(Int(fractionCompleted * 100))% - Speed: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
+                        debugLog("📤 DEBUG: Camera sending progress: \(Int(fractionCompleted * 100))% - Speed: \(String(format: "%.1f", transferSpeed / 1024 / 1024)) MB/s")
                         let progressMsg = UICmd.VideoResourceTransferProgress(
                             completedBytes: completedBytes,
                             totalBytes: progress.totalUnitCount,
@@ -370,7 +374,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
                     }
                     .store(in: &self.multipeerService.progressCancellables)
             } else {
-                print("⚠️ DEBUG: No progress object returned from sendResource")
+                debugLog("⚠️ DEBUG: No progress object returned from sendResource")
             }
         }
     }

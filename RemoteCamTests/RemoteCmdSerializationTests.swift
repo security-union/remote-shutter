@@ -67,6 +67,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SetPhotoQualityResp: return m.toFlatBuffer()
         case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
         case let m as RemoteCmd.SyncMonitorSettings: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetAspectRatio: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetAspectRatioResp: return m.toFlatBuffer()
         default:
             XCTFail("No toFlatBuffer() for \(type(of: msg))")
             fatalError()
@@ -818,5 +820,108 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertTrue(info.supportsHDR)
         let rfr = info.getResolutionFrameRates()
         XCTAssertEqual(rfr[.uhd4k], [.fps24, .fps30])
+    }
+
+    // MARK: - SetAspectRatio Round-Trip
+
+    func testSetAspectRatio_fourThree_roundTrip() {
+        let original = RemoteCmd.SetAspectRatio(aspectRatio: .fourThree)
+        let decoded: RemoteCmd.SetAspectRatio = roundTrip(original)
+        XCTAssertEqual(decoded.aspectRatio, .fourThree)
+    }
+
+    func testSetAspectRatio_sixteenNine_roundTrip() {
+        let original = RemoteCmd.SetAspectRatio(aspectRatio: .sixteenNine)
+        let decoded: RemoteCmd.SetAspectRatio = roundTrip(original)
+        XCTAssertEqual(decoded.aspectRatio, .sixteenNine)
+    }
+
+    func testSetAspectRatio_oneOne_roundTrip() {
+        let original = RemoteCmd.SetAspectRatio(aspectRatio: .oneOne)
+        let decoded: RemoteCmd.SetAspectRatio = roundTrip(original)
+        XCTAssertEqual(decoded.aspectRatio, .oneOne)
+    }
+
+    // MARK: - SetAspectRatioResp Round-Trip
+
+    func testSetAspectRatioResp_success_roundTrip() {
+        let original = RemoteCmd.SetAspectRatioResp(aspectRatio: .fourThree, error: nil)
+        let decoded: RemoteCmd.SetAspectRatioResp = roundTrip(original)
+        XCTAssertEqual(decoded.aspectRatio, .fourThree)
+        XCTAssertNil(decoded.error)
+    }
+
+    func testSetAspectRatioResp_withError_roundTrip() {
+        let error = NSError(domain: "ratio", code: -1, userInfo: [NSLocalizedDescriptionKey: "not supported"])
+        let original = RemoteCmd.SetAspectRatioResp(aspectRatio: nil, error: error)
+        let decoded: RemoteCmd.SetAspectRatioResp = roundTrip(original)
+        XCTAssertNil(decoded.aspectRatio)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertEqual(decoded.error?.localizedDescription, "not supported")
+    }
+
+    // MARK: - CameraInfo with Zoom Stops Round-Trip
+
+    func testCameraInfo_withZoomStops_roundTrip() {
+        let backCamera = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle, .ultraWide, .telephoto],
+            hasFlash: true,
+            hasTorch: true,
+            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0)],
+            zoomStops: [0.5, 1.0, 2.0, 5.0]
+        )
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: backCamera,
+            currentCamera: .back, currentLens: .wideAngle,
+            currentZoom: 1.0, error: nil
+        )
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertEqual(decoded.backCamera?.zoomStops, [0.5, 1.0, 2.0, 5.0])
+    }
+
+    func testCameraInfo_emptyZoomStops_defaultsToOne() {
+        let backCamera = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle],
+            hasFlash: false,
+            hasTorch: false,
+            zoomCapabilities: [:]
+            // zoomStops not provided, defaults to [1.0]
+        )
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: backCamera,
+            currentCamera: .back, currentLens: .wideAngle,
+            currentZoom: 1.0, error: nil
+        )
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertEqual(decoded.backCamera?.zoomStops, [1.0])
+    }
+
+    func testCameraInfo_zoomStopsPreservedWithOtherCapabilities() {
+        let backCamera = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle, .telephoto],
+            hasFlash: true,
+            hasTorch: true,
+            zoomCapabilities: [
+                .wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0),
+                .telephoto: RemoteCmd.ZoomRange(minZoom: 2.0, maxZoom: 20.0)
+            ],
+            supportedResolutions: [.hd1080p, .uhd4k],
+            supportedFrameRates: [.fps30, .fps60],
+            resolutionFrameRates: [:],
+            supportsHEIF: true,
+            supportsHDR: false,
+            zoomStops: [1.0, 2.0, 5.0]
+        )
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: backCamera,
+            currentCamera: .back, currentLens: .wideAngle,
+            currentZoom: 2.0, error: nil
+        )
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        let info = decoded.backCamera!
+        XCTAssertEqual(info.zoomStops, [1.0, 2.0, 5.0])
+        XCTAssertEqual(info.supportedResolutions, [.hd1080p, .uhd4k])
+        XCTAssertTrue(info.supportsHEIF)
+        XCTAssertFalse(info.supportsHDR)
     }
 }

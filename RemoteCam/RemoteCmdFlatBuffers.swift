@@ -48,6 +48,8 @@ func serializeToFlatBuffer(_ msg: Actor.Message) -> Data? {
     case let m as RemoteCmd.SetPhotoQualityResp: return m.toFlatBuffer()
     case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
     case let m as RemoteCmd.SyncMonitorSettings: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetAspectRatio: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetAspectRatioResp: return m.toFlatBuffer()
     default: return nil
     }
 }
@@ -253,6 +255,9 @@ private func encodeCameraInfo(_ info: RemoteCmd.CameraInfo, _ fbb: inout FlatBuf
     let photoQualityOffset = RemoteShutter_PhotoQualityCapabilities.createPhotoQualityCapabilities(
         &fbb, supportsHeif: info.supportsHEIF, supportsHdr: info.supportsHDR)
 
+    // Zoom stops
+    let zoomStopsVector = fbb.createVector(info.zoomStops.map { Double($0) })
+
     return RemoteShutter_CameraInfo.createCameraInfo(
         &fbb,
         availableLensesVectorOffset: lensesVector,
@@ -260,7 +265,9 @@ private func encodeCameraInfo(_ info: RemoteCmd.CameraInfo, _ fbb: inout FlatBuf
         hasTorch: info.hasTorch,
         zoomCapabilitiesVectorOffset: zoomCapsVector,
         videoQualityOffset: videoQualityOffset,
-        photoQualityOffset: photoQualityOffset
+        photoQualityOffset: photoQualityOffset,
+        zoomStopsVectorOffset: zoomStopsVector,
+        wideAngleZoomFactor: Double(info.wideAngleZoomFactor)
     )
 }
 
@@ -317,6 +324,17 @@ private func decodeCameraInfo(_ fb: RemoteShutter_CameraInfo) -> RemoteCmd.Camer
     let supportsHEIF = fb.photoQuality?.supportsHeif ?? false
     let supportsHDR = fb.photoQuality?.supportsHdr ?? false
 
+    // Decode zoom stops
+    var zoomStops: [CGFloat] = []
+    for i in 0..<fb.zoomStopsCount {
+        zoomStops.append(CGFloat(fb.zoomStops(at: i)))
+    }
+    if zoomStops.isEmpty {
+        zoomStops = [1.0] // Default for backward compat
+    }
+
+    let wideAngleZoomFactor = fb.wideAngleZoomFactor > 0 ? CGFloat(fb.wideAngleZoomFactor) : 1.0
+
     return RemoteCmd.CameraInfo(
         availableLenses: lenses,
         hasFlash: fb.hasFlash,
@@ -326,7 +344,9 @@ private func decodeCameraInfo(_ fb: RemoteShutter_CameraInfo) -> RemoteCmd.Camer
         supportedFrameRates: supportedFrameRates,
         resolutionFrameRates: resolutionFrameRates,
         supportsHEIF: supportsHEIF,
-        supportsHDR: supportsHDR
+        supportsHDR: supportsHDR,
+        zoomStops: zoomStops,
+        wideAngleZoomFactor: wideAngleZoomFactor
     )
 }
 
@@ -809,6 +829,59 @@ private func fromFBRecordingMode(_ m: RemoteShutter_RecordingModeEnum) -> Record
     }
 }
 
+// MARK: - AspectRatio enum conversions
+
+private func toFBAspectRatio(_ r: AspectRatio) -> RemoteShutter_AspectRatioEnum {
+    switch r {
+    case .unknown: return .unknown
+    case .fourThree: return .fourthree
+    case .sixteenNine: return .sixteennine
+    case .oneOne: return .oneone
+    }
+}
+
+private func fromFBAspectRatio(_ r: RemoteShutter_AspectRatioEnum) -> AspectRatio {
+    switch r {
+    case .unknown: return .unknown
+    case .fourthree: return .fourThree
+    case .sixteennine: return .sixteenNine
+    case .oneone: return .oneOne
+    }
+}
+
+// MARK: - SetAspectRatio toFlatBuffer()
+
+extension RemoteCmd.SetAspectRatio {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb, aspectRatio: toFBAspectRatio(aspectRatio))
+        return buildCommand(&fbb, action: .setaspectratio, parameters: params)
+    }
+}
+
+extension RemoteCmd.SetAspectRatioResp {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+
+        var stateOffset = Offset()
+        if let ratio = aspectRatio {
+            stateOffset = RemoteShutter_CameraState.createCameraState(
+                &fbb, aspectRatio: toFBAspectRatio(ratio))
+        }
+
+        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &fbb,
+            action: .setaspectratio,
+            success: error == nil,
+            errorOffset: errorOffset,
+            currentStateOffset: stateOffset
+        )
+        return buildResponse(&fbb, action: .setaspectratio, response: resp)
+    }
+}
+
 // MARK: - SyncMonitorSettings toFlatBuffer()
 
 extension RemoteCmd.SyncMonitorSettings {
@@ -922,6 +995,10 @@ extension RemoteCmd {
         case .syncmonitorsettings:
             let mode = fromFBRecordingMode(params?.recordingMode ?? .photo)
             return SyncMonitorSettings(mode: mode)
+
+        case .setaspectratio:
+            let ratio = fromFBAspectRatio(params?.aspectRatio ?? .unknown)
+            return SetAspectRatio(aspectRatio: ratio)
         }
     }
 
@@ -1013,6 +1090,11 @@ extension RemoteCmd {
             let format: PhotoFormat? = state.map { fromFBPhotoFormat($0.photoFormat) }
             let hdrMode: HDRMode? = state.map { fromFBHDRMode($0.hdrMode) }
             return SetPhotoQualityResp(format: format, hdrMode: hdrMode, error: nsError)
+
+        case .setaspectratio:
+            let state = resp.currentState
+            let ratio: AspectRatio? = state.map { fromFBAspectRatio($0.aspectRatio) }
+            return SetAspectRatioResp(aspectRatio: ratio, error: nsError)
 
         default:
             return nil

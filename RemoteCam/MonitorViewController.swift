@@ -133,6 +133,12 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                         ctrl.viewModel.updatePhotoQuality(
                             format: capabilities.currentPhotoFormat,
                             hdrMode: capabilities.currentHDRMode)
+
+                        // Update zoom stops from camera capabilities
+                        ctrl.viewModel.updateZoomStops(
+                            cameraInfo.zoomStops,
+                            wideAngleZoomFactor: cameraInfo.wideAngleZoomFactor
+                        )
                     }
                 }
                 
@@ -142,41 +148,45 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     if let ctrl = ctrl?.value, let zoomFactor = zoom.zoomFactor {
                         let maxZoom = zoom.zoomRange?.maxZoom ?? ctrl.maxZoomFactor
                         ctrl.updateZoomInViewModel(zoomFactor, maxFactor: maxZoom)
+                        // Sync lens type so zoom and lens controls stay cohesive
+                        if let lens = zoom.currentLens {
+                            ctrl.viewModel.updateAvailableLenses(ctrl.viewModel.availableLensTypes, current: lens)
+                        }
                     }
                 }
-                
+
             case let zoomRemote as RemoteCmd.SetZoomResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl?.value, let zoomFactor = zoomRemote.zoomFactor {
                         let maxZoom = zoomRemote.zoomRange?.maxZoom ?? ctrl.maxZoomFactor
                         ctrl.updateZoomInViewModel(zoomFactor, maxFactor: maxZoom)
+                        // Sync lens type so zoom and lens controls stay cohesive
+                        if let lens = zoomRemote.currentLens {
+                            ctrl.viewModel.updateAvailableLenses(ctrl.viewModel.availableLensTypes, current: lens)
+                        }
                     }
                 }
                 
             // MARK: - Lens Response Handling
             case let lens as UICmd.SwitchLensResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
-                    if let ctrl = ctrl?.value, 
+                    if let ctrl = ctrl?.value,
                        let lensType = lens.lensType,
                        let availableLenses = lens.availableLenses {
                         ctrl.updateLensTypesInViewModel(availableLenses, current: lensType)
-                        
-                        // Update zoom controls if we have the new zoom info
                         if let currentZoom = lens.currentZoom,
                            let zoomRange = lens.zoomRange {
                             ctrl.updateZoomInViewModel(currentZoom, maxFactor: zoomRange.maxZoom)
                         }
                     }
                 }
-                
+
             case let lensRemote as RemoteCmd.SwitchLensResp:
                 OperationQueue.main.addOperation {[weak ctrl] in
                     if let ctrl = ctrl?.value,
                        let lensType = lensRemote.lensType,
                        let availableLenses = lensRemote.availableLenses {
                         ctrl.updateLensTypesInViewModel(availableLenses, current: lensType)
-
-                        // Update zoom controls if we have the new zoom info
                         if let currentZoom = lensRemote.currentZoom,
                            let zoomRange = lensRemote.zoomRange {
                             ctrl.updateZoomInViewModel(currentZoom, maxFactor: zoomRange.maxZoom)
@@ -202,6 +212,14 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     }
                 }
             
+            // MARK: - Aspect Ratio Response Handling
+            case let ratioResp as RemoteCmd.SetAspectRatioResp:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    if let ratio = ratioResp.aspectRatio {
+                        ctrl?.value?.viewModel.updateAspectRatio(ratio)
+                    }
+                }
+
             // MARK: - Video Transfer Progress Handling
             case let started as UICmd.VideoResourceTransferStarted:
                 OperationQueue.main.addOperation {[weak ctrl] in
@@ -300,7 +318,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     override public func viewDidLoad() {
         super.viewDidLoad()
-        print("🔍 DEBUG: MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
+        debugLog("🔍 DEBUG: MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
 
         let m = createOrReplaceActor(
             clz: MonitorActor.self,
@@ -320,7 +338,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         // Request camera capabilities after MonitorActor is fully set up
         // This handles the race condition where capabilities arrive before viewDidLoad
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            print("🔍 DEBUG: Requesting camera capabilities after MonitorActor setup")
+            debugLog("🔍 DEBUG: Requesting camera capabilities after MonitorActor setup")
             if let session = self?.session {
                 session ! UICmd.RequestCameraCapabilities()
             }

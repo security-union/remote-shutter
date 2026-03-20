@@ -45,6 +45,9 @@ extension MonitorViewController {
             },
             onPhotoQualityChange: { [weak self] format, hdrMode in
                 self?.handlePhotoQualityChange(format, hdrMode)
+            },
+            onAspectRatioChange: { [weak self] ratio in
+                self?.handleAspectRatioChange(ratio)
             }
         )
         
@@ -69,11 +72,11 @@ extension MonitorViewController {
     
     // MARK: - Action Handlers
     private func handleTakePicture() {
-        print("🔴 DEBUG: handleTakePicture called - isRecording: \(viewModel.isRecording), uiState: \(viewModel.uiState)")
+        debugLog("🔴 DEBUG: handleTakePicture called - isRecording: \(viewModel.isRecording), uiState: \(viewModel.uiState)")
         
         // If timer is running, cancel it
         if viewModel.timerValue > 0 {
-            print("🔴 DEBUG: Canceling timer countdown")
+            debugLog("🔴 DEBUG: Canceling timer countdown")
             self.timer.cancel()
             self.soundManager.stopPlayer() // Stop any playing sound
             // Send cancellation to camera
@@ -87,11 +90,11 @@ extension MonitorViewController {
         
         if timerDuration > 0 && (viewModel.uiState == .photoMode || viewModel.uiState == .videoMode) {
             // Start timer countdown for photo or video
-            print("🔴 DEBUG: Starting timer countdown: \(timerDuration) seconds")
+            debugLog("🔴 DEBUG: Starting timer countdown: \(timerDuration) seconds")
             startTimerCountdown(duration: timerDuration)
         } else {
             // No timer or shorts mode - execute immediately
-            print("🔴 DEBUG: No timer - executing immediately")
+            debugLog("🔴 DEBUG: No timer - executing immediately")
             executeAction()
         }
     }
@@ -135,11 +138,11 @@ extension MonitorViewController {
                     session ! UICmd.TimerCountdown(value: Int(remaining))
                 }
 
-                print("🔴 DEBUG: Timer tick - \(remaining) seconds remaining")
+                debugLog("🔴 DEBUG: Timer tick - \(remaining) seconds remaining")
             }
         }, andCompletionHandler: { [weak self] _ in
             DispatchQueue.main.async {
-                print("🔴 DEBUG: Timer completed - taking picture")
+                debugLog("🔴 DEBUG: Timer completed - taking picture")
                 // Send completion tick to camera
                 if let session = self?.session {
                     session ! UICmd.TimerCountdown(value: 0)
@@ -248,6 +251,10 @@ extension MonitorViewController {
         session ! UICmd.SetPhotoQuality(format: format, hdrMode: hdrMode)
     }
 
+    private func handleAspectRatioChange(_ ratio: AspectRatio) {
+        session ! UICmd.SetAspectRatio(aspectRatio: ratio)
+    }
+
     /// Sends the monitor's current mode to the camera device so its overlay shows the right mode
     func sendSyncMonitorSettings() {
         session ! UICmd.SyncMonitorSettings(mode: viewModel.currentMode)
@@ -335,7 +342,7 @@ extension MonitorViewController {
     func updateZoomInViewModel(_ factor: CGFloat, maxFactor: CGFloat) {
         viewModel.updateZoomFactor(factor, maxFactor: maxFactor)
     }
-    
+
     func updateLensTypesInViewModel(_ lenses: [CameraLensType], current: CameraLensType) {
         viewModel.updateAvailableLenses(lenses, current: current)
     }

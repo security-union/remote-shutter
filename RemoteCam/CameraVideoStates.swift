@@ -21,6 +21,31 @@ extension RemoteCamSession {
             case is OnEnter:
                 getFrameSender()?.tell(msg: SetSession(peer: peer, session: self))
 
+            // MARK: - Zoom during recording
+            case let zoomCmd as RemoteCmd.SetZoom:
+                let result = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
+                var resp: Actor.Message
+                if let (zoomFactor, currentLens, zoomRange) = result.toOptional() {
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: zoomFactor, currentLens: currentLens, zoomRange: zoomRange, error: nil)
+                } else if let failure = result as? Failure {
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: failure.tryError)
+                } else {
+                    resp = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: nil)
+                }
+                self.sendCommandOrGoToScanning(peer: [peer], msg: resp)
+
+            case let lensCmd as RemoteCmd.SwitchLens:
+                let result = ctrl.switchLens(to: lensCmd.lensType)
+                var resp: Actor.Message
+                if let (lensType, availableLenses, currentZoom, zoomRange) = result.toOptional() {
+                    resp = RemoteCmd.SwitchLensResp(lensType: lensType, availableLenses: availableLenses, currentZoom: currentZoom, zoomRange: zoomRange, error: nil)
+                } else if let failure = result as? Failure {
+                    resp = RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: failure.error)
+                } else {
+                    resp = RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: nil)
+                }
+                self.sendCommandOrGoToScanning(peer: [peer], msg: resp)
+
             case let stop as RemoteCmd.StopRecordingVideo:
                 ctrl.stopRecordingVideo(stop.sendMediaToPeer)
                 let ack = RemoteCmd.StopRecordingVideoAck()
@@ -72,7 +97,7 @@ extension RemoteCamSession {
             // MARK: - Video Transfer Progress Handling
             case let started as UICmd.VideoResourceTransferStarted:
                 ctrl.cameraViewModel.startVideoTransfer(totalBytes: started.totalBytes)
-                print("📤 DEBUG: Camera state - Video transfer started: \(started.totalBytes) bytes")
+                debugLog("📤 DEBUG: Camera state - Video transfer started: \(started.totalBytes) bytes")
                 
             case let progress as UICmd.VideoResourceTransferProgress:
                 ctrl.cameraViewModel.updateVideoTransferProgress(
@@ -80,15 +105,15 @@ extension RemoteCamSession {
                     totalBytes: progress.totalBytes
                 )
                 ctrl.cameraViewModel.updateVideoTransferSpeed(progress.transferSpeed)
-                print("📤 DEBUG: Camera state - Video transfer progress: \(Int(progress.progress * 100))% - Speed: \(String(format: "%.1f", progress.transferSpeed / 1024 / 1024)) MB/s")
+                debugLog("📤 DEBUG: Camera state - Video transfer progress: \(Int(progress.progress * 100))% - Speed: \(String(format: "%.1f", progress.transferSpeed / 1024 / 1024)) MB/s")
                 
             case _ as UICmd.VideoResourceTransferCompleted:
                 ctrl.cameraViewModel.finishVideoTransfer()
-                print("📤 DEBUG: Camera state - Video transfer completed")
+                debugLog("📤 DEBUG: Camera state - Video transfer completed")
                 
             case let failed as UICmd.VideoResourceTransferFailed:
                 ctrl.cameraViewModel.finishVideoTransfer()
-                print("📤 DEBUG: Camera state - Video transfer failed: \(failed.error.localizedDescription)")
+                debugLog("📤 DEBUG: Camera state - Video transfer failed: \(failed.error.localizedDescription)")
                 break
             case let c as RemoteCmd.StopRecordingVideoResp:
                 self.sendCommandOrGoToScanning(peer: [peer], msg: c)

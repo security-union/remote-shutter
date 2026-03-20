@@ -41,6 +41,11 @@ class MonitorViewModel: ObservableObject {
     @Published var availableLensTypes: [CameraLensType] = [.wideAngle]
     @Published var currentLensType: CameraLensType = .wideAngle
     @Published var showZoomControls: Bool = false
+    @Published var zoomStops: [CGFloat] = [1.0]
+    @Published var wideAngleZoomFactor: CGFloat = 1.0 // Hardware zoom for "1x" reference
+
+    // MARK: - Aspect Ratio Properties
+    @Published var currentAspectRatio: AspectRatio = .sixteenNine
     
     // MARK: - Video Transfer Progress Properties
     @Published var isVideoTransferring: Bool = false
@@ -133,8 +138,8 @@ class MonitorViewModel: ObservableObject {
             self.isToggleCameraEnabled = false
             self.isTimerSliderEnabled = false
             self.isSegmentedControlEnabled = false
-            self.isLensControlEnabled = false
-            self.isZoomSliderEnabled = false
+            self.isLensControlEnabled = true
+            self.isZoomSliderEnabled = true
             self.isQualityControlEnabled = false
             self.buttonPrompt = NSLocalizedString("Stopping video", comment: "")
         }
@@ -178,10 +183,14 @@ class MonitorViewModel: ObservableObject {
         }
     }
     
+    /// Max display zoom (5x relative to wide-angle)
+    private static let maxDisplayZoom: CGFloat = 5.0
+
     func updateZoomFactor(_ factor: CGFloat, maxFactor: CGFloat) {
         DispatchQueue.main.async {
+            let maxHardwareZoom = Self.maxDisplayZoom * self.wideAngleZoomFactor
             self.currentZoomFactor = factor
-            self.maxZoomFactor = maxFactor
+            self.maxZoomFactor = min(maxFactor, maxHardwareZoom)
         }
     }
     
@@ -191,6 +200,20 @@ class MonitorViewModel: ObservableObject {
             self.currentLensType = current
         }
     }
+
+    func updateZoomStops(_ stops: [CGFloat], wideAngleZoomFactor: CGFloat) {
+        DispatchQueue.main.async {
+            self.zoomStops = stops
+            self.wideAngleZoomFactor = wideAngleZoomFactor
+        }
+    }
+
+    func updateAspectRatio(_ ratio: AspectRatio) {
+        DispatchQueue.main.async {
+            self.currentAspectRatio = ratio
+        }
+    }
+
     
     // MARK: - Video Quality Properties
     @Published var currentVideoResolution: VideoResolution = .hd1080p

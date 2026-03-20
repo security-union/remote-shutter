@@ -197,6 +197,8 @@ public class RemoteCmd: Actor.Message {
         public let resolutionFrameRates: [Int: [VideoFrameRate]] // VideoResolution.rawValue -> supported FPS
         public let supportsHEIF: Bool
         public let supportsHDR: Bool
+        public let zoomStops: [CGFloat] // Hardware zoom factors for each stop (e.g., [1.0, 2.0, 6.0])
+        public let wideAngleZoomFactor: CGFloat // Hardware zoom factor for the wide-angle camera (the "1x" reference)
 
         public init(availableLenses: [CameraLensType], hasFlash: Bool, hasTorch: Bool,
                     zoomCapabilities: [CameraLensType: ZoomRange],
@@ -204,7 +206,9 @@ public class RemoteCmd: Actor.Message {
                     supportedFrameRates: [VideoFrameRate] = [.fps30],
                     resolutionFrameRates: [VideoResolution: [VideoFrameRate]] = [:],
                     supportsHEIF: Bool = false,
-                    supportsHDR: Bool = false) {
+                    supportsHDR: Bool = false,
+                    zoomStops: [CGFloat] = [1.0],
+                    wideAngleZoomFactor: CGFloat = 1.0) {
             self.availableLenses = availableLenses
             self.hasFlash = hasFlash
             self.hasTorch = hasTorch
@@ -214,6 +218,8 @@ public class RemoteCmd: Actor.Message {
             self.resolutionFrameRates = Dictionary(uniqueKeysWithValues: resolutionFrameRates.map { key, value in (key.rawValue, value) })
             self.supportsHEIF = supportsHEIF
             self.supportsHDR = supportsHDR
+            self.zoomStops = zoomStops
+            self.wideAngleZoomFactor = wideAngleZoomFactor
         }
 
         public func getZoomCapabilities() -> [CameraLensType: ZoomRange] {
@@ -506,6 +512,28 @@ public class RemoteCmd: Actor.Message {
 
         init(mode: RecordingMode) {
             self.mode = mode
+            super.init(sender: nil)
+        }
+    }
+
+    // MARK: - Aspect Ratio Commands
+
+    public class SetAspectRatio: Actor.Message {
+        public let aspectRatio: AspectRatio
+
+        public init(aspectRatio: AspectRatio) {
+            self.aspectRatio = aspectRatio
+            super.init(sender: nil)
+        }
+    }
+
+    public class SetAspectRatioResp: Actor.Message {
+        public let aspectRatio: AspectRatio?
+        public let error: Error?
+
+        public init(aspectRatio: AspectRatio?, error: Error?) {
+            self.aspectRatio = aspectRatio
+            self.error = error
             super.init(sender: nil)
         }
     }

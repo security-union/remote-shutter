@@ -1,5 +1,5 @@
-- La camara ahora muestra el modo y ajustes de calidad actuales (foto/video, resolucion, fps)
-- Cuenta regresiva del temporizador en la camara con numeros grandes, sonidos y destello de linterna
-- Controles de calidad de foto y video en el control remoto (resolucion, fps, formato, HDR)
-- Los ajustes se sincronizan entre el control remoto y la camara al cambiar de camara
-- El estado colapsado de los controles se mantiene entre sesiones
+- Seleccion de lente corregida: 2X ahora usa correctamente el lente 2X, no el 5X
+- El zoom funciona en todos los lentes (0.5x ultra gran angular a 5x teleobjetivo)
+- Nuevos controles de relacion de aspecto: captura en 4:3, 16:9 o 1:1 (foto y video)
+- Zoom de pellizco mas suave con sensibilidad logaritmica
+- El zoom y el cambio de lente ahora funcionan durante la grabacion de video
