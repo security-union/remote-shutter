@@ -1201,20 +1201,30 @@ extension CameraViewController {
                 let audioDevice = AVCaptureDevice.default(for: .audio)
                 let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
                 
+                // Save torch mode before reconfiguring session (iOS resets torch on commitConfiguration)
+                let savedTorchMode = self.videoDeviceInput?.device.torchMode ?? .off
+
                 self.captureSession.beginConfiguration()
-                
+
                 if self.captureSession.canAddInput(audioDeviceInput) {
                     self.captureSession.addInput(audioDeviceInput)
                 } else {
                     print("Could not add audio device input to the session")
                 }
-                
+
                 if self.captureSession.canAddOutput(self.audioDataOutput) {
                     self.captureSession.addOutput(self.audioDataOutput)
                     self.audioDataOutput.setSampleBufferDelegate(self, queue: self.audioDataOutputQueue)
                 }
-                
+
                 self.captureSession.commitConfiguration()
+
+                // Restore torch mode after session reconfiguration
+                if savedTorchMode != .off, let device = self.videoDeviceInput?.device, device.hasTorch {
+                    try? device.lockForConfiguration()
+                    device.torchMode = savedTorchMode
+                    device.unlockForConfiguration()
+                }
                 
                 // Update audio connection
                 self.audioConnection = self.audioDataOutput.connection(with: .audio)
