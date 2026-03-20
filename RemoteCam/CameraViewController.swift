@@ -74,7 +74,7 @@ public class CameraViewController: UIViewController,
 
     // MARK: - Aspect Ratio
     var currentAspectRatio: AspectRatio = .sixteenNine
-    lazy var videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
+    let videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
     var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
     
@@ -1058,7 +1058,10 @@ public class CameraViewController: UIViewController,
     /// Crops photo data to the selected aspect ratio.
     func cropPhotoData(_ data: Data, to aspectRatio: AspectRatio) -> Data? {
         guard let image = UIImage(data: data),
-              let cgImage = image.cgImage else { return nil }
+              let cgImage = image.cgImage else {
+            debugLog("cropPhotoData: failed to create UIImage/CGImage from data (\(data.count) bytes)")
+            return nil
+        }
 
         guard let rect = Self.cropRect(
             sourceWidth: CGFloat(cgImage.width),
@@ -1066,7 +1069,10 @@ public class CameraViewController: UIViewController,
             aspectRatio: aspectRatio
         ) else { return data }
 
-        guard let croppedCG = cgImage.cropping(to: rect) else { return nil }
+        guard let croppedCG = cgImage.cropping(to: rect) else {
+            debugLog("cropPhotoData: cgImage.cropping failed for rect \(rect)")
+            return nil
+        }
         let croppedImage = UIImage(cgImage: croppedCG, scale: image.scale, orientation: image.imageOrientation)
         return croppedImage.jpegData(compressionQuality: 0.95)
     }
