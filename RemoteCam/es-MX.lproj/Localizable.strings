@@ -96,16 +96,16 @@
 "help_done" = "Listo";
 
 /* Help Page 1 - Connect Devices */
-"help_connect_title" = "1. Conectar Dispositivos";
-"help_connect_description" = "Asegúrate de que ambos dispositivos tengan Wi-Fi y Bluetooth habilitados, luego toca 'Empezar a Escanear Dispositivos' para encontrar dispositivos cercanos que usen Remote Shutter.";
+"help_connect_title" = "2. Conectar Dispositivos";
+"help_connect_description" = "El dispositivo Cámara se conecta y espera. En el dispositivo Remoto, escanea buscando cámaras y toca el nombre de la cámara para conectar.";
 "help_quick_setup_title" = "Configuración Rápida";
 "help_quick_setup_description" = "Usa el código QR para descargar Remote Shutter en tu segundo dispositivo desde la App Store";
 "help_same_network_title" = "Conexión Directa";
 "help_same_network_description" = "Los dispositivos se conectan directamente entre sí usando Wi-Fi y Bluetooth, como AirDrop - no requiere internet";
 
 /* Help Page 2 - Choose Roles */
-"help_roles_title" = "2. Elegir Roles de Dispositivos";
-"help_roles_description" = "Una vez conectados, cada dispositivo elige su rol. Uno se convierte en la cámara, el otro en el control remoto.";
+"help_roles_title" = "1. Elige Tu Rol";
+"help_roles_description" = "Primero, elige si este dispositivo será la Cámara o el Remoto. El dispositivo cámara captura fotos y videos, mientras el remoto lo controla.";
 "help_camera_device_title" = "Dispositivo Cámara";
 "help_camera_device_description" = "Toma fotos y videos, muestra vista previa de la cámara";
 "help_remote_device_title" = "Dispositivo Remoto";
@@ -131,4 +131,17 @@
 "help_switch_cameras_title" = "Cambiar Cámaras";
 "help_switch_cameras_description" = "Alterna entre cámaras frontal y trasera directamente desde el dispositivo remoto";
 "help_auto_save_title" = "Guardado Automático";
-"help_auto_save_description" = "Las fotos y videos se guardan automáticamente en las bibliotecas de fotos de ambos dispositivos"; 
+"help_auto_save_description" = "Las fotos y videos se guardan automáticamente en las bibliotecas de fotos de ambos dispositivos";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Esperando remoto";
+"Scan for cameras" = "Buscar cámaras";
+"Camera Mode" = "Modo Cámara";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "En otro dispositivo, abre Remote Shutter y selecciona Remoto. Esta cámara aparecerá en su lista de dispositivos.";
+"Go Online" = "Conectar";
+"Go Offline" = "Desconectar";
+"Waiting for a remote to connect..." = "Esperando un remoto para conectar...";
+"WAITING FOR A REMOTE TO CONNECT..." = "ESPERANDO UN REMOTO PARA CONECTAR...";
+"SEARCHING FOR NEARBY CAMERAS..." = "BUSCANDO CÁMARAS CERCANAS...";
+"Scanning for nearby cameras..." = "Buscando cámaras cercanas...";
+"Start scanning and wait for a Remote device to connect" = "Empieza a escanear y espera que un dispositivo Remoto se conecte";

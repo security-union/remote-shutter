@@ -33,10 +33,10 @@ struct RemoteShutterHelpView: View {
 
                 // Content Pages
                 TabView(selection: $selectedPage) {
-                    ConnectDevicesPage()
+                    ChooseRolePage()
                         .tag(0)
 
-                    ChooseRolePage()
+                    ConnectDevicesPage()
                         .tag(1)
 
                     CaptureMediaPage()

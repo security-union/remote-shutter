@@ -96,16 +96,16 @@
 "help_done" = "Terminé";
 
 /* Help Page 1 - Connect Devices */
-"help_connect_title" = "1. Connecter les Appareils";
-"help_connect_description" = "Assurez-vous que les deux appareils ont le Wi-Fi et le Bluetooth activés, puis appuyez sur 'Commencer la Recherche d'Appareils' pour trouver les appareils proches qui utilisent Remote Shutter.";
+"help_connect_title" = "2. Connecter les Appareils";
+"help_connect_description" = "L'appareil Photo se met en ligne et attend. Sur l'appareil Télécommande, recherchez les appareils photos et appuyez sur le nom de l'appareil pour connecter.";
 "help_quick_setup_title" = "Configuration Rapide";
 "help_quick_setup_description" = "Utilisez le QR code pour télécharger Remote Shutter sur votre deuxième appareil depuis l'App Store";
 "help_same_network_title" = "Connexion Directe";
 "help_same_network_description" = "Les appareils se connectent directement entre eux via Wi-Fi et Bluetooth, comme AirDrop - aucune connexion internet requise";
 
 /* Help Page 2 - Choose Roles */
-"help_roles_title" = "2. Choisir les Rôles des Appareils";
-"help_roles_description" = "Une fois connectés, chaque appareil choisit son rôle. L'un devient la caméra, l'autre devient la télécommande.";
+"help_roles_title" = "1. Choisissez Votre Rôle";
+"help_roles_description" = "D'abord, choisissez si cet appareil sera l'Appareil Photo ou la Télécommande. L'appareil photo capture photos et vidéos, tandis que la télécommande le contrôle.";
 "help_camera_device_title" = "Appareil Caméra";
 "help_camera_device_description" = "Prend des photos et vidéos, affiche l'aperçu de la caméra";
 "help_remote_device_title" = "Appareil Télécommande";
@@ -131,4 +131,17 @@
 "help_switch_cameras_title" = "Changer de Caméra";
 "help_switch_cameras_description" = "Basculez entre les caméras avant et arrière directement depuis l'appareil télécommande";
 "help_auto_save_title" = "Sauvegarde Automatique";
-"help_auto_save_description" = "Les photos et vidéos sont automatiquement sauvegardées dans les photothèques des deux appareils"; 
+"help_auto_save_description" = "Les photos et vidéos sont automatiquement sauvegardées dans les photothèques des deux appareils";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "En attente de télécommande";
+"Scan for cameras" = "Rechercher des appareils photos";
+"Camera Mode" = "Mode Appareil Photo";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Sur un autre appareil, ouvrez Remote Shutter et sélectionnez Télécommande. Cet appareil photo apparaîtra dans leur liste d'appareils.";
+"Go Online" = "Se Connecter";
+"Go Offline" = "Se Déconnecter";
+"Waiting for a remote to connect..." = "En attente d'une télécommande...";
+"WAITING FOR A REMOTE TO CONNECT..." = "EN ATTENTE D'UNE TÉLÉCOMMANDE...";
+"SEARCHING FOR NEARBY CAMERAS..." = "RECHERCHE D'APPAREILS PHOTOS...";
+"Scanning for nearby cameras..." = "Recherche d'appareils photos...";
+"Start scanning and wait for a Remote device to connect" = "Lancez la recherche et attendez qu'un appareil Télécommande se connecte";

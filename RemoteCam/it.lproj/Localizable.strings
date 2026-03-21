@@ -76,16 +76,16 @@
 "help_done" = "Fatto";
 
 /* Help Page 1 - Connect Devices */
-"help_connect_title" = "1. Connetti i Dispositivi";
-"help_connect_description" = "Assicurati che entrambi i dispositivi abbiano Wi-Fi e Bluetooth abilitati, poi tocca 'Inizia Scansione Dispositivi' per trovare dispositivi vicini che usano Remote Shutter.";
+"help_connect_title" = "2. Connetti i Dispositivi";
+"help_connect_description" = "Il dispositivo Fotocamera va online e aspetta. Sul dispositivo Telecomando, cerca le fotocamere e tocca il nome della fotocamera per connetterti.";
 "help_quick_setup_title" = "Configurazione Rapida";
 "help_quick_setup_description" = "Usa il codice QR per scaricare Remote Shutter sul tuo secondo dispositivo dall'App Store";
 "help_same_network_title" = "Connessione Diretta";
 "help_same_network_description" = "I dispositivi si connettono direttamente tra loro usando Wi-Fi e Bluetooth, come AirDrop - nessuna connessione internet richiesta";
 
 /* Help Page 2 - Choose Roles */
-"help_roles_title" = "2. Scegli i Ruoli dei Dispositivi";
-"help_roles_description" = "Una volta connessi, ogni dispositivo sceglie il suo ruolo. Uno diventa la fotocamera, l'altro diventa il telecomando.";
+"help_roles_title" = "1. Scegli il Tuo Ruolo";
+"help_roles_description" = "Prima, scegli se questo dispositivo sarà la Fotocamera o il Telecomando. Il dispositivo fotocamera cattura foto e video, mentre il telecomando lo controlla.";
 "help_camera_device_title" = "Dispositivo Fotocamera";
 "help_camera_device_description" = "Scatta foto e video, mostra anteprima fotocamera";
 "help_remote_device_title" = "Dispositivo Telecomando";
@@ -114,4 +114,17 @@
 "help_switch_cameras_title" = "Cambia Fotocamere";
 "help_switch_cameras_description" = "Alterna tra fotocamere frontale e posteriore direttamente dal dispositivo telecomando";
 "help_auto_save_title" = "Salvataggio Automatico";
-"help_auto_save_description" = "Foto e video vengono salvati automaticamente nelle librerie foto di entrambi i dispositivi"; 
+"help_auto_save_description" = "Foto e video vengono salvati automaticamente nelle librerie foto di entrambi i dispositivi";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "In attesa del telecomando";
+"Scan for cameras" = "Cerca fotocamere";
+"Camera Mode" = "Modalità Fotocamera";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Su un altro dispositivo, apri Remote Shutter e seleziona Telecomando. Questa fotocamera apparirà nella loro lista dispositivi.";
+"Go Online" = "Vai Online";
+"Go Offline" = "Vai Offline";
+"Waiting for a remote to connect..." = "In attesa di un telecomando...";
+"WAITING FOR A REMOTE TO CONNECT..." = "IN ATTESA DI UN TELECOMANDO...";
+"SEARCHING FOR NEARBY CAMERAS..." = "RICERCA FOTOCAMERE NELLE VICINANZE...";
+"Scanning for nearby cameras..." = "Ricerca fotocamere nelle vicinanze...";
+"Start scanning and wait for a Remote device to connect" = "Avvia la scansione e attendi che un dispositivo Telecomando si connetta";

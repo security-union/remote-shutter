@@ -200,16 +200,16 @@
 "help_done" = "Done";
 
 /* Help Page 1 - Connect Devices */
-"help_connect_title" = "1. Connect Devices";
-"help_connect_description" = "Make sure both devices have Wi-Fi and Bluetooth enabled, then tap 'Start Scanning Devices' to find nearby devices running Remote Shutter.";
+"help_connect_title" = "2. Connect Devices";
+"help_connect_description" = "The Camera device goes online and waits. On the Remote device, scan for cameras and tap the camera's name to connect.";
 "help_quick_setup_title" = "Quick Setup";
 "help_quick_setup_description" = "Use the QR code to download Remote Shutter on your second device from the App Store";
 "help_same_network_title" = "Peer-to-Peer Connection";
 "help_same_network_description" = "Devices connect directly to each other using Wi-Fi and Bluetooth, just like AirDrop - no internet required";
 
 /* Help Page 2 - Choose Roles */
-"help_roles_title" = "2. Choose Device Roles";
-"help_roles_description" = "Once connected, each device chooses its role. One becomes the camera, the other becomes the remote control.";
+"help_roles_title" = "1. Choose Your Role";
+"help_roles_description" = "First, choose whether this device will be the Camera or the Remote. The camera device captures photos and videos, while the remote controls it.";
 "help_camera_device_title" = "Camera Device";
 "help_camera_device_description" = "Takes photos and videos, shows camera preview";
 "help_remote_device_title" = "Remote Device";
@@ -236,3 +236,16 @@
 "help_switch_cameras_description" = "Toggle between front and back cameras directly from the remote device";
 "help_auto_save_title" = "Auto Save";
 "help_auto_save_description" = "Photos and videos are automatically saved to both devices' photo libraries";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Waiting for remote";
+"Scan for cameras" = "Scan for cameras";
+"Camera Mode" = "Camera Mode";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "On another device, open Remote Shutter and select Remote. This camera will appear in their device list.";
+"Go Online" = "Go Online";
+"Go Offline" = "Go Offline";
+"Waiting for a remote to connect..." = "Waiting for a remote to connect...";
+"WAITING FOR A REMOTE TO CONNECT..." = "WAITING FOR A REMOTE TO CONNECT...";
+"SEARCHING FOR NEARBY CAMERAS..." = "SEARCHING FOR NEARBY CAMERAS...";
+"Scanning for nearby cameras..." = "Scanning for nearby cameras...";
+"Start scanning and wait for a Remote device to connect" = "Start scanning and wait for a Remote device to connect";

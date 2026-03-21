@@ -76,16 +76,16 @@
 "help_done" = "Færdig";
 
 /* Help Page 1 - Connect Devices */
-"help_connect_title" = "1. Forbind Enheder";
-"help_connect_description" = "Sørg for at begge enheder har Wi-Fi og Bluetooth aktiveret, tryk derefter på 'Start Scanning af Enheder' for at finde enheder i nærheden som kører Remote Shutter.";
+"help_connect_title" = "2. Forbind Enheder";
+"help_connect_description" = "Kameraenheden går online og venter. På Fjernbetjeningsenheden, scan efter kameraer og tryk på kameraets navn for at forbinde.";
 "help_quick_setup_title" = "Hurtig Opsætning";
 "help_quick_setup_description" = "Brug QR-koden til at downloade Remote Shutter på din anden enhed fra App Store";
 "help_same_network_title" = "Direkte Forbindelse";
 "help_same_network_description" = "Enheder forbinder direkte til hinanden ved hjælp af Wi-Fi og Bluetooth, ligesom AirDrop - ingen internet påkrævet";
 
 /* Help Page 2 - Choose Roles */
-"help_roles_title" = "2. Vælg Enhedsroller";
-"help_roles_description" = "Når de er forbundet, vælger hver enhed sin rolle. Den ene bliver kameraet, den anden bliver fjernbetjeningen.";
+"help_roles_title" = "1. Vælg Din Rolle";
+"help_roles_description" = "Vælg først om denne enhed skal være Kameraet eller Fjernbetjeningen. Kameraenheden tager fotos og videoer, mens fjernbetjeningen styrer det.";
 "help_camera_device_title" = "Kamera Enhed";
 "help_camera_device_description" = "Tager fotos og videoer, viser kamera forhåndsvisning";
 "help_remote_device_title" = "Fjernbetjenings Enhed";
@@ -114,4 +114,17 @@
 "help_switch_cameras_title" = "Skift Kameraer";
 "help_switch_cameras_description" = "Skift mellem front- og bagkameraer direkte fra fjernbetjeningsenheden";
 "help_auto_save_title" = "Automatisk Gem";
-"help_auto_save_description" = "Fotos og videoer gemmes automatisk i begge enheders fotobiblioteker"; 
+"help_auto_save_description" = "Fotos og videoer gemmes automatisk i begge enheders fotobiblioteker";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Venter på fjernbetjening";
+"Scan for cameras" = "Scan efter kameraer";
+"Camera Mode" = "Kameratilstand";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Åbn Remote Shutter på en anden enhed og vælg Fjernbetjening. Dette kamera vil vises i deres enhedsliste.";
+"Go Online" = "Gå Online";
+"Go Offline" = "Gå Offline";
+"Waiting for a remote to connect..." = "Venter på en fjernbetjening...";
+"WAITING FOR A REMOTE TO CONNECT..." = "VENTER PÅ EN FJERNBETJENING...";
+"SEARCHING FOR NEARBY CAMERAS..." = "SØGER EFTER KAMERAER I NÆRHEDEN...";
+"Scanning for nearby cameras..." = "Scanner efter kameraer i nærheden...";
+"Start scanning and wait for a Remote device to connect" = "Start scanning og vent på at en Fjernbetjeningsenhed forbinder";

@@ -17,7 +17,9 @@ struct DeviceScannerView: View {
         ZStack {
             AppTheme.backgroundGradient
 
-            if viewModel.hasPeers {
+            if viewModel.role == .camera {
+                cameraWaitingState
+            } else if viewModel.hasPeers {
                 peerList
             } else {
                 emptyState
@@ -77,6 +79,62 @@ struct DeviceScannerView: View {
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 40)
+        }
+    }
+
+    // MARK: - Camera Waiting State
+
+    private var cameraWaitingState: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            // Camera icon
+            ZStack {
+                Circle()
+                    .fill(AppTheme.accent.opacity(0.12))
+                    .frame(width: 120, height: 120)
+
+                Circle()
+                    .strokeBorder(AppTheme.accent.opacity(0.25), lineWidth: 1.5)
+                    .frame(width: 120, height: 120)
+
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 48, weight: .medium))
+                    .foregroundColor(AppTheme.accent)
+            }
+
+            VStack(spacing: 8) {
+                Text(NSLocalizedString("Camera Mode", comment: ""))
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+
+                Text(NSLocalizedString("On another device, open Remote Shutter and select Remote. This camera will appear in their device list.", comment: ""))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+
+            // Status
+            statusBadge
+
+            // Actions
+            VStack(spacing: 12) {
+                if !viewModel.hasLocalNetworkAccess {
+                    settingsButton
+                } else if viewModel.isScanning {
+                    cameraAdvertisingIndicator
+                    goOfflineButton
+                } else {
+                    goOnlineButton
+                }
+
+                shareButton
+            }
+            .padding(.horizontal, 20)
+
+            Spacer()
         }
     }
 
@@ -227,7 +285,7 @@ struct DeviceScannerView: View {
     private var scanningIndicator: some View {
         HStack(spacing: 12) {
             ProgressView()
-            Text(NSLocalizedString("Scanning for nearby devices...", comment: ""))
+            Text(NSLocalizedString("Scanning for nearby cameras...", comment: ""))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -239,6 +297,63 @@ struct DeviceScannerView: View {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
         )
+    }
+
+    private var cameraAdvertisingIndicator: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            Text(NSLocalizedString("Waiting for a remote to connect...", comment: ""))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 54)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
+        )
+    }
+
+    private var goOnlineButton: some View {
+        Button(action: onStartScanning) {
+            HStack {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.headline)
+                Text(NSLocalizedString("Go Online", comment: ""))
+                    .font(.headline)
+            }
+            .foregroundColor(.black)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(
+                LinearGradient(
+                    colors: [AppTheme.accent, AppTheme.accentLight],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: AppTheme.accent.opacity(0.3), radius: 8, y: 4)
+        }
+    }
+
+    private var goOfflineButton: some View {
+        Button(action: onStopScanning) {
+            HStack {
+                Image(systemName: "stop.fill")
+                    .font(.subheadline)
+                Text(NSLocalizedString("Go Offline", comment: ""))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
     }
 
     private var settingsButton: some View {
