@@ -1,5 +1,7 @@
-- Selecao de lente corrigida: 2X agora usa corretamente a lente 2X, nao a 5X
-- O zoom funciona em todas as lentes (0.5x ultra grande angular ate 5x teleobjetiva)
-- Novos controles de proporcao de tela: capture em 4:3, 16:9 ou 1:1 (foto e video)
-- Pinch-to-zoom mais suave com sensibilidade logaritmica
-- Zoom e troca de lente agora funcionam durante a gravacao de video
+- Novo: Escolha seu papel (Câmera ou Remoto) antes de buscar
+- Modo câmera: Fique online e aguarde um Remoto se conectar
+- Modo remoto: Busque câmeras próximas e conecte-se
+- Tutorial de ajuda aprimorado com guia passo a passo atualizado
+- Localização completa: agora disponível em 10 idiomas
+- Corrigido erro de desconexão exibido após sessões de fotos bem-sucedidas
+- Melhorias na interface das telas de scanner de câmera e remoto

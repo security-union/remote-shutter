@@ -1,5 +1,7 @@
-- Selection de l'objectif corrigee : 2X utilise maintenant correctement l'objectif 2X, pas le 5X
-- Le zoom fonctionne sur tous les objectifs (0.5x ultra grand-angle a 5x telephoto)
-- Nouveaux controles de ratio d'aspect : capturez en 4:3, 16:9 ou 1:1 (photo et video)
-- Pincement pour zoomer plus fluide avec sensibilite logarithmique
-- Le zoom et le changement d'objectif fonctionnent maintenant pendant l'enregistrement video
+- Nouveau : Choisissez votre rôle (Appareil Photo ou Télécommande) avant de scanner
+- Mode appareil photo : Connectez-vous et attendez qu'une Télécommande se connecte
+- Mode télécommande : Recherchez les appareils photos à proximité et connectez-vous
+- Tutoriel d'aide amélioré avec un guide étape par étape mis à jour
+- Localisation complète : maintenant disponible en 10 langues
+- Correction de l'erreur de déconnexion apparaissant après des sessions photo réussies
+- Améliorations de l'interface pour les écrans de scanner caméra et télécommande

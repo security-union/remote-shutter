@@ -1,5 +1,7 @@
-- Objektivvalg rettet: 2X bruger nu korrekt 2X-objektivet, ikke 5X
-- Zoom virker pa tvaers af alle objektiver (0.5x ultravidvinkel til 5x teleobjektiv)
-- Nye billedformatskontroller: optag i 4:3, 16:9 eller 1:1 (foto og video)
-- Glattere knib-til-zoom med logaritmisk folsomhed
-- Zoom og objektivskift virker nu under videooptagelse
+- Nyt: Vælg din rolle (Kamera eller Fjernbetjening) før scanning
+- Kameratilstand: Gå online og vent på at en Fjernbetjening forbinder
+- Fjernbetjeningstilstand: Scan efter kameraer i nærheden og forbind
+- Forbedret hjælpeguide med opdateret trin-for-trin vejledning
+- Fuld lokalisering: nu tilgængelig på 10 sprog
+- Rettet fejl med frakoblingsfejl der vistes efter vellykkede fotosessioner
+- Forbedringer af brugerfladen på kamera- og fjernbetjeningsskærme

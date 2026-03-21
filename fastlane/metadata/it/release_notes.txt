@@ -1,5 +1,7 @@
-- Selezione dell'obiettivo corretta: 2X ora utilizza correttamente l'obiettivo 2X, non il 5X
-- Lo zoom funziona su tutti gli obiettivi (0.5x ultra-grandangolare a 5x teleobiettivo)
-- Nuovi controlli per il rapporto d'aspetto: scatta in 4:3, 16:9 o 1:1 (foto e video)
-- Pinch-to-zoom piu fluido con sensibilita logaritmica
-- Lo zoom e il cambio di obiettivo ora funzionano durante la registrazione video
+- Novità: Scegli il tuo ruolo (Fotocamera o Telecomando) prima della scansione
+- Modalità fotocamera: Vai online e attendi che un Telecomando si connetta
+- Modalità telecomando: Cerca fotocamere nelle vicinanze e connettiti
+- Tutorial di aiuto migliorato con guida passo passo aggiornata
+- Localizzazione completa: ora disponibile in 10 lingue
+- Corretto l'errore di disconnessione mostrato dopo sessioni fotografiche riuscite
+- Miglioramenti dell'interfaccia per le schermate scanner fotocamera e telecomando

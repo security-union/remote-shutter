@@ -24,11 +24,6 @@ extension RemoteCamSession {
                  is UICmd.StartScanning:
                 self.startScanning(lobby: lobby)
             case is RemoteShutter.DisconnectPeer:
-                ^{
-                    let alert = UIAlertController(title: "Error", message: "Unable to connect")
-                    alert.simpleOkAction()
-                    alert.show(true)
-                }
                 self.startScanning(lobby: lobby)
             case let w as ConnectToDevice:
                 self.multipeerService.invitePeer(w.peer, timeout: 5)
