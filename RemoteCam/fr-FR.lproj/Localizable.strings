@@ -176,3 +176,38 @@
 "Error" = "Erreur";
 "Connection error" = "Erreur de connexion";
 "Unable to start recording" = "Impossible de démarrer l'enregistrement";
+
+/* Scanner UI */
+"Connect" = "Connecter";
+"Connecting..." = "Connexion...";
+"Start Scanning" = "Lancer la Recherche";
+"Stop Scanning" = "Arrêter la Recherche";
+"Share App Link" = "Partager le Lien";
+"Scan for devices" = "Rechercher des appareils";
+"Disconnect" = "Déconnecter";
+"You need at least 2 devices running Remote Shutter" = "Vous avez besoin d'au moins 2 appareils avec Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Scannez le QR code sur un autre appareil pour télécharger Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "ERREUR DE RECHERCHE - VÉRIFIEZ LES PARAMÈTRES RÉSEAU";
+"TAP THE BUTTON TO GET STARTED" = "APPUYEZ SUR LE BOUTON POUR COMMENCER";
+
+/* Settings */
+"About" = "À propos";
+"Back" = "Retour";
+"Contact Support" = "Contacter le Support";
+"Discord Community" = "Communauté Discord";
+"In-App Purchases" = "Achats Intégrés";
+"Purchased" = "Acheté";
+"Send Media to Remote" = "Envoyer les Médias à la Télécommande";
+"Source Code" = "Code Source";
+"Version" = "Version";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Prise de photo";
+"Taking picture" = "Prise de photo";
+"Starting video" = "Démarrage de la vidéo";
+"Stopping video" = "Arrêt de la vidéo";
+"Recording shorts" = "Enregistrement de shorts";
+"Unable to save video" = "Impossible de sauvegarder la vidéo";
+"Unable to save video to Photos app" = "Impossible de sauvegarder la vidéo dans Photos";
+"Purchases restored successfully." = "Achats restaurés avec succès.";
+"Pick a role: Camera or Remote" = "Choisissez un rôle : Appareil Photo ou Télécommande";

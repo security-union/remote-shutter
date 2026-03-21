@@ -280,3 +280,38 @@
 "Error" = "错误";
 "Connection error" = "连接错误";
 "Unable to start recording" = "无法开始录制";
+
+/* Scanner UI */
+"Connect" = "连接";
+"Connecting..." = "连接中...";
+"Start Scanning" = "开始搜索";
+"Stop Scanning" = "停止搜索";
+"Share App Link" = "分享应用链接";
+"Scan for devices" = "搜索设备";
+"Open Settings" = "打开设置";
+"You need at least 2 devices running Remote Shutter" = "需要至少2台安装了Remote Shutter的设备";
+"Scan the QR code on another device to download Remote Shutter" = "在另一台设备上扫描二维码以下载Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "搜索错误 - 请检查网络设置";
+"TAP THE BUTTON TO GET STARTED" = "点击按钮开始";
+
+/* Settings */
+"About" = "关于";
+"Back" = "返回";
+"Contact Support" = "联系支持";
+"Discord Community" = "Discord 社区";
+"In-App Purchases" = "应用内购买";
+"Purchased" = "已购买";
+"Send Media to Remote" = "发送媒体到遥控器";
+"Source Code" = "源代码";
+"Version" = "版本";
+
+/* Camera/Monitor Status */
+"Taking photo" = "正在拍照";
+"Taking picture" = "正在拍照";
+"Starting video" = "开始录像";
+"Stopping video" = "停止录像";
+"Recording shorts" = "录制短视频";
+"Unable to save video" = "无法保存视频";
+"Unable to save video to Photos app" = "无法将视频保存到照片应用";
+"Purchases restored successfully." = "购买已成功恢复。";
+"Pick a role: Camera or Remote" = "选择角色：相机或遥控";

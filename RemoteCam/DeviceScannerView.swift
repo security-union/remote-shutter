@@ -85,118 +85,120 @@ struct DeviceScannerView: View {
     // MARK: - Camera Waiting State
 
     private var cameraWaitingState: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 20) {
+                // Camera icon
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.accent.opacity(0.12))
+                        .frame(width: 100, height: 100)
 
-            // Camera icon
-            ZStack {
-                Circle()
-                    .fill(AppTheme.accent.opacity(0.12))
-                    .frame(width: 120, height: 120)
+                    Circle()
+                        .strokeBorder(AppTheme.accent.opacity(0.25), lineWidth: 1.5)
+                        .frame(width: 100, height: 100)
 
-                Circle()
-                    .strokeBorder(AppTheme.accent.opacity(0.25), lineWidth: 1.5)
-                    .frame(width: 120, height: 120)
-
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 48, weight: .medium))
-                    .foregroundColor(AppTheme.accent)
-            }
-
-            VStack(spacing: 8) {
-                Text(NSLocalizedString("Camera Mode", comment: ""))
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-
-                Text(NSLocalizedString("On another device, open Remote Shutter and select Remote. This camera will appear in their device list.", comment: ""))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
-
-            // Status
-            statusBadge
-
-            // Actions
-            VStack(spacing: 12) {
-                if !viewModel.hasLocalNetworkAccess {
-                    settingsButton
-                } else if viewModel.isScanning {
-                    cameraAdvertisingIndicator
-                    goOfflineButton
-                } else {
-                    goOnlineButton
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundColor(AppTheme.accent)
                 }
+                .padding(.top, 24)
 
-                shareButton
+                VStack(spacing: 8) {
+                    Text(NSLocalizedString("Camera Mode", comment: ""))
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    Text(NSLocalizedString("On another device, open Remote Shutter and select Remote. This camera will appear in their device list.", comment: ""))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 20)
+
+                // Status
+                statusBadge
+
+                // Actions
+                VStack(spacing: 12) {
+                    if !viewModel.hasLocalNetworkAccess {
+                        settingsButton
+                    } else if viewModel.isScanning {
+                        cameraAdvertisingIndicator
+                        goOfflineButton
+                    } else {
+                        goOnlineButton
+                    }
+
+                    shareButton
+                }
+                .padding(.horizontal, 20)
+
+                // QR code + tip
+                qrCodeSection
             }
-            .padding(.horizontal, 20)
-
-            Spacer()
-
-            // QR code + tip
-            qrCodeSection
         }
     }
 
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 20) {
+                // Remote icon
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.secondary.opacity(0.12))
+                        .frame(width: 100, height: 100)
 
-            // Remote icon
-            ZStack {
-                Circle()
-                    .fill(AppTheme.secondary.opacity(0.12))
-                    .frame(width: 120, height: 120)
+                    Circle()
+                        .strokeBorder(AppTheme.secondary.opacity(0.25), lineWidth: 1.5)
+                        .frame(width: 100, height: 100)
 
-                Circle()
-                    .strokeBorder(AppTheme.secondary.opacity(0.25), lineWidth: 1.5)
-                    .frame(width: 120, height: 120)
-
-                Image(systemName: "antenna.radiowaves.left.and.right")
-                    .font(.system(size: 48, weight: .medium))
-                    .foregroundColor(AppTheme.secondary)
-            }
-
-            VStack(spacing: 8) {
-                Text(NSLocalizedString("Remote Mode", comment: ""))
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-
-                Text(NSLocalizedString("You need at least 2 devices running Remote Shutter", comment: ""))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
-
-            // Status
-            statusBadge
-
-            // Actions
-            VStack(spacing: 12) {
-                if !viewModel.hasLocalNetworkAccess {
-                    settingsButton
-                } else if viewModel.isScanning {
-                    scanningIndicator
-                    stopScanButton
-                } else {
-                    startScanButton
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundColor(AppTheme.secondary)
                 }
+                .padding(.top, 24)
 
-                shareButton
+                VStack(spacing: 8) {
+                    Text(NSLocalizedString("Remote Mode", comment: ""))
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    Text(NSLocalizedString("You need at least 2 devices running Remote Shutter", comment: ""))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 20)
+
+                // Status
+                statusBadge
+
+                // Actions
+                VStack(spacing: 12) {
+                    if !viewModel.hasLocalNetworkAccess {
+                        settingsButton
+                    } else if viewModel.isScanning {
+                        scanningIndicator
+                        stopScanButton
+                    } else {
+                        startScanButton
+                    }
+
+                    shareButton
+                }
+                .padding(.horizontal, 20)
+
+                // QR code + tip
+                qrCodeSection
             }
-            .padding(.horizontal, 20)
-
-            Spacer()
-
-            // QR code + tip
-            qrCodeSection
         }
     }
 
@@ -219,13 +221,16 @@ struct DeviceScannerView: View {
                     )
             }
 
-            HStack(spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "qrcode")
                     .font(.caption)
                     .foregroundColor(AppTheme.accent)
+                    .padding(.top, 2)
                 Text(NSLocalizedString("Scan the QR code on another device to download Remote Shutter", comment: ""))
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 20)
         }
@@ -309,9 +314,13 @@ struct DeviceScannerView: View {
             Text(NSLocalizedString("Scanning for nearby cameras...", comment: ""))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 54)
+        .frame(minHeight: 54)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
@@ -326,9 +335,13 @@ struct DeviceScannerView: View {
             Text(NSLocalizedString("Waiting for a remote to connect...", comment: ""))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 54)
+        .frame(minHeight: 54)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(

@@ -176,3 +176,38 @@
 "Error" = "Error";
 "Connection error" = "Error de conexión";
 "Unable to start recording" = "No se puede iniciar la grabación";
+
+/* Scanner UI */
+"Connect" = "Conectar";
+"Connecting..." = "Conectando...";
+"Start Scanning" = "Iniciar Búsqueda";
+"Stop Scanning" = "Detener Búsqueda";
+"Share App Link" = "Compartir Enlace";
+"Scan for devices" = "Buscar dispositivos";
+"Disconnect" = "Desconectar";
+"You need at least 2 devices running Remote Shutter" = "Necesitas al menos 2 dispositivos con Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Escanea el código QR en otro dispositivo para descargar Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "ERROR DE ESCANEO - VERIFICA CONFIGURACIÓN DE RED";
+"TAP THE BUTTON TO GET STARTED" = "TOCA EL BOTÓN PARA COMENZAR";
+
+/* Settings */
+"About" = "Acerca de";
+"Back" = "Atrás";
+"Contact Support" = "Contactar Soporte";
+"Discord Community" = "Comunidad en Discord";
+"In-App Purchases" = "Compras Dentro de la App";
+"Purchased" = "Comprado";
+"Send Media to Remote" = "Enviar Multimedia al Remoto";
+"Source Code" = "Código Fuente";
+"Version" = "Versión";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Tomando foto";
+"Taking picture" = "Tomando foto";
+"Starting video" = "Iniciando video";
+"Stopping video" = "Deteniendo video";
+"Recording shorts" = "Grabando shorts";
+"Unable to save video" = "No se puede guardar el video";
+"Unable to save video to Photos app" = "No se puede guardar el video en la app Fotos";
+"Purchases restored successfully." = "Compras restauradas con éxito.";
+"Pick a role: Camera or Remote" = "Elige un rol: Cámara o Remoto";

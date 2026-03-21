@@ -159,3 +159,39 @@
 "Error" = "Fejl";
 "Connection error" = "Forbindelsesfejl";
 "Unable to start recording" = "Kan ikke starte optagelse";
+
+/* Scanner UI */
+"Connect" = "Forbind";
+"Connecting..." = "Forbinder...";
+"Start Scanning" = "Start Scanning";
+"Stop Scanning" = "Stop Scanning";
+"Share App Link" = "Del App Link";
+"Scan for devices" = "Scan efter enheder";
+"Open Settings" = "Åbn Indstillinger";
+"Disconnect" = "Afbryd";
+"You need at least 2 devices running Remote Shutter" = "Du skal bruge mindst 2 enheder med Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Scan QR-koden på en anden enhed for at downloade Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "SCANNINGSFEJL - TJEK NETVÆRKSINDSTILLINGER";
+"TAP THE BUTTON TO GET STARTED" = "TRYK PÅ KNAPPEN FOR AT KOMME I GANG";
+
+/* Settings */
+"About" = "Om";
+"Back" = "Tilbage";
+"Contact Support" = "Kontakt Support";
+"Discord Community" = "Discord Fællesskab";
+"In-App Purchases" = "Køb i Appen";
+"Purchased" = "Købt";
+"Send Media to Remote" = "Send Medie til Fjernbetjening";
+"Source Code" = "Kildekode";
+"Version" = "Version";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Tager foto";
+"Taking picture" = "Tager billede";
+"Starting video" = "Starter video";
+"Stopping video" = "Stopper video";
+"Recording shorts" = "Optager shorts";
+"Unable to save video" = "Kan ikke gemme video";
+"Unable to save video to Photos app" = "Kan ikke gemme video i Fotos-appen";
+"Purchases restored successfully." = "Køb gendannet med succes.";
+"Pick a role: Camera or Remote" = "Vælg en rolle: Kamera eller Fjernbetjening";

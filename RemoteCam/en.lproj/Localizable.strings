@@ -280,3 +280,38 @@
 "Error" = "Error";
 "Connection error" = "Connection error";
 "Unable to start recording" = "Unable to start recording";
+
+/* Scanner UI */
+"Connect" = "Connect";
+"Connecting..." = "Connecting...";
+"Start Scanning" = "Start Scanning";
+"Stop Scanning" = "Stop Scanning";
+"Share App Link" = "Share App Link";
+"Scan for devices" = "Scan for devices";
+"Open Settings" = "Open Settings";
+"You need at least 2 devices running Remote Shutter" = "You need at least 2 devices running Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Scan the QR code on another device to download Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "SCANNING ERROR - CHECK NETWORK SETTINGS";
+"TAP THE BUTTON TO GET STARTED" = "TAP THE BUTTON TO GET STARTED";
+
+/* Settings */
+"About" = "About";
+"Back" = "Back";
+"Contact Support" = "Contact Support";
+"Discord Community" = "Discord Community";
+"In-App Purchases" = "In-App Purchases";
+"Purchased" = "Purchased";
+"Send Media to Remote" = "Send Media to Remote";
+"Source Code" = "Source Code";
+"Version" = "Version";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Taking photo";
+"Taking picture" = "Taking picture";
+"Starting video" = "Starting video";
+"Stopping video" = "Stopping video";
+"Recording shorts" = "Recording shorts";
+"Unable to save video" = "Unable to save video";
+"Unable to save video to Photos app" = "Unable to save video to Photos app";
+"Purchases restored successfully." = "Purchases restored successfully.";
+"Pick a role: Camera or Remote" = "Pick a role: Camera or Remote";

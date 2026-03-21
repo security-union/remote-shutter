@@ -280,3 +280,38 @@
 "Error" = "エラー";
 "Connection error" = "接続エラー";
 "Unable to start recording" = "録画を開始できません";
+
+/* Scanner UI */
+"Connect" = "接続";
+"Connecting..." = "接続中...";
+"Start Scanning" = "スキャン開始";
+"Stop Scanning" = "スキャン停止";
+"Share App Link" = "アプリリンクを共有";
+"Scan for devices" = "デバイスを検索";
+"Open Settings" = "設定を開く";
+"You need at least 2 devices running Remote Shutter" = "Remote Shutterがインストールされたデバイスが2台以上必要です";
+"Scan the QR code on another device to download Remote Shutter" = "別のデバイスでQRコードをスキャンしてRemote Shutterをダウンロード";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "スキャンエラー - ネットワーク設定を確認";
+"TAP THE BUTTON TO GET STARTED" = "ボタンをタップして開始";
+
+/* Settings */
+"About" = "情報";
+"Back" = "戻る";
+"Contact Support" = "サポートに連絡";
+"Discord Community" = "Discordコミュニティ";
+"In-App Purchases" = "アプリ内課金";
+"Purchased" = "購入済み";
+"Send Media to Remote" = "メディアをリモートに送信";
+"Source Code" = "ソースコード";
+"Version" = "バージョン";
+
+/* Camera/Monitor Status */
+"Taking photo" = "撮影中";
+"Taking picture" = "撮影中";
+"Starting video" = "ビデオ開始";
+"Stopping video" = "ビデオ停止";
+"Recording shorts" = "ショート録画中";
+"Unable to save video" = "ビデオを保存できません";
+"Unable to save video to Photos app" = "写真アプリにビデオを保存できません";
+"Purchases restored successfully." = "購入が正常に復元されました。";
+"Pick a role: Camera or Remote" = "役割を選択：カメラまたはリモート";
