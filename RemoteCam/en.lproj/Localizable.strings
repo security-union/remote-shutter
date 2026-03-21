@@ -271,3 +271,12 @@
 "Control the shutter" = "Control the shutter";
 "Works up to 50 feet away" = "Works up to 50 feet away";
 "Remote Mode" = "Remote Mode";
+
+/* Alert Messages */
+"Scanning Error" = "Scanning Error";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Unable to scan for nearby devices. Please check your network settings and try again.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Error";
+"Connection error" = "Connection error";
+"Unable to start recording" = "Unable to start recording";

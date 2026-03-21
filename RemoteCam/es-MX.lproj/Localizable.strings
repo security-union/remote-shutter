@@ -153,7 +153,7 @@
 "Get Started" = "Comenzar";
 "Thank you for your support!" = "¡Gracias por tu apoyo!";
 "Rate on App Store" = "Calificar en App Store";
-"Welcome" = "Bienvenido";
+"Welcome" = "Te damos la bienvenida";
 "Purchase" = "Comprar";
 "Restored" = "Restaurado";
 "Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Tus compras han sido restauradas. Si no las ves, verifica que hayas iniciado sesión con el Apple ID correcto.";
@@ -167,3 +167,12 @@
 "Control the shutter" = "Controla el obturador";
 "Works up to 50 feet away" = "Funciona hasta a 15 metros de distancia";
 "Remote Mode" = "Modo Remoto";
+
+/* Alert Messages */
+"Scanning Error" = "Error de Escaneo";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "No se pueden buscar dispositivos cercanos. Verifica tu configuración de red e inténtalo de nuevo.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Error";
+"Connection error" = "Error de conexión";
+"Unable to start recording" = "No se puede iniciar la grabación";

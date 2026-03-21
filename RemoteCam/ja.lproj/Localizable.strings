@@ -271,3 +271,12 @@
 "Control the shutter" = "シャッターを操作";
 "Works up to 50 feet away" = "最大15メートル離れても動作";
 "Remote Mode" = "リモートモード";
+
+/* Alert Messages */
+"Scanning Error" = "スキャンエラー";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "近くのデバイスをスキャンできません。ネットワーク設定を確認して、もう一度お試しください。";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "エラー";
+"Connection error" = "接続エラー";
+"Unable to start recording" = "録画を開始できません";

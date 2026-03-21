@@ -271,3 +271,12 @@
 "Control the shutter" = "控制快门";
 "Works up to 50 feet away" = "最远可在15米内使用";
 "Remote Mode" = "遥控模式";
+
+/* Alert Messages */
+"Scanning Error" = "扫描错误";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "无法扫描附近的设备。请检查网络设置后重试。";
+"OK" = "好";
+"Ok" = "好";
+"Error" = "错误";
+"Connection error" = "连接错误";
+"Unable to start recording" = "无法开始录制";

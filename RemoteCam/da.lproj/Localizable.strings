@@ -150,3 +150,12 @@
 "Control the shutter" = "Styr udløseren";
 "Works up to 50 feet away" = "Fungerer op til 15 meter væk";
 "Remote Mode" = "Fjernbetjeningstilstand";
+
+/* Alert Messages */
+"Scanning Error" = "Scanningsfejl";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Kan ikke scanne efter enheder i nærheden. Kontroller dine netværksindstillinger og prøv igen.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Fejl";
+"Connection error" = "Forbindelsesfejl";
+"Unable to start recording" = "Kan ikke starte optagelse";

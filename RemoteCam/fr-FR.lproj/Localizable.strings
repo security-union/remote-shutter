@@ -167,3 +167,12 @@
 "Control the shutter" = "Contrôlez le déclencheur";
 "Works up to 50 feet away" = "Fonctionne jusqu'à 15 mètres de distance";
 "Remote Mode" = "Mode Télécommande";
+
+/* Alert Messages */
+"Scanning Error" = "Erreur de Recherche";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Impossible de rechercher les appareils à proximité. Vérifiez vos paramètres réseau et réessayez.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Erreur";
+"Connection error" = "Erreur de connexion";
+"Unable to start recording" = "Impossible de démarrer l'enregistrement";

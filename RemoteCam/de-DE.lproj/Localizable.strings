@@ -271,3 +271,12 @@
 "Control the shutter" = "Auslöser steuern";
 "Works up to 50 feet away" = "Funktioniert bis zu 15 Meter entfernt";
 "Remote Mode" = "Fernbedienungsmodus";
+
+/* Alert Messages */
+"Scanning Error" = "Scanfehler";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Geräte in der Nähe können nicht gefunden werden. Überprüfen Sie Ihre Netzwerkeinstellungen und versuchen Sie es erneut.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Fehler";
+"Connection error" = "Verbindungsfehler";
+"Unable to start recording" = "Aufnahme kann nicht gestartet werden";
