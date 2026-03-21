@@ -249,3 +249,25 @@
 "SEARCHING FOR NEARBY CAMERAS..." = "SEARCHING FOR NEARBY CAMERAS...";
 "Scanning for nearby cameras..." = "Scanning for nearby cameras...";
 "Start scanning and wait for a Remote device to connect" = "Start scanning and wait for a Remote device to connect";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Turn two devices into a professional remote camera system";
+"Restore Purchases" = "Restore Purchases";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Unlock all features: video recording, torch control, and ad-free experience.";
+"Get Started" = "Get Started";
+"Thank you for your support!" = "Thank you for your support!";
+"Rate on App Store" = "Rate on App Store";
+"Welcome" = "Welcome";
+"Purchase" = "Purchase";
+"Restored" = "Restored";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID.";
+
+/* Role Picker Screen */
+"Pick a role" = "Pick a role";
+"Camera" = "Camera";
+"Capture photos & video" = "Capture photos & video";
+"Use the device with the best lens" = "Use the device with the best lens";
+"Remote" = "Remote";
+"Control the shutter" = "Control the shutter";
+"Works up to 50 feet away" = "Works up to 50 feet away";
+"Remote Mode" = "Remote Mode";

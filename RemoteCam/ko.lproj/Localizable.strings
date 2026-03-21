@@ -1,0 +1,273 @@
+/* No comment provided by engineer. */
+"%@, ¿Desea intentar nuevamente?" = "%@, 다시 시도하시겠습니까?";
+
+/* No comment provided by engineer. */
+"AppName" = "Remote Shutter";
+
+/* No comment provided by engineer. */
+"Camera or remote shutter?" = "카메라 또는 리모트 셔터?";
+
+/* No comment provided by engineer. */
+"Cellular" = "셀룰러";
+
+/* No comment provided by engineer. */
+"CHOOSE A DEVICE" = "기기 선택";
+
+/* No comment provided by engineer. */
+"Connecting" = "연결 중";
+
+/* No comment provided by engineer. */
+"Disconnect" = "연결 해제";
+
+/* No comment provided by engineer. */
+"Espere..." = "잠시만 기다려주세요...";
+
+/* No comment provided by engineer. */
+"flash_mode_auto" = "자동";
+
+/* No comment provided by engineer. */
+"flash_mode_off" = "끄기";
+
+/* No comment provided by engineer. */
+"flash_mode_on" = "켜기";
+
+/* No comment provided by engineer. */
+"Loading Image" = "이미지 로딩 중";
+
+/* Default DejalActivtyView label text */
+"Loading..." = "로딩 중...";
+
+/* No comment provided by engineer. */
+"Looking for devices over Wifi and Bluetooth." = "Wi-Fi 및 Bluetooth로 기기를 검색 중입니다.";
+
+/* No comment provided by engineer. */
+"No Connection" = "연결 없음";
+
+/* No comment provided by engineer. */
+"Reestableciendo compras" = "구매 복원 중";
+
+/* No comment provided by engineer. */
+"Requesting capture" = "촬영 요청 중";
+
+/* No comment provided by engineer. */
+"ROLE PICKER" = "역할 선택";
+
+/* No comment provided by engineer. */
+"Sending Photo to Remote" = "리모트로 사진 전송 중";
+
+/* No comment provided by engineer. */
+"Si" = "예";
+
+"Yes"= "예";
+
+/* No comment provided by engineer. */
+"WiFi" = "Wi-Fi";
+
+/* No comment provided by engineer. */
+"¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "이전에 구매한 기능과 %@을(를) 동기화하시겠습니까 (무료)?";
+
+"Acknowledgments"= "감사의 말";
+
+"timeunit"= "초";
+
+"Settings"="설정";
+
+"Upgrades"="업그레이드";
+
+"Timer to take photos"="사진 촬영 타이머";
+
+"Incoming Invite from %@"="%@로부터 초대가 왔습니다";
+
+"Do you wish to accept?,"="수락하시겠습니까?";
+
+"¡Gracias por usar nuestra App!"="이 앱을 사용해 주셔서 감사합니다!";
+
+"En otro momento"="나중에";
+
+"Calificar en la AppStore"="평가하기";
+
+"Mandar Feedback"="피드백 보내기";
+
+"No Gracias"="아니요, 괜찮습니다";
+
+"iAds Removed"="광고 제거됨";
+
+"call_to_download" = "지금 Remote Shutter를 다운로드하세요 %@";
+
+/* Local Network Permission Modal */
+"local_network_title" = "로컬 네트워크 접근 요청";
+"local_network_subtitle" = "Remote Shutter는 Apple의 피어 투 피어 프레임워크를 사용하여 기기를 검색하고 연결하기 위해 로컬 네트워크 접근이 필요합니다.";
+
+"local_network_access_required_title" = "로컬 네트워크 접근 필요";
+"local_network_required_subtitle" = "Remote Shutter가 작동하려면 로컬 네트워크 접근이 필요합니다. 계속하려면 설정에서 활성화해 주세요.";
+
+"local_network_feature_title" = "피어 투 피어 연결";
+"local_network_feature_description" = "Apple의 MultipeerConnectivity 프레임워크를 사용하여 로컬 네트워크에서 원활한 원격 제어를 위해 기기를 검색하고 연결합니다.";
+
+"local_network_privacy_title" = "개인정보 보호";
+"local_network_privacy_description" = "연결은 로컬 네트워크 내에서 완전히 비공개로 유지됩니다. 외부 서버나 제3자에게 데이터가 전송되지 않습니다.";
+
+"local_network_benefits_title" = "즉각적이고 안정적";
+"local_network_benefits_description" = "기기 간 직접 통신으로 빠른 응답 시간을 보장하며 인터넷 연결 없이도 작동합니다.";
+
+"local_network_allow" = "접근 허용";
+"local_network_not_now" = "나중에";
+"local_network_cancel" = "취소";
+"local_network_open_settings" = "설정 열기";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "카메라 및 사진 접근 허용";
+"camera_permissions_subtitle" = "Remote Shutter는 다른 기기와 연결할 때 이미지를 촬영하고 저장하기 위해 카메라와 사진에 대한 접근이 필요합니다.";
+
+"camera_permissions_required_title" = "카메라 및 사진 접근 필요";
+"camera_permissions_required_subtitle" = "Remote Shutter가 작동하려면 카메라와 사진 접근이 필요합니다. 계속하려면 설정에서 활성화해 주세요.";
+
+"camera_permission_feature_title" = "카메라 접근";
+"camera_permission_feature_description" = "하나의 기기를 카메라로, 다른 하나를 리모컨으로 사용하여 완벽한 사진을 원격으로 촬영합니다.";
+
+"photos_permission_feature_title" = "사진 저장";
+"photos_permission_feature_description" = "촬영한 사진을 자동으로 사진 라이브러리에 저장하여 쉽게 접근하고 공유할 수 있습니다.";
+
+"remote_control_feature_title" = "원격 제어";
+"remote_control_feature_description" = "단체 사진, 셀피, 창의적인 촬영을 위해 하나의 기기로 다른 기기의 카메라를 제어합니다.";
+
+"camera_permissions_allow" = "접근 허용";
+"camera_permissions_not_now" = "나중에";
+"camera_permissions_cancel" = "취소";
+"camera_permissions_open_settings" = "설정 열기";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "카메라 권한이 아직 요청되지 않았습니다";
+"camera_permission_denied" = "카메라 접근이 거부되었습니다";
+"camera_permission_restricted" = "카메라 접근이 제한되었습니다";
+"camera_permission_authorized" = "카메라 접근이 허용되었습니다";
+"camera_permission_unknown" = "알 수 없는 카메라 권한 상태";
+
+"photos_permission_not_determined" = "사진 권한이 아직 요청되지 않았습니다";
+"photos_permission_denied" = "사진 접근이 거부되었습니다";
+"photos_permission_restricted" = "사진 접근이 제한되었습니다";
+"photos_permission_authorized" = "사진 전체 접근이 허용되었습니다";
+"photos_permission_limited" = "사진 제한 접근이 허용되었습니다";
+"photos_permission_unknown" = "알 수 없는 사진 권한 상태";
+
+/* Camera Error View */
+"camera_error_title" = "카메라 접근 필요";
+"camera_error_subtitle" = "Remote Shutter가 작동하려면 카메라와 사진에 대한 접근이 필요합니다. 설정에서 권한을 활성화해 주세요.";
+"camera_error_open_settings" = "설정 열기";
+"camera_error_go_back" = "뒤로가기";
+"camera_access_required" = "카메라 접근";
+"photos_access_required" = "사진 접근";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "마이크 접근이 거부되었습니다. 오디오 없이 비디오가 녹화됩니다.";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "마이크 접근 필요";
+"mic_required_subtitle" = "오디오가 포함된 비디오를 녹화하려면 Remote Shutter에 마이크 접근이 필요합니다. 설정에서 활성화해 주세요.";
+"video_recording_feature_title" = "비디오 녹화";
+"video_recording_feature_description" = "기기의 마이크를 사용하여 고품질 오디오 포함 비디오를 녹화하여 완벽한 녹화 경험을 즐기세요.";
+"mic_open_settings" = "설정 열기";
+"mic_cancel_recording" = "녹화 취소";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "비디오를 녹화할 수 없습니다: 마이크 접근이 거부되었습니다. 오디오 포함 비디오를 녹화하려면 설정에서 마이크 접근을 활성화해 주세요.";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "다른 기기의 카메라 앱으로 이 QR 코드를 스캔하여 App Store에서 Remote Shutter를 다운로드하세요";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "사진을 저장할 수 없음";
+"photos_access_denied_photo_subtitle" = "Remote Shutter는 촬영한 이미지를 저장하기 위해 사진 라이브러리에 대한 접근이 필요합니다. 설정에서 사진 접근을 활성화해 주세요.";
+"photos_access_denied_video_title" = "비디오를 저장할 수 없음";
+"photos_access_denied_video_subtitle" = "Remote Shutter는 녹화한 비디오를 저장하기 위해 사진 라이브러리에 대한 접근이 필요합니다. 설정에서 사진 접근을 활성화해 주세요.";
+
+"photos_privacy_feature_title" = "개인정보 보호가 중요합니다";
+"photos_privacy_feature_description" = "사진은 기기의 라이브러리에 직접 저장됩니다. 외부 서버에 업로드되거나 허가 없이 공유되지 않습니다.";
+
+"photos_sharing_feature_title" = "쉬운 공유";
+"photos_sharing_feature_description" = "사진 앱에서 촬영한 사진과 비디오에 접근하여 친구나 가족과 쉽게 공유하거나 다른 앱에서 사용할 수 있습니다.";
+
+"photos_open_settings" = "설정 열기";
+"photos_dismiss" = "닫기";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "비디오 전송 중";
+
+/* Help Modal */
+"help_title" = "Remote Shutter 사용 방법";
+"help_subtitle" = "두 대의 기기로 완벽한 사진과 비디오 촬영";
+"help_got_it" = "알겠습니다!";
+"help_done" = "완료";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "2. 기기 연결";
+"help_connect_description" = "카메라 기기가 온라인으로 전환되고 대기합니다. 리모트 기기에서 카메라를 검색하고 카메라 이름을 탭하여 연결합니다.";
+"help_quick_setup_title" = "빠른 설정";
+"help_quick_setup_description" = "QR 코드를 사용하여 App Store에서 두 번째 기기에 Remote Shutter를 다운로드";
+"help_same_network_title" = "피어 투 피어 연결";
+"help_same_network_description" = "AirDrop처럼 Wi-Fi와 Bluetooth를 사용하여 기기가 직접 연결됩니다 - 인터넷 불필요";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "1. 역할 선택";
+"help_roles_description" = "먼저 이 기기가 카메라가 될지 리모트가 될지 선택합니다. 카메라 기기가 사진과 비디오를 촬영하고, 리모트가 이를 제어합니다.";
+"help_camera_device_title" = "카메라 기기";
+"help_camera_device_description" = "사진과 비디오를 촬영하고 카메라 미리보기 표시";
+"help_remote_device_title" = "리모트 기기";
+"help_remote_device_description" = "카메라를 제어하고, 실시간 미리보기 표시, 설정 조정";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. 완벽한 순간 포착";
+"help_capture_description" = "리모트 기기를 사용하여 카메라를 제어하고, 설정을 조정하고, 멀리서 사진이나 비디오를 촬영합니다.";
+"help_remote_shutter_title" = "리모트 셔터";
+"help_remote_shutter_description" = "카메라 기기를 만지지 않고 사진 촬영";
+"help_video_recording_title" = "비디오 녹화";
+"help_video_recording_description" = "원격으로 비디오 녹화 시작 및 중지";
+"help_camera_controls_title" = "카메라 컨트롤";
+"help_camera_controls_description" = "플래시, 손전등, 타이머 및 카메라 설정 조정";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "팁과 요령";
+"help_tips_description" = "유용한 팁으로 Remote Shutter를 최대한 활용하세요";
+"help_group_photos_title" = "단체 사진";
+"help_group_photos_description" = "단체 셀피에 최적 - 카메라를 설치하고 리모트로 모든 사람을 한 장에 담으세요";
+"help_timer_feature_title" = "타이머 기능";
+"help_timer_feature_description" = "리모트 기기의 타이머를 사용하여 사진 촬영 전에 준비하세요";
+"help_switch_cameras_title" = "카메라 전환";
+"help_switch_cameras_description" = "리모트 기기에서 직접 전면 카메라와 후면 카메라를 전환";
+"help_auto_save_title" = "자동 저장";
+"help_auto_save_description" = "사진과 비디오가 양쪽 기기의 사진 라이브러리에 자동 저장";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "리모트 대기 중";
+"Scan for cameras" = "카메라 검색";
+"Camera Mode" = "카메라 모드";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "다른 기기에서 Remote Shutter를 열고 리모트를 선택하세요. 이 카메라가 기기 목록에 표시됩니다.";
+"Go Online" = "온라인 전환";
+"Go Offline" = "오프라인 전환";
+"Waiting for a remote to connect..." = "리모트 연결 대기 중...";
+"WAITING FOR A REMOTE TO CONNECT..." = "리모트 연결 대기 중...";
+"SEARCHING FOR NEARBY CAMERAS..." = "근처 카메라 검색 중...";
+"Scanning for nearby cameras..." = "근처 카메라 스캔 중...";
+"Start scanning and wait for a Remote device to connect" = "스캔을 시작하고 리모트 기기의 연결을 기다리세요";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "두 대의 기기를 전문 원격 카메라 시스템으로 변환";
+"Restore Purchases" = "구매 복원";
+"Unlock all features: video recording, torch control, and ad-free experience." = "모든 기능 잠금 해제: 비디오 녹화, 라이트 제어, 광고 없는 경험.";
+"Get Started" = "시작하기";
+"Thank you for your support!" = "응원해 주셔서 감사합니다!";
+"Rate on App Store" = "App Store에서 평가";
+"Welcome" = "환영합니다";
+"Purchase" = "구매";
+"Restored" = "복원됨";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "구매가 복원되었습니다. 보이지 않으면 올바른 Apple ID로 로그인했는지 확인하세요.";
+
+/* Role Picker Screen */
+"Pick a role" = "역할 선택";
+"Camera" = "카메라";
+"Capture photos & video" = "사진 및 비디오 촬영";
+"Use the device with the best lens" = "최고의 렌즈가 있는 기기 사용";
+"Remote" = "리모트";
+"Control the shutter" = "셔터 제어";
+"Works up to 50 feet away" = "최대 15미터 거리에서 작동";
+"Remote Mode" = "리모트 모드";

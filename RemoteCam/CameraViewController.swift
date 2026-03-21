@@ -148,7 +148,28 @@ public class CameraViewController: UIViewController,
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.tintColor = .white
 
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "questionmark.circle"),
+            style: .plain,
+            target: self,
+            action: #selector(showHelpModal)
+        )
+
         orientation = getOrientation()
+    }
+
+    @objc private func showHelpModal() {
+        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
+            self?.dismiss(animated: true)
+        })
+        let hostingController = UIHostingController(rootView: helpView)
+        hostingController.modalPresentationStyle = .pageSheet
+        if let sheet = hostingController.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+        }
+        present(hostingController, animated: true)
     }
 
     override public func viewDidAppear(_ animated: Bool) {

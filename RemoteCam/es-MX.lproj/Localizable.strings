@@ -145,3 +145,25 @@
 "SEARCHING FOR NEARBY CAMERAS..." = "BUSCANDO CÁMARAS CERCANAS...";
 "Scanning for nearby cameras..." = "Buscando cámaras cercanas...";
 "Start scanning and wait for a Remote device to connect" = "Empieza a escanear y espera que un dispositivo Remoto se conecte";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Convierte dos dispositivos en un sistema profesional de cámara remota";
+"Restore Purchases" = "Restaurar Compras";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Desbloquea todas las funciones: grabación de video, control de linterna y experiencia sin anuncios.";
+"Get Started" = "Comenzar";
+"Thank you for your support!" = "¡Gracias por tu apoyo!";
+"Rate on App Store" = "Calificar en App Store";
+"Welcome" = "Bienvenido";
+"Purchase" = "Comprar";
+"Restored" = "Restaurado";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Tus compras han sido restauradas. Si no las ves, verifica que hayas iniciado sesión con el Apple ID correcto.";
+
+/* Role Picker Screen */
+"Pick a role" = "Elige un rol";
+"Camera" = "Cámara";
+"Capture photos & video" = "Captura fotos y video";
+"Use the device with the best lens" = "Usa el dispositivo con el mejor lente";
+"Remote" = "Remoto";
+"Control the shutter" = "Controla el obturador";
+"Works up to 50 feet away" = "Funciona hasta a 15 metros de distancia";
+"Remote Mode" = "Modo Remoto";

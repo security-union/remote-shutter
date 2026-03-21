@@ -128,3 +128,25 @@
 "SEARCHING FOR NEARBY CAMERAS..." = "SØGER EFTER KAMERAER I NÆRHEDEN...";
 "Scanning for nearby cameras..." = "Scanner efter kameraer i nærheden...";
 "Start scanning and wait for a Remote device to connect" = "Start scanning og vent på at en Fjernbetjeningsenhed forbinder";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Gør to enheder til et professionelt fjernkamerasystem";
+"Restore Purchases" = "Gendan Køb";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Lås alle funktioner op: videooptagelse, lommelygtekontrola og reklamefri oplevelse.";
+"Get Started" = "Kom i Gang";
+"Thank you for your support!" = "Tak for din støtte!";
+"Rate on App Store" = "Bedøm i App Store";
+"Welcome" = "Velkommen";
+"Purchase" = "Køb";
+"Restored" = "Gendannet";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Dine køb er blevet gendannet. Hvis du ikke kan se dem, skal du kontrollere, at du er logget ind med det korrekte Apple ID.";
+
+/* Role Picker Screen */
+"Pick a role" = "Vælg en rolle";
+"Camera" = "Kamera";
+"Capture photos & video" = "Tag fotos og video";
+"Use the device with the best lens" = "Brug enheden med det bedste objektiv";
+"Remote" = "Fjernbetjening";
+"Control the shutter" = "Styr udløseren";
+"Works up to 50 feet away" = "Fungerer op til 15 meter væk";
+"Remote Mode" = "Fjernbetjeningstilstand";

@@ -40,11 +40,12 @@ public class RolePickerController: UIViewController {
         navigationItem.title = NSLocalizedString("Pick a role", comment: "")
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: NSLocalizedString("Info", comment: ""),
+            image: UIImage(systemName: "questionmark.circle"),
             style: .plain,
             target: self,
-            action: #selector(showSettingsAction)
+            action: #selector(showHelpModal)
         )
+        navigationItem.rightBarButtonItem?.tintColor = UIColor(AppTheme.accent)
     }
 
     // MARK: - SwiftUI Setup
@@ -56,9 +57,6 @@ public class RolePickerController: UIViewController {
             },
             onRemote: { [weak self] in
                 self?.becomeMonitor()
-            },
-            onSettings: { [weak self] in
-                self?.showSettingsAction()
             }
         )
 
@@ -80,10 +78,18 @@ public class RolePickerController: UIViewController {
 
     // MARK: - Navigation
 
-    @objc private func showSettingsAction() {
-        let ctrl = UIHostingController(rootView: SettingsView())
-        ctrl.modalPresentationStyle = .pageSheet
-        self.present(ctrl, animated: true)
+    @objc private func showHelpModal() {
+        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
+            self?.dismiss(animated: true)
+        })
+        let hostingController = UIHostingController(rootView: helpView)
+        hostingController.modalPresentationStyle = .pageSheet
+        if let sheet = hostingController.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+        }
+        present(hostingController, animated: true)
     }
 
     func becomeMonitor() {

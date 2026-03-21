@@ -135,6 +135,9 @@ struct DeviceScannerView: View {
             .padding(.horizontal, 20)
 
             Spacer()
+
+            // QR code + tip
+            qrCodeSection
         }
     }
 
@@ -144,33 +147,28 @@ struct DeviceScannerView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            // QR code
-            VStack(spacing: 16) {
-                if let qrImage = qrCodeImage {
-                    Image(uiImage: qrImage)
-                        .interpolation(.none)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 160, height: 160)
-                        .padding(12)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
-                        )
-                } else {
-                    Image("AppLogo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
-                }
+            // Remote icon
+            ZStack {
+                Circle()
+                    .fill(AppTheme.secondary.opacity(0.12))
+                    .frame(width: 120, height: 120)
 
-                Text(viewModel.role == .camera
-                    ? NSLocalizedString("Start scanning and wait for a Remote device to connect", comment: "")
-                    : NSLocalizedString("You need at least 2 devices running Remote Shutter", comment: ""))
+                Circle()
+                    .strokeBorder(AppTheme.secondary.opacity(0.25), lineWidth: 1.5)
+                    .frame(width: 120, height: 120)
+
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.system(size: 48, weight: .medium))
+                    .foregroundColor(AppTheme.secondary)
+            }
+
+            VStack(spacing: 8) {
+                Text(NSLocalizedString("Remote Mode", comment: ""))
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+
+                Text(NSLocalizedString("You need at least 2 devices running Remote Shutter", comment: ""))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -197,7 +195,30 @@ struct DeviceScannerView: View {
 
             Spacer()
 
-            // Tip
+            // QR code + tip
+            qrCodeSection
+        }
+    }
+
+    // MARK: - QR Code Section
+
+    private var qrCodeSection: some View {
+        VStack(spacing: 12) {
+            if let qrImage = qrCodeImage {
+                Image(uiImage: qrImage)
+                    .interpolation(.none)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 120, height: 120)
+                    .padding(8)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
+                    )
+            }
+
             HStack(spacing: 8) {
                 Image(systemName: "qrcode")
                     .font(.caption)
@@ -207,8 +228,8 @@ struct DeviceScannerView: View {
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 20)
         }
+        .padding(.bottom, 20)
     }
 
     // MARK: - Components

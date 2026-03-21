@@ -3,7 +3,6 @@ import SwiftUI
 struct RolePickerView: View {
     let onCamera: () -> Void
     let onRemote: () -> Void
-    let onSettings: () -> Void
 
     @State private var appeared = false
 
@@ -145,8 +144,7 @@ struct RolePickerView_Previews: PreviewProvider {
         NavigationView {
             RolePickerView(
                 onCamera: {},
-                onRemote: {},
-                onSettings: {}
+                onRemote: {}
             )
             .navigationTitle(NSLocalizedString("Pick a role", comment: ""))
             .navigationBarTitleDisplayMode(.large)

@@ -145,3 +145,25 @@
 "SEARCHING FOR NEARBY CAMERAS..." = "RECHERCHE D'APPAREILS PHOTOS...";
 "Scanning for nearby cameras..." = "Recherche d'appareils photos...";
 "Start scanning and wait for a Remote device to connect" = "Lancez la recherche et attendez qu'un appareil Télécommande se connecte";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Transformez deux appareils en un système professionnel de caméra à distance";
+"Restore Purchases" = "Restaurer les Achats";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Débloquez toutes les fonctionnalités : enregistrement vidéo, contrôle de la torche et expérience sans publicité.";
+"Get Started" = "Commencer";
+"Thank you for your support!" = "Merci pour votre soutien !";
+"Rate on App Store" = "Noter sur l'App Store";
+"Welcome" = "Bienvenue";
+"Purchase" = "Acheter";
+"Restored" = "Restauré";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Vos achats ont été restaurés. Si vous ne les voyez pas, vérifiez que vous êtes connecté avec le bon identifiant Apple.";
+
+/* Role Picker Screen */
+"Pick a role" = "Choisissez un rôle";
+"Camera" = "Appareil Photo";
+"Capture photos & video" = "Capturez photos et vidéos";
+"Use the device with the best lens" = "Utilisez l'appareil avec le meilleur objectif";
+"Remote" = "Télécommande";
+"Control the shutter" = "Contrôlez le déclencheur";
+"Works up to 50 feet away" = "Fonctionne jusqu'à 15 mètres de distance";
+"Remote Mode" = "Mode Télécommande";
