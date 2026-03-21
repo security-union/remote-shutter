@@ -24,50 +24,13 @@ public class RemoteCamSystem: ActorSystem {
 
 let connectedPrompt = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
 
-public class RolePickerActor: ViewCtrlActor<RolePickerController> {
-
-    override public func receiveWithCtrl(ctrl: Weak<RolePickerController>) -> Receive {
-        return {[unowned self] (msg: Message) in
-            switch msg {
-
-            case is RemoteCmd.PeerBecameMonitor:
-                ^{
-                    ctrl.value?.becomeCamera()
-                }
-            case is RemoteCmd.PeerBecameCamera:
-                ^{
-                    ctrl.value?.becomeMonitor()
-                }
-            default:
-                self.receive(msg: msg)
-            }
-        }
-    }
-}
-
 public class RolePickerController: UIViewController {
 
-    public struct States {
-        let connect = "Connect"
-        let disconnect = "Disconnect"
-    }
-
-    public let states = States()
     private var swiftUIHostingController: UIHostingController<RolePickerView>?
-
-    private(set) var rolePicker: ActorRef!
-    private var rolePickerInstanceId: ObjectIdentifier?
 
     override public func viewDidLoad() {
         super.viewDidLoad()
-        let rp = createOrReplaceActor(
-            clz: RolePickerActor.self,
-            name: "RolePickerActor"
-        )
-        rolePicker = rp.ref
-        rolePickerInstanceId = rp.instanceId
         setupSwiftUIView()
-        rolePicker ! SetViewCtrl(ctrl: self)
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -77,11 +40,12 @@ public class RolePickerController: UIViewController {
         navigationItem.title = NSLocalizedString("Pick a role", comment: "")
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: NSLocalizedString("Info", comment: ""),
+            image: UIImage(systemName: "questionmark.circle"),
             style: .plain,
             target: self,
-            action: #selector(showSettingsAction)
+            action: #selector(showHelpModal)
         )
+        navigationItem.rightBarButtonItem?.tintColor = UIColor(AppTheme.accent)
     }
 
     // MARK: - SwiftUI Setup
@@ -93,9 +57,6 @@ public class RolePickerController: UIViewController {
             },
             onRemote: { [weak self] in
                 self?.becomeMonitor()
-            },
-            onSettings: { [weak self] in
-                self?.showSettingsAction()
             }
         )
 
@@ -117,15 +78,23 @@ public class RolePickerController: UIViewController {
 
     // MARK: - Navigation
 
-    @objc private func showSettingsAction() {
-        let ctrl = UIHostingController(rootView: SettingsView())
-        ctrl.modalPresentationStyle = .pageSheet
-        self.present(ctrl, animated: true)
+    @objc private func showHelpModal() {
+        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
+            self?.dismiss(animated: true)
+        })
+        let hostingController = UIHostingController(rootView: helpView)
+        hostingController.modalPresentationStyle = .pageSheet
+        if let sheet = hostingController.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 20
+        }
+        present(hostingController, animated: true)
     }
 
     func becomeMonitor() {
-        let monitor = MonitorViewController()
-        navigationController?.pushViewController(monitor, animated: true)
+        let scanner = DeviceScannerViewController(role: .monitor)
+        navigationController?.pushViewController(scanner, animated: true)
     }
 
     func becomeCamera() {
@@ -137,8 +106,8 @@ public class RolePickerController: UIViewController {
         permissionManager.updatePermissionStatuses()
 
         if permissionManager.areCameraAndPhotosGranted {
-            let camera = CameraViewController()
-            navigationController?.pushViewController(camera, animated: true)
+            let scanner = DeviceScannerViewController(role: .camera)
+            navigationController?.pushViewController(scanner, animated: true)
         } else if permissionManager.areCameraAndPhotosDenied {
             showCameraPermissionsModal(permissionType: .denied)
         } else {
@@ -173,18 +142,13 @@ public class RolePickerController: UIViewController {
         PermissionManager.shared.requestCameraAndPhotosPermissions { [weak self] granted in
             DispatchQueue.main.async {
                 if granted {
-                    let camera = CameraViewController()
-                    self?.navigationController?.pushViewController(camera, animated: true)
+                    let scanner = DeviceScannerViewController(role: .camera)
+                    self?.navigationController?.pushViewController(scanner, animated: true)
                 } else {
                     self?.showCameraPermissionsModal(permissionType: .denied)
                 }
             }
         }
-    }
-
-    deinit {
-        print("killing RolePickerController")
-        stopActorIfCurrent(ref: rolePicker, instanceId: rolePickerInstanceId)
     }
 
 }

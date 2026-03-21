@@ -17,7 +17,9 @@ struct DeviceScannerView: View {
         ZStack {
             AppTheme.backgroundGradient
 
-            if viewModel.hasPeers {
+            if viewModel.role == .camera {
+                cameraWaitingState
+            } else if viewModel.hasPeers {
                 peerList
             } else {
                 emptyState
@@ -80,75 +82,159 @@ struct DeviceScannerView: View {
         }
     }
 
+    // MARK: - Camera Waiting State
+
+    private var cameraWaitingState: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // Camera icon
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.accent.opacity(0.12))
+                        .frame(width: 100, height: 100)
+
+                    Circle()
+                        .strokeBorder(AppTheme.accent.opacity(0.25), lineWidth: 1.5)
+                        .frame(width: 100, height: 100)
+
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundColor(AppTheme.accent)
+                }
+                .padding(.top, 24)
+
+                VStack(spacing: 8) {
+                    Text(NSLocalizedString("Camera Mode", comment: ""))
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    Text(NSLocalizedString("On another device, open Remote Shutter and select Remote. This camera will appear in their device list.", comment: ""))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 20)
+
+                // Status
+                statusBadge
+
+                // Actions
+                VStack(spacing: 12) {
+                    if !viewModel.hasLocalNetworkAccess {
+                        settingsButton
+                    } else if viewModel.isScanning {
+                        cameraAdvertisingIndicator
+                        goOfflineButton
+                    } else {
+                        goOnlineButton
+                    }
+
+                    shareButton
+                }
+                .padding(.horizontal, 20)
+
+                // QR code + tip
+                qrCodeSection
+            }
+        }
+    }
+
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 20) {
+                // Remote icon
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.secondary.opacity(0.12))
+                        .frame(width: 100, height: 100)
 
-            // QR code
-            VStack(spacing: 16) {
-                if let qrImage = qrCodeImage {
-                    Image(uiImage: qrImage)
-                        .interpolation(.none)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 160, height: 160)
-                        .padding(12)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
-                        )
-                } else {
-                    Image("AppLogo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
+                    Circle()
+                        .strokeBorder(AppTheme.secondary.opacity(0.25), lineWidth: 1.5)
+                        .frame(width: 100, height: 100)
+
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundColor(AppTheme.secondary)
                 }
+                .padding(.top, 24)
 
-                Text(NSLocalizedString("You need at least 2 devices running Remote Shutter", comment: ""))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                VStack(spacing: 8) {
+                    Text(NSLocalizedString("Remote Mode", comment: ""))
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    Text(NSLocalizedString("You need at least 2 devices running Remote Shutter", comment: ""))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 20)
+
+                // Status
+                statusBadge
+
+                // Actions
+                VStack(spacing: 12) {
+                    if !viewModel.hasLocalNetworkAccess {
+                        settingsButton
+                    } else if viewModel.isScanning {
+                        scanningIndicator
+                        stopScanButton
+                    } else {
+                        startScanButton
+                    }
+
+                    shareButton
+                }
+                .padding(.horizontal, 20)
+
+                // QR code + tip
+                qrCodeSection
+            }
+        }
+    }
+
+    // MARK: - QR Code Section
+
+    private var qrCodeSection: some View {
+        VStack(spacing: 12) {
+            if let qrImage = qrCodeImage {
+                Image(uiImage: qrImage)
+                    .interpolation(.none)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 120, height: 120)
+                    .padding(8)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
+                    )
             }
 
-            // Status
-            statusBadge
-
-            // Actions
-            VStack(spacing: 12) {
-                if !viewModel.hasLocalNetworkAccess {
-                    settingsButton
-                } else if viewModel.isScanning {
-                    scanningIndicator
-                    stopScanButton
-                } else {
-                    startScanButton
-                }
-
-                shareButton
-            }
-            .padding(.horizontal, 20)
-
-            Spacer()
-
-            // Tip
-            HStack(spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "qrcode")
                     .font(.caption)
                     .foregroundColor(AppTheme.accent)
+                    .padding(.top, 2)
                 Text(NSLocalizedString("Scan the QR code on another device to download Remote Shutter", comment: ""))
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 20)
         }
+        .padding(.bottom, 20)
     }
 
     // MARK: - Components
@@ -225,18 +311,83 @@ struct DeviceScannerView: View {
     private var scanningIndicator: some View {
         HStack(spacing: 12) {
             ProgressView()
-            Text(NSLocalizedString("Scanning for nearby devices...", comment: ""))
+            Text(NSLocalizedString("Scanning for nearby cameras...", comment: ""))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 54)
+        .frame(minHeight: 54)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
         )
+    }
+
+    private var cameraAdvertisingIndicator: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            Text(NSLocalizedString("Waiting for a remote to connect...", comment: ""))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 54)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
+        )
+    }
+
+    private var goOnlineButton: some View {
+        Button(action: onStartScanning) {
+            HStack {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.headline)
+                Text(NSLocalizedString("Go Online", comment: ""))
+                    .font(.headline)
+            }
+            .foregroundColor(.black)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(
+                LinearGradient(
+                    colors: [AppTheme.accent, AppTheme.accentLight],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: AppTheme.accent.opacity(0.3), radius: 8, y: 4)
+        }
+    }
+
+    private var goOfflineButton: some View {
+        Button(action: onStopScanning) {
+            HStack {
+                Image(systemName: "stop.fill")
+                    .font(.subheadline)
+                Text(NSLocalizedString("Go Offline", comment: ""))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
     }
 
     private var settingsButton: some View {

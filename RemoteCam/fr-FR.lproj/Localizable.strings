@@ -96,16 +96,16 @@
 "help_done" = "Terminé";
 
 /* Help Page 1 - Connect Devices */
-"help_connect_title" = "1. Connecter les Appareils";
-"help_connect_description" = "Assurez-vous que les deux appareils ont le Wi-Fi et le Bluetooth activés, puis appuyez sur 'Commencer la Recherche d'Appareils' pour trouver les appareils proches qui utilisent Remote Shutter.";
+"help_connect_title" = "2. Connecter les Appareils";
+"help_connect_description" = "L'appareil Photo se met en ligne et attend. Sur l'appareil Télécommande, recherchez les appareils photos et appuyez sur le nom de l'appareil pour connecter.";
 "help_quick_setup_title" = "Configuration Rapide";
 "help_quick_setup_description" = "Utilisez le QR code pour télécharger Remote Shutter sur votre deuxième appareil depuis l'App Store";
 "help_same_network_title" = "Connexion Directe";
 "help_same_network_description" = "Les appareils se connectent directement entre eux via Wi-Fi et Bluetooth, comme AirDrop - aucune connexion internet requise";
 
 /* Help Page 2 - Choose Roles */
-"help_roles_title" = "2. Choisir les Rôles des Appareils";
-"help_roles_description" = "Une fois connectés, chaque appareil choisit son rôle. L'un devient la caméra, l'autre devient la télécommande.";
+"help_roles_title" = "1. Choisissez Votre Rôle";
+"help_roles_description" = "D'abord, choisissez si cet appareil sera l'Appareil Photo ou la Télécommande. L'appareil photo capture photos et vidéos, tandis que la télécommande le contrôle.";
 "help_camera_device_title" = "Appareil Caméra";
 "help_camera_device_description" = "Prend des photos et vidéos, affiche l'aperçu de la caméra";
 "help_remote_device_title" = "Appareil Télécommande";
@@ -131,4 +131,89 @@
 "help_switch_cameras_title" = "Changer de Caméra";
 "help_switch_cameras_description" = "Basculez entre les caméras avant et arrière directement depuis l'appareil télécommande";
 "help_auto_save_title" = "Sauvegarde Automatique";
-"help_auto_save_description" = "Les photos et vidéos sont automatiquement sauvegardées dans les photothèques des deux appareils"; 
+"help_auto_save_description" = "Les photos et vidéos sont automatiquement sauvegardées dans les photothèques des deux appareils";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "En attente de télécommande";
+"Scan for cameras" = "Rechercher des appareils photos";
+"Camera Mode" = "Mode Appareil Photo";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Sur un autre appareil, ouvrez Remote Shutter et sélectionnez Télécommande. Cet appareil photo apparaîtra dans leur liste d'appareils.";
+"Go Online" = "Se Connecter";
+"Go Offline" = "Se Déconnecter";
+"Waiting for a remote to connect..." = "En attente d'une télécommande...";
+"WAITING FOR A REMOTE TO CONNECT..." = "EN ATTENTE D'UNE TÉLÉCOMMANDE...";
+"SEARCHING FOR NEARBY CAMERAS..." = "RECHERCHE D'APPAREILS PHOTOS...";
+"Scanning for nearby cameras..." = "Recherche d'appareils photos...";
+"Start scanning and wait for a Remote device to connect" = "Lancez la recherche et attendez qu'un appareil Télécommande se connecte";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Transformez deux appareils en un système professionnel de caméra à distance";
+"Restore Purchases" = "Restaurer les Achats";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Débloquez toutes les fonctionnalités : enregistrement vidéo, contrôle de la torche et expérience sans publicité.";
+"Get Started" = "Commencer";
+"Thank you for your support!" = "Merci pour votre soutien !";
+"Rate on App Store" = "Noter sur l'App Store";
+"Welcome" = "Bienvenue";
+"Purchase" = "Acheter";
+"Restored" = "Restauré";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Vos achats ont été restaurés. Si vous ne les voyez pas, vérifiez que vous êtes connecté avec le bon identifiant Apple.";
+
+/* Role Picker Screen */
+"Pick a role" = "Choisissez un rôle";
+"Camera" = "Appareil Photo";
+"Capture photos & video" = "Capturez photos et vidéos";
+"Use the device with the best lens" = "Utilisez l'appareil avec le meilleur objectif";
+"Remote" = "Télécommande";
+"Control the shutter" = "Contrôlez le déclencheur";
+"Works up to 50 feet away" = "Fonctionne jusqu'à 15 mètres de distance";
+"Remote Mode" = "Mode Télécommande";
+
+/* Alert Messages */
+"Scanning Error" = "Erreur de Recherche";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Impossible de rechercher les appareils à proximité. Vérifiez vos paramètres réseau et réessayez.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Erreur";
+"Connection error" = "Erreur de connexion";
+"Unable to start recording" = "Impossible de démarrer l'enregistrement";
+
+/* Scanner UI */
+"Connect" = "Connecter";
+"Connecting..." = "Connexion...";
+"Start Scanning" = "Lancer la Recherche";
+"Stop Scanning" = "Arrêter la Recherche";
+"Share App Link" = "Partager le Lien";
+"Scan for devices" = "Rechercher des appareils";
+"Disconnect" = "Déconnecter";
+"You need at least 2 devices running Remote Shutter" = "Vous avez besoin d'au moins 2 appareils avec Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Scannez le QR code sur un autre appareil pour télécharger Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "ERREUR DE RECHERCHE - VÉRIFIEZ LES PARAMÈTRES RÉSEAU";
+"TAP THE BUTTON TO GET STARTED" = "APPUYEZ SUR LE BOUTON POUR COMMENCER";
+
+/* Settings */
+"About" = "À propos";
+"Back" = "Retour";
+"Contact Support" = "Contacter le Support";
+"Discord Community" = "Communauté Discord";
+"In-App Purchases" = "Achats Intégrés";
+"Purchased" = "Acheté";
+"Send Media to Remote" = "Envoyer les Médias à la Télécommande";
+"Source Code" = "Code Source";
+"Version" = "Version";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Prise de photo";
+"Taking picture" = "Prise de photo";
+"Starting video" = "Démarrage de la vidéo";
+"Stopping video" = "Arrêt de la vidéo";
+"Recording shorts" = "Enregistrement de shorts";
+"Unable to save video" = "Impossible de sauvegarder la vidéo";
+"Unable to save video to Photos app" = "Impossible de sauvegarder la vidéo dans Photos";
+"Purchases restored successfully." = "Achats restaurés avec succès.";
+"Pick a role: Camera or Remote" = "Choisissez un rôle : Appareil Photo ou Télécommande";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro : Toutes les Fonctionnalités";
+"Remove Ads" = "Supprimer les Publicités";
+"Enable Torch" = "Activer la Torche";
+"Enable Video" = "Activer la Vidéo";

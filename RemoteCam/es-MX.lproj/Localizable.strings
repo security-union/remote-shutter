@@ -96,16 +96,16 @@
 "help_done" = "Listo";
 
 /* Help Page 1 - Connect Devices */
-"help_connect_title" = "1. Conectar Dispositivos";
-"help_connect_description" = "Asegúrate de que ambos dispositivos tengan Wi-Fi y Bluetooth habilitados, luego toca 'Empezar a Escanear Dispositivos' para encontrar dispositivos cercanos que usen Remote Shutter.";
+"help_connect_title" = "2. Conectar Dispositivos";
+"help_connect_description" = "El dispositivo Cámara se conecta y espera. En el dispositivo Remoto, escanea buscando cámaras y toca el nombre de la cámara para conectar.";
 "help_quick_setup_title" = "Configuración Rápida";
 "help_quick_setup_description" = "Usa el código QR para descargar Remote Shutter en tu segundo dispositivo desde la App Store";
 "help_same_network_title" = "Conexión Directa";
 "help_same_network_description" = "Los dispositivos se conectan directamente entre sí usando Wi-Fi y Bluetooth, como AirDrop - no requiere internet";
 
 /* Help Page 2 - Choose Roles */
-"help_roles_title" = "2. Elegir Roles de Dispositivos";
-"help_roles_description" = "Una vez conectados, cada dispositivo elige su rol. Uno se convierte en la cámara, el otro en el control remoto.";
+"help_roles_title" = "1. Elige Tu Rol";
+"help_roles_description" = "Primero, elige si este dispositivo será la Cámara o el Remoto. El dispositivo cámara captura fotos y videos, mientras el remoto lo controla.";
 "help_camera_device_title" = "Dispositivo Cámara";
 "help_camera_device_description" = "Toma fotos y videos, muestra vista previa de la cámara";
 "help_remote_device_title" = "Dispositivo Remoto";
@@ -131,4 +131,89 @@
 "help_switch_cameras_title" = "Cambiar Cámaras";
 "help_switch_cameras_description" = "Alterna entre cámaras frontal y trasera directamente desde el dispositivo remoto";
 "help_auto_save_title" = "Guardado Automático";
-"help_auto_save_description" = "Las fotos y videos se guardan automáticamente en las bibliotecas de fotos de ambos dispositivos"; 
+"help_auto_save_description" = "Las fotos y videos se guardan automáticamente en las bibliotecas de fotos de ambos dispositivos";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Esperando remoto";
+"Scan for cameras" = "Buscar cámaras";
+"Camera Mode" = "Modo Cámara";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "En otro dispositivo, abre Remote Shutter y selecciona Remoto. Esta cámara aparecerá en su lista de dispositivos.";
+"Go Online" = "Conectar";
+"Go Offline" = "Desconectar";
+"Waiting for a remote to connect..." = "Esperando un remoto para conectar...";
+"WAITING FOR A REMOTE TO CONNECT..." = "ESPERANDO UN REMOTO PARA CONECTAR...";
+"SEARCHING FOR NEARBY CAMERAS..." = "BUSCANDO CÁMARAS CERCANAS...";
+"Scanning for nearby cameras..." = "Buscando cámaras cercanas...";
+"Start scanning and wait for a Remote device to connect" = "Empieza a escanear y espera que un dispositivo Remoto se conecte";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Convierte dos dispositivos en un sistema profesional de cámara remota";
+"Restore Purchases" = "Restaurar Compras";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Desbloquea todas las funciones: grabación de video, control de linterna y experiencia sin anuncios.";
+"Get Started" = "Comenzar";
+"Thank you for your support!" = "¡Gracias por tu apoyo!";
+"Rate on App Store" = "Calificar en App Store";
+"Welcome" = "Te damos la bienvenida";
+"Purchase" = "Comprar";
+"Restored" = "Restaurado";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Tus compras han sido restauradas. Si no las ves, verifica que hayas iniciado sesión con el Apple ID correcto.";
+
+/* Role Picker Screen */
+"Pick a role" = "Elige un rol";
+"Camera" = "Cámara";
+"Capture photos & video" = "Captura fotos y video";
+"Use the device with the best lens" = "Usa el dispositivo con el mejor lente";
+"Remote" = "Remoto";
+"Control the shutter" = "Controla el obturador";
+"Works up to 50 feet away" = "Funciona hasta a 15 metros de distancia";
+"Remote Mode" = "Modo Remoto";
+
+/* Alert Messages */
+"Scanning Error" = "Error de Escaneo";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "No se pueden buscar dispositivos cercanos. Verifica tu configuración de red e inténtalo de nuevo.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Error";
+"Connection error" = "Error de conexión";
+"Unable to start recording" = "No se puede iniciar la grabación";
+
+/* Scanner UI */
+"Connect" = "Conectar";
+"Connecting..." = "Conectando...";
+"Start Scanning" = "Iniciar Búsqueda";
+"Stop Scanning" = "Detener Búsqueda";
+"Share App Link" = "Compartir Enlace";
+"Scan for devices" = "Buscar dispositivos";
+"Disconnect" = "Desconectar";
+"You need at least 2 devices running Remote Shutter" = "Necesitas al menos 2 dispositivos con Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Escanea el código QR en otro dispositivo para descargar Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "ERROR DE ESCANEO - VERIFICA CONFIGURACIÓN DE RED";
+"TAP THE BUTTON TO GET STARTED" = "TOCA EL BOTÓN PARA COMENZAR";
+
+/* Settings */
+"About" = "Acerca de";
+"Back" = "Atrás";
+"Contact Support" = "Contactar Soporte";
+"Discord Community" = "Comunidad en Discord";
+"In-App Purchases" = "Compras Dentro de la App";
+"Purchased" = "Comprado";
+"Send Media to Remote" = "Enviar Multimedia al Remoto";
+"Source Code" = "Código Fuente";
+"Version" = "Versión";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Tomando foto";
+"Taking picture" = "Tomando foto";
+"Starting video" = "Iniciando video";
+"Stopping video" = "Deteniendo video";
+"Recording shorts" = "Grabando shorts";
+"Unable to save video" = "No se puede guardar el video";
+"Unable to save video to Photos app" = "No se puede guardar el video en la app Fotos";
+"Purchases restored successfully." = "Compras restauradas con éxito.";
+"Pick a role: Camera or Remote" = "Elige un rol: Cámara o Remoto";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: Todas las Funciones";
+"Remove Ads" = "Eliminar Anuncios";
+"Enable Torch" = "Activar Linterna";
+"Enable Video" = "Activar Video";

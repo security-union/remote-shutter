@@ -200,16 +200,16 @@
 "help_done" = "Done";
 
 /* Help Page 1 - Connect Devices */
-"help_connect_title" = "1. Connect Devices";
-"help_connect_description" = "Make sure both devices have Wi-Fi and Bluetooth enabled, then tap 'Start Scanning Devices' to find nearby devices running Remote Shutter.";
+"help_connect_title" = "2. Connect Devices";
+"help_connect_description" = "The Camera device goes online and waits. On the Remote device, scan for cameras and tap the camera's name to connect.";
 "help_quick_setup_title" = "Quick Setup";
 "help_quick_setup_description" = "Use the QR code to download Remote Shutter on your second device from the App Store";
 "help_same_network_title" = "Peer-to-Peer Connection";
 "help_same_network_description" = "Devices connect directly to each other using Wi-Fi and Bluetooth, just like AirDrop - no internet required";
 
 /* Help Page 2 - Choose Roles */
-"help_roles_title" = "2. Choose Device Roles";
-"help_roles_description" = "Once connected, each device chooses its role. One becomes the camera, the other becomes the remote control.";
+"help_roles_title" = "1. Choose Your Role";
+"help_roles_description" = "First, choose whether this device will be the Camera or the Remote. The camera device captures photos and videos, while the remote controls it.";
 "help_camera_device_title" = "Camera Device";
 "help_camera_device_description" = "Takes photos and videos, shows camera preview";
 "help_remote_device_title" = "Remote Device";
@@ -236,3 +236,88 @@
 "help_switch_cameras_description" = "Toggle between front and back cameras directly from the remote device";
 "help_auto_save_title" = "Auto Save";
 "help_auto_save_description" = "Photos and videos are automatically saved to both devices' photo libraries";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Waiting for remote";
+"Scan for cameras" = "Scan for cameras";
+"Camera Mode" = "Camera Mode";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "On another device, open Remote Shutter and select Remote. This camera will appear in their device list.";
+"Go Online" = "Go Online";
+"Go Offline" = "Go Offline";
+"Waiting for a remote to connect..." = "Waiting for a remote to connect...";
+"WAITING FOR A REMOTE TO CONNECT..." = "WAITING FOR A REMOTE TO CONNECT...";
+"SEARCHING FOR NEARBY CAMERAS..." = "SEARCHING FOR NEARBY CAMERAS...";
+"Scanning for nearby cameras..." = "Scanning for nearby cameras...";
+"Start scanning and wait for a Remote device to connect" = "Start scanning and wait for a Remote device to connect";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Turn two devices into a professional remote camera system";
+"Restore Purchases" = "Restore Purchases";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Unlock all features: video recording, torch control, and ad-free experience.";
+"Get Started" = "Get Started";
+"Thank you for your support!" = "Thank you for your support!";
+"Rate on App Store" = "Rate on App Store";
+"Welcome" = "Welcome";
+"Purchase" = "Purchase";
+"Restored" = "Restored";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID.";
+
+/* Role Picker Screen */
+"Pick a role" = "Pick a role";
+"Camera" = "Camera";
+"Capture photos & video" = "Capture photos & video";
+"Use the device with the best lens" = "Use the device with the best lens";
+"Remote" = "Remote";
+"Control the shutter" = "Control the shutter";
+"Works up to 50 feet away" = "Works up to 50 feet away";
+"Remote Mode" = "Remote Mode";
+
+/* Alert Messages */
+"Scanning Error" = "Scanning Error";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Unable to scan for nearby devices. Please check your network settings and try again.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Error";
+"Connection error" = "Connection error";
+"Unable to start recording" = "Unable to start recording";
+
+/* Scanner UI */
+"Connect" = "Connect";
+"Connecting..." = "Connecting...";
+"Start Scanning" = "Start Scanning";
+"Stop Scanning" = "Stop Scanning";
+"Share App Link" = "Share App Link";
+"Scan for devices" = "Scan for devices";
+"Open Settings" = "Open Settings";
+"You need at least 2 devices running Remote Shutter" = "You need at least 2 devices running Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Scan the QR code on another device to download Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "SCANNING ERROR - CHECK NETWORK SETTINGS";
+"TAP THE BUTTON TO GET STARTED" = "TAP THE BUTTON TO GET STARTED";
+
+/* Settings */
+"About" = "About";
+"Back" = "Back";
+"Contact Support" = "Contact Support";
+"Discord Community" = "Discord Community";
+"In-App Purchases" = "In-App Purchases";
+"Purchased" = "Purchased";
+"Send Media to Remote" = "Send Media to Remote";
+"Source Code" = "Source Code";
+"Version" = "Version";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Taking photo";
+"Taking picture" = "Taking picture";
+"Starting video" = "Starting video";
+"Stopping video" = "Stopping video";
+"Recording shorts" = "Recording shorts";
+"Unable to save video" = "Unable to save video";
+"Unable to save video to Photos app" = "Unable to save video to Photos app";
+"Purchases restored successfully." = "Purchases restored successfully.";
+"Pick a role: Camera or Remote" = "Pick a role: Camera or Remote";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: All Features";
+"Remove Ads" = "Remove Ads";
+"Enable Torch" = "Enable Torch";
+"Enable Video" = "Enable Video";

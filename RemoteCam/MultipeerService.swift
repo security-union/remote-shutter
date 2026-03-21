@@ -30,6 +30,8 @@ protocol MultipeerServiceProtocol: AnyObject {
     var progressCancellables: Set<AnyCancellable> { get set }
 
     func startAdvertisingAndBrowsing()
+    func startAdvertisingOnly(discoveryInfo: [String: String]?)
+    func startBrowsingOnly()
     func stopAdvertisingAndBrowsing()
     func disconnect()
     func stopSession()
@@ -66,6 +68,21 @@ class MultipeerService: NSObject, MCSessionDelegate,
 
     func startAdvertisingAndBrowsing() {
         advertiser.startAdvertisingPeer()
+        browser.stopBrowsingForPeers()
+        browser.startBrowsingForPeers()
+    }
+
+    func startAdvertisingOnly(discoveryInfo: [String: String]? = nil) {
+        if let info = discoveryInfo {
+            advertiser.stopAdvertisingPeer()
+            advertiser = MCNearbyServiceAdvertiser(
+                peer: session.myPeerID, discoveryInfo: info, serviceType: service)
+            advertiser.delegate = self
+        }
+        advertiser.startAdvertisingPeer()
+    }
+
+    func startBrowsingOnly() {
         browser.stopBrowsingForPeers()
         browser.startBrowsingForPeers()
     }

@@ -1,0 +1,323 @@
+/* No comment provided by engineer. */
+"%@, ¿Desea intentar nuevamente?" = "%@, Möchten Sie es erneut versuchen?";
+
+/* No comment provided by engineer. */
+"AppName" = "Remote Shutter";
+
+/* No comment provided by engineer. */
+"Camera or remote shutter?" = "Kamera oder Fernauslöser?";
+
+/* No comment provided by engineer. */
+"Cellular" = "Mobilfunk";
+
+/* No comment provided by engineer. */
+"CHOOSE A DEVICE" = "GERÄT WÄHLEN";
+
+/* No comment provided by engineer. */
+"Connecting" = "Verbinde";
+
+/* No comment provided by engineer. */
+"Disconnect" = "Trennen";
+
+/* No comment provided by engineer. */
+"Espere..." = "Bitte warten...";
+
+/* No comment provided by engineer. */
+"flash_mode_auto" = "Automatisch";
+
+/* No comment provided by engineer. */
+"flash_mode_off" = "Aus";
+
+/* No comment provided by engineer. */
+"flash_mode_on" = "An";
+
+/* No comment provided by engineer. */
+"Loading Image" = "Bild laden";
+
+/* Default DejalActivtyView label text */
+"Loading..." = "Laden...";
+
+/* No comment provided by engineer. */
+"Looking for devices over Wifi and Bluetooth." = "Suche nach Geräten über WLAN und Bluetooth.";
+
+/* No comment provided by engineer. */
+"No Connection" = "Keine Verbindung";
+
+/* No comment provided by engineer. */
+"Reestableciendo compras" = "Käufe wiederherstellen";
+
+/* No comment provided by engineer. */
+"Requesting capture" = "Aufnahme anfordern";
+
+/* No comment provided by engineer. */
+"ROLE PICKER" = "ROLLE WÄHLEN";
+
+/* No comment provided by engineer. */
+"Sending Photo to Remote" = "Foto an Fernbedienung senden";
+
+/* No comment provided by engineer. */
+"Si" = "Ja";
+
+"Yes"= "Ja";
+
+/* No comment provided by engineer. */
+"WiFi" = "WLAN";
+
+/* No comment provided by engineer. */
+"¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "Möchten Sie Ihr %@ mit Ihren zuvor gekauften Funktionen synchronisieren (kostenlos)?";
+
+"Acknowledgments"= "Danksagungen";
+
+"timeunit"= "Sek";
+
+"Settings"="Einstellungen";
+
+"Upgrades"="Upgrades";
+
+"Timer to take photos"="Timer für Fotos";
+
+"Incoming Invite from %@"="Eingehende Einladung von %@";
+
+"Do you wish to accept?,"="Möchten Sie annehmen?";
+
+"¡Gracias por usar nuestra App!"="Vielen Dank für die Nutzung dieser App!";
+
+"En otro momento"="Vielleicht später";
+
+"Calificar en la AppStore"="Bewerten";
+
+"Mandar Feedback"="Feedback senden";
+
+"No Gracias"="Nein Danke";
+
+"iAds Removed"="Werbung entfernt";
+
+"call_to_download" = "Laden Sie Remote Shutter noch heute herunter %@";
+
+/* Local Network Permission Modal */
+"local_network_title" = "Zugriff auf lokales Netzwerk anfordern";
+"local_network_subtitle" = "Remote Shutter benötigt Zugriff auf das lokale Netzwerk, um Ihre Geräte über Apples Peer-to-Peer-Framework zu erkennen und zu verbinden.";
+
+"local_network_access_required_title" = "Zugriff auf lokales Netzwerk erforderlich";
+"local_network_required_subtitle" = "Remote Shutter benötigt Zugriff auf das lokale Netzwerk, um zu funktionieren. Bitte aktivieren Sie es in den Einstellungen, um fortzufahren.";
+
+"local_network_feature_title" = "Peer-to-Peer-Verbindung";
+"local_network_feature_description" = "Verwendet Apples MultipeerConnectivity-Framework, um Geräte in Ihrem lokalen Netzwerk für nahtlose Fernsteuerung zu erkennen und zu verbinden.";
+
+"local_network_privacy_title" = "Datenschutz geschützt";
+"local_network_privacy_description" = "Ihre Verbindung bleibt vollständig privat innerhalb Ihres lokalen Netzwerks. Es werden keine Daten an externe Server oder Dritte gesendet.";
+
+"local_network_benefits_title" = "Sofort und zuverlässig";
+"local_network_benefits_description" = "Direkte Gerät-zu-Gerät-Kommunikation gewährleistet schnelle Reaktionszeiten und funktioniert ohne Internetverbindung.";
+
+"local_network_allow" = "Zugriff erlauben";
+"local_network_not_now" = "Nicht jetzt";
+"local_network_cancel" = "Abbrechen";
+"local_network_open_settings" = "Einstellungen öffnen";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "Kamera- und Fotozugriff erlauben";
+"camera_permissions_subtitle" = "Remote Shutter benötigt Zugriff auf Ihre Kamera und Fotos, um Bilder aufzunehmen und zu speichern, wenn eine Verbindung mit anderen Geräten besteht.";
+
+"camera_permissions_required_title" = "Kamera- und Fotozugriff erforderlich";
+"camera_permissions_required_subtitle" = "Remote Shutter benötigt Kamera- und Fotozugriff, um zu funktionieren. Bitte aktivieren Sie diese in den Einstellungen, um fortzufahren.";
+
+"camera_permission_feature_title" = "Kamerazugriff";
+"camera_permission_feature_description" = "Machen Sie Fotos aus der Ferne, indem Sie ein Gerät als Kamera und ein anderes als Fernbedienung für perfekte Aufnahmen verwenden.";
+
+"photos_permission_feature_title" = "Fotos speichern";
+"photos_permission_feature_description" = "Speichern Sie aufgenommene Fotos automatisch in Ihrer Fotobibliothek für einfachen Zugriff und Teilen.";
+
+"remote_control_feature_title" = "Fernsteuerung";
+"remote_control_feature_description" = "Verwenden Sie ein Gerät, um die Kamera auf einem anderen Gerät für Gruppenfotos, Selfies und kreative Aufnahmen zu steuern.";
+
+"camera_permissions_allow" = "Zugriff erlauben";
+"camera_permissions_not_now" = "Nicht jetzt";
+"camera_permissions_cancel" = "Abbrechen";
+"camera_permissions_open_settings" = "Einstellungen öffnen";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "Kameraberechtigung noch nicht angefordert";
+"camera_permission_denied" = "Kamerazugriff verweigert";
+"camera_permission_restricted" = "Kamerazugriff eingeschränkt";
+"camera_permission_authorized" = "Kamerazugriff gewährt";
+"camera_permission_unknown" = "Unbekannter Kameraberechtigungsstatus";
+
+"photos_permission_not_determined" = "Fotoberechtigung noch nicht angefordert";
+"photos_permission_denied" = "Fotozugriff verweigert";
+"photos_permission_restricted" = "Fotozugriff eingeschränkt";
+"photos_permission_authorized" = "Voller Fotozugriff gewährt";
+"photos_permission_limited" = "Eingeschränkter Fotozugriff gewährt";
+"photos_permission_unknown" = "Unbekannter Fotoberechtigungsstatus";
+
+/* Camera Error View */
+"camera_error_title" = "Kamerazugriff erforderlich";
+"camera_error_subtitle" = "Remote Shutter benötigt Zugriff auf Ihre Kamera und Fotos, um zu funktionieren. Bitte aktivieren Sie die Berechtigungen in den Einstellungen.";
+"camera_error_open_settings" = "Einstellungen öffnen";
+"camera_error_go_back" = "Zurück";
+"camera_access_required" = "Kamerazugriff";
+"photos_access_required" = "Fotozugriff";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "Mikrofonzugriff verweigert. Video wird ohne Audio aufgenommen.";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "Mikrofonzugriff erforderlich";
+"mic_required_subtitle" = "Um Video mit Audio aufzunehmen, benötigt Remote Shutter Zugriff auf Ihr Mikrofon. Bitte aktivieren Sie es in den Einstellungen.";
+"video_recording_feature_title" = "Videoaufnahme";
+"video_recording_feature_description" = "Nehmen Sie hochwertige Videos mit Audio über das Mikrofon Ihres Geräts für ein komplettes Aufnahmeerlebnis auf.";
+"mic_open_settings" = "Einstellungen öffnen";
+"mic_cancel_recording" = "Aufnahme abbrechen";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "Video kann nicht aufgenommen werden: Mikrofonzugriff wurde verweigert. Bitte aktivieren Sie den Mikrofonzugriff in den Einstellungen, um Videos mit Audio aufzunehmen.";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "Scannen Sie diesen QR-Code mit Ihrer Kamera-App auf einem anderen Gerät, um Remote Shutter aus dem App Store herunterzuladen";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "Foto kann nicht gespeichert werden";
+"photos_access_denied_photo_subtitle" = "Remote Shutter benötigt Zugriff auf Ihre Fotobibliothek, um das aufgenommene Bild zu speichern. Bitte aktivieren Sie den Fotozugriff in den Einstellungen.";
+"photos_access_denied_video_title" = "Video kann nicht gespeichert werden";
+"photos_access_denied_video_subtitle" = "Remote Shutter benötigt Zugriff auf Ihre Fotobibliothek, um das aufgenommene Video zu speichern. Bitte aktivieren Sie den Fotozugriff in den Einstellungen.";
+
+"photos_privacy_feature_title" = "Ihre Privatsphäre ist wichtig";
+"photos_privacy_feature_description" = "Fotos werden direkt in der Bibliothek Ihres Geräts gespeichert. Es werden keine Daten auf externe Server hochgeladen oder ohne Ihre Erlaubnis geteilt.";
+
+"photos_sharing_feature_title" = "Einfaches Teilen";
+"photos_sharing_feature_description" = "Greifen Sie auf Ihre aufgenommenen Fotos und Videos über die Fotos-App zu, um sie einfach mit Freunden und Familie zu teilen oder in anderen Apps zu verwenden.";
+
+"photos_open_settings" = "Einstellungen öffnen";
+"photos_dismiss" = "Schließen";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "Video wird übertragen";
+
+/* Help Modal */
+"help_title" = "So funktioniert Remote Shutter";
+"help_subtitle" = "Perfekte Fotos und Videos mit zwei Geräten aufnehmen";
+"help_got_it" = "Verstanden!";
+"help_done" = "Fertig";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "2. Geräte verbinden";
+"help_connect_description" = "Das Kameragerät geht online und wartet. Suchen Sie auf dem Fernbedienungsgerät nach Kameras und tippen Sie auf den Kameranamen, um eine Verbindung herzustellen.";
+"help_quick_setup_title" = "Schnelle Einrichtung";
+"help_quick_setup_description" = "Verwenden Sie den QR-Code, um Remote Shutter auf Ihrem zweiten Gerät aus dem App Store herunterzuladen";
+"help_same_network_title" = "Peer-to-Peer-Verbindung";
+"help_same_network_description" = "Geräte verbinden sich direkt miteinander über WLAN und Bluetooth, genau wie AirDrop - kein Internet erforderlich";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "1. Wählen Sie Ihre Rolle";
+"help_roles_description" = "Wählen Sie zunächst, ob dieses Gerät die Kamera oder die Fernbedienung sein soll. Das Kameragerät nimmt Fotos und Videos auf, während die Fernbedienung es steuert.";
+"help_camera_device_title" = "Kameragerät";
+"help_camera_device_description" = "Nimmt Fotos und Videos auf, zeigt Kameravorschau";
+"help_remote_device_title" = "Fernbedienungsgerät";
+"help_remote_device_description" = "Steuert die Kamera, zeigt Live-Vorschau, passt Einstellungen an";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. Perfekte Momente einfangen";
+"help_capture_description" = "Verwenden Sie das Fernbedienungsgerät, um die Kamera zu steuern, Einstellungen anzupassen und Fotos oder Videos aus der Ferne aufzunehmen.";
+"help_remote_shutter_title" = "Fernauslöser";
+"help_remote_shutter_description" = "Machen Sie Fotos, ohne das Kameragerät zu berühren";
+"help_video_recording_title" = "Videoaufnahme";
+"help_video_recording_description" = "Starten und stoppen Sie die Videoaufnahme aus der Ferne";
+"help_camera_controls_title" = "Kamerasteuerung";
+"help_camera_controls_description" = "Passen Sie Blitz, Taschenlampe, Timer und Kameraeinstellungen an";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "Tipps und Tricks";
+"help_tips_description" = "Holen Sie das Beste aus Remote Shutter mit diesen hilfreichen Tipps heraus";
+"help_group_photos_title" = "Gruppenfotos";
+"help_group_photos_description" = "Perfekt für Gruppen-Selfies - stellen Sie die Kamera auf und verwenden Sie die Fernbedienung, um alle im Bild festzuhalten";
+"help_timer_feature_title" = "Timer-Funktion";
+"help_timer_feature_description" = "Verwenden Sie den Timer auf dem Fernbedienungsgerät, um sich vor der Aufnahme vorzubereiten";
+"help_switch_cameras_title" = "Kameras wechseln";
+"help_switch_cameras_description" = "Wechseln Sie direkt vom Fernbedienungsgerät aus zwischen Front- und Rückkamera";
+"help_auto_save_title" = "Automatisches Speichern";
+"help_auto_save_description" = "Fotos und Videos werden automatisch in den Fotobibliotheken beider Geräte gespeichert";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Warte auf Fernbedienung";
+"Scan for cameras" = "Nach Kameras suchen";
+"Camera Mode" = "Kameramodus";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Öffnen Sie auf einem anderen Gerät Remote Shutter und wählen Sie Fernbedienung. Diese Kamera wird in der Geräteliste angezeigt.";
+"Go Online" = "Online gehen";
+"Go Offline" = "Offline gehen";
+"Waiting for a remote to connect..." = "Warte auf eine Fernbedienung...";
+"WAITING FOR A REMOTE TO CONNECT..." = "WARTE AUF EINE FERNBEDIENUNG...";
+"SEARCHING FOR NEARBY CAMERAS..." = "SUCHE NACH KAMERAS IN DER NÄHE...";
+"Scanning for nearby cameras..." = "Suche nach Kameras in der Nähe...";
+"Start scanning and wait for a Remote device to connect" = "Scannen starten und auf ein Fernbedienungsgerät warten";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Verwandeln Sie zwei Geräte in ein professionelles Fernkamerasystem";
+"Restore Purchases" = "Käufe wiederherstellen";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Alle Funktionen freischalten: Videoaufnahme, Taschenlampenkontrolle und werbefreies Erlebnis.";
+"Get Started" = "Loslegen";
+"Thank you for your support!" = "Vielen Dank für Ihre Unterstützung!";
+"Rate on App Store" = "Im App Store bewerten";
+"Welcome" = "Willkommen";
+"Purchase" = "Kaufen";
+"Restored" = "Wiederhergestellt";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Ihre Käufe wurden wiederhergestellt. Wenn Sie sie nicht sehen, überprüfen Sie, ob Sie mit der richtigen Apple-ID angemeldet sind.";
+
+/* Role Picker Screen */
+"Pick a role" = "Rolle wählen";
+"Camera" = "Kamera";
+"Capture photos & video" = "Fotos und Videos aufnehmen";
+"Use the device with the best lens" = "Verwenden Sie das Gerät mit dem besten Objektiv";
+"Remote" = "Fernbedienung";
+"Control the shutter" = "Auslöser steuern";
+"Works up to 50 feet away" = "Funktioniert bis zu 15 Meter entfernt";
+"Remote Mode" = "Fernbedienungsmodus";
+
+/* Alert Messages */
+"Scanning Error" = "Scanfehler";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Geräte in der Nähe können nicht gefunden werden. Überprüfen Sie Ihre Netzwerkeinstellungen und versuchen Sie es erneut.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Fehler";
+"Connection error" = "Verbindungsfehler";
+"Unable to start recording" = "Aufnahme kann nicht gestartet werden";
+
+/* Scanner UI */
+"Connect" = "Verbinden";
+"Connecting..." = "Verbindung wird hergestellt...";
+"Start Scanning" = "Suche starten";
+"Stop Scanning" = "Suche beenden";
+"Share App Link" = "App-Link teilen";
+"Scan for devices" = "Nach Geräten suchen";
+"Open Settings" = "Einstellungen öffnen";
+"You need at least 2 devices running Remote Shutter" = "Sie benötigen mindestens 2 Geräte mit Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Scannen Sie den QR-Code auf einem anderen Gerät, um Remote Shutter herunterzuladen";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "SUCHFEHLER - NETZWERKEINSTELLUNGEN PRÜFEN";
+"TAP THE BUTTON TO GET STARTED" = "TIPPEN SIE AUF DEN BUTTON, UM ZU STARTEN";
+
+/* Settings */
+"About" = "Über";
+"Back" = "Zurück";
+"Contact Support" = "Support kontaktieren";
+"Discord Community" = "Discord-Community";
+"In-App Purchases" = "In-App-Käufe";
+"Purchased" = "Gekauft";
+"Send Media to Remote" = "Medien an Fernbedienung senden";
+"Source Code" = "Quellcode";
+"Version" = "Version";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Foto wird aufgenommen";
+"Taking picture" = "Bild wird aufgenommen";
+"Starting video" = "Video wird gestartet";
+"Stopping video" = "Video wird gestoppt";
+"Recording shorts" = "Shorts werden aufgenommen";
+"Unable to save video" = "Video kann nicht gespeichert werden";
+"Unable to save video to Photos app" = "Video kann nicht in der Fotos-App gespeichert werden";
+"Purchases restored successfully." = "Käufe erfolgreich wiederhergestellt.";
+"Pick a role: Camera or Remote" = "Rolle wählen: Kamera oder Fernbedienung";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: Alle Funktionen";
+"Remove Ads" = "Werbung entfernen";
+"Enable Torch" = "Taschenlampe aktivieren";
+"Enable Video" = "Video aktivieren";

@@ -76,16 +76,16 @@
 "help_done" = "Færdig";
 
 /* Help Page 1 - Connect Devices */
-"help_connect_title" = "1. Forbind Enheder";
-"help_connect_description" = "Sørg for at begge enheder har Wi-Fi og Bluetooth aktiveret, tryk derefter på 'Start Scanning af Enheder' for at finde enheder i nærheden som kører Remote Shutter.";
+"help_connect_title" = "2. Forbind Enheder";
+"help_connect_description" = "Kameraenheden går online og venter. På Fjernbetjeningsenheden, scan efter kameraer og tryk på kameraets navn for at forbinde.";
 "help_quick_setup_title" = "Hurtig Opsætning";
 "help_quick_setup_description" = "Brug QR-koden til at downloade Remote Shutter på din anden enhed fra App Store";
 "help_same_network_title" = "Direkte Forbindelse";
 "help_same_network_description" = "Enheder forbinder direkte til hinanden ved hjælp af Wi-Fi og Bluetooth, ligesom AirDrop - ingen internet påkrævet";
 
 /* Help Page 2 - Choose Roles */
-"help_roles_title" = "2. Vælg Enhedsroller";
-"help_roles_description" = "Når de er forbundet, vælger hver enhed sin rolle. Den ene bliver kameraet, den anden bliver fjernbetjeningen.";
+"help_roles_title" = "1. Vælg Din Rolle";
+"help_roles_description" = "Vælg først om denne enhed skal være Kameraet eller Fjernbetjeningen. Kameraenheden tager fotos og videoer, mens fjernbetjeningen styrer det.";
 "help_camera_device_title" = "Kamera Enhed";
 "help_camera_device_description" = "Tager fotos og videoer, viser kamera forhåndsvisning";
 "help_remote_device_title" = "Fjernbetjenings Enhed";
@@ -114,4 +114,90 @@
 "help_switch_cameras_title" = "Skift Kameraer";
 "help_switch_cameras_description" = "Skift mellem front- og bagkameraer direkte fra fjernbetjeningsenheden";
 "help_auto_save_title" = "Automatisk Gem";
-"help_auto_save_description" = "Fotos og videoer gemmes automatisk i begge enheders fotobiblioteker"; 
+"help_auto_save_description" = "Fotos og videoer gemmes automatisk i begge enheders fotobiblioteker";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Venter på fjernbetjening";
+"Scan for cameras" = "Scan efter kameraer";
+"Camera Mode" = "Kameratilstand";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Åbn Remote Shutter på en anden enhed og vælg Fjernbetjening. Dette kamera vil vises i deres enhedsliste.";
+"Go Online" = "Gå Online";
+"Go Offline" = "Gå Offline";
+"Waiting for a remote to connect..." = "Venter på en fjernbetjening...";
+"WAITING FOR A REMOTE TO CONNECT..." = "VENTER PÅ EN FJERNBETJENING...";
+"SEARCHING FOR NEARBY CAMERAS..." = "SØGER EFTER KAMERAER I NÆRHEDEN...";
+"Scanning for nearby cameras..." = "Scanner efter kameraer i nærheden...";
+"Start scanning and wait for a Remote device to connect" = "Start scanning og vent på at en Fjernbetjeningsenhed forbinder";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Gør to enheder til et professionelt fjernkamerasystem";
+"Restore Purchases" = "Gendan Køb";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Lås alle funktioner op: videooptagelse, lommelygtekontrola og reklamefri oplevelse.";
+"Get Started" = "Kom i Gang";
+"Thank you for your support!" = "Tak for din støtte!";
+"Rate on App Store" = "Bedøm i App Store";
+"Welcome" = "Velkommen";
+"Purchase" = "Køb";
+"Restored" = "Gendannet";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Dine køb er blevet gendannet. Hvis du ikke kan se dem, skal du kontrollere, at du er logget ind med det korrekte Apple ID.";
+
+/* Role Picker Screen */
+"Pick a role" = "Vælg en rolle";
+"Camera" = "Kamera";
+"Capture photos & video" = "Tag fotos og video";
+"Use the device with the best lens" = "Brug enheden med det bedste objektiv";
+"Remote" = "Fjernbetjening";
+"Control the shutter" = "Styr udløseren";
+"Works up to 50 feet away" = "Fungerer op til 15 meter væk";
+"Remote Mode" = "Fjernbetjeningstilstand";
+
+/* Alert Messages */
+"Scanning Error" = "Scanningsfejl";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Kan ikke scanne efter enheder i nærheden. Kontroller dine netværksindstillinger og prøv igen.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Fejl";
+"Connection error" = "Forbindelsesfejl";
+"Unable to start recording" = "Kan ikke starte optagelse";
+
+/* Scanner UI */
+"Connect" = "Forbind";
+"Connecting..." = "Forbinder...";
+"Start Scanning" = "Start Scanning";
+"Stop Scanning" = "Stop Scanning";
+"Share App Link" = "Del App Link";
+"Scan for devices" = "Scan efter enheder";
+"Open Settings" = "Åbn Indstillinger";
+"Disconnect" = "Afbryd";
+"You need at least 2 devices running Remote Shutter" = "Du skal bruge mindst 2 enheder med Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Scan QR-koden på en anden enhed for at downloade Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "SCANNINGSFEJL - TJEK NETVÆRKSINDSTILLINGER";
+"TAP THE BUTTON TO GET STARTED" = "TRYK PÅ KNAPPEN FOR AT KOMME I GANG";
+
+/* Settings */
+"About" = "Om";
+"Back" = "Tilbage";
+"Contact Support" = "Kontakt Support";
+"Discord Community" = "Discord Fællesskab";
+"In-App Purchases" = "Køb i Appen";
+"Purchased" = "Købt";
+"Send Media to Remote" = "Send Medie til Fjernbetjening";
+"Source Code" = "Kildekode";
+"Version" = "Version";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Tager foto";
+"Taking picture" = "Tager billede";
+"Starting video" = "Starter video";
+"Stopping video" = "Stopper video";
+"Recording shorts" = "Optager shorts";
+"Unable to save video" = "Kan ikke gemme video";
+"Unable to save video to Photos app" = "Kan ikke gemme video i Fotos-appen";
+"Purchases restored successfully." = "Køb gendannet med succes.";
+"Pick a role: Camera or Remote" = "Vælg en rolle: Kamera eller Fjernbetjening";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: Alle Funktioner";
+"Remove Ads" = "Fjern Reklamer";
+"Enable Torch" = "Aktiver Lommelygte";
+"Enable Video" = "Aktiver Video";

@@ -1,0 +1,323 @@
+/* No comment provided by engineer. */
+"%@, ¿Desea intentar nuevamente?" = "%@，您想再试一次吗？";
+
+/* No comment provided by engineer. */
+"AppName" = "Remote Shutter";
+
+/* No comment provided by engineer. */
+"Camera or remote shutter?" = "相机还是遥控快门？";
+
+/* No comment provided by engineer. */
+"Cellular" = "蜂窝网络";
+
+/* No comment provided by engineer. */
+"CHOOSE A DEVICE" = "选择设备";
+
+/* No comment provided by engineer. */
+"Connecting" = "连接中";
+
+/* No comment provided by engineer. */
+"Disconnect" = "断开连接";
+
+/* No comment provided by engineer. */
+"Espere..." = "请稍候...";
+
+/* No comment provided by engineer. */
+"flash_mode_auto" = "自动";
+
+/* No comment provided by engineer. */
+"flash_mode_off" = "关闭";
+
+/* No comment provided by engineer. */
+"flash_mode_on" = "开启";
+
+/* No comment provided by engineer. */
+"Loading Image" = "加载图片中";
+
+/* Default DejalActivtyView label text */
+"Loading..." = "加载中...";
+
+/* No comment provided by engineer. */
+"Looking for devices over Wifi and Bluetooth." = "正在通过Wi-Fi和蓝牙搜索设备。";
+
+/* No comment provided by engineer. */
+"No Connection" = "无连接";
+
+/* No comment provided by engineer. */
+"Reestableciendo compras" = "正在恢复购买";
+
+/* No comment provided by engineer. */
+"Requesting capture" = "正在请求拍摄";
+
+/* No comment provided by engineer. */
+"ROLE PICKER" = "角色选择";
+
+/* No comment provided by engineer. */
+"Sending Photo to Remote" = "正在发送照片到遥控器";
+
+/* No comment provided by engineer. */
+"Si" = "是";
+
+"Yes"= "是";
+
+/* No comment provided by engineer. */
+"WiFi" = "Wi-Fi";
+
+/* No comment provided by engineer. */
+"¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "您想将%@与之前购买的功能同步吗（免费）？";
+
+"Acknowledgments"= "致谢";
+
+"timeunit"= "秒";
+
+"Settings"="设置";
+
+"Upgrades"="升级";
+
+"Timer to take photos"="拍照定时器";
+
+"Incoming Invite from %@"="来自%@的邀请";
+
+"Do you wish to accept?,"="您想接受吗？";
+
+"¡Gracias por usar nuestra App!"="感谢使用此应用！";
+
+"En otro momento"="以后再说";
+
+"Calificar en la AppStore"="评分";
+
+"Mandar Feedback"="发送反馈";
+
+"No Gracias"="不，谢谢";
+
+"iAds Removed"="广告已移除";
+
+"call_to_download" = "立即下载 Remote Shutter %@";
+
+/* Local Network Permission Modal */
+"local_network_title" = "请求访问本地网络";
+"local_network_subtitle" = "Remote Shutter 需要访问本地网络，以使用 Apple 的点对点框架来发现和连接您的设备。";
+
+"local_network_access_required_title" = "需要本地网络访问权限";
+"local_network_required_subtitle" = "Remote Shutter 需要本地网络访问才能正常工作。请在设置中启用以继续。";
+
+"local_network_feature_title" = "点对点连接";
+"local_network_feature_description" = "使用 Apple 的 MultipeerConnectivity 框架在本地网络上发现和连接设备，实现无缝远程控制。";
+
+"local_network_privacy_title" = "隐私受保护";
+"local_network_privacy_description" = "您的连接在本地网络中保持完全私密。不会向外部服务器或第三方发送任何数据。";
+
+"local_network_benefits_title" = "即时且可靠";
+"local_network_benefits_description" = "设备间直接通信确保快速响应，无需互联网连接即可工作。";
+
+"local_network_allow" = "允许访问";
+"local_network_not_now" = "暂时不要";
+"local_network_cancel" = "取消";
+"local_network_open_settings" = "打开设置";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "允许访问相机和照片";
+"camera_permissions_subtitle" = "Remote Shutter 需要访问您的相机和照片，以便在与其他设备连接时拍摄和保存图片。";
+
+"camera_permissions_required_title" = "需要相机和照片访问权限";
+"camera_permissions_required_subtitle" = "Remote Shutter 需要相机和照片访问才能正常工作。请在设置中启用以继续。";
+
+"camera_permission_feature_title" = "相机访问";
+"camera_permission_feature_description" = "将一台设备用作相机，另一台用作遥控器，远程拍摄完美照片。";
+
+"photos_permission_feature_title" = "保存照片";
+"photos_permission_feature_description" = "自动将拍摄的照片保存到您的照片库，方便访问和分享。";
+
+"remote_control_feature_title" = "远程控制";
+"remote_control_feature_description" = "使用一台设备控制另一台设备的相机，用于合影、自拍和创意拍摄。";
+
+"camera_permissions_allow" = "允许访问";
+"camera_permissions_not_now" = "暂时不要";
+"camera_permissions_cancel" = "取消";
+"camera_permissions_open_settings" = "打开设置";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "相机权限尚未请求";
+"camera_permission_denied" = "相机访问被拒绝";
+"camera_permission_restricted" = "相机访问受限";
+"camera_permission_authorized" = "相机访问已授权";
+"camera_permission_unknown" = "未知的相机权限状态";
+
+"photos_permission_not_determined" = "照片权限尚未请求";
+"photos_permission_denied" = "照片访问被拒绝";
+"photos_permission_restricted" = "照片访问受限";
+"photos_permission_authorized" = "照片完全访问已授权";
+"photos_permission_limited" = "照片有限访问已授权";
+"photos_permission_unknown" = "未知的照片权限状态";
+
+/* Camera Error View */
+"camera_error_title" = "需要相机访问权限";
+"camera_error_subtitle" = "Remote Shutter 需要访问您的相机和照片才能正常工作。请在设置中启用权限。";
+"camera_error_open_settings" = "打开设置";
+"camera_error_go_back" = "返回";
+"camera_access_required" = "相机访问";
+"photos_access_required" = "照片访问";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "麦克风访问被拒绝。视频将在无音频的情况下录制。";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "需要麦克风访问权限";
+"mic_required_subtitle" = "要录制带音频的视频，Remote Shutter 需要访问您的麦克风。请在设置中启用。";
+"video_recording_feature_title" = "视频录制";
+"video_recording_feature_description" = "使用设备麦克风录制带音频的高质量视频，享受完整的录制体验。";
+"mic_open_settings" = "打开设置";
+"mic_cancel_recording" = "取消录制";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "无法录制视频：麦克风访问被拒绝。请在设置中启用麦克风访问以录制带音频的视频。";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "在另一台设备上使用相机应用扫描此二维码，从 App Store 下载 Remote Shutter";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "无法保存照片";
+"photos_access_denied_photo_subtitle" = "Remote Shutter 需要访问您的照片库来保存拍摄的图片。请在设置中启用照片访问。";
+"photos_access_denied_video_title" = "无法保存视频";
+"photos_access_denied_video_subtitle" = "Remote Shutter 需要访问您的照片库来保存录制的视频。请在设置中启用照片访问。";
+
+"photos_privacy_feature_title" = "您的隐私很重要";
+"photos_privacy_feature_description" = "照片直接保存到您设备的照片库。不会将数据上传到外部服务器或在未经许可的情况下分享。";
+
+"photos_sharing_feature_title" = "轻松分享";
+"photos_sharing_feature_description" = "从照片应用访问拍摄的照片和视频，轻松与朋友和家人分享或在其他应用中使用。";
+
+"photos_open_settings" = "打开设置";
+"photos_dismiss" = "关闭";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "正在传输视频";
+
+/* Help Modal */
+"help_title" = "Remote Shutter 使用方法";
+"help_subtitle" = "使用两台设备拍摄完美的照片和视频";
+"help_got_it" = "知道了！";
+"help_done" = "完成";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "2. 连接设备";
+"help_connect_description" = "相机设备上线并等待。在遥控设备上，搜索相机并点击相机名称进行连接。";
+"help_quick_setup_title" = "快速设置";
+"help_quick_setup_description" = "使用二维码从 App Store 在第二台设备上下载 Remote Shutter";
+"help_same_network_title" = "点对点连接";
+"help_same_network_description" = "设备通过 Wi-Fi 和蓝牙直接相互连接，就像 AirDrop 一样 - 无需互联网";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "1. 选择角色";
+"help_roles_description" = "首先，选择此设备是作为相机还是遥控器。相机设备拍摄照片和视频，而遥控器控制它。";
+"help_camera_device_title" = "相机设备";
+"help_camera_device_description" = "拍摄照片和视频，显示相机预览";
+"help_remote_device_title" = "遥控设备";
+"help_remote_device_description" = "控制相机，显示实时预览，调整设置";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. 捕捉完美瞬间";
+"help_capture_description" = "使用遥控设备控制相机、调整设置，远程拍摄照片或视频。";
+"help_remote_shutter_title" = "远程快门";
+"help_remote_shutter_description" = "无需触碰相机设备即可拍照";
+"help_video_recording_title" = "视频录制";
+"help_video_recording_description" = "远程开始和停止视频录制";
+"help_camera_controls_title" = "相机控制";
+"help_camera_controls_description" = "调整闪光灯、手电筒、定时器和相机设置";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "提示与技巧";
+"help_tips_description" = "通过这些实用提示充分利用 Remote Shutter";
+"help_group_photos_title" = "合影";
+"help_group_photos_description" = "非常适合团体自拍 - 设置好相机，用遥控器捕捉所有人";
+"help_timer_feature_title" = "定时器功能";
+"help_timer_feature_description" = "使用遥控设备上的定时器，在拍照前做好准备";
+"help_switch_cameras_title" = "切换相机";
+"help_switch_cameras_description" = "直接从遥控设备切换前置和后置相机";
+"help_auto_save_title" = "自动保存";
+"help_auto_save_description" = "照片和视频自动保存到两台设备的照片库";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "等待遥控器";
+"Scan for cameras" = "搜索相机";
+"Camera Mode" = "相机模式";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "在另一台设备上，打开 Remote Shutter 并选择遥控。此相机将显示在其设备列表中。";
+"Go Online" = "上线";
+"Go Offline" = "下线";
+"Waiting for a remote to connect..." = "等待遥控器连接...";
+"WAITING FOR A REMOTE TO CONNECT..." = "等待遥控器连接...";
+"SEARCHING FOR NEARBY CAMERAS..." = "搜索附近的相机...";
+"Scanning for nearby cameras..." = "正在搜索附近的相机...";
+"Start scanning and wait for a Remote device to connect" = "开始扫描并等待遥控设备连接";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "将两台设备变成专业的远程相机系统";
+"Restore Purchases" = "恢复购买";
+"Unlock all features: video recording, torch control, and ad-free experience." = "解锁所有功能：视频录制、手电筒控制和无广告体验。";
+"Get Started" = "开始";
+"Thank you for your support!" = "感谢您的支持！";
+"Rate on App Store" = "在 App Store 评分";
+"Welcome" = "欢迎";
+"Purchase" = "购买";
+"Restored" = "已恢复";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "您的购买已恢复。如果看不到，请检查是否使用了正确的 Apple ID 登录。";
+
+/* Role Picker Screen */
+"Pick a role" = "选择角色";
+"Camera" = "相机";
+"Capture photos & video" = "拍摄照片和视频";
+"Use the device with the best lens" = "使用镜头最好的设备";
+"Remote" = "遥控";
+"Control the shutter" = "控制快门";
+"Works up to 50 feet away" = "最远可在15米内使用";
+"Remote Mode" = "遥控模式";
+
+/* Alert Messages */
+"Scanning Error" = "扫描错误";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "无法扫描附近的设备。请检查网络设置后重试。";
+"OK" = "好";
+"Ok" = "好";
+"Error" = "错误";
+"Connection error" = "连接错误";
+"Unable to start recording" = "无法开始录制";
+
+/* Scanner UI */
+"Connect" = "连接";
+"Connecting..." = "连接中...";
+"Start Scanning" = "开始搜索";
+"Stop Scanning" = "停止搜索";
+"Share App Link" = "分享应用链接";
+"Scan for devices" = "搜索设备";
+"Open Settings" = "打开设置";
+"You need at least 2 devices running Remote Shutter" = "需要至少2台安装了Remote Shutter的设备";
+"Scan the QR code on another device to download Remote Shutter" = "在另一台设备上扫描二维码以下载Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "搜索错误 - 请检查网络设置";
+"TAP THE BUTTON TO GET STARTED" = "点击按钮开始";
+
+/* Settings */
+"About" = "关于";
+"Back" = "返回";
+"Contact Support" = "联系支持";
+"Discord Community" = "Discord 社区";
+"In-App Purchases" = "应用内购买";
+"Purchased" = "已购买";
+"Send Media to Remote" = "发送媒体到遥控器";
+"Source Code" = "源代码";
+"Version" = "版本";
+
+/* Camera/Monitor Status */
+"Taking photo" = "正在拍照";
+"Taking picture" = "正在拍照";
+"Starting video" = "开始录像";
+"Stopping video" = "停止录像";
+"Recording shorts" = "录制短视频";
+"Unable to save video" = "无法保存视频";
+"Unable to save video to Photos app" = "无法将视频保存到照片应用";
+"Purchases restored successfully." = "购买已成功恢复。";
+"Pick a role: Camera or Remote" = "选择角色：相机或遥控";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro：全部功能";
+"Remove Ads" = "移除广告";
+"Enable Torch" = "启用手电筒";
+"Enable Video" = "启用视频";

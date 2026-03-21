@@ -36,6 +36,19 @@ func generateQRCode(_ string: String) -> UIImage? {
 
 public class DeviceScannerViewController: UIViewController {
 
+    // MARK: - Role
+
+    let role: DeviceRole
+
+    init(role: DeviceRole) {
+        self.role = role
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) not supported")
+    }
+
     // MARK: - SwiftUI ViewModel
 
     let scannerViewModel = DeviceScannerViewModel()
@@ -102,6 +115,7 @@ public class DeviceScannerViewController: UIViewController {
         remoteCamSession = rcs.ref
         remoteCamSessionInstanceId = rcs.instanceId
         self.remoteCamSession ! SetViewCtrl(ctrl: self)
+        scannerViewModel.role = role
         setupSwiftUIView()
     }
 
@@ -109,7 +123,9 @@ public class DeviceScannerViewController: UIViewController {
         super.viewWillAppear(animated)
         navigationController?.isNavigationBarHidden = false
         navigationController?.navigationBar.prefersLargeTitles = true
-        navigationItem.title = NSLocalizedString("Scan for devices", comment: "")
+        navigationItem.title = role == .camera
+            ? NSLocalizedString("Waiting for remote", comment: "")
+            : NSLocalizedString("Scan for cameras", comment: "")
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "questionmark.circle"),
@@ -290,13 +306,20 @@ public class DeviceScannerViewController: UIViewController {
 
     // MARK: - Navigation
 
-    func goToRolePicker() {
+    func goToRole() {
         scannerViewModel.connectedToPeer()
         let backItem = UIBarButtonItem()
         backItem.title = NSLocalizedString("Disconnect", comment: "")
         navigationItem.backBarButtonItem = backItem
-        let rolePicker = RolePickerController()
-        navigationController?.pushViewController(rolePicker, animated: true)
+
+        switch role {
+        case .camera:
+            let camera = CameraViewController()
+            navigationController?.pushViewController(camera, animated: true)
+        case .monitor:
+            let monitor = MonitorViewController()
+            navigationController?.pushViewController(monitor, animated: true)
+        }
     }
 
     func goToAppSettings() {
