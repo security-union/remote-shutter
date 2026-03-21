@@ -29,6 +29,8 @@ class FakeMultipeerService: MultipeerServiceProtocol {
     var sendResult: Try<Actor.Message> = Failure(error: NSError(domain: "test", code: 0))
 
     func startAdvertisingAndBrowsing() { startAdvertisingAndBrowsingCalled = true }
+    func startAdvertisingOnly(discoveryInfo: [String: String]?) { startAdvertisingAndBrowsingCalled = true }
+    func startBrowsingOnly() { startAdvertisingAndBrowsingCalled = true }
     func stopAdvertisingAndBrowsing() { stopAdvertisingAndBrowsingCalled = true }
     func disconnect() { disconnectCalled = true }
     func stopSession() { stopSessionCalled = true }
@@ -86,6 +88,10 @@ class TestableRemoteCamSession: RemoteCamSession {
 
 /// Subclass that prevents actor system registration in tests.
 class TestDeviceScannerViewController: DeviceScannerViewController {
+    convenience init() {
+        self.init(role: .monitor)
+    }
+
     override public func viewDidLoad() {
         // Skip super — avoids actor system registration
     }

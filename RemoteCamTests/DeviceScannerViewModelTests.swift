@@ -179,13 +179,25 @@ final class DeviceScannerViewModelTests: XCTestCase {
         )
     }
 
-    func testStatusMessageScanning() {
+    func testStatusMessageScanningMonitorRole() {
         let vm = DeviceScannerViewModel()
+        vm.role = .monitor
         vm.startedScanning()
 
         XCTAssertEqual(
             vm.statusMessage,
-            NSLocalizedString("SEARCHING FOR NEARBY DEVICES...", comment: "")
+            NSLocalizedString("SEARCHING FOR NEARBY CAMERAS...", comment: "")
+        )
+    }
+
+    func testStatusMessageScanningCameraRole() {
+        let vm = DeviceScannerViewModel()
+        vm.role = .camera
+        vm.startedScanning()
+
+        XCTAssertEqual(
+            vm.statusMessage,
+            NSLocalizedString("WAITING FOR A REMOTE TO CONNECT...", comment: "")
         )
     }
 
