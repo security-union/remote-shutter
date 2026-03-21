@@ -1,5 +1,7 @@
-- Seleccion de lente corregida: 2X ahora usa correctamente el lente 2X, no el 5X
-- El zoom funciona en todos los lentes (0.5x ultra gran angular a 5x teleobjetivo)
-- Nuevos controles de relacion de aspecto: captura en 4:3, 16:9 o 1:1 (foto y video)
-- Zoom de pellizco mas suave con sensibilidad logaritmica
-- El zoom y el cambio de lente ahora funcionan durante la grabacion de video
+- Nuevo: Elige tu rol (Cámara o Remoto) antes de escanear
+- Modo cámara: Conéctate y espera a que un Remoto se conecte
+- Modo remoto: Busca cámaras cercanas y conéctate
+- Tutorial de ayuda mejorado con guía paso a paso actualizada
+- Localización completa: ahora disponible en 10 idiomas
+- Corregido el error de desconexión que aparecía tras sesiones de fotos exitosas
+- Mejoras de interfaz en las pantallas de escáner de cámara y remoto

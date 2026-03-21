@@ -1,5 +1,7 @@
-- Objektivauswahl korrigiert: 2X verwendet jetzt korrekt das 2X-Objektiv, nicht 5X
-- Zoom funktioniert uber alle Objektive (0.5x Ultraweitwinkel bis 5x Teleobjektiv)
-- Neue Seitenverhaltnis-Steuerung: Aufnahme in 4:3, 16:9 oder 1:1 (Foto und Video)
-- Flussigeres Pinch-to-Zoom mit logarithmischer Empfindlichkeit
-- Zoom und Objektivwechsel funktionieren jetzt wahrend der Videoaufnahme
+- Neu: Wählen Sie Ihre Rolle (Kamera oder Fernbedienung) vor dem Scannen
+- Kameramodus: Gehen Sie online und warten Sie auf eine Fernbedienung
+- Fernbedienungsmodus: Suchen Sie nach Kameras in der Nähe und verbinden Sie sich
+- Verbessertes Hilfe-Tutorial mit aktualisierter Schritt-für-Schritt-Anleitung
+- Vollständige Lokalisierung: jetzt in 10 Sprachen verfügbar
+- Fehler bei Verbindungstrennung nach erfolgreichen Fotositzungen behoben
+- UI-Verbesserungen für Kamera- und Fernbedienungs-Bildschirme
