@@ -315,3 +315,9 @@
 "Unable to save video to Photos app" = "写真アプリにビデオを保存できません";
 "Purchases restored successfully." = "購入が正常に復元されました。";
 "Pick a role: Camera or Remote" = "役割を選択：カメラまたはリモート";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro：全機能";
+"Remove Ads" = "広告を削除";
+"Enable Torch" = "ライトを有効化";
+"Enable Video" = "ビデオを有効化";

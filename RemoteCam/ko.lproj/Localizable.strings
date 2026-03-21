@@ -315,3 +315,9 @@
 "Unable to save video to Photos app" = "사진 앱에 동영상을 저장할 수 없습니다";
 "Purchases restored successfully." = "구매가 성공적으로 복원되었습니다.";
 "Pick a role: Camera or Remote" = "역할 선택: 카메라 또는 리모트";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: 모든 기능";
+"Remove Ads" = "광고 제거";
+"Enable Torch" = "손전등 활성화";
+"Enable Video" = "동영상 활성화";

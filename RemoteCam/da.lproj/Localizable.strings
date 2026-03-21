@@ -195,3 +195,9 @@
 "Unable to save video to Photos app" = "Kan ikke gemme video i Fotos-appen";
 "Purchases restored successfully." = "Køb gendannet med succes.";
 "Pick a role: Camera or Remote" = "Vælg en rolle: Kamera eller Fjernbetjening";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: Alle Funktioner";
+"Remove Ads" = "Fjern Reklamer";
+"Enable Torch" = "Aktiver Lommelygte";
+"Enable Video" = "Aktiver Video";

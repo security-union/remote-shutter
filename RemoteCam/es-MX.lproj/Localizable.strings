@@ -211,3 +211,9 @@
 "Unable to save video to Photos app" = "No se puede guardar el video en la app Fotos";
 "Purchases restored successfully." = "Compras restauradas con éxito.";
 "Pick a role: Camera or Remote" = "Elige un rol: Cámara o Remoto";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: Todas las Funciones";
+"Remove Ads" = "Eliminar Anuncios";
+"Enable Torch" = "Activar Linterna";
+"Enable Video" = "Activar Video";

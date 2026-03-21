@@ -315,3 +315,9 @@
 "Unable to save video to Photos app" = "无法将视频保存到照片应用";
 "Purchases restored successfully." = "购买已成功恢复。";
 "Pick a role: Camera or Remote" = "选择角色：相机或遥控";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro：全部功能";
+"Remove Ads" = "移除广告";
+"Enable Torch" = "启用手电筒";
+"Enable Video" = "启用视频";

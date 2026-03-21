@@ -315,3 +315,9 @@
 "Unable to save video to Photos app" = "Unable to save video to Photos app";
 "Purchases restored successfully." = "Purchases restored successfully.";
 "Pick a role: Camera or Remote" = "Pick a role: Camera or Remote";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: All Features";
+"Remove Ads" = "Remove Ads";
+"Enable Torch" = "Enable Torch";
+"Enable Video" = "Enable Video";

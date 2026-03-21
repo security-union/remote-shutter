@@ -15,10 +15,10 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
         var isPurchased: Bool
     }
 
-    @Published var proMode = PurchaseItem(id: enableVideoPID, title: "Pro: All Features", price: "", isPurchased: false)
-    @Published var removeAds = PurchaseItem(id: disableAdsPID, title: "Remove Ads", price: "", isPurchased: false)
-    @Published var enableTorch = PurchaseItem(id: enableTorchPID, title: "Enable Torch", price: "", isPurchased: false)
-    @Published var enableVideo = PurchaseItem(id: enableVideoOnlyPID, title: "Enable Video", price: "", isPurchased: false)
+    @Published var proMode = PurchaseItem(id: enableVideoPID, title: NSLocalizedString("Pro: All Features", comment: ""), price: "", isPurchased: false)
+    @Published var removeAds = PurchaseItem(id: disableAdsPID, title: NSLocalizedString("Remove Ads", comment: ""), price: "", isPurchased: false)
+    @Published var enableTorch = PurchaseItem(id: enableTorchPID, title: NSLocalizedString("Enable Torch", comment: ""), price: "", isPurchased: false)
+    @Published var enableVideo = PurchaseItem(id: enableVideoOnlyPID, title: NSLocalizedString("Enable Video", comment: ""), price: "", isPurchased: false)
 
     @Published var isRestoringPurchases = false
     @Published var isPurchasing = false

@@ -94,13 +94,13 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
     private func buildUpgradeItems() {
         let store = StoreManager.shared
         upgrades = [
-            UpgradeItem(id: enableVideoPID, title: "Pro: All Features", price: "",
+            UpgradeItem(id: enableVideoPID, title: NSLocalizedString("Pro: All Features", comment: ""), price: "",
                         isPurchased: store.hasProMode(), icon: "star.fill", tint: "purple"),
-            UpgradeItem(id: disableAdsPID, title: "Remove Ads", price: "",
+            UpgradeItem(id: disableAdsPID, title: NSLocalizedString("Remove Ads", comment: ""), price: "",
                         isPurchased: store.hasAdRemovalFeature(), icon: "eye.slash.fill", tint: "blue"),
-            UpgradeItem(id: enableTorchPID, title: "Enable Torch", price: "",
+            UpgradeItem(id: enableTorchPID, title: NSLocalizedString("Enable Torch", comment: ""), price: "",
                         isPurchased: store.hasTorchFeature(), icon: "flashlight.on.fill", tint: "orange"),
-            UpgradeItem(id: enableVideoOnlyPID, title: "Enable Video", price: "",
+            UpgradeItem(id: enableVideoOnlyPID, title: NSLocalizedString("Enable Video", comment: ""), price: "",
                         isPurchased: store.hasVideoRecordingFeature(), icon: "video.fill", tint: "red"),
         ]
         updateFeatureFlags()
