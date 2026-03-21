@@ -108,7 +108,13 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         } else {
             multipeerService.disconnect()
         }
-        multipeerService.startAdvertisingAndBrowsing()
+
+        switch lobby.role {
+        case .camera:
+            multipeerService.startAdvertisingOnly(discoveryInfo: ["role": "camera"])
+        case .monitor:
+            multipeerService.startBrowsingOnly()
+        }
 
         ^{
             lobby.navigationController?.popToViewController(lobby, animated: true)

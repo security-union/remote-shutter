@@ -110,7 +110,9 @@ struct DeviceScannerView: View {
                         .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
                 }
 
-                Text(NSLocalizedString("You need at least 2 devices running Remote Shutter", comment: ""))
+                Text(viewModel.role == .camera
+                    ? NSLocalizedString("Start scanning and wait for a Remote device to connect", comment: "")
+                    : NSLocalizedString("You need at least 2 devices running Remote Shutter", comment: ""))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)

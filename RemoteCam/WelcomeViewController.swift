@@ -72,8 +72,8 @@ class WelcomeViewController: UIViewController {
     // MARK: - Navigation
 
     func goToConnectViewController() {
-        let scanner = DeviceScannerViewController()
-        navigationController?.pushViewController(scanner, animated: true)
+        let rolePicker = RolePickerController()
+        navigationController?.pushViewController(rolePicker, animated: true)
     }
 
     func showHelp() {

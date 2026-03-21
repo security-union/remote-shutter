@@ -10,6 +10,11 @@ import Foundation
 import MultipeerConnectivity
 import AVFoundation
 
+enum DeviceRole {
+    case camera
+    case monitor
+}
+
 public class Disconnect: Actor.Message {
 
 }

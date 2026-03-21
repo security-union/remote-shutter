@@ -44,7 +44,7 @@ extension RemoteCamSession {
                     state: self.connected(lobbyWrapper: lobbyWrapper, peer: w.peer)
                 )
                 ^{
-                    lobby.goToRolePicker()
+                    lobby.goToRole()
                 }
 
             case let m as UICmd.BrowserFoundPeer:

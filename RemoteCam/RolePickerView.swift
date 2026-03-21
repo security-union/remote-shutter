@@ -12,31 +12,8 @@ struct RolePickerView: View {
             AppTheme.backgroundGradient
 
             VStack(spacing: 0) {
-                // Connected pill
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(AppTheme.success)
-                        .frame(width: 8, height: 8)
-                        .overlay(
-                            Circle()
-                                .fill(AppTheme.success.opacity(0.4))
-                                .frame(width: 16, height: 16)
-                        )
-                    Text(NSLocalizedString("Connected", comment: ""))
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
-                }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 14)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
-                )
-                .padding(.top, 4)
-                .padding(.bottom, 16)
+                Spacer()
+                    .frame(height: 20)
 
                 // Two glass panels
                 VStack(spacing: 12) {

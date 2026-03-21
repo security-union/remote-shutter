@@ -11,6 +11,10 @@ final class DeviceScannerViewModel: ObservableObject {
     @Published var hasScanningError: Bool = false
     @Published var isConnecting: Bool = false
 
+    // MARK: - Role
+
+    var role: DeviceRole = .monitor
+
     // MARK: - UserDefaults
 
     private let speedRunScanningKey = userDefaultsSpeedRunScanning
@@ -26,7 +30,9 @@ final class DeviceScannerViewModel: ObservableObject {
         if hasScanningError {
             return NSLocalizedString("SCANNING ERROR - CHECK NETWORK SETTINGS", comment: "")
         } else if isScanning {
-            return NSLocalizedString("SEARCHING FOR NEARBY DEVICES...", comment: "")
+            return role == .camera
+                ? NSLocalizedString("WAITING FOR A REMOTE TO CONNECT...", comment: "")
+                : NSLocalizedString("SEARCHING FOR NEARBY CAMERAS...", comment: "")
         } else {
             return NSLocalizedString("TAP THE BUTTON TO GET STARTED", comment: "")
         }
