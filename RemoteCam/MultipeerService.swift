@@ -10,7 +10,7 @@ import MultipeerConnectivity
 import Combine
 
 protocol MultipeerServiceDelegate: AnyObject {
-    func didReceiveMessage(_ message: Actor.Message)
+    func didReceiveMessage(_ message: Actor.Message, from peer: MCPeerID)
     func didReceiveFrameRequest(_ request: RemoteCmd.RequestFrame)
     func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID)
     func peerDidConnect(_ peer: MCPeerID)
@@ -189,7 +189,7 @@ class MultipeerService: NSObject, MCSessionDelegate,
         case let frame as RemoteCmd.SendFrame:
             delegate?.didReceiveFrame(frame, from: peerID)
         default:
-            delegate?.didReceiveMessage(inboundMessage)
+            delegate?.didReceiveMessage(inboundMessage, from: peerID)
         }
     }
 

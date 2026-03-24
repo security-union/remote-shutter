@@ -135,6 +135,7 @@
 		B1C0DE0300000005 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
 		B1C0DE0300000006 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
 		B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */; };
+		C187152B390926226D25A3C6 /* CameraRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDD047E5C4AAC5B39722E952 /* CameraRegistry.swift */; };
 		CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0001000000000001 /* CropRectTests.swift */; };
 		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
 		DCDBA5102EA8C85C82D8E2FC /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */; };
@@ -142,6 +143,7 @@
 		DEADBEEF0001000000000003 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEADBEEF0001000000000001 /* DebugLog.swift */; };
 		E602233EB8B13D1B2BB12016 /* WelcomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */; };
 		E9256A91DEEB414C3FE6C48D /* ActorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4711EC884DF706A90B90662D /* ActorSystem.swift */; };
+		F1F349AE58D631D006581AE8 /* CameraRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38062FF60E055B8DA75D57F9 /* CameraRegistryTests.swift */; };
 		F32EBBCC678C33E1B4E62884 /* NSOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFE1C1E3BF1B4B2BD321763 /* NSOperationQueue.swift */; };
 /* End PBXBuildFile section */
 
@@ -273,6 +275,7 @@
 		1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCmdFlatBuffers.swift; sourceTree = "<group>"; };
 		27B79A6BB7E56A401AD5A495 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		38062FF60E055B8DA75D57F9 /* CameraRegistryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraRegistryTests.swift; sourceTree = "<group>"; };
 		3CB14475747F8CECCE476895 /* Actor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Actor.swift; sourceTree = "<group>"; };
 		4711EC884DF706A90B90662D /* ActorSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActorSystem.swift; sourceTree = "<group>"; };
 		4F5C7DC8816273449036CAF6 /* Pods-RemoteCam.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteCam.debug.xcconfig"; path = "Target Support Files/Pods-RemoteCam/Pods-RemoteCam.debug.xcconfig"; sourceTree = "<group>"; };
@@ -308,6 +311,7 @@
 		B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModelTests.swift; sourceTree = "<group>"; };
 		B8B5ADD3A01CBB6E5EB4F6C5 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
 		BB8874BA29539B92EECF6890 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		BDD047E5C4AAC5B39722E952 /* CameraRegistry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraRegistry.swift; sourceTree = "<group>"; };
 		C4415A8FAB4FB271F412749F /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
 		CAFEBABE0001000000000001 /* CropRectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropRectTests.swift; sourceTree = "<group>"; };
 		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
@@ -433,6 +437,7 @@
 				7C0E951625230646938980B1 /* WelcomeView.swift */,
 				52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */,
 				5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */,
+				BDD047E5C4AAC5B39722E952 /* CameraRegistry.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -447,6 +452,7 @@
 				036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */,
 				B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */,
 				AA00020000000003 /* StoreManagerTests.swift */,
+				38062FF60E055B8DA75D57F9 /* CameraRegistryTests.swift */,
 			);
 			path = RemoteCamTests;
 			sourceTree = "<group>";
@@ -946,6 +952,7 @@
 				5647F1F78AAC80CEE4E20340 /* WelcomeView.swift in Sources */,
 				E602233EB8B13D1B2BB12016 /* WelcomeViewModel.swift in Sources */,
 				6AFBFC4B9D8E918C026E1A8D /* CameraCountdownTorch.swift in Sources */,
+				C187152B390926226D25A3C6 /* CameraRegistry.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -959,6 +966,7 @@
 				3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */,
 				B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */,
 				AA00020000000004 /* StoreManagerTests.swift in Sources */,
+				F1F349AE58D631D006581AE8 /* CameraRegistryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

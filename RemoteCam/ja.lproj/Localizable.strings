@@ -321,3 +321,8 @@
 "Remove Ads" = "広告を削除";
 "Enable Torch" = "ライトを有効化";
 "Enable Video" = "ビデオを有効化";
+
+/* Multi-Camera UI */
+"Add" = "追加";
+"Add Camera" = "カメラを追加";
+"Cancel" = "キャンセル";

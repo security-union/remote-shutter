@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import MultipeerConnectivity
 
 // MARK: - UI State
 enum MonitorUIState {
@@ -54,6 +55,68 @@ class MonitorViewModel: ObservableObject {
     @Published var videoTransferBytesTotal: Int64 = 0
     @Published var videoTransferSpeed: Double = 0.0 // bytes per second
     
+    // MARK: - Multi-Camera State
+
+    struct CameraPreviewState: Identifiable {
+        let id: String
+        let peerId: MCPeerID
+        var displayName: String
+        var image: UIImage?
+    }
+
+    struct AvailableCameraInfo: Identifiable {
+        let id: String
+        let peerId: MCPeerID
+        var displayName: String
+    }
+
+    @Published var connectedCameras: [CameraPreviewState] = []
+    @Published var availableCameras: [AvailableCameraInfo] = []
+    @Published var selectedCameraIndex: Int = 0
+    @Published var showAddCameraSheet: Bool = false
+
+    var connectedCameraCount: Int { connectedCameras.count }
+    var hasMultipleCameras: Bool { connectedCameras.count > 1 }
+
+    func addConnectedCamera(peer: MCPeerID, displayName: String) {
+        DispatchQueue.main.async {
+            guard !self.connectedCameras.contains(where: { $0.id == peer.displayName }) else { return }
+            self.connectedCameras.append(CameraPreviewState(
+                id: peer.displayName, peerId: peer, displayName: displayName))
+        }
+    }
+
+    func removeConnectedCamera(peer: MCPeerID) {
+        DispatchQueue.main.async {
+            self.connectedCameras.removeAll { $0.id == peer.displayName }
+            if self.selectedCameraIndex >= self.connectedCameras.count {
+                self.selectedCameraIndex = max(0, self.connectedCameras.count - 1)
+            }
+        }
+    }
+
+    func addAvailableCamera(peer: MCPeerID, displayName: String) {
+        DispatchQueue.main.async {
+            guard !self.availableCameras.contains(where: { $0.id == peer.displayName }) else { return }
+            self.availableCameras.append(AvailableCameraInfo(
+                id: peer.displayName, peerId: peer, displayName: displayName))
+        }
+    }
+
+    func removeAvailableCamera(peer: MCPeerID) {
+        DispatchQueue.main.async {
+            self.availableCameras.removeAll { $0.id == peer.displayName }
+        }
+    }
+
+    func updateCameraFrame(peer: MCPeerID, image: UIImage?) {
+        DispatchQueue.main.async {
+            if let idx = self.connectedCameras.firstIndex(where: { $0.id == peer.displayName }) {
+                self.connectedCameras[idx].image = image
+            }
+        }
+    }
+
     // MARK: - Zoom Controls Watchdog Timer (DispatchSourceTimer for performance)
     private var zoomControlsWatchdog: DispatchSourceTimer?
     

@@ -33,7 +33,9 @@ extension RemoteCamSession {
 
 extension RemoteCamSession: MultipeerServiceDelegate {
 
-    func didReceiveMessage(_ message: Actor.Message) {
+    func didReceiveMessage(_ message: Actor.Message, from peer: MCPeerID) {
+        // Peer info preserved at delegate level for future multi-camera use.
+        // Dispatch the message directly — existing state handlers match on message type.
         mailbox.addOperation(BlockOperation {
             self.this ! message
         })

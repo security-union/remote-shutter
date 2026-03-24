@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import Combine
+import MultipeerConnectivity
 
 // MARK: - Monitor View
 struct MonitorView: View {
@@ -22,13 +23,19 @@ struct MonitorView: View {
     let onVideoQualityChange: (VideoResolution, VideoFrameRate) -> Void
     let onPhotoQualityChange: (PhotoFormat, HDRMode) -> Void
     let onAspectRatioChange: (AspectRatio) -> Void
-    
+    let onConnectCamera: (MCPeerID) -> Void
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 Color.black.ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    // MARK: - Multi-Camera Strip
+                    if viewModel.hasMultipleCameras || !viewModel.availableCameras.isEmpty {
+                        cameraStripSection
+                    }
+
                     // MARK: - Camera Preview
                     cameraPreviewSection
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -48,9 +55,12 @@ struct MonitorView: View {
         ZStack {
             // Camera preview background
             Color.black
-            
-            // Camera image with aspect ratio crop overlay
-            if let image = viewModel.cameraImage {
+
+            if viewModel.hasMultipleCameras {
+                // Multi-camera grid
+                multiCameraGrid
+            } else if let image = viewModel.cameraImage {
+                // Single camera — full preview with aspect ratio crop overlay
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -160,9 +170,192 @@ struct MonitorView: View {
         )
     }
     
+    // MARK: - Multi-Camera Grid
+
+    private var multiCameraGrid: some View {
+        let cameras = viewModel.connectedCameras
+        let columns = cameras.count <= 2 ? 2 : (cameras.count <= 4 ? 2 : 3)
+        let rows = (cameras.count + columns - 1) / columns
+
+        return GeometryReader { geometry in
+            let cellWidth = geometry.size.width / CGFloat(columns)
+            let cellHeight = geometry.size.height / CGFloat(rows)
+
+            VStack(spacing: 1) {
+                ForEach(0..<rows, id: \.self) { row in
+                    HStack(spacing: 1) {
+                        ForEach(0..<columns, id: \.self) { col in
+                            let index = row * columns + col
+                            if index < cameras.count {
+                                let camera = cameras[index]
+                                ZStack {
+                                    Color.black
+                                    if let image = camera.image {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                    } else {
+                                        Image(systemName: "camera.fill")
+                                            .font(.title)
+                                            .foregroundColor(.white.opacity(0.3))
+                                    }
+
+                                    // Camera label
+                                    VStack {
+                                        HStack {
+                                            Text(camera.displayName)
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.black.opacity(0.5))
+                                                .clipShape(Capsule())
+                                                .padding(4)
+                                            Spacer()
+                                        }
+                                        Spacer()
+                                    }
+
+                                    // Selection border
+                                    if index == viewModel.selectedCameraIndex {
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .strokeBorder(Color.yellow, lineWidth: 2)
+                                    }
+                                }
+                                .frame(width: cellWidth, height: cellHeight)
+                                .onTapGesture {
+                                    viewModel.selectedCameraIndex = index
+                                }
+                            } else {
+                                Color.black
+                                    .frame(width: cellWidth, height: cellHeight)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Multi-Camera Strip
+
+    private var cameraStripSection: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // Connected cameras
+                ForEach(Array(viewModel.connectedCameras.enumerated()), id: \.element.id) { index, camera in
+                    Button {
+                        viewModel.selectedCameraIndex = index
+                    } label: {
+                        VStack(spacing: 4) {
+                            ZStack {
+                                if let image = camera.image {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 64, height: 48)
+                                        .clipped()
+                                } else {
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(width: 64, height: 48)
+                                        .overlay(
+                                            Image(systemName: "camera.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.white.opacity(0.5))
+                                        )
+                                }
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(
+                                        index == viewModel.selectedCameraIndex
+                                            ? Color.yellow : Color.white.opacity(0.3),
+                                        lineWidth: index == viewModel.selectedCameraIndex ? 2 : 1
+                                    )
+                            )
+
+                            Text(camera.displayName)
+                                .font(.system(size: 9))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .frame(width: 64)
+                        }
+                    }
+                }
+
+                // Add camera button
+                if !viewModel.availableCameras.isEmpty && viewModel.connectedCameraCount < CameraRegistry.maxCameras {
+                    Button {
+                        viewModel.showAddCameraSheet = true
+                    } label: {
+                        VStack(spacing: 4) {
+                            ZStack {
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.1))
+                                    .frame(width: 64, height: 48)
+                                Image(systemName: "plus")
+                                    .font(.title3)
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Color.white.opacity(0.2), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                            )
+
+                            Text(NSLocalizedString("Add", comment: ""))
+                                .font(.system(size: 9))
+                                .foregroundColor(.white.opacity(0.7))
+                                .frame(width: 64)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+        .background(Color.black.opacity(0.6))
+        .sheet(isPresented: $viewModel.showAddCameraSheet) {
+            addCameraSheet
+        }
+    }
+
+    private var addCameraSheet: some View {
+        NavigationView {
+            List(viewModel.availableCameras) { camera in
+                Button {
+                    onConnectCamera(camera.peerId)
+                    viewModel.showAddCameraSheet = false
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "camera.fill")
+                            .foregroundColor(.accentColor)
+                            .frame(width: 32)
+                        Text(camera.displayName)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundColor(.accentColor)
+                    }
+                }
+            }
+            .navigationTitle(NSLocalizedString("Add Camera", comment: ""))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(NSLocalizedString("Cancel", comment: "")) {
+                        viewModel.showAddCameraSheet = false
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Recording Indicator
     // Note: Replaced with RecordingTimer component that includes duration
-    
+
     // MARK: - Zoom Controls Overlay
     private var zoomControlsOverlay: some View {
         VStack(spacing: 10) {
@@ -677,7 +870,8 @@ struct MonitorView_Previews: PreviewProvider {
             onLensChange: { _ in },
             onVideoQualityChange: { _, _ in },
             onPhotoQualityChange: { _, _ in },
-            onAspectRatioChange: { _ in }
+            onAspectRatioChange: { _ in },
+            onConnectCamera: { _ in }
         )
         .preferredColorScheme(.dark)
     }

@@ -92,9 +92,11 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
 
             case let f as RemoteCmd.OnFrame:
                 if let cgImage = UIImage(data: f.data) {
+                    let peerId = f.peerId
                     OperationQueue.main.addOperation {[weak ctrl] in
                         if let ctrl = ctrl?.value {
                             ctrl.updateCameraImageInViewModel(cgImage)
+                            ctrl.viewModel.updateCameraFrame(peer: peerId, image: cgImage)
                         }
                     }
                 }
@@ -248,7 +250,28 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                     ctrl?.value?.viewModel.finishVideoTransfer()
                     print("📺 DEBUG: MonitorActor - Video transfer failed: \(failed.error.localizedDescription)")
                 }
-                
+
+            // MARK: - Multi-Camera Events
+            case let cam as UICmd.CameraConnected:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.addConnectedCamera(peer: cam.peer, displayName: cam.displayName)
+                }
+
+            case let cam as UICmd.CameraDisconnected:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.removeConnectedCamera(peer: cam.peer)
+                }
+
+            case let cam as UICmd.AvailableCameraFound:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.addAvailableCamera(peer: cam.peer, displayName: cam.displayName)
+                }
+
+            case let cam as UICmd.AvailableCameraLost:
+                OperationQueue.main.addOperation {[weak ctrl] in
+                    ctrl?.value?.viewModel.removeAvailableCamera(peer: cam.peer)
+                }
+
             default:
                 self.receive(msg: msg)
             }
@@ -315,12 +338,23 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.tintColor = .white
 
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
+        let helpButton = UIBarButtonItem(
             image: UIImage(systemName: "questionmark.circle"),
             style: .plain,
             target: self,
             action: #selector(showHelpModal)
         )
+        let addCameraButton = UIBarButtonItem(
+            image: UIImage(systemName: "plus.circle"),
+            style: .plain,
+            target: self,
+            action: #selector(showAddCameraSheet)
+        )
+        navigationItem.rightBarButtonItems = [helpButton, addCameraButton]
+    }
+
+    @objc private func showAddCameraSheet() {
+        viewModel.showAddCameraSheet = true
     }
 
     @objc private func showHelpModal() {

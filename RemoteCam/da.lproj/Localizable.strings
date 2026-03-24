@@ -201,3 +201,8 @@
 "Remove Ads" = "Fjern Reklamer";
 "Enable Torch" = "Aktiver Lommelygte";
 "Enable Video" = "Aktiver Video";
+
+/* Multi-Camera UI */
+"Add" = "Tilføj";
+"Add Camera" = "Tilføj Kamera";
+"Cancel" = "Annuller";

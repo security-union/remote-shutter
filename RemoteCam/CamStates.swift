@@ -107,7 +107,7 @@ extension RemoteCamSession {
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer?.displayName == peer.displayName {
                     self.popAndStartScanning()
                 }
 
@@ -309,7 +309,7 @@ extension RemoteCamSession {
                     msg: RemoteCmd.SetAspectRatioResp(aspectRatio: result, error: nil))
 
             case let c as DisconnectPeer:
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer?.displayName == peer.displayName {
                     debugLog("🔍 DEBUG: Camera disconnecting peer - going to scanning")
                     self.popAndStartScanning()
                 }

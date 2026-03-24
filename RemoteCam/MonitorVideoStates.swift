@@ -22,11 +22,24 @@ extension MonitorVideoStates {
             switch msg {
             case is OnEnter:
                 monitor ! UICmd.RenderVideoMode()
-                self.requestFrame([peer])
+                // Request frames from all connected cameras
+                for cameraPeer in self.cameraRegistry.allPeers {
+                    self.requestFrame([cameraPeer])
+                }
+                if self.cameraRegistry.isEmpty {
+                    self.requestFrame([peer])
+                }
+                // Re-enable browsing so additional cameras can be discovered
+                self.multipeerService?.startBrowsingOnly()
+                // Notify ViewModel about all cameras already in registry
+                for cam in self.cameraRegistry.cameras.values {
+                    monitor ! UICmd.CameraConnected(peer: cam.peerId)
+                }
 
-            case is RemoteCmd.OnFrame:
+            case let frame as RemoteCmd.OnFrame:
                 monitor ! msg
-                self.requestFrame([peer])
+                // Request next frame from the camera that sent this one
+                self.requestFrame([frame.peerId])
 
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: .connected)
@@ -156,8 +169,35 @@ extension MonitorVideoStates {
                 debugLog("🔍 DEBUG: Monitor detected peer became camera - requesting fresh capabilities")
                 self.sendCommandOrGoToScanning(peer: [peer], msg: RemoteCmd.RequestCameraCapabilities())
 
+            // MARK: - Multi-Camera Connection Handling
+
+            case let w as OnConnectToDevice:
+                if self.cameraRegistry.add(peer: w.peer) {
+                    monitor ! UICmd.CameraConnected(peer: w.peer)
+                    // Start requesting frames from the new camera
+                    self.requestFrame([w.peer])
+                }
+
+            case let w as ConnectToDevice:
+                self.multipeerService?.invitePeer(w.peer, timeout: 5)
+
+            case let cmd as UICmd.ConnectToCamera:
+                self.multipeerService?.invitePeer(cmd.peer, timeout: 5)
+
+            case let m as UICmd.BrowserFoundPeer:
+                self.cameraRegistry.addAvailable(peer: m.peer)
+                monitor ! UICmd.AvailableCameraFound(peer: m.peer)
+
+            case let m as UICmd.BrowserLostPeer:
+                self.cameraRegistry.removeAvailable(peer: m.peer)
+                monitor ! UICmd.AvailableCameraLost(peer: m.peer)
+
             case let c as DisconnectPeer:
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if let peer = c.peer {
+                    self.cameraRegistry.remove(peer: peer)
+                    monitor ! UICmd.CameraDisconnected(peer: peer)
+                }
+                if self.cameraRegistry.isEmpty {
                     self.popAndStartScanning()
                 }
 
@@ -250,7 +290,8 @@ extension MonitorVideoStates {
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                self.cameraRegistry.remove(peer: c.peer)
+                if self.cameraRegistry.isEmpty {
                     self.popAndStartScanning()
                 }
 
@@ -284,8 +325,8 @@ extension MonitorVideoStates {
                 self.popToState(name: .connected)
 
             case let c as DisconnectPeer:
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
-                    // Progress UI handled by SwiftUI - no alert to dismiss
+                self.cameraRegistry.remove(peer: c.peer)
+                if self.cameraRegistry.isEmpty {
                     self.popAndStartScanning()
                 }
 

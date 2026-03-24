@@ -1538,4 +1538,186 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(ratioMessages.count, 1)
     }
 
+    // MARK: - CameraRegistry Integration
+
+    func testConnectedStateAddsPeerToRegistry() {
+        pushScanningState()
+        pushConnectedState()
+
+        XCTAssertTrue(session.cameraRegistry.contains(peer: peer))
+        XCTAssertEqual(session.cameraRegistry.count, 1)
+        XCTAssertEqual(session.cameraRegistry.selectedCamera, peer)
+    }
+
+    func testConnectedStateDisconnectClearsRegistry() {
+        pushScanningState()
+        pushConnectedState()
+
+        ref ! Disconnect(sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertTrue(session.cameraRegistry.isEmpty)
+        XCTAssertNil(session.cameraRegistry.selectedCamera)
+    }
+
+    func testConnectedStateDisconnectPeerRemovesFromRegistry() {
+        pushScanningState()
+        pushConnectedState()
+
+        fakeMP.connectedPeers = []
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertTrue(session.cameraRegistry.isEmpty)
+        XCTAssertEqual(session.currentStateName(), .scanning)
+    }
+
+    func testMonitorPhotoModeDisconnectPeerRemovesFromRegistry() {
+        pushMonitorPhotoModeState()
+
+        fakeMP.connectedPeers = []
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertTrue(session.cameraRegistry.isEmpty)
+        XCTAssertEqual(session.currentStateName(), .scanning)
+    }
+
+    func testMonitorPhotoModeDisconnectOnePeerKeepsSession() {
+        let peer2 = MCPeerID(displayName: "Camera2")
+        pushMonitorPhotoModeState()
+
+        // Simulate second camera in registry
+        session.cameraRegistry.add(peer: peer2)
+        fakeMP.connectedPeers = [peer2]
+
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        // Session should NOT pop to scanning — still have peer2
+        XCTAssertEqual(session.cameraRegistry.count, 1)
+        XCTAssertTrue(session.cameraRegistry.contains(peer: peer2))
+        XCTAssertNotEqual(session.currentStateName(), .scanning)
+    }
+
+    func testMonitorVideoModeDisconnectPeerRemovesFromRegistry() {
+        pushMonitorVideoModeState()
+
+        fakeMP.connectedPeers = []
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertTrue(session.cameraRegistry.isEmpty)
+        XCTAssertEqual(session.currentStateName(), .scanning)
+    }
+
+    func testMonitorVideoModeDisconnectOnePeerKeepsSession() {
+        let peer2 = MCPeerID(displayName: "Camera2")
+        pushMonitorVideoModeState()
+
+        session.cameraRegistry.add(peer: peer2)
+        fakeMP.connectedPeers = [peer2]
+
+        ref ! DisconnectPeer(peer: peer, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.cameraRegistry.count, 1)
+        XCTAssertTrue(session.cameraRegistry.contains(peer: peer2))
+        XCTAssertNotEqual(session.currentStateName(), .scanning)
+    }
+
+    func testPopAndStartScanningResetsRegistry() {
+        pushMonitorPhotoModeState()
+
+        session.cameraRegistry.add(peer: MCPeerID(displayName: "Camera2"))
+        XCTAssertEqual(session.cameraRegistry.count, 2)
+
+        session.popAndStartScanning()
+        waitForMailbox(session, test: self)
+
+        XCTAssertTrue(session.cameraRegistry.isEmpty)
+    }
+
+    // MARK: - Multi-Camera: New Camera Joins While Monitoring
+
+    func testMonitorPhotoModeNewCameraJoins() {
+        pushMonitorPhotoModeState()
+        let peer2 = MCPeerID(displayName: "Camera2")
+
+        ref ! OnConnectToDevice(peer: peer2, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.cameraRegistry.count, 2)
+        XCTAssertTrue(session.cameraRegistry.contains(peer: peer))
+        XCTAssertTrue(session.cameraRegistry.contains(peer: peer2))
+        // Should still be in monitor mode, not popped
+        XCTAssertNotEqual(session.currentStateName(), .scanning)
+    }
+
+    func testMonitorVideoModeNewCameraJoins() {
+        pushMonitorVideoModeState()
+        let peer2 = MCPeerID(displayName: "Camera2")
+
+        ref ! OnConnectToDevice(peer: peer2, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.cameraRegistry.count, 2)
+        XCTAssertTrue(session.cameraRegistry.contains(peer: peer2))
+        XCTAssertNotEqual(session.currentStateName(), .scanning)
+    }
+
+    func testMonitorPhotoModeInvitePeer() {
+        pushMonitorPhotoModeState()
+        let peer2 = MCPeerID(displayName: "Camera2")
+
+        ref ! ConnectToDevice(peer: peer2, sender: nil)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(fakeMP.invitedPeers.count, 1)
+        XCTAssertEqual(fakeMP.invitedPeers[0].peer, peer2)
+    }
+
+    func testMonitorPhotoModeBrowserFoundPeer() {
+        pushMonitorPhotoModeState()
+        let peer2 = MCPeerID(displayName: "Camera2")
+
+        ref ! UICmd.BrowserFoundPeer(peer: peer2)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.cameraRegistry.availableCameras.count, 1)
+        XCTAssertEqual(session.cameraRegistry.availableCameras.first, peer2)
+    }
+
+    func testMonitorPhotoModeBrowserLostPeer() {
+        pushMonitorPhotoModeState()
+        let peer2 = MCPeerID(displayName: "Camera2")
+
+        ref ! UICmd.BrowserFoundPeer(peer: peer2)
+        waitForMailbox(session, test: self)
+        XCTAssertEqual(session.cameraRegistry.availableCameras.count, 1)
+
+        ref ! UICmd.BrowserLostPeer(peer: peer2)
+        waitForMailbox(session, test: self)
+        XCTAssertEqual(session.cameraRegistry.availableCameras.count, 0)
+    }
+
+    func testMonitorPhotoModeAvailablePeerBecomesConnected() {
+        pushMonitorPhotoModeState()
+        let peer2 = MCPeerID(displayName: "Camera2")
+
+        // Peer discovered
+        ref ! UICmd.BrowserFoundPeer(peer: peer2)
+        waitForMailbox(session, test: self)
+        XCTAssertEqual(session.cameraRegistry.availableCameras.count, 1)
+
+        // Peer connects
+        ref ! OnConnectToDevice(peer: peer2, sender: nil)
+        waitForMailbox(session, test: self)
+
+        // Should move from available to connected
+        XCTAssertEqual(session.cameraRegistry.availableCameras.count, 0)
+        XCTAssertEqual(session.cameraRegistry.count, 2)
+        XCTAssertTrue(session.cameraRegistry.contains(peer: peer2))
+    }
+
 }

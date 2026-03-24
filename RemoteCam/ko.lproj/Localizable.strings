@@ -321,3 +321,8 @@
 "Remove Ads" = "광고 제거";
 "Enable Torch" = "손전등 활성화";
 "Enable Video" = "동영상 활성화";
+
+/* Multi-Camera UI */
+"Add" = "추가";
+"Add Camera" = "카메라 추가";
+"Cancel" = "취소";

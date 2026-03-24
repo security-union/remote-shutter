@@ -217,3 +217,7 @@
 "Remove Ads" = "Eliminar Anuncios";
 "Enable Torch" = "Activar Linterna";
 "Enable Video" = "Activar Video";
+
+/* Multi-Camera UI */
+"Add" = "Agregar";
+"Add Camera" = "Agregar Cámara";

@@ -24,6 +24,7 @@ extension RemoteCamSession {
             }
             switch msg {
             case is OnEnter:
+                self.cameraRegistry.add(peer: peer)
                 self.multipeerService?.stopAdvertisingAndBrowsing()
                 ^{
                     lobby.scannerViewModel.stoppedScanning()
@@ -67,10 +68,12 @@ extension RemoteCamSession {
                 }
 
             case is Disconnect:
+                self.cameraRegistry.reset()
                 self.popAndStartScanning()
 
             case let c as DisconnectPeer:
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                self.cameraRegistry.remove(peer: c.peer)
+                if self.cameraRegistry.isEmpty {
                     self.popAndStartScanning()
                 }
 

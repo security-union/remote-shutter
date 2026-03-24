@@ -201,3 +201,8 @@
 "Remove Ads" = "Rimuovi Pubblicità";
 "Enable Torch" = "Attiva Torcia";
 "Enable Video" = "Attiva Video";
+
+/* Multi-Camera UI */
+"Add" = "Aggiungi";
+"Add Camera" = "Aggiungi Fotocamera";
+"Cancel" = "Annulla";

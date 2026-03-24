@@ -22,9 +22,9 @@ struct FeatureFlags {
     /// Enable video/photo quality controls overlay on monitor
     static let ENABLE_QUALITY_CONTROLS = true
     
-    // MARK: - Future Feature Flags
-    // Add new feature flags here as needed
-    // Example:
-    // static let ENABLE_AI_FILTERS = false
-    // static let ENABLE_CLOUD_SYNC = false
+    // MARK: - Multi-Camera
+
+    /// Enable multi-camera support (1 monitor : N cameras)
+    /// Set to true when multi-camera implementation is complete
+    static let ENABLE_MULTI_CAMERA = true
 } 

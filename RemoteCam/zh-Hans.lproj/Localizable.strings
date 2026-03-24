@@ -321,3 +321,8 @@
 "Remove Ads" = "移除广告";
 "Enable Torch" = "启用手电筒";
 "Enable Video" = "启用视频";
+
+/* Multi-Camera UI */
+"Add" = "添加";
+"Add Camera" = "添加相机";
+"Cancel" = "取消";

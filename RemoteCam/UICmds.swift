@@ -91,6 +91,57 @@ public class UICmd {
     public class UnbecomeMonitor: Actor.Message {
     }
 
+    // MARK: - Multi-Camera Events
+
+    public class CameraConnected: Actor.Message {
+        public let peer: MCPeerID
+        public let displayName: String
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            self.displayName = peer.displayName
+            super.init(sender: nil)
+        }
+    }
+
+    public class CameraDisconnected: Actor.Message {
+        public let peer: MCPeerID
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
+
+    public class AvailableCameraFound: Actor.Message {
+        public let peer: MCPeerID
+        public let displayName: String
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            self.displayName = peer.displayName
+            super.init(sender: nil)
+        }
+    }
+
+    public class AvailableCameraLost: Actor.Message {
+        public let peer: MCPeerID
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
+
+    public class ConnectToCamera: Actor.Message {
+        public let peer: MCPeerID
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
+
     public class BecomeMonitor: Actor.Message {
         let mode: RecordingMode
 

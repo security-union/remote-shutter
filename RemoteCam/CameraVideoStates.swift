@@ -56,7 +56,7 @@ extension RemoteCamSession {
                 )
 
             case let c as DisconnectPeer:
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer?.displayName == peer.displayName {
                     self.popAndStartScanning()
                     ctrl.stopRecordingVideo(false)
                 }
@@ -123,7 +123,7 @@ extension RemoteCamSession {
                 }
                 
             case let c as DisconnectPeer:
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                if c.peer?.displayName == peer.displayName {
                     // Progress UI handled by SwiftUI - no alert to dismiss
                     self.mailbox.addOperation {
                         self.popAndStartScanning()

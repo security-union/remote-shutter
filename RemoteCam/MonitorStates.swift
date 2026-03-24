@@ -75,7 +75,8 @@ extension RemoteCamSession {
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                self.cameraRegistry.remove(peer: c.peer)
+                if self.cameraRegistry.isEmpty {
                     self.popAndStartScanning()
                 }
 
@@ -150,7 +151,8 @@ extension RemoteCamSession {
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                self.cameraRegistry.remove(peer: c.peer)
+                if self.cameraRegistry.isEmpty {
                     self.popAndStartScanning()
                 }
 
@@ -230,7 +232,8 @@ extension RemoteCamSession {
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
                 }
-                if c.peer?.displayName == peer.displayName && self.connectedPeers.count == 0 {
+                self.cameraRegistry.remove(peer: c.peer)
+                if self.cameraRegistry.isEmpty {
                     self.popAndStartScanning()
                 }
 

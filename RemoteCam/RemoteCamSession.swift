@@ -50,6 +50,8 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
     var multipeerService: (any MultipeerServiceProtocol)!
 
+    let cameraRegistry = CameraRegistry()
+
     var session: MCSession! { multipeerService?.session }
 
     var connectedPeers: [MCPeerID] { multipeerService?.connectedPeers ?? [] }
@@ -96,6 +98,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
     }
 
     func popAndStartScanning() {
+        self.cameraRegistry.reset()
         self.popToState(name: .scanning)
     }
 
@@ -253,7 +256,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
             debugLog("🔍 DEBUG: - Transmission error: \(switchResp.error?.localizedDescription ?? "nil")")
         }
         
-        if self.sendMessage(peer: self.connectedPeers, msg: msg).isFailure() {
+        if self.sendMessage(peer: peer, msg: msg, mode: mode).isFailure() {
             debugLog("❌ DEBUG: sendCommandOrGoToScanning failed to send message")
             self.popToState(name: .scanning)
             ^{ [weak self] in

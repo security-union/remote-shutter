@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import AVFoundation
+import MultipeerConnectivity
 
 // MARK: - MonitorViewController SwiftUI Integration
 extension MonitorViewController {
@@ -48,6 +49,9 @@ extension MonitorViewController {
             },
             onAspectRatioChange: { [weak self] ratio in
                 self?.handleAspectRatioChange(ratio)
+            },
+            onConnectCamera: { [weak self] peer in
+                self?.handleConnectCamera(peer)
             }
         )
         
@@ -253,6 +257,10 @@ extension MonitorViewController {
 
     private func handleAspectRatioChange(_ ratio: AspectRatio) {
         session ! UICmd.SetAspectRatio(aspectRatio: ratio)
+    }
+
+    func handleConnectCamera(_ peer: MCPeerID) {
+        session ! UICmd.ConnectToCamera(peer: peer)
     }
 
     /// Sends the monitor's current mode to the camera device so its overlay shows the right mode

@@ -321,3 +321,8 @@
 "Remove Ads" = "Werbung entfernen";
 "Enable Torch" = "Taschenlampe aktivieren";
 "Enable Video" = "Video aktivieren";
+
+/* Multi-Camera UI */
+"Add" = "Hinzufügen";
+"Add Camera" = "Kamera hinzufügen";
+"Cancel" = "Abbrechen";

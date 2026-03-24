@@ -321,3 +321,8 @@
 "Remove Ads" = "Remove Ads";
 "Enable Torch" = "Enable Torch";
 "Enable Video" = "Enable Video";
+
+/* Multi-Camera UI */
+"Add" = "Add";
+"Add Camera" = "Add Camera";
+"Cancel" = "Cancel";
