@@ -1,0 +1,6 @@
+framework module FlatBuffers {
+  umbrella header "FlatBuffers-iOS-umbrella.h"
+
+  export *
+  module * { export * }
+}

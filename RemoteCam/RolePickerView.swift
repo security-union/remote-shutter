@@ -3,6 +3,8 @@ import SwiftUI
 struct RolePickerView: View {
     let onCamera: () -> Void
     let onRemote: () -> Void
+    let onWatchRemote: (() -> Void)?
+    let isWatchPaired: Bool
 
     @State private var appeared = false
 
@@ -41,6 +43,21 @@ struct RolePickerView: View {
                     .buttonStyle(GlassButtonStyle())
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)
+
+                    if isWatchPaired, let onWatchRemote = onWatchRemote {
+                        Button(action: onWatchRemote) {
+                            glassPanel(
+                                icon: "applewatch",
+                                title: NSLocalizedString("Watch Remote", comment: ""),
+                                subtitle: NSLocalizedString("Control from your wrist", comment: ""),
+                                detail: NSLocalizedString("No second device needed", comment: ""),
+                                tint: Color.green
+                            )
+                        }
+                        .buttonStyle(GlassButtonStyle())
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 20)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
@@ -144,7 +161,9 @@ struct RolePickerView_Previews: PreviewProvider {
         NavigationView {
             RolePickerView(
                 onCamera: {},
-                onRemote: {}
+                onRemote: {},
+                onWatchRemote: {},
+                isWatchPaired: true
             )
             .navigationTitle(NSLocalizedString("Pick a role", comment: ""))
             .navigationBarTitleDisplayMode(.large)

@@ -57,7 +57,11 @@ public class RolePickerController: UIViewController {
             },
             onRemote: { [weak self] in
                 self?.becomeMonitor()
-            }
+            },
+            onWatchRemote: { [weak self] in
+                self?.becomeWatchRemote()
+            },
+            isWatchPaired: WatchSessionManager.shared.isWatchPaired
         )
 
         let hostingController = UIHostingController(rootView: rolePickerView)
@@ -95,6 +99,56 @@ public class RolePickerController: UIViewController {
     func becomeMonitor() {
         let scanner = DeviceScannerViewController(role: .monitor)
         navigationController?.pushViewController(scanner, animated: true)
+    }
+
+    func becomeWatchRemote() {
+        checkCameraPermissionsForWatchRemote()
+    }
+
+    private func checkCameraPermissionsForWatchRemote() {
+        let permissionManager = PermissionManager.shared
+        permissionManager.updatePermissionStatuses()
+
+        if permissionManager.areCameraAndPhotosGranted {
+            let watchRemote = WatchRemoteCameraController()
+            navigationController?.pushViewController(watchRemote, animated: true)
+        } else if permissionManager.areCameraAndPhotosDenied {
+            showCameraPermissionsModal(permissionType: .denied)
+        } else {
+            showWatchRemotePermissionsModal()
+        }
+    }
+
+    private func showWatchRemotePermissionsModal() {
+        let permissionView = CameraPermissionsView(
+            permissionType: .initial,
+            onAllow: { [weak self] in
+                self?.dismiss(animated: true) {
+                    PermissionManager.shared.requestCameraAndPhotosPermissions { [weak self] granted in
+                        DispatchQueue.main.async {
+                            if granted {
+                                let watchRemote = WatchRemoteCameraController()
+                                self?.navigationController?.pushViewController(watchRemote, animated: true)
+                            } else {
+                                self?.showCameraPermissionsModal(permissionType: .denied)
+                            }
+                        }
+                    }
+                }
+            },
+            onNotNow: { [weak self] in
+                self?.dismiss(animated: true)
+            },
+            onOpenSettings: { [weak self] in
+                self?.dismiss(animated: true) {
+                    PermissionManager.shared.openAppSettings()
+                }
+            }
+        )
+
+        let hostingController = UIHostingController(rootView: permissionView)
+        hostingController.modalPresentationStyle = .fullScreen
+        present(hostingController, animated: true)
     }
 
     func becomeCamera() {

@@ -22,6 +22,9 @@ struct FeatureFlags {
     /// Enable video/photo quality controls overlay on monitor
     static let ENABLE_QUALITY_CONTROLS = true
     
+    /// Enable Apple Watch companion app as standalone remote control
+    static let ENABLE_WATCH_APP = true
+
     // MARK: - Future Feature Flags
     // Add new feature flags here as needed
     // Example:

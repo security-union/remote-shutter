@@ -61,7 +61,11 @@ public class CameraViewController: UIViewController,
     var currentHDRMode: HDRMode = .off
     let session: ActorRef = getRemoteCamSession()!
     let frameSender: ActorRef = getFrameSender()!
-    
+
+    /// When true, this camera is controlled by an Apple Watch via WCSession.
+    /// Suppresses MultipeerConnectivity-related actor messages (BecomeCamera/UnbecomeCamera).
+    var isWatchRemoteMode = false
+
     // MARK: - Zoom and Lens Properties
     private var currentZoomFactor: CGFloat = 1.0
     private var currentLensType: CameraLensType = .wideAngle
@@ -129,7 +133,9 @@ public class CameraViewController: UIViewController,
     override public func viewDidLoad() {
         super.viewDidLoad()
         recordingView.image = UIImage.gifImageWithName("recording")
-        session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
+        if !isWatchRemoteMode {
+            session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
+        }
         configureIdleMode()
         setupRecordingTimerOverlay()
         setupProgressOverlay()
@@ -275,7 +281,9 @@ public class CameraViewController: UIViewController,
                     self?.captureSession.stopRunning()
                 }
             }
-            session ! UICmd.UnbecomeCamera(sender: nil)
+            if !isWatchRemoteMode {
+                session ! UICmd.UnbecomeCamera(sender: nil)
+            }
         }
     }
 
@@ -927,6 +935,15 @@ public class CameraViewController: UIViewController,
     
     func getCurrentLensType() -> CameraLensType {
         return currentLensType
+    }
+
+    func getZoomStops() -> [CGFloat] {
+        return zoomStops
+    }
+
+    func getWideAngleZoomFactor() -> CGFloat {
+        guard let device = videoDeviceInput?.device else { return 1.0 }
+        return wideAngleZoomFactor(for: device)
     }
 
     private func rotateCameraToOrientation(orientation: UIInterfaceOrientation) {

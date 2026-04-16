@@ -219,3 +219,52 @@ table P2PMessage {
 }
 
 root_type P2PMessage;
+
+// MARK: - Watch Communication
+
+enum WatchCommandAction : byte {
+    Unknown = 0,
+    SetZoom = 1,
+    TakePicture = 2,
+    StartRecording = 3,
+    StopRecording = 4,
+    SwitchLens = 5,
+    ToggleFlash = 6,
+    ToggleTorch = 7,
+    ToggleCamera = 8,
+    RequestState = 9
+}
+
+table WatchCommand {
+    action: WatchCommandAction;
+    zoom_factor: double;
+    lens_type: CameraLensType;
+}
+
+table WatchCameraState {
+    is_ready: bool;
+    current_zoom_factor: double;
+    min_zoom_factor: double;
+    max_zoom_factor: double;
+    is_recording: bool;
+    current_mode: RecordingModeEnum;
+    current_lens_type: CameraLensType;
+    available_lens_types: [CameraLensType];
+    is_flash_enabled: bool;
+    is_torch_enabled: bool;
+    zoom_stops: [double];
+    wide_angle_zoom_factor: double;
+    last_event: string;
+}
+
+enum WatchMessageType : byte {
+    WatchCommandMsg = 0,
+    WatchStateMsg = 1
+}
+
+table WatchMessage {
+    type: WatchMessageType;
+    command: WatchCommand;
+    state: WatchCameraState;
+}
+

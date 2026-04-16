@@ -130,6 +130,9 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
     override public func receive(msg: Actor.Message) {
         switch msg {
 
+        case let m as UICmd.BecomeWatchCamera:
+            self.become(name: .watchRemoteCamera, state: self.watchRemoteCamera(ctrl: m.ctrl))
+
         case let m as UICmd.BecomeCamera:
             ^{
                 m.ctrl.navigationController?.popViewController(animated: true)
