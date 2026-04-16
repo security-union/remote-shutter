@@ -93,37 +93,36 @@ public class WatchRemoteCameraController: UIViewController {
 
     private func setupWatchStatusOverlay() {
         statusLabel = UILabel()
-        statusLabel.text = NSLocalizedString("Open Remote Shutter on your Apple Watch", comment: "")
         statusLabel.textColor = .white
-        statusLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        statusLabel.font = .systemFont(ofSize: 13, weight: .medium)
         statusLabel.textAlignment = .center
-        statusLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-        statusLabel.layer.cornerRadius = 12
+        statusLabel.layer.cornerRadius = 14
         statusLabel.clipsToBounds = true
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(statusLabel)
         NSLayoutConstraint.activate([
-            statusLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            statusLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            statusLabel.heightAnchor.constraint(equalToConstant: 36),
-            statusLabel.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -40),
+            statusLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            statusLabel.heightAnchor.constraint(equalToConstant: 28),
         ])
-
-        // Add padding
-        statusLabel.layoutMargins = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
 
         updateWatchStatusLabel()
     }
 
     private func updateWatchStatusLabel() {
         let isReachable = WatchSessionManager.shared.isWatchReachable
-        statusLabel.text = isReachable
-            ? "  \u{26AB}  " + NSLocalizedString("Watch Connected", comment: "") + "  "
-            : "  \u{231A}  " + NSLocalizedString("Open Remote Shutter on your Apple Watch", comment: "") + "  "
-        statusLabel.backgroundColor = isReachable
-            ? UIColor.systemGreen.withAlphaComponent(0.3)
-            : UIColor.black.withAlphaComponent(0.6)
+        if isReachable {
+            statusLabel.text = "  \u{2328}\u{FE0F}  " + NSLocalizedString("Watch Connected", comment: "") + "  "
+            statusLabel.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.4)
+        } else {
+            statusLabel.text = "  \u{231A}  " + NSLocalizedString("Open Watch App", comment: "") + "  "
+            statusLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        }
+        statusLabel.sizeToFit()
+        // Re-apply height and corner radius after sizeToFit
+        statusLabel.frame.size.height = 28
+        statusLabel.frame.size.width += 16 // padding
     }
 
     // MARK: - Watch Manager Binding
