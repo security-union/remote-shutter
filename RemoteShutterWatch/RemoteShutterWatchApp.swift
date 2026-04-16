@@ -39,12 +39,13 @@ struct ContentView: View {
     @EnvironmentObject var viewModel: WatchCameraViewModel
 
     var body: some View {
-        // Show controls if we have state OR if the phone is reachable
-        // (so user can try buttons even before first state sync)
-        if viewModel.isConnected || viewModel.isPhoneReachable {
-            WatchControlView()
-        } else {
-            WatchConnectionView()
+        NavigationStack {
+            // Show controls if we have state OR if the phone is reachable
+            if viewModel.isConnected || viewModel.isPhoneReachable {
+                WatchControlView()
+            } else {
+                WatchConnectionView()
+            }
         }
     }
 }

@@ -92,10 +92,10 @@ struct WatchControlView: View {
                         if viewModel.isRecording {
                             session.stopRecording()
                         } else {
-                            session.startRecording()
+                            session.startRecording(timerSeconds: viewModel.timerSeconds)
                         }
                     } else {
-                        session.takePicture()
+                        session.takePicture(timerSeconds: viewModel.timerSeconds)
                     }
                 }) {
                     ZStack {
@@ -122,16 +122,28 @@ struct WatchControlView: View {
                 }
                 .buttonStyle(.plain)
 
-                // Camera toggle
-                Button(action: { session.toggleCamera() }) {
-                    Image(systemName: "arrow.triangle.2.circlepath.camera")
+                // Settings (timer + camera toggle)
+                NavigationLink(destination: WatchSettingsView()) {
+                    Image(systemName: "gearshape")
                         .font(.title3)
                         .foregroundColor(.white)
                 }
                 .buttonStyle(.plain)
             }
+
+            // Timer indicator
+            if viewModel.timerSeconds > 0 {
+                HStack(spacing: 4) {
+                    Image(systemName: "timer")
+                        .font(.caption2)
+                    Text("\(viewModel.timerSeconds)s")
+                        .font(.caption2)
+                }
+                .foregroundColor(.orange)
+            }
         }
         .padding(.horizontal, 4)
+        .navigationBarTitleDisplayMode(.inline)
         // Crown ALWAYS controls zoom — no ScrollView to steal it
         // Wide raw range (0-100) so each crown tick produces a tiny zoom change
         .focusable()

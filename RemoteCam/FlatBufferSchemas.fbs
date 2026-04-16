@@ -239,6 +239,7 @@ table WatchCommand {
     action: WatchCommandAction;
     zoom_factor: double;
     lens_type: CameraLensType;
+    timer_seconds: int;
 }
 
 table WatchCameraState {

@@ -159,7 +159,8 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
         controller.handleWatchCommand(
             action: decoded.action,
             zoomFactor: decoded.zoomFactor,
-            lensType: decoded.lensType
+            lensType: decoded.lensType,
+            timerSeconds: decoded.timerSeconds
         )
     }
 }

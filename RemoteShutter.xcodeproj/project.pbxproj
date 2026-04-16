@@ -120,6 +120,7 @@
 		85D33832258D489C0091972B /* UIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33831258D489C0091972B /* UIView.swift */; };
 		85D33836258D48C30091972B /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85D33835258D48C30091972B /* UIViewController.swift */; };
 		85FD015D89F8724D077E9E6D /* WatchRemoteCamStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9526CFCA006EC142C534B /* WatchRemoteCamStates.swift */; };
+		874ECE4F11DE0C041937D86C /* WatchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8080E0FDE21CFE4B92AEAB /* WatchSettingsView.swift */; };
 		8D834E942E3DF65BDAE055C5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9E06E2C406307CD182CFB2 /* SettingsView.swift */; };
 		8F558AB2F4887617AF3E8FCD /* RemoteShutterWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatchApp.swift */; };
 		A0C6EAACDA1985B1DD5E8EC0 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50951447985E618A5F3818CD /* WatchConnectivity.framework */; };
@@ -338,6 +339,7 @@
 		8A4A366A5AE5F4A3714F28F2 /* WatchRemoteCameraController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCam/WatchRemoteCameraController.swift; sourceTree = SOURCE_ROOT; };
 		8C10B4D9CEB514BD59516D78 /* Pods-RemoteShutterTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.debug.xcconfig"; sourceTree = "<group>"; };
 		8C9E06E2C406307CD182CFB2 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9B8080E0FDE21CFE4B92AEAB /* WatchSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/WatchSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		9C74B20F636B4DD2AB0C6511 /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
 		AA0001032E940003000A1001 /* AlertPresenting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenting.swift; sourceTree = "<group>"; };
 		AA0001062E940006000A1001 /* UIAlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAlertPresenter.swift; sourceTree = "<group>"; };
@@ -712,6 +714,7 @@
 				6816F7F01F22AF52E28D6518 /* WatchCameraViewModel.swift */,
 				F9F37D4A9FA8416A43EFEFF1 /* WatchControlView.swift */,
 				DC9A830256BC7B3762B17FEF /* WatchConnectionView.swift */,
+				9B8080E0FDE21CFE4B92AEAB /* WatchSettingsView.swift */,
 			);
 			path = RemoteShutterWatch;
 			sourceTree = SOURCE_ROOT;
@@ -1122,6 +1125,7 @@
 				E2292969B1882D3FCB671CB3 /* WatchConnectionView.swift in Sources */,
 				F6DAD1852A77AE011FAF35B1 /* WatchSharedTypes.swift in Sources */,
 				AFE75F7F7AE0F1FBF334D385 /* FlatBufferSchemas_generated.swift in Sources */,
+				874ECE4F11DE0C041937D86C /* WatchSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

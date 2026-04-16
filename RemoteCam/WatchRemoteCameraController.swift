@@ -158,7 +158,8 @@ public class WatchRemoteCameraController: UIViewController {
 
     func handleWatchCommand(action: RemoteShutter_WatchCommandAction,
                             zoomFactor: Double,
-                            lensType: RemoteShutter_CameraLensType) {
+                            lensType: RemoteShutter_CameraLensType,
+                            timerSeconds: Int32 = 0) {
         let session = remoteCamSession!
 
         switch action {
@@ -166,10 +167,22 @@ public class WatchRemoteCameraController: UIViewController {
             session ! RemoteCmd.SetZoom(zoomFactor: CGFloat(zoomFactor))
 
         case .takepicture:
-            session ! RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false)
+            if timerSeconds > 0 {
+                startTimerThenExecute(seconds: Int(timerSeconds)) {
+                    session ! RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false)
+                }
+            } else {
+                session ! RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false)
+            }
 
         case .startrecording:
-            session ! RemoteCmd.StartRecordingVideo(sender: nil)
+            if timerSeconds > 0 {
+                startTimerThenExecute(seconds: Int(timerSeconds)) {
+                    session ! RemoteCmd.StartRecordingVideo(sender: nil)
+                }
+            } else {
+                session ! RemoteCmd.StartRecordingVideo(sender: nil)
+            }
 
         case .stoprecording:
             session ! RemoteCmd.StopRecordingVideo(sender: nil)
@@ -193,6 +206,47 @@ public class WatchRemoteCameraController: UIViewController {
 
         case .unknown:
             debugLog("WatchRemoteCameraController: Unknown watch command")
+        }
+    }
+
+    // MARK: - Timer Countdown
+
+    private var countdownTimer: Timer?
+
+    private func startTimerThenExecute(seconds: Int, action: @escaping () -> Void) {
+        // Send countdown ticks to camera for chime/display
+        let session = remoteCamSession!
+        session ! RemoteCmd.TimerCountdown(value: seconds)
+
+        // Push countdown state to Watch
+        WatchSessionManager.shared.pushCameraState(
+            isReady: true,
+            currentZoomFactor: Double(cameraVC.getCurrentZoomFactor()),
+            minZoomFactor: Double(cameraVC.getMinZoomFactor()),
+            maxZoomFactor: Double(cameraVC.getMaxZoomFactor()),
+            isRecording: cameraVC.isRecording,
+            currentMode: cameraVC.currentCameraMode == .Video ? .video : .photo,
+            currentLensType: RemoteShutter_CameraLensType(rawValue: Int8(cameraVC.getCurrentLensType().rawValue)) ?? .wideangle,
+            availableLensTypes: cameraVC.getAvailableLensTypes().compactMap { RemoteShutter_CameraLensType(rawValue: Int8($0.rawValue)) },
+            isFlashEnabled: false,
+            isTorchEnabled: cameraVC.videoDeviceInput?.device.isTorchActive ?? false,
+            zoomStops: cameraVC.getZoomStops().map { Double($0) },
+            wideAngleZoomFactor: Double(cameraVC.getWideAngleZoomFactor()),
+            lastEvent: "countdown:\(seconds)"
+        )
+
+        var remaining = seconds
+        countdownTimer?.invalidate()
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            remaining -= 1
+            if remaining > 0 {
+                session ! RemoteCmd.TimerCountdown(value: remaining)
+            } else {
+                timer.invalidate()
+                self?.countdownTimer = nil
+                session ! RemoteCmd.TimerCountdown(value: 0)
+                action()
+            }
         }
     }
 

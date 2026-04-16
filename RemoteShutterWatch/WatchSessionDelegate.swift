@@ -102,9 +102,10 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
 
     private func sendCommand(action: RemoteShutter_WatchCommandAction,
                              zoomFactor: Double = 0,
-                             lensType: RemoteShutter_CameraLensType = .wideangle) {
+                             lensType: RemoteShutter_CameraLensType = .wideangle,
+                             timerSeconds: Int32 = 0) {
         guard let session = wcSession, session.isReachable else { return }
-        let data = WatchCommandEncoder.encode(action: action, zoomFactor: zoomFactor, lensType: lensType)
+        let data = WatchCommandEncoder.encode(action: action, zoomFactor: zoomFactor, lensType: lensType, timerSeconds: timerSeconds)
         session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
             print("WatchSession: \(action) failed: \(error.localizedDescription)")
         })
@@ -112,8 +113,8 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
 
     func requestState() { retryCount = 0; retryRequestState() }
     func setZoom(_ factor: Double) { sendCommand(action: .setzoom, zoomFactor: factor) }
-    func takePicture() { sendCommand(action: .takepicture) }
-    func startRecording() { sendCommand(action: .startrecording) }
+    func takePicture(timerSeconds: Int = 0) { sendCommand(action: .takepicture, timerSeconds: Int32(timerSeconds)) }
+    func startRecording(timerSeconds: Int = 0) { sendCommand(action: .startrecording, timerSeconds: Int32(timerSeconds)) }
     func stopRecording() { sendCommand(action: .stoprecording) }
     func switchLens(_ lensType: RemoteShutter_CameraLensType) { sendCommand(action: .switchlens, lensType: lensType) }
     func toggleFlash() { sendCommand(action: .toggleflash) }

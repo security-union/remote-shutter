@@ -36,6 +36,14 @@ class WatchCameraViewModel: ObservableObject {
     @Published var zoomStops: [Double] = [1.0]
     @Published var wideAngleZoomFactor: Double = 1.0
 
+    // MARK: - Timer Setting (persisted)
+
+    @Published var timerSeconds: Int = UserDefaults.standard.integer(forKey: "watchTimerSeconds") {
+        didSet { UserDefaults.standard.set(timerSeconds, forKey: "watchTimerSeconds") }
+    }
+
+    static let timerOptions = [0, 2, 5, 10, 20]
+
     // MARK: - Events
 
     @Published var lastEvent: String?
