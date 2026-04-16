@@ -7,8 +7,6 @@ platform :ios, '15.0'
 use_frameworks!
 
 target 'RemoteShutter' do
-    # pod 'Google-Mobile-Ads-SDK', '~> 11.0'
-    # pod 'GoogleUserMessagingPlatform', '~> 2.0'
     pod 'SwiftLint', '~> 0.41.0'
     pod 'FlatBuffers', :podspec => 'LocalPodspecs/FlatBuffers.podspec.json'
 
