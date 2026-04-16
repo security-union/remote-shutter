@@ -2,7 +2,7 @@
   "name": "FlatBuffers",
   "version": "25.2.10",
   "summary": "FlatBuffers: Memory Efficient Serialization Library",
-  "description": "FlatBuffers is a cross platform serialization library architected for maximum memory efficiency.",
+  "description": "TODO: Delete this file once upstream FlatBuffers podspec adds watchOS support. This is a local copy that only adds watchos to the platforms field. Track: https://github.com/google/flatbuffers",
   "homepage": "https://github.com/google/flatbuffers",
   "license": {
     "type": "Apache2.0",
