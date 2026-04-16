@@ -321,3 +321,9 @@
 "Remove Ads" = "광고 제거";
 "Enable Torch" = "손전등 활성화";
 "Enable Video" = "동영상 활성화";
+
+/* Apple Watch Remote */
+"Watch Remote" = "Watch 리모컨";
+"Control from your wrist" = "손목에서 제어하세요";
+"Watch Connected" = "Watch 연결됨";
+"Open Watch App" = "Watch 앱 열기";

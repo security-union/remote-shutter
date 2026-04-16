@@ -321,3 +321,9 @@
 "Remove Ads" = "広告を削除";
 "Enable Torch" = "ライトを有効化";
 "Enable Video" = "ビデオを有効化";
+
+/* Apple Watch Remote */
+"Watch Remote" = "Watchリモート";
+"Control from your wrist" = "手首からコントロール";
+"Watch Connected" = "Watch接続済み";
+"Open Watch App" = "Watchアプリを開く";
