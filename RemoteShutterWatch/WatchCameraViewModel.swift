@@ -8,6 +8,7 @@
 
 import Foundation
 import SwiftUI
+import WatchKit
 import FlatBuffers
 
 class WatchCameraViewModel: ObservableObject {
@@ -134,10 +135,11 @@ class WatchCameraViewModel: ObservableObject {
         zoomStops = state.zoomStops
         wideAngleZoomFactor = state.wideAngleZoomFactor
 
-        // Handle events
+        // Handle events with haptic feedback
         if let event = state.lastEvent {
             lastEvent = event
             showEventConfirmation = true
+            playHaptic(for: event)
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                 self?.showEventConfirmation = false
             }
@@ -148,6 +150,25 @@ class WatchCameraViewModel: ObservableObject {
             crownZoomValue = currentZoomFactor
             crownRawValue = crownFromZoom(currentZoomFactor)
         }
+    }
+
+    // MARK: - Haptic Feedback
+
+    private func playHaptic(for event: String) {
+        let type: WKHapticType
+        switch event {
+        case "photoTaken":
+            type = .success
+        case "recordingStarted":
+            type = .start
+        case "recordingStopped":
+            type = .stop
+        case "photoError", "microphoneDenied":
+            type = .failure
+        default:
+            type = .notification
+        }
+        WKInterfaceDevice.current().play(type)
     }
 
     // MARK: - Preview Frame

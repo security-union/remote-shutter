@@ -19,10 +19,12 @@ struct WatchControlView: View {
                 Circle()
                     .fill(Color.green)
                     .frame(width: 8, height: 8)
+                    .accessibilityLabel("Connected")
                 Text(viewModel.displayZoom)
                     .font(.title3)
                     .fontWeight(.semibold)
                     .monospacedDigit()
+                    .accessibilityLabel("Zoom \(viewModel.displayZoom)")
                 Spacer()
                 if viewModel.isRecording {
                     Circle()
@@ -31,6 +33,7 @@ struct WatchControlView: View {
                     Text("REC")
                         .font(.caption2)
                         .foregroundColor(.red)
+                        .accessibilityLabel("Recording in progress")
                 }
             }
             .padding(.horizontal, 4)
@@ -49,6 +52,8 @@ struct WatchControlView: View {
                 in: viewModel.minZoomFactor...max(viewModel.minZoomFactor + 0.1, viewModel.clampedMaxZoom)
             )
             .tint(.green)
+            .accessibilityLabel("Zoom")
+            .accessibilityValue(viewModel.displayZoom)
 
             // MARK: - Lens Buttons
             if viewModel.availableLensTypes.count > 1 {
@@ -70,21 +75,28 @@ struct WatchControlView: View {
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("\(lens.displayName) lens")
+                        .accessibilityAddTraits(lens == viewModel.currentLensType ? .isSelected : [])
                     }
                 }
             }
 
             // MARK: - Shutter + Controls Row
             HStack(spacing: 12) {
-                // Torch
-                Button(action: { session.toggleTorch() }) {
-                    Image(systemName: viewModel.isTorchEnabled
-                          ? "flashlight.on.fill"
-                          : "flashlight.off.fill")
+                // Flash (photo mode) / Torch (video mode)
+                Button(action: {
+                    if viewModel.isPhotoMode {
+                        session.toggleFlash()
+                    } else {
+                        session.toggleTorch()
+                    }
+                }) {
+                    Image(systemName: flashTorchIcon)
                         .font(.title3)
-                        .foregroundColor(viewModel.isTorchEnabled ? .yellow : .white)
+                        .foregroundColor(flashTorchColor)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(flashTorchAccessibilityLabel)
 
                 // Shutter button
                 Button(action: {
@@ -121,31 +133,38 @@ struct WatchControlView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(shutterAccessibilityLabel)
 
-                // Settings (timer + camera toggle)
-                NavigationLink(destination: WatchSettingsView()) {
-                    Image(systemName: "gearshape")
+                // Camera flip (front/back)
+                Button(action: { session.toggleCamera() }) {
+                    Image(systemName: "arrow.triangle.2.circlepath.camera")
                         .font(.title3)
                         .foregroundColor(.white)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Switch front and back camera")
             }
 
-            // Timer indicator
-            if viewModel.timerSeconds > 0 {
+            // Timer indicator (tappable → settings)
+            NavigationLink(destination: WatchSettingsView()) {
                 HStack(spacing: 4) {
-                    Image(systemName: "timer")
+                    Image(systemName: viewModel.timerSeconds > 0 ? "timer" : "gearshape")
                         .font(.caption2)
-                    Text("\(viewModel.timerSeconds)s")
-                        .font(.caption2)
+                    if viewModel.timerSeconds > 0 {
+                        Text("\(viewModel.timerSeconds)s")
+                            .font(.caption2)
+                    }
                 }
-                .foregroundColor(.orange)
+                .foregroundColor(viewModel.timerSeconds > 0 ? .orange : .gray)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(viewModel.timerSeconds > 0
+                ? "Timer \(viewModel.timerSeconds) seconds, open settings"
+                : "Settings")
         }
         .padding(.horizontal, 4)
         .navigationBarTitleDisplayMode(.inline)
         // Crown ALWAYS controls zoom — no ScrollView to steal it
-        // Wide raw range (0-100) so each crown tick produces a tiny zoom change
         .focusable()
         .digitalCrownRotation(
             $viewModel.crownRawValue,
@@ -155,8 +174,8 @@ struct WatchControlView: View {
             isContinuous: false,
             isHapticFeedbackEnabled: true
         )
-        .onChange(of: viewModel.crownRawValue) { newValue in
-            let zoom = viewModel.zoomFromCrown(newValue)
+        .onChange(of: viewModel.crownRawValue) {
+            let zoom = viewModel.zoomFromCrown(viewModel.crownRawValue)
             viewModel.crownZoomValue = zoom
             if viewModel.shouldSendZoom() {
                 session.setZoom(zoom)
@@ -170,6 +189,42 @@ struct WatchControlView: View {
         }
     }
 
+    // MARK: - Flash/Torch Helpers
+
+    private var flashTorchIcon: String {
+        if viewModel.isPhotoMode {
+            return viewModel.isFlashEnabled ? "bolt.fill" : "bolt.slash.fill"
+        } else {
+            return viewModel.isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill"
+        }
+    }
+
+    private var flashTorchColor: Color {
+        if viewModel.isPhotoMode {
+            return viewModel.isFlashEnabled ? .yellow : .white
+        } else {
+            return viewModel.isTorchEnabled ? .yellow : .white
+        }
+    }
+
+    private var flashTorchAccessibilityLabel: String {
+        if viewModel.isPhotoMode {
+            return viewModel.isFlashEnabled ? "Flash on" : "Flash off"
+        } else {
+            return viewModel.isTorchEnabled ? "Torch on" : "Torch off"
+        }
+    }
+
+    // MARK: - Shutter Accessibility
+
+    private var shutterAccessibilityLabel: String {
+        if viewModel.isVideoMode {
+            return viewModel.isRecording ? "Stop recording" : "Start recording"
+        } else {
+            return "Take photo"
+        }
+    }
+
     // MARK: - Event Confirmation
 
     @ViewBuilder
@@ -177,7 +232,7 @@ struct WatchControlView: View {
         VStack {
             Image(systemName: iconForEvent(event))
                 .font(.title)
-                .foregroundColor(.green)
+                .foregroundColor(colorForEvent(event))
             Text(textForEvent(event))
                 .font(.caption)
                 .foregroundColor(.white)
@@ -186,6 +241,8 @@ struct WatchControlView: View {
         .background(Color.black.opacity(0.8))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .transition(.opacity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(textForEvent(event))
     }
 
     private func iconForEvent(_ event: String) -> String {
@@ -193,7 +250,17 @@ struct WatchControlView: View {
         case "photoTaken": return "checkmark.circle.fill"
         case "recordingStarted": return "record.circle"
         case "recordingStopped": return "stop.circle.fill"
+        case "photoError": return "xmark.circle.fill"
+        case "microphoneDenied": return "mic.slash.fill"
         default: return "info.circle"
+        }
+    }
+
+    private func colorForEvent(_ event: String) -> Color {
+        switch event {
+        case "photoError", "microphoneDenied": return .red
+        case "recordingStarted": return .red
+        default: return .green
         }
     }
 
