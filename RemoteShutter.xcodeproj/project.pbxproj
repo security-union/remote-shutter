@@ -148,6 +148,8 @@
 		B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */; };
 		BD14D83BAC55CC029934B0ED /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 043B715A46C4498C9A2B6911 /* Foundation.framework */; };
 		CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0001000000000001 /* CropRectTests.swift */; };
+		CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */; };
+		CAFEBABE0003000000000002 /* WatchSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0003000000000001 /* WatchSerializationTests.swift */; };
 		D2B94CD08C14086E035FBAA4 /* WatchCameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6816F7F01F22AF52E28D6518 /* WatchCameraViewModel.swift */; };
 		D808C297E991CF09EE2FC00C /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 381BB7BCEF561D22B0F194A6 /* WatchConnectivity.framework */; };
 		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
@@ -356,6 +358,8 @@
 		B2CBCE8B82BF3D236B662AC6 /* Pods_RemoteShutterTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBD41C9CED4693FBF0D87441 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
 		CAFEBABE0001000000000001 /* CropRectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropRectTests.swift; sourceTree = "<group>"; };
+		CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchCaptureCountdownTests.swift; sourceTree = "<group>"; };
+		CAFEBABE0003000000000001 /* WatchSerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSerializationTests.swift; sourceTree = "<group>"; };
 		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
 		D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/RemoteShutterWatchApp.swift; sourceTree = SOURCE_ROOT; };
 		D9C44C88664AD8685AFA3CDF /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
@@ -507,6 +511,8 @@
 				AABB00012E930001009TESTS /* RemoteCamSessionTests.swift */,
 				AABB00032E930002009TESTS /* RemoteCmdSerializationTests.swift */,
 				CAFEBABE0001000000000001 /* CropRectTests.swift */,
+				CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */,
+				CAFEBABE0003000000000001 /* WatchSerializationTests.swift */,
 				069284351BE5BF5C00AF4678 /* Info.plist */,
 				036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */,
 				B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */,
@@ -1108,6 +1114,8 @@
 				AABB00022E930001009TESTS /* RemoteCamSessionTests.swift in Sources */,
 				AABB00042E930002009TESTS /* RemoteCmdSerializationTests.swift in Sources */,
 				CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */,
+				CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */,
+				CAFEBABE0003000000000002 /* WatchSerializationTests.swift in Sources */,
 				3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */,
 				B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */,
 				AA00020000000004 /* StoreManagerTests.swift in Sources */,

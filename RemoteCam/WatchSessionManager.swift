@@ -95,13 +95,6 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
         session.sendMessageData(data, replyHandler: nil, errorHandler: nil)
     }
 
-    // MARK: - Send Preview Frame to Watch
-
-    func sendFrameToWatch(_ imageData: Data) {
-        guard let session = wcSession, session.isReachable else { return }
-        session.sendMessageData(imageData, replyHandler: nil, errorHandler: nil)
-    }
-
     // MARK: - WCSessionDelegate — Activation
 
     func session(_ session: WCSession,

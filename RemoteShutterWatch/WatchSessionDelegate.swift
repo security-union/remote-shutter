@@ -85,16 +85,13 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
 
     func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
         print("WatchSession: received \(messageData.count) bytes")
-        if let state = WatchStateEncoder.decode(messageData) {
-            retryCount = 0
-            DispatchQueue.main.async { [weak self] in
-                self?.viewModel.update(from: state)
-            }
-        } else {
-            // Preview frame
-            DispatchQueue.main.async { [weak self] in
-                self?.viewModel.updatePreviewFrame(messageData)
-            }
+        guard let state = WatchStateEncoder.decode(messageData) else {
+            print("WatchSession: failed to decode camera state (\(messageData.count) bytes) — ignoring")
+            return
+        }
+        retryCount = 0
+        DispatchQueue.main.async { [weak self] in
+            self?.viewModel.update(from: state)
         }
     }
 

@@ -50,10 +50,6 @@ class WatchCameraViewModel: ObservableObject {
     @Published var lastEvent: String?
     @Published var showEventConfirmation = false
 
-    // MARK: - Preview
-
-    @Published var previewImageData: Data?
-
     // MARK: - Digital Crown
 
     @Published var crownZoomValue: Double = 1.0
@@ -169,11 +165,5 @@ class WatchCameraViewModel: ObservableObject {
             type = .notification
         }
         WKInterfaceDevice.current().play(type)
-    }
-
-    // MARK: - Preview Frame
-
-    func updatePreviewFrame(_ data: Data) {
-        previewImageData = data
     }
 }
