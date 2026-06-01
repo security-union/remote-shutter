@@ -9,6 +9,37 @@
 import UIKit
 import SwiftUI
 
+/// Pure, UIKit-free countdown logic for Watch-initiated timer captures.
+///
+/// The scheduling (a `Timer`) lives in `WatchRemoteCameraController`; this type owns
+/// only the second-by-second state transitions so they can be unit-tested without a
+/// run loop. Each `advance()` represents one elapsed second.
+struct WatchCaptureCountdown {
+    private(set) var remaining: Int
+
+    init(seconds: Int) {
+        remaining = max(0, seconds)
+    }
+
+    /// True once the countdown has reached zero (or was created at zero).
+    var isFinished: Bool { remaining <= 0 }
+
+    /// The outcome of advancing the countdown by one second.
+    enum Step: Equatable {
+        /// Still counting; `Int` is the seconds remaining (always > 0).
+        case tick(Int)
+        /// Countdown reached zero — the capture should fire now.
+        case fire
+    }
+
+    /// Advances by one second and reports what should happen.
+    mutating func advance() -> Step {
+        guard remaining > 0 else { return .fire }
+        remaining -= 1
+        return remaining > 0 ? .tick(remaining) : .fire
+    }
+}
+
 public class WatchRemoteCameraController: UIViewController {
 
     // MARK: - Actor References
@@ -48,12 +79,14 @@ public class WatchRemoteCameraController: UIViewController {
     public override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         if isBeingDismissed || isMovingFromParent {
+            cancelCountdown()
             unbindFromWatchManager()
             remoteCamSession ! UICmd.UnbecomeWatchCamera()
         }
     }
 
     deinit {
+        countdownTimer?.invalidate()
         unbindFromWatchManager()
         stopActorIfCurrent(ref: remoteCamSession, instanceId: remoteCamSessionInstanceId)
         stopActorIfCurrent(ref: frameSender, instanceId: frameSenderInstanceId)
@@ -214,11 +247,40 @@ public class WatchRemoteCameraController: UIViewController {
     private var countdownTimer: Timer?
 
     private func startTimerThenExecute(seconds: Int, action: @escaping () -> Void) {
-        // Send countdown ticks to camera for chime/display
-        let session = remoteCamSession!
-        session ! RemoteCmd.TimerCountdown(value: seconds)
+        // `handleWatchCommand` runs on the WCSession delegate's background queue, which
+        // has no active run loop — a Timer scheduled there would never fire. Hop to the
+        // main run loop so the countdown (and therefore the capture) actually happens.
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let session = self.remoteCamSession else { return }
 
-        // Push countdown state to Watch
+            // Initial tick — drives the on-screen chime/countdown on the camera and Watch.
+            session ! RemoteCmd.TimerCountdown(value: seconds)
+            self.pushCountdownState(seconds: seconds)
+
+            var countdown = WatchCaptureCountdown(seconds: seconds)
+            self.countdownTimer?.invalidate()
+            self.countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+                switch countdown.advance() {
+                case .tick(let remaining):
+                    session ! RemoteCmd.TimerCountdown(value: remaining)
+                case .fire:
+                    timer.invalidate()
+                    self?.countdownTimer = nil
+                    session ! RemoteCmd.TimerCountdown(value: 0)
+                    action()
+                }
+            }
+        }
+    }
+
+    /// Cancels any in-flight timer countdown so a pending capture can't fire after the
+    /// user leaves the Watch Remote screen.
+    private func cancelCountdown() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+    }
+
+    private func pushCountdownState(seconds: Int) {
         WatchSessionManager.shared.pushCameraState(
             isReady: true,
             currentZoomFactor: Double(cameraVC.getCurrentZoomFactor()),
@@ -234,20 +296,6 @@ public class WatchRemoteCameraController: UIViewController {
             wideAngleZoomFactor: Double(cameraVC.getWideAngleZoomFactor()),
             lastEvent: "countdown:\(seconds)"
         )
-
-        var remaining = seconds
-        countdownTimer?.invalidate()
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            remaining -= 1
-            if remaining > 0 {
-                session ! RemoteCmd.TimerCountdown(value: remaining)
-            } else {
-                timer.invalidate()
-                self?.countdownTimer = nil
-                session ! RemoteCmd.TimerCountdown(value: 0)
-                action()
-            }
-        }
     }
 
     // MARK: - Watch Reachability Changed
