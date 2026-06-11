@@ -1471,7 +1471,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 217F0C5AC498A27023FF5BD0 /* Pods-RemoteShutterWatch.debug.xcconfig */;
 			buildSettings = {
-				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -1485,7 +1484,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 6.0.0;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera.watchkitapp;
 				PRODUCT_NAME = RemoteShutterWatch;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1567,7 +1566,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 3B3FB0EA0E2B04051EF232D6 /* Pods-RemoteShutterWatch.release.xcconfig */;
 			buildSettings = {
-				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -1581,7 +1579,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 6.0.0;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera.watchkitapp;
 				PRODUCT_NAME = RemoteShutterWatch;
 				PROVISIONING_PROFILE_SPECIFIER = "";
