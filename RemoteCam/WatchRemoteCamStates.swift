@@ -152,9 +152,14 @@ extension RemoteCamSession {
 
             case let t as UICmd.OnPicture:
                 // Capture completed after watchRemoteCameraTakingPic gave up —
-                // correct the earlier error with the truthful outcome.
+                // save it anyway and correct the earlier error with the truth.
                 debugLog("Watch Remote: late OnPicture (error: \(String(describing: t.error)))")
-                self.pushWatchState(ctrl: ctrl, event: t.error == nil ? "photoTaken" : "photoError")
+                if let imageData = t.pic, t.error == nil {
+                    self.photoLibrarySaver(imageData)
+                    self.pushWatchState(ctrl: ctrl, event: "photoTaken")
+                } else {
+                    self.pushWatchState(ctrl: ctrl, event: "photoError")
+                }
 
             case is RemoteCmd.StartRecordingVideoAck,
                  is RemoteCmd.StopRecordingVideoResp:
@@ -231,12 +236,13 @@ extension RemoteCamSession {
                 break
 
             case let t as UICmd.OnPicture:
-                if t.error != nil {
-                    debugLog("Watch Remote: Photo capture error: \(t.error!)")
-                    self.pushWatchState(ctrl: ctrl, event: "photoError")
-                } else {
-                    debugLog("Watch Remote: Photo captured successfully")
+                if let imageData = t.pic, t.error == nil {
+                    debugLog("Watch Remote: Photo captured, saving to library")
+                    self.photoLibrarySaver(imageData)
                     self.pushWatchState(ctrl: ctrl, event: "photoTaken")
+                } else {
+                    debugLog("Watch Remote: Photo capture error: \(String(describing: t.error))")
+                    self.pushWatchState(ctrl: ctrl, event: "photoError")
                 }
                 self.unbecome()
 

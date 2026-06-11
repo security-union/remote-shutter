@@ -90,6 +90,7 @@ class WatchRemoteCamStateTests: XCTestCase {
     private var session: TestableRemoteCamSession!
     private var ctrl: FakeWatchCameraController!
     private var pusher: FakeWatchStatePusher!
+    private var savedPhotos: [Data] = []
 
     override func setUp() {
         super.setUp()
@@ -104,6 +105,8 @@ class WatchRemoteCamStateTests: XCTestCase {
         ctrl = FakeWatchCameraController()
         pusher = FakeWatchStatePusher()
         session.watchStatePusher = pusher
+        savedPhotos = []
+        session.photoLibrarySaver = { [weak self] data in self?.savedPhotos.append(data) }
 
         waitForMailbox(session, test: self)
     }
@@ -170,22 +173,26 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertEqual(ctrl.takePictureCalls, [false], "watch capture must never send media to a peer")
     }
 
-    func testOnPictureSuccessReturnsToCameraWithPhotoTakenEvent() {
+    func testOnPictureSuccessSavesPhotoAndPushesPhotoTaken() {
         enterTakingPic()
-        ref ! UICmd.OnPicture(sender: nil, pic: Data())
+        let photoBytes = Data([0xCA, 0xFE])
+        ref ! UICmd.OnPicture(sender: nil, pic: photoBytes)
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, "photoTaken")
+        XCTAssertEqual(savedPhotos, [photoBytes],
+                       "the captured photo must be written to the photo library")
     }
 
-    func testOnPictureErrorReturnsToCameraWithPhotoErrorEvent() {
+    func testOnPictureErrorDoesNotSaveAndPushesPhotoError() {
         enterTakingPic()
         ref ! UICmd.OnPicture(sender: nil, error: NSError(domain: "capture", code: 1))
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, "photoError")
+        XCTAssertTrue(savedPhotos.isEmpty)
     }
 
     func testTakingPicTimeoutUnbecomesWithPhotoError() {
@@ -237,13 +244,15 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertEqual(ctrl.startRecordingCalls, 0)
     }
 
-    func testLateOnPictureInIdleStatePushesTruthfulEvent() {
+    func testLateOnPictureInIdleStateSavesAndPushesTruthfulEvent() {
         enterWatchCamera()
-        ref ! UICmd.OnPicture(sender: nil, pic: Data())
+        let photoBytes = Data([0xBE, 0xEF])
+        ref ! UICmd.OnPicture(sender: nil, pic: photoBytes)
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, "photoTaken")
+        XCTAssertEqual(savedPhotos, [photoBytes], "a late capture must still be saved")
     }
 
     // MARK: - Video recording

@@ -51,6 +51,12 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
     /// Watch state pushes go through this seam so tests can record them.
     var watchStatePusher: WatchStatePushing = WatchSessionManager.shared
 
+    /// Photo-library write seam — tests record the data instead of hitting
+    /// PHPhotoLibrary. Production routes to `savePicture` (CamStates.swift).
+    lazy var photoLibrarySaver: (Data) -> Void = { [weak self] data in
+        self?.savePicture(data)
+    }
+
     var multipeerService: (any MultipeerServiceProtocol)!
 
     var session: MCSession! { multipeerService?.session }
