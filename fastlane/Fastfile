@@ -69,15 +69,23 @@ platform :ios do
     setup_ci
     # Register the watch app's App ID on the developer portal if it doesn't
     # exist yet (idempotent). No App Store Connect record is needed — the watch
-    # app ships embedded in the iOS app.
-    produce(
-      # produce doesn't read the API key from lane context like match/deliver
-      # do — without this it falls back to Apple ID password auth and dies in CI.
-      api_key: lane_context[SharedValues::APP_STORE_CONNECT_API_KEY],
-      app_identifier: "com.blackfireapps.remotecamera.watchkitapp",
-      app_name: "Remote Shutter Watch",
-      skip_itc: true
+    # app ships embedded in the iOS app. Done via Spaceship directly because
+    # `produce` only supports Apple ID password auth, which can't run in CI.
+    watch_bundle_id = "com.blackfireapps.remotecamera.watchkitapp"
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
+      **lane_context[SharedValues::APP_STORE_CONNECT_API_KEY]
     )
+    watch_app_id_exists = Spaceship::ConnectAPI::BundleId
+      .all(filter: { identifier: watch_bundle_id })
+      .any? { |b| b.identifier == watch_bundle_id }
+    unless watch_app_id_exists
+      UI.message("Registering App ID #{watch_bundle_id}")
+      Spaceship::ConnectAPI::BundleId.create(
+        name: "Remote Shutter Watch",
+        identifier: watch_bundle_id,
+        platform: "IOS"
+      )
+    end
     # readonly: false so the watch app's appstore profile is generated on first
     # run if the match repo doesn't have it yet (the App ID must already exist).
     match(
