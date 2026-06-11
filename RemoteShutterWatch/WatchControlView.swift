@@ -43,10 +43,7 @@ struct WatchControlView: View {
                 value: Binding(
                     get: { viewModel.crownZoomValue },
                     set: { newValue in
-                        viewModel.crownZoomValue = newValue
-                        if viewModel.shouldSendZoom() {
-                            session.setZoom(newValue)
-                        }
+                        viewModel.zoomChanged(newValue) { session.setZoom($0) }
                     }
                 ),
                 in: viewModel.minZoomFactor...max(viewModel.minZoomFactor + 0.1, viewModel.clampedMaxZoom)
@@ -176,10 +173,7 @@ struct WatchControlView: View {
         )
         .onChange(of: viewModel.crownRawValue) {
             let zoom = viewModel.zoomFromCrown(viewModel.crownRawValue)
-            viewModel.crownZoomValue = zoom
-            if viewModel.shouldSendZoom() {
-                session.setZoom(zoom)
-            }
+            viewModel.zoomChanged(zoom) { session.setZoom($0) }
         }
         // Event confirmation overlay
         .overlay {
@@ -246,31 +240,42 @@ struct WatchControlView: View {
     }
 
     private func iconForEvent(_ event: String) -> String {
+        if event.hasPrefix("countdown:") { return "timer" }
         switch event {
         case "photoTaken": return "checkmark.circle.fill"
         case "recordingStarted": return "record.circle"
         case "recordingStopped": return "stop.circle.fill"
-        case "photoError": return "xmark.circle.fill"
+        case "photoError", "recordingFailed", "sendFailed": return "xmark.circle.fill"
         case "microphoneDenied": return "mic.slash.fill"
+        case "busy", "busyRecording": return "hourglass"
         default: return "info.circle"
         }
     }
 
     private func colorForEvent(_ event: String) -> Color {
+        if event.hasPrefix("countdown:") { return .orange }
         switch event {
-        case "photoError", "microphoneDenied": return .red
+        case "photoError", "microphoneDenied", "recordingFailed", "sendFailed": return .red
         case "recordingStarted": return .red
+        case "busy", "busyRecording": return .orange
         default: return .green
         }
     }
 
     private func textForEvent(_ event: String) -> String {
+        if let seconds = event.split(separator: ":").last, event.hasPrefix("countdown:") {
+            return "\(seconds)s"
+        }
         switch event {
         case "photoTaken": return "Photo Saved"
         case "recordingStarted": return "Recording"
         case "recordingStopped": return "Video Saved"
         case "photoError": return "Photo Failed"
+        case "recordingFailed": return "Recording Failed"
+        case "sendFailed": return "Not Delivered"
         case "microphoneDenied": return "Mic Denied"
+        case "busy": return "Busy"
+        case "busyRecording": return "Recording…"
         default: return event
         }
     }

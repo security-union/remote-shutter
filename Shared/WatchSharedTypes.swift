@@ -48,46 +48,60 @@ struct WatchCommandEncoder {
     }
 }
 
+// MARK: - Camera State Snapshot
+
+/// Plain-value snapshot of everything the Watch UI needs to render.
+/// Built on the iPhone, FlatBuffer-encoded by `WatchStateEncoder`, decoded
+/// back into the same type on the Watch.
+struct WatchCameraStateSnapshot {
+    var isReady: Bool = true
+    var currentZoomFactor: Double = 1.0
+    var minZoomFactor: Double = 1.0
+    var maxZoomFactor: Double = 10.0
+    var isRecording: Bool = false
+    var currentMode: RemoteShutter_RecordingModeEnum = .photo
+    var currentLensType: RemoteShutter_CameraLensType = .wideangle
+    var availableLensTypes: [RemoteShutter_CameraLensType] = [.wideangle]
+    var isFlashEnabled: Bool = false
+    var isTorchEnabled: Bool = false
+    var zoomStops: [Double] = [1.0]
+    var wideAngleZoomFactor: Double = 1.0
+    var lastEvent: String?
+    /// Milliseconds since epoch, stamped at push time. Orders live messages
+    /// against (possibly stale) applicationContext deliveries.
+    var stateEpochMs: UInt64 = 0
+    /// Tri-state flash truth; `isFlashEnabled` is kept as the simple bool.
+    var flashMode: RemoteShutter_FlashMode = .off
+}
+
 // MARK: - iPhone -> Watch State Encoding
 
 struct WatchStateEncoder {
 
-    static func encode(
-        isReady: Bool,
-        currentZoomFactor: Double,
-        minZoomFactor: Double,
-        maxZoomFactor: Double,
-        isRecording: Bool,
-        currentMode: RemoteShutter_RecordingModeEnum,
-        currentLensType: RemoteShutter_CameraLensType,
-        availableLensTypes: [RemoteShutter_CameraLensType],
-        isFlashEnabled: Bool,
-        isTorchEnabled: Bool,
-        zoomStops: [Double],
-        wideAngleZoomFactor: Double,
-        lastEvent: String? = nil
-    ) -> Data {
+    static func encode(_ snapshot: WatchCameraStateSnapshot) -> Data {
         var fbb = FlatBufferBuilder()
 
-        let lensVec = fbb.createVector(availableLensTypes.map { $0.rawValue })
-        let stopsVec = fbb.createVector(zoomStops)
-        let eventOffset: Offset = lastEvent.map { fbb.create(string: $0) } ?? Offset()
+        let lensVec = fbb.createVector(snapshot.availableLensTypes.map { $0.rawValue })
+        let stopsVec = fbb.createVector(snapshot.zoomStops)
+        let eventOffset: Offset = snapshot.lastEvent.map { fbb.create(string: $0) } ?? Offset()
 
         let state = RemoteShutter_WatchCameraState.createWatchCameraState(
             &fbb,
-            isReady: isReady,
-            currentZoomFactor: currentZoomFactor,
-            minZoomFactor: minZoomFactor,
-            maxZoomFactor: maxZoomFactor,
-            isRecording: isRecording,
-            currentMode: currentMode,
-            currentLensType: currentLensType,
+            isReady: snapshot.isReady,
+            currentZoomFactor: snapshot.currentZoomFactor,
+            minZoomFactor: snapshot.minZoomFactor,
+            maxZoomFactor: snapshot.maxZoomFactor,
+            isRecording: snapshot.isRecording,
+            currentMode: snapshot.currentMode,
+            currentLensType: snapshot.currentLensType,
             availableLensTypesVectorOffset: lensVec,
-            isFlashEnabled: isFlashEnabled,
-            isTorchEnabled: isTorchEnabled,
+            isFlashEnabled: snapshot.isFlashEnabled,
+            isTorchEnabled: snapshot.isTorchEnabled,
             zoomStopsVectorOffset: stopsVec,
-            wideAngleZoomFactor: wideAngleZoomFactor,
-            lastEventOffset: eventOffset
+            wideAngleZoomFactor: snapshot.wideAngleZoomFactor,
+            lastEventOffset: eventOffset,
+            stateEpochMs: snapshot.stateEpochMs,
+            flashMode: snapshot.flashMode
         )
         let msg = RemoteShutter_WatchMessage.createWatchMessage(
             &fbb,
@@ -98,23 +112,7 @@ struct WatchStateEncoder {
         return fbb.data
     }
 
-    struct DecodedState {
-        let isReady: Bool
-        let currentZoomFactor: Double
-        let minZoomFactor: Double
-        let maxZoomFactor: Double
-        let isRecording: Bool
-        let currentMode: RemoteShutter_RecordingModeEnum
-        let currentLensType: RemoteShutter_CameraLensType
-        let availableLensTypes: [RemoteShutter_CameraLensType]
-        let isFlashEnabled: Bool
-        let isTorchEnabled: Bool
-        let zoomStops: [Double]
-        let wideAngleZoomFactor: Double
-        let lastEvent: String?
-    }
-
-    static func decode(_ data: Data) -> DecodedState? {
+    static func decode(_ data: Data) -> WatchCameraStateSnapshot? {
         let bytes = [UInt8](data)
         var buffer = ByteBuffer(bytes: bytes)
         guard let msg: RemoteShutter_WatchMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
@@ -134,7 +132,7 @@ struct WatchStateEncoder {
             stops.append(state.zoomStops(at: i))
         }
 
-        return DecodedState(
+        return WatchCameraStateSnapshot(
             isReady: state.isReady,
             currentZoomFactor: state.currentZoomFactor,
             minZoomFactor: state.minZoomFactor,
@@ -147,8 +145,128 @@ struct WatchStateEncoder {
             isTorchEnabled: state.isTorchEnabled,
             zoomStops: stops,
             wideAngleZoomFactor: state.wideAngleZoomFactor,
-            lastEvent: state.lastEvent
+            lastEvent: state.lastEvent,
+            stateEpochMs: state.stateEpochMs,
+            flashMode: state.flashMode
         )
+    }
+}
+
+// MARK: - Command Acknowledgment (iPhone -> Watch reply)
+
+/// Transport-level ack: the iPhone decoded the command and dispatched it to the
+/// camera state machine (or explains why it couldn't). Capture *completion*
+/// still arrives separately as a state push event.
+struct WatchAckEncoder {
+
+    static func encode(status: RemoteShutter_WatchAckStatus,
+                       action: RemoteShutter_WatchCommandAction = .unknown,
+                       detail: String? = nil) -> Data {
+        var fbb = FlatBufferBuilder()
+        let detailOffset: Offset = detail.map { fbb.create(string: $0) } ?? Offset()
+        let ack = RemoteShutter_WatchCommandAck.createWatchCommandAck(
+            &fbb,
+            status: status,
+            action: action,
+            detailOffset: detailOffset
+        )
+        let msg = RemoteShutter_WatchMessage.createWatchMessage(
+            &fbb,
+            type: .watchcommandackmsg,
+            ackOffset: ack
+        )
+        fbb.finish(offset: msg)
+        return fbb.data
+    }
+
+    static func decode(_ data: Data) -> (status: RemoteShutter_WatchAckStatus,
+                                         action: RemoteShutter_WatchCommandAction,
+                                         detail: String?)? {
+        let bytes = [UInt8](data)
+        var buffer = ByteBuffer(bytes: bytes)
+        guard let msg: RemoteShutter_WatchMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
+            return nil
+        }
+        guard msg.type == .watchcommandackmsg, let ack = msg.ack else { return nil }
+        return (ack.status, ack.action, ack.detail)
+    }
+}
+
+// MARK: - Zoom Send Throttle
+
+/// Leading + trailing-edge throttle for crown zoom commands. The leading edge
+/// keeps zoom responsive; the trailing edge guarantees the *final* crown
+/// position is always sent (a plain rate-limit silently dropped it).
+struct ZoomSendThrottle {
+    let interval: TimeInterval
+    private var lastSendTime: Date = .distantPast
+    private var pendingValue: Double?
+
+    init(interval: TimeInterval = 0.05) {
+        self.interval = interval
+    }
+
+    enum Decision: Equatable {
+        /// Send this value immediately.
+        case sendNow
+        /// Hold; arm (or refresh) a trailing timer that flushes via `fireTrailing`.
+        case scheduleTrailing
+    }
+
+    mutating func update(value: Double, now: Date) -> Decision {
+        if now.timeIntervalSince(lastSendTime) >= interval {
+            lastSendTime = now
+            pendingValue = nil
+            return .sendNow
+        }
+        pendingValue = value
+        return .scheduleTrailing
+    }
+
+    /// Called when the trailing timer fires. Returns the value to send, or nil
+    /// if nothing is pending (it was already flushed or superseded).
+    mutating func fireTrailing(now: Date) -> Double? {
+        guard let value = pendingValue else { return nil }
+        pendingValue = nil
+        lastSendTime = now
+        return value
+    }
+}
+
+// MARK: - Application Context Keys
+
+enum WatchContextKeys {
+    static let state = "state"
+    static let epoch = "epoch"
+}
+
+// MARK: - Watch UI Connection Phase
+
+/// What the Watch UI should show, derived from connectivity + camera state.
+/// Pure so it can be unit-tested from the iPhone test target.
+enum WatchConnectionPhase: Equatable {
+    /// WCSession hasn't activated — prompt to open the iPhone app.
+    case inactive
+    /// Waiting on reachability or the first state push.
+    case connecting
+    /// iPhone is reachable but its app isn't on the Watch Remote screen.
+    case phoneNotInWatchMode
+    /// iPhone is in Watch Remote mode but can't capture right now (locked/backgrounded).
+    case phoneNotReady
+    /// Camera is live — show the controls.
+    case ready
+
+    static func derive(isSessionActive: Bool,
+                       isPhoneReachable: Bool,
+                       isReady: Bool,
+                       phoneNotInWatchMode: Bool,
+                       phoneNotReadyReason: String?) -> WatchConnectionPhase {
+        guard isSessionActive else { return .inactive }
+        guard isPhoneReachable else { return .connecting }
+        if isReady { return .ready }
+        if phoneNotReadyReason != nil { return .phoneNotReady }
+        if phoneNotInWatchMode { return .phoneNotInWatchMode }
+        return .connecting
     }
 }
 

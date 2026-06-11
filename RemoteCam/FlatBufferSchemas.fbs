@@ -256,16 +256,40 @@ table WatchCameraState {
     zoom_stops: [double];
     wide_angle_zoom_factor: double;
     last_event: string;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    state_epoch_ms: uint64;          // ordering between live messages and applicationContext
+    flash_mode: FlashMode;           // tri-state truth; is_flash_enabled kept for compatibility
 }
 
+// Transport-level acknowledgment for a Watch command: confirms the iPhone
+// decoded the command and dispatched it to the camera state machine.
+// Capture *completion* still arrives separately as a state push event.
+enum WatchAckStatus : byte {
+    Unknown = 0,
+    Ok = 1,
+    NotInWatchMode = 2,
+    Busy = 3,
+    Failed = 4
+}
+
+table WatchCommandAck {
+    status: WatchAckStatus;
+    action: WatchCommandAction;      // echo of the command being acked
+    detail: string;
+}
+
+// Renumbered pre-release so Unknown = 0 (project convention for all enums).
 enum WatchMessageType : byte {
-    WatchCommandMsg = 0,
-    WatchStateMsg = 1
+    Unknown = 0,
+    WatchCommandMsg = 1,
+    WatchStateMsg = 2,
+    WatchCommandAckMsg = 3
 }
 
 table WatchMessage {
     type: WatchMessageType;
     command: WatchCommand;
     state: WatchCameraState;
+    ack: WatchCommandAck;
 }
 

@@ -40,8 +40,9 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            // Show controls if we have state OR if the phone is reachable
-            if viewModel.isConnected || viewModel.isPhoneReachable {
+            // Controls only when the camera is actually live — a reachable phone
+            // whose app isn't in Watch Remote mode must not show dead buttons.
+            if viewModel.phase == .ready {
                 WatchControlView()
             } else {
                 WatchConnectionView()

@@ -17,9 +17,26 @@ class WatchCameraViewModel: ObservableObject {
 
     @Published var isSessionActive = false
     @Published var isPhoneReachable = false
+    /// Set when the phone acks NotInWatchMode or pushes a disconnected state.
+    @Published var phoneNotInWatchMode = false
+    /// Set when the phone reports it can't capture (e.g. "phoneBackgrounded").
+    @Published var phoneNotReadyReason: String?
 
     var isConnected: Bool {
         isSessionActive && isPhoneReachable && isReady
+    }
+
+    /// What the UI should show. Controls only render in `.ready` — a merely
+    /// reachable phone whose app isn't in Watch Remote mode must not present
+    /// dead buttons.
+    var phase: WatchConnectionPhase {
+        WatchConnectionPhase.derive(
+            isSessionActive: isSessionActive,
+            isPhoneReachable: isPhoneReachable,
+            isReady: isReady,
+            phoneNotInWatchMode: phoneNotInWatchMode,
+            phoneNotReadyReason: phoneNotReadyReason
+        )
     }
 
     // MARK: - Camera State
@@ -55,9 +72,11 @@ class WatchCameraViewModel: ObservableObject {
     @Published var crownZoomValue: Double = 1.0
     /// Raw 0-1 value from the Digital Crown, mapped to zoom via zoomFromCrown()
     @Published var crownRawValue: Double = 0.0
-    private var lastZoomSendTime: Date = .distantPast
     /// When the user last turned the crown — suppresses incoming state overwriting the crown
     private var lastCrownInteraction: Date = .distantPast
+
+    private var zoomThrottle = ZoomSendThrottle()
+    private var trailingZoomTimer: Timer?
 
     /// Max display zoom relative to wide angle (e.g. 5x = 5 times the wide angle factor)
     private let maxDisplayZoomMultiplier: Double = 5.0
@@ -67,15 +86,22 @@ class WatchCameraViewModel: ObservableObject {
         min(maxZoomFactor, wideAngleZoomFactor * maxDisplayZoomMultiplier)
     }
 
-    /// Returns true if enough time has passed to send another zoom command
-    func shouldSendZoom() -> Bool {
-        let now = Date()
-        lastCrownInteraction = now
-        if now.timeIntervalSince(lastZoomSendTime) >= 0.05 {
-            lastZoomSendTime = now
-            return true
+    /// Single entry point for user-driven zoom: throttled to 20Hz with a
+    /// trailing-edge flush so the final crown position is always delivered.
+    func zoomChanged(_ zoom: Double, send: @escaping (Double) -> Void) {
+        lastCrownInteraction = Date()
+        crownZoomValue = zoom
+
+        switch zoomThrottle.update(value: zoom, now: Date()) {
+        case .sendNow:
+            send(zoom)
+        case .scheduleTrailing:
+            trailingZoomTimer?.invalidate()
+            trailingZoomTimer = Timer.scheduledTimer(withTimeInterval: zoomThrottle.interval, repeats: false) { [weak self] _ in
+                guard let self, let value = self.zoomThrottle.fireTrailing(now: Date()) else { return }
+                send(value)
+            }
         }
-        return false
     }
 
     /// True if the user is actively turning the crown (suppress incoming state sync)
@@ -117,7 +143,27 @@ class WatchCameraViewModel: ObservableObject {
 
     // MARK: - Update from FlatBuffer-decoded State
 
-    func update(from state: WatchStateEncoder.DecodedState) {
+    /// Epoch of the newest state applied — rejects stale applicationContext
+    /// deliveries (and duplicate live/context pairs) out of order.
+    private var lastStateEpochMs: UInt64 = 0
+
+    func update(from state: WatchCameraStateSnapshot) {
+        if state.stateEpochMs != 0 && lastStateEpochMs != 0 && state.stateEpochMs <= lastStateEpochMs {
+            return
+        }
+        lastStateEpochMs = max(lastStateEpochMs, state.stateEpochMs)
+
+        if state.isReady {
+            phoneNotInWatchMode = false
+            phoneNotReadyReason = nil
+        } else if state.lastEvent == "phoneBackgrounded" {
+            phoneNotReadyReason = state.lastEvent
+        } else {
+            // Disconnected push: the phone left Watch Remote mode.
+            phoneNotInWatchMode = true
+            phoneNotReadyReason = nil
+        }
+
         isReady = state.isReady
         currentZoomFactor = state.currentZoomFactor
         minZoomFactor = state.minZoomFactor
@@ -148,6 +194,24 @@ class WatchCameraViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Local Events (not from a state push)
+
+    /// A command failed to reach the phone (or the phone refused it) — make the
+    /// failure tangible instead of silently doing nothing.
+    func noteSendFailure() {
+        lastEvent = "sendFailed"
+        showEventConfirmation = true
+        WKInterfaceDevice.current().play(.failure)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.showEventConfirmation = false
+        }
+    }
+
+    func notePhoneNotInWatchMode() {
+        phoneNotInWatchMode = true
+        WKInterfaceDevice.current().play(.failure)
+    }
+
     // MARK: - Haptic Feedback
 
     private func playHaptic(for event: String) {
@@ -159,8 +223,10 @@ class WatchCameraViewModel: ObservableObject {
             type = .start
         case "recordingStopped":
             type = .stop
-        case "photoError", "microphoneDenied":
+        case "photoError", "microphoneDenied", "recordingFailed":
             type = .failure
+        case "busy", "busyRecording":
+            type = .retry
         default:
             type = .notification
         }

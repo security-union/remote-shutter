@@ -146,7 +146,7 @@ public class WatchRemoteCameraController: UIViewController {
     private func updateWatchStatusLabel() {
         let isReachable = WatchSessionManager.shared.isWatchReachable
         if isReachable {
-            statusLabel.text = "  \u{2328}\u{FE0F}  " + NSLocalizedString("Watch Connected", comment: "") + "  "
+            statusLabel.text = "  \u{231A}  " + NSLocalizedString("Watch Connected", comment: "") + "  "
             statusLabel.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.4)
         } else {
             statusLabel.text = "  \u{231A}  " + NSLocalizedString("Open Watch App", comment: "") + "  "
@@ -255,7 +255,6 @@ public class WatchRemoteCameraController: UIViewController {
 
             // Initial tick — drives the on-screen chime/countdown on the camera and Watch.
             session ! RemoteCmd.TimerCountdown(value: seconds)
-            self.pushCountdownState(seconds: seconds)
 
             var countdown = WatchCaptureCountdown(seconds: seconds)
             self.countdownTimer?.invalidate()
@@ -280,24 +279,6 @@ public class WatchRemoteCameraController: UIViewController {
         countdownTimer = nil
     }
 
-    private func pushCountdownState(seconds: Int) {
-        WatchSessionManager.shared.pushCameraState(
-            isReady: true,
-            currentZoomFactor: Double(cameraVC.getCurrentZoomFactor()),
-            minZoomFactor: Double(cameraVC.getMinZoomFactor()),
-            maxZoomFactor: Double(cameraVC.getMaxZoomFactor()),
-            isRecording: cameraVC.isRecording,
-            currentMode: cameraVC.currentCameraMode == .Video ? .video : .photo,
-            currentLensType: RemoteShutter_CameraLensType(rawValue: Int8(cameraVC.getCurrentLensType().rawValue)) ?? .wideangle,
-            availableLensTypes: cameraVC.getAvailableLensTypes().compactMap { RemoteShutter_CameraLensType(rawValue: Int8($0.rawValue)) },
-            isFlashEnabled: false,
-            isTorchEnabled: cameraVC.videoDeviceInput?.device.isTorchActive ?? false,
-            zoomStops: cameraVC.getZoomStops().map { Double($0) },
-            wideAngleZoomFactor: Double(cameraVC.getWideAngleZoomFactor()),
-            lastEvent: "countdown:\(seconds)"
-        )
-    }
-
     // MARK: - Watch Reachability Changed
 
     func watchReachabilityChanged() {
@@ -308,9 +289,10 @@ public class WatchRemoteCameraController: UIViewController {
 
     // MARK: - Push Current Camera State to Watch
 
+    /// Asks the state machine to gather capabilities and push fresh state to
+    /// the Watch (the push happens inside the actor's current state handler).
     func pushCurrentState() {
-        guard let ctrl = cameraVC else { return }
-        let session = remoteCamSession!
+        guard cameraVC != nil, let session = remoteCamSession else { return }
         session ! RemoteCmd.RequestCameraCapabilities()
     }
 }

@@ -4,7 +4,10 @@ struct RolePickerView: View {
     let onCamera: () -> Void
     let onRemote: () -> Void
     let onWatchRemote: (() -> Void)?
-    let isWatchPaired: Bool
+
+    /// Live pairing state — WCSession activation completes asynchronously, so
+    /// observing keeps the Watch Remote button from being missing on cold launch.
+    @ObservedObject private var watchManager = WatchSessionManager.shared
 
     @State private var appeared = false
 
@@ -39,7 +42,7 @@ struct RolePickerView: View {
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 20)
 
-                if isWatchPaired, let onWatchRemote = onWatchRemote {
+                if watchManager.watchPaired, let onWatchRemote = onWatchRemote {
                     Button(action: onWatchRemote) {
                         glassPanel(
                             icon: "applewatch",
@@ -124,8 +127,7 @@ struct RolePickerView_Previews: PreviewProvider {
             RolePickerView(
                 onCamera: {},
                 onRemote: {},
-                onWatchRemote: {},
-                isWatchPaired: true
+                onWatchRemote: {}
             )
             .navigationTitle(NSLocalizedString("Pick a role", comment: ""))
             .navigationBarTitleDisplayMode(.large)

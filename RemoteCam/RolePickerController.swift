@@ -60,8 +60,7 @@ public class RolePickerController: UIViewController {
             },
             onWatchRemote: { [weak self] in
                 self?.becomeWatchRemote()
-            },
-            isWatchPaired: WatchSessionManager.shared.isWatchPaired
+            }
         )
 
         let hostingController = UIHostingController(rootView: rolePickerView)

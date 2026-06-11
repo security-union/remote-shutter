@@ -3,7 +3,11 @@
 //  RemoteShutterWatch
 //
 //  Watch-side WCSession delegate.
-//  Sends FlatBuffer-encoded commands to iPhone via sendMessageData.
+//  Sends FlatBuffer-encoded commands to iPhone via sendMessageData with
+//  per-command acks; receives state via live messages and applicationContext.
+//
+//  Threading: all mutable state (retry bookkeeping) is confined to the main
+//  queue — WCSession delegate callbacks hop there before touching it.
 //
 
 import Foundation
@@ -14,8 +18,12 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
 
     private let viewModel: WatchCameraViewModel
     private var wcSession: WCSession?
+
+    // Main-queue confined.
     private var retryCount = 0
     private let maxRetries = 10
+    /// Armed after a requestState is acked Ok; fires if no state arrives.
+    private var stateArrivalCheck: DispatchWorkItem?
 
     init(viewModel: WatchCameraViewModel) {
         self.viewModel = viewModel
@@ -35,30 +43,44 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
         let reachable = session.isReachable
-        print("WatchSession: activation state=\(activationState.rawValue) reachable=\(reachable) error=\(error?.localizedDescription ?? "none")")
+        print("WatchSession: activation state=\(activationState.rawValue) reachable=\(reachable) "
+            + "error=\(error?.localizedDescription ?? "none")")
+
+        // Catch up on the last state the phone mirrored while we were away.
+        let storedContext = session.receivedApplicationContext
+
         DispatchQueue.main.async { [weak self] in
-            self?.viewModel.isSessionActive = activationState == .activated
-            self?.viewModel.isPhoneReachable = reachable
-        }
-        if activationState == .activated && reachable {
-            retryRequestState()
+            guard let self else { return }
+            self.viewModel.isSessionActive = activationState == .activated
+            self.viewModel.isPhoneReachable = reachable
+            if let stateData = storedContext[WatchContextKeys.state] as? Data,
+               let state = WatchStateEncoder.decode(stateData) {
+                self.viewModel.update(from: state)
+            }
+            if activationState == .activated && reachable {
+                self.retryCount = 0
+                self.retryRequestState()
+            }
         }
     }
 
     func sessionReachabilityDidChange(_ session: WCSession) {
-        print("WatchSession: reachability changed to \(session.isReachable)")
+        let reachable = session.isReachable
+        print("WatchSession: reachability changed to \(reachable)")
         DispatchQueue.main.async { [weak self] in
-            self?.viewModel.isPhoneReachable = session.isReachable
-        }
-        if session.isReachable {
-            retryCount = 0
-            retryRequestState()
+            guard let self else { return }
+            self.viewModel.isPhoneReachable = reachable
+            if reachable {
+                self.retryCount = 0
+                self.retryRequestState()
+            }
         }
     }
 
-    // MARK: - Retry Logic
+    // MARK: - Retry Logic (main-queue confined)
 
     private func retryRequestState() {
+        dispatchPrecondition(condition: .onQueue(.main))
         guard retryCount < maxRetries else { return }
         guard let session = wcSession, session.isReachable else { return }
 
@@ -67,7 +89,9 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
         print("WatchSession: requestState attempt \(attempt + 1)")
 
         let data = WatchCommandEncoder.encode(action: .requeststate)
-        session.sendMessageData(data, replyHandler: nil, errorHandler: { [weak self] error in
+        session.sendMessageData(data, replyHandler: { [weak self] reply in
+            self?.handleAck(reply, action: .requeststate)
+        }, errorHandler: { [weak self] error in
             print("WatchSession: requestState attempt \(attempt + 1) failed: \(error.localizedDescription)")
             let delay = min(Double(attempt + 1) * 2.0, 10.0)
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
@@ -77,8 +101,23 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     func manualRetry() {
-        retryCount = 0
-        retryRequestState()
+        DispatchQueue.main.async { [weak self] in
+            self?.retryCount = 0
+            self?.viewModel.phoneNotInWatchMode = false
+            self?.retryRequestState()
+        }
+    }
+
+    /// The phone acked a state request but never pushed state — ask again.
+    private func armStateArrivalCheck() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        stateArrivalCheck?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            print("WatchSession: state never arrived after Ok ack, re-requesting")
+            self?.retryRequestState()
+        }
+        stateArrivalCheck = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0, execute: work)
     }
 
     // MARK: - Receiving State from iPhone
@@ -89,29 +128,94 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
             print("WatchSession: failed to decode camera state (\(messageData.count) bytes) — ignoring")
             return
         }
-        retryCount = 0
         DispatchQueue.main.async { [weak self] in
-            self?.viewModel.update(from: state)
+            guard let self else { return }
+            self.retryCount = 0
+            self.stateArrivalCheck?.cancel()
+            self.viewModel.update(from: state)
+        }
+    }
+
+    /// Durable state mirror — delivered even if the Watch app was unreachable
+    /// when the phone pushed. The view model's epoch check keeps an old context
+    /// from clobbering newer live state.
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        guard let stateData = applicationContext[WatchContextKeys.state] as? Data,
+              let state = WatchStateEncoder.decode(stateData) else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.stateArrivalCheck?.cancel()
+            self.viewModel.update(from: state)
+        }
+    }
+
+    // MARK: - Acks
+
+    private func handleAck(_ data: Data, action: RemoteShutter_WatchCommandAction) {
+        guard let ack = WatchAckEncoder.decode(data) else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            switch ack.status {
+            case .ok:
+                self.viewModel.phoneNotInWatchMode = false
+                if action == .requeststate {
+                    self.armStateArrivalCheck()
+                }
+            case .notinwatchmode:
+                self.viewModel.notePhoneNotInWatchMode()
+            case .busy, .failed, .unknown:
+                self.viewModel.noteSendFailure()
+            }
         }
     }
 
     // MARK: - Send Commands
 
+    /// Critical commands (shutter, toggles, lens) demand an ack so a silent drop
+    /// becomes visible feedback. Zoom stays fire-and-forget — it streams at 20Hz
+    /// and the next state push corrects any loss.
     private func sendCommand(action: RemoteShutter_WatchCommandAction,
                              zoomFactor: Double = 0,
                              lensType: RemoteShutter_CameraLensType = .wideangle,
-                             timerSeconds: Int32 = 0) {
-        guard let session = wcSession, session.isReachable else { return }
-        let data = WatchCommandEncoder.encode(action: action, zoomFactor: zoomFactor, lensType: lensType, timerSeconds: timerSeconds)
-        session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
+                             timerSeconds: Int32 = 0,
+                             critical: Bool = true) {
+        guard let session = wcSession else { return }
+        let data = WatchCommandEncoder.encode(
+            action: action, zoomFactor: zoomFactor, lensType: lensType, timerSeconds: timerSeconds)
+
+        guard critical else {
+            guard session.isReachable else { return }
+            session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
+                print("WatchSession: \(action) failed: \(error.localizedDescription)")
+            })
+            return
+        }
+
+        guard session.isReachable else {
+            // Don't swallow a shutter press — tell the user it didn't go through.
+            DispatchQueue.main.async { [weak self] in self?.viewModel.noteSendFailure() }
+            return
+        }
+
+        session.sendMessageData(data, replyHandler: { [weak self] reply in
+            self?.handleAck(reply, action: action)
+        }, errorHandler: { [weak self] error in
             print("WatchSession: \(action) failed: \(error.localizedDescription)")
+            DispatchQueue.main.async { self?.viewModel.noteSendFailure() }
         })
     }
 
-    func requestState() { retryCount = 0; retryRequestState() }
-    func setZoom(_ factor: Double) { sendCommand(action: .setzoom, zoomFactor: factor) }
+    func requestState() {
+        DispatchQueue.main.async { [weak self] in
+            self?.retryCount = 0
+            self?.retryRequestState()
+        }
+    }
+    func setZoom(_ factor: Double) { sendCommand(action: .setzoom, zoomFactor: factor, critical: false) }
     func takePicture(timerSeconds: Int = 0) { sendCommand(action: .takepicture, timerSeconds: Int32(timerSeconds)) }
-    func startRecording(timerSeconds: Int = 0) { sendCommand(action: .startrecording, timerSeconds: Int32(timerSeconds)) }
+    func startRecording(timerSeconds: Int = 0) {
+        sendCommand(action: .startrecording, timerSeconds: Int32(timerSeconds))
+    }
     func stopRecording() { sendCommand(action: .stoprecording) }
     func switchLens(_ lensType: RemoteShutter_CameraLensType) { sendCommand(action: .switchlens, lensType: lensType) }
     func toggleFlash() { sendCommand(action: .toggleflash) }

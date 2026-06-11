@@ -8,17 +8,43 @@
 //
 
 import Foundation
+import UIKit
 import WatchConnectivity
 import FlatBuffers
 
-class WatchSessionManager: NSObject, WCSessionDelegate {
+/// Seam through which `RemoteCamSession`'s watch states publish camera state,
+/// so state-machine tests can record pushes without WatchConnectivity.
+protocol WatchStatePushing: AnyObject {
+    func pushCameraState(_ snapshot: WatchCameraStateSnapshot)
+    func pushNotReady(reason: String)
+    func pushDisconnectedState()
+}
+
+class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
     static let shared = WatchSessionManager()
 
     private var wcSession: WCSession?
 
+    /// Live pairing state for SwiftUI (e.g. the role picker's Watch Remote
+    /// button). `isPaired` is only valid after async activation completes, so a
+    /// constructor-time snapshot raced it and hid the button on cold launch.
+    @Published private(set) var watchPaired = false
+
     /// The active watch remote camera controller, if in Watch Remote mode.
-    weak var cameraController: WatchRemoteCameraController?
+    /// Written on the main thread, read from the WCSession delegate queue.
+    private let controllerLock = NSLock()
+    private weak var _cameraController: WatchRemoteCameraController?
+    weak var cameraController: WatchRemoteCameraController? {
+        get {
+            controllerLock.lock(); defer { controllerLock.unlock() }
+            return _cameraController
+        }
+        set {
+            controllerLock.lock(); defer { controllerLock.unlock() }
+            _cameraController = newValue
+        }
+    }
 
     // MARK: - Activation
 
@@ -27,6 +53,26 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
         wcSession = WCSession.default
         wcSession?.delegate = self
         wcSession?.activate()
+        observeAppLifecycle()
+    }
+
+    /// While in Watch Remote mode, a backgrounded/locked iPhone can still receive
+    /// commands but its capture session is stopped — tell the Watch the truth.
+    private func observeAppLifecycle() {
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self, self.cameraController != nil else { return }
+            self.pushNotReady(reason: "phoneBackgrounded")
+        }
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            // Refresh through the live state machine so the Watch gets real state.
+            self?.cameraController?.pushCurrentState()
+        }
     }
 
     var isWatchPaired: Bool {
@@ -39,60 +85,41 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
 
     // MARK: - Push State to Watch (FlatBuffer-encoded)
 
-    func pushCameraState(
-        isReady: Bool,
-        currentZoomFactor: Double,
-        minZoomFactor: Double,
-        maxZoomFactor: Double,
-        isRecording: Bool,
-        currentMode: RemoteShutter_RecordingModeEnum,
-        currentLensType: RemoteShutter_CameraLensType,
-        availableLensTypes: [RemoteShutter_CameraLensType],
-        isFlashEnabled: Bool,
-        isTorchEnabled: Bool,
-        zoomStops: [Double],
-        wideAngleZoomFactor: Double,
-        lastEvent: String? = nil
-    ) {
-        guard let session = wcSession, session.isReachable else { return }
+    func pushCameraState(_ snapshot: WatchCameraStateSnapshot) {
+        guard let session = wcSession else { return }
 
-        let data = WatchStateEncoder.encode(
-            isReady: isReady,
-            currentZoomFactor: currentZoomFactor,
-            minZoomFactor: minZoomFactor,
-            maxZoomFactor: maxZoomFactor,
-            isRecording: isRecording,
-            currentMode: currentMode,
-            currentLensType: currentLensType,
-            availableLensTypes: availableLensTypes,
-            isFlashEnabled: isFlashEnabled,
-            isTorchEnabled: isTorchEnabled,
-            zoomStops: zoomStops,
-            wideAngleZoomFactor: wideAngleZoomFactor,
-            lastEvent: lastEvent
-        )
+        var stamped = snapshot
+        stamped.stateEpochMs = UInt64(Date().timeIntervalSince1970 * 1000)
+        let data = WatchStateEncoder.encode(stamped)
+
+        // Durable path: latest-wins state mirror that survives unreachability,
+        // so a Watch that reconnects later never resumes on stale state.
+        // The epoch keeps identical payloads from being deduplicated away.
+        try? session.updateApplicationContext([
+            WatchContextKeys.state: data,
+            WatchContextKeys.epoch: stamped.stateEpochMs
+        ])
+
+        // Live path: low-latency delivery while the Watch app is reachable.
+        guard session.isReachable else { return }
         session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
             debugLog("WatchSessionManager: Failed to push state: \(error)")
         })
     }
 
+    /// Tells the Watch the phone can't take commands right now (backgrounded,
+    /// capture interrupted, …) without tearing down the session UI entirely.
+    func pushNotReady(reason: String) {
+        var snapshot = WatchCameraStateSnapshot()
+        snapshot.isReady = false
+        snapshot.lastEvent = reason
+        pushCameraState(snapshot)
+    }
+
     func pushDisconnectedState() {
-        guard let session = wcSession, session.isReachable else { return }
-        let data = WatchStateEncoder.encode(
-            isReady: false,
-            currentZoomFactor: 1.0,
-            minZoomFactor: 1.0,
-            maxZoomFactor: 10.0,
-            isRecording: false,
-            currentMode: .photo,
-            currentLensType: .wideangle,
-            availableLensTypes: [.wideangle],
-            isFlashEnabled: false,
-            isTorchEnabled: false,
-            zoomStops: [1.0],
-            wideAngleZoomFactor: 1.0
-        )
-        session.sendMessageData(data, replyHandler: nil, errorHandler: nil)
+        var snapshot = WatchCameraStateSnapshot()
+        snapshot.isReady = false
+        pushCameraState(snapshot)
     }
 
     // MARK: - WCSessionDelegate — Activation
@@ -100,7 +127,20 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
     func session(_ session: WCSession,
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
-        print(">>> WatchSessionManager: Activation complete, state=\(activationState.rawValue), paired=\(session.isPaired), reachable=\(session.isReachable), error=\(error?.localizedDescription ?? "none")")
+        debugLog("WatchSessionManager: Activation complete, state=\(activationState.rawValue), paired=\(session.isPaired), reachable=\(session.isReachable), error=\(error?.localizedDescription ?? "none")")
+        let paired = session.isPaired
+        DispatchQueue.main.async { [weak self] in
+            self?.watchPaired = paired
+        }
+    }
+
+    /// Pairing/app-install changes (e.g. user pairs a Watch while the app is open).
+    func sessionWatchStateDidChange(_ session: WCSession) {
+        let paired = session.isPaired
+        debugLog("WatchSessionManager: watch state changed, paired=\(paired)")
+        DispatchQueue.main.async { [weak self] in
+            self?.watchPaired = paired
+        }
     }
 
     func sessionDidBecomeInactive(_ session: WCSession) {
@@ -126,27 +166,29 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
     func session(_ session: WCSession,
                  didReceiveMessageData messageData: Data,
                  replyHandler: @escaping (Data) -> Void) {
-        print(">>> WatchSessionManager: didReceiveMessageData WITH reply (\(messageData.count) bytes)")
-        handleIncomingData(messageData)
+        debugLog("WatchSessionManager: didReceiveMessageData WITH reply (\(messageData.count) bytes)")
+        // Always reply — a dropped replyHandler surfaces as a timeout error on the Watch.
+        replyHandler(handleIncomingData(messageData))
     }
 
     func session(_ session: WCSession,
                  didReceiveMessageData messageData: Data) {
-        print(">>> WatchSessionManager: didReceiveMessageData (\(messageData.count) bytes)")
-        handleIncomingData(messageData)
+        debugLog("WatchSessionManager: didReceiveMessageData (\(messageData.count) bytes)")
+        _ = handleIncomingData(messageData)
     }
 
-    private func handleIncomingData(_ messageData: Data) {
+    /// Decodes a command, dispatches it if a camera controller is active, and
+    /// returns the FlatBuffer-encoded ack describing what happened.
+    @discardableResult
+    private func handleIncomingData(_ messageData: Data) -> Data {
         guard let decoded = WatchCommandEncoder.decode(messageData) else {
-            print(">>> WatchSessionManager: Failed to decode FlatBuffer command")
-            return
+            debugLog("WatchSessionManager: Failed to decode FlatBuffer command")
+            return WatchAckEncoder.encode(status: .failed, detail: "undecodable command")
         }
 
-        print(">>> WatchSessionManager: Decoded command: \(decoded.action)")
-
         guard let controller = cameraController else {
-            print(">>> WatchSessionManager: No cameraController! Not in Watch Remote mode.")
-            return
+            debugLog("WatchSessionManager: No cameraController — not in Watch Remote mode")
+            return WatchAckEncoder.encode(status: .notinwatchmode, action: decoded.action)
         }
 
         controller.handleWatchCommand(
@@ -155,5 +197,10 @@ class WatchSessionManager: NSObject, WCSessionDelegate {
             lensType: decoded.lensType,
             timerSeconds: decoded.timerSeconds
         )
+        // Ok = decoded and dispatched to the state machine; capture completion
+        // arrives separately as a state-push event.
+        return WatchAckEncoder.encode(status: .ok, action: decoded.action)
     }
 }
+
+extension WatchSessionManager: WatchStatePushing {}

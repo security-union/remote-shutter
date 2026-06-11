@@ -7,15 +7,76 @@
 //
 
 import Foundation
+import AVFoundation
+
+// MARK: - Camera Control Seam
+
+/// Everything the watch states need from the camera screen. `CameraViewController`
+/// is the production implementation; tests substitute a fake so the state machine
+/// can be exercised without AVFoundation or a view hierarchy.
+protocol WatchCameraControlling: AnyObject {
+    var currentCameraMode: RecordingMode { get set }
+    var isRecording: Bool { get }
+    var isTorchActive: Bool { get }
+    var currentFlashMode: AVCaptureDevice.FlashMode { get }
+
+    func updateCameraStatus()
+    func takePicture(_ sendMediaToRemote: Bool)
+    func startRecordingVideo()
+    func stopRecordingVideo(_ shouldSendVideo: Bool)
+    func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)>
+    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)>
+    func toggleFlash() -> Try<AVCaptureDevice.FlashMode>
+    func toggleTorch() -> Try<AVCaptureDevice.TorchMode>
+    func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)>
+    func gatherAllCameraCapabilities()
+
+    func getCurrentZoomFactor() -> CGFloat
+    func getMinZoomFactor() -> CGFloat
+    func getMaxZoomFactor() -> CGFloat
+    func getCurrentLensType() -> CameraLensType
+    func getAvailableLensTypes() -> [CameraLensType]
+    func getZoomStops() -> [CGFloat]
+    func getWideAngleZoomFactor() -> CGFloat
+
+    /// Drives the on-phone countdown overlay/chime for Watch-initiated timer
+    /// captures. value > 0: tick; 0: fired; < 0: cancelled.
+    func updateTimerCountdown(value: Int)
+}
+
+extension CameraViewController: WatchCameraControlling {
+    var isTorchActive: Bool {
+        videoDeviceInput?.device.isTorchActive ?? false
+    }
+
+    var currentFlashMode: AVCaptureDevice.FlashMode {
+        cameraSettings.flashMode
+    }
+
+    func updateTimerCountdown(value: Int) {
+        ^{
+            if value > 0 {
+                self.cameraViewModel.showCountdown(value)
+                self.playCountdownChime(remaining: value)
+            } else if value == 0 {
+                self.cameraViewModel.clearCountdown()
+                self.ensureTorchOff()
+            } else {
+                self.cameraViewModel.cancelCountdown()
+                self.ensureTorchOff()
+            }
+        }
+    }
+}
 
 // MARK: - UICmd for Watch Remote Mode
 
 extension UICmd {
     /// Sent by WatchRemoteCameraController to enter Watch Remote camera mode.
     public class BecomeWatchCamera: Actor.Message {
-        let ctrl: CameraViewController
+        let ctrl: WatchCameraControlling
 
-        public init(ctrl: CameraViewController) {
+        init(ctrl: WatchCameraControlling) {
             self.ctrl = ctrl
             super.init(sender: nil)
         }
@@ -29,7 +90,7 @@ extension UICmd {
 
 extension RemoteCamSession {
 
-    func watchRemoteCamera(ctrl: CameraViewController) -> Receive {
+    func watchRemoteCamera(ctrl: WatchCameraControlling) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
@@ -54,13 +115,34 @@ extension RemoteCamSession {
                 ctrl.updateCameraStatus()
                 ctrl.startRecordingVideo()
                 self.become(
-                    name: .watchRemoteCameraRecordingVideo,
-                    state: self.watchRemoteCameraRecordingVideo(ctrl: ctrl)
+                    name: .watchRemoteCameraStartingVideo,
+                    state: self.watchRemoteCameraStartingVideo(ctrl: ctrl)
                 )
 
             case let micError as UICmd.MicrophoneAccessDenied:
                 debugLog("Watch Remote: Microphone access denied: \(micError.error)")
                 self.pushWatchState(ctrl: ctrl, event: "microphoneDenied")
+
+            // MARK: - Timer Countdown (Watch-initiated)
+
+            case let countdown as RemoteCmd.TimerCountdown:
+                ctrl.updateTimerCountdown(value: countdown.value)
+                if countdown.value > 0 {
+                    self.pushWatchState(ctrl: ctrl, event: "countdown:\(countdown.value)")
+                }
+
+            // MARK: - Late Arrivals (sub-state timed out before the callback landed)
+
+            case let t as UICmd.OnPicture:
+                // Capture completed after watchRemoteCameraTakingPic gave up —
+                // correct the earlier error with the truthful outcome.
+                debugLog("Watch Remote: late OnPicture (error: \(String(describing: t.error)))")
+                self.pushWatchState(ctrl: ctrl, event: t.error == nil ? "photoTaken" : "photoError")
+
+            case is RemoteCmd.StartRecordingVideoAck,
+                 is RemoteCmd.StopRecordingVideoResp:
+                debugLog("Watch Remote: late recording callback in idle state")
+                self.pushWatchState(ctrl: ctrl)
 
             // MARK: - Zoom
 
@@ -103,14 +185,18 @@ extension RemoteCamSession {
 
             case is UICmd.UnbecomeWatchCamera:
                 debugLog("Watch Remote: Exiting camera state")
-                WatchSessionManager.shared.pushDisconnectedState()
+                self.watchStatePusher.pushDisconnectedState()
                 self.popToRootState()
 
             case is UICmd.UnbecomeCamera:
                 // CameraViewController is being dismissed
                 debugLog("Watch Remote: CameraViewController dismissed")
-                WatchSessionManager.shared.pushDisconnectedState()
+                self.watchStatePusher.pushDisconnectedState()
                 self.popToRootState()
+
+            case is UICmd.StateTimeout:
+                // Stale timeout from a sub-state that already completed — ignore.
+                break
 
             default:
                 self.receive(msg: msg)
@@ -120,9 +206,13 @@ extension RemoteCamSession {
 
     // MARK: - Watch Remote Taking Picture Sub-state
 
-    func watchRemoteCameraTakingPic(ctrl: CameraViewController) -> Receive {
+    func watchRemoteCameraTakingPic(ctrl: WatchCameraControlling) -> Receive {
+        let gen = self.scheduleTimeout(stateName: .watchRemoteCameraTakingPic)
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
+            case is OnEnter:
+                break
+
             case let t as UICmd.OnPicture:
                 if t.error != nil {
                     debugLog("Watch Remote: Photo capture error: \(t.error!)")
@@ -133,6 +223,99 @@ extension RemoteCamSession {
                 }
                 self.unbecome()
 
+            case let timeout as UICmd.StateTimeout:
+                if timeout.stateName == .watchRemoteCameraTakingPic && timeout.generation == gen {
+                    debugLog("Watch Remote: photo capture timed out")
+                    self.pushWatchState(ctrl: ctrl, event: "photoError")
+                    self.unbecome()
+                }
+                // Stale generations are dropped silently.
+
+            case is RemoteCmd.TakePic:
+                debugLog("Watch Remote: capture already in flight, ignoring duplicate TakePic")
+
+            case is RemoteCmd.StartRecordingVideo:
+                self.pushWatchState(ctrl: ctrl, event: "busy")
+
+            // Zoom keeps working while a capture is in flight (crown turns mid-shot).
+            case let zoomCmd as RemoteCmd.SetZoom:
+                _ = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
+                self.pushWatchState(ctrl: ctrl)
+
+            case is RemoteCmd.RequestCameraCapabilities:
+                ctrl.gatherAllCameraCapabilities()
+                self.pushWatchState(ctrl: ctrl)
+
+            case is UICmd.UnbecomeWatchCamera, is UICmd.UnbecomeCamera:
+                debugLog("Watch Remote: exiting while capture in flight")
+                self.watchStatePusher.pushDisconnectedState()
+                self.popToRootState()
+
+            default:
+                self.receive(msg: msg)
+            }
+        }
+    }
+
+    // MARK: - Watch Remote Starting Video Sub-state (transient)
+
+    /// Waits for the capture pipeline to confirm recording actually started.
+    /// Without this, a failed start (mic denied, session interrupted) left the
+    /// actor wedged in the recording state with no way out.
+    func watchRemoteCameraStartingVideo(ctrl: WatchCameraControlling) -> Receive {
+        let gen = self.scheduleTimeout(stateName: .watchRemoteCameraStartingVideo)
+        return { [unowned self] (msg: Actor.Message) in
+            switch msg {
+            case is OnEnter:
+                break
+
+            case let ack as RemoteCmd.StartRecordingVideoAck:
+                if let error = ack.error {
+                    debugLog("Watch Remote: recording failed to start: \(error)")
+                    self.pushWatchState(ctrl: ctrl, event: "recordingFailed")
+                    self.unbecome()
+                } else {
+                    debugLog("Watch Remote: Recording started at \(ack.recordingStartTime?.description ?? "unknown")")
+                    self.pushWatchState(ctrl: ctrl, event: "recordingStarted")
+                    self.become(
+                        name: .watchRemoteCameraRecordingVideo,
+                        state: self.watchRemoteCameraRecordingVideo(ctrl: ctrl),
+                        discardOld: true
+                    )
+                }
+
+            case let micError as UICmd.MicrophoneAccessDenied:
+                debugLog("Watch Remote: Microphone access denied: \(micError.error)")
+                self.pushWatchState(ctrl: ctrl, event: "microphoneDenied")
+                self.unbecome()
+
+            case let timeout as UICmd.StateTimeout:
+                if timeout.stateName == .watchRemoteCameraStartingVideo && timeout.generation == gen {
+                    debugLog("Watch Remote: recording never started, cleaning up")
+                    ctrl.stopRecordingVideo(false)
+                    self.pushWatchState(ctrl: ctrl, event: "recordingFailed")
+                    self.unbecome()
+                }
+
+            // User can abort a start that hasn't been confirmed yet.
+            case is RemoteCmd.StopRecordingVideo:
+                ctrl.stopRecordingVideo(false)
+                self.pushWatchState(ctrl: ctrl, event: "recordingStopped")
+                self.unbecome()
+
+            case is RemoteCmd.TakePic, is RemoteCmd.StartRecordingVideo:
+                self.pushWatchState(ctrl: ctrl, event: "busy")
+
+            case let zoomCmd as RemoteCmd.SetZoom:
+                _ = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
+                self.pushWatchState(ctrl: ctrl)
+
+            case is UICmd.UnbecomeWatchCamera, is UICmd.UnbecomeCamera:
+                debugLog("Watch Remote: exiting while recording was starting")
+                ctrl.stopRecordingVideo(false)
+                self.watchStatePusher.pushDisconnectedState()
+                self.popToRootState()
+
             default:
                 self.receive(msg: msg)
             }
@@ -141,15 +324,21 @@ extension RemoteCamSession {
 
     // MARK: - Watch Remote Recording Video Sub-state
 
-    func watchRemoteCameraRecordingVideo(ctrl: CameraViewController) -> Receive {
+    func watchRemoteCameraRecordingVideo(ctrl: WatchCameraControlling) -> Receive {
+        // No blanket timeout: recordings legitimately run for minutes. A timeout
+        // is armed only once stop is requested, to catch a stop that never
+        // completes (capture session interrupted mid-recording).
+        var stopGeneration: Int?
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
-            case let ack as RemoteCmd.StartRecordingVideoAck:
-                debugLog("Watch Remote: Recording started at \(ack.recordingStartTime?.description ?? "unknown")")
-                self.pushWatchState(ctrl: ctrl, event: "recordingStarted")
+            case is OnEnter:
+                break
 
             case is RemoteCmd.StopRecordingVideo:
-                ctrl.stopRecordingVideo(false)
+                if stopGeneration == nil {
+                    stopGeneration = self.scheduleTimeout(stateName: .watchRemoteCameraRecordingVideo)
+                    ctrl.stopRecordingVideo(false)
+                }
 
             case is RemoteCmd.StopRecordingVideoResp:
                 debugLog("Watch Remote: Recording stopped")
@@ -162,18 +351,38 @@ extension RemoteCamSession {
                 self.pushWatchState(ctrl: ctrl, event: "recordingStopped")
                 self.unbecome()
 
+            case let timeout as UICmd.StateTimeout:
+                if timeout.stateName == .watchRemoteCameraRecordingVideo && timeout.generation == stopGeneration {
+                    debugLog("Watch Remote: stop recording never completed")
+                    self.pushWatchState(ctrl: ctrl, event: "recordingFailed")
+                    self.unbecome()
+                }
+
+            case is RemoteCmd.TakePic, is RemoteCmd.StartRecordingVideo:
+                self.pushWatchState(ctrl: ctrl, event: "busyRecording")
+
             // Allow zoom/lens/flash/torch during recording
             case let zoomCmd as RemoteCmd.SetZoom:
-                let _ = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
+                _ = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
                 self.pushWatchState(ctrl: ctrl)
 
             case let lensCmd as RemoteCmd.SwitchLens:
-                let _ = ctrl.switchLens(to: lensCmd.lensType)
+                _ = ctrl.switchLens(to: lensCmd.lensType)
                 self.pushWatchState(ctrl: ctrl)
 
             case is RemoteCmd.ToggleTorch:
-                let _ = ctrl.toggleTorch()
+                _ = ctrl.toggleTorch()
                 self.pushWatchState(ctrl: ctrl)
+
+            case is RemoteCmd.RequestCameraCapabilities:
+                ctrl.gatherAllCameraCapabilities()
+                self.pushWatchState(ctrl: ctrl)
+
+            case is UICmd.UnbecomeWatchCamera, is UICmd.UnbecomeCamera:
+                debugLog("Watch Remote: exiting while recording")
+                ctrl.stopRecordingVideo(false)
+                self.watchStatePusher.pushDisconnectedState()
+                self.popToRootState()
 
             default:
                 self.receive(msg: msg)
@@ -183,27 +392,28 @@ extension RemoteCamSession {
 
     // MARK: - Watch State Push Helper (FlatBuffer-encoded)
 
-    private func pushWatchState(ctrl: CameraViewController, event: String? = nil) {
-        let currentMode: RemoteShutter_RecordingModeEnum = ctrl.currentCameraMode == .Video ? .video : .photo
-        let currentLens = RemoteShutter_CameraLensType(rawValue: Int8(ctrl.getCurrentLensType().rawValue)) ?? .wideangle
-        let availableLenses = ctrl.getAvailableLensTypes().compactMap {
+    func pushWatchState(ctrl: WatchCameraControlling, event: String? = nil) {
+        watchStatePusher.pushCameraState(Self.watchStateSnapshot(ctrl: ctrl, event: event))
+    }
+
+    static func watchStateSnapshot(ctrl: WatchCameraControlling, event: String? = nil) -> WatchCameraStateSnapshot {
+        var snapshot = WatchCameraStateSnapshot()
+        snapshot.isReady = true
+        snapshot.currentZoomFactor = Double(ctrl.getCurrentZoomFactor())
+        snapshot.minZoomFactor = Double(ctrl.getMinZoomFactor())
+        snapshot.maxZoomFactor = Double(ctrl.getMaxZoomFactor())
+        snapshot.isRecording = ctrl.isRecording
+        snapshot.currentMode = ctrl.currentCameraMode == .Video ? .video : .photo
+        snapshot.currentLensType = RemoteShutter_CameraLensType(rawValue: Int8(ctrl.getCurrentLensType().rawValue)) ?? .wideangle
+        snapshot.availableLensTypes = ctrl.getAvailableLensTypes().compactMap {
             RemoteShutter_CameraLensType(rawValue: Int8($0.rawValue))
         }
-
-        WatchSessionManager.shared.pushCameraState(
-            isReady: true,
-            currentZoomFactor: Double(ctrl.getCurrentZoomFactor()),
-            minZoomFactor: Double(ctrl.getMinZoomFactor()),
-            maxZoomFactor: Double(ctrl.getMaxZoomFactor()),
-            isRecording: ctrl.isRecording,
-            currentMode: currentMode,
-            currentLensType: currentLens,
-            availableLensTypes: availableLenses,
-            isFlashEnabled: false,
-            isTorchEnabled: ctrl.videoDeviceInput?.device.isTorchActive ?? false,
-            zoomStops: ctrl.getZoomStops().map { Double($0) },
-            wideAngleZoomFactor: Double(ctrl.getWideAngleZoomFactor()),
-            lastEvent: event
-        )
+        snapshot.isFlashEnabled = ctrl.currentFlashMode != .off
+        snapshot.flashMode = RemoteShutter_FlashMode(rawValue: Int8(ctrl.currentFlashMode.rawValue)) ?? .off
+        snapshot.isTorchEnabled = ctrl.isTorchActive
+        snapshot.zoomStops = ctrl.getZoomStops().map { Double($0) }
+        snapshot.wideAngleZoomFactor = Double(ctrl.getWideAngleZoomFactor())
+        snapshot.lastEvent = event
+        return snapshot
     }
 }

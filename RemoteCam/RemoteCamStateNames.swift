@@ -27,5 +27,6 @@ enum RemoteCamState: String {
     case monitorSwitchingLens
     case watchRemoteCamera
     case watchRemoteCameraTakingPic
+    case watchRemoteCameraStartingVideo
     case watchRemoteCameraRecordingVideo
 }

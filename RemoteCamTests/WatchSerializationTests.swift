@@ -1,4 +1,5 @@
 import XCTest
+import FlatBuffers
 @testable import RemoteShutter
 
 /// Round-trip tests for the FlatBuffer framing used over WCSession between the
@@ -47,7 +48,7 @@ final class WatchSerializationTests: XCTestCase {
     // MARK: - State (iPhone -> Watch)
 
     func testStateRoundTripPreservesAllFields() throws {
-        let data = WatchStateEncoder.encode(
+        let data = WatchStateEncoder.encode(WatchCameraStateSnapshot(
             isReady: true,
             currentZoomFactor: 3.0,
             minZoomFactor: 1.0,
@@ -61,7 +62,7 @@ final class WatchSerializationTests: XCTestCase {
             zoomStops: [0.5, 1.0, 2.0],
             wideAngleZoomFactor: 2.0,
             lastEvent: "photoTaken"
-        )
+        ))
         let decoded = try XCTUnwrap(WatchStateEncoder.decode(data), "state should decode")
         XCTAssertTrue(decoded.isReady)
         XCTAssertEqual(decoded.currentZoomFactor, 3.0, accuracy: 0.0001)
@@ -80,21 +81,7 @@ final class WatchSerializationTests: XCTestCase {
 
     /// A nil `lastEvent` decodes back as nil (or empty) — i.e. no spurious event is fired.
     func testStateRoundTripWithNilEvent() throws {
-        let data = WatchStateEncoder.encode(
-            isReady: true,
-            currentZoomFactor: 1.0,
-            minZoomFactor: 1.0,
-            maxZoomFactor: 10.0,
-            isRecording: false,
-            currentMode: .photo,
-            currentLensType: .wideangle,
-            availableLensTypes: [.wideangle],
-            isFlashEnabled: false,
-            isTorchEnabled: false,
-            zoomStops: [1.0],
-            wideAngleZoomFactor: 1.0,
-            lastEvent: nil
-        )
+        let data = WatchStateEncoder.encode(WatchCameraStateSnapshot(lastEvent: nil))
         let decoded = try XCTUnwrap(WatchStateEncoder.decode(data))
         XCTAssertTrue(decoded.lastEvent == nil || decoded.lastEvent?.isEmpty == true,
                       "Expected no event, got \(String(describing: decoded.lastEvent))")
@@ -110,12 +97,132 @@ final class WatchSerializationTests: XCTestCase {
 
     /// Decoding a state buffer as a command returns nil.
     func testCommandDecodeRejectsStateBuffer() {
-        let stateData = WatchStateEncoder.encode(
-            isReady: true, currentZoomFactor: 1, minZoomFactor: 1, maxZoomFactor: 10,
-            isRecording: false, currentMode: .photo, currentLensType: .wideangle,
-            availableLensTypes: [.wideangle], isFlashEnabled: false, isTorchEnabled: false,
-            zoomStops: [1.0], wideAngleZoomFactor: 1.0, lastEvent: nil
-        )
+        let stateData = WatchStateEncoder.encode(WatchCameraStateSnapshot())
         XCTAssertNil(WatchCommandEncoder.decode(stateData))
+    }
+
+    // MARK: - New appended state fields
+
+    func testStateRoundTripPreservesEpochAndFlashMode() throws {
+        var snapshot = WatchCameraStateSnapshot()
+        snapshot.stateEpochMs = 1_765_000_000_123
+        snapshot.flashMode = .auto
+        let decoded = try XCTUnwrap(WatchStateEncoder.decode(WatchStateEncoder.encode(snapshot)))
+        XCTAssertEqual(decoded.stateEpochMs, 1_765_000_000_123)
+        XCTAssertEqual(decoded.flashMode, .auto)
+    }
+
+    /// Bytes from a build that predates the appended fields still decode, with
+    /// the new fields falling back to their FlatBuffer defaults.
+    func testLegacyStateWithoutAppendedFieldsDecodes() throws {
+        var fbb = FlatBufferBuilder()
+        let start = RemoteShutter_WatchCameraState.startWatchCameraState(&fbb)
+        RemoteShutter_WatchCameraState.add(isReady: true, &fbb)
+        RemoteShutter_WatchCameraState.add(currentZoomFactor: 2.0, &fbb)
+        let state = RemoteShutter_WatchCameraState.endWatchCameraState(&fbb, start: start)
+        let msg = RemoteShutter_WatchMessage.createWatchMessage(&fbb, type: .watchstatemsg, stateOffset: state)
+        fbb.finish(offset: msg)
+
+        let decoded = try XCTUnwrap(WatchStateEncoder.decode(fbb.data))
+        XCTAssertTrue(decoded.isReady)
+        XCTAssertEqual(decoded.currentZoomFactor, 2.0, accuracy: 0.0001)
+        XCTAssertEqual(decoded.stateEpochMs, 0)
+        XCTAssertEqual(decoded.flashMode, .off)
+    }
+
+    // MARK: - Command Acks
+
+    func testAckRoundTripAllStatuses() throws {
+        let statuses: [RemoteShutter_WatchAckStatus] = [.ok, .notinwatchmode, .busy, .failed]
+        for status in statuses {
+            let data = WatchAckEncoder.encode(status: status, action: .takepicture, detail: "d")
+            let decoded = try XCTUnwrap(WatchAckEncoder.decode(data), "\(status) should decode")
+            XCTAssertEqual(decoded.status, status)
+            XCTAssertEqual(decoded.action, .takepicture)
+            XCTAssertEqual(decoded.detail, "d")
+        }
+    }
+
+    func testAckDecodeRejectsOtherMessageTypes() {
+        XCTAssertNil(WatchAckEncoder.decode(WatchCommandEncoder.encode(action: .takepicture)))
+        XCTAssertNil(WatchAckEncoder.decode(WatchStateEncoder.encode(WatchCameraStateSnapshot())))
+        XCTAssertNil(WatchStateEncoder.decode(WatchAckEncoder.encode(status: .ok)))
+    }
+
+    // MARK: - Connection Phase Derivation
+
+    func testPhaseDerivation() {
+        // Session not activated → inactive regardless of anything else.
+        XCTAssertEqual(WatchConnectionPhase.derive(
+            isSessionActive: false, isPhoneReachable: true, isReady: true,
+            phoneNotInWatchMode: false, phoneNotReadyReason: nil), .inactive)
+
+        // Activated but unreachable → connecting.
+        XCTAssertEqual(WatchConnectionPhase.derive(
+            isSessionActive: true, isPhoneReachable: false, isReady: false,
+            phoneNotInWatchMode: true, phoneNotReadyReason: nil), .connecting)
+
+        // Ready wins.
+        XCTAssertEqual(WatchConnectionPhase.derive(
+            isSessionActive: true, isPhoneReachable: true, isReady: true,
+            phoneNotInWatchMode: false, phoneNotReadyReason: nil), .ready)
+
+        // Reachable, not ready, phone said NotInWatchMode → instruction screen.
+        XCTAssertEqual(WatchConnectionPhase.derive(
+            isSessionActive: true, isPhoneReachable: true, isReady: false,
+            phoneNotInWatchMode: true, phoneNotReadyReason: nil), .phoneNotInWatchMode)
+
+        // Phone backgrounded beats NotInWatchMode messaging.
+        XCTAssertEqual(WatchConnectionPhase.derive(
+            isSessionActive: true, isPhoneReachable: true, isReady: false,
+            phoneNotInWatchMode: false, phoneNotReadyReason: "phoneBackgrounded"), .phoneNotReady)
+
+        // Reachable, no signal yet → still connecting (syncing).
+        XCTAssertEqual(WatchConnectionPhase.derive(
+            isSessionActive: true, isPhoneReachable: true, isReady: false,
+            phoneNotInWatchMode: false, phoneNotReadyReason: nil), .connecting)
+    }
+}
+
+// MARK: - Zoom Throttle
+
+final class ZoomSendThrottleTests: XCTestCase {
+
+    func testLeadingValueSendsImmediately() {
+        var throttle = ZoomSendThrottle(interval: 0.05)
+        XCTAssertEqual(throttle.update(value: 2.0, now: Date(timeIntervalSince1970: 100)), .sendNow)
+    }
+
+    func testBurstCoalescesAndTrailingCarriesFinalValue() {
+        var throttle = ZoomSendThrottle(interval: 0.05)
+        let t0 = Date(timeIntervalSince1970: 100)
+
+        XCTAssertEqual(throttle.update(value: 1.0, now: t0), .sendNow)
+        // Burst within the interval: each updates the pending value.
+        XCTAssertEqual(throttle.update(value: 2.0, now: t0.addingTimeInterval(0.01)), .scheduleTrailing)
+        XCTAssertEqual(throttle.update(value: 3.0, now: t0.addingTimeInterval(0.02)), .scheduleTrailing)
+        XCTAssertEqual(throttle.update(value: 4.0, now: t0.addingTimeInterval(0.03)), .scheduleTrailing)
+
+        // The trailing flush delivers exactly the final value...
+        XCTAssertEqual(throttle.fireTrailing(now: t0.addingTimeInterval(0.08)), 4.0)
+        // ...and only once.
+        XCTAssertNil(throttle.fireTrailing(now: t0.addingTimeInterval(0.09)))
+    }
+
+    func testValueAfterIntervalSendsImmediatelyAndClearsPending() {
+        var throttle = ZoomSendThrottle(interval: 0.05)
+        let t0 = Date(timeIntervalSince1970: 100)
+
+        XCTAssertEqual(throttle.update(value: 1.0, now: t0), .sendNow)
+        XCTAssertEqual(throttle.update(value: 2.0, now: t0.addingTimeInterval(0.01)), .scheduleTrailing)
+        // Past the interval: send now, and the stale pending value is dropped.
+        XCTAssertEqual(throttle.update(value: 5.0, now: t0.addingTimeInterval(0.06)), .sendNow)
+        XCTAssertNil(throttle.fireTrailing(now: t0.addingTimeInterval(0.12)),
+                     "pending value superseded by a direct send must not flush")
+    }
+
+    func testFireTrailingWithNothingPendingReturnsNil() {
+        var throttle = ZoomSendThrottle(interval: 0.05)
+        XCTAssertNil(throttle.fireTrailing(now: Date()))
     }
 }

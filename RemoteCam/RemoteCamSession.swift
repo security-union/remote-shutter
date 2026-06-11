@@ -48,6 +48,9 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
     var alertPresenter: AlertPresenting = UIAlertPresenter()
 
+    /// Watch state pushes go through this seam so tests can record them.
+    var watchStatePusher: WatchStatePushing = WatchSessionManager.shared
+
     var multipeerService: (any MultipeerServiceProtocol)!
 
     var session: MCSession! { multipeerService?.session }
@@ -241,6 +244,12 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
                             msg: Actor.Message,
                             mode: MCSessionSendDataMode = .reliable) -> Try<Message> {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
+        guard let multipeerService else {
+            // Watch Remote mode never starts a multipeer session.
+            return Failure(error: NSError(
+                domain: "RemoteCamSession", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "No multipeer session active"]))
+        }
         return multipeerService.send(msg, to: peer, mode: mode)
     }
 
@@ -248,7 +257,13 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
                                           msg: Actor.Message,
                                           mode: MCSessionSendDataMode = .reliable) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
-        
+
+        guard multipeerService != nil else {
+            // Watch Remote mode: there is no peer and no scanning state to fall back to.
+            debugLog("sendCommandOrGoToScanning: no multipeer session, dropping \(type(of: msg))")
+            return
+        }
+
         // Debug log for SwitchLensResp
         if let switchResp = msg as? RemoteCmd.SwitchLensResp {
             debugLog("🔍 DEBUG: sendCommandOrGoToScanning - SwitchLensResp being sent:")
