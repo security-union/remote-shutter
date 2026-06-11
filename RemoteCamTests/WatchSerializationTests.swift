@@ -37,12 +37,24 @@ final class WatchSerializationTests: XCTestCase {
     func testAllCommandActionsRoundTrip() throws {
         let actions: [RemoteShutter_WatchCommandAction] = [
             .setzoom, .takepicture, .startrecording, .stoprecording,
-            .switchlens, .toggleflash, .toggletorch, .togglecamera, .requeststate
+            .switchlens, .toggleflash, .toggletorch, .togglecamera, .requeststate,
+            .setmode
         ]
         for action in actions {
             let decoded = try XCTUnwrap(WatchCommandEncoder.decode(WatchCommandEncoder.encode(action: action)))
             XCTAssertEqual(decoded.action, action)
         }
+    }
+
+    func testSetModeCommandRoundTripPreservesMode() throws {
+        let data = WatchCommandEncoder.encode(action: .setmode, mode: .video)
+        let decoded = try XCTUnwrap(WatchCommandEncoder.decode(data))
+        XCTAssertEqual(decoded.action, .setmode)
+        XCTAssertEqual(decoded.mode, .video)
+
+        // Commands that don't carry a mode decode with the Unknown default.
+        let plain = try XCTUnwrap(WatchCommandEncoder.decode(WatchCommandEncoder.encode(action: .takepicture)))
+        XCTAssertEqual(plain.mode, .unknown)
     }
 
     // MARK: - State (iPhone -> Watch)

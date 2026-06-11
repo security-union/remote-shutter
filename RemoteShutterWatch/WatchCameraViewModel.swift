@@ -194,6 +194,19 @@ class WatchCameraViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Mode Switching
+
+    /// Switches photo/video optimistically — the UI flips immediately and the
+    /// next state push from the phone confirms (or corrects) it. Ignored while
+    /// recording; the phone would reject it with `busyRecording` anyway.
+    func selectMode(_ mode: RemoteShutter_RecordingModeEnum,
+                    send: (RemoteShutter_RecordingModeEnum) -> Void) {
+        guard !isRecording, currentMode != mode else { return }
+        currentMode = mode
+        WKInterfaceDevice.current().play(.click)
+        send(mode)
+    }
+
     // MARK: - Local Events (not from a state push)
 
     /// A command failed to reach the phone (or the phone refused it) — make the

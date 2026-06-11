@@ -195,7 +195,8 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
             action: decoded.action,
             zoomFactor: decoded.zoomFactor,
             lensType: decoded.lensType,
-            timerSeconds: decoded.timerSeconds
+            timerSeconds: decoded.timerSeconds,
+            mode: decoded.mode
         )
         // Ok = decoded and dispatched to the state machine; capture completion
         // arrives separately as a state-push event.

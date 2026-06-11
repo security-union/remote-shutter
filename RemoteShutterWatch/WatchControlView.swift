@@ -142,22 +142,26 @@ struct WatchControlView: View {
                 .accessibilityLabel("Switch front and back camera")
             }
 
-            // Timer indicator (tappable → settings)
-            NavigationLink(destination: WatchSettingsView()) {
-                HStack(spacing: 4) {
-                    Image(systemName: viewModel.timerSeconds > 0 ? "timer" : "gearshape")
-                        .font(.caption2)
-                    if viewModel.timerSeconds > 0 {
-                        Text("\(viewModel.timerSeconds)s")
+            // Photo/video mode toggle + timer indicator (tappable → settings)
+            HStack(spacing: 12) {
+                modeToggle
+
+                NavigationLink(destination: WatchSettingsView()) {
+                    HStack(spacing: 4) {
+                        Image(systemName: viewModel.timerSeconds > 0 ? "timer" : "gearshape")
                             .font(.caption2)
+                        if viewModel.timerSeconds > 0 {
+                            Text("\(viewModel.timerSeconds)s")
+                                .font(.caption2)
+                        }
                     }
+                    .foregroundColor(viewModel.timerSeconds > 0 ? .orange : .gray)
                 }
-                .foregroundColor(viewModel.timerSeconds > 0 ? .orange : .gray)
+                .buttonStyle(.plain)
+                .accessibilityLabel(viewModel.timerSeconds > 0
+                    ? "Timer \(viewModel.timerSeconds) seconds, open settings"
+                    : "Settings")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(viewModel.timerSeconds > 0
-                ? "Timer \(viewModel.timerSeconds) seconds, open settings"
-                : "Settings")
         }
         .padding(.horizontal, 4)
         .navigationBarTitleDisplayMode(.inline)
@@ -181,6 +185,39 @@ struct WatchControlView: View {
                 eventConfirmationView(event: event)
             }
         }
+    }
+
+    // MARK: - Photo/Video Mode Toggle
+
+    private var modeToggle: some View {
+        HStack(spacing: 0) {
+            modeSegment(icon: "camera.fill", label: "Photo mode",
+                        active: viewModel.isPhotoMode, mode: .photo)
+            modeSegment(icon: "video.fill", label: "Video mode",
+                        active: viewModel.isVideoMode, mode: .video)
+        }
+        .background(Color.gray.opacity(0.25))
+        .clipShape(Capsule())
+        .opacity(viewModel.isRecording ? 0.4 : 1.0)
+        .disabled(viewModel.isRecording)
+    }
+
+    private func modeSegment(icon: String, label: String, active: Bool,
+                             mode: RemoteShutter_RecordingModeEnum) -> some View {
+        Button(action: {
+            viewModel.selectMode(mode) { session.setMode($0) }
+        }) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundColor(active ? .black : .white)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(active ? Color.white : Color.clear)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     // MARK: - Flash/Torch Helpers

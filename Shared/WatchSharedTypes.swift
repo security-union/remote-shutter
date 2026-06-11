@@ -16,14 +16,16 @@ struct WatchCommandEncoder {
     static func encode(action: RemoteShutter_WatchCommandAction,
                        zoomFactor: Double = 0,
                        lensType: RemoteShutter_CameraLensType = .wideangle,
-                       timerSeconds: Int32 = 0) -> Data {
+                       timerSeconds: Int32 = 0,
+                       mode: RemoteShutter_RecordingModeEnum = .unknown) -> Data {
         var fbb = FlatBufferBuilder()
         let cmd = RemoteShutter_WatchCommand.createWatchCommand(
             &fbb,
             action: action,
             zoomFactor: zoomFactor,
             lensType: lensType,
-            timerSeconds: timerSeconds
+            timerSeconds: timerSeconds,
+            mode: mode
         )
         let msg = RemoteShutter_WatchMessage.createWatchMessage(
             &fbb,
@@ -37,14 +39,15 @@ struct WatchCommandEncoder {
     static func decode(_ data: Data) -> (action: RemoteShutter_WatchCommandAction,
                                          zoomFactor: Double,
                                          lensType: RemoteShutter_CameraLensType,
-                                         timerSeconds: Int32)? {
+                                         timerSeconds: Int32,
+                                         mode: RemoteShutter_RecordingModeEnum)? {
         let bytes = [UInt8](data)
         var buffer = ByteBuffer(bytes: bytes)
         guard let msg: RemoteShutter_WatchMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
             return nil
         }
         guard msg.type == .watchcommandmsg, let cmd = msg.command else { return nil }
-        return (cmd.action, cmd.zoomFactor, cmd.lensType, cmd.timerSeconds)
+        return (cmd.action, cmd.zoomFactor, cmd.lensType, cmd.timerSeconds, cmd.mode)
     }
 }
 

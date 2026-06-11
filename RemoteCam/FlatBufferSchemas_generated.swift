@@ -193,8 +193,9 @@ public enum RemoteShutter_WatchCommandAction: Int8, Enum, Verifiable {
   case toggletorch = 7
   case togglecamera = 8
   case requeststate = 9
+  case setmode = 10
 
-  public static var max: RemoteShutter_WatchCommandAction { return .requeststate }
+  public static var max: RemoteShutter_WatchCommandAction { return .setmode }
   public static var min: RemoteShutter_WatchCommandAction { return .unknown }
 }
 
@@ -1075,6 +1076,7 @@ public struct RemoteShutter_WatchCommand: FlatBufferObject, Verifiable {
     case zoomFactor = 6
     case lensType = 8
     case timerSeconds = 10
+    case mode = 12
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1083,24 +1085,28 @@ public struct RemoteShutter_WatchCommand: FlatBufferObject, Verifiable {
   public var zoomFactor: Double { let o = _accessor.offset(VTOFFSET.zoomFactor.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
   public var lensType: RemoteShutter_CameraLensType { let o = _accessor.offset(VTOFFSET.lensType.v); return o == 0 ? .wideangle : RemoteShutter_CameraLensType(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .wideangle }
   public var timerSeconds: Int32 { let o = _accessor.offset(VTOFFSET.timerSeconds.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
-  public static func startWatchCommand(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 4) }
+  public var mode: RemoteShutter_RecordingModeEnum { let o = _accessor.offset(VTOFFSET.mode.v); return o == 0 ? .unknown : RemoteShutter_RecordingModeEnum(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public static func startWatchCommand(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 5) }
   public static func add(action: RemoteShutter_WatchCommandAction, _ fbb: inout FlatBufferBuilder) { fbb.add(element: action.rawValue, def: 0, at: VTOFFSET.action.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
   public static func add(lensType: RemoteShutter_CameraLensType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: lensType.rawValue, def: 0, at: VTOFFSET.lensType.p) }
   public static func add(timerSeconds: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: timerSeconds, def: 0, at: VTOFFSET.timerSeconds.p) }
+  public static func add(mode: RemoteShutter_RecordingModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: mode.rawValue, def: 0, at: VTOFFSET.mode.p) }
   public static func endWatchCommand(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createWatchCommand(
     _ fbb: inout FlatBufferBuilder,
     action: RemoteShutter_WatchCommandAction = .unknown,
     zoomFactor: Double = 0.0,
     lensType: RemoteShutter_CameraLensType = .wideangle,
-    timerSeconds: Int32 = 0
+    timerSeconds: Int32 = 0,
+    mode: RemoteShutter_RecordingModeEnum = .unknown
   ) -> Offset {
     let __start = RemoteShutter_WatchCommand.startWatchCommand(&fbb)
     RemoteShutter_WatchCommand.add(action: action, &fbb)
     RemoteShutter_WatchCommand.add(zoomFactor: zoomFactor, &fbb)
     RemoteShutter_WatchCommand.add(lensType: lensType, &fbb)
     RemoteShutter_WatchCommand.add(timerSeconds: timerSeconds, &fbb)
+    RemoteShutter_WatchCommand.add(mode: mode, &fbb)
     return RemoteShutter_WatchCommand.endWatchCommand(&fbb, start: __start)
   }
 
@@ -1110,6 +1116,7 @@ public struct RemoteShutter_WatchCommand: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.zoomFactor.p, fieldName: "zoomFactor", required: false, type: Double.self)
     try _v.visit(field: VTOFFSET.lensType.p, fieldName: "lensType", required: false, type: RemoteShutter_CameraLensType.self)
     try _v.visit(field: VTOFFSET.timerSeconds.p, fieldName: "timerSeconds", required: false, type: Int32.self)
+    try _v.visit(field: VTOFFSET.mode.p, fieldName: "mode", required: false, type: RemoteShutter_RecordingModeEnum.self)
     _v.finish()
   }
 }

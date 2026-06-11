@@ -192,10 +192,23 @@ public class WatchRemoteCameraController: UIViewController {
     func handleWatchCommand(action: RemoteShutter_WatchCommandAction,
                             zoomFactor: Double,
                             lensType: RemoteShutter_CameraLensType,
-                            timerSeconds: Int32 = 0) {
+                            timerSeconds: Int32 = 0,
+                            mode: RemoteShutter_RecordingModeEnum = .unknown) {
         let session = remoteCamSession!
 
         switch action {
+        case .setmode:
+            let newMode: RecordingMode? = {
+                switch mode {
+                case .photo: return .Photo
+                case .video: return .Video
+                case .shorts, .unknown: return nil
+                }
+            }()
+            if let newMode {
+                session ! UICmd.SetWatchCameraMode(mode: newMode)
+            }
+
         case .setzoom:
             session ! RemoteCmd.SetZoom(zoomFactor: CGFloat(zoomFactor))
 

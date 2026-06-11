@@ -232,7 +232,8 @@ enum WatchCommandAction : byte {
     ToggleFlash = 6,
     ToggleTorch = 7,
     ToggleCamera = 8,
-    RequestState = 9
+    RequestState = 9,
+    SetMode = 10
 }
 
 table WatchCommand {
@@ -240,6 +241,8 @@ table WatchCommand {
     zoom_factor: double;
     lens_type: CameraLensType;
     timer_seconds: int;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    mode: RecordingModeEnum;         // payload for SetMode
 }
 
 table WatchCameraState {

@@ -84,6 +84,16 @@ extension UICmd {
 
     /// Sent by WatchRemoteCameraController when exiting Watch Remote mode.
     public class UnbecomeWatchCamera: Actor.Message {}
+
+    /// Watch-initiated photo/video mode switch.
+    public class SetWatchCameraMode: Actor.Message {
+        let mode: RecordingMode
+
+        init(mode: RecordingMode) {
+            self.mode = mode
+            super.init(sender: nil)
+        }
+    }
 }
 
 // MARK: - Watch Remote Camera State
@@ -122,6 +132,13 @@ extension RemoteCamSession {
             case let micError as UICmd.MicrophoneAccessDenied:
                 debugLog("Watch Remote: Microphone access denied: \(micError.error)")
                 self.pushWatchState(ctrl: ctrl, event: "microphoneDenied")
+
+            // MARK: - Photo/Video Mode Switch (Watch-initiated)
+
+            case let m as UICmd.SetWatchCameraMode:
+                ctrl.currentCameraMode = m.mode
+                ctrl.updateCameraStatus()
+                self.pushWatchState(ctrl: ctrl)
 
             // MARK: - Timer Countdown (Watch-initiated)
 
@@ -234,7 +251,7 @@ extension RemoteCamSession {
             case is RemoteCmd.TakePic:
                 debugLog("Watch Remote: capture already in flight, ignoring duplicate TakePic")
 
-            case is RemoteCmd.StartRecordingVideo:
+            case is RemoteCmd.StartRecordingVideo, is UICmd.SetWatchCameraMode:
                 self.pushWatchState(ctrl: ctrl, event: "busy")
 
             // Zoom keeps working while a capture is in flight (crown turns mid-shot).
@@ -303,7 +320,7 @@ extension RemoteCamSession {
                 self.pushWatchState(ctrl: ctrl, event: "recordingStopped")
                 self.unbecome()
 
-            case is RemoteCmd.TakePic, is RemoteCmd.StartRecordingVideo:
+            case is RemoteCmd.TakePic, is RemoteCmd.StartRecordingVideo, is UICmd.SetWatchCameraMode:
                 self.pushWatchState(ctrl: ctrl, event: "busy")
 
             case let zoomCmd as RemoteCmd.SetZoom:
@@ -358,7 +375,7 @@ extension RemoteCamSession {
                     self.unbecome()
                 }
 
-            case is RemoteCmd.TakePic, is RemoteCmd.StartRecordingVideo:
+            case is RemoteCmd.TakePic, is RemoteCmd.StartRecordingVideo, is UICmd.SetWatchCameraMode:
                 self.pushWatchState(ctrl: ctrl, event: "busyRecording")
 
             // Allow zoom/lens/flash/torch during recording

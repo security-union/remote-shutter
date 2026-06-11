@@ -178,10 +178,12 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
                              zoomFactor: Double = 0,
                              lensType: RemoteShutter_CameraLensType = .wideangle,
                              timerSeconds: Int32 = 0,
+                             mode: RemoteShutter_RecordingModeEnum = .unknown,
                              critical: Bool = true) {
         guard let session = wcSession else { return }
         let data = WatchCommandEncoder.encode(
-            action: action, zoomFactor: zoomFactor, lensType: lensType, timerSeconds: timerSeconds)
+            action: action, zoomFactor: zoomFactor, lensType: lensType,
+            timerSeconds: timerSeconds, mode: mode)
 
         guard critical else {
             guard session.isReachable else { return }
@@ -218,6 +220,7 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     }
     func stopRecording() { sendCommand(action: .stoprecording) }
     func switchLens(_ lensType: RemoteShutter_CameraLensType) { sendCommand(action: .switchlens, lensType: lensType) }
+    func setMode(_ mode: RemoteShutter_RecordingModeEnum) { sendCommand(action: .setmode, mode: mode) }
     func toggleFlash() { sendCommand(action: .toggleflash) }
     func toggleTorch() { sendCommand(action: .toggletorch) }
     func toggleCamera() { sendCommand(action: .togglecamera) }

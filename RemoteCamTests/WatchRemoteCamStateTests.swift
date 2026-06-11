@@ -129,6 +129,9 @@ class WatchRemoteCamStateTests: XCTestCase {
 
     private func enterWatchCamera() {
         ref ! UICmd.BecomeWatchCamera(ctrl: ctrl)
+        // Twice: become() enqueues OnEnter while the first message is being
+        // processed, i.e. behind the first drain marker.
+        waitForMailbox(session, test: self)
         waitForMailbox(session, test: self)
     }
 
@@ -374,6 +377,44 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertNil(session.currentStateName())
         XCTAssertEqual(ctrl.stopRecordingCalls, [false])
         XCTAssertEqual(pusher.disconnectedPushes, 1)
+    }
+
+    // MARK: - Photo/Video mode switching
+
+    func testSetModeSwitchesToVideoAndPushesState() {
+        enterWatchCamera()
+        ref ! UICmd.SetWatchCameraMode(mode: .Video)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(ctrl.currentCameraMode, .Video)
+        XCTAssertEqual(pusher.pushedSnapshots.last?.currentMode, .video)
+        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+
+        ref ! UICmd.SetWatchCameraMode(mode: .Photo)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(ctrl.currentCameraMode, .Photo)
+        XCTAssertEqual(pusher.pushedSnapshots.last?.currentMode, .photo)
+    }
+
+    func testSetModeDuringCaptureIsRejectedAsBusy() {
+        enterTakingPic()
+        ref ! UICmd.SetWatchCameraMode(mode: .Video)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(ctrl.currentCameraMode, .Photo, "mode must not change mid-capture")
+        XCTAssertEqual(pusher.lastEvent, "busy")
+        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraTakingPic)
+    }
+
+    func testSetModeDuringRecordingIsRejectedAsBusy() {
+        enterRecording()
+        ref ! UICmd.SetWatchCameraMode(mode: .Photo)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(ctrl.currentCameraMode, .Video, "mode must not change while recording")
+        XCTAssertEqual(pusher.lastEvent, "busyRecording")
+        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraRecordingVideo)
     }
 
     // MARK: - Timer countdown plumbing
