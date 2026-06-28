@@ -219,3 +219,91 @@ table P2PMessage {
 }
 
 root_type P2PMessage;
+
+// MARK: - Watch Communication
+
+enum WatchCommandAction : byte {
+    Unknown = 0,
+    SetZoom = 1,
+    TakePicture = 2,
+    StartRecording = 3,
+    StopRecording = 4,
+    SwitchLens = 5,
+    ToggleFlash = 6,
+    ToggleTorch = 7,
+    ToggleCamera = 8,
+    RequestState = 9,
+    SetMode = 10,
+    CancelTimer = 11
+}
+
+table WatchCommand {
+    action: WatchCommandAction;
+    zoom_factor: double;
+    lens_type: CameraLensType;
+    timer_seconds: int;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    mode: RecordingModeEnum;         // payload for SetMode
+}
+
+table WatchCameraState {
+    is_ready: bool;
+    current_zoom_factor: double;
+    min_zoom_factor: double;
+    max_zoom_factor: double;
+    is_recording: bool;
+    current_mode: RecordingModeEnum;
+    current_lens_type: CameraLensType;
+    available_lens_types: [CameraLensType];
+    is_flash_enabled: bool;
+    is_torch_enabled: bool;
+    zoom_stops: [double];
+    wide_angle_zoom_factor: double;
+    last_event: string;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    state_epoch_ms: uint64;          // ordering between live messages and applicationContext
+    flash_mode: FlashMode;           // tri-state truth; is_flash_enabled kept for compatibility
+}
+
+// Transport-level acknowledgment for a Watch command: confirms the iPhone
+// decoded the command and dispatched it to the camera state machine.
+// Capture *completion* still arrives separately as a state push event.
+enum WatchAckStatus : byte {
+    Unknown = 0,
+    Ok = 1,
+    NotInWatchMode = 2,
+    Busy = 3,
+    Failed = 4
+}
+
+table WatchCommandAck {
+    status: WatchAckStatus;
+    action: WatchCommandAction;      // echo of the command being acked
+    detail: string;
+}
+
+// Low-res, heavily-compressed live preview frame streamed iPhone -> Watch so the
+// user can frame the shot. Separate from the full-quality capture pipeline.
+table WatchPreviewFrame {
+    jpeg: [ubyte];
+    epoch_ms: uint64;     // ordering, mirrors WatchCameraState.state_epoch_ms
+}
+
+// Renumbered pre-release so Unknown = 0 (project convention for all enums).
+enum WatchMessageType : byte {
+    Unknown = 0,
+    WatchCommandMsg = 1,
+    WatchStateMsg = 2,
+    WatchCommandAckMsg = 3,
+    WatchPreviewFrameMsg = 4
+}
+
+table WatchMessage {
+    type: WatchMessageType;
+    command: WatchCommand;
+    state: WatchCameraState;
+    ack: WatchCommandAck;
+    // Appended field only below this line (FlatBuffers schema evolution).
+    preview_frame: WatchPreviewFrame;
+}
+

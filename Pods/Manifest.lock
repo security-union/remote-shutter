@@ -1,26 +1,18 @@
 PODS:
   - FlatBuffers (25.2.10)
-  - Google-Mobile-Ads-SDK (11.13.0):
-    - GoogleUserMessagingPlatform (>= 1.1)
-  - GoogleUserMessagingPlatform (2.7.0)
   - SwiftLint (0.41.0)
 
 DEPENDENCIES:
-  - FlatBuffers (from `https://github.com/google/flatbuffers.git`, tag `v25.2.10`)
-  - Google-Mobile-Ads-SDK (~> 11.0)
-  - GoogleUserMessagingPlatform (~> 2.0)
+  - FlatBuffers (from `LocalPodspecs/FlatBuffers.podspec.json`)
   - SwiftLint (~> 0.41.0)
 
 SPEC REPOS:
   https://github.com/CocoaPods/Specs.git:
-    - Google-Mobile-Ads-SDK
-    - GoogleUserMessagingPlatform
     - SwiftLint
 
 EXTERNAL SOURCES:
   FlatBuffers:
-    :git: https://github.com/google/flatbuffers.git
-    :tag: v25.2.10
+    :podspec: LocalPodspecs/FlatBuffers.podspec.json
 
 CHECKOUT OPTIONS:
   FlatBuffers:
@@ -28,11 +20,9 @@ CHECKOUT OPTIONS:
     :tag: v25.2.10
 
 SPEC CHECKSUMS:
-  FlatBuffers: 59bb5c77a4ead6390a01999e19d48acabac10925
-  Google-Mobile-Ads-SDK: 14f57f2dc33532a24db288897e26494640810407
-  GoogleUserMessagingPlatform: a8b56893477f67212fbc8411c139e61d463349f5
+  FlatBuffers: ea82f0a02f6de2e7b83bf1714bef546cf582254d
   SwiftLint: c585ebd615d9520d7fbdbe151f527977b0534f1e
 
-PODFILE CHECKSUM: 5a96425c38956c97cbb8b5f6e2fe6c6666ba5f73
+PODFILE CHECKSUM: 1f8e130699426ad8fc23414181b8003578462d38
 
 COCOAPODS: 1.16.2

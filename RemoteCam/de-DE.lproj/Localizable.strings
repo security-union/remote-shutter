@@ -321,3 +321,9 @@
 "Remove Ads" = "Werbung entfernen";
 "Enable Torch" = "Taschenlampe aktivieren";
 "Enable Video" = "Video aktivieren";
+
+/* Apple Watch Remote */
+"Watch Remote" = "Watch-Fernbedienung";
+"Control from your wrist" = "Steuerung vom Handgelenk";
+"Watch Connected" = "Watch verbunden";
+"Open Watch App" = "Watch-App öffnen";

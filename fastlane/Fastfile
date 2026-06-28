@@ -67,11 +67,51 @@ platform :ios do
   lane :release do
     load_asc_api_key
     setup_ci
+    # Register the watch app's App ID on the developer portal if it doesn't
+    # exist yet (idempotent). No App Store Connect record is needed — the watch
+    # app ships embedded in the iOS app. Done via Spaceship directly because
+    # `produce` only supports Apple ID password auth, which can't run in CI.
+    watch_bundle_id = "com.blackfireapps.remotecamera.watchkitapp"
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
+      **lane_context[SharedValues::APP_STORE_CONNECT_API_KEY]
+    )
+    watch_app_id_exists = Spaceship::ConnectAPI::BundleId
+      .all(filter: { identifier: watch_bundle_id })
+      .any? { |b| b.identifier == watch_bundle_id }
+    unless watch_app_id_exists
+      UI.message("Registering App ID #{watch_bundle_id}")
+      Spaceship::ConnectAPI::BundleId.create(
+        name: "Remote Shutter Watch",
+        identifier: watch_bundle_id,
+        platform: "IOS"
+      )
+    end
+    # readonly: false so the watch app's appstore profile is generated on first
+    # run if the match repo doesn't have it yet (the App ID must already exist).
     match(
       type: "appstore",
-      app_identifier: "com.blackfireapps.remotecamera",
+      app_identifier: [
+        "com.blackfireapps.remotecamera",
+        "com.blackfireapps.remotecamera.watchkitapp"
+      ],
       git_url: ENV["MATCH_GIT_URL"],
-      readonly: true
+      readonly: false
+    )
+    # Per-target manual signing: a single global PROVISIONING_PROFILE_SPECIFIER
+    # xcarg can't sign both the iOS app and the embedded watch app.
+    update_code_signing_settings(
+      path: "RemoteShutter.xcodeproj",
+      targets: ["RemoteShutter"],
+      use_automatic_signing: false,
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore com.blackfireapps.remotecamera"
+    )
+    update_code_signing_settings(
+      path: "RemoteShutter.xcodeproj",
+      targets: ["RemoteShutterWatch"],
+      use_automatic_signing: false,
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore com.blackfireapps.remotecamera.watchkitapp"
     )
     build_app(
       workspace: "RemoteShutter.xcworkspace",
@@ -80,7 +120,12 @@ platform :ios do
       clean: true,
       output_directory: "./build",
       output_name: "RemoteShutter.ipa",
-      xcargs: "CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='match AppStore com.blackfireapps.remotecamera' CODE_SIGN_IDENTITY='Apple Distribution'"
+      export_options: {
+        provisioningProfiles: {
+          "com.blackfireapps.remotecamera" => "match AppStore com.blackfireapps.remotecamera",
+          "com.blackfireapps.remotecamera.watchkitapp" => "match AppStore com.blackfireapps.remotecamera.watchkitapp"
+        }
+      }
     )
     upload_to_app_store(
       skip_metadata: false,

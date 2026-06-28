@@ -321,3 +321,9 @@
 "Remove Ads" = "移除广告";
 "Enable Torch" = "启用手电筒";
 "Enable Video" = "启用视频";
+
+/* Apple Watch Remote */
+"Watch Remote" = "手表遥控";
+"Control from your wrist" = "从手腕控制";
+"Watch Connected" = "手表已连接";
+"Open Watch App" = "打开手表应用";

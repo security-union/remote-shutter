@@ -7,14 +7,17 @@ platform :ios, '15.0'
 use_frameworks!
 
 target 'RemoteShutter' do
-    pod 'Google-Mobile-Ads-SDK', '~> 11.0'
-    pod 'GoogleUserMessagingPlatform', '~> 2.0'
     pod 'SwiftLint', '~> 0.41.0'
-    pod 'FlatBuffers', :git => 'https://github.com/google/flatbuffers.git', :tag => 'v25.2.10'
+    pod 'FlatBuffers', :podspec => 'LocalPodspecs/FlatBuffers.podspec.json'
 
     target 'RemoteShutterTests' do
         inherit! :search_paths
     end
+end
+
+target 'RemoteShutterWatch' do
+    platform :watchos, '10.0'
+    pod 'FlatBuffers', :podspec => 'LocalPodspecs/FlatBuffers.podspec.json'
 end
 
 post_install do |installer|

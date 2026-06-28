@@ -2,7 +2,7 @@
   "name": "FlatBuffers",
   "version": "25.2.10",
   "summary": "FlatBuffers: Memory Efficient Serialization Library",
-  "description": "FlatBuffers is a cross platform serialization library architected for\n  maximum memory efficiency. It allows you to directly access serialized\n  data without parsing/unpacking it first, while still having great \n  forwards/backwards compatibility.",
+  "description": "FlatBuffers is a cross platform serialization library architected for maximum memory efficiency.",
   "homepage": "https://github.com/google/flatbuffers",
   "license": {
     "type": "Apache2.0",
@@ -18,7 +18,8 @@
   },
   "platforms": {
     "ios": "11.0",
-    "osx": "10.14"
+    "osx": "10.14",
+    "watchos": "7.0"
   },
   "swift_versions": "5.0",
   "source_files": "swift/Sources/Flatbuffers/*.swift",

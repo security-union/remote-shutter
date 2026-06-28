@@ -1538,4 +1538,44 @@ class RemoteCamSessionTests: XCTestCase {
         XCTAssertEqual(ratioMessages.count, 1)
     }
 
+    // MARK: - Watch Remote Crash Guard (nil multipeerService)
+
+    /// In Watch Remote mode no multipeer session ever exists. Commands that fall
+    /// through to the root receive must not crash on the nil service, must not
+    /// pop to scanning, and must not surface a "Connection error" alert.
+    func testRootReceiveCommandsWithNilMultipeerServiceDoNotCrash() throws {
+        session.multipeerService = nil
+
+        ref ! RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false)
+        ref ! RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false)
+        ref ! RemoteCmd.SetZoom(zoomFactor: 2.0)
+        ref ! RemoteCmd.StartRecordingVideo(sender: nil)
+        ref ! RemoteCmd.StopRecordingVideo(sender: nil)
+        ref ! RemoteCmd.ToggleFlash()
+        waitForMailbox(session, test: self)
+
+        XCTAssertNil(session.currentStateName(), "root state must be untouched")
+        XCTAssertTrue(fakeAlerts.shownErrors.isEmpty,
+                      "nil multipeer service must not surface a connection error")
+    }
+
+    func testRootReceiveCommandsWithNilMultipeerServiceKeepPushedState() throws {
+        session.multipeerService = nil
+        let inert: Receive = { [weak self] _ in _ = self }
+        session.become(name: .watchRemoteCamera, state: inert)
+        waitForMailbox(session, test: self)
+
+        // Simulate the wedged-substate scenario: commands the state doesn't
+        // handle would previously crash or pop the watch state to scanning.
+        // Run on the mailbox — sendCommandOrGoToScanning asserts off-main.
+        session.mailbox.addOperation { [session] in
+            session!.sendCommandOrGoToScanning(
+                peer: [], msg: RemoteCmd.TakePicResp(sender: nil, pic: nil, error: nil))
+        }
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        XCTAssertTrue(fakeAlerts.shownErrors.isEmpty)
+    }
+
 }

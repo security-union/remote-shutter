@@ -61,7 +61,11 @@ public class CameraViewController: UIViewController,
     var currentHDRMode: HDRMode = .off
     let session: ActorRef = getRemoteCamSession()!
     let frameSender: ActorRef = getFrameSender()!
-    
+
+    /// When true, this camera is controlled by an Apple Watch via WCSession.
+    /// Suppresses MultipeerConnectivity-related actor messages (BecomeCamera/UnbecomeCamera).
+    var isWatchRemoteMode = false
+
     // MARK: - Zoom and Lens Properties
     private var currentZoomFactor: CGFloat = 1.0
     private var currentLensType: CameraLensType = .wideAngle
@@ -75,6 +79,9 @@ public class CameraViewController: UIViewController,
     // MARK: - Aspect Ratio
     var currentAspectRatio: AspectRatio = .sixteenNine
     let videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
+    /// Dedicated context for the tiny Apple Watch preview, kept off the recording
+    /// crop context to avoid cross-queue contention.
+    private let watchPreviewContext = CIContext(options: [.useSoftwareRenderer: false])
     var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
     
@@ -129,7 +136,9 @@ public class CameraViewController: UIViewController,
     override public func viewDidLoad() {
         super.viewDidLoad()
         recordingView.image = UIImage.gifImageWithName("recording")
-        session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
+        if !isWatchRemoteMode {
+            session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
+        }
         configureIdleMode()
         setupRecordingTimerOverlay()
         setupProgressOverlay()
@@ -275,7 +284,9 @@ public class CameraViewController: UIViewController,
                     self?.captureSession.stopRunning()
                 }
             }
-            session ! UICmd.UnbecomeCamera(sender: nil)
+            if !isWatchRemoteMode {
+                session ! UICmd.UnbecomeCamera(sender: nil)
+            }
         }
     }
 
@@ -929,6 +940,15 @@ public class CameraViewController: UIViewController,
         return currentLensType
     }
 
+    func getZoomStops() -> [CGFloat] {
+        return zoomStops
+    }
+
+    func getWideAngleZoomFactor() -> CGFloat {
+        guard let device = videoDeviceInput?.device else { return 1.0 }
+        return wideAngleZoomFactor(for: device)
+    }
+
     private func rotateCameraToOrientation(orientation: UIInterfaceOrientation) {
         let o = OrientationUtils.transform(o: orientation)
         if let preview = self.captureVideoPreviewLayer {
@@ -1350,6 +1370,17 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         if !sendFrame {
             return
         }
+
+        // Watch Remote mode has no MultipeerConnectivity peer — the iPhone is the
+        // camera and the only consumer is the Apple Watch. Stream a tiny, heavily
+        // downscaled preview over WCSession instead of a full-res peer frame.
+        if isWatchRemoteMode {
+            if let jpeg = watchPreviewJPEG(from: sampleBuffer) {
+                WatchSessionManager.shared.pushPreviewFrame(jpeg: jpeg)
+            }
+            return
+        }
+
         if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
            let imageData = cgBackedImage.jpegData(compressionQuality: 0.1),
            let device = self.videoDeviceInput?.device {
@@ -1359,6 +1390,21 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                     camPosition: device.position,
                     camOrientation: self.orientation)
         }
+    }
+
+    /// Builds a compact JPEG of the current frame for the Apple Watch live preview:
+    /// long edge ~320 px (matching the Watch screen width) at quality 0.55, ~10-20 KB
+    /// per frame. The sample buffer is already oriented by
+    /// `videoConnection.videoOrientation`, so it renders upright.
+    private func watchPreviewJPEG(from sampleBuffer: CMSampleBuffer) -> Data? {
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let longEdge = max(ciImage.extent.width, ciImage.extent.height)
+        guard longEdge > 0 else { return nil }
+        let scale = min(1.0, 320.0 / longEdge)
+        let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        guard let cgImage = watchPreviewContext.createCGImage(scaled, from: scaled.extent) else { return nil }
+        return UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.55)
     }
 
     func saveMovieToPhotosAppAndRemotePeer(_ sendVideoToPeer:Bool) {

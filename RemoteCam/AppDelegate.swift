@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import GoogleMobileAds
 import Photos
 
 @UIApplicationMain
@@ -16,11 +15,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         Task { await StoreManager.shared.loadProducts() }
-        if !StoreManager.shared.hasAdRemovalFeature() {
-            GADMobileAds.sharedInstance().start(completionHandler: nil)
-        }
 
         UIApplication.shared.isIdleTimerDisabled = true
+        WatchSessionManager.shared.activate()
 
         let window = UIWindow(frame: UIScreen.main.bounds)
         let navController = UINavigationController(rootViewController: WelcomeViewController())

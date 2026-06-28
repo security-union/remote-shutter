@@ -1,0 +1,30 @@
+{
+  "name": "FlatBuffers",
+  "version": "25.2.10",
+  "summary": "FlatBuffers: Memory Efficient Serialization Library",
+  "description": "TODO: Delete this file once upstream FlatBuffers podspec adds watchOS support. This is a local copy that only adds watchos to the platforms field. Track: https://github.com/google/flatbuffers",
+  "homepage": "https://github.com/google/flatbuffers",
+  "license": {
+    "type": "Apache2.0",
+    "file": "LICENSE"
+  },
+  "authors": {
+    "mustii": "me@mustiikhalil.se"
+  },
+  "source": {
+    "git": "https://github.com/google/flatbuffers.git",
+    "tag": "v25.2.10",
+    "submodules": true
+  },
+  "platforms": {
+    "ios": "11.0",
+    "osx": "10.14",
+    "watchos": "7.0"
+  },
+  "swift_versions": "5.0",
+  "source_files": "swift/Sources/Flatbuffers/*.swift",
+  "pod_target_xcconfig": {
+    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
+  },
+  "swift_version": "5.0"
+}
