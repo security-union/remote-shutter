@@ -122,6 +122,33 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         pushCameraState(snapshot)
     }
 
+    // MARK: - Live Preview Streaming
+
+    /// Throttle timestamp for the preview stream. Touched only from the camera's
+    /// serial `videoDataOutputQueue` (its sole caller), so it has a single owner and
+    /// needs no synchronization — the same property the peer `FrameSender` actor gets
+    /// from its mailbox. No cross-thread reply callback, so no lock.
+    private var lastPreviewSent: Date = .distantPast
+    private let minPreviewInterval: TimeInterval = 0.1  // cap ~10 fps
+
+    /// Streams a tiny preview JPEG to the Watch on the live channel only. Never uses
+    /// `updateApplicationContext` — that durable, coalesced mirror is reserved for
+    /// camera state and would fight the stream. Fire-and-forget and best-effort, like
+    /// the peer `.unreliable` frame path: a dropped frame just means the next one wins.
+    func pushPreviewFrame(jpeg: Data) {
+        guard let session = wcSession, session.isReachable else { return }
+
+        let now = Date()
+        guard now.timeIntervalSince(lastPreviewSent) >= minPreviewInterval else { return }
+        lastPreviewSent = now
+
+        let epochMs = UInt64(now.timeIntervalSince1970 * 1000)
+        let data = WatchPreviewFrameEncoder.encode(jpeg: jpeg, epochMs: epochMs)
+        session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
+            debugLog("WatchSessionManager: Failed to push preview frame: \(error)")
+        })
+    }
+
     // MARK: - WCSessionDelegate — Activation
 
     func session(_ session: WCSession,

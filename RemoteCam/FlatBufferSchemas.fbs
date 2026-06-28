@@ -281,12 +281,20 @@ table WatchCommandAck {
     detail: string;
 }
 
+// Low-res, heavily-compressed live preview frame streamed iPhone -> Watch so the
+// user can frame the shot. Separate from the full-quality capture pipeline.
+table WatchPreviewFrame {
+    jpeg: [ubyte];
+    epoch_ms: uint64;     // ordering, mirrors WatchCameraState.state_epoch_ms
+}
+
 // Renumbered pre-release so Unknown = 0 (project convention for all enums).
 enum WatchMessageType : byte {
     Unknown = 0,
     WatchCommandMsg = 1,
     WatchStateMsg = 2,
-    WatchCommandAckMsg = 3
+    WatchCommandAckMsg = 3,
+    WatchPreviewFrameMsg = 4
 }
 
 table WatchMessage {
@@ -294,5 +302,7 @@ table WatchMessage {
     command: WatchCommand;
     state: WatchCameraState;
     ack: WatchCommandAck;
+    // Appended field only below this line (FlatBuffers schema evolution).
+    preview_frame: WatchPreviewFrame;
 }
 

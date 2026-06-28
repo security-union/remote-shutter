@@ -223,8 +223,9 @@ public enum RemoteShutter_WatchMessageType: Int8, Enum, Verifiable {
   case watchcommandmsg = 1
   case watchstatemsg = 2
   case watchcommandackmsg = 3
+  case watchpreviewframemsg = 4
 
-  public static var max: RemoteShutter_WatchMessageType { return .watchcommandackmsg }
+  public static var max: RemoteShutter_WatchMessageType { return .watchpreviewframemsg }
   public static var min: RemoteShutter_WatchMessageType { return .unknown }
 }
 
@@ -1302,6 +1303,52 @@ public struct RemoteShutter_WatchCommandAck: FlatBufferObject, Verifiable {
   }
 }
 
+public struct RemoteShutter_WatchPreviewFrame: FlatBufferObject, Verifiable {
+
+  static func validateVersion() { FlatBuffersVersion_25_2_10() }
+  public var __buffer: ByteBuffer! { return _accessor.bb }
+  private var _accessor: Table
+
+  public static var id: String { "RCAM" } 
+  public static func finish(_ fbb: inout FlatBufferBuilder, end: Offset, prefix: Bool = false) { fbb.finish(offset: end, fileId: RemoteShutter_WatchPreviewFrame.id, addPrefix: prefix) }
+  private init(_ t: Table) { _accessor = t }
+  public init(_ bb: ByteBuffer, o: Int32) { _accessor = Table(bb: bb, position: o) }
+
+  private enum VTOFFSET: VOffset {
+    case jpeg = 4
+    case epochMs = 6
+    var v: Int32 { Int32(self.rawValue) }
+    var p: VOffset { self.rawValue }
+  }
+
+  public var hasJpeg: Bool { let o = _accessor.offset(VTOFFSET.jpeg.v); return o == 0 ? false : true }
+  public var jpegCount: Int32 { let o = _accessor.offset(VTOFFSET.jpeg.v); return o == 0 ? 0 : _accessor.vector(count: o) }
+  public func jpeg(at index: Int32) -> UInt8 { let o = _accessor.offset(VTOFFSET.jpeg.v); return o == 0 ? 0 : _accessor.directRead(of: UInt8.self, offset: _accessor.vector(at: o) + index * 1) }
+  public var jpeg: [UInt8] { return _accessor.getVector(at: VTOFFSET.jpeg.v) ?? [] }
+  public var epochMs: UInt64 { let o = _accessor.offset(VTOFFSET.epochMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
+  public static func startWatchPreviewFrame(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 2) }
+  public static func addVectorOf(jpeg: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: jpeg, at: VTOFFSET.jpeg.p) }
+  public static func add(epochMs: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: epochMs, def: 0, at: VTOFFSET.epochMs.p) }
+  public static func endWatchPreviewFrame(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
+  public static func createWatchPreviewFrame(
+    _ fbb: inout FlatBufferBuilder,
+    jpegVectorOffset jpeg: Offset = Offset(),
+    epochMs: UInt64 = 0
+  ) -> Offset {
+    let __start = RemoteShutter_WatchPreviewFrame.startWatchPreviewFrame(&fbb)
+    RemoteShutter_WatchPreviewFrame.addVectorOf(jpeg: jpeg, &fbb)
+    RemoteShutter_WatchPreviewFrame.add(epochMs: epochMs, &fbb)
+    return RemoteShutter_WatchPreviewFrame.endWatchPreviewFrame(&fbb, start: __start)
+  }
+
+  public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
+    var _v = try verifier.visitTable(at: position)
+    try _v.visit(field: VTOFFSET.jpeg.p, fieldName: "jpeg", required: false, type: ForwardOffset<Vector<UInt8, UInt8>>.self)
+    try _v.visit(field: VTOFFSET.epochMs.p, fieldName: "epochMs", required: false, type: UInt64.self)
+    _v.finish()
+  }
+}
+
 public struct RemoteShutter_WatchMessage: FlatBufferObject, Verifiable {
 
   static func validateVersion() { FlatBuffersVersion_25_2_10() }
@@ -1318,6 +1365,7 @@ public struct RemoteShutter_WatchMessage: FlatBufferObject, Verifiable {
     case command = 6
     case state = 8
     case ack = 10
+    case previewFrame = 12
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1326,24 +1374,28 @@ public struct RemoteShutter_WatchMessage: FlatBufferObject, Verifiable {
   public var command: RemoteShutter_WatchCommand? { let o = _accessor.offset(VTOFFSET.command.v); return o == 0 ? nil : RemoteShutter_WatchCommand(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
   public var state: RemoteShutter_WatchCameraState? { let o = _accessor.offset(VTOFFSET.state.v); return o == 0 ? nil : RemoteShutter_WatchCameraState(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
   public var ack: RemoteShutter_WatchCommandAck? { let o = _accessor.offset(VTOFFSET.ack.v); return o == 0 ? nil : RemoteShutter_WatchCommandAck(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
-  public static func startWatchMessage(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 4) }
+  public var previewFrame: RemoteShutter_WatchPreviewFrame? { let o = _accessor.offset(VTOFFSET.previewFrame.v); return o == 0 ? nil : RemoteShutter_WatchPreviewFrame(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
+  public static func startWatchMessage(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 5) }
   public static func add(type: RemoteShutter_WatchMessageType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: type.rawValue, def: 0, at: VTOFFSET.type.p) }
   public static func add(command: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: command, at: VTOFFSET.command.p) }
   public static func add(state: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: state, at: VTOFFSET.state.p) }
   public static func add(ack: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: ack, at: VTOFFSET.ack.p) }
+  public static func add(previewFrame: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: previewFrame, at: VTOFFSET.previewFrame.p) }
   public static func endWatchMessage(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createWatchMessage(
     _ fbb: inout FlatBufferBuilder,
     type: RemoteShutter_WatchMessageType = .unknown,
     commandOffset command: Offset = Offset(),
     stateOffset state: Offset = Offset(),
-    ackOffset ack: Offset = Offset()
+    ackOffset ack: Offset = Offset(),
+    previewFrameOffset previewFrame: Offset = Offset()
   ) -> Offset {
     let __start = RemoteShutter_WatchMessage.startWatchMessage(&fbb)
     RemoteShutter_WatchMessage.add(type: type, &fbb)
     RemoteShutter_WatchMessage.add(command: command, &fbb)
     RemoteShutter_WatchMessage.add(state: state, &fbb)
     RemoteShutter_WatchMessage.add(ack: ack, &fbb)
+    RemoteShutter_WatchMessage.add(previewFrame: previewFrame, &fbb)
     return RemoteShutter_WatchMessage.endWatchMessage(&fbb, start: __start)
   }
 
@@ -1353,6 +1405,7 @@ public struct RemoteShutter_WatchMessage: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.command.p, fieldName: "command", required: false, type: ForwardOffset<RemoteShutter_WatchCommand>.self)
     try _v.visit(field: VTOFFSET.state.p, fieldName: "state", required: false, type: ForwardOffset<RemoteShutter_WatchCameraState>.self)
     try _v.visit(field: VTOFFSET.ack.p, fieldName: "ack", required: false, type: ForwardOffset<RemoteShutter_WatchCommandAck>.self)
+    try _v.visit(field: VTOFFSET.previewFrame.p, fieldName: "previewFrame", required: false, type: ForwardOffset<RemoteShutter_WatchPreviewFrame>.self)
     _v.finish()
   }
 }
