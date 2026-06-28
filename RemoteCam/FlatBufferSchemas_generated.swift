@@ -194,8 +194,9 @@ public enum RemoteShutter_WatchCommandAction: Int8, Enum, Verifiable {
   case togglecamera = 8
   case requeststate = 9
   case setmode = 10
+  case canceltimer = 11
 
-  public static var max: RemoteShutter_WatchCommandAction { return .setmode }
+  public static var max: RemoteShutter_WatchCommandAction { return .canceltimer }
   public static var min: RemoteShutter_WatchCommandAction { return .unknown }
 }
 

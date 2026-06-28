@@ -61,6 +61,12 @@ struct WatchControlView: View {
                     eventConfirmationView(event: event)
                 }
             }
+            // Self-timer countdown overlay (steady count + cancel)
+            .overlay {
+                if let remaining = viewModel.countdownRemaining {
+                    countdownOverlay(remaining: remaining)
+                }
+            }
         }
     }
 
@@ -348,6 +354,37 @@ struct WatchControlView: View {
         }
     }
 
+    // MARK: - Self-Timer Countdown
+
+    @ViewBuilder
+    private func countdownOverlay(remaining: Int) -> some View {
+        VStack(spacing: 10) {
+            Text("\(remaining)")
+                .font(.system(size: 48, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundColor(.white)
+
+            Button(action: {
+                viewModel.cancelTimer { session.cancelTimer() }
+            }) {
+                Text("Cancel")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 6)
+                    .background(Color.red.opacity(0.85))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Cancel timer")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.6).ignoresSafeArea())
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Self timer, \(remaining) seconds remaining")
+    }
+
     // MARK: - Event Confirmation
 
     @ViewBuilder
@@ -369,7 +406,6 @@ struct WatchControlView: View {
     }
 
     private func iconForEvent(_ event: String) -> String {
-        if event.hasPrefix("countdown:") { return "timer" }
         switch event {
         case "photoTaken": return "checkmark.circle.fill"
         case "recordingStarted": return "record.circle"
@@ -382,7 +418,6 @@ struct WatchControlView: View {
     }
 
     private func colorForEvent(_ event: String) -> Color {
-        if event.hasPrefix("countdown:") { return .orange }
         switch event {
         case "photoError", "microphoneDenied", "recordingFailed", "sendFailed": return .red
         case "recordingStarted": return .red
@@ -392,9 +427,6 @@ struct WatchControlView: View {
     }
 
     private func textForEvent(_ event: String) -> String {
-        if let seconds = event.split(separator: ":").last, event.hasPrefix("countdown:") {
-            return "\(seconds)s"
-        }
         switch event {
         case "photoTaken": return "Photo Saved"
         case "recordingStarted": return "Recording"

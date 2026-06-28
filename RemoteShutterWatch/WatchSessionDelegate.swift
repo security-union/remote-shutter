@@ -235,4 +235,5 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     func toggleFlash() { sendCommand(action: .toggleflash) }
     func toggleTorch() { sendCommand(action: .toggletorch) }
     func toggleCamera() { sendCommand(action: .togglecamera) }
+    func cancelTimer() { sendCommand(action: .canceltimer) }
 }

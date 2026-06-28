@@ -250,6 +250,12 @@ public class WatchRemoteCameraController: UIViewController {
         case .requeststate:
             session ! RemoteCmd.RequestCameraCapabilities()
 
+        case .canceltimer:
+            // Stop the pending capture and tear down the on-phone countdown overlay
+            // and strobe torch (value < 0 == cancelled).
+            cancelCountdown()
+            cameraVC.updateTimerCountdown(value: -1)
+
         case .unknown:
             debugLog("WatchRemoteCameraController: Unknown watch command")
         }
