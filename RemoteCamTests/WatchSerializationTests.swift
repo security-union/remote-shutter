@@ -161,6 +161,36 @@ final class WatchSerializationTests: XCTestCase {
         XCTAssertNil(WatchStateEncoder.decode(WatchAckEncoder.encode(status: .ok)))
     }
 
+    // MARK: - Live Preview Frame (iPhone -> Watch)
+
+    func testPreviewFrameRoundTripPreservesJPEGAndEpoch() throws {
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46])
+        let data = WatchPreviewFrameEncoder.encode(jpeg: jpeg, epochMs: 1_765_000_000_999)
+        let decoded = try XCTUnwrap(WatchPreviewFrameEncoder.decode(data), "preview frame should decode")
+        XCTAssertEqual(decoded.jpeg, jpeg)
+        XCTAssertEqual(decoded.epochMs, 1_765_000_000_999)
+    }
+
+    func testPreviewFrameRoundTripEmptyJPEG() throws {
+        let decoded = try XCTUnwrap(WatchPreviewFrameEncoder.decode(
+            WatchPreviewFrameEncoder.encode(jpeg: Data(), epochMs: 0)))
+        XCTAssertTrue(decoded.jpeg.isEmpty)
+        XCTAssertEqual(decoded.epochMs, 0)
+    }
+
+    /// A preview frame must not decode as state/ack/command, and vice-versa — the
+    /// Watch routes a single live channel purely by message type.
+    func testPreviewFrameCrossTypeDecodingIsRejected() {
+        let preview = WatchPreviewFrameEncoder.encode(jpeg: Data([0x01, 0x02]), epochMs: 1)
+        XCTAssertNil(WatchStateEncoder.decode(preview))
+        XCTAssertNil(WatchCommandEncoder.decode(preview))
+        XCTAssertNil(WatchAckEncoder.decode(preview))
+
+        XCTAssertNil(WatchPreviewFrameEncoder.decode(WatchStateEncoder.encode(WatchCameraStateSnapshot())))
+        XCTAssertNil(WatchPreviewFrameEncoder.decode(WatchCommandEncoder.encode(action: .takepicture)))
+        XCTAssertNil(WatchPreviewFrameEncoder.decode(WatchAckEncoder.encode(status: .ok)))
+    }
+
     // MARK: - Connection Phase Derivation
 
     func testPhaseDerivation() {

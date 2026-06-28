@@ -11,6 +11,7 @@
 //
 
 import Foundation
+import UIKit
 import WatchConnectivity
 import FlatBuffers
 
@@ -123,6 +124,16 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - Receiving State from iPhone
 
     func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
+        // Live preview frames share this channel with state; route by message type.
+        // Decode the tiny JPEG here (off the main thread) before handing it over.
+        if let frame = WatchPreviewFrameEncoder.decode(messageData) {
+            guard let image = UIImage(data: frame.jpeg) else { return }
+            DispatchQueue.main.async { [weak self] in
+                self?.viewModel.updatePreview(image: image, epochMs: frame.epochMs)
+            }
+            return
+        }
+
         print("WatchSession: received \(messageData.count) bytes")
         guard let state = WatchStateEncoder.decode(messageData) else {
             print("WatchSession: failed to decode camera state (\(messageData.count) bytes) — ignoring")

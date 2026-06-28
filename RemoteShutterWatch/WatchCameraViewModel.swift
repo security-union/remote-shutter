@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 import SwiftUI
 import WatchKit
 import FlatBuffers
@@ -53,6 +54,27 @@ class WatchCameraViewModel: ObservableObject {
     @Published var isTorchEnabled = false
     @Published var zoomStops: [Double] = [1.0]
     @Published var wideAngleZoomFactor: Double = 1.0
+
+    // MARK: - Live Preview
+
+    /// Latest preview frame, rendered behind the controls. `nil` falls back to the
+    /// solid background (e.g. before the first frame, or once disconnected).
+    @Published var previewImage: UIImage?
+    /// Epoch of the newest preview applied — drops out-of-order frame deliveries.
+    private var lastPreviewEpochMs: UInt64 = 0
+
+    /// Applies a freshly-decoded preview frame, ignoring stale (out-of-order) ones.
+    func updatePreview(image: UIImage, epochMs: UInt64) {
+        if epochMs != 0 && lastPreviewEpochMs != 0 && epochMs <= lastPreviewEpochMs { return }
+        lastPreviewEpochMs = max(lastPreviewEpochMs, epochMs)
+        previewImage = image
+    }
+
+    /// Drops the preview so a stale frame can't linger over a not-connected screen.
+    private func clearPreview() {
+        previewImage = nil
+        lastPreviewEpochMs = 0
+    }
 
     // MARK: - Timer Setting (persisted)
 
@@ -165,6 +187,7 @@ class WatchCameraViewModel: ObservableObject {
         }
 
         isReady = state.isReady
+        if !state.isReady { clearPreview() }
         currentZoomFactor = state.currentZoomFactor
         minZoomFactor = state.minZoomFactor
         maxZoomFactor = state.maxZoomFactor

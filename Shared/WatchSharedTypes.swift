@@ -195,6 +195,41 @@ struct WatchAckEncoder {
     }
 }
 
+// MARK: - Live Preview Frame (iPhone -> Watch)
+
+/// Low-res, heavily-compressed JPEG of the live camera feed so the Watch user can
+/// frame the shot. Streamed on the live WCSession channel only (never the durable
+/// applicationContext mirror). Entirely separate from the full-quality capture path.
+struct WatchPreviewFrameEncoder {
+
+    static func encode(jpeg: Data, epochMs: UInt64) -> Data {
+        var fbb = FlatBufferBuilder()
+        let jpegVec = fbb.createVector(bytes: jpeg)
+        let frame = RemoteShutter_WatchPreviewFrame.createWatchPreviewFrame(
+            &fbb,
+            jpegVectorOffset: jpegVec,
+            epochMs: epochMs
+        )
+        let msg = RemoteShutter_WatchMessage.createWatchMessage(
+            &fbb,
+            type: .watchpreviewframemsg,
+            previewFrameOffset: frame
+        )
+        fbb.finish(offset: msg)
+        return fbb.data
+    }
+
+    static func decode(_ data: Data) -> (jpeg: Data, epochMs: UInt64)? {
+        let bytes = [UInt8](data)
+        var buffer = ByteBuffer(bytes: bytes)
+        guard let msg: RemoteShutter_WatchMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
+            return nil
+        }
+        guard msg.type == .watchpreviewframemsg, let frame = msg.previewFrame else { return nil }
+        return (Data(frame.jpeg), frame.epochMs)
+    }
+}
+
 // MARK: - Zoom Send Throttle
 
 /// Leading + trailing-edge throttle for crown zoom commands. The leading edge

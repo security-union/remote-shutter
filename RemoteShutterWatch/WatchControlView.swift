@@ -5,6 +5,10 @@
 //  Main Watch remote control UI. Crown is always locked to zoom.
 //  No ScrollView — fixed layout so Digital Crown never gets stolen.
 //
+//  Collapsed by default: just the live preview, the shutter, and a settings
+//  button. Tapping settings reveals the full control stack in place (zoom, lens,
+//  flash/torch, camera flip, photo/video mode, timer) over the same screen.
+//
 
 import SwiftUI
 
@@ -12,137 +16,121 @@ struct WatchControlView: View {
     @EnvironmentObject var viewModel: WatchCameraViewModel
     @EnvironmentObject var session: WatchSessionDelegate
 
+    /// Whether the secondary controls are revealed over the preview.
+    @State private var showControls = false
+
+    /// Drives focus onto the crown-rotation view. Without an explicitly focused
+    /// view, watchOS logs "Crown Sequencer was set up without a view property"
+    /// and the crown indicator can't track state.
+    @FocusState private var isCrownFocused: Bool
+
     var body: some View {
-        VStack(spacing: 6) {
-            // MARK: - Status + Zoom Label
-            HStack {
-                Circle()
-                    .fill(Color.green)
-                    .frame(width: 8, height: 8)
-                    .accessibilityLabel("Connected")
+        ZStack {
+            previewBackground
+            VStack(spacing: 6) {
+                statusRow
+                Spacer(minLength: 0)
+                if showControls {
+                    expandedControls
+                } else {
+                    collapsedControls
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 4)
+            .navigationBarTitleDisplayMode(.inline)
+            // Crown ALWAYS controls zoom — no ScrollView to steal it
+            .focusable()
+            .focused($isCrownFocused)
+            .digitalCrownRotation(
+                $viewModel.crownRawValue,
+                from: 0.0,
+                through: 50.0,
+                sensitivity: .medium,
+                isContinuous: false,
+                isHapticFeedbackEnabled: true
+            )
+            .onChange(of: viewModel.crownRawValue) {
+                let zoom = viewModel.zoomFromCrown(viewModel.crownRawValue)
+                viewModel.zoomChanged(zoom) { session.setZoom($0) }
+            }
+            .onAppear { isCrownFocused = true }
+            // Event confirmation overlay
+            .overlay {
+                if viewModel.showEventConfirmation, let event = viewModel.lastEvent {
+                    eventConfirmationView(event: event)
+                }
+            }
+        }
+    }
+
+    // MARK: - Status + Zoom Label
+
+    private var statusRow: some View {
+        HStack {
+            Circle()
+                .fill(Color.green)
+                .frame(width: 8, height: 8)
+                .accessibilityLabel("Connected")
+            // Zoom readout only matters when the zoom controls are on screen.
+            if showControls {
                 Text(viewModel.displayZoom)
                     .font(.title3)
                     .fontWeight(.semibold)
                     .monospacedDigit()
                     .accessibilityLabel("Zoom \(viewModel.displayZoom)")
-                Spacer()
-                if viewModel.isRecording {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 8, height: 8)
-                    Text("REC")
-                        .font(.caption2)
-                        .foregroundColor(.red)
-                        .accessibilityLabel("Recording in progress")
-                }
             }
-            .padding(.horizontal, 4)
+            Spacer()
+            if viewModel.isRecording {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 8, height: 8)
+                Text("REC")
+                    .font(.caption2)
+                    .foregroundColor(.red)
+                    .accessibilityLabel("Recording in progress")
+            }
+        }
+        .padding(.horizontal, 4)
+    }
 
-            // MARK: - Zoom Slider (synced with crown)
-            Slider(
-                value: Binding(
-                    get: { viewModel.crownZoomValue },
-                    set: { newValue in
-                        viewModel.zoomChanged(newValue) { session.setZoom($0) }
-                    }
-                ),
-                in: viewModel.minZoomFactor...max(viewModel.minZoomFactor + 0.1, viewModel.clampedMaxZoom)
-            )
-            .tint(.green)
-            .accessibilityLabel("Zoom")
-            .accessibilityValue(viewModel.displayZoom)
+    // MARK: - Collapsed (shutter + settings only)
 
-            // MARK: - Lens Buttons
+    private var collapsedControls: some View {
+        HStack(spacing: 24) {
+            shutterButton
+
+            Button(action: { showControls = true }) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.title3)
+                    .foregroundColor(.white)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Show controls")
+        }
+    }
+
+    // MARK: - Expanded (full control stack)
+
+    private var expandedControls: some View {
+        VStack(spacing: 6) {
+            zoomSlider
+
             if viewModel.availableLensTypes.count > 1 {
-                HStack(spacing: 6) {
-                    ForEach(viewModel.availableLensTypes, id: \.rawValue) { lens in
-                        Button(action: {
-                            session.switchLens(lens)
-                        }) {
-                            Text(lens.displayName)
-                                .font(.caption2)
-                                .fontWeight(lens == viewModel.currentLensType ? .bold : .regular)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    lens == viewModel.currentLensType
-                                        ? Color.green.opacity(0.3)
-                                        : Color.gray.opacity(0.3)
-                                )
-                                .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("\(lens.displayName) lens")
-                        .accessibilityAddTraits(lens == viewModel.currentLensType ? .isSelected : [])
-                    }
-                }
+                lensRow
             }
 
-            // MARK: - Shutter + Controls Row
+            // Flash (photo only) · torch · shutter · camera flip
             HStack(spacing: 12) {
-                // Flash (photo mode) / Torch (video mode)
-                Button(action: {
-                    if viewModel.isPhotoMode {
-                        session.toggleFlash()
-                    } else {
-                        session.toggleTorch()
-                    }
-                }) {
-                    Image(systemName: flashTorchIcon)
-                        .font(.title3)
-                        .foregroundColor(flashTorchColor)
+                if viewModel.isPhotoMode {
+                    flashButton
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(flashTorchAccessibilityLabel)
-
-                // Shutter button
-                Button(action: {
-                    if viewModel.isVideoMode {
-                        if viewModel.isRecording {
-                            session.stopRecording()
-                        } else {
-                            session.startRecording(timerSeconds: viewModel.timerSeconds)
-                        }
-                    } else {
-                        session.takePicture(timerSeconds: viewModel.timerSeconds)
-                    }
-                }) {
-                    ZStack {
-                        Circle()
-                            .strokeBorder(Color.white, lineWidth: 3)
-                            .frame(width: 50, height: 50)
-
-                        if viewModel.isVideoMode {
-                            if viewModel.isRecording {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.red)
-                                    .frame(width: 18, height: 18)
-                            } else {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 38, height: 38)
-                            }
-                        } else {
-                            Circle()
-                                .fill(Color.white)
-                                .frame(width: 38, height: 38)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(shutterAccessibilityLabel)
-
-                // Camera flip (front/back)
-                Button(action: { session.toggleCamera() }) {
-                    Image(systemName: "arrow.triangle.2.circlepath.camera")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Switch front and back camera")
+                torchButton
+                shutterButton
+                cameraFlipButton
             }
 
-            // Photo/video mode toggle + timer indicator (tappable → settings)
+            // Photo/video mode · timer/settings
             HStack(spacing: 12) {
                 modeToggle
 
@@ -162,28 +150,158 @@ struct WatchControlView: View {
                     ? "Timer \(viewModel.timerSeconds) seconds, open settings"
                     : "Settings")
             }
-        }
-        .padding(.horizontal, 4)
-        .navigationBarTitleDisplayMode(.inline)
-        // Crown ALWAYS controls zoom — no ScrollView to steal it
-        .focusable()
-        .digitalCrownRotation(
-            $viewModel.crownRawValue,
-            from: 0.0,
-            through: 50.0,
-            sensitivity: .medium,
-            isContinuous: false,
-            isHapticFeedbackEnabled: true
-        )
-        .onChange(of: viewModel.crownRawValue) {
-            let zoom = viewModel.zoomFromCrown(viewModel.crownRawValue)
-            viewModel.zoomChanged(zoom) { session.setZoom($0) }
-        }
-        // Event confirmation overlay
-        .overlay {
-            if viewModel.showEventConfirmation, let event = viewModel.lastEvent {
-                eventConfirmationView(event: event)
+
+            // Full-width hide affordance — large tap target back to the preview.
+            Button(action: { showControls = false }) {
+                Image(systemName: "chevron.down")
+                    .font(.body)
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Hide controls")
+        }
+    }
+
+    // MARK: - Zoom Slider (synced with crown)
+
+    private var zoomRange: ClosedRange<Double> {
+        let upper = max(viewModel.minZoomFactor + 0.1, viewModel.clampedMaxZoom)
+        return viewModel.minZoomFactor...upper
+    }
+
+    private var zoomSlider: some View {
+        Slider(
+            value: Binding(
+                get: { viewModel.crownZoomValue },
+                set: { newValue in
+                    viewModel.zoomChanged(newValue) { session.setZoom($0) }
+                }
+            ),
+            in: zoomRange
+        )
+        .tint(.green)
+        .accessibilityLabel("Zoom")
+        .accessibilityValue(viewModel.displayZoom)
+    }
+
+    // MARK: - Lens Buttons
+
+    private var lensRow: some View {
+        HStack(spacing: 6) {
+            ForEach(viewModel.availableLensTypes, id: \.rawValue) { lens in
+                Button(action: {
+                    session.switchLens(lens)
+                }) {
+                    Text(lens.displayName)
+                        .font(.caption2)
+                        .fontWeight(lens == viewModel.currentLensType ? .bold : .regular)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            lens == viewModel.currentLensType
+                                ? Color.green.opacity(0.3)
+                                : Color.gray.opacity(0.3)
+                        )
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(lens.displayName) lens")
+                .accessibilityAddTraits(lens == viewModel.currentLensType ? .isSelected : [])
+            }
+        }
+    }
+
+    // MARK: - Shutter
+
+    private var shutterButton: some View {
+        Button(action: {
+            if viewModel.isVideoMode {
+                if viewModel.isRecording {
+                    session.stopRecording()
+                } else {
+                    session.startRecording(timerSeconds: viewModel.timerSeconds)
+                }
+            } else {
+                session.takePicture(timerSeconds: viewModel.timerSeconds)
+            }
+        }) {
+            ZStack {
+                Circle()
+                    .strokeBorder(Color.white, lineWidth: 3)
+                    .frame(width: 50, height: 50)
+
+                if viewModel.isVideoMode {
+                    if viewModel.isRecording {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.red)
+                            .frame(width: 18, height: 18)
+                    } else {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 38, height: 38)
+                    }
+                } else {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 38, height: 38)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(shutterAccessibilityLabel)
+    }
+
+    // MARK: - Flash/Torch + Camera Flip Buttons
+
+    /// Capture flash — only meaningful for photo capture, so shown in photo mode.
+    private var flashButton: some View {
+        Button(action: { session.toggleFlash() }) {
+            Image(systemName: viewModel.isFlashEnabled ? "bolt.fill" : "bolt.slash.fill")
+                .font(.title3)
+                .foregroundColor(viewModel.isFlashEnabled ? .yellow : .white)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(viewModel.isFlashEnabled ? "Flash on" : "Flash off")
+    }
+
+    /// Continuous torch — a device-level light, available in both photo and video.
+    private var torchButton: some View {
+        Button(action: { session.toggleTorch() }) {
+            Image(systemName: viewModel.isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill")
+                .font(.title3)
+                .foregroundColor(viewModel.isTorchEnabled ? .yellow : .white)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(viewModel.isTorchEnabled ? "Torch on" : "Torch off")
+    }
+
+    private var cameraFlipButton: some View {
+        Button(action: { session.toggleCamera() }) {
+            Image(systemName: "arrow.triangle.2.circlepath.camera")
+                .font(.title3)
+                .foregroundColor(.white)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Switch front and back camera")
+    }
+
+    // MARK: - Live Preview Background
+
+    /// Live camera preview behind the controls, dimmed so the white controls stay
+    /// legible. `.scaledToFit()` keeps the full landscape frame visible (letterboxed).
+    /// `nil` falls back to the default background before the first frame.
+    @ViewBuilder
+    private var previewBackground: some View {
+        if let image = viewModel.previewImage {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(Color.black.opacity(0.35))
+                .ignoresSafeArea()
         }
     }
 
@@ -218,32 +336,6 @@ struct WatchControlView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(label)
         .accessibilityAddTraits(active ? .isSelected : [])
-    }
-
-    // MARK: - Flash/Torch Helpers
-
-    private var flashTorchIcon: String {
-        if viewModel.isPhotoMode {
-            return viewModel.isFlashEnabled ? "bolt.fill" : "bolt.slash.fill"
-        } else {
-            return viewModel.isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill"
-        }
-    }
-
-    private var flashTorchColor: Color {
-        if viewModel.isPhotoMode {
-            return viewModel.isFlashEnabled ? .yellow : .white
-        } else {
-            return viewModel.isTorchEnabled ? .yellow : .white
-        }
-    }
-
-    private var flashTorchAccessibilityLabel: String {
-        if viewModel.isPhotoMode {
-            return viewModel.isFlashEnabled ? "Flash on" : "Flash off"
-        } else {
-            return viewModel.isTorchEnabled ? "Torch on" : "Torch off"
-        }
     }
 
     // MARK: - Shutter Accessibility
