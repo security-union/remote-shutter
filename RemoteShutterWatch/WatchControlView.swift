@@ -326,7 +326,7 @@ struct WatchControlView: View {
         .disabled(viewModel.isRecording)
     }
 
-    private func modeSegment(icon: String, label: String, active: Bool,
+    private func modeSegment(icon: String, label: LocalizedStringKey, active: Bool,
                              mode: RemoteShutter_RecordingModeEnum) -> some View {
         Button(action: {
             viewModel.selectMode(mode) { session.setMode($0) }
@@ -346,7 +346,7 @@ struct WatchControlView: View {
 
     // MARK: - Shutter Accessibility
 
-    private var shutterAccessibilityLabel: String {
+    private var shutterAccessibilityLabel: LocalizedStringKey {
         if viewModel.isVideoMode {
             return viewModel.isRecording ? "Stop recording" : "Start recording"
         } else {
@@ -426,7 +426,7 @@ struct WatchControlView: View {
         }
     }
 
-    private func textForEvent(_ event: String) -> String {
+    private func textForEvent(_ event: String) -> LocalizedStringKey {
         switch event {
         case "photoTaken": return "Photo Saved"
         case "recordingStarted": return "Recording"
@@ -437,7 +437,7 @@ struct WatchControlView: View {
         case "microphoneDenied": return "Mic Denied"
         case "busy": return "Busy"
         case "busyRecording": return "Recording…"
-        default: return event
+        default: return LocalizedStringKey(event)
         }
     }
 }

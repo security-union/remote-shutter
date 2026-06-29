@@ -155,6 +155,7 @@
 		CAFEBABE0006000000000002 /* WatchPreviewStreamerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0006000000000001 /* WatchPreviewStreamerTests.swift */; };
 		CAFEBABE0004000000000002 /* WatchRemoteCamStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0004000000000001 /* WatchRemoteCamStateTests.swift */; };
 		CAFEBABE0005000000000002 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0005000000000001 /* Assets.xcassets */; };
+		CAFEBABE0008000000000002 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0008000000000001 /* Localizable.xcstrings */; };
 		D2B94CD08C14086E035FBAA4 /* WatchCameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6816F7F01F22AF52E28D6518 /* WatchCameraViewModel.swift */; };
 		D808C297E991CF09EE2FC00C /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 381BB7BCEF561D22B0F194A6 /* WatchConnectivity.framework */; };
 		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
@@ -369,6 +370,7 @@
 		CAFEBABE0006000000000001 /* WatchPreviewStreamerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPreviewStreamerTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0004000000000001 /* WatchRemoteCamStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRemoteCamStateTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0005000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = RemoteShutterWatch/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		CAFEBABE0008000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
 		D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/RemoteShutterWatchApp.swift; sourceTree = SOURCE_ROOT; };
 		D9C44C88664AD8685AFA3CDF /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
@@ -734,6 +736,7 @@
 				DC9A830256BC7B3762B17FEF /* WatchConnectionView.swift */,
 				9B8080E0FDE21CFE4B92AEAB /* WatchSettingsView.swift */,
 				CAFEBABE0005000000000001 /* Assets.xcassets */,
+				CAFEBABE0008000000000001 /* Localizable.xcstrings */,
 			);
 			path = RemoteShutterWatch;
 			sourceTree = SOURCE_ROOT;
@@ -910,6 +913,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CAFEBABE0005000000000002 /* Assets.xcassets in Resources */,
+				CAFEBABE0008000000000002 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

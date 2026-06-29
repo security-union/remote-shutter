@@ -49,7 +49,7 @@ struct WatchConnectionView: View {
     private var icon: String {
         switch viewModel.phase {
         case .phoneNotInWatchMode: return "iphone.gen3"
-        case .phoneNotReady: return "lock.iphone"
+        case .phoneNotReady: return "iphone.gen3"
         default: return "applewatch.and.arrow.forward"
         }
     }
@@ -61,18 +61,18 @@ struct WatchConnectionView: View {
         }
     }
 
-    private var message: String {
+    private var message: LocalizedStringKey {
         switch viewModel.phase {
         case .phoneNotInWatchMode:
-            return "On your iPhone, tap \"Watch Remote\""
+            return "On your iPhone, tap “Watch Remote”"
         case .phoneNotReady:
-            return "Unlock your iPhone to continue"
+            return "Reopen Remote Shutter on your iPhone to keep shooting"
         case .connecting:
             return viewModel.isPhoneReachable
-                ? "iPhone found. Syncing..."
-                : "iPhone not reachable"
+                ? "Found your iPhone. Getting ready…"
+                : "Can’t reach your iPhone"
         case .inactive, .ready:
-            return "Open the app on your iPhone and select \"Watch Remote\""
+            return "Open Remote Shutter on your iPhone and choose “Watch Remote”"
         }
     }
 
