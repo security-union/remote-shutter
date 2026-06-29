@@ -1408,6 +1408,11 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         return UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.55)
     }
 
+    /// The Watch acked the in-flight preview frame — let the streamer send the next.
+    func acknowledgeWatchPreview() {
+        watchPreviewStreamer.acknowledge()
+    }
+
     func saveMovieToPhotosAppAndRemotePeer(_ sendVideoToPeer:Bool) {
         let outputFileURL = movieUrl()
         

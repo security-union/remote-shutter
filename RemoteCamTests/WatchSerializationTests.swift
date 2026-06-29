@@ -38,7 +38,7 @@ final class WatchSerializationTests: XCTestCase {
         let actions: [RemoteShutter_WatchCommandAction] = [
             .setzoom, .takepicture, .startrecording, .stoprecording,
             .switchlens, .toggleflash, .toggletorch, .togglecamera, .requeststate,
-            .setmode, .canceltimer
+            .setmode, .canceltimer, .requestpreviewframe
         ]
         for action in actions {
             let decoded = try XCTUnwrap(WatchCommandEncoder.decode(WatchCommandEncoder.encode(action: action)))

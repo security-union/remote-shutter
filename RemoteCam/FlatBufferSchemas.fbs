@@ -234,7 +234,8 @@ enum WatchCommandAction : byte {
     ToggleCamera = 8,
     RequestState = 9,
     SetMode = 10,
-    CancelTimer = 11
+    CancelTimer = 11,
+    RequestPreviewFrame = 12
 }
 
 table WatchCommand {

@@ -256,6 +256,10 @@ public class WatchRemoteCameraController: UIViewController {
             cancelCountdown()
             cameraVC.updateTimerCountdown(value: -1)
 
+        case .requestpreviewframe:
+            // The Watch consumed a preview frame and wants the next — release the gate.
+            cameraVC.acknowledgeWatchPreview()
+
         case .unknown:
             debugLog("WatchRemoteCameraController: Unknown watch command")
         }

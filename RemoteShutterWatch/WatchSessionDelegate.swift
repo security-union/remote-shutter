@@ -123,30 +123,14 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - Receiving State from iPhone
 
-    /// State frames arrive here (sent without a reply handler).
+    /// Both preview frames and state arrive here (all sent fire-and-forget). Route by
+    /// message type. A preview frame is rendered and then acked so the phone releases the
+    /// next one — the same explicit-request back-pressure the peer monitor uses.
     func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
-        routeIncoming(messageData)
-    }
-
-    /// Preview frames arrive here: the phone sends them with a reply handler so it can
-    /// back-pressure on our ack. Decode first (so the phone is paced by how fast we
-    /// actually consume frames), then ack — the reply is the "send the next frame"
-    /// request, mirroring the peer `RemoteCmd.RequestFrame` — and render.
-    func session(_ session: WCSession, didReceiveMessageData messageData: Data,
-                 replyHandler: @escaping (Data) -> Void) {
         if let frame = WatchPreviewFrameEncoder.decode(messageData) {
+            print("WatchSession: received preview frame (\(messageData.count) bytes)")
             renderPreview(jpeg: frame.jpeg, epochMs: frame.epochMs)
-            replyHandler(Data())
-            return
-        }
-        replyHandler(Data())
-        routeIncoming(messageData)
-    }
-
-    /// Live preview frames share this channel with state; route by message type.
-    private func routeIncoming(_ messageData: Data) {
-        if let frame = WatchPreviewFrameEncoder.decode(messageData) {
-            renderPreview(jpeg: frame.jpeg, epochMs: frame.epochMs)
+            requestNextPreviewFrame()
             return
         }
 
@@ -260,4 +244,9 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     func toggleTorch() { sendCommand(action: .toggletorch) }
     func toggleCamera() { sendCommand(action: .togglecamera) }
     func cancelTimer() { sendCommand(action: .canceltimer) }
+
+    /// Asks the phone for the next preview frame after rendering the current one. The
+    /// phone's `WatchPreviewStreamer` treats this as the back-pressure ack. Fire-and-forget
+    /// (non-critical): a dropped ack is recovered by the streamer's watchdog.
+    func requestNextPreviewFrame() { sendCommand(action: .requestpreviewframe, critical: false) }
 }
