@@ -82,6 +82,9 @@ public class CameraViewController: UIViewController,
     /// Dedicated context for the tiny Apple Watch preview, kept off the recording
     /// crop context to avoid cross-queue contention.
     private let watchPreviewContext = CIContext(options: [.useSoftwareRenderer: false])
+    /// Streams preview frames to the Apple Watch with ack back-pressure and lazy encoding.
+    /// Runs on `videoDataOutputQueue`, where the capture callback hands it sample buffers.
+    private lazy var watchPreviewStreamer = WatchPreviewStreamer(queue: videoDataOutputQueue)
     var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
     
@@ -1371,13 +1374,11 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             return
         }
 
-        // Watch Remote mode has no MultipeerConnectivity peer — the iPhone is the
-        // camera and the only consumer is the Apple Watch. Stream a tiny, heavily
-        // downscaled preview over WCSession instead of a full-res peer frame.
+        // Watch Remote mode has no MultipeerConnectivity peer — the iPhone is the camera
+        // and the only consumer is the Apple Watch. The streamer applies ack back-pressure
+        // and only invokes the encode when it's actually ready to send.
         if isWatchRemoteMode {
-            if let jpeg = watchPreviewJPEG(from: sampleBuffer) {
-                WatchSessionManager.shared.pushPreviewFrame(jpeg: jpeg)
-            }
+            watchPreviewStreamer.offer { [weak self] in self?.watchPreviewJPEG(from: sampleBuffer) }
             return
         }
 

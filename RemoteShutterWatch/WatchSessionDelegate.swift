@@ -123,14 +123,30 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - Receiving State from iPhone
 
+    /// State frames arrive here (sent without a reply handler).
     func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
-        // Live preview frames share this channel with state; route by message type.
-        // Decode the tiny JPEG here (off the main thread) before handing it over.
+        routeIncoming(messageData)
+    }
+
+    /// Preview frames arrive here: the phone sends them with a reply handler so it can
+    /// back-pressure on our ack. Decode first (so the phone is paced by how fast we
+    /// actually consume frames), then ack — the reply is the "send the next frame"
+    /// request, mirroring the peer `RemoteCmd.RequestFrame` — and render.
+    func session(_ session: WCSession, didReceiveMessageData messageData: Data,
+                 replyHandler: @escaping (Data) -> Void) {
         if let frame = WatchPreviewFrameEncoder.decode(messageData) {
-            guard let image = UIImage(data: frame.jpeg) else { return }
-            DispatchQueue.main.async { [weak self] in
-                self?.viewModel.updatePreview(image: image, epochMs: frame.epochMs)
-            }
+            renderPreview(jpeg: frame.jpeg, epochMs: frame.epochMs)
+            replyHandler(Data())
+            return
+        }
+        replyHandler(Data())
+        routeIncoming(messageData)
+    }
+
+    /// Live preview frames share this channel with state; route by message type.
+    private func routeIncoming(_ messageData: Data) {
+        if let frame = WatchPreviewFrameEncoder.decode(messageData) {
+            renderPreview(jpeg: frame.jpeg, epochMs: frame.epochMs)
             return
         }
 
@@ -144,6 +160,14 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
             self.retryCount = 0
             self.stateArrivalCheck?.cancel()
             self.viewModel.update(from: state)
+        }
+    }
+
+    /// Decodes the tiny JPEG off the main thread, then hands the image to the view model.
+    private func renderPreview(jpeg: Data, epochMs: UInt64) {
+        guard let image = UIImage(data: jpeg) else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.viewModel.updatePreview(image: image, epochMs: epochMs)
         }
     }
 

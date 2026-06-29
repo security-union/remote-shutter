@@ -23,13 +23,13 @@ let readyToSendFrame = "readyToSendFrame"
 let waitingForAckName = "waitingForAck"
 
 class FrameSender: Actor {
-    
+
     weak var ressionRef: ActorRef?
-    
+
     public required init(context: ActorSystem, ref: ActorRef) {
         super.init(context: context, ref: ref)
     }
-    
+
     override func receive(msg: Actor.Message) {
         switch msg {
         case is OnEnter:
@@ -40,7 +40,7 @@ class FrameSender: Actor {
             super.receive(msg: msg)
         }
     }
-    
+
     func readyToSend(_ data: SetSession) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
@@ -48,7 +48,7 @@ class FrameSender: Actor {
                 break
             case let s as SetSession:
                 self.become(name: readyToSendFrame, state: readyToSend(s), discardOld: true)
-                
+
             case let s as RemoteCmd.SendFrame:
                 data.session?.sendCommandOrGoToScanning(peer: [data.peer], msg: s, mode: .unreliable)
                 self.become(name: waitingForAckName, state: waitingForAck(data), discardOld: true)
@@ -57,7 +57,7 @@ class FrameSender: Actor {
             }
         }
     }
-    
+
     func waitingForAck(_ session: SetSession) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
@@ -76,7 +76,7 @@ class FrameSender: Actor {
             }
         }
     }
-    
+
     deinit {
         print("killing frame sender")
     }
