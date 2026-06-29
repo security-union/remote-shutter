@@ -18,6 +18,8 @@
 		0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0624C0401BE8616E001CC738 /* CameraAccess.swift */; };
 		0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
+		CAFEBABE0007000000000002 /* WatchPreviewStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0007000000000001 /* WatchPreviewStreamer.swift */; };
+		CAFEBABE0007000000000003 /* WatchPreviewStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0007000000000001 /* WatchPreviewStreamer.swift */; };
 		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
 		06503C552E2CDB55003DEAFA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 06503C542E2CDB55003DEAFA /* Localizable.strings */; };
 		065532F2258C4BEA000C2339 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
@@ -150,8 +152,10 @@
 		CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0001000000000001 /* CropRectTests.swift */; };
 		CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */; };
 		CAFEBABE0003000000000002 /* WatchSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0003000000000001 /* WatchSerializationTests.swift */; };
+		CAFEBABE0006000000000002 /* WatchPreviewStreamerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0006000000000001 /* WatchPreviewStreamerTests.swift */; };
 		CAFEBABE0004000000000002 /* WatchRemoteCamStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0004000000000001 /* WatchRemoteCamStateTests.swift */; };
 		CAFEBABE0005000000000002 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0005000000000001 /* Assets.xcassets */; };
+		CAFEBABE0008000000000002 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0008000000000001 /* Localizable.xcstrings */; };
 		D2B94CD08C14086E035FBAA4 /* WatchCameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6816F7F01F22AF52E28D6518 /* WatchCameraViewModel.swift */; };
 		D808C297E991CF09EE2FC00C /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 381BB7BCEF561D22B0F194A6 /* WatchConnectivity.framework */; };
 		D921E731388A3CC7FE34F1A8 /* Actor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CB14475747F8CECCE476895 /* Actor.swift */; };
@@ -235,6 +239,7 @@
 		061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteShutterUITests-Bridging-Header.h"; sourceTree = "<group>"; };
 		0624C0401BE8616E001CC738 /* CameraAccess.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraAccess.swift; sourceTree = "<group>"; };
 		0631D180256DFC960006CAF3 /* FrameSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSender.swift; sourceTree = "<group>"; };
+		CAFEBABE0007000000000001 /* WatchPreviewStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPreviewStreamer.swift; sourceTree = "<group>"; };
 		0634594925886387009F9BE0 /* DeviceScannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewController.swift; sourceTree = "<group>"; };
 		06503C532E2CDB55003DEAFA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		06503C562E2CDB93003DEAFA /* fr-FR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "fr-FR"; path = "fr-FR.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -362,8 +367,10 @@
 		CAFEBABE0001000000000001 /* CropRectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropRectTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchCaptureCountdownTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0003000000000001 /* WatchSerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSerializationTests.swift; sourceTree = "<group>"; };
+		CAFEBABE0006000000000001 /* WatchPreviewStreamerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPreviewStreamerTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0004000000000001 /* WatchRemoteCamStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRemoteCamStateTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0005000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = RemoteShutterWatch/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		CAFEBABE0008000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
 		D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/RemoteShutterWatchApp.swift; sourceTree = SOURCE_ROOT; };
 		D9C44C88664AD8685AFA3CDF /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
@@ -480,6 +487,7 @@
 				0684A2D21BE6E98A00F0B238 /* CamStates.swift */,
 				068EF0B72531844B00A84DFA /* CameraVideoStates.swift */,
 				0631D180256DFC960006CAF3 /* FrameSender.swift */,
+				CAFEBABE0007000000000001 /* WatchPreviewStreamer.swift */,
 			);
 			name = CameraStates;
 			sourceTree = "<group>";
@@ -517,6 +525,7 @@
 				CAFEBABE0001000000000001 /* CropRectTests.swift */,
 				CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */,
 				CAFEBABE0003000000000001 /* WatchSerializationTests.swift */,
+				CAFEBABE0006000000000001 /* WatchPreviewStreamerTests.swift */,
 				CAFEBABE0004000000000001 /* WatchRemoteCamStateTests.swift */,
 				069284351BE5BF5C00AF4678 /* Info.plist */,
 				036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */,
@@ -727,6 +736,7 @@
 				DC9A830256BC7B3762B17FEF /* WatchConnectionView.swift */,
 				9B8080E0FDE21CFE4B92AEAB /* WatchSettingsView.swift */,
 				CAFEBABE0005000000000001 /* Assets.xcassets */,
+				CAFEBABE0008000000000001 /* Localizable.xcstrings */,
 			);
 			path = RemoteShutterWatch;
 			sourceTree = SOURCE_ROOT;
@@ -903,6 +913,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CAFEBABE0005000000000002 /* Assets.xcassets in Resources */,
+				CAFEBABE0008000000000002 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1031,6 +1042,7 @@
 				066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */,
 				069284511BE5C0E600AF4678 /* RemoteCamSession.swift in Sources */,
 				0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */,
+				CAFEBABE0007000000000002 /* WatchPreviewStreamer.swift in Sources */,
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
 				85D33836258D48C30091972B /* UIViewController.swift in Sources */,
@@ -1123,6 +1135,7 @@
 				CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */,
 				CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */,
 				CAFEBABE0003000000000002 /* WatchSerializationTests.swift in Sources */,
+				CAFEBABE0006000000000002 /* WatchPreviewStreamerTests.swift in Sources */,
 				CAFEBABE0004000000000002 /* WatchRemoteCamStateTests.swift in Sources */,
 				3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */,
 				B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */,
@@ -1164,6 +1177,7 @@
 				AA0001072E940007000A1001 /* UIAlertPresenter.swift in Sources */,
 				06BB79C42E389D6D0094E085 /* VideoTransferProgressView.swift in Sources */,
 				0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */,
+				CAFEBABE0007000000000003 /* WatchPreviewStreamer.swift in Sources */,
 				06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
 				06CDFB2C252EC2C300EA56FB /* CGImage.swift in Sources */,
 				06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */,
