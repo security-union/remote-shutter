@@ -3,6 +3,7 @@ Turn any two devices into a wireless remote camera system — no internet, no Wi
 Remote Shutter uses peer-to-peer technology to link two devices directly. One becomes the camera, the other becomes your remote control with a live monitor. Perfect for group photos, selfies, tripod shots, creative angles, and hands-free photography.
 
 FEATURES
+- NEW: Control your camera from your Apple Watch — trigger the shutter from your wrist
 - Wireless remote shutter from up to 50 feet away
 - Live camera preview on your remote device
 - Switch between front and rear cameras remotely

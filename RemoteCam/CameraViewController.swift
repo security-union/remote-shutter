@@ -336,8 +336,47 @@ public class CameraViewController: UIViewController,
         }
     }
 
+    /// Turns the torch off for good (screen teardown). Clears the user's intent so the
+    /// torch doesn't silently come back when the camera is next configured.
     func ensureTorchOff() {
+        desiredTorchOn = false
         countdownTorch.stop(device: videoDeviceInput?.device)
+        applyDesiredTorch()
+    }
+
+    /// Called at the end/cancel of a self-timer countdown: stops the strobe and returns
+    /// the torch to whatever the user actually wanted, instead of forcing it off. Keeps
+    /// the Watch in sync since the phone changed torch state on its own.
+    func restoreTorchAfterCountdown() {
+        countdownTorch.stop(device: videoDeviceInput?.device)
+        applyDesiredTorch()
+        syncTorchToWatch()
+    }
+
+    /// The single source of truth for whether the user wants the torch on. Set only by the
+    /// user-facing torch controls (`toggleTorch` / `setTorchMode`); the countdown strobe
+    /// drives the hardware directly and never touches this, so it survives a countdown.
+    private(set) var desiredTorchOn = false
+
+    /// Applies `desiredTorchOn` to the hardware. Reused to restore the torch after any
+    /// event that resets it (rotation, session reconfiguration, timer countdown).
+    func applyDesiredTorch() {
+        guard let device = videoDeviceInput?.device, device.hasTorch else { return }
+        let mode: AVCaptureDevice.TorchMode = desiredTorchOn ? .on : .off
+        guard device.torchMode != mode else { return }
+        do {
+            try device.lockForConfiguration()
+            device.torchMode = mode
+            device.unlockForConfiguration()
+        } catch {}
+    }
+
+    /// Pushes a fresh state snapshot to the Watch after the phone changes torch on its own
+    /// (rotation, timer), so the Watch's torch indicator never goes stale. No-op outside
+    /// Watch Remote mode.
+    func syncTorchToWatch() {
+        guard isWatchRemoteMode else { return }
+        WatchSessionManager.shared.cameraController?.pushCurrentState()
     }
 
     // MARK: - Countdown Torch
@@ -351,6 +390,18 @@ public class CameraViewController: UIViewController,
     public override func willAnimateRotation(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
         orientation = getOrientation()
         self.rotateCameraToOrientation(orientation: toInterfaceOrientation)
+    }
+
+    public override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        // iOS can drop the torch when the capture pipeline reconfigures during rotation.
+        // `viewWillTransition` fires reliably on modern iOS (unlike the deprecated
+        // `willAnimateRotation`), so restore the user's torch intent once the rotation
+        // settles and re-sync the Watch, which would otherwise keep a stale torch state.
+        coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+            self?.applyDesiredTorch()
+            self?.syncTorchToWatch()
+        }
     }
 
     func setupCamera() {
@@ -413,6 +464,7 @@ public class CameraViewController: UIViewController,
                 self.rotateCameraToOrientation(orientation: self.orientation)
             }
             self.captureSession.commitConfiguration()
+            self.applyDesiredTorch()   // commitConfiguration can reset the torch
             self.cameraConfigQueue.async {
                 self.captureSession.startRunning()
             }
@@ -443,10 +495,11 @@ public class CameraViewController: UIViewController,
                 self.rotateCameraToOrientation(orientation: self.orientation)
                 let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
                 captureSession.commitConfiguration()
-                
+                self.applyDesiredTorch()   // restore torch onto the new camera (no-op if it has none)
+
                 // Camera capabilities are now sent via RemoteCmd.ToggleCameraResp in CamStates.swift
                 // No need to send separate capabilities message here
-                
+
                 return Success((newFlashMode, newInput.device.position))
             }
         } catch let error as NSError {
@@ -513,6 +566,7 @@ public class CameraViewController: UIViewController,
                 
                 device?.torchMode = newTorchMode
                 device?.unlockForConfiguration()
+                desiredTorchOn = newTorchMode == .on
                 return Success(newTorchMode)
             } catch let error as NSError {
                 return Failure(error: error)
@@ -530,6 +584,7 @@ public class CameraViewController: UIViewController,
                 try device?.lockForConfiguration()
                 device?.torchMode = mode
                 device?.unlockForConfiguration()
+                desiredTorchOn = mode == .on
                 return Success(mode)
             } catch let error as NSError {
                 return Failure(error: error)
@@ -1065,6 +1120,8 @@ public class CameraViewController: UIViewController,
             debugLog("❌ DEBUG: Failed to restore zoom after quality change: \(error)")
         }
 
+        applyDesiredTorch()   // changing activeFormat/preset also resets the torch
+
         currentVideoResolution = resolution
         currentVideoFrameRate = appliedFrameRate
         RemoteShutter.fps = appliedFrameRate.value
@@ -1245,9 +1302,6 @@ extension CameraViewController {
                 let audioDevice = AVCaptureDevice.default(for: .audio)
                 let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
                 
-                // Save torch mode before reconfiguring session (iOS resets torch on commitConfiguration)
-                let savedTorchMode = self.videoDeviceInput?.device.torchMode ?? .off
-
                 self.captureSession.beginConfiguration()
 
                 if self.captureSession.canAddInput(audioDeviceInput) {
@@ -1263,12 +1317,8 @@ extension CameraViewController {
 
                 self.captureSession.commitConfiguration()
 
-                // Restore torch mode after session reconfiguration
-                if savedTorchMode != .off, let device = self.videoDeviceInput?.device, device.hasTorch {
-                    try? device.lockForConfiguration()
-                    device.torchMode = savedTorchMode
-                    device.unlockForConfiguration()
-                }
+                // Restore the user's torch preference — iOS resets the torch on commitConfiguration.
+                self.applyDesiredTorch()
                 
                 // Update audio connection
                 self.audioConnection = self.audioDataOutput.connection(with: .audio)

@@ -127,17 +127,20 @@ public class WatchRemoteCameraController: UIViewController {
     private func setupWatchStatusOverlay() {
         statusLabel = UILabel()
         statusLabel.textColor = .white
-        statusLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        // Large, bold, high-contrast so the camera operator can read it from a distance.
+        statusLabel.font = .systemFont(ofSize: 22, weight: .bold)
         statusLabel.textAlignment = .center
-        statusLabel.layer.cornerRadius = 14
+        statusLabel.layer.cornerRadius = 20   // half the 40pt height → pill
         statusLabel.clipsToBounds = true
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(statusLabel)
+        // Pinned top-center. Width comes from the label's intrinsic content size (the text
+        // carries its own leading/trailing spaces as inner padding), so no manual sizing.
         NSLayoutConstraint.activate([
             statusLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            statusLabel.heightAnchor.constraint(equalToConstant: 28),
+            statusLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            statusLabel.heightAnchor.constraint(equalToConstant: 40),
         ])
 
         updateWatchStatusLabel()
@@ -147,15 +150,11 @@ public class WatchRemoteCameraController: UIViewController {
         let isReachable = WatchSessionManager.shared.isWatchReachable
         if isReachable {
             statusLabel.text = "  \u{231A}  " + NSLocalizedString("Watch Connected", comment: "") + "  "
-            statusLabel.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.4)
+            statusLabel.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.85)
         } else {
             statusLabel.text = "  \u{231A}  " + NSLocalizedString("Open Watch App", comment: "") + "  "
-            statusLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+            statusLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
         }
-        statusLabel.sizeToFit()
-        // Re-apply height and corner radius after sizeToFit
-        statusLabel.frame.size.height = 28
-        statusLabel.frame.size.width += 16 // padding
     }
 
     // MARK: - Watch Manager Binding
