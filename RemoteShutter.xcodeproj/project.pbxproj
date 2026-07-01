@@ -100,6 +100,7 @@
 		06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		1ECFC14E17A9A47D5951E80B /* WatchSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148A312CF1B445C71094EF0E /* WatchSessionManager.swift */; };
+		AAB0C0DE0001000000000001 /* AppActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB0C0DE0001000000000002 /* AppActivityMonitor.swift */; };
 		2D869319DCFDFEFF351153A4 /* WatchSessionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6BF3CD6986238A77C3A216 /* WatchSessionDelegate.swift */; };
 		2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */; };
 		30425A0C926DE812ECA4528E /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1681D37E731D371A697244F7 /* Try.swift */; };
@@ -315,6 +316,7 @@
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
 		0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Stack.swift; sourceTree = "<group>"; };
 		148A312CF1B445C71094EF0E /* WatchSessionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCam/WatchSessionManager.swift; sourceTree = SOURCE_ROOT; };
+		AAB0C0DE0001000000000002 /* AppActivityMonitor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCam/AppActivityMonitor.swift; sourceTree = SOURCE_ROOT; };
 		1681D37E731D371A697244F7 /* Try.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Try.swift; sourceTree = "<group>"; };
 		1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCmdFlatBuffers.swift; sourceTree = "<group>"; };
 		1E06F124E7E28CC7B25BDE83 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -511,6 +513,7 @@
 				52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */,
 				5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */,
 				148A312CF1B445C71094EF0E /* WatchSessionManager.swift */,
+				AAB0C0DE0001000000000002 /* AppActivityMonitor.swift */,
 				8A4A366A5AE5F4A3714F28F2 /* WatchRemoteCameraController.swift */,
 				59D9526CFCA006EC142C534B /* WatchRemoteCamStates.swift */,
 			);
@@ -1120,6 +1123,7 @@
 				E602233EB8B13D1B2BB12016 /* WelcomeViewModel.swift in Sources */,
 				6AFBFC4B9D8E918C026E1A8D /* CameraCountdownTorch.swift in Sources */,
 				1ECFC14E17A9A47D5951E80B /* WatchSessionManager.swift in Sources */,
+				AAB0C0DE0001000000000001 /* AppActivityMonitor.swift in Sources */,
 				F13CE9024ECE628456367787 /* WatchRemoteCameraController.swift in Sources */,
 				85FD015D89F8724D077E9E6D /* WatchRemoteCamStates.swift in Sources */,
 				448ED35E2633C93396E1AC66 /* WatchSharedTypes.swift in Sources */,

@@ -278,6 +278,18 @@ enum WatchContextKeys {
     static let epoch = "epoch"
 }
 
+// MARK: - Not-Ready Reasons
+
+/// Reasons the iPhone reports it can't capture, carried in
+/// `WatchCameraStateSnapshot.lastEvent` when `isReady == false`. Shared symbol so the
+/// phone (producer) and Watch (consumer) reference one string instead of two literals
+/// that could silently drift apart across the process boundary.
+enum WatchNotReadyReason {
+    /// The iPhone app is backgrounded or the device is locked — the camera can't run.
+    /// The Watch routes this to its "app closed" screen.
+    static let phoneBackgrounded = "phoneBackgrounded"
+}
+
 // MARK: - Watch UI Connection Phase
 
 /// What the Watch UI should show, derived from connectivity + camera state.

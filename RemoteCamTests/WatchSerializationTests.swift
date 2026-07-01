@@ -217,7 +217,7 @@ final class WatchSerializationTests: XCTestCase {
         // Phone backgrounded beats NotInWatchMode messaging.
         XCTAssertEqual(WatchConnectionPhase.derive(
             isSessionActive: true, isPhoneReachable: true, isReady: false,
-            phoneNotInWatchMode: false, phoneNotReadyReason: "phoneBackgrounded"), .phoneNotReady)
+            phoneNotInWatchMode: false, phoneNotReadyReason: WatchNotReadyReason.phoneBackgrounded), .phoneNotReady)
 
         // Reachable, no signal yet → still connecting (syncing).
         XCTAssertEqual(WatchConnectionPhase.derive(

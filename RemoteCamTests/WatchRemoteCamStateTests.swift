@@ -70,14 +70,12 @@ final class FakeWatchCameraController: WatchCameraControlling {
 
 final class FakeWatchStatePusher: WatchStatePushing {
     var pushedSnapshots: [WatchCameraStateSnapshot] = []
-    var notReadyReasons: [String] = []
     var disconnectedPushes = 0
 
     var lastEvent: String? { pushedSnapshots.last(where: { $0.lastEvent != nil })?.lastEvent }
     var allEvents: [String] { pushedSnapshots.compactMap { $0.lastEvent } }
 
     func pushCameraState(_ snapshot: WatchCameraStateSnapshot) { pushedSnapshots.append(snapshot) }
-    func pushNotReady(reason: String) { notReadyReasons.append(reason) }
     func pushDisconnectedState() { disconnectedPushes += 1 }
 }
 
@@ -463,5 +461,38 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertTrue(snapshot.isRecording)
         XCTAssertEqual(snapshot.currentMode, .video)
         XCTAssertEqual(snapshot.lastEvent, "x")
+    }
+
+    // MARK: - Readiness (backgrounded / locked phone)
+
+    func testSnapshotReadyWhenForegrounded() {
+        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: "photoTaken", isBackgrounded: false)
+        XCTAssertTrue(snapshot.isReady)
+        XCTAssertEqual(snapshot.lastEvent, "photoTaken", "transient event passes through while foregrounded")
+    }
+
+    func testSnapshotNotReadyWhenBackgrounded() {
+        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: "photoTaken", isBackgrounded: true)
+        XCTAssertFalse(snapshot.isReady, "a backgrounded/locked phone can't capture")
+        XCTAssertEqual(snapshot.lastEvent, WatchNotReadyReason.phoneBackgrounded,
+                       "the not-ready reason takes precedence over any in-flight transient event")
+    }
+
+    /// The regression this whole change targets: whichever push path runs while the
+    /// phone is backgrounded, the snapshot must report not-ready — so a stale "ready"
+    /// push can never race ahead and hide the Watch's "app closed" screen.
+    func testBackgroundedPhoneAlwaysPushesNotReady() {
+        session.isPhoneBackgrounded = { true }
+        enterWatchCamera()
+
+        // A capabilities request is exactly the push that used to win the race with isReady=true.
+        ref ! RemoteCmd.RequestCameraCapabilities()
+        waitForMailbox(session, test: self)
+
+        let pushes = pusher.pushedSnapshots
+        XCTAssertFalse(pushes.isEmpty)
+        XCTAssertTrue(pushes.allSatisfy { !$0.isReady },
+                      "no push may claim ready while the phone is backgrounded")
+        XCTAssertEqual(pushes.last?.lastEvent, WatchNotReadyReason.phoneBackgrounded)
     }
 }
