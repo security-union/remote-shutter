@@ -9,6 +9,7 @@
 //
 
 import XCTest
+import UIKit
 import AVFoundation
 import MultipeerConnectivity
 
@@ -494,5 +495,57 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertTrue(pushes.allSatisfy { !$0.isReady },
                       "no push may claim ready while the phone is backgrounded")
         XCTAssertEqual(pushes.last?.lastEvent, WatchNotReadyReason.phoneBackgrounded)
+    }
+}
+
+// MARK: - AppActivityMonitor (lifecycle → readiness flag wiring)
+
+final class AppActivityMonitorTests: XCTestCase {
+
+    /// Drives the monitor with a private NotificationCenter so posts don't touch the
+    /// real app lifecycle. Observers register with `queue: nil`, so posting on the test
+    /// thread runs them synchronously — assertions can follow each post directly.
+    func testTracksLifecycleTransitionsAndNotifies() {
+        let center = NotificationCenter()
+        let monitor = AppActivityMonitor()
+        var changeCount = 0
+        monitor.onChange = { changeCount += 1 }
+        monitor.startObserving(notificationCenter: center)
+
+        XCTAssertFalse(monitor.isBackgrounded, "starts foregrounded")
+
+        center.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        XCTAssertTrue(monitor.isBackgrounded, "backgrounding sets the flag")
+
+        center.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        XCTAssertFalse(monitor.isBackgrounded, "foregrounding clears the flag")
+
+        XCTAssertEqual(changeCount, 2, "each transition notifies the re-push trigger")
+    }
+
+    /// onChange must fire *after* the flag is updated, so the re-push it triggers
+    /// always reads the new value (this ordering is what killed the original race).
+    func testOnChangeSeesUpdatedFlag() {
+        let center = NotificationCenter()
+        let monitor = AppActivityMonitor()
+        var observedDuringCallback: Bool?
+        monitor.onChange = { observedDuringCallback = monitor.isBackgrounded }
+        monitor.startObserving(notificationCenter: center)
+
+        center.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        XCTAssertEqual(observedDuringCallback, true,
+                       "onChange runs after the flag flips, never before")
+    }
+
+    func testStartObservingIsIdempotent() {
+        let center = NotificationCenter()
+        let monitor = AppActivityMonitor()
+        var changeCount = 0
+        monitor.onChange = { changeCount += 1 }
+        monitor.startObserving(notificationCenter: center)
+        monitor.startObserving(notificationCenter: center)   // second call must not double-register
+
+        center.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        XCTAssertEqual(changeCount, 1, "a single transition fires onChange exactly once")
     }
 }

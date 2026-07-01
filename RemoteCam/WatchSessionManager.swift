@@ -58,26 +58,15 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     /// While in Watch Remote mode, a backgrounded/locked iPhone can still receive
     /// commands but its capture session is stopped — tell the Watch the truth.
     private func observeAppLifecycle() {
-        // The two edges are symmetric: update the shared readiness flag (which the
-        // state-snapshot builder reads), then re-push through the live state machine
-        // so the Watch learns the new truth promptly. Locking the device delivers
-        // didEnterBackground just like swiping home, so both are covered. Setting the
-        // flag *before* triggering the push guarantees the actor builds the snapshot
-        // with the updated value.
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didEnterBackgroundNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            AppActivityMonitor.shared.isBackgrounded = true
+        // The monitor owns the background flag (the state-snapshot builder reads it).
+        // Its onChange fires *after* the flag flips, so re-pushing here always sends
+        // the up-to-date readiness — and locking the device is covered exactly like
+        // swiping home. In phone-to-phone mode `cameraController` is nil, so this is a
+        // no-op there.
+        AppActivityMonitor.shared.onChange = { [weak self] in
             self?.cameraController?.pushCurrentState()
         }
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didBecomeActiveNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            AppActivityMonitor.shared.isBackgrounded = false
-            self?.cameraController?.pushCurrentState()
-        }
+        AppActivityMonitor.shared.startObserving()
     }
 
     var isWatchPaired: Bool {
