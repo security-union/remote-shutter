@@ -70,8 +70,11 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
             forName: UIApplication.didBecomeActiveNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
-            // Refresh through the live state machine so the Watch gets real state.
-            self?.cameraController?.pushCurrentState()
+            guard let self else { return }
+            debugLog("WatchSessionManager: didBecomeActive, reachable=\(self.wcSession?.isReachable ?? false)")
+            // Re-prime the Watch pipeline: reset preview back-pressure so a stalled
+            // in-flight frame can't block the resumed stream, and re-push real state.
+            self.cameraController?.resumeWatchStreaming()
         }
     }
 
@@ -100,11 +103,23 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
             WatchContextKeys.epoch: stamped.stateEpochMs
         ])
 
-        // Live path: low-latency delivery while the Watch app is reachable.
-        guard session.isReachable else { return }
-        session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
-            debugLog("WatchSessionManager: Failed to push state: \(error)")
-        })
+        if session.isReachable {
+            // Live path: low-latency delivery while the Watch app is reachable.
+            session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
+                debugLog("WatchSessionManager: Failed to push state: \(error)")
+            })
+        } else {
+            // Reliable fallback: after a background→foreground cycle the phone's
+            // live channel can be unreachable while the Watch still drives us. Unlike
+            // the coalesced application-context mirror, transferUserInfo is FIFO and
+            // delivered even when unreachable, so torch/flash changes and countdown
+            // ticks still reach the Watch in order.
+            debugLog("WatchSessionManager: state via transferUserInfo (not reachable)")
+            session.transferUserInfo([
+                WatchContextKeys.state: data,
+                WatchContextKeys.epoch: stamped.stateEpochMs
+            ])
+        }
     }
 
     /// Tells the Watch the phone can't take commands right now (backgrounded,
@@ -130,7 +145,11 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     /// ack before releasing another. Never uses `updateApplicationContext`: that durable,
     /// coalesced mirror is reserved for camera state and would fight the stream.
     func pushPreviewFrame(jpeg: Data) {
-        guard let session = wcSession, session.isReachable else { return }
+        guard let session = wcSession else { return }
+        guard session.isReachable else {
+            debugLog("WatchSessionManager: dropped preview frame — not reachable")
+            return
+        }
 
         let epochMs = UInt64(Date().timeIntervalSince1970 * 1000)
         let data = WatchPreviewFrameEncoder.encode(jpeg: jpeg, epochMs: epochMs)
@@ -173,9 +192,11 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     func sessionReachabilityDidChange(_ session: WCSession) {
         debugLog("WatchSessionManager: Reachability changed, isReachable=\(session.isReachable)")
         cameraController?.watchReachabilityChanged()
-        // Push current state when Watch becomes reachable
+        // When the Watch becomes reachable again (e.g. after a background→foreground
+        // cycle where the live channel was down), re-prime: reset the preview
+        // back-pressure gate and push fresh state so the stalled stream restarts.
         if session.isReachable, let controller = cameraController {
-            controller.pushCurrentState()
+            controller.resumeWatchStreaming()
         }
     }
 

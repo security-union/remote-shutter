@@ -69,6 +69,14 @@ final class WatchPreviewStreamer {
         queue.async { [weak self] in self?.release() }
     }
 
+    /// Clears the in-flight gate unconditionally so the next offered frame is sent
+    /// immediately. Used to re-prime after a background/foreground or reachability
+    /// recovery, where the ack for the last in-flight frame will never arrive.
+    /// Safe to call from any thread.
+    func reset() {
+        queue.async { [weak self] in self?.release() }
+    }
+
     private func release() {
         inFlight = false
         watchdog?.cancel()

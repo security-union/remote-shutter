@@ -1463,6 +1463,13 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         watchPreviewStreamer.acknowledge()
     }
 
+    /// Clears the preview back-pressure gate so the next captured frame is sent
+    /// immediately. Used to re-prime the stream after a background/foreground or
+    /// reachability recovery, where the ack for the last in-flight frame never arrives.
+    func resetWatchPreviewStream() {
+        watchPreviewStreamer.reset()
+    }
+
     func saveMovieToPhotosAppAndRemotePeer(_ sendVideoToPeer:Bool) {
         let outputFileURL = movieUrl()
         

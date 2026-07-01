@@ -317,4 +317,13 @@ public class WatchRemoteCameraController: UIViewController {
         guard cameraVC != nil, let session = remoteCamSession else { return }
         session ! RemoteCmd.RequestCameraCapabilities()
     }
+
+    /// Called when the app foregrounds or the Watch becomes reachable again: reset the
+    /// preview back-pressure gate (so a stalled in-flight frame from before the
+    /// interruption can't block the resumed stream) and re-push current state through
+    /// the live state machine.
+    func resumeWatchStreaming() {
+        cameraVC?.resetWatchPreviewStream()
+        pushCurrentState()
+    }
 }

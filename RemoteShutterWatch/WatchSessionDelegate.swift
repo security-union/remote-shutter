@@ -74,6 +74,10 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
             if reachable {
                 self.retryCount = 0
                 self.retryRequestState()
+                // Kick the preview back-pressure loop back to life: it only re-requests
+                // after receiving a frame, so a stall (e.g. the phone was backgrounded)
+                // leaves it waiting forever. One request restarts the stream.
+                self.requestNextPreviewFrame()
             }
         }
     }
@@ -160,6 +164,20 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     /// from clobbering newer live state.
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         guard let stateData = applicationContext[WatchContextKeys.state] as? Data,
+              let state = WatchStateEncoder.decode(stateData) else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.stateArrivalCheck?.cancel()
+            self.viewModel.update(from: state)
+        }
+    }
+
+    /// Reliable FIFO state fallback the phone uses when its live channel is unreachable
+    /// (e.g. asymmetric reachability after a background→foreground cycle). Delivered even
+    /// when unreachable and not coalesced, so torch/flash/countdown changes arrive in
+    /// order. The view model's epoch check dedupes against the live/context paths.
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        guard let stateData = userInfo[WatchContextKeys.state] as? Data,
               let state = WatchStateEncoder.decode(stateData) else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
