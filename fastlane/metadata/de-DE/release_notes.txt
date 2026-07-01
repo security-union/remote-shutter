@@ -1,7 +1,7 @@
-- Neu: Wählen Sie Ihre Rolle (Kamera oder Fernbedienung) vor dem Scannen
-- Kameramodus: Gehen Sie online und warten Sie auf eine Fernbedienung
-- Fernbedienungsmodus: Suchen Sie nach Kameras in der Nähe und verbinden Sie sich
-- Verbessertes Hilfe-Tutorial mit aktualisierter Schritt-für-Schritt-Anleitung
-- Vollständige Lokalisierung: jetzt in 10 Sprachen verfügbar
-- Fehler bei Verbindungstrennung nach erfolgreichen Fotositzungen behoben
-- UI-Verbesserungen für Kamera- und Fernbedienungs-Bildschirme
+Apple Watch Unterstützung ist da!
+
+- NEU: Steuern Sie Ihre Kamera direkt von Ihrer Apple Watch – lösen Sie den Auslöser bequem vom Handgelenk aus
+- Perfekt für Stative, Teleskope und Kamera-Rigs mit großer Reichweite, wenn Sie Ihr Telefon nicht erreichen können
+- Live-Verbindungsstatus auf Ihrer Watch, damit Sie immer wissen, dass Sie verbunden sind
+- Verbesserte Verbindungsstabilität zwischen Watch, iPhone und iPad
+- Fehlerbehebungen und Leistungsverbesserungen

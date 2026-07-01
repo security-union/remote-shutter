@@ -5,6 +5,7 @@ Mit Remote Shutter wird eines Ihrer Geräte zur Kamerafernbedienung oder zum Kam
 Remote Shutter macht es einfach, Fotos aus ungewöhnlichen Winkeln aufzunehmen, die Sie sonst in eine unbequeme Position bringen würden. Probieren Sie Remote Shutter kostenlos aus!
 
 Funktionen:
+- NEU: Steuern Sie Ihre Kamera von Ihrer Apple Watch – lösen Sie den Auslöser vom Handgelenk aus
 - Fotos aus bis zu 15 Metern Entfernung aufnehmen
 - Kameraausrichtung umschalten
 - Kamerablitz verwenden

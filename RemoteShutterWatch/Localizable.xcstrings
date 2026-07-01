@@ -1,2268 +1,2284 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "On your iPhone, tap “Watch Remote”": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryk på “Watch-fjernbetjening” på din iPhone"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ lens" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objektiv %@"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tippe auf deinem iPhone auf „Watch-Fernbedienung“"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objektiv %@"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En tu iPhone, toca “Control por Watch”"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objetivo %@"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sur votre iPhone, touchez « Télécommande Watch »"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Objectif %@"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sull’iPhone, tocca “Telecomando Watch”"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obiettivo %@"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhoneで「Watchリモート」をタップ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ レンズ"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone에서 ‘Watch 리모컨’을 탭하세요"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 렌즈"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No seu iPhone, toque em “Controle pelo Watch”"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lente %@"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在 iPhone 上轻点“手表遥控”"
-          }
-        }
-      }
-    },
-    "Reopen Remote Shutter on your iPhone to keep shooting": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Genåbn Remote Shutter på din iPhone for at fortsætte"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öffne Remote Shutter auf deinem iPhone erneut, um weiter aufzunehmen"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vuelve a abrir Remote Shutter en tu iPhone para seguir capturando"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rouvrez Remote Shutter sur votre iPhone pour continuer"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Riapri Remote Shutter sull’iPhone per continuare a scattare"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "撮影を続けるにはiPhoneでRemote Shutterを再度開いてください"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "계속 촬영하려면 iPhone에서 Remote Shutter를 다시 여세요"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reabra o Remote Shutter no seu iPhone para continuar"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在 iPhone 上重新打开 Remote Shutter 以继续拍摄"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 镜头"
           }
         }
       }
     },
-    "Found your iPhone. Getting ready…": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fandt din iPhone. Gør klar…"
+    "%lld" : {
+      "comment" : "A countdown timer displayed in a circular format with a \"Cancel\" button below. The number inside the circle represents the remaining time in seconds.",
+      "isCommentAutoGenerated" : true
+    },
+    "%llds" : {
+      "comment" : "A label displaying the remaining time on a timer. The argument is the number of seconds remaining on the timer.",
+      "isCommentAutoGenerated" : true
+    },
+    "Busy" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optaget"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone gefunden. Wird vorbereitet…"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschäftigt"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone encontrado. Preparando…"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocupado"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone trouvé. Préparation…"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Occupé"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone trovato. Preparazione…"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Occupato"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhoneが見つかりました。準備中…"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理中"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone을 찾았습니다. 준비 중…"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용 중"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone encontrado. Preparando…"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocupado"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已找到 iPhone。正在准备…"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "忙碌"
           }
         }
       }
     },
-    "Can’t reach your iPhone": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kan ikke nå din iPhone"
+    "Can’t reach your iPhone" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kan ikke nå din iPhone"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone nicht erreichbar"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone nicht erreichbar"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se puede conectar con tu iPhone"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede conectar con tu iPhone"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossible de joindre votre iPhone"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de joindre votre iPhone"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone non raggiungibile"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone non raggiungibile"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhoneに接続できません"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhoneに接続できません"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone에 연결할 수 없습니다"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone에 연결할 수 없습니다"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não foi possível alcançar seu iPhone"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível alcançar seu iPhone"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法连接到 iPhone"
-          }
-        }
-      }
-    },
-    "Open Remote Shutter on your iPhone and choose “Watch Remote”": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Åbn Remote Shutter på din iPhone, og vælg “Watch-fjernbetjening”"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öffne Remote Shutter auf deinem iPhone und wähle „Watch-Fernbedienung“"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abre Remote Shutter en tu iPhone y elige “Control por Watch”"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ouvrez Remote Shutter sur votre iPhone et choisissez « Télécommande Watch »"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apri Remote Shutter sull’iPhone e scegli “Telecomando Watch”"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhoneでRemote Shutterを開き、「Watchリモート」を選択"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iPhone에서 Remote Shutter를 열고 ‘Watch 리모컨’을 선택하세요"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abra o Remote Shutter no seu iPhone e escolha “Controle pelo Watch”"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在 iPhone 上打开 Remote Shutter 并选择“手表遥控”"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接到 iPhone"
           }
         }
       }
     },
-    "Retry": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prøv igen"
+    "Cancel" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuller"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erneut versuchen"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbrechen"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reintentar"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Réessayer"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Riprova"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "再試行"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "다시 시도"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "취소"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tentar novamente"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重试"
-          }
-        }
-      }
-    },
-    "Connected": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Forbundet"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verbunden"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conectado"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connecté"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connesso"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "接続済み"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "연결됨"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conectado"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已连接"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
           }
         }
       }
     },
-    "Recording in progress": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Optagelse i gang"
+    "Cancel timer" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuller timer"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme läuft"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timer abbrechen"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Grabación en curso"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar temporizador"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enregistrement en cours"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler le retardateur"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Registrazione in corso"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla timer"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録画中"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイマーをキャンセル"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "녹화 중"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "타이머 취소"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gravação em andamento"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar temporizador"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在录制"
-          }
-        }
-      }
-    },
-    "Show controls": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vis betjening"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Steuerung anzeigen"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostrar controles"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Afficher les commandes"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra controlli"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コントロールを表示"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "제어 표시"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostrar controles"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "显示控制"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消计时器"
           }
         }
       }
     },
-    "Hide controls": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Skjul betjening"
+    "Connected" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbundet"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Steuerung ausblenden"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbunden"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ocultar controles"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Masquer les commandes"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nascondi controlli"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connesso"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コントロールを隠す"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続済み"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "제어 숨기기"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결됨"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ocultar controles"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "隐藏控制"
-          }
-        }
-      }
-    },
-    "Flash on": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blitz til"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blitz ein"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flash activado"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flash activé"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flash attivo"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フラッシュ オン"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "플래시 켜짐"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flash ligado"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "闪光灯开"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已连接"
           }
         }
       }
     },
-    "Flash off": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blitz fra"
+    "Flash off" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blitz fra"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blitz aus"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blitz aus"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flash desactivado"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flash desactivado"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flash désactivé"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flash désactivé"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flash spento"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flash spento"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フラッシュ オフ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フラッシュ オフ"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "플래시 꺼짐"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "플래시 꺼짐"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flash desligado"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flash desligado"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "闪光灯关"
-          }
-        }
-      }
-    },
-    "Torch on": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lygte til"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Licht ein"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Linterna activada"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lampe activée"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Torcia attiva"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ライト オン"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "손전등 켜짐"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lanterna ligada"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "手电筒开"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闪光灯关"
           }
         }
       }
     },
-    "Torch off": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lygte fra"
+    "Flash on" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blitz til"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Licht aus"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blitz ein"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Linterna desactivada"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flash activado"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lampe désactivée"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flash activé"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Torcia spenta"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flash attivo"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ライト オフ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フラッシュ オン"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "손전등 꺼짐"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "플래시 켜짐"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lanterna desligada"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flash ligado"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "手电筒关"
-          }
-        }
-      }
-    },
-    "Switch front and back camera": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Skift mellem front- og bagkamera"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Front- und Rückkamera wechseln"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cambiar entre cámara frontal y trasera"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Basculer entre caméra avant et arrière"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cambia fotocamera anteriore/posteriore"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前面/背面カメラを切り替え"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "전면/후면 카메라 전환"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alternar câmera frontal e traseira"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "切换前后摄像头"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闪光灯开"
           }
         }
       }
     },
-    "Stop recording": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stop optagelse"
+    "Found your iPhone. Getting ready…" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fandt din iPhone. Gør klar…"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme stoppen"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone gefunden. Wird vorbereitet…"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Detener grabación"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone encontrado. Preparando…"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Arrêter l’enregistrement"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone trouvé. Préparation…"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Interrompi registrazione"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone trovato. Preparazione…"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録画を停止"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhoneが見つかりました。準備中…"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "녹화 중지"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone을 찾았습니다. 준비 중…"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parar gravação"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone encontrado. Preparando…"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "停止录制"
-          }
-        }
-      }
-    },
-    "Start recording": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start optagelse"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme starten"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iniciar grabación"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Démarrer l’enregistrement"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avvia registrazione"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録画を開始"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "녹화 시작"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Iniciar gravação"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开始录制"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已找到 iPhone。正在准备…"
           }
         }
       }
     },
-    "Take photo": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag billede"
+    "Hide controls" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skjul betjening"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Foto aufnehmen"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steuerung ausblenden"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tomar foto"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar controles"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prendre une photo"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer les commandes"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scatta foto"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi controlli"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真を撮る"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コントロールを隠す"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "사진 촬영"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "제어 숨기기"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tirar foto"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar controles"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拍照"
-          }
-        }
-      }
-    },
-    "Photo mode": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fototilstand"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fotomodus"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Modo foto"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mode photo"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Modalità foto"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真モード"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "사진 모드"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Modo foto"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "照片模式"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏控制"
           }
         }
       }
     },
-    "Video mode": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Videotilstand"
+    "Mic Denied" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon nægtet"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Videomodus"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon verweigert"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Modo video"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono denegado"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mode vidéo"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micro refusé"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Modalità video"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfono negato"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ビデオモード"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイクが拒否されました"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "비디오 모드"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마이크 거부됨"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Modo vídeo"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfone negado"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "视频模式"
-          }
-        }
-      }
-    },
-    "Settings": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indstillinger"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einstellungen"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajustes"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Réglages"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impostazioni"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "설정"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajustes"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设置"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麦克风被拒绝"
           }
         }
       }
     },
-    "Cancel": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annuller"
+    "Not Delivered" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke leveret"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abbrechen"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht zugestellt"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancelar"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No enviado"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annuler"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non envoyé"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annulla"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non inviato"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キャンセル"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "送信されませんでした"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "취소"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전송 안 됨"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancelar"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não entregue"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消"
-          }
-        }
-      }
-    },
-    "Cancel timer": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annuller timer"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Timer abbrechen"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancelar temporizador"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annuler le retardateur"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Annulla timer"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タイマーをキャンセル"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "타이머 취소"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancelar temporizador"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消计时器"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未送达"
           }
         }
       }
     },
-    "Zoom": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom"
+    "Off" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fra"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactivado"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivé"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ズーム"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "줌"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "끔"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desligado"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "变焦"
-          }
-        }
-      }
-    },
-    "Zoom %@": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom %@"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom %@"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom %@"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom %@"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom %@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ズーム %@"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "줌 %@"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoom %@"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "变焦 %@"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
           }
         }
       }
     },
-    "%@ lens": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Objektiv %@"
+    "On your iPhone, tap “Watch Remote”" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tryk på “Watch-fjernbetjening” på din iPhone"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Objektiv %@"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe auf deinem iPhone auf „Watch-Fernbedienung“"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Objetivo %@"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En tu iPhone, toca “Control por Watch”"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Objectif %@"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur votre iPhone, touchez « Télécommande Watch »"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Obiettivo %@"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sull’iPhone, tocca “Telecomando Watch”"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ レンズ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhoneで「Watchリモート」をタップ"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 렌즈"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone에서 ‘Watch 리모컨’을 탭하세요"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lente %@"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No seu iPhone, toque em “Controle pelo Watch”"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 镜头"
-          }
-        }
-      }
-    },
-    "Timer %lld seconds, open settings": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Timer %lld sekunder, åbn indstillinger"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Timer %lld Sekunden, Einstellungen öffnen"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temporizador %lld segundos, abrir ajustes"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Retardateur %lld secondes, ouvrir les réglages"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Timer %lld secondi, apri impostazioni"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タイマー %lld 秒、設定を開く"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "타이머 %lld초, 설정 열기"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temporizador %lld segundos, abrir ajustes"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "计时器 %lld 秒，打开设置"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 上轻点“手表遥控”"
           }
         }
       }
     },
-    "Self timer, %lld seconds remaining": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selvudløser, %lld sekunder tilbage"
+    "Open Remote Shutter on your iPhone and choose “Watch Remote”" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åbn Remote Shutter på din iPhone, og vælg “Watch-fjernbetjening”"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Selbstauslöser, noch %lld Sekunden"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne Remote Shutter auf deinem iPhone und wähle „Watch-Fernbedienung“"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temporizador, faltan %lld segundos"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Remote Shutter en tu iPhone y elige “Control por Watch”"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Retardateur, %lld secondes restantes"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez Remote Shutter sur votre iPhone et choisissez « Télécommande Watch »"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Autoscatto, %lld secondi rimanenti"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Remote Shutter sull’iPhone e scegli “Telecomando Watch”"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セルフタイマー、残り %lld 秒"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhoneでRemote Shutterを開き、「Watchリモート」を選択"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "셀프 타이머, %lld초 남음"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone에서 Remote Shutter를 열고 ‘Watch 리모컨’을 선택하세요"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temporizador, %lld segundos restantes"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra o Remote Shutter no seu iPhone e escolha “Controle pelo Watch”"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自拍定时，剩余 %lld 秒"
-          }
-        }
-      }
-    },
-    "Photo Saved": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Billede gemt"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Foto gesichert"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Foto guardada"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Photo enregistrée"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Foto salvata"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真を保存しました"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "사진 저장됨"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Foto salva"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "照片已保存"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 上打开 Remote Shutter 并选择“手表遥控”"
           }
         }
       }
     },
-    "Recording": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Optager"
+    "Photo Failed" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Billede mislykkedes"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto fehlgeschlagen"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Grabando"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error en la foto"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enregistrement"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la photo"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Registrazione"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto non riuscita"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録画中"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真の撮影に失敗"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "녹화 중"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진 실패"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gravando"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falha na foto"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在录制"
-          }
-        }
-      }
-    },
-    "Video Saved": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Video gemt"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Video gesichert"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Video guardado"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vidéo enregistrée"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Video salvato"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ビデオを保存しました"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "비디오 저장됨"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vídeo salvo"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "视频已保存"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拍照失败"
           }
         }
       }
     },
-    "Photo Failed": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Billede mislykkedes"
+    "Photo mode" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fototilstand"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Foto fehlgeschlagen"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotomodus"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Error en la foto"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo foto"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Échec de la photo"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode photo"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Foto non riuscita"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modalità foto"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真の撮影に失敗"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真モード"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "사진 실패"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진 모드"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Falha na foto"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo foto"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拍照失败"
-          }
-        }
-      }
-    },
-    "Recording Failed": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Optagelse mislykkedes"
-          }
-        },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme fehlgeschlagen"
-          }
-        },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Error en la grabación"
-          }
-        },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Échec de l’enregistrement"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Registrazione non riuscita"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録画に失敗"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "녹화 실패"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Falha na gravação"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "录制失败"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片模式"
           }
         }
       }
     },
-    "Not Delivered": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ikke leveret"
+    "Photo Saved" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Billede gemt"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nicht zugestellt"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto gesichert"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No enviado"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto guardada"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Non envoyé"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo enregistrée"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Non inviato"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto salvata"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "送信されませんでした"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を保存しました"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "전송 안 됨"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진 저장됨"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Não entregue"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto salva"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未送达"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片已保存"
           }
         }
       }
     },
-    "Mic Denied": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mikrofon nægtet"
+    "REC" : {
+      "comment" : "A label indicating that a video is currently being recorded.",
+      "isCommentAutoGenerated" : true
+    },
+    "Recording" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optager"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mikrofon verweigert"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Micrófono denegado"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabando"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Micro refusé"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Microfono negato"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrazione"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マイクが拒否されました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録画中"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "마이크 거부됨"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹화 중"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Microfone negado"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravando"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "麦克风被拒绝"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在录制"
           }
         }
       }
     },
-    "Busy": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Optaget"
+    "Recording Failed" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optagelse mislykkedes"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Beschäftigt"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme fehlgeschlagen"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ocupado"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error en la grabación"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Occupé"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de l’enregistrement"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Occupato"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrazione non riuscita"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "処理中"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録画に失敗"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "사용 중"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹화 실패"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ocupado"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falha na gravação"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "忙碌"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录制失败"
           }
         }
       }
     },
-    "Recording…": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Optager…"
+    "Recording in progress" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optagelse i gang"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme…"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme läuft"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Grabando…"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación en curso"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enregistrement…"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement en cours"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Registrazione…"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrazione in corso"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録画中…"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録画中"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "녹화 중…"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹화 중"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gravando…"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravação em andamento"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在录制…"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在录制"
           }
         }
       }
     },
-    "Timer": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Timer"
+    "Recording…" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optager…"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Timer"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme…"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temporizador"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabando…"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Retardateur"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement…"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Timer"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrazione…"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タイマー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録画中…"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "타이머"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹화 중…"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temporizador"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravando…"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "计时器"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在录制…"
           }
         }
       }
     },
-    "Off": {
-      "localizations": {
-        "da": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fra"
+    "Remote Shutter" : {
+      "comment" : "The title of the app.",
+      "isCommentAutoGenerated" : true
+    },
+    "Reopen Remote Shutter on your iPhone to keep shooting" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genåbn Remote Shutter på din iPhone for at fortsætte"
           }
         },
-        "de-DE": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aus"
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne Remote Shutter auf deinem iPhone erneut, um weiter aufzunehmen"
           }
         },
-        "es-MX": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desactivado"
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vuelve a abrir Remote Shutter en tu iPhone para seguir capturando"
           }
         },
-        "fr-FR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Désactivé"
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rouvrez Remote Shutter sur votre iPhone pour continuer"
           }
         },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Off"
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riapri Remote Shutter sull’iPhone per continuare a scattare"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撮影を続けるにはiPhoneでRemote Shutterを再度開いてください"
           }
         },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "끔"
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계속 촬영하려면 iPhone에서 Remote Shutter를 다시 여세요"
           }
         },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desligado"
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reabra o Remote Shutter no seu iPhone para continuar"
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 上重新打开 Remote Shutter 以继续拍摄"
+          }
+        }
+      }
+    },
+    "Retry" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igen"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentar"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 시도"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar novamente"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        }
+      }
+    },
+    "Self timer, %lld seconds remaining" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selvudløser, %lld sekunder tilbage"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selbstauslöser, noch %lld Sekunden"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporizador, faltan %lld segundos"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retardateur, %lld secondes restantes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoscatto, %lld secondi rimanenti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セルフタイマー、残り %lld 秒"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "셀프 타이머, %lld초 남음"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporizador, %lld segundos restantes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自拍定时，剩余 %lld 秒"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indstillinger"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
+          }
+        }
+      }
+    },
+    "Show controls" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vis betjening"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steuerung anzeigen"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar controles"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les commandes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra controlli"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コントロールを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "제어 표시"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar controles"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示控制"
+          }
+        }
+      }
+    },
+    "Start recording" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start optagelse"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme starten"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar grabación"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Démarrer l’enregistrement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvia registrazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録画を開始"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹화 시작"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar gravação"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始录制"
+          }
+        }
+      }
+    },
+    "Stop recording" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop optagelse"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme stoppen"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener grabación"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter l’enregistrement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrompi registrazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録画を停止"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "녹화 중지"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parar gravação"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止录制"
+          }
+        }
+      }
+    },
+    "Switch front and back camera" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skift mellem front- og bagkamera"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Front- und Rückkamera wechseln"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar entre cámara frontal y trasera"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basculer entre caméra avant et arrière"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambia fotocamera anteriore/posteriore"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前面/背面カメラを切り替え"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전면/후면 카메라 전환"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alternar câmera frontal e traseira"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换前后摄像头"
+          }
+        }
+      }
+    },
+    "Take photo" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag billede"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto aufnehmen"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tomar foto"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prendre une photo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scatta foto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を撮る"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진 촬영"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tirar foto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拍照"
+          }
+        }
+      }
+    },
+    "Timer" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timer"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timer"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporizador"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retardateur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイマー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "타이머"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporizador"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计时器"
+          }
+        }
+      }
+    },
+    "Timer %lld seconds, open settings" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timer %lld sekunder, åbn indstillinger"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timer %lld Sekunden, Einstellungen öffnen"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporizador %lld segundos, abrir ajustes"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retardateur %lld secondes, ouvrir les réglages"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timer %lld secondi, apri impostazioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイマー %lld 秒、設定を開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "타이머 %lld초, 설정 열기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporizador %lld segundos, abrir ajustes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计时器 %lld 秒，打开设置"
+          }
+        }
+      }
+    },
+    "Torch off" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lygte fra"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licht aus"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linterna desactivada"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lampe désactivée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torcia spenta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライト オフ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "손전등 꺼짐"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lanterna desligada"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手电筒关"
+          }
+        }
+      }
+    },
+    "Torch on" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lygte til"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Licht ein"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linterna activada"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lampe activée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torcia attiva"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライト オン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "손전등 켜짐"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lanterna ligada"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手电筒开"
+          }
+        }
+      }
+    },
+    "Video mode" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Videotilstand"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Videomodus"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo video"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode vidéo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modalità video"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビデオモード"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "비디오 모드"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modo vídeo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频模式"
+          }
+        }
+      }
+    },
+    "Video Saved" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video gemt"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video gesichert"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video guardado"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéo enregistrée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video salvato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビデオを保存しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "비디오 저장됨"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vídeo salvo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频已保存"
+          }
+        }
+      }
+    },
+    "Zoom" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ズーム"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "줌"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "变焦"
+          }
+        }
+      }
+    },
+    "Zoom %@" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom %@"
+          }
+        },
+        "de-DE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom %@"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom %@"
+          }
+        },
+        "fr-FR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ズーム %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "줌 %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "变焦 %@"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.1"
 }

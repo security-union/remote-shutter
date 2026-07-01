@@ -1,7 +1,7 @@
-- Nouveau : Choisissez votre rôle (Appareil Photo ou Télécommande) avant de scanner
-- Mode appareil photo : Connectez-vous et attendez qu'une Télécommande se connecte
-- Mode télécommande : Recherchez les appareils photos à proximité et connectez-vous
-- Tutoriel d'aide amélioré avec un guide étape par étape mis à jour
-- Localisation complète : maintenant disponible en 10 langues
-- Correction de l'erreur de déconnexion apparaissant après des sessions photo réussies
-- Améliorations de l'interface pour les écrans de scanner caméra et télécommande
+La prise en charge de l'Apple Watch est arrivée !
+
+- NOUVEAU : contrôlez votre appareil photo directement depuis votre Apple Watch, déclenchez l'obturateur depuis votre poignet
+- Idéal pour les trépieds, les télescopes et les installations photo longue portée où votre téléphone est hors de portée
+- État de connexion en direct sur votre Watch pour toujours savoir si vous êtes connecté
+- Fiabilité de connexion améliorée entre la Watch, l'iPhone et l'iPad
+- Corrections de bugs et améliorations des performances

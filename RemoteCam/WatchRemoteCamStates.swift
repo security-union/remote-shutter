@@ -60,10 +60,10 @@ extension CameraViewController: WatchCameraControlling {
                 self.playCountdownChime(remaining: value)
             } else if value == 0 {
                 self.cameraViewModel.clearCountdown()
-                self.ensureTorchOff()
+                self.restoreTorchAfterCountdown()
             } else {
                 self.cameraViewModel.cancelCountdown()
-                self.ensureTorchOff()
+                self.restoreTorchAfterCountdown()
             }
         }
     }

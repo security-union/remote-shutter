@@ -1,7 +1,7 @@
-- New: Choose your role (Camera or Remote) before scanning
-- Camera mode: Go online and wait for a Remote to connect
-- Remote mode: Scan for nearby cameras and connect
-- Improved help tutorial with updated step-by-step guide
-- Full localization: now available in 10 languages
-- Fixed disconnect error showing after successful photo sessions
-- UI improvements for camera and remote scanner screens
+Apple Watch support is here!
+
+- NEW: Control your camera straight from your Apple Watch — trigger the shutter right from your wrist
+- Perfect for tripods, telescopes, and long-range camera rigs where you can't reach your phone
+- Live connection status on your Watch so you always know you're linked
+- Improved connection reliability between Watch, iPhone, and iPad
+- Bug fixes and performance improvements

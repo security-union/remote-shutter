@@ -1,8 +1,9 @@
-Med Remote Shutter bliver en af dine enheder kameraets skærm, mens anden enhed vil kan være opsat, hvor du ønsker det. Du sætter én af dine enheder op så du kan tage billedet, mens du følger med på den anden skærm, hvor du også kan vælge at tage billedet fra. Remote Shutter virker op til 15 meters afstand, og gør det nemt at tage billeder fra underlige vinkler, så du kan undgå at sidde i en ubehagelig position, når du skal have dit unikke billede. 
+Med Remote Shutter bliver den ene enhed dit kamera, mens den anden bliver din skærm og fjernbetjening. Du placerer kameraet, hvor du vil, og tager billedet, mens du følger med på den anden skærm. Remote Shutter virker op til 15 meters afstand og gør det nemt at tage billeder fra svære vinkler — så du slipper for at sidde i en ubehagelig stilling for at få dit helt unikke billede.
 
 Prøv Remote Shutter gratis! 
 
 Funktioner: 
+- NYT: Styr dit kamera fra dit Apple Watch — udløs lukkeren fra håndleddet
 - Tag billeder fra op til 15 meter væk 
 - Skift kameraets retning 
 - Brug kamerablitz 

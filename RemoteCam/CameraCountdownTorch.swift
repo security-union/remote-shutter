@@ -46,12 +46,12 @@ final class CameraCountdownTorch {
         strobeTimer = timer
     }
 
-    /// Stops all torch activity and ensures torch is off.
+    /// Stops all blink/strobe activity. Deliberately leaves the torch in whatever state
+    /// the strobe last set it to — the caller decides the final torch state (e.g. restoring
+    /// the user's torch preference), so a user-enabled torch survives a timer countdown.
     func stop(device: AVCaptureDevice?) {
         stopStrobe()
         isBlinking = false
-        guard let device = device, device.hasTorch, device.torchMode != .off else { return }
-        setTorch(.off, device: device)
     }
 
     // MARK: - Private

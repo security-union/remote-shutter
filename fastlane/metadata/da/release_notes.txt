@@ -1,7 +1,7 @@
-- Nyt: Vælg din rolle (Kamera eller Fjernbetjening) før scanning
-- Kameratilstand: Gå online og vent på at en Fjernbetjening forbinder
-- Fjernbetjeningstilstand: Scan efter kameraer i nærheden og forbind
-- Forbedret hjælpeguide med opdateret trin-for-trin vejledning
-- Fuld lokalisering: nu tilgængelig på 10 sprog
-- Rettet fejl med frakoblingsfejl der vistes efter vellykkede fotosessioner
-- Forbedringer af brugerfladen på kamera- og fjernbetjeningsskærme
+Understøttelse af Apple Watch er her!
+
+- NYT: Styr dit kamera direkte fra dit Apple Watch — udløs lukkeren lige fra håndleddet
+- Perfekt til stativer, teleskoper og kameraopstillinger på lang afstand, hvor du ikke kan nå din telefon
+- Live forbindelsesstatus på dit Watch, så du altid ved, at du er forbundet
+- Forbedret forbindelsesstabilitet mellem Watch, iPhone og iPad
+- Fejlrettelser og forbedret ydeevne

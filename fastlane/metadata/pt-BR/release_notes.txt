@@ -1,7 +1,7 @@
-- Novo: Escolha seu papel (Câmera ou Remoto) antes de buscar
-- Modo câmera: Fique online e aguarde um Remoto se conectar
-- Modo remoto: Busque câmeras próximas e conecte-se
-- Tutorial de ajuda aprimorado com guia passo a passo atualizado
-- Localização completa: agora disponível em 10 idiomas
-- Corrigido erro de desconexão exibido após sessões de fotos bem-sucedidas
-- Melhorias na interface das telas de scanner de câmera e remoto
+Chegou o suporte ao Apple Watch!
+
+- NOVO: Controle sua câmera direto do seu Apple Watch — dispare o obturador no seu pulso
+- Perfeito para tripés, telescópios e equipamentos de câmera de longo alcance, quando você não consegue alcançar o celular
+- Status da conexão ao vivo no seu Watch, para você sempre saber que está conectado
+- Maior confiabilidade da conexão entre Watch, iPhone e iPad
+- Correções de bugs e melhorias de desempenho

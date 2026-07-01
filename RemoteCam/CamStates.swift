@@ -277,10 +277,10 @@ extension RemoteCamSession {
                         ctrl.playCountdownChime(remaining: countdown.value)
                     } else if countdown.value == 0 {
                         ctrl.cameraViewModel.clearCountdown()
-                        ctrl.ensureTorchOff()
+                        ctrl.restoreTorchAfterCountdown()
                     } else {
                         ctrl.cameraViewModel.cancelCountdown()
-                        ctrl.ensureTorchOff()
+                        ctrl.restoreTorchAfterCountdown()
                     }
                 }
 
