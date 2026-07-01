@@ -250,10 +250,12 @@ public class WatchRemoteCameraController: UIViewController {
             session ! RemoteCmd.RequestCameraCapabilities()
 
         case .canceltimer:
-            // Stop the pending capture and tear down the on-phone countdown overlay
-            // and strobe torch (value < 0 == cancelled).
+            // Stop the pending capture, then let the actor tear down the on-phone
+            // countdown overlay/strobe torch (value < 0 == cancelled) AND push a
+            // countdown-free snapshot — a direct overlay call would leave the
+            // Watch's durable context mirror holding a countdown that isn't running.
             cancelCountdown()
-            cameraVC.updateTimerCountdown(value: -1)
+            session ! RemoteCmd.TimerCountdown(value: -1)
 
         case .requestpreviewframe:
             // The Watch consumed a preview frame and wants the next — release the gate.

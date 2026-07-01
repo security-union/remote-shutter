@@ -146,6 +146,11 @@ extension RemoteCamSession {
                 ctrl.updateTimerCountdown(value: countdown.value)
                 if countdown.value > 0 {
                     self.pushWatchState(ctrl: ctrl, event: "countdown:\(countdown.value)")
+                } else {
+                    // Fire/cancel: sync a countdown-free snapshot so neither the
+                    // Watch nor the durable context mirror keeps a countdown that
+                    // is no longer running.
+                    self.pushWatchState(ctrl: ctrl)
                 }
 
             // MARK: - Late Arrivals (sub-state timed out before the callback landed)

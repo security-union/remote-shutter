@@ -93,12 +93,6 @@ class WatchCameraViewModel: ObservableObject {
     /// as a steady, cancelable overlay rather than flashing per-tick confirmations.
     @Published var countdownRemaining: Int?
 
-    /// Parses a `"countdown:N"` event into its remaining seconds.
-    private static func countdownValue(from event: String) -> Int? {
-        guard event.hasPrefix("countdown:") else { return nil }
-        return Int(event.dropFirst("countdown:".count))
-    }
-
     /// User tapped Cancel: drop the countdown immediately (optimistic) and tell the
     /// phone to abort the pending capture.
     func cancelTimer(send: () -> Void) {
@@ -207,7 +201,6 @@ class WatchCameraViewModel: ObservableObject {
         isReady = state.isReady
         if !state.isReady {
             clearPreview()
-            countdownRemaining = nil
         }
         currentZoomFactor = state.currentZoomFactor
         minZoomFactor = state.minZoomFactor
@@ -221,20 +214,22 @@ class WatchCameraViewModel: ObservableObject {
         zoomStops = state.zoomStops
         wideAngleZoomFactor = state.wideAngleZoomFactor
 
+        // The snapshot is authoritative for the self-timer: no positive countdown
+        // event means no countdown is running. Applying this on every state is what
+        // unsticks a stale overlay after missed pushes (locked phone/watch races).
+        countdownRemaining = state.activeCountdownSeconds
+
         // Handle events with haptic feedback. A live countdown gets a steady,
-        // cancelable overlay; every other event flashes a 2s confirmation.
-        if let event = state.lastEvent {
-            if let remaining = Self.countdownValue(from: event) {
-                countdownRemaining = remaining
-                WKInterfaceDevice.current().play(.click)
-            } else {
-                countdownRemaining = nil
-                lastEvent = event
-                showEventConfirmation = true
-                playHaptic(for: event)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                    self?.showEventConfirmation = false
-                }
+        // cancelable overlay; every other user-facing event flashes a 2s
+        // confirmation. `countdown:*` strings are protocol plumbing, never flashed.
+        if countdownRemaining != nil {
+            WKInterfaceDevice.current().play(.click)
+        } else if let event = state.lastEvent, !event.hasPrefix("countdown:") {
+            lastEvent = event
+            showEventConfirmation = true
+            playHaptic(for: event)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.showEventConfirmation = false
             }
         }
 

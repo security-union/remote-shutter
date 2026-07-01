@@ -440,6 +440,27 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertFalse(pusher.allEvents.contains("countdown:0"),
                        "the fire tick is not an event — the capture event follows")
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+
+        // The fire tick must still push a countdown-free snapshot: without it the
+        // Watch (and the latest-wins context mirror) keeps showing the last tick.
+        let last = pusher.pushedSnapshots.last
+        XCTAssertNil(last?.lastEvent)
+        XCTAssertNil(last?.activeCountdownSeconds)
+    }
+
+    func testTimerCancelDrivesPhoneUIAndPushesCountdownFreeSnapshot() {
+        enterWatchCamera()
+        ref ! RemoteCmd.TimerCountdown(value: 2)
+        ref ! RemoteCmd.TimerCountdown(value: -1)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(ctrl.countdownTicks, [2, -1],
+                       "cancel must tear down the on-phone countdown overlay")
+        let last = pusher.pushedSnapshots.last
+        XCTAssertNotNil(last, "cancel must push state so the context mirror can't hold a dead countdown")
+        XCTAssertNil(last?.lastEvent)
+        XCTAssertNil(last?.activeCountdownSeconds)
+        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
     }
 
     // MARK: - Snapshot truthfulness

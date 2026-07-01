@@ -224,6 +224,41 @@ final class WatchSerializationTests: XCTestCase {
             isSessionActive: true, isPhoneReachable: true, isReady: false,
             phoneNotInWatchMode: false, phoneNotReadyReason: nil), .connecting)
     }
+
+    // MARK: - Active Countdown Derivation
+
+    private func snapshot(isReady: Bool = true, lastEvent: String?) -> WatchCameraStateSnapshot {
+        var snapshot = WatchCameraStateSnapshot()
+        snapshot.isReady = isReady
+        snapshot.lastEvent = lastEvent
+        return snapshot
+    }
+
+    func testActiveCountdownParsesTicks() {
+        XCTAssertEqual(snapshot(lastEvent: "countdown:3").activeCountdownSeconds, 3)
+        XCTAssertEqual(snapshot(lastEvent: "countdown:1").activeCountdownSeconds, 1)
+    }
+
+    /// The stuck-overlay regression: a snapshot without a countdown event is
+    /// authoritative — the Watch must treat it as "no countdown running".
+    func testSnapshotWithoutCountdownEventCarriesNoCountdown() {
+        XCTAssertNil(snapshot(lastEvent: nil).activeCountdownSeconds)
+        XCTAssertNil(snapshot(lastEvent: "photoTaken").activeCountdownSeconds)
+    }
+
+    func testFireTickIsNotAnActiveCountdown() {
+        XCTAssertNil(snapshot(lastEvent: "countdown:0").activeCountdownSeconds)
+    }
+
+    func testMalformedCountdownEventsAreIgnored() {
+        XCTAssertNil(snapshot(lastEvent: "countdown:-2").activeCountdownSeconds)
+        XCTAssertNil(snapshot(lastEvent: "countdown:abc").activeCountdownSeconds)
+        XCTAssertNil(snapshot(lastEvent: "countdown:").activeCountdownSeconds)
+    }
+
+    func testNotReadySnapshotCarriesNoCountdown() {
+        XCTAssertNil(snapshot(isReady: false, lastEvent: "countdown:2").activeCountdownSeconds)
+    }
 }
 
 // MARK: - Zoom Throttle

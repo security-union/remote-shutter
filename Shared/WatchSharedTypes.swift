@@ -77,6 +77,25 @@ struct WatchCameraStateSnapshot {
     var flashMode: RemoteShutter_FlashMode = .off
 }
 
+extension WatchCameraStateSnapshot {
+    /// Seconds left on an active self-timer, parsed from a `"countdown:N"` event,
+    /// or `nil` when this snapshot carries no live countdown.
+    ///
+    /// A snapshot is authoritative: any push without a positive countdown event
+    /// means no countdown is running. The Watch must apply this on *every* state —
+    /// treating countdown as a sticky event left the overlay stuck when the push
+    /// that would have cleared it (fire, cancel, photoTaken) was coalesced away by
+    /// the latest-wins applicationContext mirror.
+    var activeCountdownSeconds: Int? {
+        guard isReady,
+              let event = lastEvent,
+              event.hasPrefix("countdown:"),
+              let remaining = Int(event.dropFirst("countdown:".count)),
+              remaining > 0 else { return nil }
+        return remaining
+    }
+}
+
 // MARK: - iPhone -> Watch State Encoding
 
 struct WatchStateEncoder {
