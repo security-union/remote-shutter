@@ -1,1 +1,1 @@
-wireless,selfie,group,photo,timer,tripod,monitor,baby,nanny,trail,cam,surveillance,video,self
+remote camera,wireless shutter,selfie remote,group photo,camera connect,remote photo,photo timer
