@@ -1,6 +1,6 @@
 Remote Shutter è un'applicazione che richiede due dispositivi.  Funziona sia su macOS che su iOS.
- Con Remote Shutter uno dei tuoi dispositivi è il telecomando della fotocamera o il monitor della fotocamera, e l'altro dispositivo verrà impostato ovunque tu voglia scattare una foto come fotocamera.  Utilizzando il telefono connesso è possibile scattare foto da una distanza massima di 15 metri.
- L'otturatore remoto rende facile scattare foto di cose ad angolazioni strane e questo ti metterebbe in una posizione scomoda.  Fai un giro gratuito con Remote Shutter!
+ Con Remote Shutter uno dei tuoi dispositivi è il telecomando o il monitor della fotocamera, e l'altro dispositivo, che fa da fotocamera, lo posizioni ovunque tu voglia scattare.  Utilizzando il telefono connesso è possibile scattare foto da una distanza massima di 15 metri.
+ L'otturatore remoto rende facile scattare foto da angolazioni difficili, che altrimenti ti costringerebbero in una posizione scomoda.  Provalo gratis!
  Caratteristiche:
  - NOVITÀ: Controlla la fotocamera dal tuo Apple Watch: scatta direttamente dal polso
  - Scatta foto fino a 15 metri di distanza
@@ -8,7 +8,7 @@ Remote Shutter è un'applicazione che richiede due dispositivi.  Funziona sia su
  - Usa il flash della fotocamera
  - Timer della fotocamera regolabile
  COME USARE
- Quando apri l'app per la prima volta, il telefono inizierà a cercare i dispositivi con cui connettersi.  La fotocamera si connette con una connessione P2P all'altro dispositivo.  Una volta collegati i dispositivi, dovrai scegliere quale dispositivo è la fotocamera e quale telefono è il telecomando.
+ Quando apri l'app per la prima volta, il telefono inizierà a cercare i dispositivi con cui connettersi.  La fotocamera si connette con una connessione P2P all'altro dispositivo.  Una volta collegati i dispositivi, dovrai scegliere quale dispositivo è la fotocamera e quale dispositivo è il telecomando.
  1. Collega i tuoi dispositivi
- 2. Scegli il ruolo del dispositivo (videocamera o telecomando)
+ 2. Scegli il ruolo del dispositivo (fotocamera o telecomando)
  3. Imposta e scatta foto!

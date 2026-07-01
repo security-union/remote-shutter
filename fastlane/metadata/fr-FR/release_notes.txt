@@ -2,6 +2,6 @@ La prise en charge de l'Apple Watch est arrivée !
 
 - NOUVEAU : contrôlez votre appareil photo directement depuis votre Apple Watch, déclenchez l'obturateur depuis votre poignet
 - Idéal pour les trépieds, les télescopes et les installations photo longue portée où votre téléphone est hors de portée
-- État de connexion en direct sur votre Watch pour toujours savoir que vous êtes connecté
+- État de connexion en direct sur votre Watch pour toujours savoir si vous êtes connecté
 - Fiabilité de connexion améliorée entre la Watch, l'iPhone et l'iPad
 - Corrections de bugs et améliorations des performances
