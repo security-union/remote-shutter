@@ -31,6 +31,23 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     /// constructor-time snapshot raced it and hid the button on cold launch.
     @Published private(set) var watchPaired = false
 
+    /// Whether the iPhone app is foreground-active. The camera can only capture
+    /// while active, so any state gathered while backgrounded/locked must report
+    /// not-ready. Written on the main thread (lifecycle notifications), read from
+    /// the WCSession delegate queue, so it's lock-guarded.
+    private let appActiveLock = NSLock()
+    private var _appActive = true
+    private var appActive: Bool {
+        get {
+            appActiveLock.lock(); defer { appActiveLock.unlock() }
+            return _appActive
+        }
+        set {
+            appActiveLock.lock(); defer { appActiveLock.unlock() }
+            _appActive = newValue
+        }
+    }
+
     /// The active watch remote camera controller, if in Watch Remote mode.
     /// Written on the main thread, read from the WCSession delegate queue.
     private let controllerLock = NSLock()
@@ -59,19 +76,32 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     /// While in Watch Remote mode, a backgrounded/locked iPhone can still receive
     /// commands but its capture session is stopped — tell the Watch the truth.
     private func observeAppLifecycle() {
+        // Resigning active covers *both* backgrounding and locking (locking often
+        // never delivers didEnterBackground). Flip the flag first so any state push
+        // racing in from this point on is forced to not-ready by `pushCameraState`.
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.appActive = false
+        }
         NotificationCenter.default.addObserver(
             forName: UIApplication.didEnterBackgroundNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
-            guard let self, self.cameraController != nil else { return }
+            guard let self else { return }
+            self.appActive = false
+            guard self.cameraController != nil else { return }
             self.pushNotReady(reason: "phoneBackgrounded")
         }
         NotificationCenter.default.addObserver(
             forName: UIApplication.didBecomeActiveNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
+            guard let self else { return }
+            self.appActive = true
             // Refresh through the live state machine so the Watch gets real state.
-            self?.cameraController?.pushCurrentState()
+            self.cameraController?.pushCurrentState()
         }
     }
 
@@ -89,6 +119,15 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         guard let session = wcSession else { return }
 
         var stamped = snapshot
+        // Single source of truth: a backgrounded/locked phone can't capture, so no
+        // matter which push path produced this snapshot (capabilities request,
+        // reachability refresh, toggle, …), force it to not-ready. Otherwise a stale
+        // `isReady=true` snapshot with a newer epoch races ahead of the real
+        // not-ready push and hides the "app closed" screen on the Watch.
+        if !appActive {
+            stamped.isReady = false
+            stamped.lastEvent = "phoneBackgrounded"
+        }
         stamped.stateEpochMs = UInt64(Date().timeIntervalSince1970 * 1000)
         let data = WatchStateEncoder.encode(stamped)
 
