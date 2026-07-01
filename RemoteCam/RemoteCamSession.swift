@@ -51,6 +51,11 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
     /// Watch state pushes go through this seam so tests can record them.
     var watchStatePusher: WatchStatePushing = WatchSessionManager.shared
 
+    /// Whether the phone is backgrounded/locked (camera can't capture). Injected so
+    /// tests can force either state; production reads the shared lifecycle monitor.
+    /// This is the sole input that decides `WatchCameraStateSnapshot.isReady`.
+    var isPhoneBackgrounded: () -> Bool = { AppActivityMonitor.shared.isBackgrounded }
+
     /// Photo-library write seam — tests record the data instead of hitting
     /// PHPhotoLibrary. Production routes to `savePicture` (CamStates.swift).
     lazy var photoLibrarySaver: (Data) -> Void = { [weak self] data in

@@ -196,7 +196,7 @@ class WatchCameraViewModel: ObservableObject {
         if state.isReady {
             phoneNotInWatchMode = false
             phoneNotReadyReason = nil
-        } else if state.lastEvent == "phoneBackgrounded" {
+        } else if state.lastEvent == WatchNotReadyReason.phoneBackgrounded {
             phoneNotReadyReason = state.lastEvent
         } else {
             // Disconnected push: the phone left Watch Remote mode.

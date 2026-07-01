@@ -16,7 +16,6 @@ import FlatBuffers
 /// so state-machine tests can record pushes without WatchConnectivity.
 protocol WatchStatePushing: AnyObject {
     func pushCameraState(_ snapshot: WatchCameraStateSnapshot)
-    func pushNotReady(reason: String)
     func pushDisconnectedState()
 }
 
@@ -59,20 +58,15 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
     /// While in Watch Remote mode, a backgrounded/locked iPhone can still receive
     /// commands but its capture session is stopped — tell the Watch the truth.
     private func observeAppLifecycle() {
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didEnterBackgroundNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            guard let self, self.cameraController != nil else { return }
-            self.pushNotReady(reason: "phoneBackgrounded")
-        }
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didBecomeActiveNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            // Refresh through the live state machine so the Watch gets real state.
+        // The monitor owns the background flag (the state-snapshot builder reads it).
+        // Its onChange fires *after* the flag flips, so re-pushing here always sends
+        // the up-to-date readiness — and locking the device is covered exactly like
+        // swiping home. In phone-to-phone mode `cameraController` is nil, so this is a
+        // no-op there.
+        AppActivityMonitor.shared.onChange = { [weak self] in
             self?.cameraController?.pushCurrentState()
         }
+        AppActivityMonitor.shared.startObserving()
     }
 
     var isWatchPaired: Bool {
@@ -105,15 +99,6 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
         session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
             debugLog("WatchSessionManager: Failed to push state: \(error)")
         })
-    }
-
-    /// Tells the Watch the phone can't take commands right now (backgrounded,
-    /// capture interrupted, …) without tearing down the session UI entirely.
-    func pushNotReady(reason: String) {
-        var snapshot = WatchCameraStateSnapshot()
-        snapshot.isReady = false
-        snapshot.lastEvent = reason
-        pushCameraState(snapshot)
     }
 
     func pushDisconnectedState() {

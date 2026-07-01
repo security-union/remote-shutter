@@ -416,12 +416,21 @@ extension RemoteCamSession {
     // MARK: - Watch State Push Helper (FlatBuffer-encoded)
 
     func pushWatchState(ctrl: WatchCameraControlling, event: String? = nil) {
-        watchStatePusher.pushCameraState(Self.watchStateSnapshot(ctrl: ctrl, event: event))
+        watchStatePusher.pushCameraState(
+            Self.watchStateSnapshot(ctrl: ctrl, event: event, isBackgrounded: isPhoneBackgrounded())
+        )
     }
 
-    static func watchStateSnapshot(ctrl: WatchCameraControlling, event: String? = nil) -> WatchCameraStateSnapshot {
+    static func watchStateSnapshot(ctrl: WatchCameraControlling,
+                                   event: String? = nil,
+                                   isBackgrounded: Bool = false) -> WatchCameraStateSnapshot {
         var snapshot = WatchCameraStateSnapshot()
-        snapshot.isReady = true
+        // Readiness is decided here and nowhere else: the phone can only capture while
+        // foregrounded. When backgrounded/locked, report not-ready with the reason the
+        // Watch routes to its "app closed" screen — it takes precedence over any
+        // transient capture event (e.g. a late "photoTaken") that was in flight.
+        snapshot.isReady = !isBackgrounded
+        snapshot.lastEvent = isBackgrounded ? WatchNotReadyReason.phoneBackgrounded : event
         snapshot.currentZoomFactor = Double(ctrl.getCurrentZoomFactor())
         snapshot.minZoomFactor = Double(ctrl.getMinZoomFactor())
         snapshot.maxZoomFactor = Double(ctrl.getMaxZoomFactor())
@@ -436,7 +445,6 @@ extension RemoteCamSession {
         snapshot.isTorchEnabled = ctrl.isTorchActive
         snapshot.zoomStops = ctrl.getZoomStops().map { Double($0) }
         snapshot.wideAngleZoomFactor = Double(ctrl.getWideAngleZoomFactor())
-        snapshot.lastEvent = event
         return snapshot
     }
 }

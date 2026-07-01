@@ -29,18 +29,24 @@ struct WatchConnectionView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)
 
-                Button(action: {
-                    session.manualRetry()
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("Retry")
+                // No action button while the phone is backgrounded/closed: there is
+                // nothing the user can do from the Watch to reopen the iPhone app
+                // (Apple exposes no public API to foreground the companion app), and
+                // a button would only invite people to keep trying to shoot.
+                if viewModel.phase != .phoneNotReady {
+                    Button(action: {
+                        session.manualRetry()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Retry")
+                        }
+                        .font(.body)
+                        .foregroundColor(.green)
                     }
-                    .font(.body)
-                    .foregroundColor(.green)
+                    .buttonStyle(.bordered)
+                    .tint(.green)
                 }
-                .buttonStyle(.bordered)
-                .tint(.green)
             }
             .padding()
         }
@@ -66,7 +72,7 @@ struct WatchConnectionView: View {
         case .phoneNotInWatchMode:
             return "On your iPhone, tap “Watch Remote”"
         case .phoneNotReady:
-            return "Reopen Remote Shutter on your iPhone to keep shooting"
+            return "Remote Shutter app was closed on your phone"
         case .connecting:
             return viewModel.isPhoneReachable
                 ? "Found your iPhone. Getting ready…"

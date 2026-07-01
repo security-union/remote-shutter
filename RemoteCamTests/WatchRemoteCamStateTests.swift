@@ -9,6 +9,7 @@
 //
 
 import XCTest
+import UIKit
 import AVFoundation
 import MultipeerConnectivity
 
@@ -70,14 +71,12 @@ final class FakeWatchCameraController: WatchCameraControlling {
 
 final class FakeWatchStatePusher: WatchStatePushing {
     var pushedSnapshots: [WatchCameraStateSnapshot] = []
-    var notReadyReasons: [String] = []
     var disconnectedPushes = 0
 
     var lastEvent: String? { pushedSnapshots.last(where: { $0.lastEvent != nil })?.lastEvent }
     var allEvents: [String] { pushedSnapshots.compactMap { $0.lastEvent } }
 
     func pushCameraState(_ snapshot: WatchCameraStateSnapshot) { pushedSnapshots.append(snapshot) }
-    func pushNotReady(reason: String) { notReadyReasons.append(reason) }
     func pushDisconnectedState() { disconnectedPushes += 1 }
 }
 
@@ -463,5 +462,90 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertTrue(snapshot.isRecording)
         XCTAssertEqual(snapshot.currentMode, .video)
         XCTAssertEqual(snapshot.lastEvent, "x")
+    }
+
+    // MARK: - Readiness (backgrounded / locked phone)
+
+    func testSnapshotReadyWhenForegrounded() {
+        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: "photoTaken", isBackgrounded: false)
+        XCTAssertTrue(snapshot.isReady)
+        XCTAssertEqual(snapshot.lastEvent, "photoTaken", "transient event passes through while foregrounded")
+    }
+
+    func testSnapshotNotReadyWhenBackgrounded() {
+        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: "photoTaken", isBackgrounded: true)
+        XCTAssertFalse(snapshot.isReady, "a backgrounded/locked phone can't capture")
+        XCTAssertEqual(snapshot.lastEvent, WatchNotReadyReason.phoneBackgrounded,
+                       "the not-ready reason takes precedence over any in-flight transient event")
+    }
+
+    /// The regression this whole change targets: whichever push path runs while the
+    /// phone is backgrounded, the snapshot must report not-ready — so a stale "ready"
+    /// push can never race ahead and hide the Watch's "app closed" screen.
+    func testBackgroundedPhoneAlwaysPushesNotReady() {
+        session.isPhoneBackgrounded = { true }
+        enterWatchCamera()
+
+        // A capabilities request is exactly the push that used to win the race with isReady=true.
+        ref ! RemoteCmd.RequestCameraCapabilities()
+        waitForMailbox(session, test: self)
+
+        let pushes = pusher.pushedSnapshots
+        XCTAssertFalse(pushes.isEmpty)
+        XCTAssertTrue(pushes.allSatisfy { !$0.isReady },
+                      "no push may claim ready while the phone is backgrounded")
+        XCTAssertEqual(pushes.last?.lastEvent, WatchNotReadyReason.phoneBackgrounded)
+    }
+}
+
+// MARK: - AppActivityMonitor (lifecycle → readiness flag wiring)
+
+final class AppActivityMonitorTests: XCTestCase {
+
+    /// Drives the monitor with a private NotificationCenter so posts don't touch the
+    /// real app lifecycle. Observers register with `queue: nil`, so posting on the test
+    /// thread runs them synchronously — assertions can follow each post directly.
+    func testTracksLifecycleTransitionsAndNotifies() {
+        let center = NotificationCenter()
+        let monitor = AppActivityMonitor()
+        var changeCount = 0
+        monitor.onChange = { changeCount += 1 }
+        monitor.startObserving(notificationCenter: center)
+
+        XCTAssertFalse(monitor.isBackgrounded, "starts foregrounded")
+
+        center.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        XCTAssertTrue(monitor.isBackgrounded, "backgrounding sets the flag")
+
+        center.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        XCTAssertFalse(monitor.isBackgrounded, "foregrounding clears the flag")
+
+        XCTAssertEqual(changeCount, 2, "each transition notifies the re-push trigger")
+    }
+
+    /// onChange must fire *after* the flag is updated, so the re-push it triggers
+    /// always reads the new value (this ordering is what killed the original race).
+    func testOnChangeSeesUpdatedFlag() {
+        let center = NotificationCenter()
+        let monitor = AppActivityMonitor()
+        var observedDuringCallback: Bool?
+        monitor.onChange = { observedDuringCallback = monitor.isBackgrounded }
+        monitor.startObserving(notificationCenter: center)
+
+        center.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        XCTAssertEqual(observedDuringCallback, true,
+                       "onChange runs after the flag flips, never before")
+    }
+
+    func testStartObservingIsIdempotent() {
+        let center = NotificationCenter()
+        let monitor = AppActivityMonitor()
+        var changeCount = 0
+        monitor.onChange = { changeCount += 1 }
+        monitor.startObserving(notificationCenter: center)
+        monitor.startObserving(notificationCenter: center)   // second call must not double-register
+
+        center.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        XCTAssertEqual(changeCount, 1, "a single transition fires onChange exactly once")
     }
 }
