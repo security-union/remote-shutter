@@ -57,7 +57,14 @@ struct WatchCommandEncoder {
 /// Built on the iPhone, FlatBuffer-encoded by `WatchStateEncoder`, decoded
 /// back into the same type on the Watch.
 struct WatchCameraStateSnapshot {
-    var isReady: Bool = true
+    /// Why the phone can or can't capture. `.unknown` means "no signal yet" and
+    /// is never treated as ready.
+    var readiness: RemoteShutter_WatchReadiness = .unknown
+    /// One-shot capture event piggybacked on this push; `.unknown` = no event.
+    var event: RemoteShutter_WatchEventType = .unknown
+    /// Live self-timer seconds (> 0), or 0 when none is running. Authoritative
+    /// in every snapshot — a push without a countdown means no countdown.
+    var countdownRemainingSecs: Int32 = 0
     var currentZoomFactor: Double = 1.0
     var minZoomFactor: Double = 1.0
     var maxZoomFactor: Double = 10.0
@@ -65,34 +72,25 @@ struct WatchCameraStateSnapshot {
     var currentMode: RemoteShutter_RecordingModeEnum = .photo
     var currentLensType: RemoteShutter_CameraLensType = .wideangle
     var availableLensTypes: [RemoteShutter_CameraLensType] = [.wideangle]
-    var isFlashEnabled: Bool = false
+    var flashMode: RemoteShutter_FlashMode = .off
     var isTorchEnabled: Bool = false
     var zoomStops: [Double] = [1.0]
     var wideAngleZoomFactor: Double = 1.0
-    var lastEvent: String?
     /// Milliseconds since epoch, stamped at push time. Orders live messages
     /// against (possibly stale) applicationContext deliveries.
     var stateEpochMs: UInt64 = 0
-    /// Tri-state flash truth; `isFlashEnabled` is kept as the simple bool.
-    var flashMode: RemoteShutter_FlashMode = .off
 }
 
 extension WatchCameraStateSnapshot {
-    /// Seconds left on an active self-timer, parsed from a `"countdown:N"` event,
-    /// or `nil` when this snapshot carries no live countdown.
-    ///
-    /// A snapshot is authoritative: any push without a positive countdown event
-    /// means no countdown is running. The Watch must apply this on *every* state —
-    /// treating countdown as a sticky event left the overlay stuck when the push
-    /// that would have cleared it (fire, cancel, photoTaken) was coalesced away by
-    /// the latest-wins applicationContext mirror.
+    var isReady: Bool { readiness == .ready }
+
+    var isFlashEnabled: Bool { flashMode != .off }
+
+    /// Seconds left on an active self-timer, or `nil` when this snapshot carries
+    /// no live countdown. A countdown only counts while the phone can capture.
     var activeCountdownSeconds: Int? {
-        guard isReady,
-              let event = lastEvent,
-              event.hasPrefix("countdown:"),
-              let remaining = Int(event.dropFirst("countdown:".count)),
-              remaining > 0 else { return nil }
-        return remaining
+        guard readiness == .ready, countdownRemainingSecs > 0 else { return nil }
+        return Int(countdownRemainingSecs)
     }
 }
 
@@ -105,11 +103,12 @@ struct WatchStateEncoder {
 
         let lensVec = fbb.createVector(snapshot.availableLensTypes.map { $0.rawValue })
         let stopsVec = fbb.createVector(snapshot.zoomStops)
-        let eventOffset: Offset = snapshot.lastEvent.map { fbb.create(string: $0) } ?? Offset()
 
         let state = RemoteShutter_WatchCameraState.createWatchCameraState(
             &fbb,
-            isReady: snapshot.isReady,
+            readiness: snapshot.readiness,
+            event: snapshot.event,
+            countdownRemainingSecs: snapshot.countdownRemainingSecs,
             currentZoomFactor: snapshot.currentZoomFactor,
             minZoomFactor: snapshot.minZoomFactor,
             maxZoomFactor: snapshot.maxZoomFactor,
@@ -117,13 +116,11 @@ struct WatchStateEncoder {
             currentMode: snapshot.currentMode,
             currentLensType: snapshot.currentLensType,
             availableLensTypesVectorOffset: lensVec,
-            isFlashEnabled: snapshot.isFlashEnabled,
+            flashMode: snapshot.flashMode,
             isTorchEnabled: snapshot.isTorchEnabled,
             zoomStopsVectorOffset: stopsVec,
             wideAngleZoomFactor: snapshot.wideAngleZoomFactor,
-            lastEventOffset: eventOffset,
-            stateEpochMs: snapshot.stateEpochMs,
-            flashMode: snapshot.flashMode
+            stateEpochMs: snapshot.stateEpochMs
         )
         let msg = RemoteShutter_WatchMessage.createWatchMessage(
             &fbb,
@@ -155,7 +152,9 @@ struct WatchStateEncoder {
         }
 
         return WatchCameraStateSnapshot(
-            isReady: state.isReady,
+            readiness: state.readiness,
+            event: state.event,
+            countdownRemainingSecs: state.countdownRemainingSecs,
             currentZoomFactor: state.currentZoomFactor,
             minZoomFactor: state.minZoomFactor,
             maxZoomFactor: state.maxZoomFactor,
@@ -163,13 +162,11 @@ struct WatchStateEncoder {
             currentMode: state.currentMode,
             currentLensType: state.currentLensType,
             availableLensTypes: lenses,
-            isFlashEnabled: state.isFlashEnabled,
+            flashMode: state.flashMode,
             isTorchEnabled: state.isTorchEnabled,
             zoomStops: stops,
             wideAngleZoomFactor: state.wideAngleZoomFactor,
-            lastEvent: state.lastEvent,
-            stateEpochMs: state.stateEpochMs,
-            flashMode: state.flashMode
+            stateEpochMs: state.stateEpochMs
         )
     }
 }
@@ -297,18 +294,6 @@ enum WatchContextKeys {
     static let epoch = "epoch"
 }
 
-// MARK: - Not-Ready Reasons
-
-/// Reasons the iPhone reports it can't capture, carried in
-/// `WatchCameraStateSnapshot.lastEvent` when `isReady == false`. Shared symbol so the
-/// phone (producer) and Watch (consumer) reference one string instead of two literals
-/// that could silently drift apart across the process boundary.
-enum WatchNotReadyReason {
-    /// The iPhone app is backgrounded or the device is locked — the camera can't run.
-    /// The Watch routes this to its "app closed" screen.
-    static let phoneBackgrounded = "phoneBackgrounded"
-}
-
 // MARK: - Watch UI Connection Phase
 
 /// What the Watch UI should show, derived from connectivity + camera state.
@@ -327,15 +312,15 @@ enum WatchConnectionPhase: Equatable {
 
     static func derive(isSessionActive: Bool,
                        isPhoneReachable: Bool,
-                       isReady: Bool,
-                       phoneNotInWatchMode: Bool,
-                       phoneNotReadyReason: String?) -> WatchConnectionPhase {
+                       readiness: RemoteShutter_WatchReadiness) -> WatchConnectionPhase {
         guard isSessionActive else { return .inactive }
         guard isPhoneReachable else { return .connecting }
-        if isReady { return .ready }
-        if phoneNotReadyReason != nil { return .phoneNotReady }
-        if phoneNotInWatchMode { return .phoneNotInWatchMode }
-        return .connecting
+        switch readiness {
+        case .ready: return .ready
+        case .phonebackgrounded: return .phoneNotReady
+        case .notinwatchmode: return .phoneNotInWatchMode
+        case .unknown: return .connecting
+        }
     }
 }
 

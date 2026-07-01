@@ -104,7 +104,9 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     func manualRetry() {
         DispatchQueue.main.async { [weak self] in
             self?.retryCount = 0
-            self?.viewModel.phoneNotInWatchMode = false
+            // Drop any stale readiness verdict — back to "connecting" until the
+            // phone answers.
+            self?.viewModel.readiness = .unknown
             self?.retryRequestState()
         }
     }
@@ -176,7 +178,11 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
             guard let self else { return }
             switch ack.status {
             case .ok:
-                self.viewModel.phoneNotInWatchMode = false
+                // An Ok ack contradicts a "not in watch mode" verdict — the phone
+                // answered from the Watch Remote screen; its state push follows.
+                if self.viewModel.readiness == .notinwatchmode {
+                    self.viewModel.readiness = .unknown
+                }
                 if action == .requeststate {
                     self.armStateArrivalCheck()
                 }

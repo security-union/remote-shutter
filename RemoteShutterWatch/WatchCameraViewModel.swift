@@ -18,10 +18,9 @@ class WatchCameraViewModel: ObservableObject {
 
     @Published var isSessionActive = false
     @Published var isPhoneReachable = false
-    /// Set when the phone acks NotInWatchMode or pushes a disconnected state.
-    @Published var phoneNotInWatchMode = false
-    /// Set when the phone reports it can't capture (e.g. "phoneBackgrounded").
-    @Published var phoneNotReadyReason: String?
+    /// Latest readiness signal. Snapshot pushes set it; a NotInWatchMode ack
+    /// overrides it (the phone answered but left the Watch Remote screen).
+    @Published var readiness: RemoteShutter_WatchReadiness = .unknown
 
     var isConnected: Bool {
         isSessionActive && isPhoneReachable && isReady
@@ -34,15 +33,13 @@ class WatchCameraViewModel: ObservableObject {
         WatchConnectionPhase.derive(
             isSessionActive: isSessionActive,
             isPhoneReachable: isPhoneReachable,
-            isReady: isReady,
-            phoneNotInWatchMode: phoneNotInWatchMode,
-            phoneNotReadyReason: phoneNotReadyReason
+            readiness: readiness
         )
     }
 
     // MARK: - Camera State
 
-    @Published var isReady = false
+    var isReady: Bool { readiness == .ready }
     @Published var currentZoomFactor: Double = 1.0
     @Published var minZoomFactor: Double = 1.0
     @Published var maxZoomFactor: Double = 10.0
@@ -86,7 +83,7 @@ class WatchCameraViewModel: ObservableObject {
 
     // MARK: - Events
 
-    @Published var lastEvent: String?
+    @Published var lastEvent: RemoteShutter_WatchEventType?
     @Published var showEventConfirmation = false
 
     /// Seconds left on an active self-timer, or `nil` when none is counting. Shown
@@ -187,18 +184,7 @@ class WatchCameraViewModel: ObservableObject {
         }
         lastStateEpochMs = max(lastStateEpochMs, state.stateEpochMs)
 
-        if state.isReady {
-            phoneNotInWatchMode = false
-            phoneNotReadyReason = nil
-        } else if state.lastEvent == WatchNotReadyReason.phoneBackgrounded {
-            phoneNotReadyReason = state.lastEvent
-        } else {
-            // Disconnected push: the phone left Watch Remote mode.
-            phoneNotInWatchMode = true
-            phoneNotReadyReason = nil
-        }
-
-        isReady = state.isReady
+        readiness = state.readiness
         if !state.isReady {
             clearPreview()
         }
@@ -214,20 +200,20 @@ class WatchCameraViewModel: ObservableObject {
         zoomStops = state.zoomStops
         wideAngleZoomFactor = state.wideAngleZoomFactor
 
-        // The snapshot is authoritative for the self-timer: no positive countdown
-        // event means no countdown is running. Applying this on every state is what
-        // unsticks a stale overlay after missed pushes (locked phone/watch races).
+        // The snapshot is authoritative for the self-timer: no countdown in the
+        // snapshot means no countdown is running. Applying this on every state is
+        // what unsticks a stale overlay after missed pushes (locked phone/watch
+        // races) — and any interleaved push carries the live value too.
         countdownRemaining = state.activeCountdownSeconds
 
-        // Handle events with haptic feedback. A live countdown gets a steady,
-        // cancelable overlay; every other user-facing event flashes a 2s
-        // confirmation. `countdown:*` strings are protocol plumbing, never flashed.
+        // A live countdown gets a steady, cancelable overlay with a per-tick
+        // click; a one-shot event flashes a 2s confirmation with its haptic.
         if countdownRemaining != nil {
             WKInterfaceDevice.current().play(.click)
-        } else if let event = state.lastEvent, !event.hasPrefix("countdown:") {
-            lastEvent = event
+        } else if state.event != .unknown {
+            lastEvent = state.event
             showEventConfirmation = true
-            playHaptic(for: event)
+            playHaptic(for: state.event)
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                 self?.showEventConfirmation = false
             }
@@ -258,7 +244,7 @@ class WatchCameraViewModel: ObservableObject {
     /// A command failed to reach the phone (or the phone refused it) — make the
     /// failure tangible instead of silently doing nothing.
     func noteSendFailure() {
-        lastEvent = "sendFailed"
+        lastEvent = .sendfailed
         showEventConfirmation = true
         WKInterfaceDevice.current().play(.failure)
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
@@ -267,26 +253,26 @@ class WatchCameraViewModel: ObservableObject {
     }
 
     func notePhoneNotInWatchMode() {
-        phoneNotInWatchMode = true
+        readiness = .notinwatchmode
         WKInterfaceDevice.current().play(.failure)
     }
 
     // MARK: - Haptic Feedback
 
-    private func playHaptic(for event: String) {
+    private func playHaptic(for event: RemoteShutter_WatchEventType) {
         let type: WKHapticType
         switch event {
-        case "photoTaken":
+        case .phototaken:
             type = .success
-        case "recordingStarted":
+        case .recordingstarted:
             type = .start
-        case "recordingStopped":
+        case .recordingstopped:
             type = .stop
-        case "photoError", "microphoneDenied", "recordingFailed":
+        case .photoerror, .microphonedenied, .recordingfailed, .sendfailed:
             type = .failure
-        case "busy", "busyRecording":
+        case .busy, .busyrecording:
             type = .retry
-        default:
+        case .unknown:
             type = .notification
         }
         WKInterfaceDevice.current().play(type)

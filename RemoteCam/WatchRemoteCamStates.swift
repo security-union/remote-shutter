@@ -105,6 +105,7 @@ extension RemoteCamSession {
             switch msg {
             case is OnEnter:
                 debugLog("Watch Remote: Camera state entered")
+                self.watchCountdownRemaining = 0
                 self.pushWatchState(ctrl: ctrl)
 
             // MARK: - Photo Capture
@@ -131,7 +132,7 @@ extension RemoteCamSession {
 
             case let micError as UICmd.MicrophoneAccessDenied:
                 debugLog("Watch Remote: Microphone access denied: \(micError.error)")
-                self.pushWatchState(ctrl: ctrl, event: "microphoneDenied")
+                self.pushWatchState(ctrl: ctrl, event: .microphonedenied)
 
             // MARK: - Photo/Video Mode Switch (Watch-initiated)
 
@@ -144,14 +145,13 @@ extension RemoteCamSession {
 
             case let countdown as RemoteCmd.TimerCountdown:
                 ctrl.updateTimerCountdown(value: countdown.value)
-                if countdown.value > 0 {
-                    self.pushWatchState(ctrl: ctrl, event: "countdown:\(countdown.value)")
-                } else {
-                    // Fire/cancel: sync a countdown-free snapshot so neither the
-                    // Watch nor the durable context mirror keeps a countdown that
-                    // is no longer running.
-                    self.pushWatchState(ctrl: ctrl)
-                }
+                // The countdown is snapshot state, not an event: mirror the tick
+                // (fire/cancel zero it) and push — every subsequent push of any
+                // kind carries the live value, so neither the Watch nor the
+                // durable context mirror can ever hold a countdown that isn't
+                // actually running.
+                self.watchCountdownRemaining = Int32(max(0, countdown.value))
+                self.pushWatchState(ctrl: ctrl)
 
             // MARK: - Late Arrivals (sub-state timed out before the callback landed)
 
@@ -161,9 +161,9 @@ extension RemoteCamSession {
                 debugLog("Watch Remote: late OnPicture (error: \(String(describing: t.error)))")
                 if let imageData = t.pic, t.error == nil {
                     self.photoLibrarySaver(imageData)
-                    self.pushWatchState(ctrl: ctrl, event: "photoTaken")
+                    self.pushWatchState(ctrl: ctrl, event: .phototaken)
                 } else {
-                    self.pushWatchState(ctrl: ctrl, event: "photoError")
+                    self.pushWatchState(ctrl: ctrl, event: .photoerror)
                 }
 
             case is RemoteCmd.StartRecordingVideoAck,
@@ -244,17 +244,17 @@ extension RemoteCamSession {
                 if let imageData = t.pic, t.error == nil {
                     debugLog("Watch Remote: Photo captured, saving to library")
                     self.photoLibrarySaver(imageData)
-                    self.pushWatchState(ctrl: ctrl, event: "photoTaken")
+                    self.pushWatchState(ctrl: ctrl, event: .phototaken)
                 } else {
                     debugLog("Watch Remote: Photo capture error: \(String(describing: t.error))")
-                    self.pushWatchState(ctrl: ctrl, event: "photoError")
+                    self.pushWatchState(ctrl: ctrl, event: .photoerror)
                 }
                 self.unbecome()
 
             case let timeout as UICmd.StateTimeout:
                 if timeout.stateName == .watchRemoteCameraTakingPic && timeout.generation == gen {
                     debugLog("Watch Remote: photo capture timed out")
-                    self.pushWatchState(ctrl: ctrl, event: "photoError")
+                    self.pushWatchState(ctrl: ctrl, event: .photoerror)
                     self.unbecome()
                 }
                 // Stale generations are dropped silently.
@@ -263,7 +263,7 @@ extension RemoteCamSession {
                 debugLog("Watch Remote: capture already in flight, ignoring duplicate TakePic")
 
             case is RemoteCmd.StartRecordingVideo, is UICmd.SetWatchCameraMode:
-                self.pushWatchState(ctrl: ctrl, event: "busy")
+                self.pushWatchState(ctrl: ctrl, event: .busy)
 
             // Zoom keeps working while a capture is in flight (crown turns mid-shot).
             case let zoomCmd as RemoteCmd.SetZoom:
@@ -300,11 +300,11 @@ extension RemoteCamSession {
             case let ack as RemoteCmd.StartRecordingVideoAck:
                 if let error = ack.error {
                     debugLog("Watch Remote: recording failed to start: \(error)")
-                    self.pushWatchState(ctrl: ctrl, event: "recordingFailed")
+                    self.pushWatchState(ctrl: ctrl, event: .recordingfailed)
                     self.unbecome()
                 } else {
                     debugLog("Watch Remote: Recording started at \(ack.recordingStartTime?.description ?? "unknown")")
-                    self.pushWatchState(ctrl: ctrl, event: "recordingStarted")
+                    self.pushWatchState(ctrl: ctrl, event: .recordingstarted)
                     self.become(
                         name: .watchRemoteCameraRecordingVideo,
                         state: self.watchRemoteCameraRecordingVideo(ctrl: ctrl),
@@ -314,25 +314,25 @@ extension RemoteCamSession {
 
             case let micError as UICmd.MicrophoneAccessDenied:
                 debugLog("Watch Remote: Microphone access denied: \(micError.error)")
-                self.pushWatchState(ctrl: ctrl, event: "microphoneDenied")
+                self.pushWatchState(ctrl: ctrl, event: .microphonedenied)
                 self.unbecome()
 
             case let timeout as UICmd.StateTimeout:
                 if timeout.stateName == .watchRemoteCameraStartingVideo && timeout.generation == gen {
                     debugLog("Watch Remote: recording never started, cleaning up")
                     ctrl.stopRecordingVideo(false)
-                    self.pushWatchState(ctrl: ctrl, event: "recordingFailed")
+                    self.pushWatchState(ctrl: ctrl, event: .recordingfailed)
                     self.unbecome()
                 }
 
             // User can abort a start that hasn't been confirmed yet.
             case is RemoteCmd.StopRecordingVideo:
                 ctrl.stopRecordingVideo(false)
-                self.pushWatchState(ctrl: ctrl, event: "recordingStopped")
+                self.pushWatchState(ctrl: ctrl, event: .recordingstopped)
                 self.unbecome()
 
             case is RemoteCmd.TakePic, is RemoteCmd.StartRecordingVideo, is UICmd.SetWatchCameraMode:
-                self.pushWatchState(ctrl: ctrl, event: "busy")
+                self.pushWatchState(ctrl: ctrl, event: .busy)
 
             case let zoomCmd as RemoteCmd.SetZoom:
                 _ = ctrl.setZoom(zoomFactor: zoomCmd.zoomFactor)
@@ -370,24 +370,24 @@ extension RemoteCamSession {
 
             case is RemoteCmd.StopRecordingVideoResp:
                 debugLog("Watch Remote: Recording stopped")
-                self.pushWatchState(ctrl: ctrl, event: "recordingStopped")
+                self.pushWatchState(ctrl: ctrl, event: .recordingstopped)
                 self.unbecome()
 
             case let sendVideo as UICmd.SendVideoResource:
                 // In Watch mode, video is saved locally only
                 debugLog("Watch Remote: Video saved at \(sendVideo.videoURL)")
-                self.pushWatchState(ctrl: ctrl, event: "recordingStopped")
+                self.pushWatchState(ctrl: ctrl, event: .recordingstopped)
                 self.unbecome()
 
             case let timeout as UICmd.StateTimeout:
                 if timeout.stateName == .watchRemoteCameraRecordingVideo && timeout.generation == stopGeneration {
                     debugLog("Watch Remote: stop recording never completed")
-                    self.pushWatchState(ctrl: ctrl, event: "recordingFailed")
+                    self.pushWatchState(ctrl: ctrl, event: .recordingfailed)
                     self.unbecome()
                 }
 
             case is RemoteCmd.TakePic, is RemoteCmd.StartRecordingVideo, is UICmd.SetWatchCameraMode:
-                self.pushWatchState(ctrl: ctrl, event: "busyRecording")
+                self.pushWatchState(ctrl: ctrl, event: .busyrecording)
 
             // Allow zoom/lens/flash/torch during recording
             case let zoomCmd as RemoteCmd.SetZoom:
@@ -420,22 +420,27 @@ extension RemoteCamSession {
 
     // MARK: - Watch State Push Helper (FlatBuffer-encoded)
 
-    func pushWatchState(ctrl: WatchCameraControlling, event: String? = nil) {
+    func pushWatchState(ctrl: WatchCameraControlling,
+                        event: RemoteShutter_WatchEventType = .unknown) {
         watchStatePusher.pushCameraState(
-            Self.watchStateSnapshot(ctrl: ctrl, event: event, isBackgrounded: isPhoneBackgrounded())
+            Self.watchStateSnapshot(ctrl: ctrl, event: event,
+                                    isBackgrounded: isPhoneBackgrounded(),
+                                    countdownRemaining: watchCountdownRemaining)
         )
     }
 
     static func watchStateSnapshot(ctrl: WatchCameraControlling,
-                                   event: String? = nil,
-                                   isBackgrounded: Bool = false) -> WatchCameraStateSnapshot {
+                                   event: RemoteShutter_WatchEventType = .unknown,
+                                   isBackgrounded: Bool = false,
+                                   countdownRemaining: Int32 = 0) -> WatchCameraStateSnapshot {
         var snapshot = WatchCameraStateSnapshot()
         // Readiness is decided here and nowhere else: the phone can only capture while
-        // foregrounded. When backgrounded/locked, report not-ready with the reason the
-        // Watch routes to its "app closed" screen — it takes precedence over any
-        // transient capture event (e.g. a late "photoTaken") that was in flight.
-        snapshot.isReady = !isBackgrounded
-        snapshot.lastEvent = isBackgrounded ? WatchNotReadyReason.phoneBackgrounded : event
+        // foregrounded. A backgrounded/locked phone reports not-ready (routed to the
+        // Watch's "app closed" screen), suppressing any transient capture event or
+        // countdown that was in flight — the timer is suspended with the app anyway.
+        snapshot.readiness = isBackgrounded ? .phonebackgrounded : .ready
+        snapshot.event = isBackgrounded ? .unknown : event
+        snapshot.countdownRemainingSecs = isBackgrounded ? 0 : countdownRemaining
         snapshot.currentZoomFactor = Double(ctrl.getCurrentZoomFactor())
         snapshot.minZoomFactor = Double(ctrl.getMinZoomFactor())
         snapshot.maxZoomFactor = Double(ctrl.getMaxZoomFactor())
@@ -445,7 +450,6 @@ extension RemoteCamSession {
         snapshot.availableLensTypes = ctrl.getAvailableLensTypes().compactMap {
             RemoteShutter_CameraLensType(rawValue: Int8($0.rawValue))
         }
-        snapshot.isFlashEnabled = ctrl.currentFlashMode != .off
         snapshot.flashMode = RemoteShutter_FlashMode(rawValue: Int8(ctrl.currentFlashMode.rawValue)) ?? .off
         snapshot.isTorchEnabled = ctrl.isTorchActive
         snapshot.zoomStops = ctrl.getZoomStops().map { Double($0) }
