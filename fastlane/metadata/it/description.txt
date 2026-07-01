@@ -1,8 +1,9 @@
 Remote Shutter è un'applicazione che richiede due dispositivi.  Funziona sia su macOS che su iOS.
- Con Remote Shutter uno dei tuoi dispositivi è il telecomando della fotocamera o il monitor della fotocamera, e l'altro dispositivo verrà impostato ovunque tu voglia scattare una foto come fotocamera.  Utilizzando il telefono connesso è possibile scattare foto da una distanza massima di 1,5 metri.
+ Con Remote Shutter uno dei tuoi dispositivi è il telecomando della fotocamera o il monitor della fotocamera, e l'altro dispositivo verrà impostato ovunque tu voglia scattare una foto come fotocamera.  Utilizzando il telefono connesso è possibile scattare foto da una distanza massima di 15 metri.
  L'otturatore remoto rende facile scattare foto di cose ad angolazioni strane e questo ti metterebbe in una posizione scomoda.  Fai un giro gratuito con Remote Shutter!
  Caratteristiche:
- - Scatta foto fino a  1,5 metri di distanza
+ - NOVITÀ: Controlla la fotocamera dal tuo Apple Watch: scatta direttamente dal polso
+ - Scatta foto fino a 15 metri di distanza
  - Cambia l'orientamento della fotocamera
  - Usa il flash della fotocamera
  - Timer della fotocamera regolabile

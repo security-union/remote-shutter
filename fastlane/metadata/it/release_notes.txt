@@ -1,7 +1,7 @@
-- Novità: Scegli il tuo ruolo (Fotocamera o Telecomando) prima della scansione
-- Modalità fotocamera: Vai online e attendi che un Telecomando si connetta
-- Modalità telecomando: Cerca fotocamere nelle vicinanze e connettiti
-- Tutorial di aiuto migliorato con guida passo passo aggiornata
-- Localizzazione completa: ora disponibile in 10 lingue
-- Corretto l'errore di disconnessione mostrato dopo sessioni fotografiche riuscite
-- Miglioramenti dell'interfaccia per le schermate scanner fotocamera e telecomando
+Il supporto per Apple Watch è arrivato!
+
+- NOVITÀ: Controlla la fotocamera direttamente dal tuo Apple Watch: scatta con un semplice tocco dal polso
+- Perfetto per treppiedi, telescopi e attrezzature fotografiche a lunga distanza, quando non riesci a raggiungere il telefono
+- Stato della connessione in tempo reale sul tuo Watch, così sai sempre di essere collegato
+- Maggiore affidabilità della connessione tra Watch, iPhone e iPad
+- Correzioni di bug e miglioramenti delle prestazioni

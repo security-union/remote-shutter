@@ -5,6 +5,7 @@ Com o Remote Shutter, um dos seus dispositivos é o controle remoto da câmera o
 Remote Shutter facilita tirar fotos de coisas em ângulos estranhos que colocariam você em uma posição desconfortável. Experimente o Remote Shutter gratuitamente!
 
 Recursos:
+- NOVO: Controle sua câmera pelo seu Apple Watch — dispare o obturador no seu pulso
 - Tire fotos a até 15 metros de distância
 - Alterne a orientação da câmera
 - Use o flash da câmera

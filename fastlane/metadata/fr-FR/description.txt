@@ -2,6 +2,7 @@ Remote Shutter est une application qui nécessite deux appareils. Cela fonctionn
 Avec Remote Shutter, l'un de vos appareils est la télécommande de l'appareil photo ou le moniteur de l'appareil photo, et l'autre appareil est installé là où vous souhaitez prendre une photo en tant qu'appareil photo. En utilisant le téléphone connecté, vous pouvez prendre des photos jusqu'à 15 mètres.
 L'obturateur à distance permet de prendre facilement des photos de choses à des angles étranges et cela vous mettrait dans une position inconfortable. Prenez Remote Shutter pour un tour gratuit!
 Traits:
+- NOUVEAU : contrôlez votre appareil photo depuis votre Apple Watch, déclenchez l'obturateur depuis votre poignet
 - Prenez des photos jusqu'à 50 pieds de distance
 - Basculer l'orientation de la caméra
 - Utilisez le flash de l'appareil photo

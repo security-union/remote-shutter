@@ -1492,6 +1492,7 @@
 				CURRENT_PROJECT_VERSION = 90;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = RShutter;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.blackfireapps.remotecamera;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1587,6 +1588,7 @@
 				CURRENT_PROJECT_VERSION = 90;
 				DEVELOPMENT_TEAM = J5A8XNQSV9;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = RShutter;
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.blackfireapps.remotecamera;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
