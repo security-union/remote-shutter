@@ -18,6 +18,8 @@
 		0624C0411BE8616E001CC738 /* CameraAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0624C0401BE8616E001CC738 /* CameraAccess.swift */; };
 		0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
+		FADEC0DE0001000000000002 /* FrameCreditWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0001000000000001 /* FrameCreditWindow.swift */; };
+		FADEC0DE0001000000000003 /* FrameCreditWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0001000000000001 /* FrameCreditWindow.swift */; };
 		CAFEBABE0007000000000002 /* WatchPreviewStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0007000000000001 /* WatchPreviewStreamer.swift */; };
 		CAFEBABE0007000000000003 /* WatchPreviewStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0007000000000001 /* WatchPreviewStreamer.swift */; };
 		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
@@ -165,6 +167,7 @@
 		DCDBA5102EA8C85C82D8E2FC /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */; };
 		DEADBEEF0001000000000002 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEADBEEF0001000000000001 /* DebugLog.swift */; };
 		DEADBEEF0001000000000003 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEADBEEF0001000000000001 /* DebugLog.swift */; };
+		DEADBEEF0001000000000004 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEADBEEF0001000000000001 /* DebugLog.swift */; };
 		CAFEBABE0009000000000002 /* StreamLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0009000000000001 /* StreamLog.swift */; };
 		CAFEBABE0009000000000003 /* StreamLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0009000000000001 /* StreamLog.swift */; };
 		CAFEBABE000A000000000002 /* StreamingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000A000000000001 /* StreamingConfig.swift */; };
@@ -256,6 +259,7 @@
 		061596F3251FCFDA0032289B /* RemoteShutterUITests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RemoteShutterUITests-Bridging-Header.h"; sourceTree = "<group>"; };
 		0624C0401BE8616E001CC738 /* CameraAccess.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraAccess.swift; sourceTree = "<group>"; };
 		0631D180256DFC960006CAF3 /* FrameSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSender.swift; sourceTree = "<group>"; };
+		FADEC0DE0001000000000001 /* FrameCreditWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameCreditWindow.swift; sourceTree = "<group>"; };
 		CAFEBABE0007000000000001 /* WatchPreviewStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPreviewStreamer.swift; sourceTree = "<group>"; };
 		0634594925886387009F9BE0 /* DeviceScannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewController.swift; sourceTree = "<group>"; };
 		06503C532E2CDB55003DEAFA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -514,6 +518,7 @@
 				0684A2D21BE6E98A00F0B238 /* CamStates.swift */,
 				068EF0B72531844B00A84DFA /* CameraVideoStates.swift */,
 				0631D180256DFC960006CAF3 /* FrameSender.swift */,
+				FADEC0DE0001000000000001 /* FrameCreditWindow.swift */,
 				CAFEBABE0007000000000001 /* WatchPreviewStreamer.swift */,
 			);
 			name = CameraStates;
@@ -1079,6 +1084,7 @@
 				066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */,
 				069284511BE5C0E600AF4678 /* RemoteCamSession.swift in Sources */,
 				0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */,
+				FADEC0DE0001000000000002 /* FrameCreditWindow.swift in Sources */,
 				CAFEBABE0007000000000002 /* WatchPreviewStreamer.swift in Sources */,
 				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				0613BBD02530887500A6C24F /* UIOrientationHelpers.swift in Sources */,
@@ -1195,6 +1201,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8F558AB2F4887617AF3E8FCD /* RemoteShutterWatchApp.swift in Sources */,
+				DEADBEEF0001000000000004 /* DebugLog.swift in Sources */,
 				2D869319DCFDFEFF351153A4 /* WatchSessionDelegate.swift in Sources */,
 				D2B94CD08C14086E035FBAA4 /* WatchCameraViewModel.swift in Sources */,
 				33F5D268690A3D022A6A54BA /* WatchControlView.swift in Sources */,
@@ -1231,6 +1238,7 @@
 				AA0001072E940007000A1001 /* UIAlertPresenter.swift in Sources */,
 				06BB79C42E389D6D0094E085 /* VideoTransferProgressView.swift in Sources */,
 				0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */,
+				FADEC0DE0001000000000003 /* FrameCreditWindow.swift in Sources */,
 				CAFEBABE0007000000000003 /* WatchPreviewStreamer.swift in Sources */,
 				06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
 				06CDFB2C252EC2C300EA56FB /* CGImage.swift in Sources */,

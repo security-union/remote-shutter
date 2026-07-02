@@ -44,7 +44,7 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
                  activationDidCompleteWith activationState: WCSessionActivationState,
                  error: Error?) {
         let reachable = session.isReachable
-        print("WatchSession: activation state=\(activationState.rawValue) reachable=\(reachable) "
+        debugLog("WatchSession: activation state=\(activationState.rawValue) reachable=\(reachable) "
             + "error=\(error?.localizedDescription ?? "none")")
 
         // Catch up on the last state the phone mirrored while we were away.
@@ -67,7 +67,7 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
 
     func sessionReachabilityDidChange(_ session: WCSession) {
         let reachable = session.isReachable
-        print("WatchSession: reachability changed to \(reachable)")
+        debugLog("WatchSession: reachability changed to \(reachable)")
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.viewModel.isPhoneReachable = reachable
@@ -87,13 +87,13 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
 
         let attempt = retryCount
         retryCount += 1
-        print("WatchSession: requestState attempt \(attempt + 1)")
+        debugLog("WatchSession: requestState attempt \(attempt + 1)")
 
         let data = WatchCommandEncoder.encode(action: .requeststate)
         session.sendMessageData(data, replyHandler: { [weak self] reply in
             self?.handleAck(reply, action: .requeststate)
         }, errorHandler: { [weak self] error in
-            print("WatchSession: requestState attempt \(attempt + 1) failed: \(error.localizedDescription)")
+            debugLog("WatchSession: requestState attempt \(attempt + 1) failed: \(error.localizedDescription)")
             let delay = min(Double(attempt + 1) * 2.0, 10.0)
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 self?.retryRequestState()
@@ -116,7 +116,7 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
         dispatchPrecondition(condition: .onQueue(.main))
         stateArrivalCheck?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            print("WatchSession: state never arrived after Ok ack, re-requesting")
+            debugLog("WatchSession: state never arrived after Ok ack, re-requesting")
             self?.retryRequestState()
         }
         stateArrivalCheck = work
@@ -130,15 +130,15 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     /// next one — the same explicit-request back-pressure the peer monitor uses.
     func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
         if let frame = WatchPreviewFrameEncoder.decode(messageData) {
-            print("WatchSession: received preview frame (\(messageData.count) bytes)")
+            debugLog("WatchSession: received preview frame (\(messageData.count) bytes)")
             renderPreview(jpeg: frame.jpeg, epochMs: frame.epochMs)
             requestNextPreviewFrame()
             return
         }
 
-        print("WatchSession: received \(messageData.count) bytes")
+        debugLog("WatchSession: received \(messageData.count) bytes")
         guard let state = WatchStateEncoder.decode(messageData) else {
-            print("WatchSession: failed to decode camera state (\(messageData.count) bytes) — ignoring")
+            debugLog("WatchSession: failed to decode camera state (\(messageData.count) bytes) — ignoring")
             return
         }
         DispatchQueue.main.async { [weak self] in
@@ -213,7 +213,7 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
         guard critical else {
             guard session.isReachable else { return }
             session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
-                print("WatchSession: \(action) failed: \(error.localizedDescription)")
+                debugLog("WatchSession: \(action) failed: \(error.localizedDescription)")
             })
             return
         }
@@ -227,7 +227,7 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
         session.sendMessageData(data, replyHandler: { [weak self] reply in
             self?.handleAck(reply, action: action)
         }, errorHandler: { [weak self] error in
-            print("WatchSession: \(action) failed: \(error.localizedDescription)")
+            debugLog("WatchSession: \(action) failed: \(error.localizedDescription)")
             DispatchQueue.main.async { self?.viewModel.noteSendFailure() }
         })
     }
