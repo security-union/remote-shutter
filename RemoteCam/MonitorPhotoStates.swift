@@ -52,6 +52,10 @@ extension RemoteCamSession {
                 monitor ! msg
                 self.requestFrame([peer])
 
+            case is UICmd.StreamStalled:
+                StreamLog.transport.info("photo monitor stalled — re-requesting frame")
+                self.requestFrame([peer])
+
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: .connected)
 

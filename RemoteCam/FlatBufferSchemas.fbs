@@ -101,6 +101,15 @@ enum AspectRatioEnum : byte {
     OneOne = 3
 }
 
+// Payload format of FrameData.image_data. Unknown = legacy peer that predates
+// this field — treat as JPEG. HEVC is reserved for the video-codec follow-up.
+enum StreamCodec : byte {
+    Unknown = 0,
+    JPEG = 1,
+    HEVC = 2,
+    HEIC = 3
+}
+
 // MARK: - Command Parameters
 
 table CommandParameters {
@@ -207,6 +216,9 @@ table FrameData {
     fps: int;
     camera_position: CameraPosition;
     orientation: int;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    codec: StreamCodec;              // absent/Unknown => JPEG (legacy sender)
+    sequence_number: uint32;         // per-stream monotonic; gaps are logged on the monitor
 }
 
 // MARK: - P2P Message Envelope

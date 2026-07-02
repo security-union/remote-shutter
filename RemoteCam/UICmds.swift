@@ -568,4 +568,16 @@ public class UICmd {
             super.init(sender: nil)
         }
     }
+
+    // MARK: - Streaming
+
+    /// Raised by the monitor's frame receiver when no frame has arrived for
+    /// `StreamingConfig.stallTimeout`. Monitor states respond by re-sending
+    /// `RemoteCmd.RequestFrame`, re-arming the one-frame-in-flight ping-pong
+    /// after a lost message on either side.
+    public class StreamStalled: Actor.Message {
+        public init() {
+            super.init(sender: nil)
+        }
+    }
 }
