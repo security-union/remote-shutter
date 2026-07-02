@@ -84,7 +84,10 @@ public class CameraViewController: UIViewController,
     private let watchPreviewContext = CIContext(options: [.useSoftwareRenderer: false])
     /// Streams preview frames to the Apple Watch with ack back-pressure and lazy encoding.
     /// Runs on `videoDataOutputQueue`, where the capture callback hands it sample buffers.
-    private lazy var watchPreviewStreamer = WatchPreviewStreamer(queue: videoDataOutputQueue)
+    private lazy var watchPreviewStreamer = WatchPreviewStreamer(
+        queue: videoDataOutputQueue,
+        maxInFlight: StreamingConfig.default.watchPreviewMaxInFlight,
+        ackTimeout: StreamingConfig.default.watchPreviewAckTimeout)
     /// Streams preview frames to the phone monitor: paces, encodes (HEIC with
     /// JPEG fallback), and hands frames to the FrameSender actor.
     /// Runs on `videoDataOutputQueue`.
