@@ -8,6 +8,7 @@
 
 import XCTest
 import AVFoundation
+import FlatBuffers
 
 @testable import RemoteShutter
 
@@ -223,6 +224,58 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.fps, 60)
         XCTAssertEqual(decoded.camPosition, .front)
         XCTAssertEqual(decoded.camOrientation, .portrait)
+    }
+
+    func testSendFrame_codecAndSequenceRoundTrip() {
+        let original = RemoteCmd.SendFrame(
+            data: Data([9, 9, 9]),
+            sender: nil,
+            fps: 30,
+            camPosition: .back,
+            camOrientation: .portrait,
+            codec: .heic,
+            sequenceNumber: 42_001
+        )
+        let decoded: RemoteCmd.SendFrame = roundTrip(original)
+        XCTAssertEqual(decoded.codec, .heic)
+        XCTAssertEqual(decoded.sequenceNumber, 42_001)
+    }
+
+    func testSendFrame_defaultsToJPEGCodec() {
+        // Call sites that predate the codec field compile unchanged and must
+        // stay on the JPEG wire value.
+        let original = RemoteCmd.SendFrame(
+            data: Data([1]),
+            sender: nil,
+            fps: 30,
+            camPosition: .back,
+            camOrientation: .portrait
+        )
+        let decoded: RemoteCmd.SendFrame = roundTrip(original)
+        XCTAssertEqual(decoded.codec, .jpeg)
+        XCTAssertEqual(decoded.sequenceNumber, 0)
+    }
+
+    /// A frame from an old app build has no codec/sequence fields at all.
+    /// Decoding must treat it as JPEG, not drop it.
+    func testSendFrame_legacyFrameWithoutCodecDecodesAsJPEG() throws {
+        var fbb = FlatBufferBuilder()
+        let imageOffset = fbb.createVector(bytes: Data([7, 7]))
+        let frame = RemoteShutter_FrameData.createFrameData(
+            &fbb,
+            imageDataVectorOffset: imageOffset,
+            fps: 24,
+            cameraPosition: .front,
+            orientation: 1
+            // codec / sequenceNumber intentionally omitted (legacy layout)
+        )
+        let msg = RemoteShutter_P2PMessage.createP2PMessage(&fbb, type: .framedata, frameDataOffset: frame)
+        fbb.finish(offset: msg, fileId: "RCAM")
+        let decoded = try XCTUnwrap(RemoteCmd.fromFlatBuffer(fbb.data) as? RemoteCmd.SendFrame)
+        XCTAssertEqual(decoded.codec, .jpeg)
+        XCTAssertEqual(decoded.sequenceNumber, 0)
+        XCTAssertEqual(decoded.data, Data([7, 7]))
+        XCTAssertEqual(decoded.fps, 24)
     }
 
     // MARK: - 10. RequestFrame

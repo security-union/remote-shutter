@@ -288,7 +288,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
             debugLog("🔍 DEBUG: - Transmission error: \(switchResp.error?.localizedDescription ?? "nil")")
         }
         
-        if self.sendMessage(peer: self.connectedPeers, msg: msg).isFailure() {
+        if self.sendMessage(peer: self.connectedPeers, msg: msg, mode: mode).isFailure() {
             debugLog("❌ DEBUG: sendCommandOrGoToScanning failed to send message")
             self.popToState(name: .scanning)
             ^{ [weak self] in

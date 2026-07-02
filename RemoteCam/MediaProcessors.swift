@@ -24,25 +24,3 @@ func cleanupFileAt(_ url: URL) {
     }
 }
 
-func imageFromSampleBuffer(sampleBuffer: CMSampleBuffer) -> UIImage? {
-    if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-        CVPixelBufferLockBaseAddress(imageBuffer, CVPixelBufferLockFlags(rawValue: 0))
-        let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
-        let width = CVPixelBufferGetWidth(imageBuffer)
-        let height = CVPixelBufferGetHeight(imageBuffer)
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        guard let context = CGContext(data: baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue) else {
-            return nil
-        }
-
-        let quartzImage = context.makeImage()
-        CVPixelBufferUnlockBaseAddress(imageBuffer, CVPixelBufferLockFlags(rawValue: 0))
-
-        if let quartzImage = quartzImage {
-            let image = UIImage(cgImage: quartzImage)
-            return image
-        }
-    }
-    return nil
-}

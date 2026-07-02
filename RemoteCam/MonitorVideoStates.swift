@@ -28,6 +28,10 @@ extension MonitorVideoStates {
                 monitor ! msg
                 self.requestFrame([peer])
 
+            case is UICmd.StreamStalled:
+                StreamLog.transport.info("video monitor stalled — re-requesting frame")
+                self.requestFrame([peer])
+
             case is UICmd.UnbecomeMonitor:
                 self.popToState(name: .connected)
 
@@ -182,7 +186,11 @@ extension MonitorVideoStates {
             case is RemoteCmd.OnFrame:
                 monitor ! msg
                 self.requestFrame([peer])
-                
+
+            case is UICmd.StreamStalled:
+                StreamLog.transport.info("recording monitor stalled — re-requesting frame")
+                self.requestFrame([peer])
+
             case let ack as RemoteCmd.StartRecordingVideoAck:
                 // Check if this is an error response
                 if let error = ack.error {

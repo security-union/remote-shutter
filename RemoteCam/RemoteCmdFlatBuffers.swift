@@ -109,6 +109,23 @@ private func fromFBCamPos(_ pos: RemoteShutter_CameraPosition) -> AVCaptureDevic
     }
 }
 
+private func toFBStreamCodec(_ codec: RemoteCmd.StreamCodec) -> RemoteShutter_StreamCodec {
+    switch codec {
+    case .jpeg: return .jpeg
+    case .hevc: return .hevc
+    case .heic: return .heic
+    }
+}
+
+private func fromFBStreamCodec(_ codec: RemoteShutter_StreamCodec) -> RemoteCmd.StreamCodec {
+    switch codec {
+    case .jpeg: return .jpeg
+    case .hevc: return .hevc
+    case .heic: return .heic
+    case .unknown: return .jpeg   // legacy sender: field absent => JPEG payload
+    }
+}
+
 private func toFBTorch(_ mode: AVCaptureDevice.TorchMode) -> RemoteShutter_TorchMode {
     switch mode {
     case .off: return .off
@@ -452,7 +469,9 @@ extension RemoteCmd.SendFrame {
             imageDataVectorOffset: imageOffset,
             fps: Int32(fps),
             cameraPosition: toFBCamPos(camPosition),
-            orientation: Int32(camOrientation.rawValue)
+            orientation: Int32(camOrientation.rawValue),
+            codec: toFBStreamCodec(codec),
+            sequenceNumber: sequenceNumber
         )
         return buildFrame(&fbb, frame: frame)
     }
@@ -1133,7 +1152,9 @@ extension RemoteCmd {
             sender: nil,
             fps: Int(frame.fps),
             camPosition: position,
-            camOrientation: orientation
+            camOrientation: orientation,
+            codec: fromFBStreamCodec(frame.codec),
+            sequenceNumber: frame.sequenceNumber
         )
     }
 }
