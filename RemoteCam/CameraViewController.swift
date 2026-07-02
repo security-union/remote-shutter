@@ -388,20 +388,38 @@ public class CameraViewController: UIViewController,
     }
 
     public override func willAnimateRotation(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
+        // Deprecated and not called on modern iOS; kept for any OS version that
+        // still invokes it. `viewWillTransition` below is the live rotation path —
+        // both funnel into the same idempotent orientation update.
         orientation = getOrientation()
         self.rotateCameraToOrientation(orientation: toInterfaceOrientation)
     }
 
     public override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-        // iOS can drop the torch when the capture pipeline reconfigures during rotation.
-        // `viewWillTransition` fires reliably on modern iOS (unlike the deprecated
-        // `willAnimateRotation`), so restore the user's torch intent once the rotation
-        // settles and re-sync the Watch, which would otherwise keep a stale torch state.
-        coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+        coordinator.animate(alongsideTransition: { [weak self] _ in
+            guard let self else { return }
+            // Mid-transition the window scene already reports the TARGET
+            // orientation (getOrientation()'s foreground-scene lookup would still
+            // return the old one if read before the animation block).
+            let newOrientation = self.view.window?.windowScene?.interfaceOrientation ?? getOrientation()
+            self.orientation = newOrientation
+            self.rotateCameraToOrientation(orientation: newOrientation)
+        }, completion: { [weak self] _ in
+            // iOS can drop the torch when the capture pipeline reconfigures during
+            // rotation, so restore the user's torch intent once the rotation
+            // settles and re-sync the Watch, which would otherwise keep a stale
+            // torch state.
             self?.applyDesiredTorch()
             self?.syncTorchToWatch()
-        }
+        })
+    }
+
+    public override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // The preview is a bare CALayer — it does not track the view through
+        // rotation or layout changes, so keep it glued to the current bounds.
+        captureVideoPreviewLayer?.frame = view.bounds
     }
 
     func setupCamera() {

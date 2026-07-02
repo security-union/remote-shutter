@@ -103,7 +103,7 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
     func pushDisconnectedState() {
         var snapshot = WatchCameraStateSnapshot()
-        snapshot.isReady = false
+        snapshot.readiness = .notinwatchmode
         pushCameraState(snapshot)
     }
 

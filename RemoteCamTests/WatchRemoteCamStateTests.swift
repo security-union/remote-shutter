@@ -73,8 +73,8 @@ final class FakeWatchStatePusher: WatchStatePushing {
     var pushedSnapshots: [WatchCameraStateSnapshot] = []
     var disconnectedPushes = 0
 
-    var lastEvent: String? { pushedSnapshots.last(where: { $0.lastEvent != nil })?.lastEvent }
-    var allEvents: [String] { pushedSnapshots.compactMap { $0.lastEvent } }
+    var lastEvent: RemoteShutter_WatchEventType? { pushedSnapshots.last(where: { $0.event != .unknown })?.event }
+    var allEvents: [RemoteShutter_WatchEventType] { pushedSnapshots.map(\.event).filter { $0 != .unknown } }
 
     func pushCameraState(_ snapshot: WatchCameraStateSnapshot) { pushedSnapshots.append(snapshot) }
     func pushDisconnectedState() { disconnectedPushes += 1 }
@@ -179,7 +179,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertEqual(pusher.lastEvent, "photoTaken")
+        XCTAssertEqual(pusher.lastEvent, .phototaken)
         XCTAssertEqual(savedPhotos, [photoBytes],
                        "the captured photo must be written to the photo library")
     }
@@ -190,7 +190,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertEqual(pusher.lastEvent, "photoError")
+        XCTAssertEqual(pusher.lastEvent, .photoerror)
         XCTAssertTrue(savedPhotos.isEmpty)
     }
 
@@ -202,7 +202,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertEqual(pusher.lastEvent, "photoError")
+        XCTAssertEqual(pusher.lastEvent, .photoerror)
     }
 
     func testTakingPicStaleTimeoutIsIgnored() {
@@ -239,7 +239,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         ref ! RemoteCmd.StartRecordingVideo(sender: nil)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(pusher.lastEvent, "busy")
+        XCTAssertEqual(pusher.lastEvent, .busy)
         XCTAssertEqual(ctrl.startRecordingCalls, 0)
     }
 
@@ -250,7 +250,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertEqual(pusher.lastEvent, "photoTaken")
+        XCTAssertEqual(pusher.lastEvent, .phototaken)
         XCTAssertEqual(savedPhotos, [photoBytes], "a late capture must still be saved")
     }
 
@@ -265,7 +265,7 @@ class WatchRemoteCamStateTests: XCTestCase {
     func testStartAckTransitionsToRecording() {
         enterRecording()
         XCTAssertEqual(session.currentStateName(), .watchRemoteCameraRecordingVideo)
-        XCTAssertEqual(pusher.lastEvent, "recordingStarted")
+        XCTAssertEqual(pusher.lastEvent, .recordingstarted)
     }
 
     func testStartAckWithErrorReturnsToCameraWithRecordingFailed() {
@@ -275,7 +275,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertEqual(pusher.lastEvent, "recordingFailed")
+        XCTAssertEqual(pusher.lastEvent, .recordingfailed)
     }
 
     func testMicrophoneDeniedDuringStartReturnsToCamera() {
@@ -284,7 +284,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertEqual(pusher.lastEvent, "microphoneDenied")
+        XCTAssertEqual(pusher.lastEvent, .microphonedenied)
     }
 
     func testStartingVideoTimeoutCleansUpAndReturnsToCamera() {
@@ -295,7 +295,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertEqual(pusher.lastEvent, "recordingFailed")
+        XCTAssertEqual(pusher.lastEvent, .recordingfailed)
         XCTAssertEqual(ctrl.stopRecordingCalls, [false], "timeout must attempt recorder cleanup")
     }
 
@@ -319,7 +319,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertEqual(pusher.lastEvent, "recordingStopped")
+        XCTAssertEqual(pusher.lastEvent, .recordingstopped)
     }
 
     func testStopRecordingTimeoutUnwedgesState() {
@@ -332,7 +332,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertEqual(pusher.lastEvent, "recordingFailed")
+        XCTAssertEqual(pusher.lastEvent, .recordingfailed)
     }
 
     func testRecordingHasNoBlanketTimeout() {
@@ -350,7 +350,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         ref ! RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false)
         waitForMailbox(session, test: self)
 
-        XCTAssertEqual(pusher.lastEvent, "busyRecording")
+        XCTAssertEqual(pusher.lastEvent, .busyrecording)
         XCTAssertTrue(ctrl.takePictureCalls.isEmpty)
         XCTAssertEqual(session.currentStateName(), .watchRemoteCameraRecordingVideo)
     }
@@ -411,7 +411,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(ctrl.currentCameraMode, .Photo, "mode must not change mid-capture")
-        XCTAssertEqual(pusher.lastEvent, "busy")
+        XCTAssertEqual(pusher.lastEvent, .busy)
         XCTAssertEqual(session.currentStateName(), .watchRemoteCameraTakingPic)
     }
 
@@ -421,13 +421,13 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(ctrl.currentCameraMode, .Video, "mode must not change while recording")
-        XCTAssertEqual(pusher.lastEvent, "busyRecording")
+        XCTAssertEqual(pusher.lastEvent, .busyrecording)
         XCTAssertEqual(session.currentStateName(), .watchRemoteCameraRecordingVideo)
     }
 
     // MARK: - Timer countdown plumbing
 
-    func testTimerCountdownDrivesPhoneUIAndWatchEvents() {
+    func testTimerCountdownIsCarriedAsSnapshotState() {
         enterWatchCamera()
         ref ! RemoteCmd.TimerCountdown(value: 3)
         ref ! RemoteCmd.TimerCountdown(value: 2)
@@ -435,11 +435,50 @@ class WatchRemoteCamStateTests: XCTestCase {
         waitForMailbox(session, test: self)
 
         XCTAssertEqual(ctrl.countdownTicks, [3, 2, 0])
-        XCTAssertTrue(pusher.allEvents.contains("countdown:3"))
-        XCTAssertTrue(pusher.allEvents.contains("countdown:2"))
-        XCTAssertFalse(pusher.allEvents.contains("countdown:0"),
-                       "the fire tick is not an event — the capture event follows")
+        // Ticks travel as snapshot state, never as events.
+        XCTAssertTrue(pusher.allEvents.isEmpty)
+        let countdowns = pusher.pushedSnapshots.map(\.countdownRemainingSecs)
+        XCTAssertTrue(countdowns.contains(3))
+        XCTAssertTrue(countdowns.contains(2))
         XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+
+        // The fire tick must push a countdown-free snapshot: without it the
+        // Watch (and the latest-wins context mirror) keeps showing the last tick.
+        let last = pusher.pushedSnapshots.last
+        XCTAssertEqual(last?.countdownRemainingSecs, 0)
+        XCTAssertNil(last?.activeCountdownSeconds)
+    }
+
+    func testTimerCancelDrivesPhoneUIAndPushesCountdownFreeSnapshot() {
+        enterWatchCamera()
+        ref ! RemoteCmd.TimerCountdown(value: 2)
+        ref ! RemoteCmd.TimerCountdown(value: -1)
+        waitForMailbox(session, test: self)
+
+        XCTAssertEqual(ctrl.countdownTicks, [2, -1],
+                       "cancel must tear down the on-phone countdown overlay")
+        let last = pusher.pushedSnapshots.last
+        XCTAssertNotNil(last, "cancel must push state so the context mirror can't hold a dead countdown")
+        XCTAssertEqual(last?.countdownRemainingSecs, 0)
+        XCTAssertNil(last?.activeCountdownSeconds)
+        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+    }
+
+    /// Any push that interleaves with a live countdown (zoom, toggles, capability
+    /// refresh) must carry the countdown — it's snapshot state, so no push can
+    /// accidentally "clear" it on the Watch.
+    func testPushesDuringCountdownCarryTheCountdown() {
+        enterWatchCamera()
+        ref ! RemoteCmd.TimerCountdown(value: 5)
+        ref ! RemoteCmd.SetZoom(zoomFactor: 2.0)
+        ref ! RemoteCmd.RequestCameraCapabilities()
+        waitForMailbox(session, test: self)
+
+        let afterTick = pusher.pushedSnapshots.suffix(2)
+        XCTAssertEqual(afterTick.count, 2)
+        XCTAssertTrue(afterTick.allSatisfy { $0.countdownRemainingSecs == 5 },
+                      "interleaved pushes must not drop a live countdown")
+        XCTAssertTrue(afterTick.allSatisfy { $0.activeCountdownSeconds == 5 })
     }
 
     // MARK: - Snapshot truthfulness
@@ -457,26 +496,30 @@ class WatchRemoteCamStateTests: XCTestCase {
         ctrl.isTorchActive = true
         ctrl.isRecording = true
         ctrl.currentCameraMode = .Video
-        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: "x")
+        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: .recordingstarted)
         XCTAssertTrue(snapshot.isTorchEnabled)
         XCTAssertTrue(snapshot.isRecording)
         XCTAssertEqual(snapshot.currentMode, .video)
-        XCTAssertEqual(snapshot.lastEvent, "x")
+        XCTAssertEqual(snapshot.event, .recordingstarted)
     }
 
     // MARK: - Readiness (backgrounded / locked phone)
 
     func testSnapshotReadyWhenForegrounded() {
-        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: "photoTaken", isBackgrounded: false)
-        XCTAssertTrue(snapshot.isReady)
-        XCTAssertEqual(snapshot.lastEvent, "photoTaken", "transient event passes through while foregrounded")
+        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: .phototaken, isBackgrounded: false)
+        XCTAssertEqual(snapshot.readiness, .ready)
+        XCTAssertEqual(snapshot.event, .phototaken, "transient event passes through while foregrounded")
     }
 
     func testSnapshotNotReadyWhenBackgrounded() {
-        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: "photoTaken", isBackgrounded: true)
-        XCTAssertFalse(snapshot.isReady, "a backgrounded/locked phone can't capture")
-        XCTAssertEqual(snapshot.lastEvent, WatchNotReadyReason.phoneBackgrounded,
-                       "the not-ready reason takes precedence over any in-flight transient event")
+        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: .phototaken,
+                                                           isBackgrounded: true, countdownRemaining: 3)
+        XCTAssertEqual(snapshot.readiness, .phonebackgrounded,
+                       "a backgrounded/locked phone can't capture")
+        XCTAssertEqual(snapshot.event, .unknown,
+                       "the not-ready verdict suppresses any in-flight transient event")
+        XCTAssertEqual(snapshot.countdownRemainingSecs, 0,
+                       "the countdown timer is suspended with the app — don't report it live")
     }
 
     /// The regression this whole change targets: whichever push path runs while the
@@ -494,7 +537,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertFalse(pushes.isEmpty)
         XCTAssertTrue(pushes.allSatisfy { !$0.isReady },
                       "no push may claim ready while the phone is backgrounded")
-        XCTAssertEqual(pushes.last?.lastEvent, WatchNotReadyReason.phoneBackgrounded)
+        XCTAssertEqual(pushes.last?.readiness, .phonebackgrounded)
     }
 }
 

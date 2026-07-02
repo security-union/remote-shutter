@@ -388,7 +388,7 @@ struct WatchControlView: View {
     // MARK: - Event Confirmation
 
     @ViewBuilder
-    private func eventConfirmationView(event: String) -> some View {
+    private func eventConfirmationView(event: RemoteShutter_WatchEventType) -> some View {
         VStack {
             Image(systemName: iconForEvent(event))
                 .font(.title)
@@ -405,39 +405,39 @@ struct WatchControlView: View {
         .accessibilityLabel(textForEvent(event))
     }
 
-    private func iconForEvent(_ event: String) -> String {
+    private func iconForEvent(_ event: RemoteShutter_WatchEventType) -> String {
         switch event {
-        case "photoTaken": return "checkmark.circle.fill"
-        case "recordingStarted": return "record.circle"
-        case "recordingStopped": return "stop.circle.fill"
-        case "photoError", "recordingFailed", "sendFailed": return "xmark.circle.fill"
-        case "microphoneDenied": return "mic.slash.fill"
-        case "busy", "busyRecording": return "hourglass"
-        default: return "info.circle"
+        case .phototaken: return "checkmark.circle.fill"
+        case .recordingstarted: return "record.circle"
+        case .recordingstopped: return "stop.circle.fill"
+        case .photoerror, .recordingfailed, .sendfailed: return "xmark.circle.fill"
+        case .microphonedenied: return "mic.slash.fill"
+        case .busy, .busyrecording: return "hourglass"
+        case .unknown: return "info.circle"
         }
     }
 
-    private func colorForEvent(_ event: String) -> Color {
+    private func colorForEvent(_ event: RemoteShutter_WatchEventType) -> Color {
         switch event {
-        case "photoError", "microphoneDenied", "recordingFailed", "sendFailed": return .red
-        case "recordingStarted": return .red
-        case "busy", "busyRecording": return .orange
-        default: return .green
+        case .photoerror, .microphonedenied, .recordingfailed, .sendfailed: return .red
+        case .recordingstarted: return .red
+        case .busy, .busyrecording: return .orange
+        case .phototaken, .recordingstopped, .unknown: return .green
         }
     }
 
-    private func textForEvent(_ event: String) -> LocalizedStringKey {
+    private func textForEvent(_ event: RemoteShutter_WatchEventType) -> LocalizedStringKey {
         switch event {
-        case "photoTaken": return "Photo Saved"
-        case "recordingStarted": return "Recording"
-        case "recordingStopped": return "Video Saved"
-        case "photoError": return "Photo Failed"
-        case "recordingFailed": return "Recording Failed"
-        case "sendFailed": return "Not Delivered"
-        case "microphoneDenied": return "Mic Denied"
-        case "busy": return "Busy"
-        case "busyRecording": return "Recording…"
-        default: return LocalizedStringKey(event)
+        case .phototaken: return "Photo Saved"
+        case .recordingstarted: return "Recording"
+        case .recordingstopped: return "Video Saved"
+        case .photoerror: return "Photo Failed"
+        case .recordingfailed: return "Recording Failed"
+        case .sendfailed: return "Not Delivered"
+        case .microphonedenied: return "Mic Denied"
+        case .busy: return "Busy"
+        case .busyrecording: return "Recording…"
+        case .unknown: return ""
         }
     }
 }

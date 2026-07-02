@@ -12,12 +12,21 @@ import WatchKit
 @main
 struct RemoteShutterWatchApp: App {
     @WKApplicationDelegateAdaptor(WatchAppDelegate.self) var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(appDelegate.viewModel)
                 .environmentObject(appDelegate.sessionDelegate)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Reopening the app must re-sync: activation/reachability callbacks
+            // don't fire when the app resumes while the phone stayed reachable,
+            // and whatever state we last showed may be long stale.
+            if newPhase == .active {
+                appDelegate.sessionDelegate.requestState()
+            }
         }
     }
 }

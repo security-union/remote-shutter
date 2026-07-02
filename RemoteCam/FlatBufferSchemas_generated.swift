@@ -202,6 +202,40 @@ public enum RemoteShutter_WatchCommandAction: Int8, Enum, Verifiable {
 }
 
 
+public enum RemoteShutter_WatchReadiness: Int8, Enum, Verifiable {
+  public typealias T = Int8
+  public static var byteSize: Int { return MemoryLayout<Int8>.size }
+  public var value: Int8 { return self.rawValue }
+  case unknown = 0
+  case ready = 1
+  case phonebackgrounded = 2
+  case notinwatchmode = 3
+
+  public static var max: RemoteShutter_WatchReadiness { return .notinwatchmode }
+  public static var min: RemoteShutter_WatchReadiness { return .unknown }
+}
+
+
+public enum RemoteShutter_WatchEventType: Int8, Enum, Verifiable {
+  public typealias T = Int8
+  public static var byteSize: Int { return MemoryLayout<Int8>.size }
+  public var value: Int8 { return self.rawValue }
+  case unknown = 0
+  case phototaken = 1
+  case photoerror = 2
+  case recordingstarted = 3
+  case recordingstopped = 4
+  case recordingfailed = 5
+  case microphonedenied = 6
+  case busy = 7
+  case busyrecording = 8
+  case sendfailed = 9
+
+  public static var max: RemoteShutter_WatchEventType { return .sendfailed }
+  public static var min: RemoteShutter_WatchEventType { return .unknown }
+}
+
+
 public enum RemoteShutter_WatchAckStatus: Int8, Enum, Verifiable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
@@ -1136,26 +1170,28 @@ public struct RemoteShutter_WatchCameraState: FlatBufferObject, Verifiable {
   public init(_ bb: ByteBuffer, o: Int32) { _accessor = Table(bb: bb, position: o) }
 
   private enum VTOFFSET: VOffset {
-    case isReady = 4
-    case currentZoomFactor = 6
-    case minZoomFactor = 8
-    case maxZoomFactor = 10
-    case isRecording = 12
-    case currentMode = 14
-    case currentLensType = 16
-    case availableLensTypes = 18
-    case isFlashEnabled = 20
-    case isTorchEnabled = 22
-    case zoomStops = 24
-    case wideAngleZoomFactor = 26
-    case lastEvent = 28
-    case stateEpochMs = 30
-    case flashMode = 32
+    case readiness = 4
+    case event = 6
+    case countdownRemainingSecs = 8
+    case currentZoomFactor = 10
+    case minZoomFactor = 12
+    case maxZoomFactor = 14
+    case isRecording = 16
+    case currentMode = 18
+    case currentLensType = 20
+    case availableLensTypes = 22
+    case flashMode = 24
+    case isTorchEnabled = 26
+    case zoomStops = 28
+    case wideAngleZoomFactor = 30
+    case stateEpochMs = 32
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
 
-  public var isReady: Bool { let o = _accessor.offset(VTOFFSET.isReady.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public var readiness: RemoteShutter_WatchReadiness { let o = _accessor.offset(VTOFFSET.readiness.v); return o == 0 ? .unknown : RemoteShutter_WatchReadiness(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public var event: RemoteShutter_WatchEventType { let o = _accessor.offset(VTOFFSET.event.v); return o == 0 ? .unknown : RemoteShutter_WatchEventType(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public var countdownRemainingSecs: Int32 { let o = _accessor.offset(VTOFFSET.countdownRemainingSecs.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
   public var currentZoomFactor: Double { let o = _accessor.offset(VTOFFSET.currentZoomFactor.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
   public var minZoomFactor: Double { let o = _accessor.offset(VTOFFSET.minZoomFactor.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
   public var maxZoomFactor: Double { let o = _accessor.offset(VTOFFSET.maxZoomFactor.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
@@ -1165,20 +1201,18 @@ public struct RemoteShutter_WatchCameraState: FlatBufferObject, Verifiable {
   public var hasAvailableLensTypes: Bool { let o = _accessor.offset(VTOFFSET.availableLensTypes.v); return o == 0 ? false : true }
   public var availableLensTypesCount: Int32 { let o = _accessor.offset(VTOFFSET.availableLensTypes.v); return o == 0 ? 0 : _accessor.vector(count: o) }
   public func availableLensTypes(at index: Int32) -> RemoteShutter_CameraLensType? { let o = _accessor.offset(VTOFFSET.availableLensTypes.v); return o == 0 ? RemoteShutter_CameraLensType.wideangle : RemoteShutter_CameraLensType(rawValue: _accessor.directRead(of: Int8.self, offset: _accessor.vector(at: o) + index * 1)) }
-  public var isFlashEnabled: Bool { let o = _accessor.offset(VTOFFSET.isFlashEnabled.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public var flashMode: RemoteShutter_FlashMode { let o = _accessor.offset(VTOFFSET.flashMode.v); return o == 0 ? .off : RemoteShutter_FlashMode(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .off }
   public var isTorchEnabled: Bool { let o = _accessor.offset(VTOFFSET.isTorchEnabled.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
   public var hasZoomStops: Bool { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? false : true }
   public var zoomStopsCount: Int32 { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? 0 : _accessor.vector(count: o) }
   public func zoomStops(at index: Int32) -> Double { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? 0 : _accessor.directRead(of: Double.self, offset: _accessor.vector(at: o) + index * 8) }
   public var zoomStops: [Double] { return _accessor.getVector(at: VTOFFSET.zoomStops.v) ?? [] }
   public var wideAngleZoomFactor: Double { let o = _accessor.offset(VTOFFSET.wideAngleZoomFactor.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
-  public var lastEvent: String? { let o = _accessor.offset(VTOFFSET.lastEvent.v); return o == 0 ? nil : _accessor.string(at: o) }
-  public var lastEventSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.lastEvent.v) }
   public var stateEpochMs: UInt64 { let o = _accessor.offset(VTOFFSET.stateEpochMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
-  public var flashMode: RemoteShutter_FlashMode { let o = _accessor.offset(VTOFFSET.flashMode.v); return o == 0 ? .off : RemoteShutter_FlashMode(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .off }
   public static func startWatchCameraState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 15) }
-  public static func add(isReady: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: isReady, def: false,
-   at: VTOFFSET.isReady.p) }
+  public static func add(readiness: RemoteShutter_WatchReadiness, _ fbb: inout FlatBufferBuilder) { fbb.add(element: readiness.rawValue, def: 0, at: VTOFFSET.readiness.p) }
+  public static func add(event: RemoteShutter_WatchEventType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: event.rawValue, def: 0, at: VTOFFSET.event.p) }
+  public static func add(countdownRemainingSecs: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: countdownRemainingSecs, def: 0, at: VTOFFSET.countdownRemainingSecs.p) }
   public static func add(currentZoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentZoomFactor, def: 0.0, at: VTOFFSET.currentZoomFactor.p) }
   public static func add(minZoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: minZoomFactor, def: 0.0, at: VTOFFSET.minZoomFactor.p) }
   public static func add(maxZoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: maxZoomFactor, def: 0.0, at: VTOFFSET.maxZoomFactor.p) }
@@ -1187,19 +1221,18 @@ public struct RemoteShutter_WatchCameraState: FlatBufferObject, Verifiable {
   public static func add(currentMode: RemoteShutter_RecordingModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentMode.rawValue, def: 0, at: VTOFFSET.currentMode.p) }
   public static func add(currentLensType: RemoteShutter_CameraLensType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentLensType.rawValue, def: 0, at: VTOFFSET.currentLensType.p) }
   public static func addVectorOf(availableLensTypes: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: availableLensTypes, at: VTOFFSET.availableLensTypes.p) }
-  public static func add(isFlashEnabled: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: isFlashEnabled, def: false,
-   at: VTOFFSET.isFlashEnabled.p) }
+  public static func add(flashMode: RemoteShutter_FlashMode, _ fbb: inout FlatBufferBuilder) { fbb.add(element: flashMode.rawValue, def: 0, at: VTOFFSET.flashMode.p) }
   public static func add(isTorchEnabled: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: isTorchEnabled, def: false,
    at: VTOFFSET.isTorchEnabled.p) }
   public static func addVectorOf(zoomStops: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: zoomStops, at: VTOFFSET.zoomStops.p) }
   public static func add(wideAngleZoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: wideAngleZoomFactor, def: 0.0, at: VTOFFSET.wideAngleZoomFactor.p) }
-  public static func add(lastEvent: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: lastEvent, at: VTOFFSET.lastEvent.p) }
   public static func add(stateEpochMs: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: stateEpochMs, def: 0, at: VTOFFSET.stateEpochMs.p) }
-  public static func add(flashMode: RemoteShutter_FlashMode, _ fbb: inout FlatBufferBuilder) { fbb.add(element: flashMode.rawValue, def: 0, at: VTOFFSET.flashMode.p) }
   public static func endWatchCameraState(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createWatchCameraState(
     _ fbb: inout FlatBufferBuilder,
-    isReady: Bool = false,
+    readiness: RemoteShutter_WatchReadiness = .unknown,
+    event: RemoteShutter_WatchEventType = .unknown,
+    countdownRemainingSecs: Int32 = 0,
     currentZoomFactor: Double = 0.0,
     minZoomFactor: Double = 0.0,
     maxZoomFactor: Double = 0.0,
@@ -1207,16 +1240,16 @@ public struct RemoteShutter_WatchCameraState: FlatBufferObject, Verifiable {
     currentMode: RemoteShutter_RecordingModeEnum = .unknown,
     currentLensType: RemoteShutter_CameraLensType = .wideangle,
     availableLensTypesVectorOffset availableLensTypes: Offset = Offset(),
-    isFlashEnabled: Bool = false,
+    flashMode: RemoteShutter_FlashMode = .off,
     isTorchEnabled: Bool = false,
     zoomStopsVectorOffset zoomStops: Offset = Offset(),
     wideAngleZoomFactor: Double = 0.0,
-    lastEventOffset lastEvent: Offset = Offset(),
-    stateEpochMs: UInt64 = 0,
-    flashMode: RemoteShutter_FlashMode = .off
+    stateEpochMs: UInt64 = 0
   ) -> Offset {
     let __start = RemoteShutter_WatchCameraState.startWatchCameraState(&fbb)
-    RemoteShutter_WatchCameraState.add(isReady: isReady, &fbb)
+    RemoteShutter_WatchCameraState.add(readiness: readiness, &fbb)
+    RemoteShutter_WatchCameraState.add(event: event, &fbb)
+    RemoteShutter_WatchCameraState.add(countdownRemainingSecs: countdownRemainingSecs, &fbb)
     RemoteShutter_WatchCameraState.add(currentZoomFactor: currentZoomFactor, &fbb)
     RemoteShutter_WatchCameraState.add(minZoomFactor: minZoomFactor, &fbb)
     RemoteShutter_WatchCameraState.add(maxZoomFactor: maxZoomFactor, &fbb)
@@ -1224,19 +1257,19 @@ public struct RemoteShutter_WatchCameraState: FlatBufferObject, Verifiable {
     RemoteShutter_WatchCameraState.add(currentMode: currentMode, &fbb)
     RemoteShutter_WatchCameraState.add(currentLensType: currentLensType, &fbb)
     RemoteShutter_WatchCameraState.addVectorOf(availableLensTypes: availableLensTypes, &fbb)
-    RemoteShutter_WatchCameraState.add(isFlashEnabled: isFlashEnabled, &fbb)
+    RemoteShutter_WatchCameraState.add(flashMode: flashMode, &fbb)
     RemoteShutter_WatchCameraState.add(isTorchEnabled: isTorchEnabled, &fbb)
     RemoteShutter_WatchCameraState.addVectorOf(zoomStops: zoomStops, &fbb)
     RemoteShutter_WatchCameraState.add(wideAngleZoomFactor: wideAngleZoomFactor, &fbb)
-    RemoteShutter_WatchCameraState.add(lastEvent: lastEvent, &fbb)
     RemoteShutter_WatchCameraState.add(stateEpochMs: stateEpochMs, &fbb)
-    RemoteShutter_WatchCameraState.add(flashMode: flashMode, &fbb)
     return RemoteShutter_WatchCameraState.endWatchCameraState(&fbb, start: __start)
   }
 
   public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
     var _v = try verifier.visitTable(at: position)
-    try _v.visit(field: VTOFFSET.isReady.p, fieldName: "isReady", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.readiness.p, fieldName: "readiness", required: false, type: RemoteShutter_WatchReadiness.self)
+    try _v.visit(field: VTOFFSET.event.p, fieldName: "event", required: false, type: RemoteShutter_WatchEventType.self)
+    try _v.visit(field: VTOFFSET.countdownRemainingSecs.p, fieldName: "countdownRemainingSecs", required: false, type: Int32.self)
     try _v.visit(field: VTOFFSET.currentZoomFactor.p, fieldName: "currentZoomFactor", required: false, type: Double.self)
     try _v.visit(field: VTOFFSET.minZoomFactor.p, fieldName: "minZoomFactor", required: false, type: Double.self)
     try _v.visit(field: VTOFFSET.maxZoomFactor.p, fieldName: "maxZoomFactor", required: false, type: Double.self)
@@ -1244,13 +1277,11 @@ public struct RemoteShutter_WatchCameraState: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.currentMode.p, fieldName: "currentMode", required: false, type: RemoteShutter_RecordingModeEnum.self)
     try _v.visit(field: VTOFFSET.currentLensType.p, fieldName: "currentLensType", required: false, type: RemoteShutter_CameraLensType.self)
     try _v.visit(field: VTOFFSET.availableLensTypes.p, fieldName: "availableLensTypes", required: false, type: ForwardOffset<Vector<RemoteShutter_CameraLensType, RemoteShutter_CameraLensType>>.self)
-    try _v.visit(field: VTOFFSET.isFlashEnabled.p, fieldName: "isFlashEnabled", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.flashMode.p, fieldName: "flashMode", required: false, type: RemoteShutter_FlashMode.self)
     try _v.visit(field: VTOFFSET.isTorchEnabled.p, fieldName: "isTorchEnabled", required: false, type: Bool.self)
     try _v.visit(field: VTOFFSET.zoomStops.p, fieldName: "zoomStops", required: false, type: ForwardOffset<Vector<Double, Double>>.self)
     try _v.visit(field: VTOFFSET.wideAngleZoomFactor.p, fieldName: "wideAngleZoomFactor", required: false, type: Double.self)
-    try _v.visit(field: VTOFFSET.lastEvent.p, fieldName: "lastEvent", required: false, type: ForwardOffset<String>.self)
     try _v.visit(field: VTOFFSET.stateEpochMs.p, fieldName: "stateEpochMs", required: false, type: UInt64.self)
-    try _v.visit(field: VTOFFSET.flashMode.p, fieldName: "flashMode", required: false, type: RemoteShutter_FlashMode.self)
     _v.finish()
   }
 }

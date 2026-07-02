@@ -247,8 +247,36 @@ table WatchCommand {
     mode: RecordingModeEnum;         // payload for SetMode
 }
 
+// Why the phone can or can't capture right now. Unknown = no signal yet —
+// the Watch treats it as "connecting", never as ready.
+enum WatchReadiness : byte {
+    Unknown = 0,
+    Ready = 1,
+    PhoneBackgrounded = 2,   // app backgrounded / device locked — camera can't run
+    NotInWatchMode = 3       // phone left the Watch Remote screen
+}
+
+// One-shot capture events, piggybacked on a state push. Unknown = no event.
+enum WatchEventType : byte {
+    Unknown = 0,
+    PhotoTaken = 1,
+    PhotoError = 2,
+    RecordingStarted = 3,
+    RecordingStopped = 4,
+    RecordingFailed = 5,
+    MicrophoneDenied = 6,
+    Busy = 7,
+    BusyRecording = 8,
+    SendFailed = 9           // Watch-local (command never reached the phone); not sent on the wire
+}
+
+// Retyped 2026-07-01 (pre-release, no wire compatibility to keep): the old
+// last_event string smuggled events, countdown ticks, and readiness reasons
+// through one field. Each concept now has its own typed field.
 table WatchCameraState {
-    is_ready: bool;
+    readiness: WatchReadiness;
+    event: WatchEventType;
+    countdown_remaining_secs: int;   // > 0 = live self-timer; authoritative in every snapshot
     current_zoom_factor: double;
     min_zoom_factor: double;
     max_zoom_factor: double;
@@ -256,14 +284,11 @@ table WatchCameraState {
     current_mode: RecordingModeEnum;
     current_lens_type: CameraLensType;
     available_lens_types: [CameraLensType];
-    is_flash_enabled: bool;
+    flash_mode: FlashMode;
     is_torch_enabled: bool;
     zoom_stops: [double];
     wide_angle_zoom_factor: double;
-    last_event: string;
-    // Appended fields only below this line (FlatBuffers schema evolution).
     state_epoch_ms: uint64;          // ordering between live messages and applicationContext
-    flash_mode: FlashMode;           // tri-state truth; is_flash_enabled kept for compatibility
 }
 
 // Transport-level acknowledgment for a Watch command: confirms the iPhone

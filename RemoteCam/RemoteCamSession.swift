@@ -53,8 +53,14 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
 
     /// Whether the phone is backgrounded/locked (camera can't capture). Injected so
     /// tests can force either state; production reads the shared lifecycle monitor.
-    /// This is the sole input that decides `WatchCameraStateSnapshot.isReady`.
+    /// This is the sole input that decides `WatchCameraStateSnapshot.readiness`.
     var isPhoneBackgrounded: () -> Bool = { AppActivityMonitor.shared.isBackgrounded }
+
+    /// Seconds left on a Watch-initiated self-timer (0 = none). Mirrored from the
+    /// `TimerCountdown` ticks so EVERY watch state push carries the live countdown —
+    /// countdown is snapshot state, never a transient event a Watch could miss.
+    /// Actor-confined: only touched inside message handlers.
+    var watchCountdownRemaining: Int32 = 0
 
     /// Photo-library write seam — tests record the data instead of hitting
     /// PHPhotoLibrary. Production routes to `savePicture` (CamStates.swift).

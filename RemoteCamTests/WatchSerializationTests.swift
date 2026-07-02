@@ -61,7 +61,9 @@ final class WatchSerializationTests: XCTestCase {
 
     func testStateRoundTripPreservesAllFields() throws {
         let data = WatchStateEncoder.encode(WatchCameraStateSnapshot(
-            isReady: true,
+            readiness: .ready,
+            event: .phototaken,
+            countdownRemainingSecs: 4,
             currentZoomFactor: 3.0,
             minZoomFactor: 1.0,
             maxZoomFactor: 12.0,
@@ -69,14 +71,15 @@ final class WatchSerializationTests: XCTestCase {
             currentMode: .video,
             currentLensType: .ultrawide,
             availableLensTypes: [.ultrawide, .wideangle, .telephoto],
-            isFlashEnabled: false,
+            flashMode: .auto,
             isTorchEnabled: true,
             zoomStops: [0.5, 1.0, 2.0],
-            wideAngleZoomFactor: 2.0,
-            lastEvent: "photoTaken"
+            wideAngleZoomFactor: 2.0
         ))
         let decoded = try XCTUnwrap(WatchStateEncoder.decode(data), "state should decode")
-        XCTAssertTrue(decoded.isReady)
+        XCTAssertEqual(decoded.readiness, .ready)
+        XCTAssertEqual(decoded.event, .phototaken)
+        XCTAssertEqual(decoded.countdownRemainingSecs, 4)
         XCTAssertEqual(decoded.currentZoomFactor, 3.0, accuracy: 0.0001)
         XCTAssertEqual(decoded.minZoomFactor, 1.0, accuracy: 0.0001)
         XCTAssertEqual(decoded.maxZoomFactor, 12.0, accuracy: 0.0001)
@@ -84,19 +87,39 @@ final class WatchSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.currentMode, .video)
         XCTAssertEqual(decoded.currentLensType, .ultrawide)
         XCTAssertEqual(decoded.availableLensTypes, [.ultrawide, .wideangle, .telephoto])
-        XCTAssertFalse(decoded.isFlashEnabled)
+        XCTAssertEqual(decoded.flashMode, .auto)
+        XCTAssertTrue(decoded.isFlashEnabled, "auto flash surfaces as enabled")
         XCTAssertTrue(decoded.isTorchEnabled)
         XCTAssertEqual(decoded.zoomStops, [0.5, 1.0, 2.0])
         XCTAssertEqual(decoded.wideAngleZoomFactor, 2.0, accuracy: 0.0001)
-        XCTAssertEqual(decoded.lastEvent, "photoTaken")
     }
 
-    /// A nil `lastEvent` decodes back as nil (or empty) — i.e. no spurious event is fired.
-    func testStateRoundTripWithNilEvent() throws {
-        let data = WatchStateEncoder.encode(WatchCameraStateSnapshot(lastEvent: nil))
+    /// An event-free state decodes back as `.unknown` — no spurious event is fired.
+    func testStateRoundTripWithNoEvent() throws {
+        let data = WatchStateEncoder.encode(WatchCameraStateSnapshot(event: .unknown))
         let decoded = try XCTUnwrap(WatchStateEncoder.decode(data))
-        XCTAssertTrue(decoded.lastEvent == nil || decoded.lastEvent?.isEmpty == true,
-                      "Expected no event, got \(String(describing: decoded.lastEvent))")
+        XCTAssertEqual(decoded.event, .unknown)
+    }
+
+    func testAllEventTypesRoundTrip() throws {
+        let events: [RemoteShutter_WatchEventType] = [
+            .phototaken, .photoerror, .recordingstarted, .recordingstopped,
+            .recordingfailed, .microphonedenied, .busy, .busyrecording, .sendfailed
+        ]
+        for event in events {
+            let data = WatchStateEncoder.encode(WatchCameraStateSnapshot(event: event))
+            let decoded = try XCTUnwrap(WatchStateEncoder.decode(data), "\(event) should decode")
+            XCTAssertEqual(decoded.event, event)
+        }
+    }
+
+    func testAllReadinessValuesRoundTrip() throws {
+        let values: [RemoteShutter_WatchReadiness] = [.unknown, .ready, .phonebackgrounded, .notinwatchmode]
+        for readiness in values {
+            let data = WatchStateEncoder.encode(WatchCameraStateSnapshot(readiness: readiness))
+            let decoded = try XCTUnwrap(WatchStateEncoder.decode(data), "\(readiness) should decode")
+            XCTAssertEqual(decoded.readiness, readiness)
+        }
     }
 
     // MARK: - Negative cases (the "ignore undecodable" guard)
@@ -113,7 +136,7 @@ final class WatchSerializationTests: XCTestCase {
         XCTAssertNil(WatchCommandEncoder.decode(stateData))
     }
 
-    // MARK: - New appended state fields
+    // MARK: - Field defaults
 
     func testStateRoundTripPreservesEpochAndFlashMode() throws {
         var snapshot = WatchCameraStateSnapshot()
@@ -124,19 +147,22 @@ final class WatchSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.flashMode, .auto)
     }
 
-    /// Bytes from a build that predates the appended fields still decode, with
-    /// the new fields falling back to their FlatBuffer defaults.
-    func testLegacyStateWithoutAppendedFieldsDecodes() throws {
+    /// A state built entirely from FlatBuffer defaults decodes to the safe
+    /// zero-values: unknown readiness (never treated as ready), no event, no
+    /// countdown.
+    func testDefaultStateDecodesToSafeValues() throws {
         var fbb = FlatBufferBuilder()
         let start = RemoteShutter_WatchCameraState.startWatchCameraState(&fbb)
-        RemoteShutter_WatchCameraState.add(isReady: true, &fbb)
         RemoteShutter_WatchCameraState.add(currentZoomFactor: 2.0, &fbb)
         let state = RemoteShutter_WatchCameraState.endWatchCameraState(&fbb, start: start)
         let msg = RemoteShutter_WatchMessage.createWatchMessage(&fbb, type: .watchstatemsg, stateOffset: state)
         fbb.finish(offset: msg)
 
         let decoded = try XCTUnwrap(WatchStateEncoder.decode(fbb.data))
-        XCTAssertTrue(decoded.isReady)
+        XCTAssertEqual(decoded.readiness, .unknown)
+        XCTAssertFalse(decoded.isReady, "unknown readiness must never present as ready")
+        XCTAssertEqual(decoded.event, .unknown)
+        XCTAssertEqual(decoded.countdownRemainingSecs, 0)
         XCTAssertEqual(decoded.currentZoomFactor, 2.0, accuracy: 0.0001)
         XCTAssertEqual(decoded.stateEpochMs, 0)
         XCTAssertEqual(decoded.flashMode, .off)
@@ -196,33 +222,55 @@ final class WatchSerializationTests: XCTestCase {
     func testPhaseDerivation() {
         // Session not activated → inactive regardless of anything else.
         XCTAssertEqual(WatchConnectionPhase.derive(
-            isSessionActive: false, isPhoneReachable: true, isReady: true,
-            phoneNotInWatchMode: false, phoneNotReadyReason: nil), .inactive)
+            isSessionActive: false, isPhoneReachable: true, readiness: .ready), .inactive)
 
-        // Activated but unreachable → connecting.
+        // Activated but unreachable → connecting, whatever the last verdict was.
         XCTAssertEqual(WatchConnectionPhase.derive(
-            isSessionActive: true, isPhoneReachable: false, isReady: false,
-            phoneNotInWatchMode: true, phoneNotReadyReason: nil), .connecting)
+            isSessionActive: true, isPhoneReachable: false, readiness: .notinwatchmode), .connecting)
 
-        // Ready wins.
+        // Ready → controls.
         XCTAssertEqual(WatchConnectionPhase.derive(
-            isSessionActive: true, isPhoneReachable: true, isReady: true,
-            phoneNotInWatchMode: false, phoneNotReadyReason: nil), .ready)
+            isSessionActive: true, isPhoneReachable: true, readiness: .ready), .ready)
 
-        // Reachable, not ready, phone said NotInWatchMode → instruction screen.
+        // Phone left the Watch Remote screen → instruction screen.
         XCTAssertEqual(WatchConnectionPhase.derive(
-            isSessionActive: true, isPhoneReachable: true, isReady: false,
-            phoneNotInWatchMode: true, phoneNotReadyReason: nil), .phoneNotInWatchMode)
+            isSessionActive: true, isPhoneReachable: true, readiness: .notinwatchmode), .phoneNotInWatchMode)
 
-        // Phone backgrounded beats NotInWatchMode messaging.
+        // Phone backgrounded/locked → "app closed" screen.
         XCTAssertEqual(WatchConnectionPhase.derive(
-            isSessionActive: true, isPhoneReachable: true, isReady: false,
-            phoneNotInWatchMode: false, phoneNotReadyReason: WatchNotReadyReason.phoneBackgrounded), .phoneNotReady)
+            isSessionActive: true, isPhoneReachable: true, readiness: .phonebackgrounded), .phoneNotReady)
 
         // Reachable, no signal yet → still connecting (syncing).
         XCTAssertEqual(WatchConnectionPhase.derive(
-            isSessionActive: true, isPhoneReachable: true, isReady: false,
-            phoneNotInWatchMode: false, phoneNotReadyReason: nil), .connecting)
+            isSessionActive: true, isPhoneReachable: true, readiness: .unknown), .connecting)
+    }
+
+    // MARK: - Active Countdown Derivation
+
+    private func snapshot(readiness: RemoteShutter_WatchReadiness = .ready,
+                          countdown: Int32 = 0) -> WatchCameraStateSnapshot {
+        var snapshot = WatchCameraStateSnapshot()
+        snapshot.readiness = readiness
+        snapshot.countdownRemainingSecs = countdown
+        return snapshot
+    }
+
+    func testActiveCountdownReadsPositiveSeconds() {
+        XCTAssertEqual(snapshot(countdown: 3).activeCountdownSeconds, 3)
+        XCTAssertEqual(snapshot(countdown: 1).activeCountdownSeconds, 1)
+    }
+
+    /// The stuck-overlay regression: a snapshot is authoritative — zero (or
+    /// negative) countdown means "no countdown running".
+    func testSnapshotWithoutCountdownCarriesNoCountdown() {
+        XCTAssertNil(snapshot(countdown: 0).activeCountdownSeconds)
+        XCTAssertNil(snapshot(countdown: -2).activeCountdownSeconds)
+    }
+
+    func testCountdownOnlyCountsWhilePhoneCanCapture() {
+        XCTAssertNil(snapshot(readiness: .phonebackgrounded, countdown: 2).activeCountdownSeconds)
+        XCTAssertNil(snapshot(readiness: .notinwatchmode, countdown: 2).activeCountdownSeconds)
+        XCTAssertNil(snapshot(readiness: .unknown, countdown: 2).activeCountdownSeconds)
     }
 }
 
