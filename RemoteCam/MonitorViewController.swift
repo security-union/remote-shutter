@@ -91,13 +91,9 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
                 }
 
             case let f as RemoteCmd.OnFrame:
-                if let cgImage = UIImage(data: f.data) {
-                    OperationQueue.main.addOperation {[weak ctrl] in
-                        if let ctrl = ctrl?.value {
-                            ctrl.updateCameraImageInViewModel(cgImage)
-                        }
-                    }
-                }
+                // Decode off the mailbox: the receiver's queue handles JPEG and
+                // HEIC alike and drives the stall watchdog.
+                ctrl.value?.frameStreamReceiver.receive(f)
                 
             // MARK: - Camera Capabilities Response Handling
             case let capabilities as RemoteCmd.CameraCapabilitiesResp:
@@ -267,6 +263,10 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private(set) var monitor: ActorRef!
     private var monitorInstanceId: ObjectIdentifier?
 
+    /// Decodes incoming preview frames (JPEG/HEIC) off the actor mailbox and
+    /// raises StreamStalled when the stream goes quiet.
+    let frameStreamReceiver = FrameStreamReceiver()
+
     let timer: RCTimer = RCTimer()
 
     let soundManager: CPSoundManager = CPSoundManager()
@@ -349,6 +349,18 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
         monitorInstanceId = m.instanceId
 
         monitor ! SetViewCtrl(ctrl: self)
+
+        frameStreamReceiver.onImage = { [weak self] image in
+            OperationQueue.main.addOperation {
+                self?.updateCameraImageInViewModel(image)
+            }
+        }
+        frameStreamReceiver.onStall = { [weak self] in
+            if let session = self?.session {
+                session ! UICmd.StreamStalled()
+            }
+        }
+        frameStreamReceiver.start()
         
         // Setup SwiftUI view instead of storyboard
         setupSwiftUIView()
@@ -373,6 +385,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
 
     deinit {
         print("MonitorViewController deinit")
+        self.frameStreamReceiver.invalidate()
         self.timer.cancel()
         self.zoomLabelTimer?.invalidate()
         self.soundManager.stopPlayer()

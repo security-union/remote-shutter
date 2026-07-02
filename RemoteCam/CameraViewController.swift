@@ -85,6 +85,10 @@ public class CameraViewController: UIViewController,
     /// Streams preview frames to the Apple Watch with ack back-pressure and lazy encoding.
     /// Runs on `videoDataOutputQueue`, where the capture callback hands it sample buffers.
     private lazy var watchPreviewStreamer = WatchPreviewStreamer(queue: videoDataOutputQueue)
+    /// Streams preview frames to the phone monitor: paces, encodes (HEIC with
+    /// JPEG fallback), and hands frames to the FrameSender actor.
+    /// Runs on `videoDataOutputQueue`.
+    private lazy var frameStreamer = FrameStreamer { [frameSender] frame in frameSender ! frame }
     var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
     
@@ -93,9 +97,6 @@ public class CameraViewController: UIViewController,
     private var videoInput: AVAssetWriterInput!
     private var audioInput: AVAssetWriterInput!
 
-    // Variable used to downsample the camera preview, please use with care.
-    private var sendFrame = true
-    
     // MARK: - Recording Timer Properties
     private var recordingStartTime: Date?
     private var recordingTimerController: CameraRecordingTimerViewController?
@@ -1437,11 +1438,6 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
     public func sendFrameToMonitor(_ captureOutput: AVCaptureOutput,
                               didOutput sampleBuffer: CMSampleBuffer,
                               from connection: AVCaptureConnection) {
-        sendFrame = !sendFrame
-        if !sendFrame {
-            return
-        }
-
         // Watch Remote mode has no MultipeerConnectivity peer — the iPhone is the camera
         // and the only consumer is the Apple Watch. The streamer applies ack back-pressure
         // and only invokes the encode when it's actually ready to send.
@@ -1450,15 +1446,12 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             return
         }
 
-        if let cgBackedImage = imageFromSampleBuffer(sampleBuffer: sampleBuffer),
-           let imageData = cgBackedImage.jpegData(compressionQuality: 0.1),
-           let device = self.videoDeviceInput?.device {
-            frameSender ! RemoteCmd.SendFrame(data: imageData,
-                    sender: nil,
-                    fps: fps,
-                    camPosition: device.position,
-                    camOrientation: self.orientation)
-        }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer),
+              let device = self.videoDeviceInput?.device else { return }
+        frameStreamer.handle(pixelBuffer: pixelBuffer,
+                             position: device.position,
+                             orientation: self.orientation,
+                             fps: fps)
     }
 
     /// Builds a compact JPEG of the current frame for the Apple Watch live preview:
