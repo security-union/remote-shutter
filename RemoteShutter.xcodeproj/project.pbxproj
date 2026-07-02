@@ -57,6 +57,7 @@
 		068EF0CE2531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
 		068EF0D02531921E00A84DFA /* RemoteCamScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */; };
 		0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */; };
+		AA0001212E940021000A1001 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001202E940020000A1001 /* SceneDelegate.swift */; };
 		069284261BE5BF5B00AF4678 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 069284251BE5BF5B00AF4678 /* Assets.xcassets */; };
 		0692844C1BE5C0E600AF4678 /* CameraViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284421BE5C0E600AF4678 /* CameraViewController.swift */; };
 		0692844D1BE5C0E600AF4678 /* MonitorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069284431BE5C0E600AF4678 /* MonitorViewController.swift */; };
@@ -300,6 +301,7 @@
 		068EF0C52531915A00A84DFA /* MultipeerDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerDelegates.swift; sourceTree = "<group>"; };
 		068EF0CD2531921E00A84DFA /* RemoteCamScanning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCamScanning.swift; sourceTree = "<group>"; };
 		0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		AA0001202E940020000A1001 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		069284251BE5BF5B00AF4678 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0692842A1BE5BF5B00AF4678 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		069284351BE5BF5C00AF4678 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -652,6 +654,7 @@
 			isa = PBXGroup;
 			children = (
 				0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */,
+				AA0001202E940020000A1001 /* SceneDelegate.swift */,
 				069284411BE5C0E500AF4678 /* RemoteCam-Bridging-Header.h */,
 			);
 			name = Delegate;
@@ -1110,6 +1113,7 @@
 				0684A2E21BE702BC00F0B238 /* CPSoundManager.m in Sources */,
 				85C11C052582F3FC00618F32 /* UIButton.swift in Sources */,
 				0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */,
+				AA0001212E940021000A1001 /* SceneDelegate.swift in Sources */,
 				068EF0AF2531837A00A84DFA /* MonitorVideoStates.swift in Sources */,
 				AA00020000000002 /* StoreManager.swift in Sources */,
 				AA00020000000006 /* PurchaseManaging.swift in Sources */,

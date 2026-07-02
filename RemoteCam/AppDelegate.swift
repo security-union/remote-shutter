@@ -9,9 +9,8 @@
 import UIKit
 import Photos
 
-@UIApplicationMain
+@main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-    var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         Task { await StoreManager.shared.loadProducts() }
@@ -19,43 +18,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         UIApplication.shared.isIdleTimerDisabled = true
         WatchSessionManager.shared.activate()
 
-        let window = UIWindow(frame: UIScreen.main.bounds)
-        let navController = UINavigationController(rootViewController: WelcomeViewController())
-        window.rootViewController = navController
-        window.makeKeyAndVisible()
-        self.window = window
-
         return true
     }
 
-    func applicationWillResignActive(_ application: UIApplication) {
+    func application(_ application: UIApplication,
+                     configurationForConnecting connectingSceneSession: UISceneSession,
+                     options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+        configuration.delegateClass = SceneDelegate.self
+        return configuration
     }
-
-    func applicationDidEnterBackground(_ application: UIApplication) {
-    }
-
-    func applicationWillEnterForeground(_ application: UIApplication) {
-    }
-
-    func applicationDidBecomeActive(_ application: UIApplication) {
-    }
-
-    func applicationWillTerminate(_ application: UIApplication) {
-    }
-
-}
-
-// Helper function inserted by Swift 4.2 migrator.
-private func convertFromNSAttributedStringKey(_ input: NSAttributedString.Key) -> String {
-    input.rawValue
-}
-
-// Helper function inserted by Swift 4.2 migrator.
-private func convertToOptionalNSAttributedStringKeyDictionary(_ input: [String: Any]?) -> [NSAttributedString.Key: Any]? {
-    guard let input = input else {
-        return nil
-    }
-    return Dictionary(uniqueKeysWithValues: input.map { key, value in
-        (NSAttributedString.Key(rawValue: key), value)
-    })
 }

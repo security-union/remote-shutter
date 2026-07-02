@@ -80,10 +80,12 @@ extension UIViewController {
     }
 
     public func addErrorView(view: UIView) {
-        if let delegate = UIApplication.shared.delegate,
-           let window = delegate.window {
-            window!.addSubview(view)
-            view.frame = (window?.bounds)!
+        if let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap({ $0.windows })
+            .first(where: { $0.isKeyWindow }) {
+            window.addSubview(view)
+            view.frame = window.bounds
         }
     }
 
