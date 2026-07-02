@@ -97,7 +97,8 @@ final class FrameStreamReceiver {
         trackStats(frame, at: time)
 
         guard let image = UIImage(data: frame.data) else {
-            StreamLog.decode.error("undecodable frame seq=\(frame.sequenceNumber) codec=\(String(describing: frame.codec)) bytes=\(frame.data.count)")
+            StreamLog.decode.error(
+                "undecodable frame seq=\(frame.sequenceNumber) codec=\(String(describing: frame.codec)) bytes=\(frame.data.count)")
             return
         }
         onImage?(image)
@@ -121,7 +122,11 @@ final class FrameStreamReceiver {
         guard elapsed >= 1.0 else { return }
         let fps = Double(statsFrames) / elapsed
         let kbPerFrame = Double(statsBytes) / Double(statsFrames) / 1024.0
-        StreamLog.decode.debug("stream stats: \(fps, format: .fixed(precision: 1))fps \(kbPerFrame, format: .fixed(precision: 1))KB/frame codec=\(String(describing: frame.codec))")
+        StreamLog.decode.debug(
+            """
+            stream stats: \(fps, format: .fixed(precision: 1))fps \
+            \(kbPerFrame, format: .fixed(precision: 1))KB/frame codec=\(String(describing: frame.codec))
+            """)
         statsWindowStart = time
         statsFrames = 0
         statsBytes = 0
@@ -132,7 +137,8 @@ final class FrameStreamReceiver {
         guard time - lastFrameAt > config.stallTimeout,
               time - lastStallReportAt > config.stallTimeout else { return }
         lastStallReportAt = time
-        StreamLog.transport.info("no frame for \(time - self.lastFrameAt, format: .fixed(precision: 1))s — raising StreamStalled")
+        StreamLog.transport.info(
+            "no frame for \(time - self.lastFrameAt, format: .fixed(precision: 1))s — raising StreamStalled")
         onStall?()
     }
 

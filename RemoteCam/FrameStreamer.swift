@@ -48,11 +48,12 @@ final class FrameStreamer {
         frameCount += 1
         guard frameCount % config.frameDivisor == 0 else { return }
 
-        guard let data = encodeWithFallback(pixelBuffer: pixelBuffer),
+        guard let data = encodeWithFallback(&encoders, pixelBuffer: pixelBuffer),
               let codec = activeCodec else { return }
 
         sequenceNumber &+= 1
-        StreamLog.encode.debug("frame seq=\(self.sequenceNumber) codec=\(String(describing: codec)) bytes=\(data.count)")
+        StreamLog.encode.debug(
+            "frame seq=\(self.sequenceNumber) codec=\(String(describing: codec)) bytes=\(data.count)")
         send(RemoteCmd.SendFrame(
             data: data,
             sender: nil,
@@ -62,20 +63,6 @@ final class FrameStreamer {
             codec: codec,
             sequenceNumber: sequenceNumber
         ))
-    }
-
-    private func encodeWithFallback(pixelBuffer: CVPixelBuffer) -> Data? {
-        while let encoder = encoders.first {
-            if let data = encoder.encode(pixelBuffer: pixelBuffer) {
-                return data
-            }
-            // Permanent fallback: an encoder that fails once (e.g. no HEVC
-            // hardware) is dropped from the chain for the session's lifetime.
-            encoders.removeFirst()
-            let next = encoders.first.map { String(describing: $0.codec) } ?? "none"
-            StreamLog.encode.error("\(String(describing: encoder.codec)) encoder failed — falling back to \(next)")
-        }
-        return nil
     }
 
     private static func makeEncoders(config: StreamingConfig) -> [FrameEncoding] {

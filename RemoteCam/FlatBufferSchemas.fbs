@@ -323,7 +323,8 @@ table WatchCommandAck {
 // Low-res, heavily-compressed live preview frame streamed iPhone -> Watch so the
 // user can frame the shot. Separate from the full-quality capture pipeline.
 table WatchPreviewFrame {
-    jpeg: [ubyte];
+    jpeg: [ubyte];        // still-image container: HEIC when the iPhone has an HEVC
+                          // encoder, JPEG otherwise; UIImage(data:) sniffs either
     epoch_ms: uint64;     // ordering, mirrors WatchCameraState.state_epoch_ms
 }
 

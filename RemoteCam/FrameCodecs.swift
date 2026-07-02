@@ -22,6 +22,22 @@ protocol FrameEncoding: AnyObject {
     func encode(pixelBuffer: CVPixelBuffer) -> Data?
 }
 
+/// Encodes with the first working encoder in `chain`, permanently dropping
+/// encoders that fail (e.g. HEIC on hardware without an HEVC encoder). Shared
+/// by the phone-monitor pipeline (FrameStreamer) and the Watch preview path.
+/// Confined to the caller's queue; `chain` is mutated on fallback.
+func encodeWithFallback(_ chain: inout [FrameEncoding], pixelBuffer: CVPixelBuffer) -> Data? {
+    while let encoder = chain.first {
+        if let data = encoder.encode(pixelBuffer: pixelBuffer) {
+            return data
+        }
+        chain.removeFirst()
+        let next = chain.first.map { String(describing: $0.codec) } ?? "none"
+        StreamLog.encode.error("\(String(describing: encoder.codec)) encoder failed — falling back to \(next)")
+    }
+    return nil
+}
+
 /// Downscales a capture pixel buffer so its long edge is at most `maxLongEdge`.
 /// The buffer is already oriented by the capture connection's videoOrientation,
 /// so no rotation is applied here.

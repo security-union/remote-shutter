@@ -89,6 +89,19 @@ public class CameraViewController: UIViewController,
     /// JPEG fallback), and hands frames to the FrameSender actor.
     /// Runs on `videoDataOutputQueue`.
     private lazy var frameStreamer = FrameStreamer { [frameSender] frame in frameSender ! frame }
+    /// Encoder chain for the Watch preview (HEIC with permanent JPEG fallback).
+    /// Runs on `videoDataOutputQueue` via `watchPreviewStreamer.offer`.
+    private lazy var watchFrameEncoders: [FrameEncoding] = {
+        let config = StreamingConfig.default
+        return [
+            HEICFrameEncoder(context: watchPreviewContext,
+                             maxLongEdge: config.watchMaxLongEdge,
+                             quality: config.watchHEICQuality),
+            JPEGFrameEncoder(context: watchPreviewContext,
+                             maxLongEdge: config.watchMaxLongEdge,
+                             quality: config.watchJPEGQuality)
+        ]
+    }()
     var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
     
@@ -1442,7 +1455,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         // and the only consumer is the Apple Watch. The streamer applies ack back-pressure
         // and only invokes the encode when it's actually ready to send.
         if isWatchRemoteMode {
-            watchPreviewStreamer.offer { [weak self] in self?.watchPreviewJPEG(from: sampleBuffer) }
+            watchPreviewStreamer.offer { [weak self] in self?.watchPreviewImageData(from: sampleBuffer) }
             return
         }
 
@@ -1454,19 +1467,15 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                              fps: fps)
     }
 
-    /// Builds a compact JPEG of the current frame for the Apple Watch live preview:
-    /// long edge ~320 px (matching the Watch screen width) at quality 0.55, ~10-20 KB
-    /// per frame. The sample buffer is already oriented by
-    /// `videoConnection.videoOrientation`, so it renders upright.
-    private func watchPreviewJPEG(from sampleBuffer: CMSampleBuffer) -> Data? {
+    /// Builds a compact still of the current frame for the Apple Watch live
+    /// preview: long edge ~320 px (matching the Watch screen width), HEIC when
+    /// the hardware supports it (~half the bytes of JPEG, so roughly double the
+    /// frame rate over the WCSession pipe), JPEG otherwise. The Watch decodes
+    /// either transparently via UIImage(data:). The sample buffer is already
+    /// oriented by `videoConnection.videoOrientation`, so it renders upright.
+    private func watchPreviewImageData(from sampleBuffer: CMSampleBuffer) -> Data? {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let longEdge = max(ciImage.extent.width, ciImage.extent.height)
-        guard longEdge > 0 else { return nil }
-        let scale = min(1.0, 320.0 / longEdge)
-        let scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-        guard let cgImage = watchPreviewContext.createCGImage(scaled, from: scaled.extent) else { return nil }
-        return UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.55)
+        return encodeWithFallback(&watchFrameEncoders, pixelBuffer: pixelBuffer)
     }
 
     /// The Watch acked the in-flight preview frame — let the streamer send the next.

@@ -9,7 +9,7 @@
 import Foundation
 import MultipeerConnectivity
 
-class SetSession : Actor.Message {
+class SetSession: Actor.Message {
     let peer: MCPeerID
     unowned var session: RemoteCamSession?
     init(peer: MCPeerID, session: RemoteCamSession) {
@@ -55,8 +55,8 @@ class FrameSender: Actor {
             break
         case is AckTimeout:
             break
-        case let s as SetSession:
-            self.become(name: readyToSendFrame, state: readyToSend(s), discardOld: true)
+        case let newSession as SetSession:
+            self.become(name: readyToSendFrame, state: readyToSend(newSession), discardOld: true)
         default:
             super.receive(msg: msg)
         }
@@ -70,11 +70,11 @@ class FrameSender: Actor {
             case is AckTimeout:
                 break // stale: the wait it guarded is already over
 
-            case let s as SetSession:
-                self.become(name: readyToSendFrame, state: readyToSend(s), discardOld: true)
+            case let newSession as SetSession:
+                self.become(name: readyToSendFrame, state: readyToSend(newSession), discardOld: true)
 
-            case let s as RemoteCmd.SendFrame:
-                data.session?.sendCommandOrGoToScanning(peer: [data.peer], msg: s, mode: .unreliable)
+            case let frame as RemoteCmd.SendFrame:
+                data.session?.sendCommandOrGoToScanning(peer: [data.peer], msg: frame, mode: .unreliable)
                 self.become(name: waitingForAckName, state: waitingForAck(data), discardOld: true)
                 self.armAckWatchdog()
             default:
@@ -91,15 +91,16 @@ class FrameSender: Actor {
             case is RemoteCmd.SendFrame:
                 break // back-pressure: drop frames until the in-flight one is acked
 
-            case let s as SetSession:
-                self.become(name: readyToSendFrame, state: readyToSend(s), discardOld: true)
+            case let newSession as SetSession:
+                self.become(name: readyToSendFrame, state: readyToSend(newSession), discardOld: true)
 
             case is RemoteCmd.RequestFrame:
                 self.become(name: readyToSendFrame, state: readyToSend(session), discardOld: true)
 
             case let timeout as AckTimeout:
                 guard timeout.generation == self.ackGeneration else { break }
-                StreamLog.transport.info("ack watchdog fired after \(Self.ackTimeout, format: .fixed(precision: 1))s — re-arming sender")
+                StreamLog.transport.info(
+                    "ack watchdog fired after \(Self.ackTimeout, format: .fixed(precision: 1))s — re-arming sender")
                 self.become(name: readyToSendFrame, state: readyToSend(session), discardOld: true)
 
             default:
