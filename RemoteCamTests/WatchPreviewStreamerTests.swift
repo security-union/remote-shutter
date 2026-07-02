@@ -2,10 +2,10 @@
 //  WatchPreviewStreamerTests.swift
 //  RemoteShutterTests
 //
-//  Back-pressure tests for the Apple Watch preview stream: at most one frame in flight,
-//  the next sent only after the Watch acks the previous, and — critically — a frame
-//  offered while one is in flight is never even encoded. A fake transport stands in for
-//  WCSession so the protocol is exercised without any device or connectivity.
+//  Back-pressure tests for the Apple Watch preview stream: up to `maxInFlight` frames
+//  outstanding at once, each released only after the Watch acks it, and — critically — a
+//  frame offered while the window is full is never even encoded. A fake transport stands in
+//  for WCSession so the protocol is exercised without any device or connectivity.
 //
 
 import XCTest
@@ -34,8 +34,10 @@ final class WatchPreviewStreamerTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeStreamer(ackTimeout: TimeInterval = 1.0) -> WatchPreviewStreamer {
-        WatchPreviewStreamer(queue: queue, ackTimeout: ackTimeout, send: { [weak self] jpeg in
+    private func makeStreamer(maxInFlight: Int = 1,
+                              ackTimeout: TimeInterval = 1.0) -> WatchPreviewStreamer {
+        WatchPreviewStreamer(queue: queue, maxInFlight: maxInFlight, ackTimeout: ackTimeout,
+                             send: { [weak self] jpeg in
             self?.sent.append(jpeg)
         })
     }
@@ -111,5 +113,41 @@ final class WatchPreviewStreamerTests: XCTestCase {
         }
         wait(for: [released], timeout: 2.0)
         XCTAssertEqual(sent, [Data([1]), Data([3])])
+    }
+
+    // MARK: - Windowed back-pressure (maxInFlight > 1)
+
+    func testWindowAllowsMultipleFramesBeforeGating() {
+        streamer = makeStreamer(maxInFlight: 3)
+        XCTAssertTrue(offer(1))
+        XCTAssertTrue(offer(2), "second frame fits in the window without an ack")
+        XCTAssertTrue(offer(3), "third frame fills the window")
+        XCTAssertFalse(offer(4), "window full — must be gated without encoding")
+        XCTAssertEqual(sent, [Data([1]), Data([2]), Data([3])])
+        XCTAssertEqual(encodeCount, 3, "the gated frame must not be encoded")
+    }
+
+    func testEachAckFreesExactlyOneWindowSlot() {
+        streamer = makeStreamer(maxInFlight: 3)
+        offer(1); offer(2); offer(3)   // window full
+        XCTAssertFalse(offer(4))
+        ack()                          // one credit returns
+        XCTAssertTrue(offer(5), "one ack frees exactly one slot")
+        XCTAssertFalse(offer(6), "window full again after refilling the freed slot")
+        XCTAssertEqual(sent, [Data([1]), Data([2]), Data([3]), Data([5])])
+    }
+
+    func testWatchdogResetsTheWholeWindowOnStall() {
+        streamer = makeStreamer(maxInFlight: 3, ackTimeout: 0.05)
+        offer(1); offer(2); offer(3)   // window full, no acks will arrive
+        XCTAssertFalse(offer(4), "gated while the window is full")
+
+        // No ack ever arrives — the watchdog must clear the entire window.
+        let released = expectation(description: "watchdog cleared the window")
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.2) {
+            if self.offer(7) { released.fulfill() }
+        }
+        wait(for: [released], timeout: 2.0)
+        XCTAssertEqual(sent, [Data([1]), Data([2]), Data([3]), Data([7])])
     }
 }
