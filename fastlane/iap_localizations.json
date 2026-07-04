@@ -1,0 +1,173 @@
+{
+  "bundle_id": "com.blackfireapps.remotecamera",
+  "products": {
+    "05": {
+      "en-US": {
+        "name": "Remove Ads",
+        "description": "Turns off all banner ads."
+      },
+      "da": {
+        "name": "Fjern reklamer",
+        "description": "Slår alle reklamer fra."
+      },
+      "de-DE": {
+        "name": "Werbung entfernen",
+        "description": "Schaltet alle Werbebanner aus."
+      },
+      "es-MX": {
+        "name": "Eliminar anuncios",
+        "description": "Desactiva todos los anuncios."
+      },
+      "fr-FR": {
+        "name": "Supprimer les pubs",
+        "description": "Désactive toutes les publicités."
+      },
+      "it": {
+        "name": "Rimuovi pubblicità",
+        "description": "Disattiva tutti gli annunci."
+      },
+      "ja": {
+        "name": "広告を削除",
+        "description": "すべてのバナー広告を非表示にします。"
+      },
+      "ko": {
+        "name": "광고 제거",
+        "description": "모든 배너 광고를 없앱니다."
+      },
+      "pt-BR": {
+        "name": "Remover anúncios",
+        "description": "Desativa todos os anúncios."
+      },
+      "zh-Hans": {
+        "name": "移除广告",
+        "description": "关闭所有横幅广告。"
+      }
+    },
+    "06": {
+      "en-US": {
+        "name": "Pro: All Features",
+        "description": "Video, torch control, and no ads."
+      },
+      "da": {
+        "name": "Pro: Alle funktioner",
+        "description": "Video, lommelygte og ingen reklamer."
+      },
+      "de-DE": {
+        "name": "Pro: Alle Funktionen",
+        "description": "Video, Licht-Steuerung, keine Werbung."
+      },
+      "es-MX": {
+        "name": "Pro: Todas las funciones",
+        "description": "Video, linterna y sin anuncios."
+      },
+      "fr-FR": {
+        "name": "Pro : toutes les fonctions",
+        "description": "Vidéo, torche et zéro publicité."
+      },
+      "it": {
+        "name": "Pro: tutte le funzioni",
+        "description": "Video, torcia e niente pubblicità."
+      },
+      "ja": {
+        "name": "プロ: 全機能",
+        "description": "ビデオ、ライト操作、広告なし。"
+      },
+      "ko": {
+        "name": "프로: 전체 기능",
+        "description": "비디오, 손전등 제어, 광고 제거."
+      },
+      "pt-BR": {
+        "name": "Pro: todos os recursos",
+        "description": "Vídeo, lanterna e sem anúncios."
+      },
+      "zh-Hans": {
+        "name": "专业版：全部功能",
+        "description": "视频、手电筒控制，无广告。"
+      }
+    },
+    "07": {
+      "en-US": {
+        "name": "Torch Control",
+        "description": "Turn the camera's torch on remotely."
+      },
+      "da": {
+        "name": "Lommelygte-styring",
+        "description": "Tænd kameraets lommelygte på afstand."
+      },
+      "de-DE": {
+        "name": "Licht-Steuerung",
+        "description": "Kameralicht aus der Ferne einschalten."
+      },
+      "es-MX": {
+        "name": "Control de linterna",
+        "description": "Enciende la linterna a distancia."
+      },
+      "fr-FR": {
+        "name": "Contrôle de la torche",
+        "description": "Allumez la torche à distance."
+      },
+      "it": {
+        "name": "Controllo torcia",
+        "description": "Accendi la torcia a distanza."
+      },
+      "ja": {
+        "name": "ライト操作",
+        "description": "カメラのライトを遠隔でオンにできます。"
+      },
+      "ko": {
+        "name": "손전등 제어",
+        "description": "카메라 손전등을 원격으로 켭니다."
+      },
+      "pt-BR": {
+        "name": "Controle da lanterna",
+        "description": "Acenda a lanterna da câmera à distância."
+      },
+      "zh-Hans": {
+        "name": "手电筒控制",
+        "description": "远程打开相机手电筒。"
+      }
+    },
+    "08": {
+      "en-US": {
+        "name": "Video Recording",
+        "description": "Record video with the remote camera."
+      },
+      "da": {
+        "name": "Videooptagelse",
+        "description": "Optag video med fjernkameraet."
+      },
+      "de-DE": {
+        "name": "Videoaufnahme",
+        "description": "Video mit der Remote-Kamera aufnehmen."
+      },
+      "es-MX": {
+        "name": "Grabación de video",
+        "description": "Graba video con la cámara remota."
+      },
+      "fr-FR": {
+        "name": "Enregistrement vidéo",
+        "description": "Filmez avec la caméra distante."
+      },
+      "it": {
+        "name": "Registrazione video",
+        "description": "Registra video dalla fotocamera remota."
+      },
+      "ja": {
+        "name": "ビデオ撮影",
+        "description": "リモートカメラでビデオを撮影できます。"
+      },
+      "ko": {
+        "name": "비디오 녹화",
+        "description": "원격 카메라로 비디오를 녹화합니다."
+      },
+      "pt-BR": {
+        "name": "Gravação de vídeo",
+        "description": "Grave vídeo com a câmera remota."
+      },
+      "zh-Hans": {
+        "name": "视频录制",
+        "description": "使用远程相机录制视频。"
+      }
+    }
+  }
+}
