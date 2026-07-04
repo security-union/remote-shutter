@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #F5F5F7;
+    --ink: #1D1D1F;
+    --accent: #007AFF;
+    --k: 1;
+    --capH: 660px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .canvas { position: relative; overflow: hidden; }
+
+  /* ---- Caption band ---- */
+  .caption {
+    position: absolute; top: 0; left: 0; right: 0; height: var(--capH);
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 0 calc(70px * var(--k)); z-index: 3;
+  }
+  .caption h1 {
+    font-size: calc(97px * var(--k)); font-weight: 700; letter-spacing: -0.022em;
+    line-height: 1.14; color: var(--ink);
+  }
+  .caption h1 .accent { color: var(--accent); }
+
+  /* Landscape (banner) layout: caption column left, scene right */
+  body.landscape .caption {
+    top: 0; bottom: 0; left: 0; right: auto; width: 44%; height: auto;
+    justify-content: flex-start; text-align: left; padding: 0 calc(90px * var(--k));
+  }
+  body.landscape .caption h1 { font-size: calc(92px * var(--k)); }
+  body.landscape .scene { top: 0; left: 44%; border-radius: 0; }
+
+  /* ---- Scene ---- */
+  .scene {
+    position: absolute; top: var(--capH); left: 0; right: 0; bottom: 0;
+    border-radius: calc(44px * var(--k)) calc(44px * var(--k)) 0 0;
+    overflow: hidden; z-index: 1; background: #ddd;
+  }
+  .scene img {
+    width: 100%; height: 100%; object-fit: cover;
+    object-position: var(--scene-pos, 50% 50%);
+  }
+
+  /* ---- Perspective-composited screens ---- */
+  .surface {
+    position: absolute; left: 0; top: 0; transform-origin: 0 0;
+    background: #000; z-index: 2;
+  }
+  .surf-ui { position: absolute; overflow: hidden; }
+  .surf-ui > img.fill {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  .surf-preview { position: absolute; overflow: hidden; background: #000; }
+  .surf-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .surf-statusbar {
+    position: absolute; left: 0; top: 0; width: 100%;
+    background: #000; color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .surf-glare {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, rgba(255,255,255,.10) 0%,
+                rgba(255,255,255,.03) 30%, transparent 55%);
+  }
+
+  /* ---- Flat device mockup (mode B) ---- */
+  .mockup { position: absolute; z-index: 2; }
+  .mockup .screen { position: relative; overflow: hidden; background: #000; }
+  .mockup img.ui { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .mockup .preview {
+    position: absolute;
+    left: 17.86%; top: 5.61%; width: 64.36%; height: 52.88%;
+    overflow: hidden; background: #000;
+  }
+  .mockup .preview img {
+    width: 100%; height: 100%; object-fit: cover;
+    object-position: var(--preview-pos, 50% 50%);
+    transform: scale(var(--preview-scale, 1));
+    transform-origin: var(--preview-pos, 50% 50%);
+  }
+  .mockup .statusbar {
+    position: absolute; left: 0; top: 0; width: 100%; height: 5.61%;
+    background: #000; color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* ---- Infographic callouts ---- */
+  .callout-svg { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  .callout-label {
+    position: absolute; z-index: 5; transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95); color: var(--ink);
+    font-weight: 600; letter-spacing: 0.14em; white-space: nowrap;
+    border-radius: 999px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  }
+</style>
+</head>
+<body>
+<div class="canvas" id="canvas">
+  <div class="caption"><h1 id="headline"></h1></div>
+  <div class="scene"><img id="scene-img" alt=""></div>
+</div>
+<script src="manifest.js"></script>
+<script>
+  const WIFI = (w, h) => `<svg width="${w}" height="${h}" viewBox="0 0 24 17" fill="white"><path d="M12 16.5c.9 0 1.7-.8 1.7-1.7s-.8-1.7-1.7-1.7-1.7.8-1.7 1.7.8 1.7 1.7 1.7zM7.2 11.3l1.8 1.8c1.6-1.6 4.4-1.6 6 0l1.8-1.8c-2.6-2.6-7-2.6-9.6 0zM2.4 6.5l1.8 1.8C7.5 5 12.5 5 15.8 8.3l1.8-1.8C13.4 2.3 6.6 2.3 2.4 6.5z" transform="translate(2 0)"/></svg>`;
+  const BATT = (w, h, bw) => `<span style="display:inline-block;width:${w}px;height:${h}px;border:${bw}px solid rgba(255,255,255,.6);border-radius:${h * 0.3}px;position:relative;"><span style="position:absolute;inset:${bw + 1}px;background:#fff;border-radius:${h * 0.12}px;"></span></span>`;
+
+  // ---- homography ----
+  function adj(m) {
+    return [
+      m[4] * m[8] - m[5] * m[7], m[2] * m[7] - m[1] * m[8], m[1] * m[5] - m[2] * m[4],
+      m[5] * m[6] - m[3] * m[8], m[0] * m[8] - m[2] * m[6], m[2] * m[3] - m[0] * m[5],
+      m[3] * m[7] - m[4] * m[6], m[1] * m[6] - m[0] * m[7], m[0] * m[4] - m[1] * m[3],
+    ];
+  }
+  function multmm(a, b) {
+    const c = Array(9);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      let s = 0;
+      for (let k = 0; k < 3; k++) s += a[3 * i + k] * b[3 * k + j];
+      c[3 * i + j] = s;
+    }
+    return c;
+  }
+  function multmv(m, v) {
+    return [m[0] * v[0] + m[1] * v[1] + m[2] * v[2], m[3] * v[0] + m[4] * v[1] + m[5] * v[2], m[6] * v[0] + m[7] * v[1] + m[8] * v[2]];
+  }
+  function basisToPoints(p1, p2, p3, p4) {
+    const m = [p1[0], p2[0], p3[0], p1[1], p2[1], p3[1], 1, 1, 1];
+    const v = multmv(adj(m), [p4[0], p4[1], 1]);
+    return multmm(m, [v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]]);
+  }
+  function matrix3d(w, h, quad) {
+    const s = basisToPoints([0, 0], [w, 0], [0, h], [w, h]);
+    const d = basisToPoints(...quad);
+    const t = multmm(d, adj(s)).map((x, _, arr) => x / arr[8]);
+    return `matrix3d(${t[0]},${t[3]},0,${t[6]},${t[1]},${t[4]},0,${t[7]},0,0,1,0,${t[2]},${t[5]},0,${t[8]})`;
+  }
+
+  const params = new URLSearchParams(location.search);
+  const slot = window.MANIFEST.slots[params.get("slot") || "0"];
+  const canvas = document.getElementById("canvas");
+
+  // Exact canvas size from query params (viewport is padded; render.mjs crops).
+  const cw = Number(params.get("w")) || window.innerWidth;
+  const chTotal = Number(params.get("h")) || window.innerHeight;
+  canvas.style.width = cw + "px";
+  canvas.style.height = chTotal + "px";
+
+  const landscape = slot.layout === "landscape";
+  if (landscape) document.body.classList.add("landscape");
+
+  // Design-proportional scale factor (design spaces: 1290x2796 / 1920x1080).
+  const k = landscape
+    ? Math.min(cw / 1920, chTotal / 1080)
+    : Math.min(cw / 1290, chTotal / 2796);
+  const capH = landscape ? 0 : Math.round(660 * k);
+  document.documentElement.style.setProperty("--k", k);
+  document.documentElement.style.setProperty("--capH", capH + "px");
+
+  const h1 = document.getElementById("headline");
+  h1.innerHTML = slot.headline
+    .map((line, i) => i === slot.accentLine ? `<span class="accent">${line}</span>` : line)
+    .join("<br>");
+
+  const sceneImg = document.getElementById("scene-img");
+  if (slot.scene) {
+    sceneImg.src = slot.scene;
+    document.documentElement.style.setProperty("--scene-pos", slot.scenePosition);
+  } else {
+    document.querySelector(".scene").style.display = "none";
+  }
+
+  // Scene-to-canvas mapping (cover fit inside the scene region).
+  const region = landscape
+    ? { x: cw * 0.44, y: 0, w: cw * 0.56, h: chTotal }
+    : { x: 0, y: capH, w: cw, h: chTotal - capH };
+  let map = null;
+  if (slot.sceneSize) {
+    const [iw, ih] = slot.sceneSize;
+    const scale = Math.max(region.w / iw, region.h / ih);
+    const [px, py] = slot.scenePosition.split(" ").map((v) => parseFloat(v) / 100);
+    const offX = (region.w - iw * scale) * px + region.x;
+    const offY = (region.h - ih * scale) * py + region.y;
+    map = ([x, y]) => [x * scale + offX, y * scale + offY];
+  }
+
+  // ---- Flat device mockup (mode B); metrics in design px, scaled by k ----
+  let mockupMetrics = null;
+  if (slot.mockup) {
+    const m = slot.mockup;
+    const screenW = (m.width || 620) * k;
+    const pad = 24 * k;
+    const screenH = screenW * 2532 / 1170;
+    const el = document.createElement("div");
+    el.className = "mockup";
+    el.style.left = `calc(${m.left || "50%"} - ${(screenW / 2 + pad)}px)`;
+    el.style.top = (m.top || 1440) * k + "px";
+    el.style.padding = pad + "px";
+    el.style.background = "linear-gradient(160deg,#3a3a3c 0%,#1c1c1e 30%,#000 100%)";
+    el.style.borderRadius = 116 * k + "px";
+    el.style.boxShadow = `0 ${80 * k}px ${160 * k}px rgba(0,0,0,.45), 0 ${30 * k}px ${60 * k}px rgba(0,0,0,.3), inset 0 0 0 ${3 * k}px rgba(255,255,255,.14)`;
+    const sb = m.statusbar === false ? "" :
+      `<div class="statusbar" style="padding:0 ${55 * k}px;font-size:${23 * k}px;font-weight:600;">
+        <span>9:41</span>
+        <span style="display:flex;align-items:center;gap:${8 * k}px;">${WIFI(24 * k, 17 * k)}${BATT(36 * k, 18 * k, 2 * k)}</span>
+      </div>`;
+    el.innerHTML = `<div class="screen" style="width:${screenW}px;height:${screenH}px;border-radius:${92 * k}px;">
+      <img class="ui" src="${m.ui}">
+      ${m.preview ? `<div class="preview"><img src="${m.preview}"></div>` : ""}
+      ${sb}</div>`;
+    canvas.appendChild(el);
+    if (m.previewPosition) document.documentElement.style.setProperty("--preview-pos", m.previewPosition);
+    if (m.previewScale) document.documentElement.style.setProperty("--preview-scale", m.previewScale);
+    const leftPct = parseFloat(m.left || "50") / 100;
+    mockupMetrics = {
+      screenLeft: cw * leftPct - screenW / 2,
+      screenTop: (m.top || 1440) * k + pad,
+      screenW, screenH,
+    };
+  }
+
+  // ---- Perspective surfaces (mode A) ----
+  if (slot.surfaces && map) {
+    for (const s of slot.surfaces) {
+      const [w, h] = s.size;
+      const bezel = s.bezel || 0;
+      const el = document.createElement("div");
+      el.className = "surface";
+      el.style.width = w + "px";
+      el.style.height = h + "px";
+      el.style.borderRadius = (s.radius || 0) + "px";
+
+      const ui = document.createElement("div");
+      ui.className = "surf-ui";
+      ui.style.inset = bezel + "px";
+      ui.style.borderRadius = (s.innerRadius || s.radius || 0) + "px";
+
+      let html = "";
+      if (s.ui) html += `<img class="fill" src="${s.ui}">`;
+      else if (s.img && s.chrome !== "watch") html += `<img class="fill" src="${s.img}" style="object-position:${s.pos || "50% 50%"};transform:scale(${s.scale || 1});transform-origin:${s.pos || "50% 50%"};">`;
+
+      if (s.preview) {
+        const [l, t, pw, ph] = s.preview.rect;
+        html += `<div class="surf-preview" style="left:${l}%;top:${t}%;width:${pw}%;height:${ph}%;">
+          <img src="${s.preview.img}" style="object-position:${s.preview.pos || "50% 50%"};transform:scale(${s.preview.scale || 1});transform-origin:${s.preview.pos || "50% 50%"};"></div>`;
+      }
+      // Camera-side chrome (matches CameraViewController).
+      if (s.chrome === "camera") {
+        html += `<div style="position:absolute;top:0;left:0;width:100%;height:14%;background:linear-gradient(rgba(0,0,0,.38),transparent);"></div>`;
+        html += `<svg style="position:absolute;top:200px;left:70px;" width="90" height="90" viewBox="0 0 24 24" fill="none"><path d="M15 4 L7 12 L15 20" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+        html += `<div style="position:absolute;top:215px;left:50%;transform:translateX(-50%);width:64px;height:64px;border-radius:50%;background:#FF3B30;box-shadow:0 0 24px rgba(255,59,48,.8);"></div>`;
+        html += `<svg style="position:absolute;top:200px;right:70px;" width="90" height="90" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="1.8"/><text x="12" y="16" text-anchor="middle" fill="white" font-size="11" font-weight="600" font-family="-apple-system">?</text></svg>`;
+      }
+      // Watch remote chrome (matches the Watch live-view screen).
+      if (s.chrome === "watch") {
+        const pvL = 0.159 * w, pvW = 0.682 * w;
+        html += `<div style="position:absolute;left:${pvL}px;top:0;width:${pvW}px;height:100%;overflow:hidden;background:#000;">
+          <img src="${s.img}" style="width:100%;height:100%;object-fit:cover;object-position:${s.pos || "50% 50%"};transform:scale(${s.scale || 1});transform-origin:${s.pos || "50% 50%"};"></div>`;
+        html += `<div style="position:absolute;left:${0.05 * w}px;top:${0.185 * h}px;width:${0.055 * w}px;height:${0.055 * w}px;border-radius:50%;background:#30D158;"></div>`;
+        html += `<div style="position:absolute;right:${0.06 * w}px;top:${0.075 * h}px;color:#fff;font-size:${0.075 * w}px;font-weight:700;">9:41</div>`;
+        html += `<div style="position:absolute;left:${0.31 * w}px;top:${0.685 * h}px;width:${0.20 * w}px;height:${0.20 * w}px;border-radius:50%;border:${0.017 * w}px solid #fff;"></div>`;
+        html += `<div style="position:absolute;left:${0.335 * w}px;top:${0.685 * h + 0.025 * w}px;width:${0.15 * w}px;height:${0.15 * w}px;border-radius:50%;background:#fff;"></div>`;
+        html += `<svg style="position:absolute;left:${0.62 * w}px;top:${0.71 * h}px;" width="${0.13 * w}" height="${0.13 * w}" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2" fill="white"/><circle cx="15" cy="12" r="2" fill="white"/><circle cx="10" cy="17" r="2" fill="white"/></svg>`;
+      }
+      if (s.notch) {
+        html += `<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:${s.notch[0]}px;height:${s.notch[1]}px;background:#000;border-radius:0 0 ${s.notch[1] * 0.45}px ${s.notch[1] * 0.45}px;"></div>`;
+      }
+      if (s.statusbar) {
+        const sb = s.statusbar;
+        html += `<div class="surf-statusbar" style="height:${sb.heightPct}%;font-size:${sb.font}px;font-weight:600;padding:0 ${sb.pad}px;">
+          <span>9:41</span>
+          <span style="display:flex;align-items:center;gap:${sb.font * 0.4}px;">${WIFI(sb.font * 0.9, sb.font * 0.64)}${BATT(sb.font * 1.1, sb.font * 0.55, 2)}</span>
+        </div>`;
+      }
+      html += `<div class="surf-glare"></div>`;
+      ui.innerHTML = html;
+      el.appendChild(ui);
+      el.style.transform = matrix3d(w, h, s.quad.map(map));
+      canvas.appendChild(el);
+    }
+  }
+
+  // ---- Callouts: anchor in scene px (anchor), canvas % (anchorPct), or
+  //      mockup-screen fractions (anchorScreen); label offsets in design px ----
+  if (slot.callouts) {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("class", "callout-svg");
+    svg.setAttribute("width", cw);
+    svg.setAttribute("height", chTotal);
+    for (const c of slot.callouts) {
+      let ax, ay;
+      if (c.anchorScreen && mockupMetrics) {
+        ax = mockupMetrics.screenLeft + c.anchorScreen[0] * mockupMetrics.screenW;
+        ay = mockupMetrics.screenTop + c.anchorScreen[1] * mockupMetrics.screenH;
+      } else if (c.anchorPct) {
+        ax = c.anchorPct[0] / 100 * cw;
+        ay = c.anchorPct[1] / 100 * chTotal;
+      } else {
+        [ax, ay] = map(c.anchor);
+      }
+      const lx = ax + c.dx * k, ly = ay + c.dy * k;
+      for (const [w2, col] of [[9 * k, "rgba(255,255,255,0.9)"], [3.5 * k, "#1D1D1F"]]) {
+        const line = document.createElementNS(svgNS, "line");
+        line.setAttribute("x1", ax); line.setAttribute("y1", ay);
+        line.setAttribute("x2", lx); line.setAttribute("y2", ly);
+        line.setAttribute("stroke", col); line.setAttribute("stroke-width", w2);
+        svg.appendChild(line);
+      }
+      const ring = document.createElementNS(svgNS, "circle");
+      ring.setAttribute("cx", ax); ring.setAttribute("cy", ay);
+      ring.setAttribute("r", 14 * k);
+      ring.setAttribute("fill", "rgba(255,255,255,0.25)");
+      ring.setAttribute("stroke", "#1D1D1F");
+      ring.setAttribute("stroke-width", 3.5 * k);
+      svg.appendChild(ring);
+      const label = document.createElement("div");
+      label.className = "callout-label";
+      label.textContent = c.text;
+      label.style.left = lx + "px";
+      label.style.top = ly + "px";
+      label.style.fontSize = 34 * k + "px";
+      label.style.padding = `${18 * k}px ${38 * k}px`;
+      canvas.appendChild(label);
+    }
+    canvas.appendChild(svg);
+  }
+</script>
+</body>
+</html>
