@@ -130,6 +130,9 @@ platform :ios do
     upload_to_app_store(
       skip_metadata: false,
       skip_screenshots: false,
+      # Delete ALL screenshots on App Store Connect before uploading, so ASC
+      # exactly mirrors fastlane/screenshots/ (otherwise deliver only appends).
+      overwrite_screenshots: true,
       precheck_include_in_app_purchases: false,
       force: true,
       submit_for_review: false
