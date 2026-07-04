@@ -283,6 +283,7 @@
       }
       html += `<div class="surf-glare"></div>`;
       ui.innerHTML = html;
+      if (s.blur) ui.style.filter = `blur(${s.blur}px)`;
       el.appendChild(ui);
       el.style.transform = matrix3d(w, h, s.quad.map(map));
       canvas.appendChild(el);

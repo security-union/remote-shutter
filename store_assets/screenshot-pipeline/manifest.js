@@ -90,29 +90,44 @@ window.MANIFEST = {
       ]
     },
 
-    // ---- Slot 3: wildlife ----
+    // ---- Slot 3: wildlife (over-the-shoulder: her phone runs the remote) ----
     "3": {
       headline: ["Get close.", "Without getting close."],
       accentLine: 1,
-      scene: "../ai-scenes/slot3_wild_c2.jpg",
+      scene: "../ai-scenes/slot3_ots_c1.jpg",
       sceneSize: [1536, 2752],
-      scenePosition: "50% 20%",
+      scenePosition: "50% 35%",
       surfaces: [
         {
-          quad: [[248, 789], [543, 793], [236, 1406], [538, 1418]],
+          // Her phone: real monitor UI, live preview shows the cardinal.
+          quad: [[445, 1111], [763, 1132], [481, 1784], [806, 1775]],
           size: [1210, 2572],
           bezel: 0,
           radius: 110,
-          notch: [380, 80],
-          chrome: "camera",
+          ui: "assets/ui-monitor-iphone.png",
+          preview: {
+            img: "../ai-scenes/slot3_preview.jpg",
+            rect: [17.86, 5.61, 64.36, 52.88],
+            pos: "50% 40%",
+            scale: 1.1
+          },
+          statusbar: { heightPct: 5.6, font: 42, pad: 60 }
+        },
+        {
+          // Camera phone on the railing tripod (soft focus like the scene).
+          quad: [[739, 690], [951, 686], [742, 791], [951, 787]],
+          size: [2572, 1210],
+          bezel: 0,
+          radius: 80,
           img: "../ai-scenes/slot3_preview.jpg",
-          pos: "50% 40%",
-          scale: 1.0
+          pos: "50% 45%",
+          scale: 1.0,
+          blur: 3
         }
       ],
       callouts: [
-        { text: "CAMERA", anchor: [395, 760], dx: 140, dy: -150 },
-        { text: "REMOTE", anchor: [1255, 550], dx: -170, dy: -130 }
+        { text: "CAMERA", anchor: [845, 682], dx: 60, dy: -140 },
+        { text: "REMOTE", anchor: [620, 1115], dx: -160, dy: -150 }
       ]
     },
 
