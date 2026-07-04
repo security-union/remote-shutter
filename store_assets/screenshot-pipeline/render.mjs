@@ -13,20 +13,31 @@ const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 // slot x device-class matrix and writes into fastlane/screenshots/<locale>/.
 // dsf: device scale factor — output pixels = width*dsf x height*dsf. Keeps the
 // logical window small (huge windows get clamped by Chrome on macOS).
-const DEVICES = [
-  ["APP_IPHONE_67", 1290, 2796],
-  ["APP_IPHONE_65", 1284, 2778],
-  ["APP_IPAD_PRO_3GEN_129", 2048, 2732],
-  ["APP_IPAD_PRO_3GEN_11", 1640, 2360],
+// Per-device slot plans: iPad drops the Watch slot and uses iPad-native
+// variants for the mockup slots and the cardinal scene.
+// iPad drops the Watch slot and the family scene (no iPad in it) and uses
+// iPad-native variants for the mockup slots and the cardinal scene.
+const PLANS = [
+  ["APP_IPHONE_67", 1290, 2796, ["0", "1", "3", "4", "2"]],
+  ["APP_IPHONE_65", 1284, 2778, ["0", "1", "3", "4", "2"]],
+  ["APP_IPAD_PRO_3GEN_129", 2048, 2732, ["0", "3i", "2i"]],
+  ["APP_IPAD_PRO_3GEN_11", 1640, 2360, ["0", "3i", "2i"]],
 ];
-const SLOTS = ["0", "1", "2", "3", "4", "5"];
-const RENDERS = SLOTS.flatMap((slot) =>
-  DEVICES.map(([dev, width, height]) => ({
-    slot, width, height, out: `out/${slot}_${dev}_${slot}.png`,
+
+// Locale: `node render.mjs --locale it [slots...]` — headline/label strings come
+// from the static translations.js table; output goes to out/<locale>/.
+const args = process.argv.slice(2);
+const locIdx = args.indexOf("--locale");
+const LOCALE = locIdx >= 0 ? args.splice(locIdx, 2)[1] : "en-US";
+const OUT = `out/${LOCALE === "en-US" ? "" : LOCALE + "/"}`;
+
+const RENDERS = PLANS.flatMap(([dev, width, height, slots]) =>
+  slots.map((slot, i) => ({
+    slot, width, height, out: `${OUT}${i}_${dev}_${i}.png`,
   })),
 );
 // In-App Event card (16:9, min 1920x1080); rendered at 2x for crispness.
-RENDERS.push({ slot: "banner", width: 1920, height: 1080, dsf: 2, out: "out/event_card_3840x2160.png" });
+RENDERS.push({ slot: "banner", width: 1920, height: 1080, dsf: 2, out: `${OUT}event_card_3840x2160.png` });
 
 // Headless Chrome on macOS reserves ~87px of the window for chrome even in
 // --headless=new, shrinking the viewport. Pad the window and crop afterwards;
@@ -34,13 +45,13 @@ RENDERS.push({ slot: "banner", width: 1920, height: 1080, dsf: 2, out: "out/even
 // the viewport.
 const PAD = 120;
 
-const only = process.argv.slice(2);
+const only = args;
 for (const r of RENDERS) {
   if (only.length && !only.includes(r.slot)) continue;
   const dsf = r.dsf || 1;
   const outPath = resolve(join(here, r.out));
   mkdirSync(dirname(outPath), { recursive: true });
-  const url = `file://${join(here, "template.html")}?slot=${r.slot}&w=${r.width}&h=${r.height}`;
+  const url = `file://${join(here, "template.html")}?slot=${r.slot}&w=${r.width}&h=${r.height}&locale=${LOCALE}`;
   execFileSync(CHROME, [
     "--headless=new",
     "--disable-gpu",

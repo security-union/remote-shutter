@@ -30,6 +30,10 @@
     line-height: 1.14; color: var(--ink);
   }
   .caption h1 .accent { color: var(--accent); }
+  .caption .subline {
+    font-size: calc(44px * var(--k)); font-weight: 500; letter-spacing: -0.01em;
+    color: #6E6E73; margin-top: calc(28px * var(--k));
+  }
 
   /* Landscape (banner) layout: caption column left, scene right */
   body.landscape .caption {
@@ -109,6 +113,7 @@
   <div class="scene"><img id="scene-img" alt=""></div>
 </div>
 <script src="manifest.js"></script>
+<script src="translations.js"></script>
 <script>
   const WIFI = (w, h) => `<svg width="${w}" height="${h}" viewBox="0 0 24 17" fill="white"><path d="M12 16.5c.9 0 1.7-.8 1.7-1.7s-.8-1.7-1.7-1.7-1.7.8-1.7 1.7.8 1.7 1.7 1.7zM7.2 11.3l1.8 1.8c1.6-1.6 4.4-1.6 6 0l1.8-1.8c-2.6-2.6-7-2.6-9.6 0zM2.4 6.5l1.8 1.8C7.5 5 12.5 5 15.8 8.3l1.8-1.8C13.4 2.3 6.6 2.3 2.4 6.5z" transform="translate(2 0)"/></svg>`;
   const BATT = (w, h, bw) => `<span style="display:inline-block;width:${w}px;height:${h}px;border:${bw}px solid rgba(255,255,255,.6);border-radius:${h * 0.3}px;position:relative;"><span style="position:absolute;inset:${bw + 1}px;background:#fff;border-radius:${h * 0.12}px;"></span></span>`;
@@ -146,8 +151,16 @@
   }
 
   const params = new URLSearchParams(location.search);
-  const slot = window.MANIFEST.slots[params.get("slot") || "0"];
+  const slotId = params.get("slot") || "0";
+  const slot = window.MANIFEST.slots[slotId];
   const canvas = document.getElementById("canvas");
+
+  // Locale: static lookup from translations.js — no manifest edits needed.
+  const t = window.I18N[params.get("locale") || "en-US"] || window.I18N["en-US"];
+  const baseId = slotId === "banner" ? "0" : slotId.replace(/i$/, "");
+  if (t.headlines[baseId]) slot.headline = t.headlines[baseId];
+  if (t.sublines && t.sublines[baseId]) slot.subline = t.sublines[baseId];
+  const L = (s) => (t.labels && t.labels[s]) || s;
 
   // Exact canvas size from query params (viewport is padded; render.mjs crops).
   const cw = Number(params.get("w")) || window.innerWidth;
@@ -170,6 +183,10 @@
   h1.innerHTML = slot.headline
     .map((line, i) => i === slot.accentLine ? `<span class="accent">${line}</span>` : line)
     .join("<br>");
+  if (slot.subline) {
+    h1.insertAdjacentHTML("afterend", `<div class="subline">${slot.subline}</div>`);
+    h1.parentElement.style.flexDirection = "column";
+  }
 
   const sceneImg = document.getElementById("scene-img");
   if (slot.scene) {
@@ -194,28 +211,33 @@
   }
 
   // ---- Flat device mockup (mode B); metrics in design px, scaled by k ----
+  const MOCKUP_PRESETS = {
+    iphone: { ar: 2532 / 1170, sr: 92, fr: 116, pad: 24, pv: [17.86, 5.61, 64.36, 52.88], sbH: 5.61, sbF: 23, sbP: 55 },
+    ipad: { ar: 2360 / 1640, sr: 36, fr: 60, pad: 26, pv: [22.0, 2.0, 55.9, 70.0], sbH: 2.0, sbF: 19, sbP: 40 },
+  };
   let mockupMetrics = null;
   if (slot.mockup) {
     const m = slot.mockup;
+    const P = MOCKUP_PRESETS[m.device || "iphone"];
     const screenW = (m.width || 620) * k;
-    const pad = 24 * k;
-    const screenH = screenW * 2532 / 1170;
+    const pad = P.pad * k;
+    const screenH = screenW * P.ar;
     const el = document.createElement("div");
     el.className = "mockup";
     el.style.left = `calc(${m.left || "50%"} - ${(screenW / 2 + pad)}px)`;
     el.style.top = (m.top || 1440) * k + "px";
     el.style.padding = pad + "px";
     el.style.background = "linear-gradient(160deg,#3a3a3c 0%,#1c1c1e 30%,#000 100%)";
-    el.style.borderRadius = 116 * k + "px";
+    el.style.borderRadius = P.fr * k + "px";
     el.style.boxShadow = `0 ${80 * k}px ${160 * k}px rgba(0,0,0,.45), 0 ${30 * k}px ${60 * k}px rgba(0,0,0,.3), inset 0 0 0 ${3 * k}px rgba(255,255,255,.14)`;
     const sb = m.statusbar === false ? "" :
-      `<div class="statusbar" style="padding:0 ${55 * k}px;font-size:${23 * k}px;font-weight:600;">
+      `<div class="statusbar" style="height:${P.sbH}%;padding:0 ${P.sbP * k}px;font-size:${P.sbF * k}px;font-weight:600;">
         <span>9:41</span>
-        <span style="display:flex;align-items:center;gap:${8 * k}px;">${WIFI(24 * k, 17 * k)}${BATT(36 * k, 18 * k, 2 * k)}</span>
+        <span style="display:flex;align-items:center;gap:${8 * k}px;">${WIFI(P.sbF * k, P.sbF * 0.7 * k)}${BATT(P.sbF * 1.5 * k, P.sbF * 0.75 * k, 2 * k)}</span>
       </div>`;
-    el.innerHTML = `<div class="screen" style="width:${screenW}px;height:${screenH}px;border-radius:${92 * k}px;">
+    el.innerHTML = `<div class="screen" style="width:${screenW}px;height:${screenH}px;border-radius:${P.sr * k}px;">
       <img class="ui" src="${m.ui}">
-      ${m.preview ? `<div class="preview"><img src="${m.preview}"></div>` : ""}
+      ${m.preview ? `<div class="preview" style="left:${P.pv[0]}%;top:${P.pv[1]}%;width:${P.pv[2]}%;height:${P.pv[3]}%;"><img src="${m.preview}"></div>` : ""}
       ${sb}</div>`;
     canvas.appendChild(el);
     if (m.previewPosition) document.documentElement.style.setProperty("--preview-pos", m.previewPosition);
@@ -326,7 +348,7 @@
       svg.appendChild(ring);
       const label = document.createElement("div");
       label.className = "callout-label";
-      label.textContent = c.text;
+      label.textContent = L(c.text);
       label.style.left = lx + "px";
       label.style.top = ly + "px";
       label.style.fontSize = 34 * k + "px";

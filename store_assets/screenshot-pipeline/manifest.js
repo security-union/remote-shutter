@@ -30,7 +30,7 @@ window.MANIFEST = {
           quad: [[88, 1113], [262, 1115], [90, 1494], [263, 1496]],
           size: [1210, 2572],
           bezel: 0,
-          radius: 120,
+          radius: 185,
           notch: [460, 95],
           chrome: "camera",
           img: "../ai-scenes/slot0_ots_preview.jpg",
@@ -57,7 +57,7 @@ window.MANIFEST = {
           quad: [[72, 1528], [415, 1525], [72, 1698], [418, 1699]],
           size: [2572, 1210],
           bezel: 0,
-          radius: 100,
+          radius: 180,
           chrome: "camera",
           img: "../ai-scenes/slot1_preview.jpg",
           pos: "50% 50%",
@@ -94,16 +94,16 @@ window.MANIFEST = {
     "3": {
       headline: ["Get close.", "Without getting close."],
       accentLine: 1,
-      scene: "../ai-scenes/slot3_ots_c1.jpg",
+      scene: "../ai-scenes/slot3_ots_c1p.jpg",
       sceneSize: [1536, 2752],
       scenePosition: "50% 35%",
       surfaces: [
         {
           // Her phone: real monitor UI, live preview shows the cardinal.
-          quad: [[445, 1111], [763, 1132], [481, 1784], [806, 1775]],
+          quad: [[458, 1119], [750, 1108], [497, 1766], [789, 1746]],
           size: [1210, 2572],
           bezel: 0,
-          radius: 110,
+          radius: 190,
           ui: "assets/ui-monitor-iphone.png",
           preview: {
             img: "../ai-scenes/slot3_preview.jpg",
@@ -115,19 +115,19 @@ window.MANIFEST = {
         },
         {
           // Camera phone on the railing tripod (soft focus like the scene).
-          quad: [[739, 690], [951, 686], [742, 791], [951, 787]],
-          size: [2572, 1210],
+          quad: [[780, 549], [906, 537], [794, 804], [909, 794]],
+          size: [1210, 2572],
           bezel: 0,
-          radius: 80,
+          radius: 170,
           img: "../ai-scenes/slot3_preview.jpg",
-          pos: "50% 45%",
+          pos: "50% 42%",
           scale: 1.0,
-          blur: 3
+          blur: 30
         }
       ],
       callouts: [
-        { text: "CAMERA", anchor: [845, 682], dx: 60, dy: -140 },
-        { text: "REMOTE", anchor: [620, 1115], dx: -160, dy: -150 }
+        { text: "CAMERA", anchor: [848, 540], dx: 80, dy: -130 },
+        { text: "REMOTE", anchor: [614, 1113], dx: -160, dy: -150 }
       ]
     },
 
@@ -155,7 +155,7 @@ window.MANIFEST = {
           quad: [[209, 634], [398, 614], [110, 933], [308, 940]],
           size: [1230, 2050],
           bezel: 0,
-          radius: 90,
+          radius: 160,
           img: "../ai-scenes/slot4_preview.jpg",
           pos: "50% 50%",
           scale: 0.55
@@ -176,6 +176,77 @@ window.MANIFEST = {
         statusbar: false,
         top: 800,
         width: 660
+      }
+    },
+
+    // ---- iPad variants ----
+    "2i": {
+      headline: ["See everything.", "Control everything."],
+      accentLine: 1,
+      mockup: {
+        device: "ipad",
+        ui: "assets/ui-monitor-ipad.png",
+        preview: "../ai-scenes/slot1_preview.jpg",
+        previewPosition: "50% 45%",
+        previewScale: 1.0,
+        top: 700,
+        width: 1150
+      },
+      callouts: [
+        { text: "PHOTO & VIDEO", anchorScreen: [0.738, 0.739], dx: 300, dy: -80 },
+        { text: "TIMER", anchorScreen: [0.115, 0.786], dx: -260, dy: -60 },
+        { text: "ZOOM & LENS", anchorScreen: [0.128, 0.828], dx: -260, dy: 110 },
+        { text: "FLASH & TORCH", anchorScreen: [0.52, 0.953], dx: 300, dy: 30 }
+      ]
+    },
+    "3i": {
+      headline: ["Get close.", "Without getting close."],
+      accentLine: 1,
+      scene: "../ai-scenes/slot3_ipad_c1.jpg",
+      sceneSize: [1536, 2752],
+      scenePosition: "50% 35%",
+      surfaces: [
+        {
+          // Her iPad: real iPad monitor UI, live preview shows the cardinal.
+          quad: [[290, 1118], [870, 1080], [345, 1925], [940, 1870]],
+          size: [1640, 2360],
+          bezel: 0,
+          radius: 70,
+          ui: "assets/ui-monitor-ipad.png",
+          preview: {
+            img: "../ai-scenes/slot3_preview.jpg",
+            rect: [22.0, 2.0, 55.9, 70.0],
+            pos: "50% 40%",
+            scale: 1.1
+          },
+          statusbar: { heightPct: 2.0, font: 34, pad: 44 }
+        },
+        {
+          // Camera phone on the railing tripod (soft focus like the scene).
+          quad: [[780, 549], [906, 537], [794, 804], [909, 794]],
+          size: [1210, 2572],
+          bezel: 0,
+          radius: 170,
+          img: "../ai-scenes/slot3_preview.jpg",
+          pos: "50% 42%",
+          scale: 1.0,
+          blur: 30
+        }
+      ],
+      callouts: [
+        { text: "CAMERA", anchor: [848, 540], dx: 80, dy: -130 },
+        { text: "REMOTE", anchor: [580, 1095], dx: -160, dy: -150 }
+      ]
+    },
+    "5i": {
+      headline: ["No internet. No account.", "Just connect."],
+      accentLine: 1,
+      mockup: {
+        device: "ipad",
+        ui: "assets/ui-rolepicker-ipad.png",
+        statusbar: false,
+        top: 700,
+        width: 1150
       }
     },
 
@@ -207,7 +278,7 @@ window.MANIFEST = {
           quad: [[88, 1113], [262, 1115], [90, 1494], [263, 1496]],
           size: [1210, 2572],
           bezel: 0,
-          radius: 120,
+          radius: 185,
           notch: [460, 95],
           chrome: "camera",
           img: "../ai-scenes/slot0_ots_preview.jpg",
