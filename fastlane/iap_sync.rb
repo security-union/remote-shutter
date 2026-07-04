@@ -1,7 +1,11 @@
 # Syncs in-app purchase localizations on App Store Connect to match
-# fastlane/iap_localizations.json (creates missing locales, updates changed
-# ones). Uses the App Store Connect API directly — deliver does not manage
-# IAP metadata. Invoked by the `sync_iap` lane.
+# fastlane/iap_localizations.json. Uses the App Store Connect API directly —
+# deliver does not manage IAP metadata. Invoked by the `sync_iap` lane.
+#
+# ASC state model: a localization in ACTIVE state (live on the store) is
+# immutable — posting a NEW localization for the same locale creates the
+# pending edit that goes to review with the next submission. Editable states
+# (PREPARE_FOR_SUBMISSION, REJECTED, ...) are patched in place.
 require "net/http"
 require "json"
 
@@ -10,6 +14,7 @@ module IapSync
 
   def self.run(bearer_token)
     @bearer = bearer_token
+    failures = []
     data = JSON.parse(File.read(File.join(__dir__, "iap_localizations.json")))
 
     app = req(:get, "/v1/apps?filter[bundleId]=#{data.fetch('bundle_id')}")
@@ -24,29 +29,41 @@ module IapSync
       end
       existing = req(:get, "/v2/inAppPurchases/#{iap['id']}/inAppPurchaseLocalizations?limit=200")
         .fetch("data")
+        .group_by { |l| l.dig("attributes", "locale") }
 
       locales.each do |locale, strings|
         attrs = { "name" => strings.fetch("name"), "description" => strings.fetch("description") }
-        current = existing.find { |l| l.dig("attributes", "locale") == locale }
-        if current.nil?
-          req(:post, "/v1/inAppPurchaseLocalizations", {
-            data: {
-              type: "inAppPurchaseLocalizations",
-              attributes: attrs.merge("locale" => locale),
-              relationships: { inAppPurchaseV2: { data: { type: "inAppPurchases", id: iap["id"] } } },
-            },
-          })
-          puts "CREATED #{product_id} #{locale}"
-        elsif current["attributes"].values_at("name", "description") != attrs.values_at("name", "description")
-          req(:patch, "/v1/inAppPurchaseLocalizations/#{current['id']}", {
-            data: { type: "inAppPurchaseLocalizations", id: current["id"], attributes: attrs },
-          })
-          puts "UPDATED #{product_id} #{locale}"
-        else
-          puts "ok      #{product_id} #{locale}"
+        group = existing[locale] || []
+        editable = group.find { |l| %w[PREPARE_FOR_SUBMISSION REJECTED].include?(l.dig("attributes", "state")) }
+        target = editable || group.first
+        state = target&.dig("attributes", "state")
+        begin
+          if target && target["attributes"].values_at("name", "description") == attrs.values_at("name", "description")
+            puts "ok      #{product_id} #{locale}"
+          elsif editable
+            req(:patch, "/v1/inAppPurchaseLocalizations/#{editable['id']}", {
+              data: { type: "inAppPurchaseLocalizations", id: editable["id"], attributes: attrs },
+            })
+            puts "UPDATED #{product_id} #{locale}"
+          else
+            # No editable entry: either the locale is new, or only an immutable
+            # ACTIVE entry exists — POST creates the (pending) localization.
+            req(:post, "/v1/inAppPurchaseLocalizations", {
+              data: {
+                type: "inAppPurchaseLocalizations",
+                attributes: attrs.merge("locale" => locale),
+                relationships: { inAppPurchaseV2: { data: { type: "inAppPurchases", id: iap["id"] } } },
+              },
+            })
+            puts group.empty? ? "CREATED #{product_id} #{locale}" : "EDITED  #{product_id} #{locale} (pending review)"
+          end
+        rescue => e
+          puts "FAILED  #{product_id} #{locale} (state=#{state}): #{e.message.lines.first&.strip}"
+          failures << "#{product_id} #{locale}"
         end
       end
     end
+    raise "sync failed for: #{failures.join(', ')}" unless failures.empty?
   end
 
   def self.req(method, path, body = nil)
