@@ -12,7 +12,7 @@ import UIKit
 
 extension RemoteCamSession {
 
-    func scanning(_ lobbyWrapper: Weak<DeviceScannerViewController>) -> Receive {
+    func scanning(_ lobbyWrapper: WeakScannerLobby) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             guard let lobby = lobbyWrapper.value else {
                 return
@@ -56,18 +56,7 @@ extension RemoteCamSession {
             case _ as UICmd.BrowserFailed:
                 ^{
                     lobby.scannerViewModel.scanningFailed()
-
-                    let alert = UIAlertController(
-                        title: NSLocalizedString("Scanning Error", comment: ""),
-                        message: NSLocalizedString("Unable to scan for nearby devices. Please check your network settings and try again.", comment: ""),
-                        preferredStyle: .alert
-                    )
-                    alert.addAction(UIAlertAction(
-                        title: NSLocalizedString("OK", comment: ""),
-                        style: .default,
-                        handler: nil
-                    ))
-                    lobby.present(alert, animated: true)
+                    lobby.presentScanningError()
                 }
 
             default:

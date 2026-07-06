@@ -43,7 +43,7 @@ Never attempt to run `fastlane release` locally — it requires CI environment v
 The app uses the **Theater** pod — an actor-model framework. Actors communicate exclusively via messages (the `!` operator sends a message). All state transitions happen inside actor message handlers, never on the main thread (asserted in code).
 
 Key actors (registered under `RemoteCamSystem.shared`):
-- **`RemoteCamSession`** (`RemoteCam/user/RemoteCam Session`) — Central session actor managing the state machine. Subclasses `ViewCtrlActor<DeviceScannerViewController>`. Handles MultipeerConnectivity session and routes all remote commands.
+- **`RemoteCamSession`** (`RemoteCam/user/RemoteCam Session`) — Central session actor managing the state machine. Plain Theater `Actor` bound to the scanner screen through the `ScannerLobby` protocol (`SetScannerLobby` message). Handles MultipeerConnectivity session and routes all remote commands.
 - **`MonitorActor`** (`RemoteCam/user/MonitorActor`) — Bridge between session and `MonitorViewController`. Created/destroyed with the monitor screen lifecycle.
 - **`FrameSender`** (`RemoteCam/user/FrameSender`) — Manages camera frame streaming with back-pressure (waits for ack before sending next frame).
 

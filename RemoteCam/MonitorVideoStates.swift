@@ -17,7 +17,7 @@ private typealias MonitorVideoStates = RemoteCamSession
 extension MonitorVideoStates {
     func monitorVideoMode(monitor: ActorRef,
                  peer: MCPeerID,
-                 lobby: Weak<DeviceScannerViewController>) -> Receive {
+                 lobby: WeakScannerLobby) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
@@ -176,7 +176,7 @@ extension MonitorVideoStates {
 
     func monitorRecordingVideo(monitor: ActorRef,
                                peer: MCPeerID,
-                               lobby: Weak<DeviceScannerViewController>) -> Receive {
+                               lobby: WeakScannerLobby) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
@@ -270,7 +270,7 @@ extension MonitorVideoStates {
 
     func monitorWaitingForVideo(monitor: ActorRef,
                                peer: MCPeerID,
-                               lobby: Weak<DeviceScannerViewController>) -> Receive {
+                               lobby: WeakScannerLobby) -> Receive {
         // Note: Progress UI is now handled by SwiftUI VideoTransferProgressView
         // No need for old UIAlertController
         return { [unowned self] (msg: Actor.Message) in

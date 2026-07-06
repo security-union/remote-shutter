@@ -58,7 +58,7 @@ extension RemoteCamSession {
     
     func cameraTakingPic(peer: MCPeerID,
                          ctrl: CameraViewController,
-                         lobby: Weak<DeviceScannerViewController>,
+                         lobby: WeakScannerLobby,
                          sendMediaToPeer: Bool) -> Receive {
         var alertHandle: AlertHandle?
         ^{ [weak self] in
@@ -125,7 +125,7 @@ extension RemoteCamSession {
 
     func camera(peer: MCPeerID,
                 ctrl: CameraViewController,
-                lobbyWrapper: Weak<DeviceScannerViewController>) -> Receive {
+                lobbyWrapper: WeakScannerLobby) -> Receive {
         
         return { [unowned self] (msg: Actor.Message) in
             guard lobbyWrapper.value != nil else {

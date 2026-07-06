@@ -45,7 +45,12 @@ func stopActorIfCurrent(ref: ActorRef?, instanceId: ObjectIdentifier?) {
     RemoteCamSystem.shared.stopIfSameInstance(path: ref.path.asString, expectedId: instanceId)
 }
 
-public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
+public class RemoteCamSession: Actor {
+
+    // Same state names ViewCtrlActor used, so the state machine's shape
+    // (and popToState's stop-at-root behavior) is unchanged.
+    public let waitingForCtrlState = "waitingForCtrl"
+    public let withCtrlState = "withCtrl9"
 
     var alertPresenter: AlertPresenting = UIAlertPresenter()
 
@@ -100,15 +105,55 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         super.init(context: context, ref: ref)
     }
 
+    override public func preStart() {
+        super.preStart()
+        become(name: waitingForCtrlState, state: waitingForLobby)
+    }
+
     override public func willStop() {
         multipeerService?.stopSession()
     }
 
-    override public func receiveWithCtrl(ctrl: Weak<DeviceScannerViewController>) -> Receive {
+    lazy var waitingForLobby: Receive = { [unowned self] (msg: Actor.Message) in
+        switch msg {
+        case let m as SetScannerLobby:
+            self.become(name: self.withCtrlState,
+                        state: self.receiveWithLobby(lobby: WeakScannerLobby(m.lobby)))
+        default:
+            self.receive(msg: msg)
+        }
+    }
+
+    /// Pop states from the statesStack until it finds name, stopping at the
+    /// bound-lobby root state (mirrors ViewCtrlActor's behavior).
+    public override func popToState(name: String) {
+        if let (hName, _) = self.statesStack.head() {
+            if hName != name && hName != self.withCtrlState {
+                unbecome()
+                popToState(name: name)
+            }
+        } else {
+            print("unable to find state with name \(name)")
+        }
+    }
+
+    /// Pop to the bound-lobby root state (mirrors ViewCtrlActor's behavior).
+    public func popToRootState() {
+        if let (hName, _) = self.statesStack.head() {
+            if hName != self.withCtrlState {
+                unbecome()
+                popToRootState()
+            }
+        } else {
+            print("unable to find root state")
+        }
+    }
+
+    func receiveWithLobby(lobby: WeakScannerLobby) -> Receive {
         return { [unowned self](msg: Message) in
             switch msg {
             case is UICmd.StartScanning:
-                self.become(name: .scanning, state: self.scanning(ctrl))
+                self.become(name: .scanning, state: self.scanning(lobby))
 
             default:
                 self.receive(msg: msg)
@@ -120,7 +165,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         self.popToState(name: .scanning)
     }
 
-    func startScanning(lobby: DeviceScannerViewController) {
+    func startScanning(lobby: ScannerLobby) {
         assert(Thread.isMainThread == false, "can't be called from the main thread")
 
         if multipeerService == nil {
@@ -138,7 +183,7 @@ public class RemoteCamSession: ViewCtrlActor<DeviceScannerViewController> {
         }
 
         ^{
-            lobby.navigationController?.popToViewController(lobby, animated: true)
+            lobby.returnToLobby()
             lobby.scannerViewModel.startedScanning()
         }
     }
