@@ -9,6 +9,7 @@
 import Foundation
 import MultipeerConnectivity
 import UIKit
+import AVFoundation
 
 
 func getDeviceInfo() -> (Int, String, String) {
