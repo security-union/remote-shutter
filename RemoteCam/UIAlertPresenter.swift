@@ -7,6 +7,18 @@
 
 import UIKit
 
+/// Shows a modal error alert from any thread (dispatches to main).
+public func showError(_ error: String) {
+    ^{
+        let alert = UIAlertController(
+            title: NSLocalizedString("Error", comment: ""),
+            message: error
+        )
+        alert.simpleOkAction()
+        alert.show(true)
+    }
+}
+
 /// Wraps a live `UIAlertController` as an `AlertHandle`.
 class UIAlertHandle: AlertHandle {
     let alertController: UIAlertController

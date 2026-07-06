@@ -173,20 +173,7 @@ public class DeviceScannerViewController: UIViewController {
             }
         )
 
-        let hostingController = UIHostingController(rootView: scannerView)
-        addChild(hostingController)
-        view.addSubview(hostingController.view)
-        hostingController.didMove(toParent: self)
-
-        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
-
-        swiftUIHostingController = hostingController
+        swiftUIHostingController = embedSwiftUIView(scannerView)
     }
 
     // MARK: - Scanning
@@ -342,20 +329,7 @@ public class DeviceScannerViewController: UIViewController {
     }
 
     @objc private func showHelpModal() {
-        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
-            self?.dismiss(animated: true)
-        })
-
-        let hostingController = UIHostingController(rootView: helpView)
-        hostingController.modalPresentationStyle = .pageSheet
-
-        if let sheet = hostingController.sheetPresentationController {
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-            sheet.preferredCornerRadius = 20
-        }
-
-        present(hostingController, animated: true)
+        presentHelpSheet()
     }
 
     deinit {

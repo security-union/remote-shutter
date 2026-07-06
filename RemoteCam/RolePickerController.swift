@@ -18,12 +18,6 @@ import SwiftUI
     One neat feature is that if two devices are connected and both are in the RolePickerController, when device1 selects a role, say Camera, RemoteCamSession will inform device2 about the choice, so that it becomes the Monitor.
 */
 
-public class RemoteCamSystem: ActorSystem {
-    static let shared = ActorSystem(name: "RemoteCam")
-}
-
-let connectedPrompt = NSLocalizedString("Pick a role: Camera or Remote", comment: "")
-
 public class RolePickerController: UIViewController {
 
     private var swiftUIHostingController: UIHostingController<RolePickerView>?
@@ -63,36 +57,13 @@ public class RolePickerController: UIViewController {
             }
         )
 
-        let hostingController = UIHostingController(rootView: rolePickerView)
-        addChild(hostingController)
-        view.addSubview(hostingController.view)
-        hostingController.didMove(toParent: self)
-
-        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
-
-        swiftUIHostingController = hostingController
+        swiftUIHostingController = embedSwiftUIView(rolePickerView)
     }
 
     // MARK: - Navigation
 
     @objc private func showHelpModal() {
-        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
-            self?.dismiss(animated: true)
-        })
-        let hostingController = UIHostingController(rootView: helpView)
-        hostingController.modalPresentationStyle = .pageSheet
-        if let sheet = hostingController.sheetPresentationController {
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-            sheet.preferredCornerRadius = 20
-        }
-        present(hostingController, animated: true)
+        presentHelpSheet()
     }
 
     func becomeMonitor() {

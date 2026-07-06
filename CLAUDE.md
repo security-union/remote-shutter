@@ -64,16 +64,16 @@ Actor references are retrieved via: `RemoteCamSystem.shared.selectActor(actorPat
 ### Message Protocol
 
 Two message hierarchies handle communication:
-- **`RemoteCmd`** (RemoteCmds.swift) — Messages serialized via `NSCoding` and sent over MultipeerConnectivity between devices. Use `@objc` name annotations for stable serialization (e.g., `@objc(_TtCC10ActorsDemo9RemoteCmd7TakePic)`).
+- **`RemoteCmd`** (RemoteCmds.swift) — Messages sent over MultipeerConnectivity between devices, serialized as **FlatBuffers** (`RemoteCmdFlatBuffers.swift` + schemas in `FlatBufferSchemas.fbs`).
 - **`UICmd`** (UICmds.swift) — Local messages between actors and view controllers within a single device.
 
-When adding new remote commands, you **must** implement `NSCoding` (`encode`/`init?(coder:)`) and add an `@objc` class name annotation for backward compatibility.
+When adding new remote commands, add a table to `FlatBufferSchemas.fbs`, regenerate `FlatBufferSchemas_generated.swift` with `flatc`, and wire the encode/decode paths in `RemoteCmdFlatBuffers.swift`. All FlatBuffer enums must have `Unknown = 0` as the default.
 
 ### UI Architecture
 
 The app is migrating from UIKit to SwiftUI (no storyboards or xibs remain; the window is built programmatically in `SceneDelegate`). See `Docs/UI_MODERNIZATION.md` for the migration plan. Most screens are SwiftUI views hosted by thin UIKit shells via `UIHostingController`:
 - **WelcomeViewController** — entry point (root of the nav controller), hosts `WelcomeView`
-- **RolePickerController** — role selection, hosts `RolePickerView`; also declares `RemoteCamSystem.shared`
+- **RolePickerController** — role selection, hosts `RolePickerView` (`RemoteCamSystem.shared` is declared in `RemoteCamSystem.swift`)
 - **DeviceScannerViewController** — peer discovery, hosts `DeviceScannerView`; owns the actor lifecycle
 - **MonitorViewController** — hosts `MonitorView`; also defines `MonitorActor`
 - **CameraViewController** — pure UIKit, manages `AVCaptureSession` for the camera device (no SwiftUI view yet)
@@ -84,17 +84,14 @@ The `^{ }` prefix operator (defined in Theater) dispatches a closure to the main
 
 ### P2P Communication
 
-Uses Apple's **MultipeerConnectivity** framework (service type: `"RemoteCam"`). Messages are serialized with `NSKeyedArchiver`/`NSKeyedUnarchiver` and sent via `MCSession.send()`. Video files use `MCSession.sendResource()` for large transfers with progress tracking.
+Uses Apple's **MultipeerConnectivity** framework (service type: `"RemoteCam"`), encapsulated in `MultipeerService` (`MultipeerServiceProtocol` is the test seam). Messages are serialized as FlatBuffers and sent via `MCSession.send()`. Video files use `MCSession.sendResource()` for large transfers with progress tracking.
 
 ### Dependencies (CocoaPods)
 
-- **Theater** (~1.1) — Actor model framework
-- **Starscream** (~4.0.8) — WebSocket client (used by Theater)
-- **Google-Mobile-Ads-SDK** (~11.0) — Ad monetization
-- **GoogleUserMessagingPlatform** (~2.0) — GDPR consent
 - **SwiftLint** (~0.41.0) — Linting
+- **FlatBuffers** (local podspec) — Wire-protocol serialization (iOS + watchOS targets)
 
-Note: Theater's DEBUG logging is intentionally disabled in Podfile `post_install` to prevent excessive frame message spam.
+The Theater actor framework is no longer a pod — the used subset is internalized at `RemoteCam/Theater/` (see `Docs/MODERNIZATION.md`).
 
 ### Feature Flags
 
