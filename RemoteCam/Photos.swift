@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 func goToPhotos() {
     #if targetEnvironment(macCatalyst)

@@ -8,6 +8,7 @@
 
 import Foundation
 import ImageIO
+import UIKit
 
 private func < <T: Comparable>(lhs: T?, rhs: T?) -> Bool {
   switch (lhs, rhs) {
@@ -29,20 +30,6 @@ extension UIImage {
         }
 
         return UIImage.animatedImageWithSource(source)
-    }
-
-    public class func gifImageWithURL(_ gifUrl: String) -> UIImage? {
-        guard let bundleURL: URL = URL(string: gifUrl)
-            else {
-                print("image named \"\(gifUrl)\" doesn't exist")
-                return nil
-        }
-        guard let imageData = try? Data(contentsOf: bundleURL) else {
-            print("image named \"\(gifUrl)\" into NSData")
-            return nil
-        }
-
-        return gifImageWithData(imageData)
     }
 
     public class func gifImageWithName(_ name: String) -> UIImage? {

@@ -1,0 +1,99 @@
+# UI Modernization Plan
+
+Companion to [MODERNIZATION.md](MODERNIZATION.md) (Theater/actor removal). That doc is about
+the concurrency layer; this one is about the UI layer: killing the last UIKit shells,
+Objective-C files, and dead code left over from the storyboard era.
+
+Each PR below is a small, independently shippable slice. The **worklog** at the bottom
+collects raw material (numbers, before/after, war stories) for a blog post about
+modernizing this app with Claude (Fable).
+
+## Where the app actually is (inventory, 2026-07-05)
+
+Better than expected:
+
+- **Zero storyboards, zero xibs.** Launch screen is the `UILaunchScreen` plist dict.
+- **UIScene lifecycle fully adopted**; `AppDelegate` is minimal, window built in `SceneDelegate`.
+- **Deprecated-API greps come back clean**: no `keyWindow`, `statusBarOrientation`,
+  `UIAlertView`, `AVCaptureStillImageOutput`, `openURL(_:)`.
+- **Four of five screens are already SwiftUI**, hosted by thin UIKit shells:
+  `WelcomeView`, `RolePickerView`, `DeviceScannerView`, `MonitorView`.
+
+What's left:
+
+| Surface | Size | Blocker |
+|---|---|---|
+| Dead code (old permission system, orphaned IB controller, stubs, unused extensions) | ~10 files | none — delete |
+| Objective-C: `CPSoundManager`, `RCTimer` (+ app bridging header) | 3 files | none — trivial ports |
+| UIKit shells: `WelcomeViewController`, `RolePickerController` | ~320 lines | thin coordinators |
+| `DeviceScannerViewController` | 367 lines | owns actor lifecycle; is `ViewCtrlActor<Self>` target |
+| `MonitorViewController` + glue | ~820 lines | `MonitorActor: ViewCtrlActor<MonitorViewController>` calls the concrete VC |
+| `CameraViewController` | 1729 lines | AVFoundation capture graph; no SwiftUI view exists |
+| `WatchRemoteCameraController` | 322 lines | embeds CameraViewController as child |
+
+The structural blocker for the hard tier is Theater's `ViewCtrlActor<ConcreteVC>` generic
+binding — actors are type-welded to UIKit view controllers. That work overlaps with
+MODERNIZATION.md Phases 4–5.
+
+## PR sequence
+
+### PR 1: Dead code sweep — **this PR**
+Pure deletion, no behavior change.
+
+Files deleted (all verified zero callers):
+- `CameraAccess.swift` — the pre-`PermissionManager` permission system, entirely superseded
+- `RolePickerOptionController.swift` — IBOutlet controller whose xib died long ago
+- `PopoverController.swift` — SwiftUI "Hello, World!" stub
+- `TorchTest.swift` — diagnostic scaffolding
+- `UIOrientationHelpers.swift` — literally empty (header comment + import)
+- `CGImage.swift` — unused `rotated(by:)`
+- `UIViewController.swift` — unused child-VC helpers (call sites use `addChild` directly)
+- `UIButton.swift` — `styleButton`, only caller was `RolePickerOptionController`
+- `UIView.swift` — `roundCorners`/`styleEmbeddedView`, only caller was `styleButton`
+- `UIImage+ImageProcessing.h/.m` — old ObjC frame path, replaced by `JPEGFrameEncoder`/`HEICFrameEncoder`
+- `RemoteShutterTests-Bridging-Header.h`, `RemoteShutterUITests-Bridging-Header.h` — empty
+
+Members trimmed from live files:
+- `OrientationUtils`: `transformToUIKit`, `transformToUIImage`, `transformOrientationToImage`
+- `UIImage+gif`: `gifImageWithURL`
+
+Plus: drop `UIImage+ImageProcessing.h` from the app bridging header, clear the test
+targets' `SWIFT_OBJC_BRIDGING_HEADER` settings, fix stale storyboard claims in CLAUDE.md.
+
+### PR 2: Retire the Objective-C
+Port `CPSoundManager` (countdown beeps, `AVAudioPlayer`) and `RCTimer`
+(recursive-`dispatch_after` countdown) to small Swift types; delete
+`RemoteCam-Bridging-Header.h`. Zero ObjC left in the app target.
+
+### PR 3: Collapse the easy shells
+Delete `iAdViewController` (empty base class), fold `WelcomeViewController` down,
+slim `RolePickerController`; move the `RemoteCamSystem.shared` declaration out of it.
+
+### PR 4: Decouple actors from concrete VCs
+Re-target `ViewCtrlActor` bindings at protocols/view models instead of concrete VC types
+(coordinates with MODERNIZATION.md Phases 4–5). Unblocks DeviceScanner and Monitor shells.
+
+### PR 5+: Camera surface
+SwiftUI chrome around a `UIViewRepresentable` preview layer for `CameraViewController`;
+`WatchRemoteCameraController` follows.
+
+## Worklog (blog raw material)
+
+### PR 1 — dead code sweep
+- Inventory ran as two parallel read-only agents: one walked every view controller,
+  the other chased ObjC/bridging headers/deprecated APIs. ~30 min wall clock.
+- Expected storyboards to hunt; found none. The docs said "DeviceScannerViewController —
+  UIKit + Storyboard, entry point" — the code said otherwise. Docs lie, greps don't.
+- Best find: an entire permission system (`CameraAccess.swift`) still compiling,
+  fully replaced, zero callers — each method politely apologizing in comments that
+  the new system had taken over.
+- Dead-code cascade: deleting one orphaned IB controller made `UIButton.swift` dead,
+  which made `UIView.swift` dead. Delete one leaf, the branch comes with it.
+- Two "dead" files (`PopoverController.swift`, `TorchTest.swift`) turned out not to be
+  in the pbxproj at all — orphaned on disk, never even compiling.
+- Plot twist: removing `UIImage+ImageProcessing.h` from the bridging header broke the
+  build in 10 files that never imported UIKit. Its `#import <UIKit/UIKit.h>` had been
+  silently granting UIKit to every Swift file in the target for years. The dead code
+  was load-bearing — not for what it did, but for what it imported. Fix: explicit
+  `import UIKit` in the 10 files that were freeloading.
+- Net: 27 files changed, +136/−557 lines; 13 files deleted; 348/348 tests green.

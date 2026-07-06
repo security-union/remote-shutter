@@ -71,13 +71,14 @@ When adding new remote commands, you **must** implement `NSCoding` (`encode`/`in
 
 ### UI Architecture
 
-The app is migrating from UIKit (Storyboards) to SwiftUI:
-- **DeviceScannerViewController** — UIKit + Storyboard, entry point
-- **RolePickerController** — UIKit, role selection after connection
-- **CameraViewController** — UIKit, manages `AVCaptureSession` for the camera device
-- **MonitorViewController** — UIKit host that embeds `MonitorView` (SwiftUI) via `UIHostingController`
-- **MonitorView / MonitorViewModel** — SwiftUI view and ObservableObject view model for the monitor UI
-- **CameraViewModel** — ObservableObject for camera-side progress overlays
+The app is migrating from UIKit to SwiftUI (no storyboards or xibs remain; the window is built programmatically in `SceneDelegate`). See `Docs/UI_MODERNIZATION.md` for the migration plan. Most screens are SwiftUI views hosted by thin UIKit shells via `UIHostingController`:
+- **WelcomeViewController** — entry point (root of the nav controller), hosts `WelcomeView`
+- **RolePickerController** — role selection, hosts `RolePickerView`; also declares `RemoteCamSystem.shared`
+- **DeviceScannerViewController** — peer discovery, hosts `DeviceScannerView`; owns the actor lifecycle
+- **MonitorViewController** — hosts `MonitorView`; also defines `MonitorActor`
+- **CameraViewController** — pure UIKit, manages `AVCaptureSession` for the camera device (no SwiftUI view yet)
+- **WatchRemoteCameraController** — Watch-remote mode, embeds `CameraViewController` as a child
+- View models (`WelcomeViewModel`, `DeviceScannerViewModel`, `MonitorViewModel`, `CameraViewModel`) are ObservableObjects bridging actors to SwiftUI
 
 The `^{ }` prefix operator (defined in Theater) dispatches a closure to the main thread — you'll see it used extensively for UI updates from actor message handlers.
 

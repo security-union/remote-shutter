@@ -8,6 +8,7 @@
 
 import Foundation
 import StoreKit
+import UIKit
 
 public let tempFile = "remoteshutter_video.mov"
 public let disableAdsPID = "05"
