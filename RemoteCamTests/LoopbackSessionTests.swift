@@ -420,6 +420,12 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(cameraSession.currentStateName(), .cameraRecordingVideo)
         XCTAssertEqual(monitorSession.currentStateName(), .monitorRecordingVideo)
 
+        // The success ack (recording start time, used for the monitor's timer
+        // sync) must be forwarded to the peer, not just the error ack.
+        let startAcks = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.StartRecordingVideoAck }
+        XCTAssertEqual(startAcks.count, 1, "camera must forward the success StartRecordingVideoAck to the monitor")
+        XCTAssertNotNil(startAcks.first?.recordingStartTime)
+
         // Stop: the same shutter now sends StopRecordingVideo.
         monitorRef ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
         drainBothSessions()
@@ -450,6 +456,15 @@ final class LoopbackFakeCamera: FakeWatchCameraController {
         super.takePicture(sendMediaToRemote)
         if let sessionRef {
             sessionRef ! UICmd.OnPicture(sender: nil, pic: photoBytes)
+        }
+    }
+
+    override func startRecordingVideo() {
+        super.startRecordingVideo()
+        // The real pipeline sends this to the local session once the writer
+        // produces its first frames (CameraViewController.processFrame).
+        if let sessionRef {
+            sessionRef ! RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date())
         }
     }
 
