@@ -9,74 +9,14 @@
 import Foundation
 import AVFoundation
 
-// MARK: - Camera Control Seam
-
-/// Everything the watch states need from the camera screen. `CameraViewController`
-/// is the production implementation; tests substitute a fake so the state machine
-/// can be exercised without AVFoundation or a view hierarchy.
-protocol WatchCameraControlling: AnyObject {
-    var currentCameraMode: RecordingMode { get set }
-    var isRecording: Bool { get }
-    var isTorchActive: Bool { get }
-    var currentFlashMode: AVCaptureDevice.FlashMode { get }
-
-    func updateCameraStatus()
-    func takePicture(_ sendMediaToRemote: Bool)
-    func startRecordingVideo()
-    func stopRecordingVideo(_ shouldSendVideo: Bool)
-    func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)>
-    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)>
-    func toggleFlash() -> Try<AVCaptureDevice.FlashMode>
-    func toggleTorch() -> Try<AVCaptureDevice.TorchMode>
-    func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)>
-    func gatherAllCameraCapabilities()
-
-    func getCurrentZoomFactor() -> CGFloat
-    func getMinZoomFactor() -> CGFloat
-    func getMaxZoomFactor() -> CGFloat
-    func getCurrentLensType() -> CameraLensType
-    func getAvailableLensTypes() -> [CameraLensType]
-    func getZoomStops() -> [CGFloat]
-    func getWideAngleZoomFactor() -> CGFloat
-
-    /// Drives the on-phone countdown overlay/chime for Watch-initiated timer
-    /// captures. value > 0: tick; 0: fired; < 0: cancelled.
-    func updateTimerCountdown(value: Int)
-}
-
-extension CameraViewController: WatchCameraControlling {
-    var isTorchActive: Bool {
-        videoDeviceInput?.device.isTorchActive ?? false
-    }
-
-    var currentFlashMode: AVCaptureDevice.FlashMode {
-        cameraSettings.flashMode
-    }
-
-    func updateTimerCountdown(value: Int) {
-        ^{
-            if value > 0 {
-                self.cameraViewModel.showCountdown(value)
-                self.playCountdownChime(remaining: value)
-            } else if value == 0 {
-                self.cameraViewModel.clearCountdown()
-                self.restoreTorchAfterCountdown()
-            } else {
-                self.cameraViewModel.cancelCountdown()
-                self.restoreTorchAfterCountdown()
-            }
-        }
-    }
-}
-
 // MARK: - UICmd for Watch Remote Mode
 
 extension UICmd {
     /// Sent by WatchRemoteCameraController to enter Watch Remote camera mode.
     public class BecomeWatchCamera: Actor.Message {
-        let ctrl: WatchCameraControlling
+        let ctrl: CameraControlling
 
-        init(ctrl: WatchCameraControlling) {
+        init(ctrl: CameraControlling) {
             self.ctrl = ctrl
             super.init(sender: nil)
         }
@@ -100,7 +40,7 @@ extension UICmd {
 
 extension RemoteCamSession {
 
-    func watchRemoteCamera(ctrl: WatchCameraControlling) -> Receive {
+    func watchRemoteCamera(ctrl: CameraControlling) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
             case is OnEnter:
@@ -233,7 +173,7 @@ extension RemoteCamSession {
 
     // MARK: - Watch Remote Taking Picture Sub-state
 
-    func watchRemoteCameraTakingPic(ctrl: WatchCameraControlling) -> Receive {
+    func watchRemoteCameraTakingPic(ctrl: CameraControlling) -> Receive {
         let gen = self.scheduleTimeout(stateName: .watchRemoteCameraTakingPic)
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
@@ -290,7 +230,7 @@ extension RemoteCamSession {
     /// Waits for the capture pipeline to confirm recording actually started.
     /// Without this, a failed start (mic denied, session interrupted) left the
     /// actor wedged in the recording state with no way out.
-    func watchRemoteCameraStartingVideo(ctrl: WatchCameraControlling) -> Receive {
+    func watchRemoteCameraStartingVideo(ctrl: CameraControlling) -> Receive {
         let gen = self.scheduleTimeout(stateName: .watchRemoteCameraStartingVideo)
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
@@ -352,7 +292,7 @@ extension RemoteCamSession {
 
     // MARK: - Watch Remote Recording Video Sub-state
 
-    func watchRemoteCameraRecordingVideo(ctrl: WatchCameraControlling) -> Receive {
+    func watchRemoteCameraRecordingVideo(ctrl: CameraControlling) -> Receive {
         // No blanket timeout: recordings legitimately run for minutes. A timeout
         // is armed only once stop is requested, to catch a stop that never
         // completes (capture session interrupted mid-recording).
@@ -420,7 +360,7 @@ extension RemoteCamSession {
 
     // MARK: - Watch State Push Helper (FlatBuffer-encoded)
 
-    func pushWatchState(ctrl: WatchCameraControlling,
+    func pushWatchState(ctrl: CameraControlling,
                         event: RemoteShutter_WatchEventType = .unknown) {
         watchStatePusher.pushCameraState(
             Self.watchStateSnapshot(ctrl: ctrl, event: event,
@@ -429,7 +369,7 @@ extension RemoteCamSession {
         )
     }
 
-    static func watchStateSnapshot(ctrl: WatchCameraControlling,
+    static func watchStateSnapshot(ctrl: CameraControlling,
                                    event: RemoteShutter_WatchEventType = .unknown,
                                    isBackgrounded: Bool = false,
                                    countdownRemaining: Int32 = 0) -> WatchCameraStateSnapshot {

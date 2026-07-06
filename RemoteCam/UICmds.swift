@@ -103,9 +103,9 @@ public class UICmd {
     }
 
     public class BecomeCamera: Actor.Message {
-        let ctrl: CameraViewController
+        let ctrl: CameraControlling
 
-        public init(sender: ActorRef?, ctrl: CameraViewController) {
+        init(sender: ActorRef?, ctrl: CameraControlling) {
             self.ctrl = ctrl
             super.init(sender: sender)
         }

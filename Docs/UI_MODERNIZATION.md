@@ -110,7 +110,7 @@ CamStates.swift), `getCurrentTorchMode()`, `hasTorch()`, `setFlashMode()` (lefto
 prior migration's own comment claimed were "removed"), the deprecated
 `willAnimateRotation` stub, and tombstone comments.
 
-### PR 6: Decouple RemoteCamSession from DeviceScannerViewController — **this PR**
+### PR 6: Decouple RemoteCamSession from DeviceScannerViewController — **shipped (#127)**
 - New `ScannerLobby` protocol (peerID, role, scanner view model, `goToRole`,
   `returnToLobby`, `presentScanningError`) + `SetScannerLobby` + weak box —
   PR 4's recipe applied to the session.
@@ -124,7 +124,23 @@ prior migration's own comment claimed were "removed"), the deprecated
   `UICmd.BecomeCamera` into the camera states — that's exactly what PR 7's
   `CaptureEngine` replaces.
 
-### PR 7: Extract CaptureEngine from CameraViewController
+### PR 7: CameraControlling protocol seam — **this PR**
+The watch-hardening work had already built the seam (`WatchCameraControlling`,
+fake-backed); this PR generalizes it. Renamed `CameraControlling`, moved to its
+own file, extended with the nine members the phone camera states need
+(`cameraViewModel`, quality/aspect setters, capabilities, countdown chime/torch,
+`exitCamera`). `UICmd.BecomeCamera` now carries the protocol; camera/video state
+signatures follow; the session's direct `navigationController` pop became
+`exitCamera()`. The camera-side `OnPicture` handler now routes through the
+`photoLibrarySaver` seam like the watch path always did.
+
+Milestone completed: **no actor code references a UIKit type.** Payoff test:
+`testTakePictureHappyPathAcrossTheWire` — a fake camera behind the protocol lets
+the loopback harness run the full two-device photo capture (become camera →
+become monitor → TakePic → OnPicture → Ack + Resp with bytes → both sides back
+to steady state) in CI for the first time.
+
+### PR 8: Extract CaptureEngine from CameraViewController
 Move the ~1,100 engine lines (session setup, lens/zoom/capabilities, photo capture +
 crop math, AVAssetWriter recording, sample-buffer streaming) into a non-UI class with
 one owned serial queue — today session config runs on the actor thread, start/stop on
@@ -133,7 +149,7 @@ one owned serial queue — today session config runs on the actor thread, start/
 `AVCaptureDevice.RotationCoordinator`, and `isHighResolutionPhotoEnabled`
 (deprecated iOS 16) to `maxPhotoDimensions`.
 
-### PR 8+: Camera SwiftUI chrome
+### PR 9+: Camera SwiftUI chrome
 With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
 `UIViewRepresentable` preview layer. `WatchRemoteCameraController` follows.
 
@@ -225,3 +241,14 @@ With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
   a subclass whose whole job was dodging UIKit landmines in tests, died; a
   12-line `FakeScannerLobby` took its place.
 - 371/371 green on the first full run after the conversion.
+
+### PR 7 — camera protocol seam
+- Half the work was already done and hiding in plain sight: the watch-hardening
+  effort had built `WatchCameraControlling` — protocol, conformance, and a fake —
+  for the watch path only. Generalizing beat inventing.
+- The best assertion in the suite so far: a fake camera behind the seam let the
+  loopback harness run the complete two-device photo capture — become camera,
+  become monitor, TakePic across the wire, capture, Ack, Resp carrying the actual
+  bytes, both state machines back to steady state — all in-process, in CI.
+  Until now that flow had only ever been verified with two phones on a desk.
+- 372/372 green.

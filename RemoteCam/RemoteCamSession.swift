@@ -200,9 +200,7 @@ public class RemoteCamSession: Actor {
             self.become(name: .watchRemoteCamera, state: self.watchRemoteCamera(ctrl: m.ctrl))
 
         case let m as UICmd.BecomeCamera:
-            ^{
-                m.ctrl.navigationController?.popViewController(animated: true)
-            }
+            m.ctrl.exitCamera()
 
         case let m as UICmd.BecomeMonitor:
             m.sender! ! UICmd.BecomeMonitorFailed(sender: this)

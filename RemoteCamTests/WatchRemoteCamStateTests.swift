@@ -17,7 +17,7 @@ import MultipeerConnectivity
 
 // MARK: - Fakes
 
-final class FakeWatchCameraController: WatchCameraControlling {
+class FakeWatchCameraController: CameraControlling {
     var currentCameraMode: RecordingMode = .Photo
     var isRecording = false
     var isTorchActive = false
@@ -67,6 +67,27 @@ final class FakeWatchCameraController: WatchCameraControlling {
 
     var countdownTicks: [Int] = []
     func updateTimerCountdown(value: Int) { countdownTicks.append(value) }
+
+    let cameraViewModel = CameraViewModel()
+    var chimes: [Int] = []
+    var torchRestores = 0
+    var exits = 0
+
+    func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? { nil }
+    func setTorchMode(mode: AVCaptureDevice.TorchMode) -> Try<AVCaptureDevice.TorchMode> {
+        isTorchActive = mode == .on
+        return Success(mode)
+    }
+    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) -> (VideoResolution, VideoFrameRate)? {
+        (resolution, frameRate)
+    }
+    func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) -> (PhotoFormat, HDRMode)? {
+        (format, hdrMode)
+    }
+    func setAspectRatio(_ ratio: AspectRatio) -> AspectRatio { ratio }
+    func playCountdownChime(remaining: Int) { chimes.append(remaining) }
+    func restoreTorchAfterCountdown() { torchRestores += 1 }
+    func exitCamera() { exits += 1 }
 }
 
 final class FakeWatchStatePusher: WatchStatePushing {
