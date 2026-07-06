@@ -269,3 +269,15 @@ With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
 - Orientation now lives in two places (VC for preview/UI, engine cache for output
   connections) — flagged as the thing the PR 9 RotationCoordinator migration
   should collapse.
+- Coverage follow-up on the same PR: 5 more back-to-back loopback round trips
+  (flash mode value, toggle-camera capabilities payload, zoom factor + range echo,
+  lens switch, and the full 3-step video stop protocol) — all green first run.
+  381 total tests, up from 348 when this series started.
+- Bug found while wiring the video test, NOT fixed here: the success
+  `StartRecordingVideoAck` (carrying `recordingStartTime` for the monitor's
+  timer sync, CameraViewController ~:897) is sent to the camera's local session
+  actor, but no phone-path state forwards it to the peer — Theater logs
+  "message not handled". Only the error-ack path (root receive) reaches the
+  monitor. The watch path handles the ack explicitly, which is why the watch
+  timer works. Monitor-side recording timer likely never syncs the start time.
+  Filed for its own fix PR with a failing test.
