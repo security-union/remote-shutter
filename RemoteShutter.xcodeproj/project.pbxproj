@@ -92,6 +92,7 @@
 		1ECFC14E17A9A47D5951E80B /* WatchSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148A312CF1B445C71094EF0E /* WatchSessionManager.swift */; };
 		2D869319DCFDFEFF351153A4 /* WatchSessionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6BF3CD6986238A77C3A216 /* WatchSessionDelegate.swift */; };
 		2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */; };
+		2F485D44C59F540DB49140DD /* MonitorDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C65DE1A8EACAAA012BE9F840 /* MonitorDisplay.swift */; };
 		30425A0C926DE812ECA4528E /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1681D37E731D371A697244F7 /* Try.swift */; };
 		30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */; };
 		33F5D268690A3D022A6A54BA /* WatchControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F37D4A9FA8416A43EFEFF1 /* WatchControlView.swift */; };
@@ -105,6 +106,7 @@
 		69F9B5912B122CD3FFA41F78 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EC390F40AB4C16ED4E8124 /* Message.swift */; };
 		6AFBFC4B9D8E918C026E1A8D /* CameraCountdownTorch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */; };
 		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
+		7BCEB5791B211861A0F6BE60 /* MonitorActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78950879170C5D3A3B9B134 /* MonitorActor.swift */; };
 		7EEA33327E4D84592E5583F4 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2CBCE8B82BF3D236B662AC6 /* Pods_RemoteShutterTests.framework */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		855990C925275177E07AA346 /* Stack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */; };
@@ -113,6 +115,7 @@
 		89E6B075E6D5881BDE1E766E /* CountdownTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ACB2DA94752BB4E9C4CE461 /* CountdownTimer.swift */; };
 		8D834E942E3DF65BDAE055C5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9E06E2C406307CD182CFB2 /* SettingsView.swift */; };
 		8F558AB2F4887617AF3E8FCD /* RemoteShutterWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatchApp.swift */; };
+		8FC594E5A315D918BE429895 /* MonitorActorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B23042ABDA0FD46696039B /* MonitorActorTests.swift */; };
 		A0C6EAACDA1985B1DD5E8EC0 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50951447985E618A5F3818CD /* WatchConnectivity.framework */; };
 		A31965B5A3A1F59F96002E63 /* RemoteShutterWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 36D2A99A351652C2D0C29B95 /* RemoteShutterWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA0001012E940001000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
@@ -334,6 +337,7 @@
 		50951447985E618A5F3818CD /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
 		52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WelcomeViewModel.swift; sourceTree = "<group>"; };
 		5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraCountdownTorch.swift; sourceTree = "<group>"; };
+		58B23042ABDA0FD46696039B /* MonitorActorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonitorActorTests.swift; sourceTree = "<group>"; };
 		59D9526CFCA006EC142C534B /* WatchRemoteCamStates.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCam/WatchRemoteCamStates.swift; sourceTree = SOURCE_ROOT; };
 		6816F7F01F22AF52E28D6518 /* WatchCameraViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/WatchCameraViewModel.swift; sourceTree = SOURCE_ROOT; };
 		68EC390F40AB4C16ED4E8124 /* Message.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
@@ -370,7 +374,9 @@
 		B1C0DE0300000004 /* DeviceScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerView.swift; sourceTree = "<group>"; };
 		B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModelTests.swift; sourceTree = "<group>"; };
 		B2CBCE8B82BF3D236B662AC6 /* Pods_RemoteShutterTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		B78950879170C5D3A3B9B134 /* MonitorActor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonitorActor.swift; sourceTree = "<group>"; };
 		BBD41C9CED4693FBF0D87441 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
+		C65DE1A8EACAAA012BE9F840 /* MonitorDisplay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonitorDisplay.swift; sourceTree = "<group>"; };
 		CAFEBABE0001000000000001 /* CropRectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropRectTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchCaptureCountdownTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0003000000000001 /* WatchSerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSerializationTests.swift; sourceTree = "<group>"; };
@@ -528,6 +534,8 @@
 				0ACB2DA94752BB4E9C4CE461 /* CountdownTimer.swift */,
 				7903B2F53BE3FC0B9BDACA5F /* RemoteCamSystem.swift */,
 				77D6F0EE27D62251BDB065B7 /* UIViewController+SwiftUIHosting.swift */,
+				C65DE1A8EACAAA012BE9F840 /* MonitorDisplay.swift */,
+				B78950879170C5D3A3B9B134 /* MonitorActor.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -551,6 +559,7 @@
 				305D87D0EED76E6031FC1E07 /* CountdownTimerTests.swift */,
 				333D17BC86CE5F7AA48593A9 /* LoopbackSessionTests.swift */,
 				47C3D2AB20DA09223CE0EF3D /* ControllerWiringTests.swift */,
+				58B23042ABDA0FD46696039B /* MonitorActorTests.swift */,
 			);
 			path = RemoteCamTests;
 			sourceTree = "<group>";
@@ -1144,6 +1153,8 @@
 				89E6B075E6D5881BDE1E766E /* CountdownTimer.swift in Sources */,
 				BCBE1BA45814FD67B722EED8 /* RemoteCamSystem.swift in Sources */,
 				B2AB4B5C5BB274C6AB180189 /* UIViewController+SwiftUIHosting.swift in Sources */,
+				2F485D44C59F540DB49140DD /* MonitorDisplay.swift in Sources */,
+				7BCEB5791B211861A0F6BE60 /* MonitorActor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1166,6 +1177,7 @@
 				47568AFE6BD007664267E717 /* CountdownTimerTests.swift in Sources */,
 				00A49421EF2070AD7E7D4BB5 /* LoopbackSessionTests.swift in Sources */,
 				531BD3C020987337266B50EC /* ControllerWiringTests.swift in Sources */,
+				8FC594E5A315D918BE429895 /* MonitorActorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
