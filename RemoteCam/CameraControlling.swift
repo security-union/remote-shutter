@@ -57,11 +57,11 @@ protocol CameraControlling: AnyObject {
 
 extension CameraViewController: CameraControlling {
     var isTorchActive: Bool {
-        videoDeviceInput?.device.isTorchActive ?? false
+        engine.videoDeviceInput?.device.isTorchActive ?? false
     }
 
     var currentFlashMode: AVCaptureDevice.FlashMode {
-        cameraSettings.flashMode
+        engine.cameraSettings.flashMode
     }
 
     func updateTimerCountdown(value: Int) {

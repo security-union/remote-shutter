@@ -23,28 +23,16 @@ var fps = 30
 /**
   Camera UI
 */
-public class CameraViewController: UIViewController,
-        AVCapturePhotoCaptureDelegate {
-    
+public class CameraViewController: UIViewController {
+
     private enum AssociatedKeys {
         nonisolated(unsafe) static var microphonePromptController: UInt8 = 0
     }
 
-    var captureSession: AVCaptureSession = AVCaptureSession()
-    private let audioDataOutput = AVCaptureAudioDataOutput()
-    private let audioDataOutputQueue = DispatchQueue(
-        label: "recording audio data output queue", attributes: [], target: nil)
-    private let cameraConfigQueue = DispatchQueue(
-        label: "camera config queue", attributes: [], target: nil)
-
-    private let videoDataOutput = AVCaptureVideoDataOutput()
-    private let videoDataOutputQueue = DispatchQueue(
-        label: "recording video data output queue", attributes: [], target: nil)
-    private let photoOutput = AVCapturePhotoOutput()
-    let cameraSettings = AVCapturePhotoSettings()
-    var videoConnection: AVCaptureConnection?
-    var audioConnection: AVCaptureConnection?
-    var videoDeviceInput: AVCaptureDeviceInput!
+    /// Owns the capture session, still-photo capture and all camera configuration.
+    /// This VC keeps the preview layer, the recording/sample-buffer pipeline, and
+    /// the UI/lifecycle glue.
+    let engine = CaptureEngine()
 
     var isRecording: Bool = false
     var recordingWillBeStarted: Bool = false
@@ -54,11 +42,9 @@ public class CameraViewController: UIViewController,
     var assetWriter: AVAssetWriter?
 
     var captureVideoPreviewLayer: AVCaptureVideoPreviewLayer?
+    /// Orientation used for the preview layer and the frame streamer. The engine
+    /// keeps its own copy for the output/photo connections (kept in sync here).
     var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
-    var currentVideoResolution: VideoResolution = .hd1080p
-    var currentVideoFrameRate: VideoFrameRate = .fps30
-    var currentPhotoFormat: PhotoFormat = .jpeg
-    var currentHDRMode: HDRMode = .off
     let session: ActorRef = getRemoteCamSession()!
     let frameSender: ActorRef = getFrameSender()!
 
@@ -66,18 +52,7 @@ public class CameraViewController: UIViewController,
     /// Suppresses MultipeerConnectivity-related actor messages (BecomeCamera/UnbecomeCamera).
     var isWatchRemoteMode = false
 
-    // MARK: - Zoom and Lens Properties
-    private var currentZoomFactor: CGFloat = 1.0
-    private var currentLensType: CameraLensType = .wideAngle
-    private var availableLensTypes: [CameraLensType] = []
-    private var zoomStops: [CGFloat] = [1.0]
-
-    // MARK: - Camera Capabilities
-    private var frontCameraInfo: RemoteCmd.CameraInfo?
-    private var backCameraInfo: RemoteCmd.CameraInfo?
-
     // MARK: - Aspect Ratio
-    var currentAspectRatio: AspectRatio = .sixteenNine
     let videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
     /// Dedicated context for the tiny Apple Watch preview, kept off the recording
     /// crop context to avoid cross-queue contention.
@@ -85,7 +60,7 @@ public class CameraViewController: UIViewController,
     /// Streams preview frames to the Apple Watch with ack back-pressure and lazy encoding.
     /// Runs on `videoDataOutputQueue`, where the capture callback hands it sample buffers.
     private lazy var watchPreviewStreamer = WatchPreviewStreamer(
-        queue: videoDataOutputQueue,
+        queue: engine.videoDataOutputQueue,
         maxInFlight: StreamingConfig.default.watchPreviewMaxInFlight,
         ackTimeout: StreamingConfig.default.watchPreviewAckTimeout)
     /// Streams preview frames to the phone monitor: paces, encodes (HEIC with
@@ -156,12 +131,28 @@ public class CameraViewController: UIViewController,
     override public func viewDidLoad() {
         super.viewDidLoad()
         recordingView.image = UIImage.gifImageWithName("recording")
+        wireEngineCallbacks()
         if !isWatchRemoteMode {
             session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
         }
         configureIdleMode()
         setupRecordingTimerOverlay()
         setupProgressOverlay()
+    }
+
+    /// Bridges the non-UI engine back to the actor system and the status overlay.
+    private func wireEngineCallbacks() {
+        engine.onPicture = { [weak self] pic, error in
+            guard let self else { return }
+            if let error {
+                self.session ! UICmd.OnPicture(sender: nil, error: error)
+            } else if let pic {
+                self.session ! UICmd.OnPicture(sender: nil, pic: pic)
+            }
+        }
+        engine.onStatusChanged = { [weak self] in
+            self?.updateCameraStatus()
+        }
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -299,9 +290,9 @@ public class CameraViewController: UIViewController,
         super.viewDidDisappear(animated)
         ensureTorchOff()
         if self.isBeingDismissed || self.isMovingFromParent {
-            if captureSession.isRunning {
-                cameraConfigQueue.async { [weak self] in
-                    self?.captureSession.stopRunning()
+            if engine.captureSession.isRunning {
+                engine.cameraConfigQueue.async { [weak self] in
+                    self?.engine.captureSession.stopRunning()
                 }
             }
             if !isWatchRemoteMode {
@@ -337,55 +328,37 @@ public class CameraViewController: UIViewController,
     func updateCameraStatus() {
         cameraViewModel.updateStatus(
             mode: currentCameraMode,
-            resolution: currentVideoResolution,
-            frameRate: currentVideoFrameRate,
-            photoFormat: currentPhotoFormat,
-            hdrMode: currentHDRMode)
+            resolution: engine.currentVideoResolution,
+            frameRate: engine.currentVideoFrameRate,
+            photoFormat: engine.currentPhotoFormat,
+            hdrMode: engine.currentHDRMode)
     }
 
     func playCountdownChime(remaining: Int) {
         if remaining == 2 {
             cameraSoundManager.playBeepSound(.fast)
-            countdownTorch.startStrobe(device: videoDeviceInput?.device)
+            countdownTorch.startStrobe(device: engine.videoDeviceInput?.device)
         } else if remaining > 2 {
             cameraSoundManager.playBeepSound(.slow)
-            countdownTorch.blinkOnce(device: videoDeviceInput?.device)
+            countdownTorch.blinkOnce(device: engine.videoDeviceInput?.device)
         }
     }
 
     /// Turns the torch off for good (screen teardown). Clears the user's intent so the
     /// torch doesn't silently come back when the camera is next configured.
     func ensureTorchOff() {
-        desiredTorchOn = false
-        countdownTorch.stop(device: videoDeviceInput?.device)
-        applyDesiredTorch()
+        engine.clearTorchIntent()
+        countdownTorch.stop(device: engine.videoDeviceInput?.device)
+        engine.applyDesiredTorch()
     }
 
     /// Called at the end/cancel of a self-timer countdown: stops the strobe and returns
     /// the torch to whatever the user actually wanted, instead of forcing it off. Keeps
     /// the Watch in sync since the phone changed torch state on its own.
     func restoreTorchAfterCountdown() {
-        countdownTorch.stop(device: videoDeviceInput?.device)
-        applyDesiredTorch()
+        countdownTorch.stop(device: engine.videoDeviceInput?.device)
+        engine.applyDesiredTorch()
         syncTorchToWatch()
-    }
-
-    /// The single source of truth for whether the user wants the torch on. Set only by the
-    /// user-facing torch controls (`toggleTorch` / `setTorchMode`); the countdown strobe
-    /// drives the hardware directly and never touches this, so it survives a countdown.
-    private(set) var desiredTorchOn = false
-
-    /// Applies `desiredTorchOn` to the hardware. Reused to restore the torch after any
-    /// event that resets it (rotation, session reconfiguration, timer countdown).
-    func applyDesiredTorch() {
-        guard let device = videoDeviceInput?.device, device.hasTorch else { return }
-        let mode: AVCaptureDevice.TorchMode = desiredTorchOn ? .on : .off
-        guard device.torchMode != mode else { return }
-        do {
-            try device.lockForConfiguration()
-            device.torchMode = mode
-            device.unlockForConfiguration()
-        } catch {}
     }
 
     /// Pushes a fresh state snapshot to the Watch after the phone changes torch on its own
@@ -419,7 +392,7 @@ public class CameraViewController: UIViewController,
             // rotation, so restore the user's torch intent once the rotation
             // settles and re-sync the Watch, which would otherwise keep a stale
             // torch state.
-            self?.applyDesiredTorch()
+            self?.engine.applyDesiredTorch()
             self?.syncTorchToWatch()
         })
     }
@@ -432,572 +405,29 @@ public class CameraViewController: UIViewController,
     }
 
     func setupCamera() {
-        self.cameraSettings.isHighResolutionPhotoEnabled = true
-        self.videoDataOutput.setSampleBufferDelegate(self, queue: self.videoDataOutputQueue)
-        self.videoDataOutput.videoSettings =
-            [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
-        self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
-        if self.captureSession.isRunning {
-            self.cameraConfigQueue.async {
-                self.captureSession.stopRunning()
-            }
-        }
-        self.captureSession.beginConfiguration()
-        self.captureSession.sessionPreset = .high
+        // The engine configures and starts the session; the preview layer and its
+        // orientation stay here because the engine must not touch views/layers.
+        guard engine.setupCamera(sampleBufferDelegate: self) else { return }
 
-        guard let videoDevice = preferredCamera(for: .back) ?? AVCaptureDevice.default(for: AVMediaType.video) else {
-            return
-        }
-        debugLog("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
-
-        self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
-
+        self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: engine.captureSession)
         self.captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
         DispatchQueue.main.async {
             self.captureVideoPreviewLayer!.frame = self.view.frame
             self.view.layer.insertSublayer(self.captureVideoPreviewLayer!, below: self.recordingView.layer)
         }
-
-        do {
-            self.videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
-            self.captureSession.addInput(self.videoDeviceInput)
-            self.captureSession.addOutput(self.videoDataOutput)
-
-            try self.setFrameRate(framerate: fps, videoDevice: videoDevice)
-            
-            // Gather complete camera capabilities for both front and back cameras
-            self.gatherAllCameraCapabilities()
-            
-            // Initialize current state
-            self.updateAvailableLensTypes(for: videoDevice.position)
-            self.zoomStops = self.discoverZoomStops(for: videoDevice)
-
-            // Start at the wide-angle zoom factor (matches native Camera app "1x")
-            let wideZoom = self.wideAngleZoomFactor(for: videoDevice)
-            if wideZoom > 1.0 {
-                try videoDevice.lockForConfiguration()
-                videoDevice.videoZoomFactor = wideZoom
-                videoDevice.unlockForConfiguration()
-            }
-            self.currentZoomFactor = videoDevice.videoZoomFactor
-
-            // Audio setup will be done only when starting video recording
-            // This prevents requesting microphone permission upfront
-            self.configSessionOutput()
-            DispatchQueue.main.async {
-                self.rotateCameraToOrientation(orientation: self.orientation)
-            }
-            self.captureSession.commitConfiguration()
-            self.applyDesiredTorch()   // commitConfiguration can reset the torch
-            self.cameraConfigQueue.async {
-                self.captureSession.startRunning()
-            }
-        } catch let error as NSError {
-            print("error \(error)")
+        DispatchQueue.main.async {
+            self.rotateCameraToOrientation(orientation: self.orientation)
         }
     }
 
-    func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)> {
-        do {
-            let captureSession = self.captureSession
-            captureSession.beginConfiguration()
-            let device = self.videoDeviceInput?.device
-            let newPosition = device?.position.toggle().toOptional()
-            let newDevice = cameraForPosition(position: newPosition!)
-            let newInput = try AVCaptureDeviceInput(device: newDevice!)
-            captureSession.removeInput(self.videoDeviceInput)
-            captureSession.addInput(newInput)
-            self.videoDeviceInput = newInput
-            configSessionOutput()
-            try setFrameRate(framerate: fps, videoDevice: newDevice!)
-            
-            // Update available lens types and zoom stops for new camera position
-            self.updateAvailableLensTypes(for: newPosition!)
-            self.zoomStops = self.discoverZoomStops(for: newDevice!)
-
-            do {
-                self.rotateCameraToOrientation(orientation: self.orientation)
-                let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
-                captureSession.commitConfiguration()
-                self.applyDesiredTorch()   // restore torch onto the new camera (no-op if it has none)
-
-                // Camera capabilities are now sent via RemoteCmd.ToggleCameraResp in CamStates.swift
-                // No need to send separate capabilities message here
-
-                return Success((newFlashMode, newInput.device.position))
-            }
-        } catch let error as NSError {
-            return Failure(error: error)
-        }
-    }
-
-    private func configSessionOutput() {
-        self.captureSession.beginConfiguration()
-        captureSession.removeOutput(videoDataOutput)
-        if captureSession.canAddOutput(videoDataOutput) {
-            captureSession.addOutput(videoDataOutput)
-        } else {
-            print("Could not add still image output to the session")
-            return
-        }
-
-        captureSession.removeOutput(photoOutput)
-        if captureSession.canAddOutput(photoOutput) {
-            photoOutput.isHighResolutionCaptureEnabled = true
-            photoOutput.maxPhotoQualityPrioritization = .quality
-            captureSession.addOutput(photoOutput)
-        } else {
-            print("Could not add movie file output to the session")
-            return
-        }
-        videoConnection = videoDataOutput.connection(with: .video)
-        audioConnection = audioDataOutput.connection(with: .audio)
-        self.captureSession.commitConfiguration()
-    }
-
-    func toggleFlash() -> Try<AVCaptureDevice.FlashMode> {
-        let genericDevice = self.videoDeviceInput
-        let device = genericDevice?.device
-        if let hasFlash = device?.hasFlash, hasFlash {
-            let newFlashMode = self.cameraSettings.flashMode.next()
-            self.cameraSettings.flashMode = newFlashMode
-            return Success(newFlashMode)
-        } else {
-            return Failure(error: NSError(domain: "Current camera does not support flash.", code: 0, userInfo: nil))
-        }
-    }
-
-    // MARK: - Torch Methods for Video Recording
-    func toggleTorch() -> Try<AVCaptureDevice.TorchMode> {
-        let genericDevice = self.videoDeviceInput
-        let device = genericDevice?.device
-        if let hasTorch = device?.hasTorch, hasTorch {
-            do {
-                try device?.lockForConfiguration()
-                let currentTorchMode = device?.torchMode ?? .off
-                let newTorchMode: AVCaptureDevice.TorchMode
-                
-                switch currentTorchMode {
-                case .off:
-                    newTorchMode = .on
-                case .on:
-                    newTorchMode = .off
-                case .auto:
-                    newTorchMode = .off
-                @unknown default:
-                    newTorchMode = .off
-                }
-                
-                device?.torchMode = newTorchMode
-                device?.unlockForConfiguration()
-                desiredTorchOn = newTorchMode == .on
-                return Success(newTorchMode)
-            } catch let error as NSError {
-                return Failure(error: error)
-            }
-        } else {
-            return Failure(error: NSError(domain: "Current camera does not support torch.", code: 0, userInfo: nil))
-        }
-    }
-    
-    func setTorchMode(mode: AVCaptureDevice.TorchMode) -> Try<AVCaptureDevice.TorchMode> {
-        let genericDevice = self.videoDeviceInput
-        let device = genericDevice?.device
-        if let hasTorch = device?.hasTorch, hasTorch {
-            do {
-                try device?.lockForConfiguration()
-                device?.torchMode = mode
-                device?.unlockForConfiguration()
-                desiredTorchOn = mode == .on
-                return Success(mode)
-            } catch let error as NSError {
-                return Failure(error: error)
-            }
-        } else {
-            return Failure(error: NSError(domain: "Current camera does not support torch.", code: 0, userInfo: nil))
-        }
-    }
-    
-    // MARK: - Virtual Device Preference
-
-    /// Returns the best camera device for the given position, preferring virtual devices.
-    /// Virtual devices automatically switch between physical cameras at appropriate zoom factors.
-    func preferredCamera(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
-        if let triple = AVCaptureDevice.default(.builtInTripleCamera, for: .video, position: position) {
-            return triple
-        }
-        if let dualWide = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: position) {
-            return dualWide
-        }
-        if let dual = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: position) {
-            return dual
-        }
-        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position)
-    }
-
-    /// Discovers hardware zoom stop factors from a virtual device's switchOverVideoZoomFactors.
-    ///
-    /// For builtInTripleCamera: base (1.0) = ultra-wide, switchovers e.g. [2.0, 6.0]
-    /// - Hardware 1.0 = ultra-wide (displayed as "0.5x" by dividing by wideAngleZoomFactor)
-    /// - Hardware 2.0 = wide-angle (displayed as "1x")
-    /// - Hardware 6.0 = telephoto (displayed as "3x")
-    func discoverZoomStops(for device: AVCaptureDevice) -> [CGFloat] {
-        if device.position == .front {
-            return [1.0]
-        }
-
-        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
-        debugLog("🔍 ZOOM STOPS: device=\(device.localizedName) switchOverFactors=\(switchOverFactors) minZoom=\(device.minAvailableVideoZoomFactor) maxZoom=\(device.maxAvailableVideoZoomFactor)")
-
-        // Start with the base (1.0) which is the widest constituent camera
-        var stops: [CGFloat] = [device.minAvailableVideoZoomFactor]
-
-        // Add each switchover factor
-        for f in switchOverFactors {
-            if !stops.contains(f) {
-                stops.append(f)
-            }
-        }
-
-        // If no switchover factors, this is a single camera — just return [1.0]
-        if switchOverFactors.isEmpty && stops == [1.0] {
-            return [1.0]
-        }
-
-        let result = stops.sorted()
-        debugLog("🔍 ZOOM STOPS: final=\(result)")
-        return result
-    }
-
-    /// Returns the hardware zoom factor that corresponds to the wide-angle camera.
-    /// For virtual devices with ultra-wide base, this is the first switchover factor.
-    /// For single cameras or dual (wide+telephoto), this is 1.0.
-    func wideAngleZoomFactor(for device: AVCaptureDevice) -> CGFloat {
-        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
-        // If there are switchover factors and the base zoom < 1.5 (i.e., ultra-wide is base),
-        // the first switchover is where the wide-angle starts
-        if let first = switchOverFactors.first, device.minAvailableVideoZoomFactor < 1.5 {
-            return first
-        }
-        return 1.0
-    }
-
-    func cameraForPosition(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
-        return preferredCamera(for: position)
-    }
-    
-    func getAllDeviceTypes() -> [AVCaptureDevice.DeviceType] {
-        var deviceTypes: [AVCaptureDevice.DeviceType] = [
-            .builtInWideAngleCamera,
-            .builtInDualCamera,
-            .builtInTelephotoCamera
-        ]
-        
-        if #available(iOS 13.0, *) {
-            deviceTypes.append(.builtInUltraWideCamera)
-            deviceTypes.append(.builtInTripleCamera)
-        }
-        
-        return deviceTypes
-    }
-    
-    func updateAvailableLensTypes(for position: AVCaptureDevice.Position) {
-        let deviceTypes = getAllDeviceTypes()
-        let videoDevices = AVCaptureDevice.DiscoverySession.init(
-                deviceTypes: deviceTypes,
-                mediaType: .video, position: position).devices
-        
-        availableLensTypes = CameraLensType.allCases.filter { lensType in
-            return videoDevices.contains { $0.deviceType == lensType.deviceType }
-        }
-    }
-
-    // MARK: - Camera Capabilities Gathering
-    func gatherAllCameraCapabilities() {
-        debugLog("🔍 DEBUG: gatherAllCameraCapabilities called")
-        
-        // Gather front camera capabilities
-        frontCameraInfo = gatherCameraInfo(for: .front)
-        debugLog("🔍 DEBUG: Front camera info: \(frontCameraInfo != nil ? "available" : "nil")")
-        
-        // Gather back camera capabilities  
-        backCameraInfo = gatherCameraInfo(for: .back)
-        debugLog("🔍 DEBUG: Back camera info: \(backCameraInfo != nil ? "available" : "nil")")
-        
-        if let backInfo = backCameraInfo {
-            debugLog("🔍 DEBUG: - Back camera available lenses: \(backInfo.availableLenses)")
-            debugLog("🔍 DEBUG: - Back camera has flash: \(backInfo.hasFlash)")
-        }
-        
-        if let frontInfo = frontCameraInfo {
-            debugLog("🔍 DEBUG: - Front camera available lenses: \(frontInfo.availableLenses)")
-            debugLog("🔍 DEBUG: - Front camera has flash: \(frontInfo.hasFlash)")
-        }
-    }
-    
-    func gatherCameraInfo(for position: AVCaptureDevice.Position) -> RemoteCmd.CameraInfo? {
-        let positionName = position == .front ? "Front" : "Back"
-        debugLog("🔍 DEBUG: gatherCameraInfo for \(positionName) camera")
-        
-        let deviceTypes = getAllDeviceTypes()
-        let videoDevices = AVCaptureDevice.DiscoverySession.init(
-                deviceTypes: deviceTypes,
-                mediaType: .video, position: position).devices
-        
-        debugLog("🔍 DEBUG: - Found \(videoDevices.count) devices for \(positionName) position")
-        for device in videoDevices {
-            debugLog("🔍 DEBUG: - \(device.localizedName) (\(device.deviceType.rawValue))")
-        }
-        
-        guard !videoDevices.isEmpty else { 
-            debugLog("🔍 DEBUG: - No devices found for \(positionName) position")
-            return nil 
-        }
-        
-        // Find available lens types for this position
-        let availableLenses = CameraLensType.allCases.filter { lensType in
-            return videoDevices.contains { $0.deviceType == lensType.deviceType }
-        }
-        
-        debugLog("🔍 DEBUG: - Final available lenses: \(availableLenses.map { $0.displayName })")
-        
-        // Check if any camera on this position has flash
-        let hasFlash = videoDevices.contains { $0.hasFlash }
-        
-        // Check if any camera on this position has torch
-        let hasTorch = videoDevices.contains { $0.hasTorch }
-        
-        // Gather zoom capabilities for each lens type
-        var zoomCapabilities: [CameraLensType: RemoteCmd.ZoomRange] = [:]
-        
-        for lensType in availableLenses {
-            if let device = videoDevices.first(where: { $0.deviceType == lensType.deviceType }) {
-                let zoomRange = RemoteCmd.ZoomRange(
-                    minZoom: device.minAvailableVideoZoomFactor,
-                    maxZoom: device.maxAvailableVideoZoomFactor
-                )
-                zoomCapabilities[lensType] = zoomRange
-            }
-        }
-        
-        // Gather quality capabilities — probe each resolution's actual FPS limits
-        let supportedResolutions = VideoResolution.selectableCases.filter { r in
-            captureSession.canSetSessionPreset(r.sessionPreset)
-        }
-
-        var resolutionFrameRates: [VideoResolution: [VideoFrameRate]] = [:]
-        var allSupportedFrameRates: Set<VideoFrameRate> = []
-
-        if let dev = videoDevices.first {
-            for res in supportedResolutions {
-                let maxFPS = maxFPSAcrossFormats(for: dev, resolution: res)
-                let rates = VideoFrameRate.selectableCases.filter { $0.value <= Int(maxFPS) }
-                resolutionFrameRates[res] = rates
-                rates.forEach { allSupportedFrameRates.insert($0) }
-            }
-        }
-
-        let supportedFrameRates = VideoFrameRate.selectableCases.filter { allSupportedFrameRates.contains($0) }
-
-        let supportsHEIF = photoOutput.availablePhotoCodecTypes.contains(.hevc)
-        let supportsHDR = true // All iOS 15+ devices support .quality prioritization (HDR)
-
-        // Discover zoom stops from the preferred (virtual) device
-        let preferredDevice = preferredCamera(for: position)
-        let discoveredZoomStops = preferredDevice.map { discoverZoomStops(for: $0) } ?? [1.0]
-        let wideAngle = preferredDevice.map { wideAngleZoomFactor(for: $0) } ?? 1.0
-
-        return RemoteCmd.CameraInfo(
-            availableLenses: availableLenses,
-            hasFlash: hasFlash,
-            hasTorch: hasTorch,
-            zoomCapabilities: zoomCapabilities,
-            supportedResolutions: supportedResolutions,
-            supportedFrameRates: supportedFrameRates,
-            resolutionFrameRates: resolutionFrameRates,
-            supportsHEIF: supportsHEIF,
-            supportsHDR: supportsHDR,
-            zoomStops: discoveredZoomStops,
-            wideAngleZoomFactor: wideAngle
-        )
-    }
-    
-    // MARK: - Current Camera Capabilities for Toggle Response
-    func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
-        debugLog("🔍 DEBUG: gatherCurrentCameraCapabilities called")
-        
-        guard let currentDevice = self.videoDeviceInput?.device else { 
-            debugLog("❌ DEBUG: No videoDeviceInput.device available")
-            debugLog("❌ DEBUG: videoDeviceInput is \(self.videoDeviceInput != nil ? "not nil" : "nil")")
-            return nil 
-        }
-        
-        debugLog("🔍 DEBUG: Current device: \(currentDevice.localizedName)")
-        debugLog("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
-        debugLog("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
-        
-        let capabilities = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: frontCameraInfo,
-            backCamera: backCameraInfo,
-            currentCamera: currentDevice.position,
-            currentLens: currentLensType,
-            currentZoom: currentZoomFactor,
-            currentVideoResolution: currentVideoResolution,
-            currentVideoFrameRate: currentVideoFrameRate,
-            currentPhotoFormat: currentPhotoFormat,
-            currentHDRMode: currentHDRMode,
-            error: nil
-        )
-
-        debugLog("🔍 DEBUG: Created capabilities response successfully")
-        return capabilities
-    }
-    
-    // MARK: - Enhanced Zoom Control Methods
-    func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
-        debugLog("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
-        
-        guard let device = self.videoDeviceInput?.device else {
-            debugLog("❌ DEBUG: No camera device available")
-            return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
-        }
-        
-        debugLog("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
-        debugLog("🔍 DEBUG: Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
-        debugLog("🔍 DEBUG: Current zoom: \(device.videoZoomFactor)")
-        
-        do {
-            try device.lockForConfiguration()
-            
-            let clampedZoom = max(device.minAvailableVideoZoomFactor, 
-                                 min(zoomFactor, device.maxAvailableVideoZoomFactor))
-            
-            debugLog("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
-            device.videoZoomFactor = clampedZoom
-            currentZoomFactor = clampedZoom
-
-            // Update currentLensType based on which lens the virtual device is using
-            currentLensType = lensTypeForZoomFactor(clampedZoom, device: device)
-
-            device.unlockForConfiguration()
-
-            debugLog("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor), lens: \(currentLensType.displayName)")
-
-            let zoomRange = RemoteCmd.ZoomRange(
-                minZoom: device.minAvailableVideoZoomFactor,
-                maxZoom: device.maxAvailableVideoZoomFactor
-            )
-
-            return Success((clampedZoom, currentLensType, zoomRange))
-        } catch let error as NSError {
-            debugLog("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
-            return Failure(error: error)
-        }
-    }
-    
-    func getCurrentZoomFactor() -> CGFloat {
-        return videoDeviceInput?.device.videoZoomFactor ?? 1.0
-    }
-    
-    func getMaxZoomFactor() -> CGFloat {
-        return videoDeviceInput?.device.maxAvailableVideoZoomFactor ?? 1.0
-    }
-    
-    func getMinZoomFactor() -> CGFloat {
-        return videoDeviceInput?.device.minAvailableVideoZoomFactor ?? 1.0
-    }
-
-    // MARK: - Enhanced Lens Switching Methods
-
-    /// Determines which lens is active based on the current zoom factor and switchover points.
-    private func lensTypeForZoomFactor(_ zoom: CGFloat, device: AVCaptureDevice) -> CameraLensType {
-        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
-        guard !switchOverFactors.isEmpty else { return .wideAngle }
-
-        if switchOverFactors.count >= 2 && zoom >= switchOverFactors[1] {
-            return .telephoto
-        } else if zoom >= switchOverFactors[0] {
-            return .wideAngle
-        } else {
-            return .ultraWide
-        }
-    }
-
-    /// Maps a CameraLensType to the appropriate hardware zoom factor on the current virtual device.
-    ///
-    /// For builtInTripleCamera with switchOverFactors [2, 6]:
-    ///   .ultraWide → 1.0 (base = ultra-wide)
-    ///   .wideAngle → 2.0 (first switchover)
-    ///   .telephoto → 6.0 (second switchover)
-    private func zoomFactorForLensType(_ lensType: CameraLensType, device: AVCaptureDevice) -> CGFloat {
-        let switchOverFactors = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
-
-        switch lensType {
-        case .ultraWide:
-            // Ultra-wide is the base lens of the virtual device
-            return device.minAvailableVideoZoomFactor
-        case .wideAngle:
-            // Wide-angle is at the first switchover factor
-            return switchOverFactors.first ?? 1.0
-        case .telephoto:
-            // Telephoto is at the last switchover factor
-            return switchOverFactors.last ?? switchOverFactors.first ?? 2.0
-        case .dualCamera:
-            return switchOverFactors.first ?? 2.0
-        }
-    }
-
-    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)> {
-        guard let device = self.videoDeviceInput?.device else {
-            return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
-        }
-
-        let targetZoom = zoomFactorForLensType(lensType, device: device)
-        do {
-            try device.lockForConfiguration()
-            let clampedZoom = max(device.minAvailableVideoZoomFactor,
-                                 min(targetZoom, device.maxAvailableVideoZoomFactor))
-            device.videoZoomFactor = clampedZoom
-            currentZoomFactor = clampedZoom
-            currentLensType = lensType
-            device.unlockForConfiguration()
-
-            let zoomRange = RemoteCmd.ZoomRange(
-                minZoom: device.minAvailableVideoZoomFactor,
-                maxZoom: device.maxAvailableVideoZoomFactor
-            )
-            return Success((lensType, availableLensTypes, currentZoomFactor, zoomRange))
-        } catch let error as NSError {
-            return Failure(error: error)
-        }
-    }
-    
-    func getAvailableLensTypes() -> [CameraLensType] {
-        return availableLensTypes
-    }
-    
-    func getCurrentLensType() -> CameraLensType {
-        return currentLensType
-    }
-
-    func getZoomStops() -> [CGFloat] {
-        return zoomStops
-    }
-
-    func getWideAngleZoomFactor() -> CGFloat {
-        guard let device = videoDeviceInput?.device else { return 1.0 }
-        return wideAngleZoomFactor(for: device)
-    }
-
-    private func rotateCameraToOrientation(orientation: UIInterfaceOrientation) {
+    /// Rotates the preview-layer connection and delegates the output/photo
+    /// connections to the engine (which caches the orientation for still capture).
+    func rotateCameraToOrientation(orientation: UIInterfaceOrientation) {
         let o = OrientationUtils.transform(o: orientation)
         if let preview = self.captureVideoPreviewLayer {
             preview.connection?.videoOrientation = o
-            if let videoConnection = self.videoConnection {
-                videoConnection.videoOrientation = o
-            }
-            if let photoConnection = self.photoOutput.connection(with: AVMediaType.video) {
-                photoConnection.videoOrientation = o
+            let hadPhotoConnection = engine.rotateOutputs(orientation: orientation)
+            if hadPhotoConnection {
                 DispatchQueue.main.async {
                     preview.frame = self.view.bounds
                 }
@@ -1005,212 +435,71 @@ public class CameraViewController: UIViewController,
         }
     }
 
-    func setFrameRate(framerate: Int, videoDevice: AVCaptureDevice) throws {
-        let maxFPS = Int(maxSupportedFPS(for: videoDevice))
-        let safeFPS = max(1, min(framerate, maxFPS))
-        try videoDevice.lockForConfiguration()
-        videoDevice.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: Int32(safeFPS))
-        videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(safeFPS))
-        videoDevice.unlockForConfiguration()
-        if safeFPS != framerate {
-            RemoteShutter.fps = safeFPS
-            currentVideoFrameRate = VideoFrameRate.selectableCases.last(where: { $0.value <= safeFPS }) ?? .fps30
-            updateCameraStatus()
-        }
-    }
+    // MARK: - CaptureEngine forwarding
+    //
+    // The session's camera states drive the camera through `CameraControlling`;
+    // these thin wrappers route those calls to the engine, which owns the capture
+    // session and all still-photo / configuration concerns.
 
-    /// Max FPS supported by the device's *current active format*.
-    func maxSupportedFPS(for device: AVCaptureDevice) -> Double {
-        device.activeFormat.videoSupportedFrameRateRanges.reduce(30.0) { max($0, $1.maxFrameRate) }
-    }
-
-    /// Max FPS across *all* device formats at a given resolution.
-    func maxFPSAcrossFormats(for device: AVCaptureDevice, resolution: VideoResolution) -> Double {
-        let targetDims = resolution.dimensions
-        var result: Double = 30
-        for format in device.formats {
-            let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-            guard dims.width >= targetDims.width && dims.height >= targetDims.height else { continue }
-            for range in format.videoSupportedFrameRateRanges {
-                result = max(result, range.maxFrameRate)
-            }
-        }
+    func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)> {
+        engine.orientation = orientation
+        let result = engine.toggleCamera()
+        // Rotate the preview layer to match the newly rotated output connections.
+        rotateCameraToOrientation(orientation: orientation)
         return result
     }
 
-    /// Finds a device format supporting both the target resolution and FPS.
-    func findFormat(for device: AVCaptureDevice, resolution: VideoResolution, fps: Double) -> AVCaptureDevice.Format? {
-        let targetDims = resolution.dimensions
-        for format in device.formats {
-            let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-            guard dims.width >= targetDims.width && dims.height >= targetDims.height else { continue }
-            if format.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= fps }) {
-                return format
-            }
-        }
-        return nil
+    func toggleFlash() -> Try<AVCaptureDevice.FlashMode> {
+        engine.toggleFlash()
+    }
+
+    func toggleTorch() -> Try<AVCaptureDevice.TorchMode> {
+        engine.toggleTorch()
+    }
+
+    func setTorchMode(mode: AVCaptureDevice.TorchMode) -> Try<AVCaptureDevice.TorchMode> {
+        engine.setTorchMode(mode: mode)
+    }
+
+    func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
+        engine.setZoom(zoomFactor: zoomFactor)
+    }
+
+    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)> {
+        engine.switchLens(to: lensType)
     }
 
     func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) -> (VideoResolution, VideoFrameRate)? {
-        guard !isRecording else { return nil }
-        guard let device = videoDeviceInput?.device else { return nil }
-
-        captureSession.beginConfiguration()
-
-        var appliedFrameRate = frameRate
-
-        if let format = findFormat(for: device, resolution: resolution, fps: Double(frameRate.value)) {
-            captureSession.sessionPreset = .inputPriority
-            do {
-                try device.lockForConfiguration()
-                device.activeFormat = format
-                device.unlockForConfiguration()
-            } catch {
-                captureSession.commitConfiguration()
-                return nil
-            }
-        } else {
-            guard captureSession.canSetSessionPreset(resolution.sessionPreset) else {
-                captureSession.commitConfiguration()
-                return nil
-            }
-            captureSession.sessionPreset = resolution.sessionPreset
-            let maxFPS = Int(maxSupportedFPS(for: device))
-            appliedFrameRate = VideoFrameRate.selectableCases
-                .filter { $0.value <= maxFPS }
-                .last ?? .fps30
-        }
-
-        do {
-            try setFrameRate(framerate: appliedFrameRate.value, videoDevice: device)
-        } catch {
-            captureSession.commitConfiguration()
-            return nil
-        }
-        captureSession.commitConfiguration()
-
-        // Restore zoom factor — changing activeFormat/sessionPreset resets it to 1.0
-        let savedZoom = currentZoomFactor
-        do {
-            try device.lockForConfiguration()
-            let clampedZoom = max(device.minAvailableVideoZoomFactor,
-                                 min(savedZoom, device.maxAvailableVideoZoomFactor))
-            device.videoZoomFactor = clampedZoom
-            currentZoomFactor = clampedZoom
-            device.unlockForConfiguration()
-        } catch {
-            debugLog("❌ DEBUG: Failed to restore zoom after quality change: \(error)")
-        }
-
-        applyDesiredTorch()   // changing activeFormat/preset also resets the torch
-
-        currentVideoResolution = resolution
-        currentVideoFrameRate = appliedFrameRate
-        RemoteShutter.fps = appliedFrameRate.value
-        updateCameraStatus()
-
-        return (resolution, appliedFrameRate)
-    }
-
-    // MARK: - Aspect Ratio Methods
-
-    func setAspectRatio(_ ratio: AspectRatio) -> AspectRatio {
-        currentAspectRatio = ratio
-        updateCameraStatus()
-        return ratio
-    }
-
-    /// Computes a centered crop rect for the given aspect ratio within source dimensions.
-    /// Returns nil if the source already matches the target ratio.
-    static func cropRect(sourceWidth: CGFloat, sourceHeight: CGFloat, aspectRatio: AspectRatio) -> CGRect? {
-        let isLandscape = sourceWidth > sourceHeight
-        let targetRatio = isLandscape ? aspectRatio.widthToHeight : (1.0 / aspectRatio.widthToHeight)
-        let currentRatio = sourceWidth / sourceHeight
-
-        if abs(currentRatio - targetRatio) < 0.01 {
-            return nil // Already matches
-        } else if currentRatio > targetRatio {
-            let newWidth = sourceHeight * targetRatio
-            return CGRect(x: (sourceWidth - newWidth) / 2, y: 0, width: newWidth, height: sourceHeight)
-        } else {
-            let newHeight = sourceWidth / targetRatio
-            return CGRect(x: 0, y: (sourceHeight - newHeight) / 2, width: sourceWidth, height: newHeight)
-        }
-    }
-
-    /// Crops photo data to the selected aspect ratio.
-    func cropPhotoData(_ data: Data, to aspectRatio: AspectRatio) -> Data? {
-        guard let image = UIImage(data: data),
-              let cgImage = image.cgImage else {
-            debugLog("cropPhotoData: failed to create UIImage/CGImage from data (\(data.count) bytes)")
-            return nil
-        }
-
-        guard let rect = Self.cropRect(
-            sourceWidth: CGFloat(cgImage.width),
-            sourceHeight: CGFloat(cgImage.height),
-            aspectRatio: aspectRatio
-        ) else { return data }
-
-        guard let croppedCG = cgImage.cropping(to: rect) else {
-            debugLog("cropPhotoData: cgImage.cropping failed for rect \(rect)")
-            return nil
-        }
-        let croppedImage = UIImage(cgImage: croppedCG, scale: image.scale, orientation: image.imageOrientation)
-        return croppedImage.jpegData(compressionQuality: 0.95)
+        engine.setVideoQuality(resolution: resolution, frameRate: frameRate, isRecording: isRecording)
     }
 
     func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) -> (PhotoFormat, HDRMode)? {
-        if format == .heif {
-            guard photoOutput.availablePhotoCodecTypes.contains(.hevc) else { return nil }
-        }
-
-        currentPhotoFormat = format
-        currentHDRMode = hdrMode
-        updateCameraStatus()
-        return (format, hdrMode)
+        engine.setPhotoQuality(format: format, hdrMode: hdrMode)
     }
 
-    func cloneCameraSettings(_ settings: AVCapturePhotoSettings) -> AVCapturePhotoSettings {
-        let newSettings: AVCapturePhotoSettings
-        if currentPhotoFormat == .heif && photoOutput.availablePhotoCodecTypes.contains(.hevc) {
-            newSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
-        } else {
-            newSettings = AVCapturePhotoSettings()
-        }
-        newSettings.flashMode = settings.flashMode
-        newSettings.isHighResolutionPhotoEnabled = settings.isHighResolutionPhotoEnabled
-        if currentHDRMode == .on {
-            newSettings.photoQualityPrioritization = .quality
-        } else {
-            newSettings.photoQualityPrioritization = .balanced
-        }
-        return newSettings
+    func setAspectRatio(_ ratio: AspectRatio) -> AspectRatio {
+        engine.setAspectRatio(ratio)
+    }
+
+    func gatherAllCameraCapabilities() {
+        engine.gatherAllCameraCapabilities()
+    }
+
+    func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
+        engine.gatherCurrentCameraCapabilities()
     }
 
     func takePicture(_ sendMediaToRemote: Bool) {
-        OperationQueue.main.addOperation {
-            let cameraSettings = self.cloneCameraSettings(self.cameraSettings)
-            self.photoOutput.capturePhoto(with: cameraSettings, delegate: self)
-        }
+        engine.takePicture(sendMediaToRemote)
     }
 
-    public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        if error != nil {
-            session ! UICmd.OnPicture(sender: nil, error: error!)
-            return
-        }
-        guard let photoData = photo.fileDataRepresentation() else {
-            return
-        }
-        // Apply aspect ratio cropping if needed
-        if currentAspectRatio != .sixteenNine,
-           let croppedData = cropPhotoData(photoData, to: currentAspectRatio) {
-            session ! UICmd.OnPicture(sender: nil, pic: croppedData)
-        } else {
-            session ! UICmd.OnPicture(sender: nil, pic: photoData)
-        }
-    }
+    func getCurrentZoomFactor() -> CGFloat { engine.getCurrentZoomFactor() }
+    func getMaxZoomFactor() -> CGFloat { engine.getMaxZoomFactor() }
+    func getMinZoomFactor() -> CGFloat { engine.getMinZoomFactor() }
+    func getAvailableLensTypes() -> [CameraLensType] { engine.getAvailableLensTypes() }
+    func getCurrentLensType() -> CameraLensType { engine.getCurrentLensType() }
+    func getZoomStops() -> [CGFloat] { engine.getZoomStops() }
+    func getWideAngleZoomFactor() -> CGFloat { engine.getWideAngleZoomFactor() }
 }
 
 extension CameraViewController {
@@ -1284,26 +573,26 @@ extension CameraViewController {
                 let audioDevice = AVCaptureDevice.default(for: .audio)
                 let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
                 
-                self.captureSession.beginConfiguration()
+                self.engine.captureSession.beginConfiguration()
 
-                if self.captureSession.canAddInput(audioDeviceInput) {
-                    self.captureSession.addInput(audioDeviceInput)
+                if self.engine.captureSession.canAddInput(audioDeviceInput) {
+                    self.engine.captureSession.addInput(audioDeviceInput)
                 } else {
                     print("Could not add audio device input to the session")
                 }
 
-                if self.captureSession.canAddOutput(self.audioDataOutput) {
-                    self.captureSession.addOutput(self.audioDataOutput)
-                    self.audioDataOutput.setSampleBufferDelegate(self, queue: self.audioDataOutputQueue)
+                if self.engine.captureSession.canAddOutput(self.engine.audioDataOutput) {
+                    self.engine.captureSession.addOutput(self.engine.audioDataOutput)
+                    self.engine.audioDataOutput.setSampleBufferDelegate(self, queue: self.engine.audioDataOutputQueue)
                 }
 
-                self.captureSession.commitConfiguration()
+                self.engine.captureSession.commitConfiguration()
 
                 // Restore the user's torch preference — iOS resets the torch on commitConfiguration.
-                self.applyDesiredTorch()
-                
+                self.engine.applyDesiredTorch()
+
                 // Update audio connection
-                self.audioConnection = self.audioDataOutput.connection(with: .audio)
+                self.engine.audioConnection = self.engine.audioDataOutput.connection(with: .audio)
                 
                 self.startVideoRecordingProcess()
                 
@@ -1390,7 +679,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
     public func captureOutput(_ captureOutput: AVCaptureOutput,
                               didOutput sampleBuffer: CMSampleBuffer,
                               from connection: AVCaptureConnection) {
-        if connection == videoConnection {
+        if connection == engine.videoConnection {
             sendFrameToMonitor(captureOutput, didOutput: sampleBuffer, from: connection)
         }
         if (recordingWillBeStarted || isRecording) && !recordingWillBeStopped {
@@ -1410,7 +699,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         }
 
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer),
-              let device = self.videoDeviceInput?.device else { return }
+              let device = self.engine.videoDeviceInput?.device else { return }
         frameStreamer.handle(pixelBuffer: pixelBuffer,
                              position: device.position,
                              orientation: self.orientation,
@@ -1489,7 +778,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
     
    func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
-        var videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
+        var videoSettings = self.engine.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
         videoSettings?[AVVideoCodecKey] = AVVideoCodecType.hevc
 
         let dims = CMVideoFormatDescriptionGetDimensions(formatDescription)
@@ -1497,8 +786,8 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         let sourceHeight = CGFloat(dims.height)
 
         // Compute and cache the crop rect once — reused for every frame
-        let needsCrop = currentAspectRatio != .sixteenNine
-        if needsCrop, let rawRect = Self.cropRect(sourceWidth: sourceWidth, sourceHeight: sourceHeight, aspectRatio: currentAspectRatio) {
+        let needsCrop = engine.currentAspectRatio != .sixteenNine
+        if needsCrop, let rawRect = CaptureEngine.cropRect(sourceWidth: sourceWidth, sourceHeight: sourceHeight, aspectRatio: engine.currentAspectRatio) {
             // Round to even for codec compatibility
             let evenRect = CGRect(
                 x: floor(rawRect.origin.x / 2) * 2,
@@ -1574,7 +863,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
 
         if let assetWriter = self.assetWriter {
             let wasReadyToRecord = (readyToRecordAudio && readyToRecordVideo)
-            if connection == self.videoConnection {
+            if connection == self.engine.videoConnection {
                 if let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer), !readyToRecordVideo {
                     readyToRecordVideo = self.setupAssetWriterVideoInput(formatDescription, assetWriter: assetWriter)
                 }
@@ -1582,7 +871,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
                 if readyToRecordVideo && readyToRecordAudio {
                     self.writeSampleBuffer(sampleBuffer: sampleBuffer, ofType: .video)
                 }
-            } else if connection == self.audioConnection {
+            } else if connection == self.engine.audioConnection {
                 if let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer), !readyToRecordAudio {
                     readyToRecordAudio = self.setupAssetWriterAudioInput(formatDescription,
                                                                          assetWriter: assetWriter)
@@ -1632,7 +921,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
             }
 
             if mediaType == .video, let adaptor = self.pixelBufferAdaptor,
-               self.currentAspectRatio != .sixteenNine {
+               self.engine.currentAspectRatio != .sixteenNine {
                 // Crop video frame for non-16:9 aspect ratios
                 if self.videoInput.isReadyForMoreMediaData,
                    let croppedBuffer = self.cropSampleBuffer(sampleBuffer) {

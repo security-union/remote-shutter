@@ -124,7 +124,7 @@ prior migration's own comment claimed were "removed"), the deprecated
   `UICmd.BecomeCamera` into the camera states — that's exactly what PR 7's
   `CaptureEngine` replaces.
 
-### PR 7: CameraControlling protocol seam — **this PR**
+### PR 7: CameraControlling protocol seam — **shipped (#128)**
 The watch-hardening work had already built the seam (`WatchCameraControlling`,
 fake-backed); this PR generalizes it. Renamed `CameraControlling`, moved to its
 own file, extended with the nine members the phone camera states need
@@ -140,14 +140,17 @@ the loopback harness run the full two-device photo capture (become camera →
 become monitor → TakePic → OnPicture → Ack + Resp with bytes → both sides back
 to steady state) in CI for the first time.
 
-### PR 8: Extract CaptureEngine from CameraViewController
-Move the ~1,100 engine lines (session setup, lens/zoom/capabilities, photo capture +
-crop math, AVAssetWriter recording, sample-buffer streaming) into a non-UI class with
-one owned serial queue — today session config runs on the actor thread, start/stop on
-`cameraConfigQueue`, and setup on main, unsynchronized. This is also where
-`AVCaptureVideoOrientation` (deprecated iOS 17) migrates to
-`AVCaptureDevice.RotationCoordinator`, and `isHighResolutionPhotoEnabled`
-(deprecated iOS 16) to `maxPhotoDimensions`.
+### PR 8: Extract CaptureEngine (configuration + stills) — **this PR**
+Mechanical extraction, no behavior/threading changes: `CaptureEngine` (non-UI,
+`NSObject`, the photo-capture delegate) now owns the capture session, device/lens/zoom
+discovery, capabilities, flash/torch intent, quality/format/aspect config, and still
+capture + crop. The VC keeps the preview layer, overlays, lifecycle, and the whole
+recording/sample-buffer pipeline (next PR), reaching the session via engine-exposed
+properties. Engine↔UI seams: `onPicture` (actor relay), `onStatusChanged`,
+`rotateOutputs(orientation:)` (VC still rotates the preview connection).
+Still queued for follow-ups: single owned serial queue (threading fix),
+`RotationCoordinator` (iOS 17) and `maxPhotoDimensions` (iOS 16) migrations,
+recording pipeline extraction.
 
 ### PR 9+: Camera SwiftUI chrome
 With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
@@ -252,3 +255,17 @@ With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
   bytes, both state machines back to steady state — all in-process, in CI.
   Until now that flow had only ever been verified with two phones on a desk.
 - 372/372 green.
+
+### PR 8 — CaptureEngine extraction
+- Delegated the mechanical move to a fresh-context agent with an exact boundary
+  spec and one objective gate: the full suite green. It came back 376/376
+  (4 new engine tests) with an honest deviations list — the kind of report you
+  want from a contractor.
+- CameraViewController: ~1,670 → ~960 lines. CaptureEngine: 866 lines of pure
+  capture logic with zero UIKit imports beyond orientation enums.
+- The one redundancy knowingly introduced: after toggleCamera the preview
+  rotation re-runs the (idempotent) output rotation. Faithful beats clever in a
+  mechanical-move PR.
+- Orientation now lives in two places (VC for preview/UI, engine cache for output
+  connections) — flagged as the thing the PR 9 RotationCoordinator migration
+  should collapse.
