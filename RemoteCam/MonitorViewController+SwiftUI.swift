@@ -106,41 +106,41 @@ extension MonitorViewController {
 
         // Play initial countdown beep
         if duration == 2 {
-            soundManager.playBeepSound(CPSoundManagerAudioTypeFast)
-        }else  if duration > 2 {
+            soundManager.playBeepSound(.fast)
+        } else if duration > 2 {
             // no op
         } else {
-            soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
+            soundManager.playBeepSound(.slow)
         }
 
         // Send initial countdown tick to camera
         session ! UICmd.TimerCountdown(value: duration)
 
-        self.timer.start(withDuration: duration, withTickHandler: { [weak self] timer in
+        self.timer.start(duration: duration, onTick: { [weak self] timer in
             DispatchQueue.main.async {
-                let remaining = timer!.timeRemaining()
-                self?.viewModel.timerValue = Int(remaining)
+                let remaining = timer.timeRemaining
+                self?.viewModel.timerValue = remaining
                 self?.viewModel.buttonPrompt = "\(remaining)"
 
                 // Play countdown chimes
                 if remaining == 2 {
                     // Fast beep only for final second
-                    self?.soundManager.playBeepSound(CPSoundManagerAudioTypeFast)
+                    self?.soundManager.playBeepSound(.fast)
                 } else if remaining < 2 {
                     // No op
                 } else {
                     // Regular beep for all other countdown
-                    self?.soundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
+                    self?.soundManager.playBeepSound(.slow)
                 }
 
                 // Send countdown tick to camera
                 if let session = self?.session {
-                    session ! UICmd.TimerCountdown(value: Int(remaining))
+                    session ! UICmd.TimerCountdown(value: remaining)
                 }
 
                 debugLog("🔴 DEBUG: Timer tick - \(remaining) seconds remaining")
             }
-        }, andCompletionHandler: { [weak self] _ in
+        }, onCompletion: { [weak self] _ in
             DispatchQueue.main.async {
                 debugLog("🔴 DEBUG: Timer completed - taking picture")
                 // Send completion tick to camera

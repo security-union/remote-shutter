@@ -122,7 +122,7 @@ public class CameraViewController: UIViewController,
     private var progressOverlayController: UIHostingController<CameraProgressOverlayView>?
 
     // MARK: - Sound Manager for Countdown Chimes
-    let cameraSoundManager = CPSoundManager()
+    let cameraSoundManager = SoundManager()
 
     let recordingView = UIImageView()
     let activityIndicator = UIActivityIndicatorView(style: .large)
@@ -345,10 +345,10 @@ public class CameraViewController: UIViewController,
 
     func playCountdownChime(remaining: Int) {
         if remaining == 2 {
-            cameraSoundManager.playBeepSound(CPSoundManagerAudioTypeFast)
+            cameraSoundManager.playBeepSound(.fast)
             countdownTorch.startStrobe(device: videoDeviceInput?.device)
         } else if remaining > 2 {
-            cameraSoundManager.playBeepSound(CPSoundManagerAudioTypeSlow)
+            cameraSoundManager.playBeepSound(.slow)
             countdownTorch.blinkOnce(device: videoDeviceInput?.device)
         }
     }

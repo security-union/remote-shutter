@@ -37,7 +37,7 @@ MODERNIZATION.md Phases 4–5.
 
 ## PR sequence
 
-### PR 1: Dead code sweep — **this PR**
+### PR 1: Dead code sweep — **shipped (#122)**
 Pure deletion, no behavior change.
 
 Files deleted (all verified zero callers):
@@ -60,7 +60,7 @@ Members trimmed from live files:
 Plus: drop `UIImage+ImageProcessing.h` from the app bridging header, clear the test
 targets' `SWIFT_OBJC_BRIDGING_HEADER` settings, fix stale storyboard claims in CLAUDE.md.
 
-### PR 2: Retire the Objective-C
+### PR 2: Retire the Objective-C — **this PR**
 Port `CPSoundManager` (countdown beeps, `AVAudioPlayer`) and `RCTimer`
 (recursive-`dispatch_after` countdown) to small Swift types; delete
 `RemoteCam-Bridging-Header.h`. Zero ObjC left in the app target.
@@ -96,4 +96,16 @@ SwiftUI chrome around a `UIViewRepresentable` preview layer for `CameraViewContr
   silently granting UIKit to every Swift file in the target for years. The dead code
   was load-bearing — not for what it did, but for what it imported. Fix: explicit
   `import UIKit` in the 10 files that were freeloading.
-- Net: 27 files changed, +136/−557 lines; 13 files deleted; 348/348 tests green.
+- Net: 27 files changed, +143/−557 lines; 13 files deleted; 348/348 tests green.
+
+### PR 2 — retire the Objective-C
+- `CPSoundManager` (2012, "Clapmera", `__MyCompanyName__` copyright header) and
+  `RCTimer` (2013) were the last app-target ObjC. 139 lines of ObjC across 4 files
+  → ~100 lines of Swift in 2 files (`SoundManager`, `CountdownTimer`), same semantics.
+- The bridging-header lesson from PR 1 repeated on cue: deleting the header removed the
+  free `AVFoundation` import that `CPSoundManager.h` had been granting the whole target —
+  `RemoteCmds.swift`/`UICmds.swift` (which serialize `AVCaptureDevice` positions over the
+  wire) never imported it. Two more explicit imports.
+- `CountdownTimer` is pure Swift now, so it got what the ObjC never had: unit tests
+  (tick sequence, zero-duration sync completion, cancel).
+- 351/351 tests green (348 + 3 new).

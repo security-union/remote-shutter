@@ -267,9 +267,9 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     /// raises StreamStalled when the stream goes quiet.
     let frameStreamReceiver = FrameStreamReceiver()
 
-    let timer: RCTimer = RCTimer()
+    let timer = CountdownTimer()
 
-    let soundManager: CPSoundManager = CPSoundManager()
+    let soundManager = SoundManager()
     
     // MARK: - SwiftUI Integration
     private(set) var viewModel = MonitorViewModel()
