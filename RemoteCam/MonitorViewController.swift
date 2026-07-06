@@ -256,7 +256,7 @@ public class MonitorActor: ViewCtrlActor<MonitorViewController> {
 UI for the monitor.
 */
 
-public class MonitorViewController: iAdViewController, UIImagePickerControllerDelegate & UINavigationControllerDelegate {
+public class MonitorViewController: UIViewController, UIImagePickerControllerDelegate & UINavigationControllerDelegate {
 
     let session = getRemoteCamSession()!
 
@@ -278,11 +278,6 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     private let sliderColor1 = UIColor(red: 0.150, green: 0.670, blue: 0.80, alpha: 1)
     private let sliderColor2 = UIColor(red: 0.060, green: 0.100, blue: 0.160, alpha: 1)
 
-    // Note: bannerView, bannerHeight, bottomBannerConstraint inherited from BaseViewController
-    
-    // Pinch Gesture for Zoom
-    private var pinchGestureRecognizer: UIPinchGestureRecognizer!
-    private var lastPinchScale: CGFloat = 1.0
     private var zoomLabelTimer: Timer?
     
     // MARK: - Zoom and Lens Properties
@@ -324,17 +319,7 @@ public class MonitorViewController: iAdViewController, UIImagePickerControllerDe
     }
 
     @objc private func showHelpModal() {
-        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
-            self?.dismiss(animated: true)
-        })
-        let hostingController = UIHostingController(rootView: helpView)
-        hostingController.modalPresentationStyle = .pageSheet
-        if let sheet = hostingController.sheetPresentationController {
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-            sheet.preferredCornerRadius = 20
-        }
-        present(hostingController, animated: true)
+        presentHelpSheet()
     }
 
     override public func viewDidLoad() {

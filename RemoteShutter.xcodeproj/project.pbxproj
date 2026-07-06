@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00A49421EF2070AD7E7D4BB5 /* LoopbackSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333D17BC86CE5F7AA48593A9 /* LoopbackSessionTests.swift */; };
 		060866BE2522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		060866BF2522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		060866C02522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		0609A4DB251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
 		0609A4DD251BFED80090DEB7 /* Photos.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0609A4DA251BFED80090DEB7 /* Photos.swift */; };
-		060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 060B1E241BE710FE00077BCC /* BaseViewController.swift */; };
 		0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0631D183256DFC960006CAF3 /* FrameSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0631D180256DFC960006CAF3 /* FrameSender.swift */; };
 		0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0634594925886387009F9BE0 /* DeviceScannerViewController.swift */; };
@@ -98,6 +98,7 @@
 		3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */; };
 		448ED35E2633C93396E1AC66 /* WatchSharedTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E655FAEBED183EB237F41DEA /* WatchSharedTypes.swift */; };
 		47568AFE6BD007664267E717 /* CountdownTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305D87D0EED76E6031FC1E07 /* CountdownTimerTests.swift */; };
+		531BD3C020987337266B50EC /* ControllerWiringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C3D2AB20DA09223CE0EF3D /* ControllerWiringTests.swift */; };
 		5647F1F78AAC80CEE4E20340 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0E951625230646938980B1 /* WelcomeView.swift */; };
 		6387D70AEAA33C022572E6F5 /* ViewControllerActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6BA9B353DB915CF86861C92 /* ViewControllerActor.swift */; };
 		67073A97D24E58ABE94F9EEE /* Pods_RemoteShutterWatch.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FCB0F6BA2086BF9BB4242D66 /* Pods_RemoteShutterWatch.framework */; };
@@ -139,6 +140,8 @@
 		B1C0DE0300000005 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
 		B1C0DE0300000006 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
 		B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */; };
+		B2AB4B5C5BB274C6AB180189 /* UIViewController+SwiftUIHosting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D6F0EE27D62251BDB065B7 /* UIViewController+SwiftUIHosting.swift */; };
+		BCBE1BA45814FD67B722EED8 /* RemoteCamSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7903B2F53BE3FC0B9BDACA5F /* RemoteCamSystem.swift */; };
 		BD14D83BAC55CC029934B0ED /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 043B715A46C4498C9A2B6911 /* Foundation.framework */; };
 		CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0001000000000001 /* CropRectTests.swift */; };
 		CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */; };
@@ -242,7 +245,6 @@
 		0609A4DA251BFED80090DEB7 /* Photos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Photos.swift; sourceTree = "<group>"; };
 		0609A4FE251C3ADB0090DEB7 /* RemoteShutter.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RemoteShutter.entitlements; sourceTree = "<group>"; };
 		060B1E1F1BE70CC000077BCC /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
-		060B1E241BE710FE00077BCC /* BaseViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseViewController.swift; sourceTree = "<group>"; };
 		060E28551BE1A5CA00D73ACB /* Nimble.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Nimble.framework; path = "Pods/../build/Debug-iphoneos/Nimble.framework"; sourceTree = "<group>"; };
 		060E28561BE1A5CA00D73ACB /* Quick.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quick.framework; path = "Pods/../build/Debug-iphoneos/Quick.framework"; sourceTree = "<group>"; };
 		0631D180256DFC960006CAF3 /* FrameSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSender.swift; sourceTree = "<group>"; };
@@ -322,11 +324,13 @@
 		2B6BF3CD6986238A77C3A216 /* WatchSessionDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/WatchSessionDelegate.swift; sourceTree = SOURCE_ROOT; };
 		2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		305D87D0EED76E6031FC1E07 /* CountdownTimerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CountdownTimerTests.swift; sourceTree = "<group>"; };
+		333D17BC86CE5F7AA48593A9 /* LoopbackSessionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoopbackSessionTests.swift; sourceTree = "<group>"; };
 		36D2A99A351652C2D0C29B95 /* RemoteShutterWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutterWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		381BB7BCEF561D22B0F194A6 /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
 		3B3FB0EA0E2B04051EF232D6 /* Pods-RemoteShutterWatch.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterWatch.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutterWatch/Pods-RemoteShutterWatch.release.xcconfig"; sourceTree = "<group>"; };
 		3CB14475747F8CECCE476895 /* Actor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Actor.swift; sourceTree = "<group>"; };
 		4711EC884DF706A90B90662D /* ActorSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActorSystem.swift; sourceTree = "<group>"; };
+		47C3D2AB20DA09223CE0EF3D /* ControllerWiringTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ControllerWiringTests.swift; sourceTree = "<group>"; };
 		50951447985E618A5F3818CD /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
 		52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WelcomeViewModel.swift; sourceTree = "<group>"; };
 		5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraCountdownTorch.swift; sourceTree = "<group>"; };
@@ -334,6 +338,8 @@
 		6816F7F01F22AF52E28D6518 /* WatchCameraViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/WatchCameraViewModel.swift; sourceTree = SOURCE_ROOT; };
 		68EC390F40AB4C16ED4E8124 /* Message.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FlatBufferSchemas_generated.swift; sourceTree = "<group>"; };
+		77D6F0EE27D62251BDB065B7 /* UIViewController+SwiftUIHosting.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "UIViewController+SwiftUIHosting.swift"; sourceTree = "<group>"; };
+		7903B2F53BE3FC0B9BDACA5F /* RemoteCamSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCamSystem.swift; sourceTree = "<group>"; };
 		7AFE1C1E3BF1B4B2BD321763 /* NSOperationQueue.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NSOperationQueue.swift; sourceTree = "<group>"; };
 		7C0E951625230646938980B1 /* WelcomeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		852E4306250D4B1D00F5151E /* RemoteShutterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteShutterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -520,6 +526,8 @@
 				59D9526CFCA006EC142C534B /* WatchRemoteCamStates.swift */,
 				99FC5340BB98B2BD307FFA1A /* SoundManager.swift */,
 				0ACB2DA94752BB4E9C4CE461 /* CountdownTimer.swift */,
+				7903B2F53BE3FC0B9BDACA5F /* RemoteCamSystem.swift */,
+				77D6F0EE27D62251BDB065B7 /* UIViewController+SwiftUIHosting.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -541,6 +549,8 @@
 				B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */,
 				AA00020000000003 /* StoreManagerTests.swift */,
 				305D87D0EED76E6031FC1E07 /* CountdownTimerTests.swift */,
+				333D17BC86CE5F7AA48593A9 /* LoopbackSessionTests.swift */,
+				47C3D2AB20DA09223CE0EF3D /* ControllerWiringTests.swift */,
 			);
 			path = RemoteCamTests;
 			sourceTree = "<group>";
@@ -567,7 +577,6 @@
 				B1C0DE0100000001 /* RolePickerView.swift */,
 				069284421BE5C0E600AF4678 /* CameraViewController.swift */,
 				069284431BE5C0E600AF4678 /* MonitorViewController.swift */,
-				060B1E241BE710FE00077BCC /* BaseViewController.swift */,
 				0609A4DA251BFED80090DEB7 /* Photos.swift */,
 				0673275E2E2DF163003E5F94 /* CameraPermissionsView.swift */,
 				067327572E2DF11F003E5F94 /* CameraPermissionErrorView.swift */,
@@ -1052,7 +1061,6 @@
 				0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				FADEC0DE0001000000000002 /* FrameCreditWindow.swift in Sources */,
 				CAFEBABE0007000000000002 /* WatchPreviewStreamer.swift in Sources */,
-				060B1E251BE710FE00077BCC /* BaseViewController.swift in Sources */,
 				068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */,
 				068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */,
 				068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */,
@@ -1134,6 +1142,8 @@
 				448ED35E2633C93396E1AC66 /* WatchSharedTypes.swift in Sources */,
 				CB5F78DFB9D567955BC863AF /* SoundManager.swift in Sources */,
 				89E6B075E6D5881BDE1E766E /* CountdownTimer.swift in Sources */,
+				BCBE1BA45814FD67B722EED8 /* RemoteCamSystem.swift in Sources */,
+				B2AB4B5C5BB274C6AB180189 /* UIViewController+SwiftUIHosting.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1154,6 +1164,8 @@
 				B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */,
 				AA00020000000004 /* StoreManagerTests.swift in Sources */,
 				47568AFE6BD007664267E717 /* CountdownTimerTests.swift in Sources */,
+				00A49421EF2070AD7E7D4BB5 /* LoopbackSessionTests.swift in Sources */,
+				531BD3C020987337266B50EC /* ControllerWiringTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

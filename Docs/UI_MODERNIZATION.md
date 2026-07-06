@@ -60,14 +60,32 @@ Members trimmed from live files:
 Plus: drop `UIImage+ImageProcessing.h` from the app bridging header, clear the test
 targets' `SWIFT_OBJC_BRIDGING_HEADER` settings, fix stale storyboard claims in CLAUDE.md.
 
-### PR 2: Retire the Objective-C — **this PR**
+### PR 2: Retire the Objective-C — **shipped (#123)**
 Port `CPSoundManager` (countdown beeps, `AVAudioPlayer`) and `RCTimer`
 (recursive-`dispatch_after` countdown) to small Swift types; delete
 `RemoteCam-Bridging-Header.h`. Zero ObjC left in the app target.
 
-### PR 3: Collapse the easy shells
-Delete `iAdViewController` (empty base class), fold `WelcomeViewController` down,
-slim `RolePickerController`; move the `RemoteCamSystem.shared` declaration out of it.
+### PR 3: Test hardening + collapse the easy shells — **this PR**
+Two layers of integration tests written FIRST (against pre-refactor behavior), then
+the refactor under them:
+
+**Tests**
+- `ControllerWiringTests` — instantiates the real shell controllers in the hosted test
+  app and pins their contract: SwiftUI host embedded and pinned, navigation pushes,
+  actor registration in viewDidLoad, actor teardown in deinit.
+- `LoopbackSessionTests` — two `RemoteCamSession` actors wired through
+  `LoopbackMultipeerService`, an in-process transport that passes every message
+  through the real FlatBuffers encode/decode. Full protocol round trips across both
+  state machines: role handshake, take-picture, toggle-flash, start-recording, zoom,
+  peer disconnect.
+
+**Refactor**
+- Delete `iAdViewController`/`BaseViewController.swift` (`showError` moved to
+  `UIAlertPresenter.swift`; `MonitorViewController` now subclasses `UIViewController`)
+- `RemoteCamSystem.shared` moved out of `RolePickerController` into `RemoteCamSystem.swift`
+- New `UIViewController+SwiftUIHosting.swift`: `embedSwiftUIView` + `presentHelpSheet`
+  replace 5 copies of the embed boilerplate and 4 copies of the help-sheet code
+- Dead `connectedPrompt`, `pinchGestureRecognizer`, `lastPinchScale` removed
 
 ### PR 4: Decouple actors from concrete VCs
 Re-target `ViewCtrlActor` bindings at protocols/view models instead of concrete VC types
@@ -109,3 +127,22 @@ SwiftUI chrome around a `UIViewRepresentable` preview layer for `CameraViewContr
 - `CountdownTimer` is pure Swift now, so it got what the ObjC never had: unit tests
   (tick sequence, zero-duration sync completion, cancel).
 - 351/351 tests green (348 + 3 new).
+
+### PR 3 — test hardening + shell collapse
+- Wrote the tests FIRST against unrefactored code (characterization), then refactored
+  under them. The wiring tests instantiate the app's real view controllers inside the
+  hosted test bundle — possible only because PR 1 confirmed everything is programmatic
+  (no storyboards to inflate).
+- The loopback harness is the fun one: two full session state machines in one process,
+  every message crossing a fake wire through the real FlatBuffers encode/decode.
+  A take-picture round trip (UICmd → state transition → encode → decode → peer state
+  machine → error response → encode → decode → pop + alert) runs in ~0.8s in CI.
+  Closest thing to a two-device test without two devices.
+- Gotcha: deinit-based teardown assertions need `autoreleasepool {}` around the
+  controller's lifetime — UIKit autoreleases references to the VC, so without it
+  deinit doesn't run until the test method returns and the assertions read stale state.
+- Along the way the docs lied again: CLAUDE.md still said the wire protocol was
+  NSCoding/NSKeyedArchiver (it's FlatBuffers) and listed four CocoaPods that no longer
+  exist (Theater, Starscream, Google Ads, UMP — actual: SwiftLint + FlatBuffers).
+- Net: 14 files changed, +593/−164; 12 new integration tests; 363/363 green, and the
+  new tests passed unchanged across the refactor — which was the whole point.

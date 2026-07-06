@@ -51,23 +51,7 @@ extension MonitorViewController {
             }
         )
         
-        // Host SwiftUI view
-        let hostingController = UIHostingController(rootView: monitorView)
-        addChild(hostingController)
-        view.addSubview(hostingController.view)
-        hostingController.didMove(toParent: self)
-        
-        // Setup constraints
-        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
-        
-        // Store reference to hosting controller
-        self.swiftUIHostingController = hostingController
+        self.swiftUIHostingController = embedSwiftUIView(monitorView)
     }
     
     // MARK: - Action Handlers
