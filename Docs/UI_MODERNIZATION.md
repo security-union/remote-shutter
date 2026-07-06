@@ -65,7 +65,7 @@ Port `CPSoundManager` (countdown beeps, `AVAudioPlayer`) and `RCTimer`
 (recursive-`dispatch_after` countdown) to small Swift types; delete
 `RemoteCam-Bridging-Header.h`. Zero ObjC left in the app target.
 
-### PR 3: Test hardening + collapse the easy shells — **this PR**
+### PR 3: Test hardening + collapse the easy shells — **shipped (#124)**
 Two layers of integration tests written FIRST (against pre-refactor behavior), then
 the refactor under them:
 
@@ -87,11 +87,26 @@ the refactor under them:
   replace 5 copies of the embed boilerplate and 4 copies of the help-sheet code
 - Dead `connectedPrompt`, `pinchGestureRecognizer`, `lastPinchScale` removed
 
-### PR 4: Decouple actors from concrete VCs
-Re-target `ViewCtrlActor` bindings at protocols/view models instead of concrete VC types
-(coordinates with MODERNIZATION.md Phases 4–5). Unblocks DeviceScanner and Monitor shells.
+### PR 4: Decouple MonitorActor from MonitorViewController — **this PR**
+- New `MonitorDisplay` protocol — everything the actor needs from the monitor screen
+  (mode configuration, view-model updates, frame routing, exit navigation).
+- `MonitorActor` moved out of MonitorViewController.swift into `MonitorActor.swift` and
+  rebuilt as a plain `Actor` bound via `SetMonitorDisplay` + a weak display box —
+  no longer `ViewCtrlActor<MonitorViewController>`. (Swift won't accept a protocol
+  existential as a class-constrained generic argument, and a plain actor matches the
+  MODERNIZATION.md Phase 5 target anyway.)
+- `MonitorViewController` conforms to `MonitorDisplay`; `navigationController?.pop`
+  became `exitMonitor()` on the protocol.
+- New `MonitorActorTests` (8) drive the actor against `FakeMonitorDisplay` — the first
+  time this actor has ever been testable without a live UIKit controller.
+- `RemoteCamSession`'s `ViewCtrlActor<DeviceScannerViewController>` binding is the
+  remaining coupling — PR 5.
 
-### PR 5+: Camera surface
+### PR 5: Decouple RemoteCamSession from DeviceScannerViewController
+Re-target the session's lobby binding at a protocol/coordinator (same recipe as PR 4).
+Unblocks shrinking the DeviceScanner shell.
+
+### PR 6+: Camera surface
 SwiftUI chrome around a `UIViewRepresentable` preview layer for `CameraViewController`;
 `WatchRemoteCameraController` follows.
 
@@ -146,3 +161,17 @@ SwiftUI chrome around a `UIViewRepresentable` preview layer for `CameraViewContr
   exist (Theater, Starscream, Google Ads, UMP — actual: SwiftLint + FlatBuffers).
 - Net: 14 files changed, +593/−164; 12 new integration tests; 363/363 green, and the
   new tests passed unchanged across the refactor — which was the whole point.
+
+### PR 4 — MonitorActor decoupling
+- The plan was to loosen Theater's `ViewCtrlActor<A: UIViewController>` to
+  `A: AnyObject` and bind the actor to `any MonitorDisplay`. The compiler said no:
+  "'ViewCtrlActor' requires that 'any MonitorDisplay' be a class type" — a
+  class-constrained existential still isn't a class type to generics.
+- Plan B was better anyway: MonitorActor became a plain `Actor` with an explicit
+  `SetMonitorDisplay` message and a hand-rolled weak box. Fewer generics, less
+  framework, and exactly what MODERNIZATION.md Phase 5 prescribed.
+- The payoff: `MonitorActorTests` drives the full message surface (render modes,
+  flash/torch/zoom/lens responses, video-transfer progress, become-monitor-failed)
+  against a fake display object. Before this PR that required a live UIKit controller.
+- PR 3's wiring + loopback tests passed unchanged across the swap — the safety net
+  did its job on the first PR it was built for.

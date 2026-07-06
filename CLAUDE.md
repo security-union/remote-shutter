@@ -75,7 +75,7 @@ The app is migrating from UIKit to SwiftUI (no storyboards or xibs remain; the w
 - **WelcomeViewController** — entry point (root of the nav controller), hosts `WelcomeView`
 - **RolePickerController** — role selection, hosts `RolePickerView` (`RemoteCamSystem.shared` is declared in `RemoteCamSystem.swift`)
 - **DeviceScannerViewController** — peer discovery, hosts `DeviceScannerView`; owns the actor lifecycle
-- **MonitorViewController** — hosts `MonitorView`; also defines `MonitorActor`
+- **MonitorViewController** — hosts `MonitorView`; implements `MonitorDisplay`, the protocol seam through which `MonitorActor` (MonitorActor.swift) drives the screen
 - **CameraViewController** — pure UIKit, manages `AVCaptureSession` for the camera device (no SwiftUI view yet)
 - **WatchRemoteCameraController** — Watch-remote mode, embeds `CameraViewController` as a child
 - View models (`WelcomeViewModel`, `DeviceScannerViewModel`, `MonitorViewModel`, `CameraViewModel`) are ObservableObjects bridging actors to SwiftUI
