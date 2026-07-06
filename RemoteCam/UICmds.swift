@@ -8,6 +8,7 @@
 
 import Foundation
 import MultipeerConnectivity
+import UIKit
 
 enum RecordingMode {
     case Photo

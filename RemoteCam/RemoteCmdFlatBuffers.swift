@@ -9,6 +9,7 @@
 import Foundation
 import FlatBuffers
 import AVFoundation
+import UIKit
 
 // MARK: - FlatBuffer serialization for MultipeerService
 

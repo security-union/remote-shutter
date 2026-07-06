@@ -8,6 +8,7 @@
 
 import Foundation
 import MultipeerConnectivity
+import UIKit
 
 extension RemoteCamSession {
 

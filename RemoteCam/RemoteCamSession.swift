@@ -9,6 +9,7 @@
 import Foundation
 import MultipeerConnectivity
 import Combine
+import UIKit
 
 func getFrameSender() -> ActorRef? {
     RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/FrameSender")

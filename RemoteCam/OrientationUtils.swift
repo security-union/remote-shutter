@@ -8,6 +8,7 @@
 
 import Foundation
 import AVFoundation
+import UIKit
 
 public class OrientationUtils {
 
@@ -27,54 +28,4 @@ public class OrientationUtils {
         }
     }
 
-    class public func transformToUIKit(o: AVCaptureVideoOrientation) -> UIInterfaceOrientation {
-        switch o {
-
-        case .landscapeLeft:
-            return .landscapeLeft
-
-        case .landscapeRight:
-            return .landscapeRight
-
-        case .portraitUpsideDown:
-            return .portraitUpsideDown
-
-        default:
-            return .portrait
-        }
-    }
-
-    class public func transformToUIImage(o: AVCaptureVideoOrientation) -> UIImage.Orientation {
-        switch o {
-
-        case .landscapeLeft:
-            return .left
-
-        case .landscapeRight:
-            return .right
-
-        case .portraitUpsideDown:
-            return .down
-
-        default:
-            return .up
-        }
-    }
-
-    class public func transformOrientationToImage(o: UIInterfaceOrientation) -> UIImage.Orientation {
-        switch o {
-
-        case .landscapeLeft:
-            return .left
-
-        case .landscapeRight:
-            return .right
-
-        case .portraitUpsideDown:
-            return .down
-
-        default:
-            return .up
-        }
-    }
 }

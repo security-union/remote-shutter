@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 /// Handle returned by `AlertPresenting.showAlert` for later update/dismiss.
 protocol AlertHandle: AnyObject {
