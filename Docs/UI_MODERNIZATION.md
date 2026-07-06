@@ -87,7 +87,7 @@ the refactor under them:
   replace 5 copies of the embed boilerplate and 4 copies of the help-sheet code
 - Dead `connectedPrompt`, `pinchGestureRecognizer`, `lastPinchScale` removed
 
-### PR 4: Decouple MonitorActor from MonitorViewController — **this PR**
+### PR 4: Decouple MonitorActor from MonitorViewController — **shipped (#125)**
 - New `MonitorDisplay` protocol — everything the actor needs from the monitor screen
   (mode configuration, view-model updates, frame routing, exit navigation).
 - `MonitorActor` moved out of MonitorViewController.swift into `MonitorActor.swift` and
@@ -102,13 +102,30 @@ the refactor under them:
 - `RemoteCamSession`'s `ViewCtrlActor<DeviceScannerViewController>` binding is the
   remaining coupling — PR 5.
 
-### PR 5: Decouple RemoteCamSession from DeviceScannerViewController
+### PR 5: Camera dead-code sweep — **this PR**
+An audit of CameraViewController (1,729 lines) found it ~65% capture-engine code in a
+UIViewController costume, ~25% real UI, ~10% dead/deprecated. This PR is the deletion
+slice only: `sendCameraCapabilities()` (superseded by the retry-ladder push in
+CamStates.swift), `getCurrentTorchMode()`, `hasTorch()`, `setFlashMode()` (leftovers a
+prior migration's own comment claimed were "removed"), the deprecated
+`willAnimateRotation` stub, and tombstone comments.
+
+### PR 6: Decouple RemoteCamSession from DeviceScannerViewController
 Re-target the session's lobby binding at a protocol/coordinator (same recipe as PR 4).
 Unblocks shrinking the DeviceScanner shell.
 
-### PR 6+: Camera surface
-SwiftUI chrome around a `UIViewRepresentable` preview layer for `CameraViewController`;
-`WatchRemoteCameraController` follows.
+### PR 7: Extract CaptureEngine from CameraViewController
+Move the ~1,100 engine lines (session setup, lens/zoom/capabilities, photo capture +
+crop math, AVAssetWriter recording, sample-buffer streaming) into a non-UI class with
+one owned serial queue — today session config runs on the actor thread, start/stop on
+`cameraConfigQueue`, and setup on main, unsynchronized. This is also where
+`AVCaptureVideoOrientation` (deprecated iOS 17) migrates to
+`AVCaptureDevice.RotationCoordinator`, and `isHighResolutionPhotoEnabled`
+(deprecated iOS 16) to `maxPhotoDimensions`.
+
+### PR 8+: Camera SwiftUI chrome
+With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
+`UIViewRepresentable` preview layer. `WatchRemoteCameraController` follows.
 
 ## Worklog (blog raw material)
 
@@ -175,3 +192,15 @@ SwiftUI chrome around a `UIViewRepresentable` preview layer for `CameraViewContr
   against a fake display object. Before this PR that required a live UIKit controller.
 - PR 3's wiring + loopback tests passed unchanged across the swap — the safety net
   did its job on the first PR it was built for.
+
+### PR 5 — camera dead-code sweep
+- The audit's best find: four torch/flash/capabilities methods that a comment in
+  *another file* claimed were already removed ("Legacy setFlashMode and setTorchMode
+  functions removed"). The comment was aspirational; the code was still compiling.
+- `sendCameraCapabilities()` told the story of its own replacement: it fire-and-forgot
+  capabilities through the session actor's root receive, while the live path in
+  CamStates.swift pushes with a 4-attempt retry ladder because the capture device
+  isn't ready right after setup. The old path lost the race and nobody buried it.
+- Also filed for later (not deletions): the unsynchronized three-thread capture-session
+  mutation, six-boolean recording state machine, and the iOS 16/17 AVFoundation
+  deprecations — all queued for the PR 7 CaptureEngine extraction.

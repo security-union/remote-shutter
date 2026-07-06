@@ -404,14 +404,6 @@ public class CameraViewController: UIViewController,
         return !isRecording
     }
 
-    public override func willAnimateRotation(to toInterfaceOrientation: UIInterfaceOrientation, duration: TimeInterval) {
-        // Deprecated and not called on modern iOS; kept for any OS version that
-        // still invokes it. `viewWillTransition` below is the live rotation path —
-        // both funnel into the same idempotent orientation update.
-        orientation = getOrientation()
-        self.rotateCameraToOrientation(orientation: toInterfaceOrientation)
-    }
-
     public override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
         coordinator.animate(alongsideTransition: { [weak self] _ in
@@ -488,9 +480,6 @@ public class CameraViewController: UIViewController,
                 videoDevice.unlockForConfiguration()
             }
             self.currentZoomFactor = videoDevice.videoZoomFactor
-
-            // Camera capabilities are now sent through peer-to-peer communication in CamStates.swift
-            // No need to send to session actor directly here
 
             // Audio setup will be done only when starting video recording
             // This prevents requesting microphone permission upfront
@@ -629,29 +618,6 @@ public class CameraViewController: UIViewController,
         }
     }
     
-    func getCurrentTorchMode() -> AVCaptureDevice.TorchMode {
-        return videoDeviceInput?.device.torchMode ?? .off
-    }
-    
-    func hasTorch() -> Bool {
-        return videoDeviceInput?.device.hasTorch ?? false
-    }
-
-    func setFlashMode(mode: AVCaptureDevice.FlashMode, device: AVCaptureDevice) -> Try<AVCaptureDevice.FlashMode> {
-        if device.hasFlash {
-            do {
-                try device.lockForConfiguration()
-                self.cameraSettings.flashMode = mode
-                device.unlockForConfiguration()
-            } catch let error as NSError {
-                return Failure(error: error)
-            } catch {
-                return Failure(error: NSError(domain: "Unknown error", code: 0, userInfo: nil))
-            }
-        }
-        return Success(mode)
-    }
-
     // MARK: - Virtual Device Preference
 
     /// Returns the best camera device for the given position, preferring virtual devices.
@@ -856,25 +822,6 @@ public class CameraViewController: UIViewController,
         )
     }
     
-    func sendCameraCapabilities() {
-        guard let currentDevice = self.videoDeviceInput?.device else { return }
-        
-        let capabilities = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: frontCameraInfo,
-            backCamera: backCameraInfo,
-            currentCamera: currentDevice.position,
-            currentLens: currentLensType,
-            currentZoom: currentZoomFactor,
-            currentVideoResolution: currentVideoResolution,
-            currentVideoFrameRate: currentVideoFrameRate,
-            currentPhotoFormat: currentPhotoFormat,
-            currentHDRMode: currentHDRMode,
-            error: nil
-        )
-
-        session ! capabilities
-    }
-
     // MARK: - Current Camera Capabilities for Toggle Response
     func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
         debugLog("🔍 DEBUG: gatherCurrentCameraCapabilities called")
@@ -1540,10 +1487,6 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AV
         print("📤 DEBUG: Sent SendVideoResource message to actor system")
     }
     
-    // MARK: - Video Transfer Progress
-    // Video transfer progress is now handled directly in CameraVideoStates.swift
-    // via the direct ctrl reference passed to camera states
-
    func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
         var videoSettings = self.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
