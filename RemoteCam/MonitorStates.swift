@@ -31,7 +31,7 @@ extension RemoteCamSession {
 
     func monitorTogglingFlash(monitor: ActorRef,
                               peer: MCPeerID,
-                              lobby: Weak<DeviceScannerViewController>) -> Receive {
+                              lobby: WeakScannerLobby) -> Receive {
         var alertHandle: AlertHandle?
         ^{ [weak self] in
             alertHandle = self?.alertPresenter.showAlert(title: "Requesting flash toggle")
@@ -100,7 +100,7 @@ extension RemoteCamSession {
     // MARK: - Lens Switching State
     func monitorSwitchingLens(monitor: ActorRef,
                              peer: MCPeerID,
-                             lobby: Weak<DeviceScannerViewController>) -> Receive {
+                             lobby: WeakScannerLobby) -> Receive {
         var alertHandle: AlertHandle?
         ^{ [weak self] in
             alertHandle = self?.alertPresenter.showAlert(title: "Switching lens")
@@ -174,7 +174,7 @@ extension RemoteCamSession {
 
     func monitorTogglingCamera(monitor: ActorRef,
                                peer: MCPeerID,
-                               lobby: Weak<DeviceScannerViewController>) -> Receive {
+                               lobby: WeakScannerLobby) -> Receive {
         var alertHandle: AlertHandle?
         ^{ [weak self] in
             alertHandle = self?.alertPresenter.showAlert(title: "Requesting camera toggle")

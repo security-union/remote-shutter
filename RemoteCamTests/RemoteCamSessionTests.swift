@@ -79,30 +79,26 @@ class FakeAlertPresenter: AlertPresenting {
 
 class TestableRemoteCamSession: RemoteCamSession {
 
-    override func startScanning(lobby: DeviceScannerViewController) {
+    override func startScanning(lobby: ScannerLobby) {
         // no-op — avoids MultipeerService creation and UI code
     }
 }
 
-// MARK: - Test ViewController
+// MARK: - Fake ScannerLobby
 
-/// Subclass that prevents actor system registration in tests.
-class TestDeviceScannerViewController: DeviceScannerViewController {
-    convenience init() {
-        self.init(role: .monitor)
-    }
+/// Plain fake for the session's lobby seam — no UIKit involved.
+class FakeScannerLobby: ScannerLobby {
+    let peerID = MCPeerID(displayName: "FakeLobby")
+    var role: DeviceRole = .monitor
+    let scannerViewModel = DeviceScannerViewModel()
 
-    override public func viewDidLoad() {
-        // Skip super — avoids actor system registration
-    }
+    var roleScreenShown = 0
+    var returnsToLobby = 0
+    var scanningErrors = 0
 
-    override func stopScanning() {
-        // no-op — avoids accessing splash/tableView
-    }
-
-    override func startScanning() {
-        // no-op
-    }
+    func goToRole() { roleScreenShown += 1 }
+    func returnToLobby() { returnsToLobby += 1 }
+    func presentScanningError() { scanningErrors += 1 }
 }
 
 // MARK: - Test Helpers
@@ -126,21 +122,8 @@ class RemoteCamSessionTests: XCTestCase {
     private var fakeMP: FakeMultipeerService!
     private var fakeAlerts: FakeAlertPresenter!
 
-    // Class-level to avoid race between VC init (registers actors) and
-    // previous VC's async deinit (Harakiri cleanup).
-    private static var sharedLobby: TestDeviceScannerViewController!
-    private var lobby: DeviceScannerViewController!
-    private var lobbyWrapper: Weak<DeviceScannerViewController>!
-
-    override class func setUp() {
-        super.setUp()
-        sharedLobby = TestDeviceScannerViewController()
-    }
-
-    override class func tearDown() {
-        sharedLobby = nil
-        super.tearDown()
-    }
+    private var lobby: FakeScannerLobby!
+    private var lobbyWrapper: WeakScannerLobby!
 
     override func setUp() {
         super.setUp()
@@ -150,8 +133,8 @@ class RemoteCamSessionTests: XCTestCase {
         session = system.actorForRef(ref: ref!) as! TestableRemoteCamSession
         peer = MCPeerID(displayName: "TestPeer")
 
-        lobby = Self.sharedLobby
-        lobbyWrapper = Weak(lobby)
+        lobby = FakeScannerLobby()
+        lobbyWrapper = WeakScannerLobby(lobby)
 
         fakeMP = FakeMultipeerService()
         fakeMP.connectedPeers = [peer]
@@ -273,7 +256,7 @@ class RemoteCamSessionTests: XCTestCase {
     func testConnectedStateNilLobbyPopsToScanning() {
         pushScanningState()
 
-        let weakLobby = Weak(lobby!)
+        let weakLobby = WeakScannerLobby(lobby!)
         session.become(name: .connected,
                        state: session.connected(lobbyWrapper: weakLobby, peer: peer))
         waitForMailbox(session, test: self)

@@ -114,7 +114,7 @@ public class DeviceScannerViewController: UIViewController {
         )
         remoteCamSession = rcs.ref
         remoteCamSessionInstanceId = rcs.instanceId
-        self.remoteCamSession ! SetViewCtrl(ctrl: self)
+        self.remoteCamSession ! SetScannerLobby(lobby: self)
         scannerViewModel.role = role
         setupSwiftUIView()
     }
@@ -337,5 +337,28 @@ public class DeviceScannerViewController: UIViewController {
         networkBrowser?.cancel()
         stopActorIfCurrent(ref: frameSender, instanceId: frameSenderInstanceId)
         stopActorIfCurrent(ref: remoteCamSession, instanceId: remoteCamSessionInstanceId)
+    }
+}
+
+// MARK: - ScannerLobby
+
+extension DeviceScannerViewController: ScannerLobby {
+    /// Pop navigation back to this screen when scanning restarts.
+    func returnToLobby() {
+        navigationController?.popToViewController(self, animated: true)
+    }
+
+    func presentScanningError() {
+        let alert = UIAlertController(
+            title: NSLocalizedString("Scanning Error", comment: ""),
+            message: NSLocalizedString("Unable to scan for nearby devices. Please check your network settings and try again.", comment: ""),
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(
+            title: NSLocalizedString("OK", comment: ""),
+            style: .default,
+            handler: nil
+        ))
+        present(alert, animated: true)
     }
 }

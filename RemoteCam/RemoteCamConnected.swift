@@ -15,7 +15,7 @@ extension RemoteCamSession {
         RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/RolePickerActor")
     }
 
-    func connected(lobbyWrapper: Weak<DeviceScannerViewController>,
+    func connected(lobbyWrapper: WeakScannerLobby,
                    peer: MCPeerID) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             guard let lobby = lobbyWrapper.value else {

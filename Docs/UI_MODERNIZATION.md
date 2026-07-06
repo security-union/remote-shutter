@@ -102,7 +102,7 @@ the refactor under them:
 - `RemoteCamSession`'s `ViewCtrlActor<DeviceScannerViewController>` binding is the
   remaining coupling — PR 5.
 
-### PR 5: Camera dead-code sweep — **this PR**
+### PR 5: Camera dead-code sweep — **shipped (#126)**
 An audit of CameraViewController (1,729 lines) found it ~65% capture-engine code in a
 UIViewController costume, ~25% real UI, ~10% dead/deprecated. This PR is the deletion
 slice only: `sendCameraCapabilities()` (superseded by the retry-ladder push in
@@ -110,9 +110,19 @@ CamStates.swift), `getCurrentTorchMode()`, `hasTorch()`, `setFlashMode()` (lefto
 prior migration's own comment claimed were "removed"), the deprecated
 `willAnimateRotation` stub, and tombstone comments.
 
-### PR 6: Decouple RemoteCamSession from DeviceScannerViewController
-Re-target the session's lobby binding at a protocol/coordinator (same recipe as PR 4).
-Unblocks shrinking the DeviceScanner shell.
+### PR 6: Decouple RemoteCamSession from DeviceScannerViewController — **this PR**
+- New `ScannerLobby` protocol (peerID, role, scanner view model, `goToRole`,
+  `returnToLobby`, `presentScanningError`) + `SetScannerLobby` + weak box —
+  PR 4's recipe applied to the session.
+- `RemoteCamSession` is a plain `Actor` now (carries ViewCtrlActor's
+  `popToState`/`popToRootState` stop-at-root behavior with it, same state names).
+- Scanning-error alert construction moved from the actor into the VC.
+- All state signatures take `WeakScannerLobby`; `TestDeviceScannerViewController`
+  (the UIKit-dodging test subclass) is replaced by a plain `FakeScannerLobby`.
+- Milestone: no actor is generically bound to a UIKit controller anymore. The one
+  remaining UIKit handle in actor code is the `CameraViewController` passed through
+  `UICmd.BecomeCamera` into the camera states — that's exactly what PR 7's
+  `CaptureEngine` replaces.
 
 ### PR 7: Extract CaptureEngine from CameraViewController
 Move the ~1,100 engine lines (session setup, lens/zoom/capabilities, photo capture +
@@ -204,3 +214,14 @@ With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
 - Also filed for later (not deletions): the unsynchronized three-thread capture-session
   mutation, six-boolean recording state machine, and the iOS 16/17 AVFoundation
   deprecations — all queued for the PR 7 CaptureEngine extraction.
+
+### PR 6 — RemoteCamSession decoupling
+- Wider diff than PR 4 (13 signature swaps across 7 state files) but the same shape;
+  the actual lobby surface turned out to be tiny — most states only pass it through,
+  and only scanning/connected/startScanning ever dereference it.
+- The session kept ViewCtrlActor's exact state names ("waitingForCtrl"/"withCtrl9")
+  so the state machine's shape — and 60+ existing state tests — didn't move.
+- Test scaffolding upgrade as a side effect: `TestDeviceScannerViewController`,
+  a subclass whose whole job was dodging UIKit landmines in tests, died; a
+  12-line `FakeScannerLobby` took its place.
+- 371/371 green on the first full run after the conversion.

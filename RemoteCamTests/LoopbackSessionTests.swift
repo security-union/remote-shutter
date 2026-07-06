@@ -104,12 +104,12 @@ class LoopbackSessionTests: XCTestCase {
     private var cameraTransport: LoopbackMultipeerService!
     private var cameraAlerts: FakeAlertPresenter!
 
-    private static var sharedLobby: TestDeviceScannerViewController!
-    private var lobbyWrapper: Weak<DeviceScannerViewController>!
+    private static var sharedLobby: FakeScannerLobby!
+    private var lobbyWrapper: WeakScannerLobby!
 
     override class func setUp() {
         super.setUp()
-        sharedLobby = TestDeviceScannerViewController()
+        sharedLobby = FakeScannerLobby()
     }
 
     override class func tearDown() {
@@ -140,7 +140,7 @@ class LoopbackSessionTests: XCTestCase {
         monitorSession.alertPresenter = monitorAlerts
         cameraSession.alertPresenter = cameraAlerts
 
-        lobbyWrapper = Weak(Self.sharedLobby)
+        lobbyWrapper = WeakScannerLobby(Self.sharedLobby)
 
         drainBothSessions()
     }
