@@ -14,7 +14,7 @@ import SwiftUI
 extension RemoteCamSession {
 
     // MARK: - Camera Capabilities Retry Helper
-    private func attemptToSendCapabilities(ctrl: CameraViewController, peer: MCPeerID, attempt: Int, maxAttempts: Int) {
+    private func attemptToSendCapabilities(ctrl: CameraControlling, peer: MCPeerID, attempt: Int, maxAttempts: Int) {
         debugLog("🔍 DEBUG: Attempt \(attempt)/\(maxAttempts) to gather camera capabilities")
         
         ctrl.gatherAllCameraCapabilities()
@@ -57,7 +57,7 @@ extension RemoteCamSession {
     }
     
     func cameraTakingPic(peer: MCPeerID,
-                         ctrl: CameraViewController,
+                         ctrl: CameraControlling,
                          lobby: WeakScannerLobby,
                          sendMediaToPeer: Bool) -> Receive {
         var alertHandle: AlertHandle?
@@ -84,7 +84,7 @@ extension RemoteCamSession {
 
             case let t as UICmd.OnPicture:
                 if let imageData = t.pic {
-                    savePicture(imageData)
+                    photoLibrarySaver(imageData)
                 }
                 ^{ [weak self] in
                     if let h = alertHandle { self?.alertPresenter.dismissAlert(h) }
@@ -124,7 +124,7 @@ extension RemoteCamSession {
     }
 
     func camera(peer: MCPeerID,
-                ctrl: CameraViewController,
+                ctrl: CameraControlling,
                 lobbyWrapper: WeakScannerLobby) -> Receive {
         
         return { [unowned self] (msg: Actor.Message) in

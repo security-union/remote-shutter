@@ -292,4 +292,63 @@ class LoopbackSessionTests: XCTestCase {
 
         XCTAssertEqual(monitorSession.currentStateName(), .scanning)
     }
+
+    // MARK: - Happy-path photo capture with a camera peer
+
+    func testTakePictureHappyPathAcrossTheWire() {
+        connectBothSessions()
+
+        // Camera side: enter the camera state with a fake capture device.
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.sessionRef = cameraRef
+        var cameraSaves: [Data] = []
+        cameraSession.photoLibrarySaver = { data in cameraSaves.append(data) }
+        cameraRef ! UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera)
+        drainBothSessions()
+        XCTAssertEqual(cameraSession.currentStateName(), .camera)
+
+        becomeMonitor(mode: .Photo)
+        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+
+        monitorRef ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
+        drainBothSessions()
+
+        // The fake camera captured exactly once and the photo was saved camera-side.
+        XCTAssertEqual(fakeCamera.takePictureCalls, [true])
+        XCTAssertEqual(cameraSaves, [fakeCamera.photoBytes])
+
+        // Ack + response carrying the picture crossed back to the monitor.
+        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.TakePicAck })
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.TakePicResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertEqual(resps.first?.pic, fakeCamera.photoBytes)
+
+        // Both sides settled back into their steady states, with no errors surfaced.
+        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        XCTAssertEqual(cameraSession.currentStateName(), .camera)
+        XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
+        XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
+    }
+}
+
+// MARK: - Fake camera for happy-path flows
+
+/// A `CameraControlling` fake that "captures" a photo by sending `OnPicture`
+/// back to its session — the same message the real capture callback sends.
+final class LoopbackFakeCamera: FakeWatchCameraController {
+    var sessionRef: ActorRef?
+    let photoBytes = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x42])
+
+    override func takePicture(_ sendMediaToRemote: Bool) {
+        super.takePicture(sendMediaToRemote)
+        if let sessionRef {
+            sessionRef ! UICmd.OnPicture(sender: nil, pic: photoBytes)
+        }
+    }
+
+    override func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
+        RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil)
+    }
 }

@@ -13,7 +13,7 @@ import Photos
 extension RemoteCamSession {
 
     func cameraShootingVideo(peer: MCPeerID,
-                             ctrl: CameraViewController,
+                             ctrl: CameraControlling,
                              lobby: WeakScannerLobby) -> Receive {
         return { [unowned self] (msg: Actor.Message) in
             switch msg {
@@ -83,7 +83,7 @@ extension RemoteCamSession {
     }
 
     func cameraTransmittingVideo(peer: MCPeerID,
-                             ctrl: CameraViewController,
+                             ctrl: CameraControlling,
                              lobby: WeakScannerLobby) -> Receive {
         // No timeout here — video transfer can take arbitrarily long depending on
         // file size and connection speed. Completion, failure, and disconnect are

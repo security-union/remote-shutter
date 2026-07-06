@@ -117,6 +117,7 @@
 		8D834E942E3DF65BDAE055C5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9E06E2C406307CD182CFB2 /* SettingsView.swift */; };
 		8F558AB2F4887617AF3E8FCD /* RemoteShutterWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatchApp.swift */; };
 		8FC594E5A315D918BE429895 /* MonitorActorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B23042ABDA0FD46696039B /* MonitorActorTests.swift */; };
+		99F50887F138FD71CF957A08 /* CameraControlling.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */; };
 		A0C6EAACDA1985B1DD5E8EC0 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50951447985E618A5F3818CD /* WatchConnectivity.framework */; };
 		A31965B5A3A1F59F96002E63 /* RemoteShutterWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 36D2A99A351652C2D0C29B95 /* RemoteShutterWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA0001012E940001000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
@@ -359,6 +360,7 @@
 		99FC5340BB98B2BD307FFA1A /* SoundManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
 		9B8080E0FDE21CFE4B92AEAB /* WatchSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/WatchSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		9C74B20F636B4DD2AB0C6511 /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterTests.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
+		A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraControlling.swift; sourceTree = "<group>"; };
 		AA0001032E940003000A1001 /* AlertPresenting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenting.swift; sourceTree = "<group>"; };
 		AA0001062E940006000A1001 /* UIAlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAlertPresenter.swift; sourceTree = "<group>"; };
 		AA0001202E940020000A1001 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -539,6 +541,7 @@
 				C65DE1A8EACAAA012BE9F840 /* MonitorDisplay.swift */,
 				B78950879170C5D3A3B9B134 /* MonitorActor.swift */,
 				35D7D050D0AB3D3E4F07879D /* ScannerLobby.swift */,
+				A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -1159,6 +1162,7 @@
 				2F485D44C59F540DB49140DD /* MonitorDisplay.swift in Sources */,
 				7BCEB5791B211861A0F6BE60 /* MonitorActor.swift in Sources */,
 				4259A755DF0013E098FD3CCC /* ScannerLobby.swift in Sources */,
+				99F50887F138FD71CF957A08 /* CameraControlling.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
