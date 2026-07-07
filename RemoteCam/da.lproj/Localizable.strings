@@ -14,8 +14,7 @@
 "local_network_benefits_title" = "Øjeblikkelig og Pålidelig";
 "local_network_benefits_description" = "Direkte enhed-til-enhed kommunikation sikrer hurtige svartider og fungerer uden internetforbindelse.";
 
-"local_network_allow" = "Tillad Adgang";
-"local_network_not_now" = "Ikke Nu";
+"local_network_continue" = "Fortsæt";
 "local_network_cancel" = "Annuller";
 "local_network_open_settings" = "Åbn Indstillinger";
 
@@ -33,8 +32,7 @@
 "photos_permission_feature_description" = "Gem automatisk tagne fotos i dit fotobibliotek for nem adgang og deling.";
 "remote_control_feature_title" = "Fjernbetjening";
 "remote_control_feature_description" = "Brug en enhed til at styre kameraet på en anden enhed til gruppefotos, selfies og kreative optagelser.";
-"camera_permissions_allow" = "Tillad Adgang";
-"camera_permissions_not_now" = "Ikke Nu";
+"camera_permissions_continue" = "Fortsæt";
 "camera_permissions_cancel" = "Annuller";
 "camera_permissions_open_settings" = "Åbn Indstillinger";
 

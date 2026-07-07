@@ -110,8 +110,7 @@
 "local_network_benefits_title" = "即时且可靠";
 "local_network_benefits_description" = "设备间直接通信确保快速响应，无需互联网连接即可工作。";
 
-"local_network_allow" = "允许访问";
-"local_network_not_now" = "暂时不要";
+"local_network_continue" = "继续";
 "local_network_cancel" = "取消";
 "local_network_open_settings" = "打开设置";
 
@@ -131,8 +130,7 @@
 "remote_control_feature_title" = "远程控制";
 "remote_control_feature_description" = "使用一台设备控制另一台设备的相机，用于合影、自拍和创意拍摄。";
 
-"camera_permissions_allow" = "允许访问";
-"camera_permissions_not_now" = "暂时不要";
+"camera_permissions_continue" = "继续";
 "camera_permissions_cancel" = "取消";
 "camera_permissions_open_settings" = "打开设置";
 

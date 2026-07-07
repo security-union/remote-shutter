@@ -110,8 +110,7 @@
 "local_network_benefits_title" = "即時で信頼性が高い";
 "local_network_benefits_description" = "デバイス間の直接通信により、高速な応答時間を確保し、インターネット接続なしでも動作します。";
 
-"local_network_allow" = "アクセスを許可";
-"local_network_not_now" = "今はしない";
+"local_network_continue" = "続ける";
 "local_network_cancel" = "キャンセル";
 "local_network_open_settings" = "設定を開く";
 
@@ -131,8 +130,7 @@
 "remote_control_feature_title" = "リモートコントロール";
 "remote_control_feature_description" = "グループ写真、セルフィー、クリエイティブな撮影のために、一つのデバイスで別のデバイスのカメラを操作します。";
 
-"camera_permissions_allow" = "アクセスを許可";
-"camera_permissions_not_now" = "今はしない";
+"camera_permissions_continue" = "続ける";
 "camera_permissions_cancel" = "キャンセル";
 "camera_permissions_open_settings" = "設定を開く";
 

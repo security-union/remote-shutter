@@ -110,8 +110,7 @@
 "local_network_benefits_title" = "Sofort und zuverlässig";
 "local_network_benefits_description" = "Direkte Gerät-zu-Gerät-Kommunikation gewährleistet schnelle Reaktionszeiten und funktioniert ohne Internetverbindung.";
 
-"local_network_allow" = "Zugriff erlauben";
-"local_network_not_now" = "Nicht jetzt";
+"local_network_continue" = "Weiter";
 "local_network_cancel" = "Abbrechen";
 "local_network_open_settings" = "Einstellungen öffnen";
 
@@ -131,8 +130,7 @@
 "remote_control_feature_title" = "Fernsteuerung";
 "remote_control_feature_description" = "Verwenden Sie ein Gerät, um die Kamera auf einem anderen Gerät für Gruppenfotos, Selfies und kreative Aufnahmen zu steuern.";
 
-"camera_permissions_allow" = "Zugriff erlauben";
-"camera_permissions_not_now" = "Nicht jetzt";
+"camera_permissions_continue" = "Weiter";
 "camera_permissions_cancel" = "Abbrechen";
 "camera_permissions_open_settings" = "Einstellungen öffnen";
 

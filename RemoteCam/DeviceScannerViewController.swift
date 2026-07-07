@@ -15,6 +15,7 @@ import dnssd
 let service: String = "RemoteCam"
 let userDefaultsPeerId = "peerID"
 let userDefaultsSpeedRunScanning = "speedrunscanning"
+let userDefaultsLocalNetworkPrimerShown = "localNetworkPrimerShown"
 let remoteShutterUrl = "https://apps.apple.com/us/app/remote-shutter/id633274861"
 
 func generateQRCode(_ string: String) -> UIImage? {
@@ -179,19 +180,23 @@ public class DeviceScannerViewController: UIViewController {
     // MARK: - Scanning
 
     func startScanningDevices() {
-        showScanningPermissionAlert()
+        // App Review 5.1.1(iv): the explainer may precede the system prompt only —
+        // once it has been shown (and the prompt reached), go straight to scanning.
+        if UserDefaults.standard.bool(forKey: userDefaultsLocalNetworkPrimerShown) {
+            checkLocalNetworkAccessAndStartScanning()
+        } else {
+            showScanningPermissionAlert()
+        }
     }
 
     func showScanningPermissionAlert() {
         let permissionView = LocalNetworkPermissionView(
             permissionType: .initial,
             onAllow: { [weak self] in
+                UserDefaults.standard.set(true, forKey: userDefaultsLocalNetworkPrimerShown)
                 self?.dismiss(animated: true) {
                     self?.checkLocalNetworkAccessAndStartScanning()
                 }
-            },
-            onNotNow: { [weak self] in
-                self?.dismiss(animated: true)
             },
             onOpenSettings: { [weak self] in
                 self?.dismiss(animated: true) {
@@ -275,9 +280,6 @@ public class DeviceScannerViewController: UIViewController {
                 self?.dismiss(animated: true) {
                     self?.goToAppSettings()
                 }
-            },
-            onNotNow: { [weak self] in
-                self?.dismiss(animated: true)
             },
             onOpenSettings: { [weak self] in
                 self?.dismiss(animated: true) {
