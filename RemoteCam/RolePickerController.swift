@@ -106,9 +106,6 @@ public class RolePickerController: UIViewController {
                     }
                 }
             },
-            onNotNow: { [weak self] in
-                self?.dismiss(animated: true)
-            },
             onOpenSettings: { [weak self] in
                 self?.dismiss(animated: true) {
                     PermissionManager.shared.openAppSettings()
@@ -146,9 +143,6 @@ public class RolePickerController: UIViewController {
                 self?.dismiss(animated: true) {
                     self?.requestPermissionsAndProceed()
                 }
-            },
-            onNotNow: { [weak self] in
-                self?.dismiss(animated: true)
             },
             onOpenSettings: { [weak self] in
                 self?.dismiss(animated: true) {

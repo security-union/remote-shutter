@@ -6,7 +6,6 @@ struct CameraPermissionsView: View {
     @Environment(\.dismiss) private var dismiss
     let permissionType: PermissionType
     let onAllow: () -> Void
-    let onNotNow: () -> Void
     let onOpenSettings: () -> Void
     
     enum PermissionType {
@@ -93,14 +92,10 @@ struct CameraPermissionsView: View {
                                 .cornerRadius(12)
                             }
                             
-                            if permissionType == .initial {
-                                Button(action: onNotNow) {
-                                    Text(NSLocalizedString("camera_permissions_not_now", comment: ""))
-                                        .font(.body)
-                                        .foregroundColor(.blue)
-                                        .frame(height: 44)
-                                }
-                            } else {
+                            // App Review 5.1.1(iv): the pre-permission message must not offer
+                            // an exit — the only way forward is into the system prompt, so
+                            // `.initial` has no secondary button.
+                            if permissionType == .denied {
                                 Button(action: dismissAction) {
                                     Text(NSLocalizedString("camera_permissions_cancel", comment: ""))
                                         .font(.body)
@@ -144,7 +139,7 @@ struct CameraPermissionsView: View {
     private var primaryButtonTitle: String {
         switch permissionType {
         case .initial:
-            return NSLocalizedString("camera_permissions_allow", comment: "")
+            return NSLocalizedString("camera_permissions_continue", comment: "")
         case .denied:
             return NSLocalizedString("camera_permissions_open_settings", comment: "")
         }
@@ -176,15 +171,13 @@ struct CameraPermissionsView_Previews: PreviewProvider {
             CameraPermissionsView(
                 permissionType: .initial,
                 onAllow: {},
-                onNotNow: {},
                 onOpenSettings: {}
             )
             .previewDisplayName("Initial Permission")
-            
+
             CameraPermissionsView(
                 permissionType: .denied,
                 onAllow: {},
-                onNotNow: {},
                 onOpenSettings: {}
             )
             .previewDisplayName("Access Denied")

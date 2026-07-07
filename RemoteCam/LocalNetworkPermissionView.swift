@@ -4,7 +4,6 @@ struct LocalNetworkPermissionView: View {
     @Environment(\.dismiss) private var dismiss
     let permissionType: PermissionType
     let onAllow: () -> Void
-    let onNotNow: () -> Void
     let onOpenSettings: () -> Void
     
     enum PermissionType {
@@ -88,14 +87,10 @@ struct LocalNetworkPermissionView: View {
                                 .cornerRadius(12)
                             }
                             
-                            if permissionType == .initial {
-                                Button(action: onNotNow) {
-                                    Text(NSLocalizedString("local_network_not_now", comment: ""))
-                                        .font(.body)
-                                        .foregroundColor(.blue)
-                                        .frame(height: 44)
-                                }
-                            } else {
+                            // App Review 5.1.1(iv): the pre-permission message must not offer
+                            // an exit — the only way forward is into the system prompt, so
+                            // `.initial` has no secondary button.
+                            if permissionType == .denied {
                                 Button(action: dismissAction) {
                                     Text(NSLocalizedString("local_network_cancel", comment: ""))
                                         .font(.body)
@@ -139,7 +134,7 @@ struct LocalNetworkPermissionView: View {
     private var primaryButtonTitle: String {
         switch permissionType {
         case .initial:
-            return NSLocalizedString("local_network_allow", comment: "")
+            return NSLocalizedString("local_network_continue", comment: "")
         case .denied:
             return NSLocalizedString("local_network_open_settings", comment: "")
         }
@@ -233,15 +228,13 @@ struct LocalNetworkPermissionView_Previews: PreviewProvider {
             LocalNetworkPermissionView(
                 permissionType: .initial,
                 onAllow: {},
-                onNotNow: {},
                 onOpenSettings: {}
             )
             .previewDisplayName("Initial Permission")
-            
+
             LocalNetworkPermissionView(
                 permissionType: .denied,
                 onAllow: {},
-                onNotNow: {},
                 onOpenSettings: {}
             )
             .previewDisplayName("Access Denied")

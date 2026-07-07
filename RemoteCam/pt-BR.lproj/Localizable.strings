@@ -110,8 +110,7 @@
 "local_network_benefits_title" = "Instantâneo e Confiável";
 "local_network_benefits_description" = "A comunicação direta entre dispositivos garante tempos de resposta rápidos e funciona sem conexão com a internet.";
 
-"local_network_allow" = "Permitir Acesso";
-"local_network_not_now" = "Agora Não";
+"local_network_continue" = "Continuar";
 "local_network_cancel" = "Cancelar";
 "local_network_open_settings" = "Abrir Configurações";
 
@@ -131,8 +130,7 @@
 "remote_control_feature_title" = "Controle Remoto";
 "remote_control_feature_description" = "Use um dispositivo para controlar a câmera em outro dispositivo para fotos em grupo, selfies e fotos criativas.";
 
-"camera_permissions_allow" = "Permitir Acesso";
-"camera_permissions_not_now" = "Agora Não";
+"camera_permissions_continue" = "Continuar";
 "camera_permissions_cancel" = "Cancelar";
 "camera_permissions_open_settings" = "Abrir Configurações";
 

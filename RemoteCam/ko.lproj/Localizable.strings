@@ -110,8 +110,7 @@
 "local_network_benefits_title" = "즉각적이고 안정적";
 "local_network_benefits_description" = "기기 간 직접 통신으로 빠른 응답 시간을 보장하며 인터넷 연결 없이도 작동합니다.";
 
-"local_network_allow" = "접근 허용";
-"local_network_not_now" = "나중에";
+"local_network_continue" = "계속";
 "local_network_cancel" = "취소";
 "local_network_open_settings" = "설정 열기";
 
@@ -131,8 +130,7 @@
 "remote_control_feature_title" = "원격 제어";
 "remote_control_feature_description" = "단체 사진, 셀피, 창의적인 촬영을 위해 하나의 기기로 다른 기기의 카메라를 제어합니다.";
 
-"camera_permissions_allow" = "접근 허용";
-"camera_permissions_not_now" = "나중에";
+"camera_permissions_continue" = "계속";
 "camera_permissions_cancel" = "취소";
 "camera_permissions_open_settings" = "설정 열기";
 
