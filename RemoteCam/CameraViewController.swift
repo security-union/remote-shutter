@@ -46,7 +46,6 @@ public class CameraViewController: UIViewController {
 
     var isRecording: Bool { pipeline.isRecording }
 
-    var captureVideoPreviewLayer: AVCaptureVideoPreviewLayer?
     /// Orientation used for the preview layer and the frame streamer. The engine
     /// keeps its own copy for the output/photo connections (kept in sync here).
     var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
@@ -57,56 +56,23 @@ public class CameraViewController: UIViewController {
     /// Suppresses MultipeerConnectivity-related actor messages (BecomeCamera/UnbecomeCamera).
     var isWatchRemoteMode = false
 
-    // MARK: - Recording Timer Properties
-    private var recordingStartTime: Date?
-    private var recordingTimerController: CameraRecordingTimerViewController?
-    
-    // MARK: - Video Transfer Progress Properties
+    /// One view model drives the whole SwiftUI screen: preview session,
+    /// recording badge/timer, spinner, countdown, status and transfer overlays.
     let cameraViewModel = CameraViewModel()
-    private var progressOverlayController: UIHostingController<CameraProgressOverlayView>?
+    private var screenHostingController: UIHostingController<CameraScreenView>?
 
     // MARK: - Sound Manager for Countdown Chimes
     let cameraSoundManager = SoundManager()
 
-    let recordingView = UIImageView()
-    let activityIndicator = UIActivityIndicatorView(style: .large)
-
-    public override func loadView() {
-        let root = UIView()
-        root.backgroundColor = .black
-
-        recordingView.contentMode = .scaleAspectFit
-        recordingView.translatesAutoresizingMaskIntoConstraints = false
-        root.addSubview(recordingView)
-
-        activityIndicator.color = .white
-        activityIndicator.hidesWhenStopped = true
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        root.addSubview(activityIndicator)
-
-        NSLayoutConstraint.activate([
-            recordingView.widthAnchor.constraint(equalToConstant: 45),
-            recordingView.heightAnchor.constraint(equalToConstant: 45),
-            recordingView.centerXAnchor.constraint(equalTo: root.centerXAnchor),
-            recordingView.topAnchor.constraint(equalTo: root.safeAreaLayoutGuide.topAnchor, constant: 17),
-
-            activityIndicator.centerXAnchor.constraint(equalTo: root.centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: root.centerYAnchor),
-        ])
-
-        self.view = root
-    }
-
     override public func viewDidLoad() {
         super.viewDidLoad()
-        recordingView.image = UIImage.gifImageWithName("recording")
+        view.backgroundColor = .black
+        screenHostingController = embedSwiftUIView(CameraScreenView(viewModel: cameraViewModel))
         wireEngineCallbacks()
         if !isWatchRemoteMode {
             session ! UICmd.BecomeCamera(sender: nil, ctrl: self)
         }
         configureIdleMode()
-        setupRecordingTimerOverlay()
-        setupProgressOverlay()
     }
 
     /// Bridges the non-UI engine back to the actor system and the status overlay.
@@ -129,12 +95,12 @@ public class CameraViewController: UIViewController {
             session ! msg
         }
         pipeline.onRecordingStarted = { [weak self] startTime in
-            self?.recordingStartTime = startTime
-            self?.updateRecordingTimerDisplay()
+            self?.cameraViewModel.recordingStartTime = startTime
+            self?.cameraViewModel.isRecordingTimerActive = true
         }
         pipeline.onRecordingStopped = { [weak self] in
-            self?.recordingStartTime = nil
-            self?.updateRecordingTimerDisplay()
+            self?.cameraViewModel.recordingStartTime = nil
+            self?.cameraViewModel.isRecordingTimerActive = false
         }
         pipeline.onModeChanged = { [weak self] idle in
             if idle {
@@ -175,17 +141,7 @@ public class CameraViewController: UIViewController {
     }
 
     @objc private func showHelpModal() {
-        let helpView = RemoteShutterHelpView(onDismiss: { [weak self] in
-            self?.dismiss(animated: true)
-        })
-        let hostingController = UIHostingController(rootView: helpView)
-        hostingController.modalPresentationStyle = .pageSheet
-        if let sheet = hostingController.sheetPresentationController {
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-            sheet.preferredCornerRadius = 20
-        }
-        present(hostingController, animated: true)
+        presentHelpSheet()
     }
 
     override public func viewDidAppear(_ animated: Bool) {
@@ -202,56 +158,6 @@ public class CameraViewController: UIViewController {
         } else {
             showPermissionErrorView()
         }
-    }
-    
-    // MARK: - Recording Timer Methods
-    private func setupRecordingTimerOverlay() {
-        recordingTimerController = CameraRecordingTimerViewController()
-        
-        if let timerController = recordingTimerController {
-            addChild(timerController)
-            view.addSubview(timerController.view)
-            timerController.didMove(toParent: self)
-            
-            // Setup constraints to fill the entire view
-            timerController.view.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                timerController.view.topAnchor.constraint(equalTo: view.topAnchor),
-                timerController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                timerController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                timerController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-            ])
-        }
-    }
-    
-    // MARK: - Video Transfer Progress Methods
-    private func setupProgressOverlay() {
-        let progressOverlayView = CameraProgressOverlayView(viewModel: cameraViewModel)
-        progressOverlayController = UIHostingController(rootView: progressOverlayView)
-        
-        if let overlayController = progressOverlayController {
-            addChild(overlayController)
-            view.addSubview(overlayController.view)
-            overlayController.didMove(toParent: self)
-            
-            // Setup constraints to fill the entire view
-            overlayController.view.translatesAutoresizingMaskIntoConstraints = false
-            overlayController.view.backgroundColor = UIColor.clear
-            NSLayoutConstraint.activate([
-                overlayController.view.topAnchor.constraint(equalTo: view.topAnchor),
-                overlayController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                overlayController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                overlayController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-            ])
-        }
-    }
-
-    
-    private func updateRecordingTimerDisplay() {
-        recordingTimerController?.updateRecordingState(
-            startTime: recordingStartTime,
-            isRecording: isRecording
-        )
     }
     
     private func showPermissionErrorView() {
@@ -275,9 +181,9 @@ public class CameraViewController: UIViewController {
     }
     
     lazy var didInitializeCamera: Bool = {
-        activityIndicator.startAnimating()
+        cameraViewModel.isBusy = true
         self.setupCamera()
-        activityIndicator.stopAnimating()
+        cameraViewModel.isBusy = false
         return true
     }()
 
@@ -296,25 +202,16 @@ public class CameraViewController: UIViewController {
         }
     }
 
-    public override func viewWillLayoutSubviews() {
-        super.viewWillLayoutSubviews()
-        if captureVideoPreviewLayer != nil {
-            captureVideoPreviewLayer!.frame = self.view.frame
-        }
-    }
-
     var currentCameraMode: RecordingMode = .Photo
 
     func configureIdleMode() {
-        recordingView.isHidden = true
+        cameraViewModel.isRecordingIndicatorVisible = false
         navigationController?.isNavigationBarHidden = false
-        activityIndicator.style = UIActivityIndicatorView.Style.large
-        activityIndicator.color = UIColor.white
         updateCameraStatus()
     }
 
     func configureVideoModeRecording() {
-        recordingView.isHidden = false
+        cameraViewModel.isRecordingIndicatorVisible = true
         navigationController?.isNavigationBarHidden = true
         currentCameraMode = .Video
         updateCameraStatus()
@@ -392,42 +289,29 @@ public class CameraViewController: UIViewController {
         })
     }
 
-    public override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        // The preview is a bare CALayer — it does not track the view through
-        // rotation or layout changes, so keep it glued to the current bounds.
-        captureVideoPreviewLayer?.frame = view.bounds
-    }
-
     func setupCamera() {
-        // The engine configures and starts the session; the preview layer and its
-        // orientation stay here because the engine must not touch views/layers.
+        // The engine configures and starts the session; the SwiftUI screen shows
+        // the preview once the session is published (the engine must not touch
+        // views/layers, and neither does this VC anymore — CameraPreviewView's
+        // backing layer tracks its bounds natively).
         guard engine.setupCamera(sampleBufferDelegate: streamingCoordinator) else { return }
 
-        self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: engine.captureSession)
-        self.captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
         DispatchQueue.main.async {
-            self.captureVideoPreviewLayer!.frame = self.view.frame
-            self.view.layer.insertSublayer(self.captureVideoPreviewLayer!, below: self.recordingView.layer)
+            self.cameraViewModel.previewSession = self.engine.captureSession
         }
         DispatchQueue.main.async {
             self.rotateCameraToOrientation(orientation: self.orientation)
         }
     }
 
-    /// Rotates the preview-layer connection and delegates the output/photo
-    /// connections to the engine (which caches the orientation for still capture).
+    /// Rotates the preview connection (via the published orientation) and the
+    /// engine's output/photo connections (cached there for still capture).
     func rotateCameraToOrientation(orientation: UIInterfaceOrientation) {
-        let o = OrientationUtils.transform(o: orientation)
-        if let preview = self.captureVideoPreviewLayer {
-            preview.connection?.videoOrientation = o
-            let hadPhotoConnection = engine.rotateOutputs(orientation: orientation)
-            if hadPhotoConnection {
-                DispatchQueue.main.async {
-                    preview.frame = self.view.bounds
-                }
-            }
-        }
+        // Rotation is meaningless until setupCamera has published the session —
+        // matching the previous guard on the preview layer's existence.
+        guard cameraViewModel.previewSession != nil else { return }
+        cameraViewModel.previewVideoOrientation = OrientationUtils.transform(o: orientation)
+        _ = engine.rotateOutputs(orientation: orientation)
     }
 
     // MARK: - CaptureEngine forwarding

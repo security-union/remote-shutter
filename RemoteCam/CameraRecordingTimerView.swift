@@ -1,11 +1,10 @@
 import SwiftUI
-import UIKit
 
 // MARK: - Camera Recording Timer Overlay
 struct CameraRecordingTimerView: View {
     let recordingStartTime: Date?
     let isRecording: Bool
-    
+
     var body: some View {
         GeometryReader { geometry in
             VStack {
@@ -31,10 +30,10 @@ struct CameraRecordingTimerView: View {
 // MARK: - Camera-Specific Large Recording Timer
 struct CameraRecordingTimer: View {
     @State private var recordingDuration: TimeInterval = 0
-    
+
     let startTime: Date?
     let isRecording: Bool
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Large recording indicator dot
@@ -43,7 +42,7 @@ struct CameraRecordingTimer: View {
                 .frame(width: 24, height: 24) // Double the size
                 .scaleEffect(isRecording ? 1.0 : 0.8)
                 .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isRecording)
-            
+
             // Large recording duration text
             Text(formattedDuration)
                 .font(.system(size: 28, weight: .bold, design: .monospaced)) // Double the size
@@ -70,44 +69,19 @@ struct CameraRecordingTimer: View {
             }
         }
     }
-    
+
     private var formattedDuration: String {
         let minutes = Int(recordingDuration) / 60
         let seconds = Int(recordingDuration) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
-    
+
     private func updateDuration() {
         guard isRecording, let startTime = startTime else {
             recordingDuration = 0
             return
         }
         recordingDuration = Date().timeIntervalSince(startTime)
-    }
-}
-
-// MARK: - UIKit Integration Helper
-class CameraRecordingTimerViewController: UIHostingController<CameraRecordingTimerView> {
-    
-    init() {
-        let timerView = CameraRecordingTimerView(recordingStartTime: nil, isRecording: false)
-        super.init(rootView: timerView)
-        
-        // Make background transparent
-        view.backgroundColor = .clear
-        view.isUserInteractionEnabled = false
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    func updateRecordingState(startTime: Date?, isRecording: Bool) {
-        let updatedView = CameraRecordingTimerView(
-            recordingStartTime: startTime,
-            isRecording: isRecording
-        )
-        rootView = updatedView
     }
 }
 
@@ -120,13 +94,13 @@ struct CameraRecordingTimerView_Previews: PreviewProvider {
                 startTime: Date().addingTimeInterval(-65),
                 isRecording: true
             )
-            
+
             // Regular timer for comparison
             RecordingTimer(
                 startTime: Date().addingTimeInterval(-65),
                 isRecording: true
             )
-            
+
             Text("Camera (top) vs Monitor (bottom) timer sizes")
                 .foregroundColor(.white)
                 .font(.caption)
@@ -134,4 +108,4 @@ struct CameraRecordingTimerView_Previews: PreviewProvider {
         .padding()
         .background(Color.black)
     }
-} 
+}
