@@ -142,12 +142,13 @@ public class CameraViewController: UIViewController {
 
     /// Bridges the non-UI engine back to the actor system and the status overlay.
     private func wireEngineCallbacks() {
-        engine.onPicture = { [weak self] pic, error in
-            guard let self else { return }
+        // Captures the session ref (not self) so an in-flight capture still
+        // reaches the actor if the VC deallocates before the delegate fires.
+        engine.onPicture = { [session] pic, error in
             if let error {
-                self.session ! UICmd.OnPicture(sender: nil, error: error)
+                session ! UICmd.OnPicture(sender: nil, error: error)
             } else if let pic {
-                self.session ! UICmd.OnPicture(sender: nil, pic: pic)
+                session ! UICmd.OnPicture(sender: nil, pic: pic)
             }
         }
         engine.onStatusChanged = { [weak self] in

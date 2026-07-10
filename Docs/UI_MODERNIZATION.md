@@ -261,8 +261,9 @@ With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
   spec and one objective gate: the full suite green. It came back 376/376
   (4 new engine tests) with an honest deviations list — the kind of report you
   want from a contractor.
-- CameraViewController: ~1,670 → ~960 lines. CaptureEngine: 866 lines of pure
-  capture logic with zero UIKit imports beyond orientation enums.
+- CameraViewController: ~1,670 → ~960 lines. CaptureEngine: 866 lines of capture
+  logic with no view code — its only UIKit dependencies are orientation enums and
+  `UIImage` for still cropping.
 - The one redundancy knowingly introduced: after toggleCamera the preview
   rotation re-runs the (idempotent) output rotation. Faithful beats clever in a
   mechanical-move PR.
