@@ -37,11 +37,30 @@ class SnapshotTestCase: XCTestCase {
         // the chrome shows up instead of trusting a fixed delay. On a warm
         // local run the first snapshot already passes.
         var image = snapshot()
-        let deadline = Date(timeIntervalSinceNow: 5)
+        let deadline = Date(timeIntervalSinceNow: 2.5)
         while !hasChrome(image) && Date() < deadline {
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
             CATransaction.flush()
             image = snapshot()
+        }
+
+        // On a headless CI runner a second, detached window may never get a
+        // display slot, so the layer tree stays empty no matter how long we
+        // wait. ImageRenderer draws the SwiftUI tree without any window —
+        // UIKit-backed subviews (gif badge, preview layer) are omitted, but
+        // every SwiftUI element the assertions look for is not.
+        if !hasChrome(image), #available(iOS 16.0, *) {
+            let scenes = UIApplication.shared.connectedScenes
+            print("SnapshotTestCase: window render blank (scenes: \(scenes.count), "
+                  + "states: \(scenes.map { $0.activationState.rawValue })) — "
+                  + "falling back to ImageRenderer for \(name)")
+            let renderer = ImageRenderer(content: screen)
+            renderer.proposedSize = ProposedViewSize(width: window.bounds.width,
+                                                     height: window.bounds.height)
+            renderer.scale = 3
+            if let rendered = renderer.uiImage {
+                image = rendered
+            }
         }
 
         let attachment = XCTAttachment(image: image)
