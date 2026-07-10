@@ -122,6 +122,7 @@
 		AB12CD34EF5601789ABC0DE6 /* FrameStreamingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */; };
 		AB12CD34EF5601789ABC0DE8 /* CameraScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */; };
 		AB12CD34EF5601789ABC0DE4 /* RecordingPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */; };
+		AB12CD34EF5601789ABC0DEA /* CameraScreenSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */; };
 		99F50887F138FD71CF957A08 /* CameraControlling.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */; };
 		A0C6EAACDA1985B1DD5E8EC0 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50951447985E618A5F3818CD /* WatchConnectivity.framework */; };
 		A31965B5A3A1F59F96002E63 /* RemoteShutterWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 36D2A99A351652C2D0C29B95 /* RemoteShutterWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -331,6 +332,7 @@
 		AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FrameStreamingCoordinator.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraScreenView.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingPipelineTests.swift; sourceTree = "<group>"; };
+		AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraScreenSnapshotTests.swift; sourceTree = "<group>"; };
 		148A312CF1B445C71094EF0E /* WatchSessionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCam/WatchSessionManager.swift; sourceTree = SOURCE_ROOT; };
 		1681D37E731D371A697244F7 /* Try.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Try.swift; sourceTree = "<group>"; };
 		1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCmdFlatBuffers.swift; sourceTree = "<group>"; };
@@ -584,6 +586,7 @@
 				58B23042ABDA0FD46696039B /* MonitorActorTests.swift */,
 				A342ACE91A767718D76C4C60 /* CaptureEngineTests.swift */,
 				AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */,
+				AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */,
 			);
 			path = RemoteCamTests;
 			sourceTree = "<group>";
@@ -1210,6 +1213,7 @@
 				8FC594E5A315D918BE429895 /* MonitorActorTests.swift in Sources */,
 				E1660E880D768347CB5B3297 /* CaptureEngineTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DE4 /* RecordingPipelineTests.swift in Sources */,
+				AB12CD34EF5601789ABC0DEA /* CameraScreenSnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

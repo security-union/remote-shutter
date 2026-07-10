@@ -380,6 +380,13 @@ it pays off after a min-target bump. Also deferred: threading fix,
   iOS 15 floor it can't replace the orientation path, only shadow it behind
   `#available`. Two code paths is worse than one old one.
 - CameraViewController: 570 → 454 lines, none of them capture logic and none
-  of them manual layout. 385/385 green. The camera screen only exists with a
-  connected peer, so visual parity rides on the SwiftUI previews plus the
-  usual two-device check before release.
+  of them manual layout.
+- The camera screen only exists with a connected peer — so the chrome got
+  snapshot tests instead of a caveat: `CameraScreenSnapshotTests` renders
+  `CameraScreenView` in a real window inside the hosted test bundle across
+  four states (idle, recording, countdown, transfer), attaches the PNGs to
+  the test result, and asserts each render is non-blank. Gotcha: a bare
+  `UIWindow` renders blank in a test host — it must be attached to the host
+  app's `UIWindowScene` before `drawHierarchy` produces pixels. All four
+  states verified visually from the exported attachments; the live preview
+  itself still needs the usual two-device check before release.
