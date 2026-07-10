@@ -10,7 +10,6 @@ import UIKit
 import AVFoundation
 import StoreKit
 import SwiftUI
-import Combine
 
 /**
 Default fps, it would be neat if we would adjust this based on network conditions.
@@ -29,12 +28,21 @@ public class CameraViewController: UIViewController {
     }
 
     /// Owns the capture session, still-photo capture and all camera configuration.
-    /// This VC keeps the preview layer, the frame streamers, and the UI/lifecycle glue.
+    /// This VC keeps the preview layer and the UI/lifecycle glue.
     let engine = CaptureEngine()
 
     /// Owns the asset writer, recording state machine and per-frame writing.
-    /// The VC stays the sample-buffer delegate and forwards recording frames.
     lazy var pipeline = RecordingPipeline(engine: engine)
+
+    /// The capture session's sample-buffer delegate: routes frames to the
+    /// preview streamers and, while recording, to the pipeline. The providers
+    /// read UI state owned here; the sink captures the actor ref, not the VC.
+    lazy var streamingCoordinator = FrameStreamingCoordinator(
+        engine: engine,
+        pipeline: pipeline,
+        orientationProvider: { [weak self] in self?.orientation ?? .portrait },
+        isWatchRemoteMode: { [weak self] in self?.isWatchRemoteMode ?? false },
+        frameSink: { [frameSender] frame in frameSender ! frame })
 
     var isRecording: Bool { pipeline.isRecording }
 
@@ -49,32 +57,6 @@ public class CameraViewController: UIViewController {
     /// Suppresses MultipeerConnectivity-related actor messages (BecomeCamera/UnbecomeCamera).
     var isWatchRemoteMode = false
 
-    /// Dedicated context for the tiny Apple Watch preview, kept off the recording
-    /// pipeline's crop context to avoid cross-queue contention.
-    private let watchPreviewContext = CIContext(options: [.useSoftwareRenderer: false])
-    /// Streams preview frames to the Apple Watch with ack back-pressure and lazy encoding.
-    /// Runs on `videoDataOutputQueue`, where the capture callback hands it sample buffers.
-    private lazy var watchPreviewStreamer = WatchPreviewStreamer(
-        queue: engine.videoDataOutputQueue,
-        maxInFlight: StreamingConfig.default.watchPreviewMaxInFlight,
-        ackTimeout: StreamingConfig.default.watchPreviewAckTimeout)
-    /// Streams preview frames to the phone monitor: paces, encodes (HEIC with
-    /// JPEG fallback), and hands frames to the FrameSender actor.
-    /// Runs on `videoDataOutputQueue`.
-    private lazy var frameStreamer = FrameStreamer { [frameSender] frame in frameSender ! frame }
-    /// Encoder chain for the Watch preview (HEIC with permanent JPEG fallback).
-    /// Runs on `videoDataOutputQueue` via `watchPreviewStreamer.offer`.
-    private lazy var watchFrameEncoders: [FrameEncoding] = {
-        let config = StreamingConfig.default
-        return [
-            HEICFrameEncoder(context: watchPreviewContext,
-                             maxLongEdge: config.watchMaxLongEdge,
-                             quality: config.watchHEICQuality),
-            JPEGFrameEncoder(context: watchPreviewContext,
-                             maxLongEdge: config.watchMaxLongEdge,
-                             quality: config.watchJPEGQuality)
-        ]
-    }()
     // MARK: - Recording Timer Properties
     private var recordingStartTime: Date?
     private var recordingTimerController: CameraRecordingTimerViewController?
@@ -420,7 +402,7 @@ public class CameraViewController: UIViewController {
     func setupCamera() {
         // The engine configures and starts the session; the preview layer and its
         // orientation stay here because the engine must not touch views/layers.
-        guard engine.setupCamera(sampleBufferDelegate: self) else { return }
+        guard engine.setupCamera(sampleBufferDelegate: streamingCoordinator) else { return }
 
         self.captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: engine.captureSession)
         self.captureVideoPreviewLayer!.videoGravity = AVLayerVideoGravity.resizeAspect
@@ -523,8 +505,7 @@ extension CameraViewController {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 if granted {
-                    // The VC stays the audio sample-buffer delegate (captureOutput below).
-                    self.pipeline.startRecording(audioSampleBufferDelegate: self)
+                    self.pipeline.startRecording(audioSampleBufferDelegate: self.streamingCoordinator)
                 } else {
                     // Microphone denied - show prompt and send error to remote
                     self.handleMicrophoneDenied()
@@ -581,51 +562,9 @@ extension CameraViewController {
     }
 }
 
-extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate {
-    public func captureOutput(_ captureOutput: AVCaptureOutput,
-                              didOutput sampleBuffer: CMSampleBuffer,
-                              from connection: AVCaptureConnection) {
-        if connection == engine.videoConnection {
-            sendFrameToMonitor(captureOutput, didOutput: sampleBuffer, from: connection)
-        }
-        if (pipeline.recordingWillBeStarted || pipeline.isRecording) && !pipeline.recordingWillBeStopped {
-            pipeline.processFrame(captureOutput, didOutput: sampleBuffer, from: connection)
-        }
-    }
-
-    public func sendFrameToMonitor(_ captureOutput: AVCaptureOutput,
-                              didOutput sampleBuffer: CMSampleBuffer,
-                              from connection: AVCaptureConnection) {
-        // Watch Remote mode has no MultipeerConnectivity peer — the iPhone is the camera
-        // and the only consumer is the Apple Watch. The streamer applies ack back-pressure
-        // and only invokes the encode when it's actually ready to send.
-        if isWatchRemoteMode {
-            watchPreviewStreamer.offer { [weak self] in self?.watchPreviewImageData(from: sampleBuffer) }
-            return
-        }
-
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer),
-              let device = self.engine.videoDeviceInput?.device else { return }
-        frameStreamer.handle(pixelBuffer: pixelBuffer,
-                             position: device.position,
-                             orientation: self.orientation,
-                             fps: fps)
-    }
-
-    /// Builds a compact still of the current frame for the Apple Watch live
-    /// preview: long edge ~320 px (matching the Watch screen width), HEIC when
-    /// the hardware supports it (~half the bytes of JPEG, so roughly double the
-    /// frame rate over the WCSession pipe), JPEG otherwise. The Watch decodes
-    /// either transparently via UIImage(data:). The sample buffer is already
-    /// oriented by `videoConnection.videoOrientation`, so it renders upright.
-    private func watchPreviewImageData(from sampleBuffer: CMSampleBuffer) -> Data? {
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
-        return encodeWithFallback(&watchFrameEncoders, pixelBuffer: pixelBuffer)
-    }
-
+extension CameraViewController {
     /// The Watch acked the in-flight preview frame — let the streamer send the next.
     func acknowledgeWatchPreview() {
-        watchPreviewStreamer.acknowledge()
+        streamingCoordinator.acknowledgeWatchPreview()
     }
-
 }
