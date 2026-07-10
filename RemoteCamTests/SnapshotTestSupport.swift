@@ -14,9 +14,10 @@ class SnapshotTestCase: XCTestCase {
     override func setUp() {
         super.setUp()
         window = UIWindow(frame: CGRect(x: 0, y: 0, width: 393, height: 852)) // iPhone 16
-        // Off-screen windows render blank; attach to the test host's scene.
-        window.windowScene = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }.first
+        // Off-screen windows render blank; attach to the test host's scene,
+        // preferring an active one (CI hosts can hold inactive scenes).
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        window.windowScene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
     }
 
     override func tearDown() {
@@ -30,16 +31,17 @@ class SnapshotTestCase: XCTestCase {
         window.rootViewController = host
         window.makeKeyAndVisible()
         host.view.layoutIfNeeded()
-        // Let SwiftUI commit the first frame (onAppear, published values).
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.3))
 
-        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
-        let image = renderer.image { context in
-            // drawHierarchy needs an on-screen window; fall back to rendering
-            // the layer tree, which works regardless of screen attachment.
-            if !window.drawHierarchy(in: window.bounds, afterScreenUpdates: true) {
-                window.layer.render(in: context.cgContext)
-            }
+        // SwiftUI commits its first frame on the runloop, and headless CI
+        // simulators take noticeably longer than a local machine — poll until
+        // the chrome shows up instead of trusting a fixed delay. On a warm
+        // local run the first snapshot already passes.
+        var image = snapshot()
+        let deadline = Date(timeIntervalSinceNow: 5)
+        while !hasChrome(image) && Date() < deadline {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            CATransaction.flush()
+            image = snapshot()
         }
 
         let attachment = XCTAttachment(image: image)
@@ -49,14 +51,24 @@ class SnapshotTestCase: XCTestCase {
         return image
     }
 
+    private func snapshot() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+        return renderer.image { context in
+            // drawHierarchy needs an on-screen window; fall back to rendering
+            // the layer tree, which works regardless of screen attachment.
+            if !window.drawHierarchy(in: window.bounds, afterScreenUpdates: true) {
+                window.layer.render(in: context.cgContext)
+            }
+        }
+    }
+
     /// A screen that failed to render is a uniform fill; a real one has both
     /// dark background and bright chrome. Samples a coarse pixel grid.
-    func assertHasChrome(_ image: UIImage, file: StaticString = #filePath, line: UInt = #line) {
+    func hasChrome(_ image: UIImage) -> Bool {
         guard let cgImage = image.cgImage,
               let data = cgImage.dataProvider?.data,
               let bytes = CFDataGetBytePtr(data) else {
-            XCTFail("Could not read rendered pixels", file: file, line: line)
-            return
+            return false
         }
         let bytesPerRow = cgImage.bytesPerRow
         let bytesPerPixel = cgImage.bitsPerPixel / 8
@@ -69,8 +81,13 @@ class SnapshotTestCase: XCTestCase {
                 if luminance > 180 { sawBright = true }
             }
         }
-        XCTAssertTrue(sawDark, "Expected the dark screen background", file: file, line: line)
-        XCTAssertTrue(sawBright, "Expected bright chrome (text/badge) over the background", file: file, line: line)
+        return sawDark && sawBright
+    }
+
+    func assertHasChrome(_ image: UIImage, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertTrue(hasChrome(image),
+                      "Expected dark background AND bright chrome in the render",
+                      file: file, line: line)
     }
 
     /// A stand-in for the streamed camera frame: a gradient "scene" with a
