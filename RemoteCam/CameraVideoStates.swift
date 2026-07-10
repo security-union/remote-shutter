@@ -46,6 +46,12 @@ extension RemoteCamSession {
                 }
                 self.sendCommandOrGoToScanning(peer: [peer], msg: resp)
 
+            case let ack as RemoteCmd.StartRecordingVideoAck:
+                // Sent by the recording pipeline once the writer produces its
+                // first frames; forward to the monitor so its recording timer
+                // syncs to the actual start time.
+                self.sendCommandOrGoToScanning(peer: [peer], msg: ack, mode: .reliable)
+
             case let stop as RemoteCmd.StopRecordingVideo:
                 ctrl.stopRecordingVideo(stop.sendMediaToPeer)
                 let ack = RemoteCmd.StopRecordingVideoAck()

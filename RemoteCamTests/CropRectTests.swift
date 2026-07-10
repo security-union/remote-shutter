@@ -3,7 +3,7 @@ import XCTest
 
 final class CropRectTests: XCTestCase {
 
-    typealias CR = CameraViewController
+    typealias CR = CaptureEngine
 
     // MARK: - Helpers
 

@@ -329,12 +329,125 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
         XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
     }
+
+    // MARK: - Happy-path camera-control round trips
+
+    /// Wires a fake camera into the camera-side session and a photo-mode monitor
+    /// on the other side; returns the fake.
+    private func connectCameraAndMonitor(monitorMode: RecordingMode = .Photo) -> LoopbackFakeCamera {
+        connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.sessionRef = cameraRef
+        cameraRef ! UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera)
+        drainBothSessions()
+        becomeMonitor(mode: monitorMode)
+        cameraTransport.sentMessages.removeAll()
+        monitorTransport.sentMessages.removeAll()
+        return fakeCamera
+    }
+
+    func testToggleFlashHappyPathAcrossTheWire() {
+        let fakeCamera = connectCameraAndMonitor()
+
+        monitorRef ! UICmd.ToggleFlash()
+        drainBothSessions()
+
+        // The fake flips .off -> .on and the mode crosses back in the response.
+        XCTAssertEqual(fakeCamera.currentFlashMode, .on)
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ToggleFlashResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertEqual(resps.first?.flashMode, .on)
+        XCTAssertNil(resps.first?.error)
+        // Response unbecomes monitorTogglingFlash back to photo mode.
+        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
+    }
+
+    func testToggleCameraHappyPathCarriesCapabilities() {
+        _ = connectCameraAndMonitor()
+
+        monitorRef ! UICmd.ToggleCamera()
+        drainBothSessions()
+
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ToggleCameraResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNil(resps.first?.error)
+        XCTAssertNotNil(resps.first?.cameraCapabilities,
+                        "toggle response must carry fresh capabilities")
+        XCTAssertEqual(resps.first?.cameraCapabilities?.currentLens, .wideAngle)
+        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+    }
+
+    func testSetZoomHappyPathEchoesFactorAndRange() {
+        let fakeCamera = connectCameraAndMonitor()
+
+        monitorRef ! UICmd.SetZoom(zoomFactor: 2.5)
+        drainBothSessions()
+
+        XCTAssertEqual(fakeCamera.zoomCalls, [2.5])
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetZoomResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertEqual(resps.first?.zoomFactor ?? 0, 2.5, accuracy: 0.001)
+        XCTAssertEqual(resps.first?.zoomRange?.maxZoom ?? 0, 10, accuracy: 0.001)
+        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+    }
+
+    func testSwitchLensHappyPathAcrossTheWire() {
+        let fakeCamera = connectCameraAndMonitor()
+
+        monitorRef ! UICmd.SwitchLens(lensType: .telephoto)
+        drainBothSessions()
+
+        XCTAssertEqual(fakeCamera.lensSwitches, [.telephoto])
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SwitchLensResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertEqual(resps.first?.lensType, .telephoto)
+        XCTAssertNil(resps.first?.error)
+        // Response unbecomes monitorSwitchingLens back to photo mode.
+        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+    }
+
+    /// The full 3-step stop protocol across both machines:
+    /// StopRecordingVideo → StopRecordingVideoAck → StopRecordingVideoResp.
+    func testVideoRecordingStartStopProtocolAcrossTheWire() {
+        let fakeCamera = connectCameraAndMonitor(monitorMode: .Video)
+
+        // Start: monitor's shutter sends StartRecordingVideo.
+        monitorRef ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
+        drainBothSessions()
+
+        XCTAssertEqual(fakeCamera.startRecordingCalls, 1)
+        XCTAssertEqual(cameraSession.currentStateName(), .cameraRecordingVideo)
+        XCTAssertEqual(monitorSession.currentStateName(), .monitorRecordingVideo)
+
+        // The success ack (recording start time, used for the monitor's timer
+        // sync) must be forwarded to the peer, not just the error ack.
+        let startAcks = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.StartRecordingVideoAck }
+        XCTAssertEqual(startAcks.count, 1, "camera must forward the success StartRecordingVideoAck to the monitor")
+        XCTAssertNotNil(startAcks.first?.recordingStartTime)
+
+        // Stop: the same shutter now sends StopRecordingVideo.
+        monitorRef ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
+        drainBothSessions()
+
+        XCTAssertEqual(fakeCamera.stopRecordingCalls, [true])
+        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.StopRecordingVideoAck })
+        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.StopRecordingVideoResp })
+        // Camera popped back to .camera after transmitting; monitor walked
+        // monitorRecordingVideo → monitorWaitingForVideo → .monitor.
+        XCTAssertEqual(cameraSession.currentStateName(), .camera)
+        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
+        XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
+    }
 }
 
 // MARK: - Fake camera for happy-path flows
 
 /// A `CameraControlling` fake that "captures" a photo by sending `OnPicture`
-/// back to its session — the same message the real capture callback sends.
+/// back to its session — the same message the real capture callback sends —
+/// and completes a stopped recording by injecting `StopRecordingVideoResp`,
+/// the way the real pipeline's completion does.
 final class LoopbackFakeCamera: FakeWatchCameraController {
     var sessionRef: ActorRef?
     let photoBytes = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x42])
@@ -343,6 +456,22 @@ final class LoopbackFakeCamera: FakeWatchCameraController {
         super.takePicture(sendMediaToRemote)
         if let sessionRef {
             sessionRef ! UICmd.OnPicture(sender: nil, pic: photoBytes)
+        }
+    }
+
+    override func startRecordingVideo() {
+        super.startRecordingVideo()
+        // The real pipeline sends this to the local session once the writer
+        // produces its first frames (CameraViewController.processFrame).
+        if let sessionRef {
+            sessionRef ! RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date())
+        }
+    }
+
+    override func stopRecordingVideo(_ shouldSendVideo: Bool) {
+        super.stopRecordingVideo(shouldSendVideo)
+        if let sessionRef {
+            sessionRef ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
         }
     }
 
