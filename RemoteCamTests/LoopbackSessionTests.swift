@@ -462,7 +462,7 @@ final class LoopbackFakeCamera: FakeWatchCameraController {
     override func startRecordingVideo() {
         super.startRecordingVideo()
         // The real pipeline sends this to the local session once the writer
-        // produces its first frames (CameraViewController.processFrame).
+        // produces its first frames (RecordingPipeline.processFrame).
         if let sessionRef {
             sessionRef ! RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date())
         }
