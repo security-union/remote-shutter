@@ -119,6 +119,7 @@
 		8FC594E5A315D918BE429895 /* MonitorActorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B23042ABDA0FD46696039B /* MonitorActorTests.swift */; };
 		9667E6BB6F62D30AB6928304 /* CaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */; };
 		AB12CD34EF5601789ABC0DE2 /* RecordingPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE1 /* RecordingPipeline.swift */; };
+		AB12CD34EF5601789ABC0DE6 /* FrameStreamingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */; };
 		AB12CD34EF5601789ABC0DE4 /* RecordingPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */; };
 		99F50887F138FD71CF957A08 /* CameraControlling.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */; };
 		A0C6EAACDA1985B1DD5E8EC0 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50951447985E618A5F3818CD /* WatchConnectivity.framework */; };
@@ -326,6 +327,7 @@
 		0EA55AF5BAC44DD4E4BCB3E3 /* Stack.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Stack.swift; sourceTree = "<group>"; };
 		0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureEngine.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE1 /* RecordingPipeline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingPipeline.swift; sourceTree = "<group>"; };
+		AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FrameStreamingCoordinator.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingPipelineTests.swift; sourceTree = "<group>"; };
 		148A312CF1B445C71094EF0E /* WatchSessionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCam/WatchSessionManager.swift; sourceTree = SOURCE_ROOT; };
 		1681D37E731D371A697244F7 /* Try.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Try.swift; sourceTree = "<group>"; };
@@ -552,6 +554,7 @@
 				A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */,
 				0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */,
 				AB12CD34EF5601789ABC0DE1 /* RecordingPipeline.swift */,
+				AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -1177,6 +1180,7 @@
 				99F50887F138FD71CF957A08 /* CameraControlling.swift in Sources */,
 				9667E6BB6F62D30AB6928304 /* CaptureEngine.swift in Sources */,
 				AB12CD34EF5601789ABC0DE2 /* RecordingPipeline.swift in Sources */,
+				AB12CD34EF5601789ABC0DE6 /* FrameStreamingCoordinator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

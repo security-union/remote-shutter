@@ -152,7 +152,7 @@ Still queued for follow-ups: single owned serial queue (threading fix),
 `RotationCoordinator` (iOS 17) and `maxPhotoDimensions` (iOS 16) migrations,
 recording pipeline extraction.
 
-### PR 9: Extract RecordingPipeline (video recording) — **this PR**
+### PR 9: Extract RecordingPipeline (video recording)
 Same playbook as PR 8 — mechanical move, no behavior/threading changes:
 `RecordingPipeline` (non-UI) owns the asset writer and its inputs, the
 recording state machine, the writing queue, per-frame write/crop, and
@@ -166,10 +166,24 @@ chrome), `onError`, `onPhotosAccessDenied`. Still queued for follow-ups:
 single owned serial queue (threading fix), `RotationCoordinator` (iOS 17)
 and `maxPhotoDimensions` (iOS 16) migrations, frame-streaming extraction.
 
-### PR 10+: Camera SwiftUI chrome
-With capture and recording out, the VC is real UI plus the frame streamers:
-SwiftUI chrome around a `UIViewRepresentable` preview layer.
-`WatchRemoteCameraController` follows.
+### PR 10: Extract FrameStreamingCoordinator (live preview fan-out) — **this PR**
+The last capture code leaves the VC: `FrameStreamingCoordinator` is now the
+capture session's sample-buffer delegate, fanning frames out to the monitor
+`FrameStreamer`, the `WatchPreviewStreamer` (with its HEIC/JPEG encoder
+chain), and — while recording — `pipeline.processFrame`. The VC injects the
+actor sink (`frameSink`, capturing the FrameSender ref) and two providers
+(`orientationProvider`, `isWatchRemoteMode`) so the coordinator never stores
+copies of UI state; `acknowledgeWatchPreview` stays on the VC as a one-line
+`CameraControlling` forwarder. The VC now holds zero capture logic: preview
+layer, overlays, permissions UI, lifecycle, and protocol forwarders only.
+Still queued for follow-ups: single owned serial queue (threading fix),
+`RotationCoordinator` (iOS 17) and `maxPhotoDimensions` (iOS 16) migrations.
+
+### PR 11+: Camera SwiftUI chrome
+With capture, recording and streaming out, the VC is pure UI: SwiftUI chrome
+around a `UIViewRepresentable` preview layer. The natural place for the
+`RotationCoordinator` migration, which also collapses the orientation cache
+shared between VC and engine. `WatchRemoteCameraController` follows.
 
 ## Worklog (blog raw material)
 
@@ -318,3 +332,22 @@ SwiftUI chrome around a `UIViewRepresentable` preview layer.
   for the codec" rounding had never been asserted anywhere.
 - 385/385 green (381 + 4 pipeline tests); the loopback video round-trips —
   including the 3-step stop protocol — passed unchanged across the move.
+
+### PR 10 — FrameStreamingCoordinator extraction
+- The smallest of the three capture extractions (VC 631 → 570 lines,
+  coordinator 122) and the one that retires the milestone: the VC now holds
+  zero capture logic. Three classes, one seam each: engine (session + stills),
+  pipeline (recording), coordinator (the sample-buffer delegate + preview
+  fan-out).
+- Provider closures beat property mirroring: instead of the coordinator
+  keeping its own `orientation`/`isWatchRemoteMode` copies (orientation
+  already lives in two places), it reads the VC's through injected closures —
+  the same cross-thread reads the code did before the move, minus a third
+  copy to keep in sync.
+- No new unit tests, deliberately: the coordinator's fan-out has no
+  device-free surface worth faking (frame routing needs real
+  `AVCaptureConnection`s), and the loopback suite + watch ack path already
+  pin its behavior. 385/385 green, unchanged.
+- Incidental finds: the VC's `import Combine` and `import Photos` had both
+  been freeloading for years — each extraction PR has shed an import the
+  remaining code never used.
