@@ -140,7 +140,7 @@ the loopback harness run the full two-device photo capture (become camera →
 become monitor → TakePic → OnPicture → Ack + Resp with bytes → both sides back
 to steady state) in CI for the first time.
 
-### PR 8: Extract CaptureEngine (configuration + stills) — **this PR**
+### PR 8: Extract CaptureEngine (configuration + stills)
 Mechanical extraction, no behavior/threading changes: `CaptureEngine` (non-UI,
 `NSObject`, the photo-capture delegate) now owns the capture session, device/lens/zoom
 discovery, capabilities, flash/torch intent, quality/format/aspect config, and still
@@ -152,9 +152,24 @@ Still queued for follow-ups: single owned serial queue (threading fix),
 `RotationCoordinator` (iOS 17) and `maxPhotoDimensions` (iOS 16) migrations,
 recording pipeline extraction.
 
-### PR 9+: Camera SwiftUI chrome
-With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
-`UIViewRepresentable` preview layer. `WatchRemoteCameraController` follows.
+### PR 9: Extract RecordingPipeline (video recording) — **this PR**
+Same playbook as PR 8 — mechanical move, no behavior/threading changes:
+`RecordingPipeline` (non-UI) owns the asset writer and its inputs, the
+recording state machine, the writing queue, per-frame write/crop, and
+saving/sending the finished movie. The VC stays the sample-buffer delegate
+(the frame streamers are live preview, not recording) and keeps the
+microphone-permission flow, forwarding recording frames to
+`pipeline.processFrame`. Pipeline↔UI seams: `sendMessage` (actor relay for
+the start ack, stop response and video resource), `onRecordingStarted`/
+`onRecordingStopped` (timer overlay), `onModeChanged` (idle vs recording
+chrome), `onError`, `onPhotosAccessDenied`. Still queued for follow-ups:
+single owned serial queue (threading fix), `RotationCoordinator` (iOS 17)
+and `maxPhotoDimensions` (iOS 16) migrations, frame-streaming extraction.
+
+### PR 10+: Camera SwiftUI chrome
+With capture and recording out, the VC is real UI plus the frame streamers:
+SwiftUI chrome around a `UIViewRepresentable` preview layer.
+`WatchRemoteCameraController` follows.
 
 ## Worklog (blog raw material)
 
@@ -283,3 +298,23 @@ With the engine out, the VC is ~400 lines of real UI: SwiftUI chrome around a
   why nobody noticed. Fix: one forwarding case in `cameraShootingVideo`.
   The loopback harness caught in an afternoon what shipped unnoticed for years —
   because nobody ever watched both phones' timers at once.
+
+### PR 9 — RecordingPipeline extraction
+- The smaller sibling of PR 8: 962 → 632 VC lines; `RecordingPipeline` is 407
+  lines with no UIKit at all. The six-boolean recording state machine moved
+  intact — extraction first, redesign later (still queued behind the
+  single-queue threading fix).
+- The delegate split was the only real design decision: the VC stays the
+  sample-buffer delegate because `captureOutput` fans out to *two* consumers —
+  frame streaming (live preview, stays) and recording (moves). The pipeline
+  gets frames forwarded, mirroring how the audio delegate is passed into
+  `startRecording` the same way PR 8 passed it into `setupCamera`.
+- One seam replaced three actor touchpoints: `sendMessage` relays the start
+  ack, stop response and video resource without the pipeline knowing the actor
+  system — which also made the no-op guards assertable in tests (inject a
+  recorder, assert nothing was sent).
+- New device-free coverage: asset-writer input setup including the 4:3
+  even-rounded crop rect (1920×1080 → 1440×1080 at x=240) — the "must be even
+  for the codec" rounding had never been asserted anywhere.
+- 385/385 green (381 + 4 pipeline tests); the loopback video round-trips —
+  including the 3-step stop protocol — passed unchanged across the move.
