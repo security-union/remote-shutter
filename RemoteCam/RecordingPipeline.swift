@@ -35,7 +35,8 @@ class RecordingPipeline {
     var onRecordingStopped: (() -> Void)?
     /// Chrome update: `idle == true` → idle mode, else video-recording mode. Main thread.
     var onModeChanged: ((_ idle: Bool) -> Void)?
-    /// Unrecoverable start failure ("Unable to start recording").
+    /// Unrecoverable start failure ("Unable to start recording"). Fires on the
+    /// writing queue — hop to main before touching UIKit.
     var onError: ((String) -> Void)?
     /// Photos-library access denied while saving the finished movie. Main thread.
     var onPhotosAccessDenied: (() -> Void)?
@@ -51,11 +52,11 @@ class RecordingPipeline {
     private var readyToRecordVideo: Bool = false
     private var readyToRecordAudio: Bool = false
 
-    var assetWriter: AVAssetWriter?
-    var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
-    var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
+    private var assetWriter: AVAssetWriter?
+    private(set) var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
+    private(set) var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
 
-    let videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
+    private let videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
 
     private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
 
@@ -79,8 +80,12 @@ class RecordingPipeline {
 
             // Setup audio input for video recording
             do {
-                let audioDevice = AVCaptureDevice.default(for: .audio)
-                let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
+                // No microphone (simulator, some iPads) — record without audio.
+                guard let audioDevice = AVCaptureDevice.default(for: .audio) else {
+                    self.startVideoRecordingProcess()
+                    return
+                }
+                let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
 
                 self.engine.captureSession.beginConfiguration()
 
@@ -137,7 +142,8 @@ class RecordingPipeline {
         }
         OperationQueue.main.addOperation { [weak self] in
             guard let self = self else { return }
-            self.onModeChanged?(!self.recordingWillBeStarted && !self.isRecording)
+            let idle = !self.recordingWillBeStarted && !self.isRecording
+            self.onModeChanged?(idle)
         }
     }
 
@@ -165,7 +171,8 @@ class RecordingPipeline {
             }
             OperationQueue.main.addOperation { [weak self] in
                 guard let self = self else { return }
-                self.onModeChanged?(self.recordingWillBeStopped && !self.isRecording)
+                let idle = self.recordingWillBeStopped && !self.isRecording
+                self.onModeChanged?(idle)
             }
         }
     }
@@ -218,7 +225,6 @@ class RecordingPipeline {
         )
 
         sendMessage?(sendVideoMsg)
-        print("📤 DEBUG: Sent SendVideoResource message to actor system")
     }
 
     // MARK: - Asset writer inputs
@@ -348,8 +354,8 @@ class RecordingPipeline {
         }
     }
 
-    func writeSampleBuffer(sampleBuffer: CMSampleBuffer,
-                           ofType mediaType: AVMediaType) {
+    private func writeSampleBuffer(sampleBuffer: CMSampleBuffer,
+                                   ofType mediaType: AVMediaType) {
         if !isRecording {
             return
         }
@@ -362,7 +368,7 @@ class RecordingPipeline {
                 if assetWriter.startWriting() {
                     assetWriter.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
                 } else {
-                    // TODO: Show error
+                    self.onError?(NSLocalizedString("Unable to start recording", comment: ""))
                 }
             }
 

@@ -25,7 +25,7 @@ final class RecordingPipelineTests: XCTestCase {
             extensions: nil,
             formatDescriptionOut: &formatDescription)
         XCTAssertEqual(status, noErr)
-        return formatDescription!
+        return try XCTUnwrap(formatDescription)
     }
 
     func testVideoInputFourThreeCachesEvenCropRectAndAdaptor() throws {
@@ -80,8 +80,9 @@ final class RecordingPipelineTests: XCTestCase {
             allocator: kCFAllocatorDefault, asbd: &asbd, layoutSize: 0, layout: nil,
             magicCookieSize: 0, magicCookie: nil, extensions: nil,
             formatDescriptionOut: &formatDescription), noErr)
+        let audioFormat = try XCTUnwrap(formatDescription)
 
-        XCTAssertTrue(pipeline.setupAssetWriterAudioInput(formatDescription!, assetWriter: writer))
+        XCTAssertTrue(pipeline.setupAssetWriterAudioInput(audioFormat, assetWriter: writer))
         XCTAssertEqual(writer.inputs.count, 1)
         XCTAssertEqual(writer.inputs.first?.mediaType, .audio)
     }

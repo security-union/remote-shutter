@@ -262,7 +262,6 @@ public class CameraViewController: UIViewController {
                 overlayController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
         }
-        print("📱 DEBUG: CameraViewController - Setup progress overlay")
     }
 
     
