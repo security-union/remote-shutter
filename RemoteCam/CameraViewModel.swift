@@ -1,9 +1,22 @@
 import Foundation
 import SwiftUI
 import Combine
+import AVFoundation
 
 // MARK: - Camera View Model
 class CameraViewModel: ObservableObject {
+    // MARK: - Screen Chrome (CameraScreenView)
+    // All set from the main thread by CameraViewController.
+    /// The live capture session, published once the engine has configured it.
+    @Published var previewSession: AVCaptureSession?
+    @Published var previewVideoOrientation: AVCaptureVideoOrientation = .portrait
+    /// The animated "recording" badge — visible while in video mode.
+    @Published var isRecordingIndicatorVisible = false
+    @Published var recordingStartTime: Date?
+    @Published var isRecordingTimerActive = false
+    /// Spinner shown while the capture session is being configured.
+    @Published var isBusy = false
+
     // MARK: - Mode & Quality Status
     @Published var currentMode: RecordingMode = .Photo
     @Published var qualityInfo: String = "1080p 30fps"
@@ -29,7 +42,7 @@ class CameraViewModel: ObservableObject {
     @Published var videoTransferBytesCompleted: Int64 = 0
     @Published var videoTransferBytesTotal: Int64 = 0
     @Published var videoTransferSpeed: Double = 0.0 // bytes per second
-    
+
     // MARK: - Video Transfer Progress Methods
     func startVideoTransfer(totalBytes: Int64) {
         DispatchQueue.main.async {
@@ -40,7 +53,7 @@ class CameraViewModel: ObservableObject {
             self.videoTransferSpeed = 0.0
         }
     }
-    
+
     func updateVideoTransferProgress(completedBytes: Int64, totalBytes: Int64) {
         DispatchQueue.main.async {
             self.videoTransferBytesCompleted = completedBytes
@@ -48,13 +61,13 @@ class CameraViewModel: ObservableObject {
             self.videoTransferProgress = totalBytes > 0 ? Double(completedBytes) / Double(totalBytes) : 0.0
         }
     }
-    
+
     func updateVideoTransferSpeed(_ bytesPerSecond: Double) {
         DispatchQueue.main.async {
             self.videoTransferSpeed = bytesPerSecond
         }
     }
-    
+
     func finishVideoTransfer() {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
@@ -70,12 +83,12 @@ class CameraViewModel: ObservableObject {
             }
         }
     }
-    
+
     var videoTransferSizeText: String {
-        VideoTransferProgressView.formatFileSize(videoTransferBytesCompleted) + " / " + 
+        VideoTransferProgressView.formatFileSize(videoTransferBytesCompleted) + " / " +
         VideoTransferProgressView.formatFileSize(videoTransferBytesTotal)
     }
-    
+
     var videoTransferSpeedText: String {
         VideoTransferProgressView.formatTransferSpeed(videoTransferSpeed)
     }
@@ -130,4 +143,4 @@ class CameraViewModel: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
         }
     }
-} 
+}

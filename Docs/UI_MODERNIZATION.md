@@ -166,7 +166,7 @@ chrome), `onError`, `onPhotosAccessDenied`. Still queued for follow-ups:
 single owned serial queue (threading fix), `RotationCoordinator` (iOS 17)
 and `maxPhotoDimensions` (iOS 16) migrations, frame-streaming extraction.
 
-### PR 10: Extract FrameStreamingCoordinator (live preview fan-out) — **this PR**
+### PR 10: Extract FrameStreamingCoordinator (live preview fan-out)
 The last capture code leaves the VC: `FrameStreamingCoordinator` is now the
 capture session's sample-buffer delegate, fanning frames out to the monitor
 `FrameStreamer`, the `WatchPreviewStreamer` (with its HEIC/JPEG encoder
@@ -179,11 +179,21 @@ layer, overlays, permissions UI, lifecycle, and protocol forwarders only.
 Still queued for follow-ups: single owned serial queue (threading fix),
 `RotationCoordinator` (iOS 17) and `maxPhotoDimensions` (iOS 16) migrations.
 
-### PR 11+: Camera SwiftUI chrome
-With capture, recording and streaming out, the VC is pure UI: SwiftUI chrome
-around a `UIViewRepresentable` preview layer. The natural place for the
-`RotationCoordinator` migration, which also collapses the orientation cache
-shared between VC and engine. `WatchRemoteCameraController` follows.
+### PR 11: Camera SwiftUI chrome — **this PR**
+The camera screen becomes SwiftUI with visual parity: `CameraScreenView`
+(ZStack of full-bleed `CameraPreviewView`, recording badge, spinner, the
+existing timer/countdown/status/transfer overlays composed directly) hosted
+by the now-thin `CameraViewController` via `embedSwiftUIView`, like every
+other screen. `CameraPreviewView` backs its view with
+`AVCaptureVideoPreviewLayer` (`layerClass`), so the layer tracks bounds
+natively — both manual frame-gluing layout callbacks are gone. The VC keeps
+capture ownership, actor glue, permissions flow, nav bar and rotation;
+`CameraViewModel` gains the chrome state (`previewSession`,
+`previewVideoOrientation`, recording badge/timer, `isBusy`).
+`RotationCoordinator` (iOS 17) stays deferred: with an iOS 15 floor it
+cannot replace the orientation path, only duplicate it behind `#available` —
+it pays off after a min-target bump. Also deferred: threading fix,
+`maxPhotoDimensions`, `WatchRemoteCameraController` conversion.
 
 ## Worklog (blog raw material)
 
@@ -351,3 +361,25 @@ shared between VC and engine. `WatchRemoteCameraController` follows.
 - Incidental finds: the VC's `import Combine` and `import Photos` had both
   been freeloading for years — each extraction PR has shed an import the
   remaining code never used.
+
+### PR 11 — camera SwiftUI chrome
+- The setup made the payoff cheap: the overlays were already SwiftUI behind
+  three separate `UIHostingController` child-VC dances. Composing them in one
+  `CameraScreenView` ZStack deleted all three (plus `loadView`'s manual
+  constraint block) and replaced them with a single `embedSwiftUIView` call —
+  the same shape as every other converted screen.
+- Best deletion: backing the preview with `layerClass =
+  AVCaptureVideoPreviewLayer` killed both layout callbacks whose only job was
+  re-gluing a bare CALayer to the view bounds on every rotation — the layer
+  now *is* the view's layer.
+- `CameraRecordingTimerViewController` — a hosting wrapper whose whole API was
+  rebuilding its rootView on every state change — became dead code the moment
+  the timer view got composed directly; deleted along with `showHelpModal`,
+  a byte-for-byte duplicate of the shared `presentHelpSheet()`.
+- RotationCoordinator got planned in and then deliberately dropped: with an
+  iOS 15 floor it can't replace the orientation path, only shadow it behind
+  `#available`. Two code paths is worse than one old one.
+- CameraViewController: 570 → 454 lines, none of them capture logic and none
+  of them manual layout. 385/385 green. The camera screen only exists with a
+  connected peer, so visual parity rides on the SwiftUI previews plus the
+  usual two-device check before release.
