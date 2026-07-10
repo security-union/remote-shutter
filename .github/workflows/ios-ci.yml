@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main, develop, master ]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build:
     name: Build and Test
@@ -66,36 +70,22 @@ jobs:
           -configuration Debug \
           test \
           -enableCodeCoverage YES \
+          -resultBundlePath TestResults.xcresult \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO
 
-    - name: Code Coverage Report
+    - name: Generate Coverage Report
       if: success()
       run: |
-        RESULT_PATH=$(find ~/Library/Developer/Xcode/DerivedData \
-          -name "*.xcresult" -type d 2>/dev/null | sort | tail -1)
+        python3 scripts/coverage_report.py TestResults.xcresult coverage.md
+        cat coverage.md >> "$GITHUB_STEP_SUMMARY"
 
-        if [ -z "$RESULT_PATH" ]; then
-          echo "No xcresult bundle found" >> $GITHUB_STEP_SUMMARY
-          exit 0
-        fi
-
-        echo "## Code Coverage Report" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| File | Functions | Coverage |" >> $GITHUB_STEP_SUMMARY
-        echo "|------|-----------|----------|" >> $GITHUB_STEP_SUMMARY
-
-        xcrun xccov view --report "$RESULT_PATH" \
-          --files-for-target RemoteShutter.app \
-        | tail -n +4 \
-        | awk 'NF >= 5 {
-            file = $2;
-            funcs = $(NF-2);
-            cov = $(NF-1) " " $NF;
-            n = split(file, parts, "/");
-            fname = parts[n];
-            if (length(fname) > 0) print "| `" fname "` | " funcs " | " cov " |";
-          }' >> $GITHUB_STEP_SUMMARY
+    - name: Post Coverage Comment
+      if: success() && github.event_name == 'pull_request'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: coverage
+        path: coverage.md
 
     - name: Archive for Release (if main branch)
       if: github.ref == 'refs/heads/main'
