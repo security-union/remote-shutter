@@ -180,33 +180,35 @@ final class RecordingPipelineTests: XCTestCase {
         XCTAssertTrue(acks.first is RemoteCmd.StartRecordingVideoAck)
     }
 
-    /// With no audio device (the simulator, mic-less hardware), recording must
-    /// still start from video frames alone — the audio leg is pre-satisfied at
-    /// start, since no audio frame will ever arrive to satisfy it.
-    func testRecordingStartsWithVideoOnlyWhenAudioUnavailable() throws {
+    /// No usable microphone: recording is REFUSED — no silent-video surprise
+    /// discovered at playback. The pipeline reports MicrophoneAccessDenied
+    /// (the states turn that into error acks for the remote) and surfaces a
+    /// local error; no writer is armed.
+    func testRecordingRefusedWhenAudioUnavailable() throws {
         let engine = CaptureEngine()
         let pipeline = RecordingPipeline(engine: engine)
-        // No audio device: the edge must fire from video frames alone.
         pipeline.configureAudio = { _ in false }
 
-        var acks: [Message] = []
-        let firstAck = expectation(description: "start ack relayed")
-        pipeline.sendMessage = { message in
-            acks.append(message)
-            if acks.count == 1 { firstAck.fulfill() }
-        }
+        var sent: [Message] = []
+        pipeline.sendMessage = { sent.append($0) }
+        var errors: [String] = []
+        pipeline.onError = { errors.append($0) }
 
         pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
         engine.dataOutputQueue.sync {}
 
-        // Video frames only — no synthetic audio buffer this time.
+        XCTAssertFalse(pipeline.isRecording)
+        XCTAssertFalse(pipeline.recordingWillBeStarted, "no writer may be armed")
+        XCTAssertEqual(sent.count, 1)
+        XCTAssertTrue(sent.first is UICmd.MicrophoneAccessDenied)
+        XCTAssertEqual(errors, [NSLocalizedString("Unable to record audio", comment: "")])
+
+        // A stray video frame after the refusal must be a no-op.
         engine.dataOutputQueue.sync {
             pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 0))
         }
-
-        wait(for: [firstAck], timeout: 2.0)
-        XCTAssertTrue(pipeline.isRecording, "video-only recording must reach isRecording")
-        XCTAssertTrue(acks.first is RemoteCmd.StartRecordingVideoAck)
+        XCTAssertFalse(pipeline.isRecording)
+        XCTAssertEqual(sent.count, 1, "no ack may fire")
     }
 
     func testStopWhileIdleSendsNothingAndStaysIdle() {
@@ -229,6 +231,7 @@ final class RecordingPipelineTests: XCTestCase {
     func testDoubleStartIsIgnored() {
         let engine = CaptureEngine()
         let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in true }
 
         pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
         pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())

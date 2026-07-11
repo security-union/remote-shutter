@@ -1140,4 +1140,25 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(harness.lobby.returnsToLobby, 1,
                        "straggler failures after the pop must not restart discovery again")
     }
+
+    /// The pipeline refuses to record when audio can't be configured and
+    /// reports MicrophoneAccessDenied. The recording state must answer the
+    /// monitor with the stop ack + an error response, and return to camera.
+    func testMicrophoneDeniedDuringRecordingAcksErrorAndReturnsToCamera() async {
+        let ctrl = FakeCameraControlling()
+        await harness.coordinator.seed(state: .cameraRecordingVideo,
+                                       lobby: harness.lobbyWrapper,
+                                       peer: harness.peer,
+                                       ctrl: ctrl)
+
+        await harness.deliver(UICmd.MicrophoneAccessDenied(error: NSError(domain: "mic", code: 1002)))
+
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .camera)
+        let sent = harness.fakeMP.sentMessages.map(\.msg)
+        XCTAssertTrue(sent.contains { $0 is RemoteCmd.StopRecordingVideoAck })
+        let resp = sent.compactMap { $0 as? RemoteCmd.StopRecordingVideoResp }.first
+        XCTAssertNotNil(resp, "the monitor must receive a stop response")
+        XCTAssertNotNil(resp?.error, "…carrying the error")
+    }
 }

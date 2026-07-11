@@ -99,13 +99,18 @@ class RecordingPipeline {
             }
 
             // One-way hop: data queue may sync into the session queue, never
-            // the reverse. On failure (no microphone), record without audio:
-            // no audio frames will ever arrive, so pre-satisfy the audio leg —
-            // otherwise the ready edge could never fire and recording would
-            // never start.
-            if !self.configureAudio(audioSampleBufferDelegate) {
-                print("Recording without audio (no audio device or setup failed)")
-                self.readyToRecordAudio = true
+            // the reverse. No usable microphone (hardware missing, or the
+            // audio session is held — e.g. an active phone call): refuse to
+            // record rather than silently produce soundless video the user
+            // only discovers at playback. The session states route this to
+            // error acks on the remote and an error alert on the camera.
+            guard self.configureAudio(audioSampleBufferDelegate) else {
+                let message = NSLocalizedString("Unable to record audio", comment: "")
+                self.sendMessage?(UICmd.MicrophoneAccessDenied(error: NSError(
+                    domain: "RemoteShutterError", code: 1002,
+                    userInfo: [NSLocalizedDescriptionKey: message])))
+                self.onError?(message)
+                return
             }
             self.recordingAspectRatio = self.engine.currentAspectRatioValue()
 
