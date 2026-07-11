@@ -92,10 +92,13 @@ class RecordingPipeline {
             }
 
             // One-way hop: data queue may sync into the session queue, never
-            // the reverse. On failure (no microphone), record without audio —
-            // the same fallback as before.
+            // the reverse. On failure (no microphone), record without audio:
+            // no audio frames will ever arrive, so pre-satisfy the audio leg —
+            // otherwise the ready edge could never fire and recording would
+            // never start.
             if !self.engine.configureAudioForRecording(delegate: audioSampleBufferDelegate) {
                 print("Recording without audio (no audio device or setup failed)")
+                self.readyToRecordAudio = true
             }
             self.recordingAspectRatio = self.engine.currentAspectRatioValue()
 

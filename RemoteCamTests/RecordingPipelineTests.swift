@@ -178,6 +178,33 @@ final class RecordingPipelineTests: XCTestCase {
         XCTAssertTrue(acks.first is RemoteCmd.StartRecordingVideoAck)
     }
 
+    /// With no audio device (the simulator, mic-less hardware), recording must
+    /// still start from video frames alone — the audio leg is pre-satisfied at
+    /// start, since no audio frame will ever arrive to satisfy it.
+    func testRecordingStartsWithVideoOnlyWhenAudioUnavailable() throws {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+
+        var acks: [Message] = []
+        let firstAck = expectation(description: "start ack relayed")
+        pipeline.sendMessage = { message in
+            acks.append(message)
+            if acks.count == 1 { firstAck.fulfill() }
+        }
+
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+
+        // Video frames only — no synthetic audio buffer this time.
+        engine.dataOutputQueue.sync {
+            pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 0))
+        }
+
+        wait(for: [firstAck], timeout: 2.0)
+        XCTAssertTrue(pipeline.isRecording, "video-only recording must reach isRecording")
+        XCTAssertTrue(acks.first is RemoteCmd.StartRecordingVideoAck)
+    }
+
     func testStopWhileIdleSendsNothingAndStaysIdle() {
         let engine = CaptureEngine()
         let pipeline = RecordingPipeline(engine: engine)
