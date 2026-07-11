@@ -6,7 +6,7 @@ import AVFoundation
 // MARK: - Camera View Model
 class CameraViewModel: ObservableObject {
     // MARK: - Screen Chrome (CameraScreenView)
-    // All set from the main thread by CameraViewController.
+    // All set from the main thread by CameraRig and its shell.
     /// The live capture session, published once the engine has configured it.
     @Published var previewSession: AVCaptureSession?
     @Published var previewVideoOrientation: AVCaptureVideoOrientation = .portrait

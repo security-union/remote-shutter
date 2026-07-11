@@ -16,8 +16,8 @@ import UIKit
  to the `RecordingPipeline`. Non-UI — its only UIKit dependency is
  `UIInterfaceOrientation` for the frame streamer.
 
- Owned by `CameraViewController`, which injects the actor sink and two
- providers instead of the coordinator keeping its own copies of UI state.
+ Owned by `CameraRig`, which injects the actor sink and two providers
+ instead of the coordinator keeping its own copies of the rig's state.
  */
 final class FrameStreamingCoordinator: NSObject {
 

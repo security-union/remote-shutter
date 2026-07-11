@@ -156,8 +156,8 @@ extension RemoteCamSession {
                 self.popToRootState()
 
             case is UICmd.UnbecomeCamera:
-                // CameraViewController is being dismissed
-                debugLog("Watch Remote: CameraViewController dismissed")
+                // The camera screen is being dismissed
+                debugLog("Watch Remote: camera screen dismissed")
                 self.watchStatePusher.pushDisconnectedState()
                 self.popToRootState()
 

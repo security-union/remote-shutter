@@ -11,9 +11,9 @@ import AVFoundation
 /// Owns the `AVCaptureSession` and every still-photo / configuration concern for
 /// the camera device: device selection, zoom, lens switching, torch, flash,
 /// video/photo quality, aspect ratio and photo capture. It knows nothing about
-/// views, layers or the actor system — the `CameraViewController` creates the
-/// preview layer, wires the sample-buffer recording pipeline, and forwards
-/// captured photos to the session actor via the `onPicture` callback.
+/// views, layers or the actor system — the `CameraRig` wires the recording
+/// pipeline and frame streaming around it and forwards captured photos to the
+/// session actor via the `onPicture` callback.
 final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     let captureSession: AVCaptureSession = AVCaptureSession()
@@ -33,8 +33,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     var videoDeviceInput: AVCaptureDeviceInput!
 
     /// Orientation the engine last applied to the output/photo connections.
-    /// The `CameraViewController` keeps its own `orientation` for the preview
-    /// layer and passes it in via `rotateOutputs`.
+    /// The `CameraRig` keeps its own `orientation` for the preview and
+    /// passes it in via `rotateOutputs`.
     var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
     var currentVideoResolution: VideoResolution = .hd1080p
     var currentVideoFrameRate: VideoFrameRate = .fps30

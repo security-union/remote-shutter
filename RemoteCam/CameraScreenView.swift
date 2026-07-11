@@ -12,8 +12,8 @@ import AVFoundation
 
 /// The camera device's whole screen: full-bleed live preview under the
 /// recording indicator, activity spinner, recording timer, and the
-/// countdown/status/transfer overlay. Hosted by `CameraViewController`,
-/// which keeps the capture ownership, actor glue and navigation chrome.
+/// countdown/status/transfer overlay. Hosted by `CameraHostController`;
+/// capture ownership and actor glue live on `CameraRig`.
 struct CameraScreenView: View {
     @ObservedObject var viewModel: CameraViewModel
 

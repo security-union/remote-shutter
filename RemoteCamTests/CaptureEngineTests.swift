@@ -2,9 +2,8 @@ import XCTest
 import AVFoundation
 @testable import RemoteShutter
 
-/// Exercises the pure, session-free surface of `CaptureEngine` — the logic that
-/// used to live on `CameraViewController` and required a full view hierarchy to
-/// reach. These paths need no `AVCaptureDevice`, so they run on the simulator.
+/// Exercises the pure, session-free surface of `CaptureEngine`. These paths
+/// need no `AVCaptureDevice`, so they run on the simulator.
 final class CaptureEngineTests: XCTestCase {
 
     func testDefaultConfigurationState() {

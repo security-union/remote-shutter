@@ -9,7 +9,7 @@ import Foundation
 import AVFoundation
 
 /// Everything the session's camera states (phone and Watch paths) need from
-/// the camera screen. `CameraViewController` is the production implementation;
+/// the camera screen. `CameraRig` is the production implementation;
 /// tests substitute a fake so the state machine can be exercised without
 /// AVFoundation or a view hierarchy.
 protocol CameraControlling: AnyObject {
@@ -53,35 +53,5 @@ protocol CameraControlling: AnyObject {
     func exitCamera()
 }
 
-// MARK: - Production implementation
-
-extension CameraViewController: CameraControlling {
-    var isTorchActive: Bool {
-        engine.videoDeviceInput?.device.isTorchActive ?? false
-    }
-
-    var currentFlashMode: AVCaptureDevice.FlashMode {
-        engine.cameraSettings.flashMode
-    }
-
-    func updateTimerCountdown(value: Int) {
-        ^{
-            if value > 0 {
-                self.cameraViewModel.showCountdown(value)
-                self.playCountdownChime(remaining: value)
-            } else if value == 0 {
-                self.cameraViewModel.clearCountdown()
-                self.restoreTorchAfterCountdown()
-            } else {
-                self.cameraViewModel.cancelCountdown()
-                self.restoreTorchAfterCountdown()
-            }
-        }
-    }
-
-    func exitCamera() {
-        ^{
-            self.navigationController?.popViewController(animated: true)
-        }
-    }
-}
+// The production implementation is `CameraRig` (CameraRig.swift) — a plain,
+// non-UI object; the loopback tests drive these states through fakes.
