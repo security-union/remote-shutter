@@ -325,3 +325,8 @@
 "Control from your wrist" = "Control from your wrist";
 "Watch Connected" = "Watch Connected";
 "Open Watch App" = "Open Watch App";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "Turn on Wi-Fi on both devices — required";
+"WifiBannerBody" = "No network needed — the devices connect directly.";
+"WifiEscalationTip" = "Still searching… Check Wi-Fi is on — on this device and the other one. Turning it off in Control Center still counts as off: use Settings > Wi-Fi.";

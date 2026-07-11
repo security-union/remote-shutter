@@ -325,3 +325,8 @@
 "Control from your wrist" = "Steuerung vom Handgelenk";
 "Watch Connected" = "Watch verbunden";
 "Open Watch App" = "Watch-App öffnen";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "WLAN auf beiden Geräten einschalten — erforderlich";
+"WifiBannerBody" = "Kein Netzwerk nötig — die Geräte verbinden sich direkt.";
+"WifiEscalationTip" = "Suche läuft… Prüfe, ob WLAN eingeschaltet ist — auf diesem und dem anderen Gerät. Im Kontrollzentrum deaktiviert zählt als aus: nutze Einstellungen > WLAN.";

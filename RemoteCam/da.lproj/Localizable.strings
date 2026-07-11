@@ -204,3 +204,8 @@
 "Control from your wrist" = "Styr fra dit håndled";
 "Watch Connected" = "Watch tilsluttet";
 "Open Watch App" = "Åbn Watch-appen";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "Slå Wi-Fi til på begge enheder — påkrævet";
+"WifiBannerBody" = "Intet netværk nødvendigt — enhederne forbinder direkte.";
+"WifiEscalationTip" = "Søger stadig… Tjek at Wi-Fi er slået til — på denne enhed og den anden. Slukket i Kontrolcenter tæller stadig som slukket: brug Indstillinger > Wi-Fi.";

@@ -325,3 +325,8 @@
 "Control from your wrist" = "Controle pelo seu pulso";
 "Watch Connected" = "Watch conectado";
 "Open Watch App" = "Abrir app do Watch";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "Ative o Wi-Fi nos dois aparelhos — obrigatório";
+"WifiBannerBody" = "Nenhuma rede é necessária — os aparelhos se conectam diretamente.";
+"WifiEscalationTip" = "Ainda procurando… Verifique se o Wi-Fi está ligado neste aparelho e no outro. Desligar pela Central de Controle também conta como desligado: use Ajustes > Wi-Fi.";

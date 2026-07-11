@@ -350,4 +350,69 @@ final class DeviceScannerViewModelTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
         cancellable.cancel()
     }
+
+    // MARK: - Wi-Fi Escalation
+
+    func testScanStartedAtLifecycle() {
+        let vm = DeviceScannerViewModel()
+        XCTAssertNil(vm.scanStartedAt)
+
+        vm.startedScanning()
+        XCTAssertNotNil(vm.scanStartedAt)
+
+        vm.stoppedScanning()
+        XCTAssertNil(vm.scanStartedAt)
+
+        vm.startedScanning()
+        vm.scanningFailed()
+        XCTAssertNil(vm.scanStartedAt)
+    }
+
+    func testWifiEscalationRequiresScanning() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        let later = start.addingTimeInterval(60)
+        XCTAssertFalse(DeviceScannerViewModel.shouldShowWifiEscalation(
+            isScanning: false, hasPeers: false, scanStartedAt: start, now: later))
+    }
+
+    func testWifiEscalationSuppressedWhenPeersFound() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        let later = start.addingTimeInterval(60)
+        XCTAssertFalse(DeviceScannerViewModel.shouldShowWifiEscalation(
+            isScanning: true, hasPeers: true, scanStartedAt: start, now: later))
+    }
+
+    func testWifiEscalationRequiresStartDate() {
+        XCTAssertFalse(DeviceScannerViewModel.shouldShowWifiEscalation(
+            isScanning: true, hasPeers: false, scanStartedAt: nil,
+            now: Date(timeIntervalSince1970: 1_000)))
+    }
+
+    func testWifiEscalationBeforeThreshold() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        XCTAssertFalse(DeviceScannerViewModel.shouldShowWifiEscalation(
+            isScanning: true, hasPeers: false, scanStartedAt: start,
+            now: start.addingTimeInterval(14.9)))
+    }
+
+    func testWifiEscalationAtAndAfterThreshold() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        XCTAssertTrue(DeviceScannerViewModel.shouldShowWifiEscalation(
+            isScanning: true, hasPeers: false, scanStartedAt: start,
+            now: start.addingTimeInterval(15)))
+        XCTAssertTrue(DeviceScannerViewModel.shouldShowWifiEscalation(
+            isScanning: true, hasPeers: false, scanStartedAt: start,
+            now: start.addingTimeInterval(300)))
+    }
+
+    func testWifiEscalationInstanceMethodReflectsState() {
+        let vm = DeviceScannerViewModel()
+        vm.startedScanning()
+        let start = vm.scanStartedAt ?? Date()
+        XCTAssertFalse(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(5)))
+        XCTAssertTrue(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(20)))
+
+        vm.addPeer(MCPeerID(displayName: "TestDevice"))
+        XCTAssertFalse(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(20)))
+    }
 }

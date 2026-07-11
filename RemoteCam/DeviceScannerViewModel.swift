@@ -11,6 +11,10 @@ final class DeviceScannerViewModel: ObservableObject {
     @Published var hasScanningError: Bool = false
     @Published var isConnecting: Bool = false
 
+    /// When the current scan began. Not @Published: the view samples it on a
+    /// TimelineView clock, so publishing would only cause redundant redraws.
+    private(set) var scanStartedAt: Date?
+
     // MARK: - Role
 
     var role: DeviceRole = .monitor
@@ -62,11 +66,13 @@ final class DeviceScannerViewModel: ObservableObject {
         isScanning = true
         hasScanningError = false
         isConnecting = false
+        scanStartedAt = Date()
     }
 
     func stoppedScanning() {
         isScanning = false
         isConnecting = false
+        scanStartedAt = nil
     }
 
     func scanningFailed() {
@@ -74,6 +80,26 @@ final class DeviceScannerViewModel: ObservableObject {
         hasScanningError = true
         isScanning = false
         isConnecting = false
+        scanStartedAt = nil
+    }
+
+    // MARK: - Wi-Fi Escalation
+
+    /// Whether to show the "still searching — check Wi-Fi" tip. Pure function
+    /// of state + clock: no stored flag or timer exists to go stale.
+    static func shouldShowWifiEscalation(isScanning: Bool,
+                                         hasPeers: Bool,
+                                         scanStartedAt: Date?,
+                                         now: Date) -> Bool {
+        guard isScanning, !hasPeers, let start = scanStartedAt else { return false }
+        return now.timeIntervalSince(start) >= 15
+    }
+
+    func shouldShowWifiEscalation(now: Date) -> Bool {
+        Self.shouldShowWifiEscalation(isScanning: isScanning,
+                                      hasPeers: hasPeers,
+                                      scanStartedAt: scanStartedAt,
+                                      now: now)
     }
 
     func networkAccessDenied() {
