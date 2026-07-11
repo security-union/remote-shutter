@@ -12,9 +12,9 @@ import Foundation
  the wire protocol and the session state machine share. Messages are immutable
  value carriers; the FlatBuffers codec keys on their concrete types.
 
- (Previously `Message` from the vendored Theater framework. The `sender`
- field survives as an opaque reference because a handful of messages carry a
- reply target; new code should prefer explicit seams over sender-replies.)
+ The `sender` field is an opaque reference for the handful of messages that
+ carry a reply target; new code should prefer explicit seams over
+ sender-replies.
  */
 public class Message: NSObject, @unchecked Sendable {
     public let sender: AnyObject?

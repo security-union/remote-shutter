@@ -20,10 +20,6 @@ final class WeakMonitorDisplay {
  to the main queue internally and pokes the `MonitorDisplay`/view model —
  except `show(frame:)`, which stays off-main because frame decode runs on the
  receiver's own queue.
-
- (Successor of `MonitorActor`, whose entire behavior was this routing; the
- message indirection and the Theater mailbox added nothing the session's own
- serialization doesn't already guarantee.)
  */
 public final class MonitorPresenter {
 
