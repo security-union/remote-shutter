@@ -184,6 +184,13 @@ Done ahead of Phase 4 so the rewrite lands on a race-free capture stack:
 - The only cross-domain values (fps, camera position, rig orientation,
   `isRecording`, camera mode) live in `Locked<T>` boxes; frame routing is by
   output identity instead of reading config-owned connections per frame.
+- These boundaries are the pre-actor shape on purpose: `sessionQueue` is the
+  isolation domain a future `actor CaptureEngine` formalizes. When Phase 4
+  makes the camera states async, the `.sync` wrappers become `await` calls
+  and the `Locked` boxes dissolve into actor-isolated state — except the
+  per-frame trio (fps/position/orientation), which stays lock-boxed until an
+  iOS 17 floor unlocks queue-backed actor executors for the AVFoundation
+  delegate path.
 - Thread Sanitizer runs clean over the capture-stack test classes. A
   full-suite TSan run is blocked by Theater itself: the baseline flagged
   races in `Stack.head()` (the become/unbecome stack) and
