@@ -82,21 +82,36 @@ whole suite runs clean under Thread Sanitizer.
 
 ```mermaid
 sequenceDiagram
-    participant U as You (remote)
-    participant M as SessionCoordinator (remote)
-    participant C as SessionCoordinator (camera)
-    participant R as CameraRig
+    actor U as You
+    participant MV as MonitorView<br/>(SwiftUI)
+    participant SCR as SessionCoordinator<br/>(remote · actor)
+    participant MP as MonitorPresenter
+    participant W as MultipeerConnectivity<br/>(FlatBuffers)
+    participant SCC as SessionCoordinator<br/>(camera · actor)
+    participant RIG as CameraRig
+    participant ENG as CaptureEngine<br/>(AVFoundation)
 
-    U->>M: TakePicture
-    M->>C: TakePic (FlatBuffers, reliable)
-    Note over M: → monitorTakingPicture<br/>10s timeout armed
-    C->>R: takePicture()
-    Note over C: → cameraTakingPic
-    R-->>C: OnPicture (photo bytes)
-    C->>M: TakePicAck, then TakePicResp + bytes
-    Note over C: photo saved to camera roll<br/>→ back to camera state
-    M->>M: save to camera roll
-    Note over M: → back to monitor state
+    U->>MV: tap shutter
+    MV->>SCR: UICmd.TakePicture (tell)
+    Note over SCR: state → monitorTakingPicture<br/>alert "Requesting picture"<br/>10s timeout armed
+    SCR->>W: RemoteCmd.TakePic (reliable)
+    W->>SCC: didReceiveMessage → tell
+    SCC->>RIG: takePicture()
+    Note over SCC: state → cameraTakingPic<br/>alert "Taking picture"<br/>10s timeout armed
+    RIG->>ENG: capturePhoto (sessionQueue → main)
+    ENG-->>RIG: onPicture(bytes) — cropped to aspect
+    RIG->>SCC: UICmd.OnPicture (tell)
+    Note over SCC: save to camera roll (Photos)<br/>dismiss alert
+    SCC->>W: TakePicAck (reliable)
+    W->>SCR: tell
+    Note over SCR: alert → "Receiving picture"
+    SCC->>W: TakePicResp + photo bytes (reliable)
+    Note over SCC: state → camera<br/>re-binds FrameSender
+    W->>SCR: tell
+    Note over SCR: save to camera roll (Photos)<br/>dismiss alert · state → monitor
+    SCR->>MP: renderPhotoMode()
+    MP->>MV: view model update (main thread)
+    SCR->>W: RequestFrame — preview resumes
 ```
 
 Every command follows this shape: a `UICmd` from the screen, a `RemoteCmd` across
