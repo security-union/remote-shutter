@@ -80,6 +80,13 @@ class RecordingPipeline {
         self.engine = engine
     }
 
+    /// Seam for the audio-configuration leg. Tests pin it (simulators differ
+    /// on whether an audio capture device exists); production configures the
+    /// engine's audio input on its session queue.
+    lazy var configureAudio: (AVCaptureAudioDataOutputSampleBufferDelegate) -> Bool = { [weak self] delegate in
+        self?.engine.configureAudioForRecording(delegate: delegate) ?? false
+    }
+
     // MARK: - Start / stop
 
     /// Configures the audio leg (on the engine's session queue) and starts
@@ -96,7 +103,7 @@ class RecordingPipeline {
             // no audio frames will ever arrive, so pre-satisfy the audio leg —
             // otherwise the ready edge could never fire and recording would
             // never start.
-            if !self.engine.configureAudioForRecording(delegate: audioSampleBufferDelegate) {
+            if !self.configureAudio(audioSampleBufferDelegate) {
                 print("Recording without audio (no audio device or setup failed)")
                 self.readyToRecordAudio = true
             }

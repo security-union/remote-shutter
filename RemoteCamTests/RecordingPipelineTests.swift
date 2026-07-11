@@ -146,6 +146,8 @@ final class RecordingPipelineTests: XCTestCase {
     func testRecordingStartAcksExactlyOnce() throws {
         let engine = CaptureEngine()
         let pipeline = RecordingPipeline(engine: engine)
+        // Audio "available": the edge must wait for the first audio frame.
+        pipeline.configureAudio = { _ in true }
 
         var acks: [Message] = []
         let firstAck = expectation(description: "start ack relayed")
@@ -184,6 +186,8 @@ final class RecordingPipelineTests: XCTestCase {
     func testRecordingStartsWithVideoOnlyWhenAudioUnavailable() throws {
         let engine = CaptureEngine()
         let pipeline = RecordingPipeline(engine: engine)
+        // No audio device: the edge must fire from video frames alone.
+        pipeline.configureAudio = { _ in false }
 
         var acks: [Message] = []
         let firstAck = expectation(description: "start ack relayed")
