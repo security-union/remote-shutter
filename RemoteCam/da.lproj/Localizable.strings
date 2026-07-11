@@ -206,6 +206,6 @@
 "Open Watch App" = "Åbn Watch-appen";
 
 /* Wi-Fi Guidance (scanner screen) */
-"WifiBannerTitle" = "Slå Wi-Fi til på begge enheder — påkrævet";
+"WifiBannerTitle" = "SLÅ WI-FI TIL PÅ BEGGE ENHEDER — PÅKRÆVET";
 "WifiBannerBody" = "Intet netværk nødvendigt — enhederne forbinder direkte.";
 "WifiEscalationTip" = "Søger stadig… Tjek at Wi-Fi er slået til — på denne enhed og den anden. Slukket i Kontrolcenter tæller stadig som slukket: brug Indstillinger > Wi-Fi.";

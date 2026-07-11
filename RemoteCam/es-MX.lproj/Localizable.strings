@@ -222,6 +222,6 @@
 "Open Watch App" = "Abrir app del Watch";
 
 /* Wi-Fi Guidance (scanner screen) */
-"WifiBannerTitle" = "Activa el Wi-Fi en ambos dispositivos — obligatorio";
+"WifiBannerTitle" = "ACTIVA EL WI-FI EN AMBOS DISPOSITIVOS — OBLIGATORIO";
 "WifiBannerBody" = "No se necesita red — los dispositivos se conectan directamente.";
 "WifiEscalationTip" = "Seguimos buscando… Verifica que el Wi-Fi esté activado en este dispositivo y en el otro. Apagarlo desde el Centro de Control cuenta como apagado: usa Ajustes > Wi-Fi.";

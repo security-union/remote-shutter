@@ -327,6 +327,6 @@
 "Open Watch App" = "Open Watch App";
 
 /* Wi-Fi Guidance (scanner screen) */
-"WifiBannerTitle" = "Turn on Wi-Fi on both devices — required";
+"WifiBannerTitle" = "TURN ON WI-FI ON BOTH DEVICES — REQUIRED";
 "WifiBannerBody" = "No network needed — the devices connect directly.";
 "WifiEscalationTip" = "Still searching… Check Wi-Fi is on — on this device and the other one. Turning it off in Control Center still counts as off: use Settings > Wi-Fi.";

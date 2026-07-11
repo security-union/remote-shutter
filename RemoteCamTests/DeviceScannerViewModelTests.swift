@@ -405,14 +405,22 @@ final class DeviceScannerViewModelTests: XCTestCase {
             now: start.addingTimeInterval(300)))
     }
 
-    func testWifiEscalationInstanceMethodReflectsState() {
+    func testWifiEscalationInstanceMethodReflectsState() throws {
         let vm = DeviceScannerViewModel()
         vm.startedScanning()
-        let start = vm.scanStartedAt ?? Date()
+        let start = try XCTUnwrap(vm.scanStartedAt)
         XCTAssertFalse(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(5)))
         XCTAssertTrue(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(20)))
 
         vm.addPeer(MCPeerID(displayName: "TestDevice"))
         XCTAssertFalse(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(20)))
+    }
+
+    func testWifiEscalationSuppressedAfterStopScanning() throws {
+        let vm = DeviceScannerViewModel()
+        vm.startedScanning()
+        let start = try XCTUnwrap(vm.scanStartedAt)
+        vm.stoppedScanning()
+        XCTAssertFalse(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(60)))
     }
 }

@@ -259,7 +259,6 @@ struct DeviceScannerView: View {
                     .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
-                    .textCase(.uppercase)
                 Text(NSLocalizedString("WifiBannerBody", comment: "Wi-Fi required banner body"))
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -281,11 +280,13 @@ struct DeviceScannerView: View {
 
     /// Status badge plus the time-based "check Wi-Fi" tip. TimelineView
     /// supplies the clock; visibility is recomputed from state every second,
-    /// so there is no timer to cancel and no flag to go stale.
+    /// so there is no timer to cancel and no flag to go stale. Only the tip
+    /// lives inside the TimelineView — the badge doesn't depend on the clock
+    /// and re-rendering it each tick would reset its ProgressView animation.
     private var statusArea: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            VStack(spacing: 10) {
-                statusBadge
+        VStack(spacing: 10) {
+            statusBadge
+            TimelineView(.periodic(from: .now, by: 1)) { context in
                 if viewModel.shouldShowWifiEscalation(now: context.date) {
                     wifiEscalationTip
                 }
