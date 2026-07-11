@@ -47,7 +47,7 @@ SwiftUI Views <-> @MainActor ViewModels <-> SessionCoordinator (Swift actor) <->
   block the actor thread
 
 ### Phase 3: Extract MultipeerService
-**Status: TODO**
+**Status: DONE**
 **Risk: MEDIUM | Effort: 3-5 days**
 
 Create a standalone `MultipeerService` class that encapsulates all
@@ -79,8 +79,11 @@ so the state machine is tested independently of the transport. These tests will 
 that the extraction doesn't break state machine behavior.
 
 ### Phase 4: Replace RemoteCamSession with SessionCoordinator
-**Status: TODO**
-**Risk: HIGH | Effort: 1-2 weeks**
+**Status: DONE (PR #137)** — `SessionCoordinator` is a Swift actor with a FIFO
+`AsyncStream` inbox (Theater's mailbox ordering preserved) and the full
+20-state machine as a compiler-checked enum; `CameraControlling` went async
+(`async throws` replaced `Try` at the seam); the loopback suite passed as
+the behavior gate.
 
 The big rewrite. Replace Theater's `become`/`unbecome`/`popToState` pattern with
 a Swift `actor` using an explicit state enum:
@@ -128,8 +131,9 @@ actor SessionCoordinator {
   video recording flow, and DisconnectPeer handling in sub-states
 
 ### Phase 5: Simplify MonitorActor and RolePickerActor
-**Status: TODO**
-**Risk: MEDIUM | Effort: 2-3 days**
+**Status: DONE (PR #137)** — `MonitorActor` became `MonitorPresenter` (plain
+methods, main-hops internally); the role-picker actor path was never
+registered, so its forwards were dead sends and were removed.
 
 - `MonitorActor` is a message router dispatching to `OperationQueue.main`.
   Replace with a delegate protocol or direct `@MainActor` ViewModel updates.
@@ -137,7 +141,8 @@ actor SessionCoordinator {
   `PeerBecameCamera`). Replace with a delegate callback.
 
 ### Phase 6: Simplify FrameSender
-**Status: TODO**
+**Status: DONE (PR #137)** — queue-confined class, same credit-window
+back-pressure and ack watchdog.
 **Risk: LOW | Effort: 1 day**
 
 Replace Theater actor with a Swift `actor`:
@@ -160,8 +165,9 @@ actor FrameStreamer {
 ```
 
 ### Phase 7: Remove Internalized Theater Code
-**Status: TODO**
-**Risk: LOW | Effort: 1 day**
+**Status: DONE (PR #137)** — `RemoteCam/Theater/` deleted; `Try` relocated
+to `RemoteCam/Try.swift` (still the `MultipeerServiceProtocol.send` return;
+a `Result` conversion is a trivial follow-up).
 
 - Delete `RemoteCam/Theater/` directory (Actor.swift, ActorSystem.swift, etc.)
 - Replace `Try<T>`/`Success<T>`/`Failure<T>` with Swift `Result<T, Error>`
@@ -187,14 +193,13 @@ Done ahead of Phase 4 so the rewrite lands on a race-free capture stack:
 - These boundaries are the pre-actor shape on purpose: `sessionQueue` is the
   isolation domain a future `actor CaptureEngine` formalizes. When Phase 4
   makes the camera states async, the `.sync` wrappers become `await` calls
-  and the `Locked` boxes dissolve into actor-isolated state — except the
-  per-frame trio (fps/position/orientation), which stays lock-boxed until an
-  iOS 17 floor unlocks queue-backed actor executors for the AVFoundation
-  delegate path.
-- Thread Sanitizer runs clean over the capture-stack test classes. A
-  full-suite TSan run is blocked by Theater itself: the baseline flagged
-  races in `Stack.head()` (the become/unbecome stack) and
-  `Actor.actorForRef` (the registry) — direct evidence for Phases 4–7.
+  and the `Locked` boxes dissolve into actor-isolated state. The per-frame
+  trio (fps/position/orientation) stays lock-boxed permanently: the
+  AVFoundation delegate path is queue-delivered, and the app is staying
+  below the iOS 17 floor that queue-backed actor executors would require.
+- Thread Sanitizer runs clean over the FULL suite (Phases 4–7 removed the
+  Theater races — `Stack.head()`, `Actor.actorForRef` — that had blocked
+  whole-suite TSan).
 
 ## Wire Protocol Compatibility
 

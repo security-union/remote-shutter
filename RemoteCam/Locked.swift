@@ -32,4 +32,11 @@ final class Locked<Value>: @unchecked Sendable {
             storage = newValue
         }
     }
+
+    /// Read-modify-write under one lock acquisition (e.g. counters).
+    func mutate(_ transform: (inout Value) -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        transform(&storage)
+    }
 }

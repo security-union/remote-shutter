@@ -21,10 +21,10 @@ func getDeviceInfo() -> (Int, String, String) {
     }
 }
 
-public class RemoteCmd: Actor.Message {
+public class RemoteCmd: Message {
 
     public class StartRecordingVideo: RemoteCmd {
-        public override init(sender: ActorRef?) {
+        public override init(sender: AnyObject?) {
             super.init(sender: sender)
         }
     }
@@ -33,19 +33,19 @@ public class RemoteCmd: Actor.Message {
         let recordingStartTime: Date?
         let error: Error?
 
-        public override init(sender: ActorRef?) {
+        public override init(sender: AnyObject?) {
             self.recordingStartTime = nil
             self.error = nil
             super.init(sender: sender)
         }
 
-        public init(sender: ActorRef?, recordingStartTime: Date?) {
+        public init(sender: AnyObject?, recordingStartTime: Date?) {
             self.recordingStartTime = recordingStartTime
             self.error = nil
             super.init(sender: sender)
         }
 
-        public init(sender: ActorRef?, recordingStartTime: Date?, error: Error?) {
+        public init(sender: AnyObject?, recordingStartTime: Date?, error: Error?) {
             self.recordingStartTime = recordingStartTime
             self.error = error
             super.init(sender: sender)
@@ -55,40 +55,40 @@ public class RemoteCmd: Actor.Message {
     public class StopRecordingVideo: RemoteCmd {
         let sendMediaToPeer: Bool
 
-        public override init(sender: ActorRef?) {
+        public override init(sender: AnyObject?) {
             self.sendMediaToPeer = false
             super.init(sender: sender)
         }
 
-        public init(sender: ActorRef?, sendMediaToPeer: Bool) {
+        public init(sender: AnyObject?, sendMediaToPeer: Bool) {
             self.sendMediaToPeer = sendMediaToPeer
             super.init(sender: sender)
         }
     }
 
     public class StopRecordingVideoAck: RemoteCmd {
-        public override init(sender: ActorRef? = nil) {
+        public override init(sender: AnyObject? = nil) {
             super.init(sender: sender)
         }
     }
 
-    public class StopRecordingVideoResp: Actor.Message {
+    public class StopRecordingVideoResp: Message {
         let video: Data?
         let error: Error?
 
-        public init(sender: ActorRef?, video: Data) {
+        public init(sender: AnyObject?, video: Data) {
             self.video = video
             self.error = nil
             super.init(sender: sender)
         }
 
-        public init(sender: ActorRef?, pic: Data?, error: Error?) {
+        public init(sender: AnyObject?, pic: Data?, error: Error?) {
             self.video = pic
             self.error = error
             super.init(sender: sender)
         }
 
-        public init(sender: ActorRef?, error: Error) {
+        public init(sender: AnyObject?, error: Error) {
             self.video = nil
             self.error = error
             super.init(sender: sender)
@@ -98,40 +98,40 @@ public class RemoteCmd: Actor.Message {
     public class TakePic: RemoteCmd {
         let sendMediaToPeer: Bool
 
-        public override init(sender: ActorRef?) {
+        public override init(sender: AnyObject?) {
             self.sendMediaToPeer = false
             super.init(sender: sender)
         }
 
-        public init(sender: ActorRef?, sendMediaToPeer: Bool) {
+        public init(sender: AnyObject?, sendMediaToPeer: Bool) {
             self.sendMediaToPeer = sendMediaToPeer
             super.init(sender: sender)
         }
     }
 
-    public class TakePicAck: Actor.Message {
-        public override init(sender: ActorRef?) {
+    public class TakePicAck: Message {
+        public override init(sender: AnyObject?) {
             super.init(sender: sender)
         }
     }
 
-    public class TakePicResp: Actor.Message {
+    public class TakePicResp: Message {
         let pic: Data?
         let error: Error?
 
-        public init(sender: ActorRef?, pic: Data) {
+        public init(sender: AnyObject?, pic: Data) {
             self.pic = pic
             self.error = nil
             super.init(sender: sender)
         }
 
-        public init(sender: ActorRef?, pic: Data?, error: Error?) {
+        public init(sender: AnyObject?, pic: Data?, error: Error?) {
             self.pic = pic
             self.error = error
             super.init(sender: sender)
         }
 
-        public init(sender: ActorRef?, error: Error) {
+        public init(sender: AnyObject?, error: Error) {
             self.pic = nil
             self.error = error
             super.init(sender: sender)
@@ -147,7 +147,7 @@ public class RemoteCmd: Actor.Message {
         case heic
     }
 
-    public class SendFrame: Actor.Message {
+    public class SendFrame: Message {
         public let data: Data
         public let fps: NSInteger
         public let camPosition: AVCaptureDevice.Position
@@ -156,7 +156,7 @@ public class RemoteCmd: Actor.Message {
         public let sequenceNumber: UInt32
 
         init(data: Data,
-             sender: ActorRef?,
+             sender: AnyObject?,
              fps: NSInteger,
              camPosition: AVCaptureDevice.Position,
              camOrientation: UIInterfaceOrientation,
@@ -172,13 +172,13 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class RequestFrame: Actor.Message {
-        public override init(sender: ActorRef?) {
+    public class RequestFrame: Message {
+        public override init(sender: AnyObject?) {
             super.init(sender: sender)
         }
     }
 
-    public class OnFrame: Actor.Message {
+    public class OnFrame: Message {
         public let data: Data
         public let peerId: MCPeerID
         public let fps: NSInteger
@@ -188,7 +188,7 @@ public class RemoteCmd: Actor.Message {
         public let sequenceNumber: UInt32
 
         init(data: Data,
-             sender: ActorRef?,
+             sender: AnyObject?,
              peerId: MCPeerID,
              fps: NSInteger,
              camPosition: AVCaptureDevice.Position,
@@ -208,7 +208,7 @@ public class RemoteCmd: Actor.Message {
 
     // MARK: - Zoom Remote Commands
 
-    public class SetZoom: Actor.Message {
+    public class SetZoom: Message {
         public let zoomFactor: CGFloat
 
         public init(zoomFactor: CGFloat) {
@@ -281,7 +281,7 @@ public class RemoteCmd: Actor.Message {
 
     // MARK: - Enhanced Camera Response
 
-    public class CameraCapabilitiesResp: Actor.Message {
+    public class CameraCapabilitiesResp: Message {
         public let frontCamera: CameraInfo?
         public let backCamera: CameraInfo?
         public let currentCamera: AVCaptureDevice.Position
@@ -321,7 +321,7 @@ public class RemoteCmd: Actor.Message {
 
     // MARK: - Lens Switching Remote Commands
 
-    public class SwitchLens: Actor.Message {
+    public class SwitchLens: Message {
         public let lensType: CameraLensType
 
         public init(lensType: CameraLensType) {
@@ -330,7 +330,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class SwitchLensResp: Actor.Message {
+    public class SwitchLensResp: Message {
         public let lensType: CameraLensType?
         public let availableLenses: [CameraLensType]?
         public let currentZoom: CGFloat?
@@ -348,7 +348,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class PeerBecameCamera: Actor.Message {
+    public class PeerBecameCamera: Message {
         let bundleVersion: Int, shortVersion: String, platform: String
 
         class func createWithDefaults() -> PeerBecameCamera {
@@ -364,7 +364,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class PeerBecameMonitor: Actor.Message {
+    public class PeerBecameMonitor: Message {
         let bundleVersion: Int, shortVersion: String, platform: String
 
         class func createWithDefaults() -> PeerBecameMonitor {
@@ -380,13 +380,13 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class ToggleFlash: Actor.Message {
+    public class ToggleFlash: Message {
         public init() {
             super.init(sender: nil)
         }
     }
 
-    public class ToggleFlashResp: Actor.Message {
+    public class ToggleFlashResp: Message {
         public let error: Error?
         public let flashMode: AVCaptureDevice.FlashMode?
 
@@ -399,13 +399,13 @@ public class RemoteCmd: Actor.Message {
 
     // MARK: - Torch Commands for Video Recording
 
-    public class ToggleTorch: Actor.Message {
+    public class ToggleTorch: Message {
         public init() {
             super.init(sender: nil)
         }
     }
 
-    public class ToggleTorchResp: Actor.Message {
+    public class ToggleTorchResp: Message {
         public let error: Error?
         public let torchMode: AVCaptureDevice.TorchMode?
 
@@ -416,7 +416,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class SetTorch: Actor.Message {
+    public class SetTorch: Message {
         public let torchMode: AVCaptureDevice.TorchMode
 
         public init(torchMode: AVCaptureDevice.TorchMode) {
@@ -425,7 +425,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class SetTorchResp: Actor.Message {
+    public class SetTorchResp: Message {
         public let error: Error?
         public let torchMode: AVCaptureDevice.TorchMode?
 
@@ -436,13 +436,13 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class ToggleCamera: Actor.Message {
+    public class ToggleCamera: Message {
         public init() {
             super.init(sender: nil)
         }
     }
 
-    public class ToggleCameraResp: Actor.Message {
+    public class ToggleCameraResp: Message {
         public let error: Error?
         public let cameraCapabilities: CameraCapabilitiesResp?
 
@@ -453,7 +453,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class SetZoomResp: Actor.Message {
+    public class SetZoomResp: Message {
         public let zoomFactor: CGFloat?
         public let currentLens: CameraLensType?
         public let zoomRange: ZoomRange?
@@ -468,7 +468,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class RequestCameraCapabilities: Actor.Message {
+    public class RequestCameraCapabilities: Message {
         public init() {
             super.init(sender: nil)
         }
@@ -476,7 +476,7 @@ public class RemoteCmd: Actor.Message {
 
     // MARK: - Video Quality Commands
 
-    public class SetVideoQuality: Actor.Message {
+    public class SetVideoQuality: Message {
         public let resolution: VideoResolution
         public let frameRate: VideoFrameRate
 
@@ -487,7 +487,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class SetVideoQualityResp: Actor.Message {
+    public class SetVideoQualityResp: Message {
         public let resolution: VideoResolution?
         public let frameRate: VideoFrameRate?
         public let error: Error?
@@ -502,7 +502,7 @@ public class RemoteCmd: Actor.Message {
 
     // MARK: - Photo Quality Commands
 
-    public class SetPhotoQuality: Actor.Message {
+    public class SetPhotoQuality: Message {
         public let format: PhotoFormat
         public let hdrMode: HDRMode
 
@@ -513,7 +513,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class SetPhotoQualityResp: Actor.Message {
+    public class SetPhotoQualityResp: Message {
         public let format: PhotoFormat?
         public let hdrMode: HDRMode?
         public let error: Error?
@@ -528,7 +528,7 @@ public class RemoteCmd: Actor.Message {
 
     // MARK: - Timer Countdown Command
 
-    public class TimerCountdown: Actor.Message {
+    public class TimerCountdown: Message {
         public let value: Int
 
         public init(value: Int) {
@@ -539,7 +539,7 @@ public class RemoteCmd: Actor.Message {
 
     // MARK: - Sync Monitor Settings Command
 
-    public class SyncMonitorSettings: Actor.Message {
+    public class SyncMonitorSettings: Message {
         let mode: RecordingMode
 
         init(mode: RecordingMode) {
@@ -550,7 +550,7 @@ public class RemoteCmd: Actor.Message {
 
     // MARK: - Aspect Ratio Commands
 
-    public class SetAspectRatio: Actor.Message {
+    public class SetAspectRatio: Message {
         public let aspectRatio: AspectRatio
 
         public init(aspectRatio: AspectRatio) {
@@ -559,7 +559,7 @@ public class RemoteCmd: Actor.Message {
         }
     }
 
-    public class SetAspectRatioResp: Actor.Message {
+    public class SetAspectRatioResp: Message {
         public let aspectRatio: AspectRatio?
         public let error: Error?
 

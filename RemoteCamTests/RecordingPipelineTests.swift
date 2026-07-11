@@ -147,7 +147,7 @@ final class RecordingPipelineTests: XCTestCase {
         let engine = CaptureEngine()
         let pipeline = RecordingPipeline(engine: engine)
 
-        var acks: [Actor.Message] = []
+        var acks: [Message] = []
         let firstAck = expectation(description: "start ack relayed")
         pipeline.sendMessage = { message in
             acks.append(message)
@@ -181,7 +181,7 @@ final class RecordingPipelineTests: XCTestCase {
     func testStopWhileIdleSendsNothingAndStaysIdle() {
         let engine = CaptureEngine()
         let pipeline = RecordingPipeline(engine: engine)
-        var sentMessages: [Actor.Message] = []
+        var sentMessages: [Message] = []
         pipeline.sendMessage = { sentMessages.append($0) }
         var stoppedFired = false
         pipeline.onRecordingStopped = { stoppedFired = true }
@@ -209,27 +209,31 @@ final class RecordingPipelineTests: XCTestCase {
 
     // MARK: - Concurrency hammer
 
-    /// Slams the engine's synchronous entry points from many threads at once
+    /// Slams the engine's entry points from many concurrent tasks at once
     /// while config-mutating calls churn. Deadlock shows up as a hang (test
     /// timeout); a confinement mistake shows up under Thread Sanitizer.
-    func testEngineEntryPointsSurviveConcurrentHammering() {
+    func testEngineEntryPointsSurviveConcurrentHammering() async {
         let engine = CaptureEngine()
 
-        DispatchQueue.concurrentPerform(iterations: 200) { iteration in
-            switch iteration % 7 {
-            case 0: _ = engine.setAspectRatio(iteration % 2 == 0 ? .fourThree : .sixteenNine)
-            case 1: _ = engine.currentAspectRatioValue()
-            case 2: _ = engine.statusSnapshot()
-            case 3: _ = engine.getZoomStops()
-            case 4: _ = engine.getCurrentLensType()
-            case 5: _ = engine.desiredTorchOn
-            case 6: _ = engine.setPhotoQuality(format: .jpeg, hdrMode: iteration % 2 == 0 ? .on : .off)
-            default: break
+        await withTaskGroup(of: Void.self) { group in
+            for iteration in 0..<200 {
+                group.addTask {
+                    switch iteration % 7 {
+                    case 0: _ = await engine.setAspectRatio(iteration % 2 == 0 ? .fourThree : .sixteenNine)
+                    case 1: _ = engine.currentAspectRatioValue()
+                    case 2: _ = engine.statusSnapshot()
+                    case 3: _ = await engine.getZoomStops()
+                    case 4: _ = await engine.getCurrentLensType()
+                    case 5: _ = engine.desiredTorchOn
+                    case 6: _ = await engine.setPhotoQuality(format: .jpeg, hdrMode: iteration % 2 == 0 ? .on : .off)
+                    default: break
+                    }
+                }
             }
         }
 
         // The queue is still alive and consistent after the storm.
-        let finalRatio = engine.setAspectRatio(.sixteenNine)
+        let finalRatio = await engine.setAspectRatio(.sixteenNine)
         XCTAssertEqual(finalRatio, .sixteenNine)
     }
 }

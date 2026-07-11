@@ -34,7 +34,7 @@ class RecordingPipeline {
 
     /// Relays actor messages (`StartRecordingVideoAck`, `StopRecordingVideoResp`,
     /// `SendVideoResource`) — the pipeline never touches the actor system directly.
-    var sendMessage: ((Actor.Message) -> Void)?
+    var sendMessage: ((Message) -> Void)?
     /// Recording actually began (first frames written). Main thread. The ack to the
     /// monitor is sent through `sendMessage` right after this fires.
     var onRecordingStarted: ((Date) -> Void)?

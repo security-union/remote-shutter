@@ -2,7 +2,7 @@
 //  LoopbackSessionTests.swift
 //  RemoteShutterTests
 //
-//  Two RemoteCamSession actors wired to each other through an in-process
+//  Two SessionCoordinators wired to each other through an in-process
 //  transport that passes every message through the real FlatBuffers
 //  encode/decode path. This exercises full protocol round trips across
 //  BOTH state machines — the closest thing to a two-device test that can
@@ -11,6 +11,7 @@
 
 import XCTest
 import MultipeerConnectivity
+import AVFoundation
 import Combine
 
 @testable import RemoteShutter
@@ -27,7 +28,7 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
     var progressCancellables = Set<AnyCancellable>()
 
     /// Messages sent from this side, recorded before serialization.
-    var sentMessages: [Actor.Message] = []
+    var sentMessages: [Message] = []
 
     init(peerName: String) {
         localPeerID = MCPeerID(displayName: peerName)
@@ -49,8 +50,8 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
                       toPeer peer: MCPeerID,
                       completion: @escaping (Error?) -> Void) -> Progress? { nil }
 
-    func send(_ msg: Actor.Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Actor.Message> {
+    func send(_ msg: Message, to peers: [MCPeerID],
+              mode: MCSessionSendDataMode) -> Try<Message> {
         sentMessages.append(msg)
 
         guard let data = serializeToFlatBuffer(msg) else {
@@ -88,230 +89,241 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
     }
 }
 
+// MARK: - Fake camera for happy-path flows
+
+/// A `CameraControlling` fake that "captures" a photo by sending `OnPicture`
+/// back to its session — the same message the real capture callback sends —
+/// and completes a stopped recording by injecting `StopRecordingVideoResp`,
+/// the way the real pipeline's completion does.
+final class LoopbackFakeCamera: FakeCameraControlling {
+    weak var coordinator: SessionCoordinator?
+
+    override func takePicture(_ sendMediaToRemote: Bool) {
+        super.takePicture(sendMediaToRemote)
+        coordinator?.tell(UICmd.OnPicture(sender: nil, pic: photoBytes))
+    }
+
+    override func startRecordingVideo() {
+        super.startRecordingVideo()
+        // The real pipeline sends this to the local session once the writer
+        // produces its first frames (RecordingPipeline.processFrame).
+        coordinator?.tell(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date()))
+    }
+
+    override func stopRecordingVideo(_ shouldSendVideo: Bool) {
+        super.stopRecordingVideo(shouldSendVideo)
+        coordinator?.tell(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+    }
+}
+
 // MARK: - Tests
 
 class LoopbackSessionTests: XCTestCase {
 
-    private var system: TestActorSystem!
-
-    private var monitorRef: ActorRef!
-    private var monitorSession: TestableRemoteCamSession!
+    private var monitorCoordinator: SessionCoordinator!
     private var monitorTransport: LoopbackMultipeerService!
     private var monitorAlerts: FakeAlertPresenter!
+    private var monitorPresenter: MonitorPresenter!
 
-    private var cameraRef: ActorRef!
-    private var cameraSession: TestableRemoteCamSession!
+    private var cameraCoordinator: SessionCoordinator!
     private var cameraTransport: LoopbackMultipeerService!
     private var cameraAlerts: FakeAlertPresenter!
 
-    private static var sharedLobby: FakeScannerLobby!
+    private var lobby: FakeScannerLobby!
     private var lobbyWrapper: WeakScannerLobby!
 
-    override class func setUp() {
-        super.setUp()
-        sharedLobby = FakeScannerLobby()
-    }
+    override func setUp() async throws {
+        try await super.setUp()
 
-    override class func tearDown() {
-        sharedLobby = nil
-        super.tearDown()
-    }
-
-    override func setUp() {
-        super.setUp()
-        system = TestActorSystem(name: "loopback")
-
-        monitorRef = system.actorOf(clz: TestableRemoteCamSession.self, name: "monitor-side")
-        monitorSession = (system.actorForRef(ref: monitorRef) as! TestableRemoteCamSession)
-        cameraRef = system.actorOf(clz: TestableRemoteCamSession.self, name: "camera-side")
-        cameraSession = (system.actorForRef(ref: cameraRef) as! TestableRemoteCamSession)
+        monitorCoordinator = SessionCoordinator()
+        cameraCoordinator = SessionCoordinator()
 
         monitorTransport = LoopbackMultipeerService(peerName: "MonitorDevice")
         cameraTransport = LoopbackMultipeerService(peerName: "CameraDevice")
         monitorTransport.remote = cameraTransport
         cameraTransport.remote = monitorTransport
-        monitorTransport.delegate = monitorSession
-        cameraTransport.delegate = cameraSession
-        monitorSession.multipeerService = monitorTransport
-        cameraSession.multipeerService = cameraTransport
+        monitorTransport.delegate = monitorCoordinator
+        cameraTransport.delegate = cameraCoordinator
+        await monitorCoordinator.setMultipeerService(monitorTransport)
+        await cameraCoordinator.setMultipeerService(cameraTransport)
 
         monitorAlerts = FakeAlertPresenter()
         cameraAlerts = FakeAlertPresenter()
-        monitorSession.alertPresenter = monitorAlerts
-        cameraSession.alertPresenter = cameraAlerts
+        await monitorCoordinator.setAlertPresenter(monitorAlerts)
+        await cameraCoordinator.setAlertPresenter(cameraAlerts)
 
-        lobbyWrapper = WeakScannerLobby(Self.sharedLobby)
+        monitorPresenter = MonitorPresenter()
+        lobby = FakeScannerLobby()
+        lobbyWrapper = WeakScannerLobby(lobby)
 
-        drainBothSessions()
+        await drainBothSessions()
     }
 
-    override func tearDown() {
-        drainBothSessions()
-        system.stop()
-        drainBothSessions()
-        system = nil
-        monitorRef = nil
-        monitorSession = nil
+    override func tearDown() async throws {
+        await drainBothSessions()
+        monitorCoordinator.stop()
+        cameraCoordinator.stop()
+        monitorCoordinator = nil
+        cameraCoordinator = nil
         monitorTransport = nil
-        monitorAlerts = nil
-        cameraRef = nil
-        cameraSession = nil
         cameraTransport = nil
+        monitorAlerts = nil
         cameraAlerts = nil
+        monitorPresenter = nil
+        lobby = nil
         lobbyWrapper = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - Helpers
 
-    /// A message hop lands on the peer's mailbox asynchronously, and replies hop
-    /// back. Drain both mailboxes several times so multi-hop exchanges settle.
-    private func drainBothSessions(hops: Int = 6) {
+    /// A message hop lands on the peer's inbox, and replies hop back. Drain
+    /// both inboxes several times so multi-hop exchanges settle.
+    private func drainBothSessions(hops: Int = 6) async {
         for _ in 0..<hops {
-            waitForMailbox(monitorSession, test: self)
-            waitForMailbox(cameraSession, test: self)
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02))
+            await monitorCoordinator.waitForIdle()
+            await cameraCoordinator.waitForIdle()
+            await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
         }
     }
 
     /// Puts both sessions in the connected state, each pointing at the other's peer ID.
-    private func connectBothSessions() {
-        let noOpScanning: Receive = { _ in }
+    private func connectBothSessions() async {
+        await monitorCoordinator.seed(state: .connected, lobby: lobbyWrapper, peer: cameraTransport.localPeerID)
+        await cameraCoordinator.seed(state: .connected, lobby: lobbyWrapper, peer: monitorTransport.localPeerID)
 
-        monitorSession.become(name: .scanning, state: noOpScanning)
-        monitorSession.become(
-            name: .connected,
-            state: monitorSession.connected(lobbyWrapper: lobbyWrapper,
-                                            peer: cameraTransport.localPeerID))
-
-        cameraSession.become(name: .scanning, state: noOpScanning)
-        cameraSession.become(
-            name: .connected,
-            state: cameraSession.connected(lobbyWrapper: lobbyWrapper,
-                                           peer: monitorTransport.localPeerID))
-
-        drainBothSessions()
+        await drainBothSessions()
         monitorTransport.sentMessages.removeAll()
         cameraTransport.sentMessages.removeAll()
     }
 
-    private func becomeMonitor(mode: RecordingMode) {
-        monitorRef ! UICmd.BecomeMonitor(monitorRef, mode: mode)
-        drainBothSessions()
+    private func becomeMonitor(mode: RecordingMode) async {
+        monitorCoordinator.tell(UICmd.BecomeMonitor(presenter: monitorPresenter, mode: mode))
+        await drainBothSessions()
     }
 
     // MARK: - Handshake
 
-    func testBecomeMonitorHandshakeCrossesTheWire() {
-        connectBothSessions()
+    func testBecomeMonitorHandshakeCrossesTheWire() async {
+        await connectBothSessions()
 
-        becomeMonitor(mode: .Photo)
+        await becomeMonitor(mode: .Photo)
 
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
         // The handshake and the photo-mode frame request both crossed the wire.
         XCTAssertTrue(monitorTransport.sentMessages.contains { $0 is RemoteCmd.PeerBecameMonitor })
         XCTAssertTrue(monitorTransport.sentMessages.contains { $0 is RemoteCmd.RequestFrame })
         // The peer decoded PeerBecameMonitor without tripping the incompatibility path.
-        XCTAssertEqual(cameraSession.currentStateName(), .connected)
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .connected)
         XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
     }
 
     // MARK: - Take picture round trip
 
-    func testTakePictureRoundTripAgainstPeerNotInCameraMode() {
-        connectBothSessions()
-        becomeMonitor(mode: .Photo)
+    func testTakePictureRoundTripAgainstPeerNotInCameraMode() async {
+        await connectBothSessions()
+        await becomeMonitor(mode: .Photo)
 
-        monitorRef ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
+        await drainBothSessions()
 
         // TakePic crossed to the peer; the peer (not in camera mode) answered with
         // a TakePicResp carrying an error; the monitor popped back to photo mode
         // and surfaced the error.
         XCTAssertTrue(monitorTransport.sentMessages.contains { $0 is RemoteCmd.TakePic })
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.TakePicResp })
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
         XCTAssertFalse(monitorAlerts.shownErrors.isEmpty)
-        XCTAssertEqual(cameraSession.currentStateName(), .connected)
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .connected)
     }
 
     // MARK: - Toggle flash round trip
 
-    func testToggleFlashRoundTripAgainstPeerNotInCameraMode() {
-        connectBothSessions()
-        becomeMonitor(mode: .Photo)
+    func testToggleFlashRoundTripAgainstPeerNotInCameraMode() async {
+        await connectBothSessions()
+        await becomeMonitor(mode: .Photo)
 
-        monitorRef ! UICmd.ToggleFlash()
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.ToggleFlash())
+        await drainBothSessions()
 
         XCTAssertTrue(monitorTransport.sentMessages.contains { $0 is RemoteCmd.ToggleFlash })
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.ToggleFlashResp })
         // Error response unbecomes monitorTogglingFlash back to photo mode.
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
     }
 
     // MARK: - Video recording round trip
 
-    func testStartRecordingRoundTripAgainstPeerNotInCameraMode() {
-        connectBothSessions()
-        becomeMonitor(mode: .Video)
+    func testStartRecordingRoundTripAgainstPeerNotInCameraMode() async {
+        await connectBothSessions()
+        await becomeMonitor(mode: .Video)
 
-        monitorRef ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
+        await drainBothSessions()
 
         XCTAssertTrue(monitorTransport.sentMessages.contains { $0 is RemoteCmd.StartRecordingVideo })
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.StartRecordingVideoAck })
         // The error ack pops monitorRecordingVideo back to video mode.
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
     }
 
     // MARK: - Zoom round trip
 
-    func testSetZoomRoundTripAgainstPeerNotInCameraMode() {
-        connectBothSessions()
-        becomeMonitor(mode: .Photo)
+    func testSetZoomRoundTripAgainstPeerNotInCameraMode() async {
+        await connectBothSessions()
+        await becomeMonitor(mode: .Photo)
 
-        monitorRef ! UICmd.SetZoom(zoomFactor: 2.5)
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.SetZoom(zoomFactor: 2.5))
+        await drainBothSessions()
 
         let sentZooms = monitorTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetZoom }
         XCTAssertEqual(sentZooms.count, 1)
         XCTAssertEqual(sentZooms[0].zoomFactor, 2.5, accuracy: 0.001)
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.SetZoomResp })
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
     }
 
     // MARK: - Peer disconnect
 
-    func testPeerDisconnectPopsMonitorToScanning() {
-        connectBothSessions()
-        becomeMonitor(mode: .Photo)
+    func testPeerDisconnectPopsMonitorToScanning() async {
+        await connectBothSessions()
+        await becomeMonitor(mode: .Photo)
 
         monitorTransport.simulateRemoteDisconnected()
-        drainBothSessions()
+        await drainBothSessions()
 
-        XCTAssertEqual(monitorSession.currentStateName(), .scanning)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .scanning)
     }
 
     // MARK: - Happy-path photo capture with a camera peer
 
-    func testTakePictureHappyPathAcrossTheWire() {
-        connectBothSessions()
+    func testTakePictureHappyPathAcrossTheWire() async {
+        await connectBothSessions()
 
         // Camera side: enter the camera state with a fake capture device.
         let fakeCamera = LoopbackFakeCamera()
-        fakeCamera.sessionRef = cameraRef
+        fakeCamera.coordinator = cameraCoordinator
         var cameraSaves: [Data] = []
-        cameraSession.photoLibrarySaver = { data in cameraSaves.append(data) }
-        cameraRef ! UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera)
-        drainBothSessions()
-        XCTAssertEqual(cameraSession.currentStateName(), .camera)
+        await cameraCoordinator.setPhotoLibrarySaver { data in cameraSaves.append(data) }
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        let cameraStateAfterBecome = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraStateAfterBecome, .camera)
 
-        becomeMonitor(mode: .Photo)
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        await becomeMonitor(mode: .Photo)
+        let monitorStateAfterBecome = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorStateAfterBecome, .monitor)
 
-        monitorRef ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
+        await drainBothSessions()
 
         // The fake camera captured exactly once and the photo was saved camera-side.
         XCTAssertEqual(fakeCamera.takePictureCalls, [true])
@@ -324,8 +336,10 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(resps.first?.pic, fakeCamera.photoBytes)
 
         // Both sides settled back into their steady states, with no errors surfaced.
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
-        XCTAssertEqual(cameraSession.currentStateName(), .camera)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .camera)
         XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
         XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
     }
@@ -334,40 +348,41 @@ class LoopbackSessionTests: XCTestCase {
 
     /// Wires a fake camera into the camera-side session and a photo-mode monitor
     /// on the other side; returns the fake.
-    private func connectCameraAndMonitor(monitorMode: RecordingMode = .Photo) -> LoopbackFakeCamera {
-        connectBothSessions()
+    private func connectCameraAndMonitor(monitorMode: RecordingMode = .Photo) async -> LoopbackFakeCamera {
+        await connectBothSessions()
         let fakeCamera = LoopbackFakeCamera()
-        fakeCamera.sessionRef = cameraRef
-        cameraRef ! UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera)
-        drainBothSessions()
-        becomeMonitor(mode: monitorMode)
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: monitorMode)
         cameraTransport.sentMessages.removeAll()
         monitorTransport.sentMessages.removeAll()
         return fakeCamera
     }
 
-    func testToggleFlashHappyPathAcrossTheWire() {
-        let fakeCamera = connectCameraAndMonitor()
+    func testToggleFlashHappyPathAcrossTheWire() async {
+        let fakeCamera = await connectCameraAndMonitor()
 
-        monitorRef ! UICmd.ToggleFlash()
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.ToggleFlash())
+        await drainBothSessions()
 
         // The fake flips .off -> .on and the mode crosses back in the response.
-        XCTAssertEqual(fakeCamera.currentFlashMode, .on)
+        XCTAssertEqual(fakeCamera.flashMode, .on)
         let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ToggleFlashResp }
         XCTAssertEqual(resps.count, 1)
         XCTAssertEqual(resps.first?.flashMode, .on)
         XCTAssertNil(resps.first?.error)
         // Response unbecomes monitorTogglingFlash back to photo mode.
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
         XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
     }
 
-    func testToggleCameraHappyPathCarriesCapabilities() {
-        _ = connectCameraAndMonitor()
+    func testToggleCameraHappyPathCarriesCapabilities() async {
+        _ = await connectCameraAndMonitor()
 
-        monitorRef ! UICmd.ToggleCamera()
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.ToggleCamera())
+        await drainBothSessions()
 
         let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ToggleCameraResp }
         XCTAssertEqual(resps.count, 1)
@@ -375,28 +390,30 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertNotNil(resps.first?.cameraCapabilities,
                         "toggle response must carry fresh capabilities")
         XCTAssertEqual(resps.first?.cameraCapabilities?.currentLens, .wideAngle)
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
     }
 
-    func testSetZoomHappyPathEchoesFactorAndRange() {
-        let fakeCamera = connectCameraAndMonitor()
+    func testSetZoomHappyPathEchoesFactorAndRange() async {
+        let fakeCamera = await connectCameraAndMonitor()
 
-        monitorRef ! UICmd.SetZoom(zoomFactor: 2.5)
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.SetZoom(zoomFactor: 2.5))
+        await drainBothSessions()
 
         XCTAssertEqual(fakeCamera.zoomCalls, [2.5])
         let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetZoomResp }
         XCTAssertEqual(resps.count, 1)
         XCTAssertEqual(resps.first?.zoomFactor ?? 0, 2.5, accuracy: 0.001)
         XCTAssertEqual(resps.first?.zoomRange?.maxZoom ?? 0, 10, accuracy: 0.001)
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
     }
 
-    func testSwitchLensHappyPathAcrossTheWire() {
-        let fakeCamera = connectCameraAndMonitor()
+    func testSwitchLensHappyPathAcrossTheWire() async {
+        let fakeCamera = await connectCameraAndMonitor()
 
-        monitorRef ! UICmd.SwitchLens(lensType: .telephoto)
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.SwitchLens(lensType: .telephoto))
+        await drainBothSessions()
 
         XCTAssertEqual(fakeCamera.lensSwitches, [.telephoto])
         let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SwitchLensResp }
@@ -404,21 +421,24 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(resps.first?.lensType, .telephoto)
         XCTAssertNil(resps.first?.error)
         // Response unbecomes monitorSwitchingLens back to photo mode.
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
     }
 
     /// The full 3-step stop protocol across both machines:
     /// StopRecordingVideo → StopRecordingVideoAck → StopRecordingVideoResp.
-    func testVideoRecordingStartStopProtocolAcrossTheWire() {
-        let fakeCamera = connectCameraAndMonitor(monitorMode: .Video)
+    func testVideoRecordingStartStopProtocolAcrossTheWire() async {
+        let fakeCamera = await connectCameraAndMonitor(monitorMode: .Video)
 
         // Start: monitor's shutter sends StartRecordingVideo.
-        monitorRef ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
+        await drainBothSessions()
 
         XCTAssertEqual(fakeCamera.startRecordingCalls, 1)
-        XCTAssertEqual(cameraSession.currentStateName(), .cameraRecordingVideo)
-        XCTAssertEqual(monitorSession.currentStateName(), .monitorRecordingVideo)
+        let cameraStateRecording = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraStateRecording, .cameraRecordingVideo)
+        let monitorStateRecording = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorStateRecording, .monitorRecordingVideo)
 
         // The success ack (recording start time, used for the monitor's timer
         // sync) must be forwarded to the peer, not just the error ack.
@@ -427,57 +447,19 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertNotNil(startAcks.first?.recordingStartTime)
 
         // Stop: the same shutter now sends StopRecordingVideo.
-        monitorRef ! UICmd.TakePicture(sender: nil, sendMediaToRemote: true)
-        drainBothSessions()
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
+        await drainBothSessions()
 
         XCTAssertEqual(fakeCamera.stopRecordingCalls, [true])
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.StopRecordingVideoAck })
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.StopRecordingVideoResp })
         // Camera popped back to .camera after transmitting; monitor walked
         // monitorRecordingVideo → monitorWaitingForVideo → .monitor.
-        XCTAssertEqual(cameraSession.currentStateName(), .camera)
-        XCTAssertEqual(monitorSession.currentStateName(), .monitor)
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .camera)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
         XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
         XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
-    }
-}
-
-// MARK: - Fake camera for happy-path flows
-
-/// A `CameraControlling` fake that "captures" a photo by sending `OnPicture`
-/// back to its session — the same message the real capture callback sends —
-/// and completes a stopped recording by injecting `StopRecordingVideoResp`,
-/// the way the real pipeline's completion does.
-final class LoopbackFakeCamera: FakeWatchCameraController {
-    var sessionRef: ActorRef?
-    let photoBytes = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x42])
-
-    override func takePicture(_ sendMediaToRemote: Bool) {
-        super.takePicture(sendMediaToRemote)
-        if let sessionRef {
-            sessionRef ! UICmd.OnPicture(sender: nil, pic: photoBytes)
-        }
-    }
-
-    override func startRecordingVideo() {
-        super.startRecordingVideo()
-        // The real pipeline sends this to the local session once the writer
-        // produces its first frames (RecordingPipeline.processFrame).
-        if let sessionRef {
-            sessionRef ! RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date())
-        }
-    }
-
-    override func stopRecordingVideo(_ shouldSendVideo: Bool) {
-        super.stopRecordingVideo(shouldSendVideo)
-        if let sessionRef {
-            sessionRef ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
-        }
-    }
-
-    override func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
-        RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil)
     }
 }

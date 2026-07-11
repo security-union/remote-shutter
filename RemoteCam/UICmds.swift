@@ -33,7 +33,7 @@ public class UICmd {
     /// Sent by a transient state to itself after a delay to prevent getting stuck
     /// waiting for a response that never arrives. The generation counter ensures
     /// stale timeouts from a previous entry into the same state are ignored.
-    public class StateTimeout: Actor.Message {
+    public class StateTimeout: Message {
         let stateName: RemoteCamState
         let generation: Int
         init(stateName: RemoteCamState, generation: Int) {
@@ -43,26 +43,26 @@ public class UICmd {
         }
     }
 
-    public class RenderPhotoMode: Actor.Message {}
+    public class RenderPhotoMode: Message {}
 
-    public class RenderVideoMode: Actor.Message {}
+    public class RenderVideoMode: Message {}
 
-    public class RenderVideoModeRecording: Actor.Message {}
+    public class RenderVideoModeRecording: Message {}
     
-    public class RenderShortsMode: Actor.Message {}
+    public class RenderShortsMode: Message {}
 
-    public class BecomeMonitorFailed: Actor.Message {}
+    public class BecomeMonitorFailed: Message {}
 
-    public class FailedToSaveImage: Actor.Message {
+    public class FailedToSaveImage: Message {
         let error: Error
 
-        init(sender: ActorRef?, error: Error) {
+        init(sender: AnyObject?, error: Error) {
             self.error = error
             super.init(sender: sender)
         }
     }
     
-    public class MicrophoneAccessDenied: Actor.Message {
+    public class MicrophoneAccessDenied: Message {
         let error: Error
 
         init(error: Error) {
@@ -71,11 +71,11 @@ public class UICmd {
         }
     }
 
-    public class AddMonitor: Actor.Message {
+    public class AddMonitor: Message {
 
     }
 
-    public class AddImageView: Actor.Message {
+    public class AddImageView: Message {
         let imageView: UIImageView
 
         public required init(imageView: UIImageView) {
@@ -84,43 +84,45 @@ public class UICmd {
         }
     }
 
-    public class StartScanning: Actor.Message {
+    public class StartScanning: Message {
     }
 
-    public class UnbecomeCamera: Actor.Message {
+    public class UnbecomeCamera: Message {
     }
 
-    public class UnbecomeMonitor: Actor.Message {
+    public class UnbecomeMonitor: Message {
     }
 
-    public class BecomeMonitor: Actor.Message {
+    public class BecomeMonitor: Message {
+        let presenter: MonitorPresenter
         let mode: RecordingMode
 
-        init(_ sender: ActorRef?, mode: RecordingMode) {
+        init(presenter: MonitorPresenter, mode: RecordingMode) {
+            self.presenter = presenter
             self.mode = mode
-            super.init(sender: sender)
+            super.init(sender: nil)
         }
     }
 
-    public class BecomeCamera: Actor.Message {
+    public class BecomeCamera: Message {
         let ctrl: CameraControlling
 
-        init(sender: ActorRef?, ctrl: CameraControlling) {
+        init(sender: AnyObject?, ctrl: CameraControlling) {
             self.ctrl = ctrl
             super.init(sender: sender)
         }
     }
 
-    public     class TakePicture: Actor.Message {
+    public     class TakePicture: Message {
         let sendMediaToRemote: Bool
 
-        public init(sender: ActorRef?, sendMediaToRemote: Bool) {
+        public init(sender: AnyObject?, sendMediaToRemote: Bool) {
             self.sendMediaToRemote = sendMediaToRemote
             super.init(sender: sender)
         }
     }
     
-    class SyncRecordingStartTime: Actor.Message {
+    class SyncRecordingStartTime: Message {
         let startTime: Date
         
         public init(startTime: Date) {
@@ -129,32 +131,32 @@ public class UICmd {
         }
     }
 
-    public class OnPicture: Actor.Message {
+    public class OnPicture: Message {
 
         public let pic: Data?
         public let error: Error?
 
-        public init(sender: ActorRef?, pic: Data) {
+        public init(sender: AnyObject?, pic: Data) {
             self.pic = pic
             self.error = nil
             super.init(sender: sender)
         }
 
-        public init(sender: ActorRef?, error: Error) {
+        public init(sender: AnyObject?, error: Error) {
             self.pic = nil
             self.error = error
             super.init(sender: sender)
         }
     }
 
-    public class RequestCameraCapabilities: Actor.Message {
+    public class RequestCameraCapabilities: Message {
         public init() {
             super.init(sender: nil)
         }
     }
 
     // MARK: - Zoom Commands
-    @objc(_TtCC10ActorsDemo5UICmd8SetZoom)public class SetZoom: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd8SetZoom)public class SetZoom: Message, NSCoding {
         public let zoomFactor: CGFloat
         
         public init(zoomFactor: CGFloat) {
@@ -172,7 +174,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd12SetZoomResp)public class SetZoomResp: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd12SetZoomResp)public class SetZoomResp: Message, NSCoding {
         public let zoomFactor: CGFloat?
         public let currentLens: CameraLensType?
         public let zoomRange: ZoomRange?
@@ -220,7 +222,7 @@ public class UICmd {
     }
 
     // MARK: - Lens Switching Commands
-    @objc(_TtCC10ActorsDemo5UICmd10SwitchLens)public class SwitchLens: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd10SwitchLens)public class SwitchLens: Message, NSCoding {
         public let lensType: CameraLensType
         
         public init(lensType: CameraLensType) {
@@ -239,7 +241,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd14SwitchLensResp)public class SwitchLensResp: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd14SwitchLensResp)public class SwitchLensResp: Message, NSCoding {
         public let lensType: CameraLensType?
         public let availableLenses: [CameraLensType]?
         public let currentZoom: CGFloat?
@@ -298,7 +300,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd11ToggleFlash)public class ToggleFlash: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd11ToggleFlash)public class ToggleFlash: Message, NSCoding {
         public func encode(with aCoder: NSCoder) {
         }
 
@@ -311,7 +313,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd11ToggleTorch)public class ToggleTorch: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd11ToggleTorch)public class ToggleTorch: Message, NSCoding {
         public func encode(with aCoder: NSCoder) {
         }
 
@@ -324,7 +326,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd15ToggleFlashResp)public class ToggleFlashResp: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd15ToggleFlashResp)public class ToggleFlashResp: Message, NSCoding {
 
         public let error: Error?
         public let flashMode: AVCaptureDevice.FlashMode?
@@ -352,7 +354,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd12ToggleCamera)public class ToggleCamera: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd12ToggleCamera)public class ToggleCamera: Message, NSCoding {
 
         public init() {
             super.init(sender: nil)
@@ -367,7 +369,7 @@ public class UICmd {
 
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd16ToggleCameraResp)public class ToggleCameraResp: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd16ToggleCameraResp)public class ToggleCameraResp: Message, NSCoding {
 
         public let error: Error?
         public let flashMode: AVCaptureDevice.FlashMode?
@@ -407,12 +409,12 @@ public class UICmd {
     
     // MARK: - Video Resource Transfer Messages
     
-    @objc(_TtCC10ActorsDemo5UICmd17SendVideoResource)public class SendVideoResource: Actor.Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd17SendVideoResource)public class SendVideoResource: Message, NSCoding {
         public let videoURL: URL
         public let peers: [MCPeerID]
         public let shouldSendToPeer: Bool
         
-        public init(videoURL: URL, peers: [MCPeerID], shouldSendToPeer: Bool, sender: ActorRef?) {
+        public init(videoURL: URL, peers: [MCPeerID], shouldSendToPeer: Bool, sender: AnyObject?) {
             self.videoURL = videoURL
             self.peers = peers
             self.shouldSendToPeer = shouldSendToPeer
@@ -433,25 +435,25 @@ public class UICmd {
         }
     }
     
-    @objc(_TtCC10ActorsDemo5UICmd26VideoResourceTransferStarted)public class VideoResourceTransferStarted: Actor.Message {
+    @objc(_TtCC10ActorsDemo5UICmd26VideoResourceTransferStarted)public class VideoResourceTransferStarted: Message {
         public let totalBytes: Int64
         public let resourceName: String
         
-        public init(totalBytes: Int64, resourceName: String, sender: ActorRef?) {
+        public init(totalBytes: Int64, resourceName: String, sender: AnyObject?) {
             self.totalBytes = totalBytes
             self.resourceName = resourceName
             super.init(sender: sender)
         }
     }
     
-    @objc(_TtCC10ActorsDemo5UICmd27VideoResourceTransferProgress)public class VideoResourceTransferProgress: Actor.Message {
+    @objc(_TtCC10ActorsDemo5UICmd27VideoResourceTransferProgress)public class VideoResourceTransferProgress: Message {
         public let completedBytes: Int64
         public let totalBytes: Int64
         public let progress: Double
         public let resourceName: String
         public let transferSpeed: Double // bytes per second
         
-        public init(completedBytes: Int64, totalBytes: Int64, progress: Double, resourceName: String, transferSpeed: Double = 0.0, sender: ActorRef?) {
+        public init(completedBytes: Int64, totalBytes: Int64, progress: Double, resourceName: String, transferSpeed: Double = 0.0, sender: AnyObject?) {
             self.completedBytes = completedBytes
             self.totalBytes = totalBytes
             self.progress = progress
@@ -461,11 +463,11 @@ public class UICmd {
         }
     }
     
-    @objc(_TtCC10ActorsDemo5UICmd28VideoResourceTransferCompleted)public class VideoResourceTransferCompleted: Actor.Message {
+    @objc(_TtCC10ActorsDemo5UICmd28VideoResourceTransferCompleted)public class VideoResourceTransferCompleted: Message {
         public let resourceName: String
         public let success: Bool
         
-        public init(resourceName: String, success: Bool, sender: ActorRef?) {
+        public init(resourceName: String, success: Bool, sender: AnyObject?) {
             self.resourceName = resourceName
             self.success = success
             super.init(sender: sender)
@@ -474,7 +476,7 @@ public class UICmd {
     
     // MARK: - Video Quality Commands
 
-    public class SetVideoQuality: Actor.Message {
+    public class SetVideoQuality: Message {
         public let resolution: VideoResolution
         public let frameRate: VideoFrameRate
 
@@ -487,7 +489,7 @@ public class UICmd {
 
     // MARK: - Photo Quality Commands
 
-    public class SetPhotoQuality: Actor.Message {
+    public class SetPhotoQuality: Message {
         public let format: PhotoFormat
         public let hdrMode: HDRMode
 
@@ -500,7 +502,7 @@ public class UICmd {
 
     // MARK: - Timer Countdown Command
 
-    public class TimerCountdown: Actor.Message {
+    public class TimerCountdown: Message {
         public let value: Int
 
         public init(value: Int) {
@@ -511,7 +513,7 @@ public class UICmd {
 
     // MARK: - Sync Monitor Settings Command
 
-    public class SyncMonitorSettings: Actor.Message {
+    public class SyncMonitorSettings: Message {
         let mode: RecordingMode
 
         init(mode: RecordingMode) {
@@ -522,7 +524,7 @@ public class UICmd {
 
     // MARK: - Browser Events
 
-    public class BrowserFoundPeer: Actor.Message {
+    public class BrowserFoundPeer: Message {
         public let peer: MCPeerID
 
         public init(peer: MCPeerID) {
@@ -531,7 +533,7 @@ public class UICmd {
         }
     }
 
-    public class BrowserLostPeer: Actor.Message {
+    public class BrowserLostPeer: Message {
         public let peer: MCPeerID
 
         public init(peer: MCPeerID) {
@@ -540,7 +542,7 @@ public class UICmd {
         }
     }
 
-    public class BrowserFailed: Actor.Message {
+    public class BrowserFailed: Message {
         public let error: Error
 
         public init(error: Error) {
@@ -549,11 +551,11 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd25VideoResourceTransferFailed)public class VideoResourceTransferFailed: Actor.Message {
+    @objc(_TtCC10ActorsDemo5UICmd25VideoResourceTransferFailed)public class VideoResourceTransferFailed: Message {
         public let error: Error
         public let resourceName: String
 
-        public init(error: Error, resourceName: String, sender: ActorRef?) {
+        public init(error: Error, resourceName: String, sender: AnyObject?) {
             self.error = error
             self.resourceName = resourceName
             super.init(sender: sender)
@@ -562,7 +564,7 @@ public class UICmd {
 
     // MARK: - Aspect Ratio
 
-    public class SetAspectRatio: Actor.Message {
+    public class SetAspectRatio: Message {
         public let aspectRatio: AspectRatio
 
         public init(aspectRatio: AspectRatio) {
@@ -577,8 +579,36 @@ public class UICmd {
     /// `StreamingConfig.stallTimeout`. Monitor states respond by re-sending
     /// `RemoteCmd.RequestFrame`, re-arming the one-frame-in-flight ping-pong
     /// after a lost message on either side.
-    public class StreamStalled: Actor.Message {
+    public class StreamStalled: Message {
         public init() {
+            super.init(sender: nil)
+        }
+    }
+}
+
+
+// MARK: - Watch Remote Mode commands
+
+extension UICmd {
+    /// Sent by WatchRemoteCameraController to enter Watch Remote camera mode.
+    public class BecomeWatchCamera: Message {
+        let ctrl: CameraControlling
+
+        init(ctrl: CameraControlling) {
+            self.ctrl = ctrl
+            super.init(sender: nil)
+        }
+    }
+
+    /// Sent by WatchRemoteCameraController when exiting Watch Remote mode.
+    public class UnbecomeWatchCamera: Message {}
+
+    /// Watch-initiated photo/video mode switch.
+    public class SetWatchCameraMode: Message {
+        let mode: RecordingMode
+
+        init(mode: RecordingMode) {
+            self.mode = mode
             super.init(sender: nil)
         }
     }

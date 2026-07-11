@@ -43,12 +43,10 @@ struct WatchCaptureCountdown {
 
 public class WatchRemoteCameraController: UIViewController {
 
-    // MARK: - Actor References
+    // MARK: - Session
 
-    private var frameSender: ActorRef!
-    private var frameSenderInstanceId: ObjectIdentifier?
-    private var remoteCamSession: ActorRef!
-    private var remoteCamSessionInstanceId: ObjectIdentifier?
+    private let remoteCamSession = SessionCoordinator()
+    private lazy var frameSender = FrameSender(coordinator: remoteCamSession)
 
     // MARK: - Camera
 
@@ -90,26 +88,19 @@ public class WatchRemoteCameraController: UIViewController {
     deinit {
         countdownTimer?.invalidate()
         unbindFromWatchManager()
-        stopActorIfCurrent(ref: remoteCamSession, instanceId: remoteCamSessionInstanceId)
-        stopActorIfCurrent(ref: frameSender, instanceId: frameSenderInstanceId)
+        remoteCamSession.stop()
     }
 
     // MARK: - Actor Setup
 
     private func setupActors() {
-        let fs = createOrReplaceActor(clz: FrameSender.self, name: "FrameSender")
-        frameSender = fs.ref
-        frameSenderInstanceId = fs.instanceId
-
-        let rcs = createOrReplaceActor(clz: RemoteCamSession.self, name: "RemoteCam Session")
-        remoteCamSession = rcs.ref
-        remoteCamSessionInstanceId = rcs.instanceId
+        remoteCamSession.setFrameSender(frameSender)
     }
 
     // MARK: - Camera Setup
 
     private func setupCameraScreen() {
-        let watchRig = CameraRig()
+        let watchRig = CameraRig(session: remoteCamSession, frameSender: frameSender)
         watchRig.isWatchRemoteMode = true
         cameraHost = CameraHostController(rig: watchRig)
 
@@ -196,7 +187,7 @@ public class WatchRemoteCameraController: UIViewController {
                             lensType: RemoteShutter_CameraLensType,
                             timerSeconds: Int32 = 0,
                             mode: RemoteShutter_RecordingModeEnum = .unknown) {
-        let session = remoteCamSession!
+        let session = remoteCamSession
 
         switch action {
         case .setmode:
@@ -278,7 +269,8 @@ public class WatchRemoteCameraController: UIViewController {
         // has no active run loop — a Timer scheduled there would never fire. Hop to the
         // main run loop so the countdown (and therefore the capture) actually happens.
         DispatchQueue.main.async { [weak self] in
-            guard let self = self, let session = self.remoteCamSession else { return }
+            guard let self = self else { return }
+            let session = self.remoteCamSession
 
             // Initial tick — drives the on-screen chime/countdown on the camera and Watch.
             session ! RemoteCmd.TimerCountdown(value: seconds)
@@ -319,7 +311,8 @@ public class WatchRemoteCameraController: UIViewController {
     /// Asks the state machine to gather capabilities and push fresh state to
     /// the Watch (the push happens inside the actor's current state handler).
     func pushCurrentState() {
-        guard cameraHost != nil, let session = remoteCamSession else { return }
+        guard cameraHost != nil else { return }
+        let session = remoteCamSession
         session ! RemoteCmd.RequestCameraCapabilities()
     }
 }

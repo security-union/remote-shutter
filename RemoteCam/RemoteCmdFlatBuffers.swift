@@ -15,7 +15,7 @@ import UIKit
 
 /// Serializes any RemoteCmd message to FlatBuffers Data for sending over MultipeerConnectivity.
 /// Used by MultipeerService.send() as the single encode entry point.
-func serializeToFlatBuffer(_ msg: Actor.Message) -> Data? {
+func serializeToFlatBuffer(_ msg: Message) -> Data? {
     switch msg {
     case let m as RemoteCmd.StartRecordingVideo: return m.toFlatBuffer()
     case let m as RemoteCmd.StartRecordingVideoAck: return m.toFlatBuffer()
@@ -927,7 +927,7 @@ extension RemoteCmd.TimerCountdown {
 // MARK: - fromFlatBuffer() factory
 
 extension RemoteCmd {
-    static func fromFlatBuffer(_ data: Data) -> Actor.Message? {
+    static func fromFlatBuffer(_ data: Data) -> Message? {
         let bytes = [UInt8](data)
         var buffer = ByteBuffer(bytes: bytes)
         guard let msg: RemoteShutter_P2PMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
@@ -944,7 +944,7 @@ extension RemoteCmd {
         }
     }
 
-    private static func decodeCommand(_ msg: RemoteShutter_P2PMessage) -> Actor.Message? {
+    private static func decodeCommand(_ msg: RemoteShutter_P2PMessage) -> Message? {
         guard let cmd = msg.command else { return nil }
         let params = cmd.parameters
 
@@ -1022,7 +1022,7 @@ extension RemoteCmd {
         }
     }
 
-    private static func decodeResponse(_ msg: RemoteShutter_P2PMessage) -> Actor.Message? {
+    private static func decodeResponse(_ msg: RemoteShutter_P2PMessage) -> Message? {
         guard let resp = msg.response else { return nil }
 
         let errorStr = resp.error
@@ -1142,7 +1142,7 @@ extension RemoteCmd {
         )
     }
 
-    private static func decodeFrame(_ msg: RemoteShutter_P2PMessage) -> Actor.Message? {
+    private static func decodeFrame(_ msg: RemoteShutter_P2PMessage) -> Message? {
         guard let frame = msg.frameData else { return nil }
         let imageData = Data(frame.imageData)
         let position = fromFBCamPos(frame.cameraPosition)

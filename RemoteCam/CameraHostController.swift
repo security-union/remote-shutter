@@ -19,7 +19,7 @@ final class CameraHostController: UIHostingController<CameraScreenView> {
     let rig: CameraRig
     private var microphonePromptController: UIViewController?
 
-    init(rig: CameraRig = CameraRig()) {
+    init(rig: CameraRig) {
         self.rig = rig
         super.init(rootView: CameraScreenView(viewModel: rig.cameraViewModel))
     }

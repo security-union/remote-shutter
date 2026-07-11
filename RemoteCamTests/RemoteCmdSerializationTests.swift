@@ -18,7 +18,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
 
     /// Encodes via toFlatBuffer(), decodes via RemoteCmd.fromFlatBuffer().
     /// Mirrors the production path in MultipeerService.
-    private func roundTrip<T: Actor.Message>(_ original: T) -> T {
+    private func roundTrip<T: RemoteShutter.Message>(_ original: T) -> T {
         let data = toFlatBufferData(original)
 
         guard let decoded = RemoteCmd.fromFlatBuffer(data) else {
@@ -34,7 +34,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     /// Dispatches to the correct toFlatBuffer() extension based on runtime type.
-    private func toFlatBufferData(_ msg: Actor.Message) -> Data {
+    private func toFlatBufferData(_ msg: RemoteShutter.Message) -> Data {
         switch msg {
         case let m as RemoteCmd.StartRecordingVideo: return m.toFlatBuffer()
         case let m as RemoteCmd.StartRecordingVideoAck: return m.toFlatBuffer()

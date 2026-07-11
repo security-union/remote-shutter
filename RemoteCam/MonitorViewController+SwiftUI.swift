@@ -184,7 +184,7 @@ extension MonitorViewController {
         // Check permissions for video/shorts
         if mode == .Video || mode == .Shorts {
             if StoreManager.shared.hasVideoRecordingFeature() {
-                session ! UICmd.BecomeMonitor(nil, mode: mode)
+                session ! UICmd.BecomeMonitor(presenter: presenter, mode: mode)
 
                 // Immediately configure the appropriate UI mode
                 // sendSyncMonitorSettings() is called inside each configure method
@@ -204,7 +204,7 @@ extension MonitorViewController {
                 viewModel.currentMode = .Photo
             }
         } else {
-            session ! UICmd.BecomeMonitor(nil, mode: mode)
+            session ! UICmd.BecomeMonitor(presenter: presenter, mode: mode)
             sendSyncMonitorSettings()
         }
     }
@@ -349,6 +349,6 @@ extension MonitorViewController {
     }
     
     // MARK: - Video Transfer Progress
-    // Video transfer progress is now handled directly via MonitorActor
+    // Video transfer progress is handled via MonitorPresenter
     // using proper actor message passing instead of notifications
 } 

@@ -20,10 +20,20 @@ UI for the monitor.
 
 public class MonitorViewController: UIViewController, UIImagePickerControllerDelegate & UINavigationControllerDelegate {
 
-    let session = getRemoteCamSession()!
+    let session: SessionCoordinator
 
-    private(set) var monitor: ActorRef!
-    private var monitorInstanceId: ObjectIdentifier?
+    /// The session→UI bridge; every session-side update lands here.
+    let presenter = MonitorPresenter()
+
+    init(session: SessionCoordinator) {
+        self.session = session
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     /// Decodes incoming preview frames (JPEG/HEIC) off the actor mailbox and
     /// raises StreamStalled when the stream goes quiet.
@@ -88,14 +98,8 @@ public class MonitorViewController: UIViewController, UIImagePickerControllerDel
         super.viewDidLoad()
         debugLog("🔍 DEBUG: MonitorViewController viewDidLoad - \(ObjectIdentifier(self))")
 
-        let m = createOrReplaceActor(
-            clz: MonitorActor.self,
-            name: "MonitorActor"
-        )
-        monitor = m.ref
-        monitorInstanceId = m.instanceId
-
-        monitor ! SetMonitorDisplay(display: self)
+        presenter.setDisplay(self)
+        session ! UICmd.BecomeMonitor(presenter: presenter, mode: .Photo)
 
         frameStreamReceiver.onImage = { [weak self] image in
             OperationQueue.main.addOperation {
@@ -115,10 +119,10 @@ public class MonitorViewController: UIViewController, UIImagePickerControllerDel
         // Configure initial state
         swiftUIConfigurePhotoMode()
         
-        // Request camera capabilities after MonitorActor is fully set up
+        // Request camera capabilities after the monitor is fully set up
         // This handles the race condition where capabilities arrive before viewDidLoad
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            debugLog("🔍 DEBUG: Requesting camera capabilities after MonitorActor setup")
+            debugLog("🔍 DEBUG: Requesting camera capabilities after monitor setup")
             if let session = self?.session {
                 session ! UICmd.RequestCameraCapabilities()
             }
@@ -137,7 +141,6 @@ public class MonitorViewController: UIViewController, UIImagePickerControllerDel
         self.zoomLabelTimer?.invalidate()
         self.soundManager.stopPlayer()
         session ! UICmd.UnbecomeMonitor(sender: nil)
-        stopActorIfCurrent(ref: monitor, instanceId: monitorInstanceId)
     }
 
     let buttonPromptPhotoMode = NSLocalizedString("Taking picture", comment: "")

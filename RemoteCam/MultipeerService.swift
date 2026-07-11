@@ -10,7 +10,7 @@ import MultipeerConnectivity
 import Combine
 
 protocol MultipeerServiceDelegate: AnyObject {
-    func didReceiveMessage(_ message: Actor.Message)
+    func didReceiveMessage(_ message: Message)
     func didReceiveFrameRequest(_ request: RemoteCmd.RequestFrame)
     func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID)
     func peerDidConnect(_ peer: MCPeerID)
@@ -36,8 +36,8 @@ protocol MultipeerServiceProtocol: AnyObject {
     func disconnect()
     func stopSession()
     func invitePeer(_ peer: MCPeerID, timeout: TimeInterval)
-    func send(_ msg: Actor.Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Actor.Message>
+    func send(_ msg: Message, to peers: [MCPeerID],
+              mode: MCSessionSendDataMode) -> Try<Message>
     func sendResource(at url: URL, withName name: String,
                       toPeer peer: MCPeerID,
                       completion: @escaping (Error?) -> Void) -> Progress?
@@ -106,8 +106,8 @@ class MultipeerService: NSObject, MCSessionDelegate,
         browser.invitePeer(peer, to: session, withContext: nil, timeout: timeout)
     }
 
-    func send(_ msg: Actor.Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Actor.Message> {
+    func send(_ msg: Message, to peers: [MCPeerID],
+              mode: MCSessionSendDataMode) -> Try<Message> {
         do {
             guard let serializedMessage = serializeToFlatBuffer(msg) else {
                 let error = NSError(domain: "MultipeerService", code: -1,

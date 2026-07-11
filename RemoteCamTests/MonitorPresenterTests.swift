@@ -1,11 +1,10 @@
 //
-//  MonitorActorTests.swift
+//  MonitorPresenterTests.swift
 //  RemoteShutterTests
 //
-//  MonitorActor is decoupled from MonitorViewController via the
-//  MonitorDisplay protocol — these tests drive the actor against a fake
-//  display, something that was impossible when the actor was generic
-//  over the concrete UIKit controller.
+//  MonitorPresenter is decoupled from MonitorViewController via the
+//  MonitorDisplay protocol — these tests drive the presenter against a fake
+//  display.
 //
 
 import XCTest
@@ -51,62 +50,38 @@ class FakeMonitorDisplay: MonitorDisplay {
 
 // MARK: - Tests
 
-class MonitorActorTests: XCTestCase {
+class MonitorPresenterTests: XCTestCase {
 
-    private var system: TestActorSystem!
-    private var actorRef: ActorRef!
-    private var actor: MonitorActor!
+    private var presenter: MonitorPresenter!
     private var display: FakeMonitorDisplay!
-
-    // MonitorActor's init sends BecomeMonitor to the shared session actor.
-    private var sharedSessionRef: ActorRef!
-    private var sharedSessionInstanceId: ObjectIdentifier!
 
     override func setUp() {
         super.setUp()
-
-        sharedSessionRef = RemoteCamSystem.shared.actorOf(
-            clz: TestableRemoteCamSession.self, name: "RemoteCam Session", replace: true)!
-        sharedSessionInstanceId = RemoteCamSystem.shared.instanceId(forRef: sharedSessionRef)
-
-        system = TestActorSystem(name: "monitor-actor-tests")
-        actorRef = system.actorOf(clz: MonitorActor.self, name: "MonitorActor")
-        actor = (system.actorForRef(ref: actorRef) as! MonitorActor)
+        presenter = MonitorPresenter()
         display = FakeMonitorDisplay()
-
-        actorRef ! SetMonitorDisplay(display: display)
-        drain()
+        presenter.setDisplay(display)
     }
 
     override func tearDown() {
-        drain()
-        system.stop()
-        drain()
-        stopActorIfCurrent(ref: sharedSessionRef, instanceId: sharedSessionInstanceId)
-        system = nil
-        actorRef = nil
-        actor = nil
+        presenter = nil
         display = nil
-        sharedSessionRef = nil
-        sharedSessionInstanceId = nil
         super.tearDown()
     }
 
-    /// Waits for the actor's mailbox, then pumps the main queue where the
-    /// actor dispatches its display updates.
+    /// Pumps the main queue where the presenter dispatches its display updates.
     private func drain() {
-        let expectation = expectation(description: "mailbox drained")
-        actor.mailbox.addOperation { expectation.fulfill() }
+        let expectation = expectation(description: "main queue drained")
+        OperationQueue.main.addOperation { expectation.fulfill() }
         wait(for: [expectation], timeout: 5.0)
         RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
     }
 
-    // MARK: - Render messages
+    // MARK: - Render calls
 
     func testRenderMessagesConfigureDisplayModes() {
-        actorRef ! UICmd.RenderPhotoMode(sender: nil)
-        actorRef ! UICmd.RenderVideoMode(sender: nil)
-        actorRef ! UICmd.RenderVideoModeRecording(sender: nil)
+        presenter.renderPhotoMode()
+        presenter.renderVideoMode()
+        presenter.renderVideoModeRecording()
         drain()
 
         XCTAssertEqual(display.photoModeConfigured, 1)
@@ -117,7 +92,7 @@ class MonitorActorTests: XCTestCase {
     // MARK: - BecomeMonitorFailed
 
     func testBecomeMonitorFailedExitsMonitor() {
-        actorRef ! UICmd.BecomeMonitorFailed(sender: nil)
+        presenter.becomeMonitorFailed()
         drain()
 
         XCTAssertEqual(display.exits, 1)
@@ -126,14 +101,14 @@ class MonitorActorTests: XCTestCase {
     // MARK: - Flash / torch responses
 
     func testToggleFlashRespUpdatesFlashMode() {
-        actorRef ! RemoteCmd.ToggleFlashResp(flashMode: .on, error: nil)
+        presenter.updateFlashMode(.on)
         drain()
 
         XCTAssertEqual(display.flashModes, [.on])
     }
 
     func testToggleFlashRespWithoutModeDoesNothing() {
-        actorRef ! RemoteCmd.ToggleFlashResp(flashMode: nil, error: nil)
+        presenter.updateFlashMode(nil)
         drain()
 
         XCTAssertTrue(display.flashModes.isEmpty)
@@ -142,11 +117,9 @@ class MonitorActorTests: XCTestCase {
     // MARK: - Zoom responses
 
     func testSetZoomRespUpdatesZoom() {
-        actorRef ! RemoteCmd.SetZoomResp(
-            zoomFactor: 3.0,
-            currentLens: nil,
-            zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 12.0),
-            error: nil)
+        presenter.updateZoom(3.0,
+                             zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 12.0),
+                             currentLens: nil)
         drain()
 
         XCTAssertEqual(display.zoomUpdates.count, 1)
@@ -155,8 +128,7 @@ class MonitorActorTests: XCTestCase {
     }
 
     func testSetZoomRespWithoutRangeFallsBackToDisplayMax() {
-        actorRef ! RemoteCmd.SetZoomResp(
-            zoomFactor: 2.0, currentLens: nil, zoomRange: nil, error: nil)
+        presenter.updateZoom(2.0, zoomRange: nil, currentLens: nil)
         drain()
 
         XCTAssertEqual(display.zoomUpdates.count, 1)
@@ -166,12 +138,10 @@ class MonitorActorTests: XCTestCase {
     // MARK: - Lens responses
 
     func testSwitchLensRespUpdatesLensesAndZoom() {
-        actorRef ! RemoteCmd.SwitchLensResp(
-            lensType: .telephoto,
-            availableLenses: [.wideAngle, .telephoto],
-            currentZoom: 2.0,
-            zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 8.0),
-            error: nil)
+        presenter.updateLens(.telephoto,
+                             availableLenses: [.wideAngle, .telephoto],
+                             currentZoom: 2.0,
+                             zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 8.0))
         drain()
 
         XCTAssertEqual(display.lensUpdates.count, 1)
@@ -184,13 +154,11 @@ class MonitorActorTests: XCTestCase {
     // MARK: - Video transfer progress
 
     func testVideoTransferMessagesDriveViewModel() {
-        actorRef ! UICmd.VideoResourceTransferStarted(
-            totalBytes: 1000, resourceName: "video_test.mov", sender: nil)
+        presenter.videoTransferStarted(totalBytes: 1000)
         drain()
         XCTAssertTrue(display.viewModel.isVideoTransferring)
 
-        actorRef ! UICmd.VideoResourceTransferCompleted(
-            resourceName: "video_test.mov", success: true, sender: nil)
+        presenter.videoTransferFinished()
         drain()
         XCTAssertFalse(display.viewModel.isVideoTransferring)
     }

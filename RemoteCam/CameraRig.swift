@@ -40,7 +40,7 @@ final class CameraRig {
         pipeline: pipeline,
         orientationProvider: { [weak self] in self?.orientation ?? .portrait },
         isWatchRemoteMode: { [weak self] in self?.isWatchRemoteMode ?? false },
-        frameSink: { [frameSender] frame in frameSender ! frame })
+        frameSink: { [frameSender] frame in frameSender.send(frame) })
 
     var isRecording: Bool { pipeline.isRecording }
 
@@ -57,8 +57,8 @@ final class CameraRig {
     /// Lock-boxed: written on main, read on the actor mailbox (toggleCamera).
     private let sessionPublished = Locked(false)
 
-    let session: ActorRef = getRemoteCamSession()!
-    let frameSender: ActorRef = getFrameSender()!
+    let session: SessionCoordinator
+    let frameSender: FrameSender
 
     /// When true, this camera is controlled by an Apple Watch via WCSession.
     /// Suppresses MultipeerConnectivity-related actor messages (BecomeCamera/UnbecomeCamera).
@@ -91,7 +91,9 @@ final class CameraRig {
     /// Microphone permission denied while starting a recording. Main thread.
     var onMicrophoneDenied: (() -> Void)?
 
-    init() {
+    init(session: SessionCoordinator, frameSender: FrameSender) {
+        self.session = session
+        self.frameSender = frameSender
         wireCallbacks()
     }
 
@@ -255,77 +257,79 @@ final class CameraRig {
 
 extension CameraRig: CameraControlling {
 
-    var isTorchActive: Bool {
-        engine.isTorchActive()
+    func isTorchActive() async -> Bool {
+        await engine.isTorchActive()
     }
 
-    var currentFlashMode: AVCaptureDevice.FlashMode {
-        engine.currentFlashModeValue()
+    func currentFlashMode() async -> AVCaptureDevice.FlashMode {
+        await engine.currentFlashModeValue()
     }
 
     // The session's camera states drive the camera through this surface; the
     // thin wrappers route calls to the engine/pipeline, which own the capture
     // session, recording, and all configuration concerns.
 
-    func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)> {
+    func toggleCamera() async throws -> (AVCaptureDevice.FlashMode?, AVCaptureDevice.Position) {
         let orientation = self.orientation
-        let result = engine.toggleCamera(orientation: orientation)
-        // Rotate the preview to match the newly rotated output connections.
-        rotateCameraToOrientation(orientation: orientation)
-        return result
+        defer {
+            // Rotate the preview to match the newly rotated output connections
+            // (also after a failed toggle, matching the previous behavior).
+            rotateCameraToOrientation(orientation: orientation)
+        }
+        return try await engine.toggleCamera(orientation: orientation)
     }
 
-    func toggleFlash() -> Try<AVCaptureDevice.FlashMode> {
-        engine.toggleFlash()
+    func toggleFlash() async throws -> AVCaptureDevice.FlashMode {
+        try await engine.toggleFlash()
     }
 
-    func toggleTorch() -> Try<AVCaptureDevice.TorchMode> {
-        engine.toggleTorch()
+    func toggleTorch() async throws -> AVCaptureDevice.TorchMode {
+        try await engine.toggleTorch()
     }
 
-    func setTorchMode(mode: AVCaptureDevice.TorchMode) -> Try<AVCaptureDevice.TorchMode> {
-        engine.setTorchMode(mode: mode)
+    func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode {
+        try await engine.setTorchMode(mode: mode)
     }
 
-    func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
-        engine.setZoom(zoomFactor: zoomFactor)
+    func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
+        try await engine.setZoom(zoomFactor: zoomFactor)
     }
 
-    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)> {
-        engine.switchLens(to: lensType)
+    func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
+        try await engine.switchLens(to: lensType)
     }
 
-    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) -> (VideoResolution, VideoFrameRate)? {
-        engine.setVideoQuality(resolution: resolution, frameRate: frameRate, isRecording: isRecording)
+    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) async -> (VideoResolution, VideoFrameRate)? {
+        await engine.setVideoQuality(resolution: resolution, frameRate: frameRate, isRecording: isRecording)
     }
 
-    func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) -> (PhotoFormat, HDRMode)? {
-        engine.setPhotoQuality(format: format, hdrMode: hdrMode)
+    func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) async -> (PhotoFormat, HDRMode)? {
+        await engine.setPhotoQuality(format: format, hdrMode: hdrMode)
     }
 
-    func setAspectRatio(_ ratio: AspectRatio) -> AspectRatio {
-        engine.setAspectRatio(ratio)
+    func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio {
+        await engine.setAspectRatio(ratio)
     }
 
-    func gatherAllCameraCapabilities() {
-        engine.gatherAllCameraCapabilities()
+    func gatherAllCameraCapabilities() async {
+        await engine.gatherAllCameraCapabilities()
     }
 
-    func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
-        engine.gatherCurrentCameraCapabilities()
+    func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
+        await engine.gatherCurrentCameraCapabilities()
     }
 
     func takePicture(_ sendMediaToRemote: Bool) {
         engine.takePicture(sendMediaToRemote)
     }
 
-    func getCurrentZoomFactor() -> CGFloat { engine.getCurrentZoomFactor() }
-    func getMaxZoomFactor() -> CGFloat { engine.getMaxZoomFactor() }
-    func getMinZoomFactor() -> CGFloat { engine.getMinZoomFactor() }
-    func getAvailableLensTypes() -> [CameraLensType] { engine.getAvailableLensTypes() }
-    func getCurrentLensType() -> CameraLensType { engine.getCurrentLensType() }
-    func getZoomStops() -> [CGFloat] { engine.getZoomStops() }
-    func getWideAngleZoomFactor() -> CGFloat { engine.getWideAngleZoomFactor() }
+    func getCurrentZoomFactor() async -> CGFloat { await engine.getCurrentZoomFactor() }
+    func getMaxZoomFactor() async -> CGFloat { await engine.getMaxZoomFactor() }
+    func getMinZoomFactor() async -> CGFloat { await engine.getMinZoomFactor() }
+    func getAvailableLensTypes() async -> [CameraLensType] { await engine.getAvailableLensTypes() }
+    func getCurrentLensType() async -> CameraLensType { await engine.getCurrentLensType() }
+    func getZoomStops() async -> [CGFloat] { await engine.getZoomStops() }
+    func getWideAngleZoomFactor() async -> CGFloat { await engine.getWideAngleZoomFactor() }
 
     func startRecordingVideo() {
         // Check microphone permission before starting video recording
@@ -353,7 +357,7 @@ extension CameraRig: CameraControlling {
     }
 
     func updateTimerCountdown(value: Int) {
-        ^{
+        OperationQueue.main.addOperation {
             if value > 0 {
                 self.cameraViewModel.showCountdown(value)
                 self.playCountdownChime(remaining: value)
@@ -368,7 +372,7 @@ extension CameraRig: CameraControlling {
     }
 
     func exitCamera() {
-        ^{
+        OperationQueue.main.addOperation {
             self.onExit?()
         }
     }

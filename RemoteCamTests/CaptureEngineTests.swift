@@ -16,26 +16,26 @@ final class CaptureEngineTests: XCTestCase {
         XCTAssertFalse(engine.desiredTorchOn)
     }
 
-    func testSetAspectRatioUpdatesStateAndNotifies() {
+    func testSetAspectRatioUpdatesStateAndNotifies() async {
         let engine = CaptureEngine()
         var notified = false
         engine.onStatusChanged = { notified = true }
 
-        let result = engine.setAspectRatio(.oneOne)
+        let result = await engine.setAspectRatio(.oneOne)
 
         XCTAssertEqual(result, .oneOne)
         XCTAssertEqual(engine.currentAspectRatioValue(), .oneOne)
         XCTAssertTrue(notified)
     }
 
-    func testSetPhotoQualityJPEGUpdatesStateAndNotifies() {
+    func testSetPhotoQualityJPEGUpdatesStateAndNotifies() async {
         let engine = CaptureEngine()
         var notified = false
         engine.onStatusChanged = { notified = true }
 
         // The JPEG path does not consult the photo output's codecs, so it is
         // reachable without a running capture session.
-        let result = engine.setPhotoQuality(format: .jpeg, hdrMode: .on)
+        let result = await engine.setPhotoQuality(format: .jpeg, hdrMode: .on)
 
         XCTAssertEqual(result?.0, .jpeg)
         XCTAssertEqual(result?.1, .on)

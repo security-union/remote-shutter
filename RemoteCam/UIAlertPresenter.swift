@@ -9,7 +9,7 @@ import UIKit
 
 /// Shows a modal error alert from any thread (dispatches to main).
 public func showError(_ error: String) {
-    ^{
+    OperationQueue.main.addOperation {
         let alert = UIAlertController(
             title: NSLocalizedString("Error", comment: ""),
             message: error
