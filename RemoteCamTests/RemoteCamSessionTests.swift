@@ -1118,4 +1118,26 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertTrue(alerts.shownErrors.isEmpty)
         coordinator.stop()
     }
+
+    /// A peer disconnect leaves stragglers in flight, and every one of them
+    /// fails to send. Discovery must restart exactly once — not once per
+    /// failed straggler (the old behavior re-entered scanning per failure,
+    /// resetting the lobby UI and re-arming the connection-error alert).
+    func testFailedSendStormRestartsScanningOnce() async {
+        await harness.coordinator.seed(state: .monitor(mode: .photo),
+                                       lobby: harness.lobbyWrapper,
+                                       peer: harness.peer)
+
+        // The peer is gone: every send fails. Each straggler command reaches
+        // the root handler, synthesizes an error response, and fails to send it.
+        harness.fakeMP.sendResult = Failure(error: NSError(domain: "peer gone", code: 0))
+        for _ in 0..<5 {
+            await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
+        }
+
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .scanning)
+        XCTAssertEqual(harness.lobby.returnsToLobby, 1,
+                       "straggler failures after the pop must not restart discovery again")
+    }
 }

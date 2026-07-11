@@ -369,6 +369,10 @@ public actor SessionCoordinator {
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
         switch state {
+        case .scanning:
+            // Already there — re-entering would restart discovery and reset
+            // the lobby UI on every straggler failure after a disconnect.
+            break
         case .waitingForLobby, .lobby, .watchCamera, .watchCameraTakingPic,
              .watchCameraStartingVideo, .watchCameraRecordingVideo:
             // No scanning below these states — nothing to pop to.

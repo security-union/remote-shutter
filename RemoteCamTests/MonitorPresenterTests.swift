@@ -163,3 +163,23 @@ class MonitorPresenterTests: XCTestCase {
         XCTAssertFalse(display.viewModel.isVideoTransferring)
     }
 }
+
+// MARK: - Error alert dedup
+
+/// The presenter is the single gate for error alerts: an error identical to
+/// the one already on screen is dropped instead of stacked (a peer disconnect
+/// fails many queued sends in a burst; the user should hear about it once).
+@MainActor
+final class AlertDedupTests: XCTestCase {
+
+    func testIdenticalErrorDoesNotStackWhileVisible() {
+        XCTAssertTrue(UIAlertPresenter.presentErrorDeduped(title: "Connection error (dedup test)"))
+        // Let the presentation commit.
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.3))
+
+        XCTAssertFalse(UIAlertPresenter.presentErrorDeduped(title: "Connection error (dedup test)"),
+                       "an identical error must be dropped while one is on screen")
+        XCTAssertTrue(UIAlertPresenter.presentErrorDeduped(title: "A different error (dedup test)"),
+                      "a different error is still surfaced")
+    }
+}

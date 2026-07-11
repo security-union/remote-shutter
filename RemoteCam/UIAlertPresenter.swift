@@ -8,14 +8,13 @@
 import UIKit
 
 /// Shows a modal error alert from any thread (dispatches to main).
+/// Routes through the presenter's dedup gate — identical errors never stack.
 public func showError(_ error: String) {
     OperationQueue.main.addOperation {
-        let alert = UIAlertController(
+        UIAlertPresenter.presentErrorDeduped(
             title: NSLocalizedString("Error", comment: ""),
             message: error
         )
-        alert.simpleOkAction()
-        alert.show(true)
     }
 }
 
@@ -28,6 +27,29 @@ class UIAlertHandle: AlertHandle {
 
 /// Production implementation that uses the existing `UIAlertController.show()` extension.
 class UIAlertPresenter: AlertPresenting {
+
+    /// The one error alert on screen, if any. Every error in the app funnels
+    /// through `presentErrorDeduped`, so an error identical to the visible one
+    /// is dropped instead of stacked — a peer disconnect can fail dozens of
+    /// queued sends in a burst, and the user needs to hear about it once.
+    private static weak var visibleErrorAlert: UIAlertController?
+
+    /// Main thread only. Returns whether the alert was actually presented
+    /// (false = deduped against the identical alert already on screen).
+    @discardableResult
+    static func presentErrorDeduped(title: String, message: String? = nil) -> Bool {
+        if let visible = visibleErrorAlert,
+           visible.view.window != nil || visible.presentingViewController != nil,
+           visible.title == title, visible.message == message {
+            return false
+        }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.simpleOkAction()
+        alert.show(true)
+        visibleErrorAlert = alert
+        return true
+    }
+
     func showAlert(title: String) -> AlertHandle {
         let alert = UIAlertController(title: title, message: nil, preferredStyle: .alert)
         alert.show(true)
@@ -43,8 +65,6 @@ class UIAlertPresenter: AlertPresenting {
     }
 
     func showError(title: String) {
-        let alert = UIAlertController(title: title, message: nil, preferredStyle: .alert)
-        alert.simpleOkAction()
-        alert.show(true)
+        Self.presentErrorDeduped(title: title)
     }
 }
