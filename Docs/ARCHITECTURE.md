@@ -10,28 +10,72 @@ An Apple Watch can also drive the camera directly (no second phone needed).
 
 ```mermaid
 flowchart LR
-    subgraph Remote["📱 Remote (monitor)"]
-        MV[MonitorView<br/>SwiftUI] --> MVM[MonitorViewModel]
-        MP[MonitorPresenter] --> MVM
-        SC1[SessionCoordinator<br/>Swift actor] --> MP
+    classDef actor fill:#7c3aed,color:#fff,stroke:#4c1d95,stroke-width:3px
+    classDef swiftui fill:#0ea5e9,color:#fff,stroke:#075985
+    classDef viewmodel fill:#a5f3fc,color:#0e7490,stroke:#0e7490
+    classDef worker fill:#fbbf24,color:#78350f,stroke:#b45309
+    classDef plain fill:#e5e7eb,color:#111827,stroke:#6b7280
+    classDef transport fill:#4ade80,color:#14532d,stroke:#166534
+
+    subgraph Remote["📱 REMOTE (monitor)"]
+        direction TB
+        MView["MonitorView"]:::swiftui
+        MVM["MonitorViewModel"]:::viewmodel
+        MPres["MonitorPresenter"]:::plain
+        SC1{{"SessionCoordinator"}}:::actor
+        MPS1["MultipeerService"]:::transport
+
+        MView -. "taps → UICmd (tell)" .-> SC1
+        SC1 -- "method calls" --> MPres
+        MPres -- "main-thread updates" --> MVM
+        MVM -- "@Published" --> MView
+        SC1 --- MPS1
     end
 
-    subgraph Camera["📱 Camera"]
-        SC2[SessionCoordinator<br/>Swift actor] --> RIG[CameraRig]
-        RIG --> ENG[CaptureEngine<br/>session + stills + config]
-        RIG --> PIPE[RecordingPipeline<br/>asset writer]
-        RIG --> STREAM[FrameStreamingCoordinator<br/>preview fan-out]
-        STREAM --> FS[FrameSender<br/>back-pressure]
-        CS[CameraScreenView<br/>SwiftUI]
+    subgraph Camera["📱 CAMERA"]
+        direction TB
+        SC2{{"SessionCoordinator"}}:::actor
+        RIG["CameraRig"]:::plain
+        ENG["CaptureEngine<br/><i>sessionQueue</i>"]:::worker
+        PIPE["RecordingPipeline<br/><i>dataOutputQueue</i>"]:::worker
+        STR["FrameStreamingCoordinator<br/><i>dataOutputQueue</i>"]:::worker
+        FSND["FrameSender<br/><i>own queue</i>"]:::worker
+        CVM["CameraViewModel"]:::viewmodel
+        CSV["CameraScreenView"]:::swiftui
+        MPS2["MultipeerService"]:::transport
+
+        SC2 -- "await ctrl.toggleFlash()…" --> RIG
+        RIG -- "config / stills" --> ENG
+        RIG -- "start/stop recording" --> PIPE
+        ENG -- "sample buffers" --> STR
+        STR -- "frames while recording" --> PIPE
+        STR -- "preview frames" --> FSND
+        PIPE -. "acks/responses (tell)" .-> SC2
+        RIG -- "@Published state" --> CVM
+        CVM -- "renders" --> CSV
+        SC2 --- MPS2
+        FSND -- "paced frames" --> MPS2
     end
 
-    SC1 <-- "FlatBuffers over<br/>MultipeerConnectivity" --> SC2
-    FS -- "preview frames<br/>(HEIC/JPEG, unreliable)" --> SC1
+    MPS1 <== "commands + responses<br/>FlatBuffers, reliable" ==> MPS2
+    MPS2 == "preview frames<br/>HEIC/JPEG, unreliable" ==> MPS1
+
+    linkStyle 16,17 stroke:#16a34a,stroke-width:3px
+    linkStyle 0,11 stroke:#7c3aed,stroke-dasharray:5
 ```
 
-Every box owns its state and is driven by messages or calls from exactly one
-place — there is no shared mutable state between them. The whole suite runs
-clean under Thread Sanitizer.
+**Boxes** — 🟪 purple hexagon: **Swift `actor`** (compiler-serialized) ·
+🟨 amber: **queue-confined worker** (owns a serial `DispatchQueue`) ·
+🟦 blue: SwiftUI view · 🩵 cyan: view model (`ObservableObject`, main thread) ·
+🟩 green: transport · ⬜ gray: plain class.
+
+**Lines** — ━━ **thick green**: MultipeerConnectivity radio (FlatBuffers) ·
+┄┄ **dashed purple**: message into the actor's FIFO inbox (`tell`) ·
+── thin: direct method call.
+
+UIKit shells (thin view controllers hosting each SwiftUI view) are omitted for
+clarity. Every box owns its state and is driven from exactly one place; the
+whole suite runs clean under Thread Sanitizer.
 
 ## What happens when you tap the shutter
 
