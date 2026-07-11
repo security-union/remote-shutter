@@ -108,6 +108,7 @@
 		AB12CD34EF5601789ABC0DE8 /* CameraScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */; };
 		AB12CD34EF5601789ABC0DE4 /* RecordingPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */; };
 		AB12CD34EF5601789ABC0DEA /* CameraScreenSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */; };
+		C4F2A81D9E3B47CA8D5E1A02 /* DeviceScannerSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F2A81D9E3B47CA8D5E1A01 /* DeviceScannerSnapshotTests.swift */; };
 		AB12CD34EF5601789ABC0DFC /* SessionTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DFB /* SessionTestSupport.swift */; };
 		AB12CD34EF5601789ABC0DEC /* SnapshotTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DEB /* SnapshotTestSupport.swift */; };
 		AB12CD34EF5601789ABC0DEE /* MonitorScreenSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DED /* MonitorScreenSnapshotTests.swift */; };
@@ -312,6 +313,7 @@
 		AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraScreenView.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingPipelineTests.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraScreenSnapshotTests.swift; sourceTree = "<group>"; };
+		C4F2A81D9E3B47CA8D5E1A01 /* DeviceScannerSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceScannerSnapshotTests.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DFB /* SessionTestSupport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SessionTestSupport.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DEB /* SnapshotTestSupport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnapshotTestSupport.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DED /* MonitorScreenSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonitorScreenSnapshotTests.swift; sourceTree = "<group>"; };
@@ -548,6 +550,7 @@
 				A342ACE91A767718D76C4C60 /* CaptureEngineTests.swift */,
 				AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */,
 				AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */,
+				C4F2A81D9E3B47CA8D5E1A01 /* DeviceScannerSnapshotTests.swift */,
 				AB12CD34EF5601789ABC0DFB /* SessionTestSupport.swift */,
 				AB12CD34EF5601789ABC0DEB /* SnapshotTestSupport.swift */,
 				AB12CD34EF5601789ABC0DED /* MonitorScreenSnapshotTests.swift */,
@@ -1157,6 +1160,7 @@
 				E1660E880D768347CB5B3297 /* CaptureEngineTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DE4 /* RecordingPipelineTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DEA /* CameraScreenSnapshotTests.swift in Sources */,
+				C4F2A81D9E3B47CA8D5E1A02 /* DeviceScannerSnapshotTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DFC /* SessionTestSupport.swift in Sources */,
 				AB12CD34EF5601789ABC0DEC /* SnapshotTestSupport.swift in Sources */,
 				AB12CD34EF5601789ABC0DEE /* MonitorScreenSnapshotTests.swift in Sources */,

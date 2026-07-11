@@ -67,6 +67,13 @@ class SnapshotTestCase: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+
+        // Optional loose-file export (e.g. for PR screenshots): run with
+        // TEST_RUNNER_SNAPSHOT_EXPORT_DIR=<host dir> to also write PNGs there.
+        if let dir = ProcessInfo.processInfo.environment["SNAPSHOT_EXPORT_DIR"],
+           let png = image.pngData() {
+            try? png.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
+        }
         return image
     }
 
