@@ -9,7 +9,7 @@ An Apple Watch can also drive the camera directly (no second phone needed).
 ## The big picture
 
 ```mermaid
-flowchart LR
+flowchart TB
     classDef actor fill:#7c3aed,color:#fff,stroke:#4c1d95,stroke-width:3px
     classDef swiftui fill:#0ea5e9,color:#fff,stroke:#075985
     classDef viewmodel fill:#a5f3fc,color:#0e7490,stroke:#0e7490
@@ -18,7 +18,6 @@ flowchart LR
     classDef transport fill:#4ade80,color:#14532d,stroke:#166534
 
     subgraph Remote["📱 REMOTE (monitor)"]
-        direction TB
         MView["MonitorView"]:::swiftui
         MVM["MonitorViewModel"]:::viewmodel
         MPres["MonitorPresenter"]:::plain
@@ -33,7 +32,6 @@ flowchart LR
     end
 
     subgraph Camera["📱 CAMERA"]
-        direction TB
         SC2{{"SessionCoordinator"}}:::actor
         RIG["CameraRig"]:::plain
         ENG["CaptureEngine<br/><i>sessionQueue</i>"]:::worker
@@ -57,21 +55,24 @@ flowchart LR
         FSND -- "paced frames" --> MPS2
     end
 
-    MPS1 <== "commands + responses<br/>FlatBuffers, reliable" ==> MPS2
-    MPS2 == "preview frames<br/>HEIC/JPEG, unreliable" ==> MPS1
+    MPS1 <== "commands + responses · FlatBuffers, reliable" ==> MPS2
+    MPS2 == "preview frames · HEIC/JPEG, unreliable" ==> MPS1
 
     linkStyle 16,17 stroke:#16a34a,stroke-width:3px
     linkStyle 0,11 stroke:#7c3aed,stroke-dasharray:5
 ```
 
-**Boxes** — 🟪 purple hexagon: **Swift `actor`** (compiler-serialized) ·
-🟨 amber: **queue-confined worker** (owns a serial `DispatchQueue`) ·
-🟦 blue: SwiftUI view · 🩵 cyan: view model (`ObservableObject`, main thread) ·
-🟩 green: transport · ⬜ gray: plain class.
-
-**Lines** — ━━ **thick green**: MultipeerConnectivity radio (FlatBuffers) ·
-┄┄ **dashed purple**: message into the actor's FIFO inbox (`tell`) ·
-── thin: direct method call.
+| Legend | Meaning |
+|:---:|---|
+| 🟪 **purple hexagon** | Swift `actor` — serialized by the compiler |
+| 🟨 **amber box** | Queue-confined worker (owns the serial queue named in the box) |
+| 🟦 **blue box** | SwiftUI view |
+| 🩵 **cyan box** | View model (`ObservableObject`, main thread) |
+| 🟩 **green box** | Transport |
+| ⬜ **gray box** | Plain class |
+| ━━ **thick green line** | MultipeerConnectivity radio (FlatBuffers) |
+| ┄┄ **dashed purple line** | Message into an actor's FIFO inbox (`tell`) |
+| ── **thin line** | Direct method call |
 
 UIKit shells (thin view controllers hosting each SwiftUI view) are omitted for
 clarity. Every box owns its state and is driven from exactly one place; the
