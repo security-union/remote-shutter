@@ -8,7 +8,7 @@ final class CaptureEngineTests: XCTestCase {
 
     func testDefaultConfigurationState() {
         let engine = CaptureEngine()
-        XCTAssertEqual(engine.currentAspectRatio, .sixteenNine)
+        XCTAssertEqual(engine.currentAspectRatioValue(), .sixteenNine)
         XCTAssertEqual(engine.currentVideoResolution, .hd1080p)
         XCTAssertEqual(engine.currentVideoFrameRate, .fps30)
         XCTAssertEqual(engine.currentPhotoFormat, .jpeg)
@@ -24,7 +24,7 @@ final class CaptureEngineTests: XCTestCase {
         let result = engine.setAspectRatio(.oneOne)
 
         XCTAssertEqual(result, .oneOne)
-        XCTAssertEqual(engine.currentAspectRatio, .oneOne)
+        XCTAssertEqual(engine.currentAspectRatioValue(), .oneOne)
         XCTAssertTrue(notified)
     }
 

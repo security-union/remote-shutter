@@ -169,15 +169,32 @@ actor FrameStreamer {
 - Remove `!` operator, `^`/`^^` operators, `Receive` typealias
 - Remove `ActorRef`, `ActorPath`, `ActorSystem`, `TestActorSystem`
 
+## Interlude: capture-stack threading fix (PR #137)
+
+Done ahead of Phase 4 so the rewrite lands on a race-free capture stack:
+
+- `CaptureEngine.sessionQueue` owns ALL session/device configuration and
+  engine control state. Synchronous `CameraControlling` entry points hop in
+  with `.sync`; nothing on the queue ever syncs back out (asserted with
+  `dispatchPrecondition`), so no cycle can form.
+- Video AND audio sample buffers deliver on one `dataOutputQueue`, which owns
+  every byte of recording state — this structurally eliminated a double
+  `StartRecordingVideoAck` race between the old separate delegate queues
+  (now pinned by `testRecordingStartAcksExactlyOnce`).
+- The only cross-domain values (fps, camera position, rig orientation,
+  `isRecording`, camera mode) live in `Locked<T>` boxes; frame routing is by
+  output identity instead of reading config-owned connections per frame.
+- Thread Sanitizer runs clean over the capture-stack test classes. A
+  full-suite TSan run is blocked by Theater itself: the baseline flagged
+  races in `Stack.head()` (the become/unbecome stack) and
+  `Actor.actorForRef` (the registry) — direct evidence for Phases 4–7.
+
 ## Wire Protocol Compatibility
 
-The `RemoteCmd` message classes use `NSCoding` with `@objc` name annotations
-(e.g., `@objc(_TtCC10ActorsDemo9RemoteCmd7TakePic)`) for stable serialization
-across app versions. These classes and their serialization must be preserved
-until all users have upgraded past the Theater removal.
-
-Consider migrating to `Codable`/JSON in a future version with a protocol
-negotiation handshake, but that is out of scope for this plan.
+Messages are serialized as FlatBuffers (`RemoteCmdFlatBuffers.swift`,
+schemas in `FlatBufferSchemas.fbs`); the wire format is independent of the
+actor framework and unaffected by this plan. The loopback test suite passes
+every message through the real encode/decode path.
 
 ## Key Risks
 
@@ -190,17 +207,12 @@ negotiation handshake, but that is out of scope for this plan.
 
 ## Current Test Coverage
 
-18 tests covering:
-- Initial state, connected state transitions, nil lobby guard
-- MonitorPhotoMode: OnEnter, Disconnect, TakePicture, ToggleFlash,
-  ToggleCamera, ToggleTorch, SwitchToVideo, RequestCameraCapabilities,
-  UnbecomeMonitor
-- MonitorVideoMode: OnEnter, SwitchToPhoto, Disconnect, UnbecomeMonitor
-
-Gaps to fill before Phase 4:
-- Camera states (camera, cameraTakingPic, cameraRecordingVideo)
-- Monitor sub-state response handling (TakePicResp, ToggleFlashResp, etc.)
-- Connected -> BecomeCamera flow
-- Video recording transitions
-- DisconnectPeer handling within sub-states
-- FrameSender back-pressure logic
+396 tests. The Phase 4 prerequisites called out by earlier revisions of this
+plan are met: the loopback suite (`LoopbackSessionTests`) runs two full
+session state machines against each other through the real FlatBuffers
+encode/decode — role handshake, the complete two-device photo capture,
+flash/camera/zoom/lens round trips, the 3-step video stop protocol, and
+peer-disconnect pops — and is the behavior gate for the Phase 4 rewrite.
+State tests cover the camera, monitor, and watch state families;
+`FrameSenderTests`/`FrameStreamingTests` cover back-pressure; snapshot tests
+pin both screens' chrome.

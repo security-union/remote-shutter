@@ -11,8 +11,10 @@ import UIKit
 
 /**
 Default fps, it would be neat if we would adjust this based on network conditions.
+Lock-boxed: written on the engine's session queue (frame-rate changes), read
+per-frame on the data queue by the frame streamer.
 */
-var fps = 30
+let fpsSetting = Locked(30)
 
 /**
  The camera device, as one non-UI object: owns the capture stack
@@ -44,7 +46,17 @@ final class CameraRig {
 
     /// Orientation used for the preview and the frame streamer. The engine
     /// keeps its own copy for the output/photo connections (kept in sync here).
-    var orientation: UIInterfaceOrientation = UIInterfaceOrientation.portrait
+    /// Lock-boxed: written on main (rotation), read per-frame on the data queue.
+    private let orientationShared = Locked(UIInterfaceOrientation.portrait)
+    var orientation: UIInterfaceOrientation {
+        get { orientationShared.value }
+        set { orientationShared.value = newValue }
+    }
+
+    /// Whether `startCameraOnce` has published the session (guards rotation).
+    /// Lock-boxed: written on main, read on the actor mailbox (toggleCamera).
+    private let sessionPublished = Locked(false)
+
     let session: ActorRef = getRemoteCamSession()!
     let frameSender: ActorRef = getFrameSender()!
 
@@ -62,7 +74,13 @@ final class CameraRig {
     // MARK: - Countdown Torch
     let countdownTorch = CameraCountdownTorch()
 
-    var currentCameraMode: RecordingMode = .Photo
+    /// Lock-boxed: written on the actor mailbox (mode changes) and main
+    /// (recording chrome), read wherever the status overlay updates.
+    private let currentCameraModeShared = Locked(RecordingMode.Photo)
+    var currentCameraMode: RecordingMode {
+        get { currentCameraModeShared.value }
+        set { currentCameraModeShared.value = newValue }
+    }
 
     // MARK: - Shell seams
 
@@ -126,45 +144,40 @@ final class CameraRig {
 
     private var didInitializeCamera = false
 
-    /// Configures and starts the capture session once; safe to call on every
-    /// appearance. Shows the busy spinner while the engine works.
+    /// Configures and starts the capture session once (on the engine's session
+    /// queue); safe to call on every appearance. The busy spinner shows while
+    /// the engine works — and now actually renders, since setup is off main.
     func startCameraOnce() {
         guard !didInitializeCamera else { return }
         didInitializeCamera = true
         cameraViewModel.isBusy = true
-        setupCamera()
-        cameraViewModel.isBusy = false
-    }
-
-    private func setupCamera() {
-        // The engine configures and starts the session; the SwiftUI screen shows
-        // the preview once the session is published (nothing here touches views —
-        // CameraPreviewView's backing layer tracks its bounds natively).
-        guard engine.setupCamera(sampleBufferDelegate: streamingCoordinator) else { return }
-
-        DispatchQueue.main.async {
+        engine.setupCamera(sampleBufferDelegate: streamingCoordinator) { [weak self] hasCamera in
+            // Completion arrives on main.
+            guard let self = self else { return }
+            self.cameraViewModel.isBusy = false
+            guard hasCamera else { return }
             self.cameraViewModel.previewSession = self.engine.captureSession
-        }
-        DispatchQueue.main.async {
+            self.sessionPublished.value = true
             self.rotateCameraToOrientation(orientation: self.orientation)
         }
     }
 
     /// Stops the capture session (screen teardown).
     func stopSession() {
-        if engine.captureSession.isRunning {
-            engine.cameraConfigQueue.async { [weak self] in
-                self?.engine.captureSession.stopRunning()
-            }
-        }
+        engine.stopSession()
     }
 
     /// Rotates the preview connection (via the published orientation) and the
     /// engine's output/photo connections (cached there for still capture).
+    /// Callable from main (rotation) or the actor mailbox (toggleCamera).
     func rotateCameraToOrientation(orientation: UIInterfaceOrientation) {
         // Rotation is meaningless until setupCamera has published the session.
-        guard cameraViewModel.previewSession != nil else { return }
-        cameraViewModel.previewVideoOrientation = OrientationUtils.transform(o: orientation)
+        guard sessionPublished.value else { return }
+        let videoOrientation = OrientationUtils.transform(o: orientation)
+        DispatchQueue.main.async {
+            // @Published — main thread only.
+            self.cameraViewModel.previewVideoOrientation = videoOrientation
+        }
         _ = engine.rotateOutputs(orientation: orientation)
     }
 
@@ -184,12 +197,13 @@ final class CameraRig {
     }
 
     func updateCameraStatus() {
+        let (resolution, frameRate, photoFormat, hdrMode) = engine.statusSnapshot()
         cameraViewModel.updateStatus(
             mode: currentCameraMode,
-            resolution: engine.currentVideoResolution,
-            frameRate: engine.currentVideoFrameRate,
-            photoFormat: engine.currentPhotoFormat,
-            hdrMode: engine.currentHDRMode)
+            resolution: resolution,
+            frameRate: frameRate,
+            photoFormat: photoFormat,
+            hdrMode: hdrMode)
     }
 
     // MARK: - Countdown chime / torch
@@ -197,10 +211,10 @@ final class CameraRig {
     func playCountdownChime(remaining: Int) {
         if remaining == 2 {
             cameraSoundManager.playBeepSound(.fast)
-            countdownTorch.startStrobe(device: engine.videoDeviceInput?.device)
+            countdownTorch.startStrobe(device: engine.currentDevice())
         } else if remaining > 2 {
             cameraSoundManager.playBeepSound(.slow)
-            countdownTorch.blinkOnce(device: engine.videoDeviceInput?.device)
+            countdownTorch.blinkOnce(device: engine.currentDevice())
         }
     }
 
@@ -208,7 +222,7 @@ final class CameraRig {
     /// torch doesn't silently come back when the camera is next configured.
     func ensureTorchOff() {
         engine.clearTorchIntent()
-        countdownTorch.stop(device: engine.videoDeviceInput?.device)
+        countdownTorch.stop(device: engine.currentDevice())
         engine.applyDesiredTorch()
     }
 
@@ -216,7 +230,7 @@ final class CameraRig {
     /// the torch to whatever the user actually wanted, instead of forcing it off. Keeps
     /// the Watch in sync since the phone changed torch state on its own.
     func restoreTorchAfterCountdown() {
-        countdownTorch.stop(device: engine.videoDeviceInput?.device)
+        countdownTorch.stop(device: engine.currentDevice())
         engine.applyDesiredTorch()
         syncTorchToWatch()
     }
@@ -242,11 +256,11 @@ final class CameraRig {
 extension CameraRig: CameraControlling {
 
     var isTorchActive: Bool {
-        engine.videoDeviceInput?.device.isTorchActive ?? false
+        engine.isTorchActive()
     }
 
     var currentFlashMode: AVCaptureDevice.FlashMode {
-        engine.cameraSettings.flashMode
+        engine.currentFlashModeValue()
     }
 
     // The session's camera states drive the camera through this surface; the
@@ -254,8 +268,8 @@ extension CameraRig: CameraControlling {
     // session, recording, and all configuration concerns.
 
     func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)> {
-        engine.orientation = orientation
-        let result = engine.toggleCamera()
+        let orientation = self.orientation
+        let result = engine.toggleCamera(orientation: orientation)
         // Rotate the preview to match the newly rotated output connections.
         rotateCameraToOrientation(orientation: orientation)
         return result

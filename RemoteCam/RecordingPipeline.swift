@@ -13,15 +13,22 @@ import CoreImage
 /**
  Owns the video-recording path: the asset writer, its inputs, the recording
  state machine, per-frame writing/cropping, and saving/sending the finished
- movie. Non-UI — the view controller keeps the sample-buffer delegate role,
- the microphone-permission flow, and all overlays, and reaches back in through
- the closure seams below. Collaborates with `CaptureEngine`, which owns the
- capture session and its outputs/queues.
+ movie. Non-UI — the frame streaming coordinator feeds it sample buffers, and
+ the rig/shell reach back in through the closure seams below.
+
+ Threading: ALL recording state lives on the engine's `dataOutputQueue` — the
+ same serial queue that delivers both video and audio sample buffers, so
+ `processFrame` is naturally serialized. Record start syncs once into the
+ engine's `sessionQueue` for the audio-input configuration (one-way; the
+ session queue never syncs back). The only cross-queue reads are through
+ `isRecording`, a lock-mirrored Bool.
  */
 class RecordingPipeline {
 
-    /// The capture session, outputs, queues and aspect-ratio config live on the engine.
+    /// The capture session, outputs, queues and configuration live on the engine.
     private let engine: CaptureEngine
+
+    private var dataQueue: DispatchQueue { engine.dataOutputQueue }
 
     // MARK: - UI/actor seams
 
@@ -36,17 +43,21 @@ class RecordingPipeline {
     /// Chrome update: `idle == true` → idle mode, else video-recording mode. Main thread.
     var onModeChanged: ((_ idle: Bool) -> Void)?
     /// Unrecoverable start failure ("Unable to start recording"). Fires on the
-    /// writing queue — hop to main before touching UIKit.
+    /// data queue — hop to main before touching UIKit.
     var onError: ((String) -> Void)?
     /// Photos-library access denied while saving the finished movie. Main thread.
     var onPhotosAccessDenied: (() -> Void)?
 
-    // MARK: - Recording state
-    // Mutated on writingQueue and the capture queues, read from main — same
-    // (unsynchronized) behavior as before the extraction; the single-owned-queue
-    // fix is a queued follow-up.
+    // MARK: - Recording state (dataQueue-confined)
 
-    private(set) var isRecording: Bool = false
+    private var isRecordingStorage = false {
+        didSet { isRecordingShared.value = isRecordingStorage }
+    }
+    /// Lock-mirrored for the cross-queue readers (`shouldAutorotate` on main,
+    /// `setVideoQuality`'s guard on the actor mailbox, watch snapshots).
+    private let isRecordingShared = Locked(false)
+    var isRecording: Bool { isRecordingShared.value }
+
     private(set) var recordingWillBeStarted: Bool = false
     private(set) var recordingWillBeStopped: Bool = false
     private var readyToRecordVideo: Bool = false
@@ -56,9 +67,11 @@ class RecordingPipeline {
     private(set) var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     private(set) var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
 
-    private let videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
+    /// Aspect ratio snapshotted from the engine when recording starts — the
+    /// writer geometry must not chase a mid-recording aspect change.
+    var recordingAspectRatio: AspectRatio = .sixteenNine
 
-    private let writingQueue = DispatchQueue(label: "asset recorder writing queue", attributes: [], target: nil)
+    private let videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
 
     private var videoInput: AVAssetWriterInput!
     private var audioInput: AVAssetWriterInput!
@@ -69,63 +82,30 @@ class RecordingPipeline {
 
     // MARK: - Start / stop
 
-    /// Adds the audio input/output to the capture session and starts recording.
-    /// The caller (the VC) remains the audio sample-buffer delegate.
+    /// Configures the audio leg (on the engine's session queue) and starts
+    /// recording. The caller's coordinator remains the audio delegate.
     func startRecording(audioSampleBufferDelegate: AVCaptureAudioDataOutputSampleBufferDelegate) {
-        writingQueue.async { [weak self] in
+        dataQueue.async { [weak self] in
             guard let self = self else { return }
-            if self.recordingWillBeStarted || self.isRecording {
+            if self.recordingWillBeStarted || self.isRecordingStorage {
                 return
             }
 
-            // Setup audio input for video recording
-            do {
-                // No microphone (simulator, some iPads) — record without audio.
-                guard let audioDevice = AVCaptureDevice.default(for: .audio) else {
-                    self.startVideoRecordingProcess()
-                    return
-                }
-                let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
-
-                self.engine.captureSession.beginConfiguration()
-
-                if self.engine.captureSession.canAddInput(audioDeviceInput) {
-                    self.engine.captureSession.addInput(audioDeviceInput)
-                } else {
-                    print("Could not add audio device input to the session")
-                }
-
-                if self.engine.captureSession.canAddOutput(self.engine.audioDataOutput) {
-                    self.engine.captureSession.addOutput(self.engine.audioDataOutput)
-                    self.engine.audioDataOutput.setSampleBufferDelegate(audioSampleBufferDelegate, queue: self.engine.audioDataOutputQueue)
-                }
-
-                self.engine.captureSession.commitConfiguration()
-
-                // Restore the user's torch preference — iOS resets the torch on commitConfiguration.
-                self.engine.applyDesiredTorch()
-
-                // Update audio connection
-                self.engine.audioConnection = self.engine.audioDataOutput.connection(with: .audio)
-
-                self.startVideoRecordingProcess()
-
-            } catch {
-                print("Error setting up audio for video recording: \(error)")
-                // Start recording without audio
-                self.startVideoRecordingWithoutAudio()
+            // One-way hop: data queue may sync into the session queue, never
+            // the reverse. On failure (no microphone), record without audio —
+            // the same fallback as before.
+            if !self.engine.configureAudioForRecording(delegate: audioSampleBufferDelegate) {
+                print("Recording without audio (no audio device or setup failed)")
             }
-        }
-    }
+            self.recordingAspectRatio = self.engine.currentAspectRatioValue()
 
-    private func startVideoRecordingWithoutAudio() {
-        writingQueue.async { [weak self] in
-            self?.startVideoRecordingProcess()
+            self.startVideoRecordingProcess()
         }
     }
 
     private func startVideoRecordingProcess() {
-        if self.recordingWillBeStarted || self.isRecording {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
+        if self.recordingWillBeStarted || self.isRecordingStorage {
             return
         }
 
@@ -140,20 +120,19 @@ class RecordingPipeline {
         } catch {
             onError?(NSLocalizedString("Unable to start recording", comment: ""))
         }
+        let idle = !self.recordingWillBeStarted && !self.isRecordingStorage
         OperationQueue.main.addOperation { [weak self] in
-            guard let self = self else { return }
-            let idle = !self.recordingWillBeStarted && !self.isRecording
-            self.onModeChanged?(idle)
+            self?.onModeChanged?(idle)
         }
     }
 
     func stopRecording(_ shouldSendVideo: Bool) {
-        writingQueue.async { [weak self] in
+        dataQueue.async { [weak self] in
             guard let self = self else { return }
-            if self.recordingWillBeStopped || !self.isRecording {
+            if self.recordingWillBeStopped || !self.isRecordingStorage {
                 return
             }
-            self.isRecording = false
+            self.isRecordingStorage = false
             self.recordingWillBeStopped = true
 
             // Stop recording timer
@@ -161,18 +140,23 @@ class RecordingPipeline {
                 self?.onRecordingStopped?()
             }
             self.assetWriter?.finishWriting { [weak self] in
-                self?.assetWriter = nil
-                self?.pixelBufferAdaptor = nil
-                self?.cachedVideoCropRect = nil
-                self?.readyToRecordVideo = false
-                self?.readyToRecordAudio = false
-                self?.recordingWillBeStopped = false
-                self?.saveMovieToPhotosAppAndRemotePeer(shouldSendVideo)
-            }
-            OperationQueue.main.addOperation { [weak self] in
+                // The writer calls back on its own queue — hop home before
+                // touching recording state.
                 guard let self = self else { return }
-                let idle = self.recordingWillBeStopped && !self.isRecording
-                self.onModeChanged?(idle)
+                self.dataQueue.async { [weak self] in
+                    guard let self = self else { return }
+                    self.assetWriter = nil
+                    self.pixelBufferAdaptor = nil
+                    self.cachedVideoCropRect = nil
+                    self.readyToRecordVideo = false
+                    self.readyToRecordAudio = false
+                    self.recordingWillBeStopped = false
+                    self.saveMovieToPhotosAppAndRemotePeer(shouldSendVideo)
+                }
+            }
+            let idle = self.recordingWillBeStopped && !self.isRecordingStorage
+            OperationQueue.main.addOperation { [weak self] in
+                self?.onModeChanged?(idle)
             }
         }
     }
@@ -239,8 +223,8 @@ class RecordingPipeline {
         let sourceHeight = CGFloat(dims.height)
 
         // Compute and cache the crop rect once — reused for every frame
-        let needsCrop = engine.currentAspectRatio != .sixteenNine
-        if needsCrop, let rawRect = CaptureEngine.cropRect(sourceWidth: sourceWidth, sourceHeight: sourceHeight, aspectRatio: engine.currentAspectRatio) {
+        let needsCrop = recordingAspectRatio != .sixteenNine
+        if needsCrop, let rawRect = CaptureEngine.cropRect(sourceWidth: sourceWidth, sourceHeight: sourceHeight, aspectRatio: recordingAspectRatio) {
             // Round to even for codec compatibility
             let evenRect = CGRect(
                 x: floor(rawRect.origin.x / 2) * 2,
@@ -265,11 +249,11 @@ class RecordingPipeline {
                 outputSettings: videoSettings)
             videoInput.expectsMediaDataInRealTime = true
 
-            if cachedVideoCropRect != nil {
+            if let cropRect = cachedVideoCropRect {
                 // Pool attributes match output dimensions — avoids per-frame CVPixelBufferCreate
                 let poolAttrs: [String: Any] = [
-                    kCVPixelBufferWidthKey as String: Int(cachedVideoCropRect!.width),
-                    kCVPixelBufferHeightKey as String: Int(cachedVideoCropRect!.height),
+                    kCVPixelBufferWidthKey as String: Int(cropRect.width),
+                    kCVPixelBufferHeightKey as String: Int(cropRect.height),
                     kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)
                 ]
                 pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
@@ -310,15 +294,15 @@ class RecordingPipeline {
         return true
     }
 
-    // MARK: - Per-frame path
+    // MARK: - Per-frame path (dataQueue: both delegates deliver here)
 
     func processFrame(_ captureOutput: AVCaptureOutput,
-                      didOutput sampleBuffer: CMSampleBuffer,
-                      from connection: AVCaptureConnection) {
+                      didOutput sampleBuffer: CMSampleBuffer) {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
 
         if let assetWriter = self.assetWriter {
             let wasReadyToRecord = (readyToRecordAudio && readyToRecordVideo)
-            if connection == self.engine.videoConnection {
+            if captureOutput === self.engine.videoDataOutput {
                 if let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer), !readyToRecordVideo {
                     readyToRecordVideo = self.setupAssetWriterVideoInput(formatDescription, assetWriter: assetWriter)
                 }
@@ -326,7 +310,7 @@ class RecordingPipeline {
                 if readyToRecordVideo && readyToRecordAudio {
                     self.writeSampleBuffer(sampleBuffer: sampleBuffer, ofType: .video)
                 }
-            } else if connection == self.engine.audioConnection {
+            } else if captureOutput === self.engine.audioDataOutput {
                 if let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer), !readyToRecordAudio {
                     readyToRecordAudio = self.setupAssetWriterAudioInput(formatDescription,
                                                                          assetWriter: assetWriter)
@@ -339,7 +323,7 @@ class RecordingPipeline {
             let isReadyToRecord = readyToRecordAudio && readyToRecordVideo
             if !wasReadyToRecord && isReadyToRecord {
                 recordingWillBeStarted = false
-                self.isRecording = true
+                self.isRecordingStorage = true
 
                 // Start recording timer and notify monitor
                 DispatchQueue.main.async { [weak self] in
@@ -356,34 +340,31 @@ class RecordingPipeline {
 
     private func writeSampleBuffer(sampleBuffer: CMSampleBuffer,
                                    ofType mediaType: AVMediaType) {
-        if !isRecording {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
+        if !isRecordingStorage {
             return
         }
-        writingQueue.async { [weak self] in
-            guard let self = self else { return }
-            guard let assetWriter = self.assetWriter else {
-                return
+        guard let assetWriter = self.assetWriter else {
+            return
+        }
+        if assetWriter.status == .unknown {
+            if assetWriter.startWriting() {
+                assetWriter.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
+            } else {
+                self.onError?(NSLocalizedString("Unable to start recording", comment: ""))
             }
-            if assetWriter.status == .unknown {
-                if assetWriter.startWriting() {
-                    assetWriter.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
-                } else {
-                    self.onError?(NSLocalizedString("Unable to start recording", comment: ""))
-                }
-            }
+        }
 
-            if mediaType == .video, let adaptor = self.pixelBufferAdaptor,
-               self.engine.currentAspectRatio != .sixteenNine {
-                // Crop video frame for non-16:9 aspect ratios
-                if self.videoInput.isReadyForMoreMediaData,
-                   let croppedBuffer = self.cropSampleBuffer(sampleBuffer) {
-                    let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-                    adaptor.append(croppedBuffer, withPresentationTime: pts)
-                }
-            } else if let input = (mediaType == .video) ? self.videoInput : self.audioInput {
-                if input.isReadyForMoreMediaData {
-                    input.append(sampleBuffer)
-                }
+        if mediaType == .video, let adaptor = self.pixelBufferAdaptor {
+            // Crop video frame for non-16:9 aspect ratios
+            if self.videoInput.isReadyForMoreMediaData,
+               let croppedBuffer = self.cropSampleBuffer(sampleBuffer) {
+                let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+                adaptor.append(croppedBuffer, withPresentationTime: pts)
+            }
+        } else if let input = (mediaType == .video) ? self.videoInput : self.audioInput {
+            if input.isReadyForMoreMediaData {
+                input.append(sampleBuffer)
             }
         }
     }
