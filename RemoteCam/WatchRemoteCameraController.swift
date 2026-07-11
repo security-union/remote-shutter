@@ -3,7 +3,8 @@
 //  RemoteShutter
 //
 //  View controller for Watch Remote mode.
-//  Creates actors, embeds CameraViewController, and bridges Watch commands.
+//  Creates actors, embeds the camera screen (CameraHostController + CameraRig),
+//  and bridges Watch commands.
 //
 
 import UIKit
@@ -51,7 +52,8 @@ public class WatchRemoteCameraController: UIViewController {
 
     // MARK: - Camera
 
-    private var cameraVC: CameraViewController!
+    private var cameraHost: CameraHostController!
+    private var rig: CameraRig { cameraHost.rig }
 
     // MARK: - Watch Status Overlay
 
@@ -64,7 +66,7 @@ public class WatchRemoteCameraController: UIViewController {
         view.backgroundColor = .black
 
         setupActors()
-        setupCameraViewController()
+        setupCameraScreen()
         setupWatchStatusOverlay()
         bindToWatchManager()
     }
@@ -73,7 +75,7 @@ public class WatchRemoteCameraController: UIViewController {
         super.viewDidAppear(animated)
 
         // Enter watchRemoteCamera state on the actor
-        remoteCamSession ! UICmd.BecomeWatchCamera(ctrl: cameraVC)
+        remoteCamSession ! UICmd.BecomeWatchCamera(ctrl: rig)
     }
 
     public override func viewWillDisappear(_ animated: Bool) {
@@ -106,20 +108,21 @@ public class WatchRemoteCameraController: UIViewController {
 
     // MARK: - Camera Setup
 
-    private func setupCameraViewController() {
-        cameraVC = CameraViewController()
-        cameraVC.isWatchRemoteMode = true
+    private func setupCameraScreen() {
+        let watchRig = CameraRig()
+        watchRig.isWatchRemoteMode = true
+        cameraHost = CameraHostController(rig: watchRig)
 
-        addChild(cameraVC)
-        view.addSubview(cameraVC.view)
-        cameraVC.view.translatesAutoresizingMaskIntoConstraints = false
+        addChild(cameraHost)
+        view.addSubview(cameraHost.view)
+        cameraHost.view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            cameraVC.view.topAnchor.constraint(equalTo: view.topAnchor),
-            cameraVC.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            cameraVC.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            cameraVC.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            cameraHost.view.topAnchor.constraint(equalTo: view.topAnchor),
+            cameraHost.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            cameraHost.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            cameraHost.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        cameraVC.didMove(toParent: self)
+        cameraHost.didMove(toParent: self)
     }
 
     // MARK: - Watch Status Overlay
@@ -259,7 +262,7 @@ public class WatchRemoteCameraController: UIViewController {
 
         case .requestpreviewframe:
             // The Watch consumed a preview frame and wants the next — release the gate.
-            cameraVC.acknowledgeWatchPreview()
+            rig.acknowledgeWatchPreview()
 
         case .unknown:
             debugLog("WatchRemoteCameraController: Unknown watch command")
@@ -316,7 +319,7 @@ public class WatchRemoteCameraController: UIViewController {
     /// Asks the state machine to gather capabilities and push fresh state to
     /// the Watch (the push happens inside the actor's current state handler).
     func pushCurrentState() {
-        guard cameraVC != nil, let session = remoteCamSession else { return }
+        guard cameraHost != nil, let session = remoteCamSession else { return }
         session ! RemoteCmd.RequestCameraCapabilities()
     }
 }

@@ -303,7 +303,7 @@ public class DeviceScannerViewController: UIViewController {
 
         switch role {
         case .camera:
-            let camera = CameraViewController()
+            let camera = CameraHostController()
             navigationController?.pushViewController(camera, animated: true)
         case .monitor:
             let monitor = MonitorViewController()

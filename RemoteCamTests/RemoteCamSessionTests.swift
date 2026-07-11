@@ -809,7 +809,7 @@ class RemoteCamSessionTests: XCTestCase {
         pushConnectedState()
         fakeMP.sentMessages.removeAll()
 
-        // BecomeCamera requires CameraViewController; verify via BecomeMonitor instead
+        // BecomeCamera requires a live CameraControlling; verify via BecomeMonitor instead
         ref ! UICmd.BecomeMonitor(ref, mode: .Photo)
         waitForMailbox(session, test: self)
 

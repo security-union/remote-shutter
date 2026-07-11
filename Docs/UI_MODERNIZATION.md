@@ -179,7 +179,7 @@ layer, overlays, permissions UI, lifecycle, and protocol forwarders only.
 Still queued for follow-ups: single owned serial queue (threading fix),
 `RotationCoordinator` (iOS 17) and `maxPhotoDimensions` (iOS 16) migrations.
 
-### PR 11: Camera SwiftUI chrome — **this PR**
+### PR 11: Camera SwiftUI chrome
 The camera screen becomes SwiftUI with visual parity: `CameraScreenView`
 (ZStack of full-bleed `CameraPreviewView`, recording badge, spinner, the
 existing timer/countdown/status/transfer overlays composed directly) hosted
@@ -194,6 +194,23 @@ capture ownership, actor glue, permissions flow, nav bar and rotation;
 cannot replace the orientation path, only duplicate it behind `#available` —
 it pays off after a min-target bump. Also deferred: threading fix,
 `maxPhotoDimensions`, `WatchRemoteCameraController` conversion.
+
+### PR 12: CameraViewController dies — **this PR**
+The file that started this series at 1,729 lines is deleted. Its remains
+split cleanly in two: `CameraRig` (non-UI) owns the capture stack
+(engine/pipeline/streaming coordinator), the screen's view model, countdown
+chime/torch, and **is the production `CameraControlling` conformer** — the
+object handed to the actor system is no longer a view controller.
+`CameraHostController` (a `UIHostingController<CameraScreenView>` subclass)
+is the disposable shell: navigation chrome, permissions UI, modal
+presentation, rotation forwarding, and `BecomeCamera`/`UnbecomeCamera` at
+lifecycle edges, reaching the rig through four closure seams
+(`setNavigationBarHidden`, `onExit`, `onMicrophoneDenied`,
+`onPhotosAccessDenied`). `WatchRemoteCameraController` embeds the new pair;
+the scanner pushes the shell. This also pre-positions the Theater-removal
+plan's Phase 4: a future `SessionCoordinator` talks to a plain object.
+With it, this document's goal is met — every screen is SwiftUI behind a
+thin shell, and no actor-facing object is a UIKit type.
 
 ## Worklog (blog raw material)
 
@@ -390,3 +407,26 @@ it pays off after a min-target bump. Also deferred: threading fix,
   app's `UIWindowScene` before `drawHierarchy` produces pixels. All four
   states verified visually from the exported attachments; the live preview
   itself still needs the usual two-device check before release.
+- Same-PR follow-ups: monitor-screen snapshots (synthetic gradient frame
+  standing in for the stream) and two rounds with CI to make renders work
+  on a headless runner — a detached second window never draws there, so the
+  harness polls, then falls back to window-free `ImageRenderer`. The
+  coverage-comment work (#135) rode alongside.
+
+### PR 12 — CameraViewController dies
+- The file that opened this series at 1,729 lines closed it at 0. What was
+  left after PRs 8–11 split into `CameraRig` (366 lines, non-UI, the
+  production `CameraControlling`) and `CameraHostController` (180 lines of
+  disposable shell), and the class was deleted outright.
+- The conformance moving to a plain object retired two small hacks: the
+  `objc_setAssociatedObject` dance for the mic prompt (a VC extension can't
+  add a stored property; the shell just has one) and `exitCamera`'s reach
+  into `navigationController` (now an `onExit` closure the shell wires).
+- 393/393 on the first run after the deletion — the payoff of the series'
+  order: by the time the VC died, every behavior it ever owned was already
+  pinned from outside it (loopback round trips, wiring tests, snapshots).
+- Milestone: this document's goal is met. Every screen is SwiftUI behind a
+  thin shell; the object the actor system holds for the camera is a plain
+  class. Next stop is MODERNIZATION.md Phases 4–7: `RemoteCamSession`
+  becomes a Swift actor with an enum state machine, and the vendored
+  Theater framework gets deleted.
