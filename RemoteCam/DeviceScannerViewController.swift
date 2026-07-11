@@ -87,12 +87,11 @@ public class DeviceScannerViewController: UIViewController {
         }
     }
 
-    // MARK: - Actors
+    // MARK: - Session
 
-    private(set) var frameSender: ActorRef!
-    private var frameSenderInstanceId: ObjectIdentifier?
-    private(set) var remoteCamSession: ActorRef!
-    private var remoteCamSessionInstanceId: ObjectIdentifier?
+    /// The session state machine; this screen owns its lifetime.
+    let remoteCamSession = SessionCoordinator()
+    private(set) lazy var frameSender = FrameSender(coordinator: remoteCamSession)
 
     // MARK: - Network Browser
 
@@ -103,18 +102,7 @@ public class DeviceScannerViewController: UIViewController {
     public override func viewDidLoad() {
         super.viewDidLoad()
         _ = _peerIDInitialized
-        let fs = createOrReplaceActor(
-            clz: FrameSender.self,
-            name: "FrameSender"
-        )
-        frameSender = fs.ref
-        frameSenderInstanceId = fs.instanceId
-        let rcs = createOrReplaceActor(
-            clz: RemoteCamSession.self,
-            name: "RemoteCam Session"
-        )
-        remoteCamSession = rcs.ref
-        remoteCamSessionInstanceId = rcs.instanceId
+        remoteCamSession.setFrameSender(frameSender)
         self.remoteCamSession ! SetScannerLobby(lobby: self)
         scannerViewModel.role = role
         setupSwiftUIView()
@@ -303,10 +291,11 @@ public class DeviceScannerViewController: UIViewController {
 
         switch role {
         case .camera:
-            let camera = CameraHostController()
+            let rig = CameraRig(session: remoteCamSession, frameSender: frameSender)
+            let camera = CameraHostController(rig: rig)
             navigationController?.pushViewController(camera, animated: true)
         case .monitor:
-            let monitor = MonitorViewController()
+            let monitor = MonitorViewController(session: remoteCamSession)
             navigationController?.pushViewController(monitor, animated: true)
         }
     }
@@ -337,8 +326,7 @@ public class DeviceScannerViewController: UIViewController {
     deinit {
         print("deinit DeviceScanners")
         networkBrowser?.cancel()
-        stopActorIfCurrent(ref: frameSender, instanceId: frameSenderInstanceId)
-        stopActorIfCurrent(ref: remoteCamSession, instanceId: remoteCamSessionInstanceId)
+        remoteCamSession.stop()
     }
 }
 

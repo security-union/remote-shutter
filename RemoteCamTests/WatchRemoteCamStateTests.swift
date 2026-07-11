@@ -15,445 +15,349 @@ import MultipeerConnectivity
 
 @testable import RemoteShutter
 
-// MARK: - Fakes
-
-class FakeWatchCameraController: CameraControlling {
-    var currentCameraMode: RecordingMode = .Photo
-    var isRecording = false
-    var isTorchActive = false
-    var currentFlashMode: AVCaptureDevice.FlashMode = .off
-
-    var takePictureCalls: [Bool] = []
-    var startRecordingCalls = 0
-    var stopRecordingCalls: [Bool] = []
-    var gatherCapabilitiesCalls = 0
-    var zoomCalls: [CGFloat] = []
-    var lensSwitches: [CameraLensType] = []
-    var torchToggles = 0
-
-    func updateCameraStatus() {}
-    func takePicture(_ sendMediaToRemote: Bool) { takePictureCalls.append(sendMediaToRemote) }
-    func startRecordingVideo() { startRecordingCalls += 1 }
-    func stopRecordingVideo(_ shouldSendVideo: Bool) { stopRecordingCalls.append(shouldSendVideo) }
-    func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
-        zoomCalls.append(zoomFactor)
-        return Success((zoomFactor, .wideAngle, RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 10)))
-    }
-    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)> {
-        lensSwitches.append(lensType)
-        return Success((lensType, [.wideAngle], 1.0, RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 10)))
-    }
-    func toggleFlash() -> Try<AVCaptureDevice.FlashMode> {
-        currentFlashMode = currentFlashMode == .off ? .on : .off
-        return Success(currentFlashMode)
-    }
-    func toggleTorch() -> Try<AVCaptureDevice.TorchMode> {
-        torchToggles += 1
-        isTorchActive.toggle()
-        return Success(isTorchActive ? .on : .off)
-    }
-    func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)> {
-        return Success((currentFlashMode, .back))
-    }
-    func gatherAllCameraCapabilities() { gatherCapabilitiesCalls += 1 }
-
-    func getCurrentZoomFactor() -> CGFloat { zoomCalls.last ?? 1.0 }
-    func getMinZoomFactor() -> CGFloat { 1.0 }
-    func getMaxZoomFactor() -> CGFloat { 10.0 }
-    func getCurrentLensType() -> CameraLensType { .wideAngle }
-    func getAvailableLensTypes() -> [CameraLensType] { [.wideAngle] }
-    func getZoomStops() -> [CGFloat] { [1.0, 2.0] }
-    func getWideAngleZoomFactor() -> CGFloat { 1.0 }
-
-    var countdownTicks: [Int] = []
-    func updateTimerCountdown(value: Int) { countdownTicks.append(value) }
-
-    let cameraViewModel = CameraViewModel()
-    var chimes: [Int] = []
-    var torchRestores = 0
-    var exits = 0
-
-    func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? { nil }
-    func setTorchMode(mode: AVCaptureDevice.TorchMode) -> Try<AVCaptureDevice.TorchMode> {
-        isTorchActive = mode == .on
-        return Success(mode)
-    }
-    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) -> (VideoResolution, VideoFrameRate)? {
-        (resolution, frameRate)
-    }
-    func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) -> (PhotoFormat, HDRMode)? {
-        (format, hdrMode)
-    }
-    func setAspectRatio(_ ratio: AspectRatio) -> AspectRatio { ratio }
-    func playCountdownChime(remaining: Int) { chimes.append(remaining) }
-    func restoreTorchAfterCountdown() { torchRestores += 1 }
-    func exitCamera() { exits += 1 }
-}
-
-final class FakeWatchStatePusher: WatchStatePushing {
-    var pushedSnapshots: [WatchCameraStateSnapshot] = []
-    var disconnectedPushes = 0
-
-    var lastEvent: RemoteShutter_WatchEventType? { pushedSnapshots.last(where: { $0.event != .unknown })?.event }
-    var allEvents: [RemoteShutter_WatchEventType] { pushedSnapshots.map(\.event).filter { $0 != .unknown } }
-
-    func pushCameraState(_ snapshot: WatchCameraStateSnapshot) { pushedSnapshots.append(snapshot) }
-    func pushDisconnectedState() { disconnectedPushes += 1 }
-}
-
-// MARK: - Tests
-
 class WatchRemoteCamStateTests: XCTestCase {
 
-    private var system: TestActorSystem!
-    private var ref: ActorRef!
-    private var session: TestableRemoteCamSession!
-    private var ctrl: FakeWatchCameraController!
-    private var pusher: FakeWatchStatePusher!
+    private var coordinator: SessionCoordinator!
+    private var ctrl: FakeCameraControlling!
+    private var pusher: RecordingWatchPusher!
+    private var alerts: FakeAlertPresenter!
     private var savedPhotos: [Data] = []
 
-    override func setUp() {
-        super.setUp()
-        system = TestActorSystem(name: "watch-test")
-        ref = system.actorOf(clz: TestableRemoteCamSession.self, name: "watch-session")
-        session = (system.actorForRef(ref: ref!) as! TestableRemoteCamSession)
+    override func setUp() async throws {
+        try await super.setUp()
+        coordinator = SessionCoordinator()
 
         // Watch Remote mode never has a multipeer session — keep it nil so these
-        // tests also guard the nil-service crash fixed in RemoteCamSession.sendMessage.
-        session.multipeerService = nil
-
-        ctrl = FakeWatchCameraController()
-        pusher = FakeWatchStatePusher()
-        session.watchStatePusher = pusher
+        // tests also guard the nil-service crash path in the coordinator's sends.
+        ctrl = FakeCameraControlling()
+        pusher = RecordingWatchPusher()
+        alerts = FakeAlertPresenter()
         savedPhotos = []
-        session.photoLibrarySaver = { [weak self] data in self?.savedPhotos.append(data) }
-
-        waitForMailbox(session, test: self)
+        await coordinator.setWatchStatePusher(pusher)
+        await coordinator.setAlertPresenter(alerts)
+        await coordinator.setPhotoLibrarySaver { [weak self] data in self?.savedPhotos.append(data) }
     }
 
-    override func tearDown() {
-        drainMailbox()
-        system.stop()
-        drainMailbox()
-        system = nil
-        ref = nil
-        session = nil
+    override func tearDown() async throws {
+        coordinator.stop()
+        coordinator = nil
         ctrl = nil
         pusher = nil
-        super.tearDown()
+        alerts = nil
+        try await super.tearDown()
     }
 
-    private func drainMailbox() {
-        let deadline = Date(timeIntervalSinceNow: 5.0)
-        while session.mailbox.operationCount > 0 && Date() < deadline {
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
-        }
+    private func deliver(_ msg: Message) async {
+        coordinator.tell(msg)
+        await coordinator.waitForIdle()
+        await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
     }
 
-    private func enterWatchCamera() {
-        ref ! UICmd.BecomeWatchCamera(ctrl: ctrl)
-        // Twice: become() enqueues OnEnter while the first message is being
-        // processed, i.e. behind the first drain marker.
-        waitForMailbox(session, test: self)
-        waitForMailbox(session, test: self)
+    private func stateName() async -> RemoteCamState {
+        await coordinator.currentStateName()
     }
 
-    private func enterTakingPic() {
-        enterWatchCamera()
-        ref ! RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false)
-        waitForMailbox(session, test: self)
+    private func enterWatchCamera() async {
+        await deliver(UICmd.BecomeWatchCamera(ctrl: ctrl))
     }
 
-    private func enterStartingVideo() {
-        enterWatchCamera()
-        ref ! RemoteCmd.StartRecordingVideo(sender: nil)
-        waitForMailbox(session, test: self)
+    private func enterTakingPic() async {
+        await enterWatchCamera()
+        await deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
     }
 
-    private func enterRecording() {
-        enterStartingVideo()
+    private func enterStartingVideo() async {
+        await enterWatchCamera()
+        await deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+    }
+
+    private func enterRecording() async {
+        await enterStartingVideo()
         ctrl.isRecording = true
-        ref ! RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date())
-        waitForMailbox(session, test: self)
+        await deliver(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date()))
     }
 
     // MARK: - Entry
 
-    func testBecomeWatchCameraEntersStateAndPushesState() {
-        enterWatchCamera()
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
-        XCTAssertFalse(pusher.pushedSnapshots.isEmpty, "OnEnter should push initial state")
+    func testBecomeWatchCameraEntersStateAndPushesState() async {
+        await enterWatchCamera()
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
+        XCTAssertFalse(pusher.pushedSnapshots.isEmpty, "entry should push initial state")
     }
 
     // MARK: - Photo capture
 
-    func testTakePicTransitionsToTakingPic() {
-        enterTakingPic()
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraTakingPic)
+    func testTakePicTransitionsToTakingPic() async {
+        await enterTakingPic()
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraTakingPic)
         XCTAssertEqual(ctrl.takePictureCalls, [false], "watch capture must never send media to a peer")
     }
 
-    func testOnPictureSuccessSavesPhotoAndPushesPhotoTaken() {
-        enterTakingPic()
+    func testOnPictureSuccessSavesPhotoAndPushesPhotoTaken() async {
+        await enterTakingPic()
         let photoBytes = Data([0xCA, 0xFE])
-        ref ! UICmd.OnPicture(sender: nil, pic: photoBytes)
-        waitForMailbox(session, test: self)
+        await deliver(UICmd.OnPicture(sender: nil, pic: photoBytes))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, .phototaken)
         XCTAssertEqual(savedPhotos, [photoBytes],
                        "the captured photo must be written to the photo library")
     }
 
-    func testOnPictureErrorDoesNotSaveAndPushesPhotoError() {
-        enterTakingPic()
-        ref ! UICmd.OnPicture(sender: nil, error: NSError(domain: "capture", code: 1))
-        waitForMailbox(session, test: self)
+    func testOnPictureErrorDoesNotSaveAndPushesPhotoError() async {
+        await enterTakingPic()
+        await deliver(UICmd.OnPicture(sender: nil, error: NSError(domain: "capture", code: 1)))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, .photoerror)
         XCTAssertTrue(savedPhotos.isEmpty)
     }
 
-    func testTakingPicTimeoutUnbecomesWithPhotoError() {
-        enterTakingPic()
-        let gen = session._timeoutGeneration
+    func testTakingPicTimeoutUnbecomesWithPhotoError() async {
+        await enterTakingPic()
+        let generation = await coordinator.currentTimeoutGeneration()
 
-        ref ! UICmd.StateTimeout(stateName: .watchRemoteCameraTakingPic, generation: gen)
-        waitForMailbox(session, test: self)
+        await deliver(UICmd.StateTimeout(stateName: .watchRemoteCameraTakingPic, generation: generation))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, .photoerror)
     }
 
-    func testTakingPicStaleTimeoutIsIgnored() {
-        enterTakingPic()
-        let gen = session._timeoutGeneration
+    func testTakingPicStaleTimeoutIsIgnored() async {
+        await enterTakingPic()
+        let generation = await coordinator.currentTimeoutGeneration()
 
-        ref ! UICmd.StateTimeout(stateName: .watchRemoteCameraTakingPic, generation: gen - 1)
-        waitForMailbox(session, test: self)
+        await deliver(UICmd.StateTimeout(stateName: .watchRemoteCameraTakingPic, generation: generation - 1))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraTakingPic,
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraTakingPic,
                        "a stale generation must not abort an in-flight capture")
     }
 
-    func testDuplicateTakePicWhileInFlightIsIgnored() {
-        enterTakingPic()
-        ref ! RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false)
-        waitForMailbox(session, test: self)
+    func testDuplicateTakePicWhileInFlightIsIgnored() async {
+        await enterTakingPic()
+        await deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraTakingPic)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraTakingPic)
         XCTAssertEqual(ctrl.takePictureCalls.count, 1, "double-tap must not trigger a second capture")
     }
 
-    func testZoomDuringCaptureStillApplies() {
-        enterTakingPic()
-        ref ! RemoteCmd.SetZoom(zoomFactor: 3.0)
-        waitForMailbox(session, test: self)
+    func testZoomDuringCaptureStillApplies() async {
+        await enterTakingPic()
+        await deliver(RemoteCmd.SetZoom(zoomFactor: 3.0))
 
         XCTAssertEqual(ctrl.zoomCalls, [3.0])
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraTakingPic)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraTakingPic)
     }
 
-    func testStartRecordingDuringCapturePushesBusy() {
-        enterTakingPic()
-        ref ! RemoteCmd.StartRecordingVideo(sender: nil)
-        waitForMailbox(session, test: self)
+    func testStartRecordingDuringCapturePushesBusy() async {
+        await enterTakingPic()
+        await deliver(RemoteCmd.StartRecordingVideo(sender: nil))
 
         XCTAssertEqual(pusher.lastEvent, .busy)
         XCTAssertEqual(ctrl.startRecordingCalls, 0)
     }
 
-    func testLateOnPictureInIdleStateSavesAndPushesTruthfulEvent() {
-        enterWatchCamera()
+    func testLateOnPictureInIdleStateSavesAndPushesTruthfulEvent() async {
+        await enterWatchCamera()
         let photoBytes = Data([0xBE, 0xEF])
-        ref ! UICmd.OnPicture(sender: nil, pic: photoBytes)
-        waitForMailbox(session, test: self)
+        await deliver(UICmd.OnPicture(sender: nil, pic: photoBytes))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, .phototaken)
         XCTAssertEqual(savedPhotos, [photoBytes], "a late capture must still be saved")
     }
 
     // MARK: - Video recording
 
-    func testStartRecordingEntersStartingVideo() {
-        enterStartingVideo()
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraStartingVideo)
+    func testStartRecordingEntersStartingVideo() async {
+        await enterStartingVideo()
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraStartingVideo)
         XCTAssertEqual(ctrl.startRecordingCalls, 1)
     }
 
-    func testStartAckTransitionsToRecording() {
-        enterRecording()
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraRecordingVideo)
+    func testStartAckTransitionsToRecording() async {
+        await enterRecording()
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraRecordingVideo)
         XCTAssertEqual(pusher.lastEvent, .recordingstarted)
     }
 
-    func testStartAckWithErrorReturnsToCameraWithRecordingFailed() {
-        enterStartingVideo()
-        ref ! RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil,
-                                               error: NSError(domain: "av", code: 1))
-        waitForMailbox(session, test: self)
+    func testStartAckWithErrorReturnsToCameraWithRecordingFailed() async {
+        await enterStartingVideo()
+        await deliver(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil,
+                                                       error: NSError(domain: "av", code: 1)))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, .recordingfailed)
     }
 
-    func testMicrophoneDeniedDuringStartReturnsToCamera() {
-        enterStartingVideo()
-        ref ! UICmd.MicrophoneAccessDenied(error: NSError(domain: "mic", code: 1))
-        waitForMailbox(session, test: self)
+    func testMicrophoneDeniedDuringStartReturnsToCamera() async {
+        await enterStartingVideo()
+        await deliver(UICmd.MicrophoneAccessDenied(error: NSError(domain: "mic", code: 1)))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, .microphonedenied)
     }
 
-    func testStartingVideoTimeoutCleansUpAndReturnsToCamera() {
-        enterStartingVideo()
-        let gen = session._timeoutGeneration
+    func testStartingVideoTimeoutCleansUpAndReturnsToCamera() async {
+        await enterStartingVideo()
+        let generation = await coordinator.currentTimeoutGeneration()
 
-        ref ! UICmd.StateTimeout(stateName: .watchRemoteCameraStartingVideo, generation: gen)
-        waitForMailbox(session, test: self)
+        await deliver(UICmd.StateTimeout(stateName: .watchRemoteCameraStartingVideo, generation: generation))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, .recordingfailed)
         XCTAssertEqual(ctrl.stopRecordingCalls, [false], "timeout must attempt recorder cleanup")
     }
 
-    func testStopDuringStartingVideoAbortsCleanly() {
-        enterStartingVideo()
-        ref ! RemoteCmd.StopRecordingVideo(sender: nil)
-        waitForMailbox(session, test: self)
+    func testStopDuringStartingVideoAbortsCleanly() async {
+        await enterStartingVideo()
+        await deliver(RemoteCmd.StopRecordingVideo(sender: nil))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(ctrl.stopRecordingCalls, [false])
     }
 
-    func testStopRecordingCompletesOnResp() {
-        enterRecording()
-        ref ! RemoteCmd.StopRecordingVideo(sender: nil)
-        waitForMailbox(session, test: self)
+    func testStopRecordingCompletesOnResp() async {
+        await enterRecording()
+        await deliver(RemoteCmd.StopRecordingVideo(sender: nil))
         XCTAssertEqual(ctrl.stopRecordingCalls, [false])
 
         ctrl.isRecording = false
-        ref ! RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
-        waitForMailbox(session, test: self)
+        await deliver(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, .recordingstopped)
     }
 
-    func testStopRecordingTimeoutUnwedgesState() {
-        enterRecording()
-        ref ! RemoteCmd.StopRecordingVideo(sender: nil)
-        waitForMailbox(session, test: self)
-        let gen = session._timeoutGeneration
+    func testStopRecordingTimeoutUnwedgesState() async {
+        await enterRecording()
+        await deliver(RemoteCmd.StopRecordingVideo(sender: nil))
+        let generation = await coordinator.currentTimeoutGeneration()
 
-        ref ! UICmd.StateTimeout(stateName: .watchRemoteCameraRecordingVideo, generation: gen)
-        waitForMailbox(session, test: self)
+        await deliver(UICmd.StateTimeout(stateName: .watchRemoteCameraRecordingVideo, generation: generation))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertEqual(pusher.lastEvent, .recordingfailed)
     }
 
-    func testRecordingHasNoBlanketTimeout() {
-        enterRecording()
+    func testRecordingHasNoBlanketTimeout() async {
+        await enterRecording()
         // A timeout that wasn't armed by a stop request must not kill the recording.
-        ref ! UICmd.StateTimeout(stateName: .watchRemoteCameraRecordingVideo,
-                                 generation: session._timeoutGeneration + 100)
-        waitForMailbox(session, test: self)
+        let generation = await coordinator.currentTimeoutGeneration()
+        await deliver(UICmd.StateTimeout(stateName: .watchRemoteCameraRecordingVideo,
+                                         generation: generation + 100))
 
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraRecordingVideo)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraRecordingVideo)
     }
 
-    func testTakePicDuringRecordingPushesBusyRecording() {
-        enterRecording()
-        ref ! RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false)
-        waitForMailbox(session, test: self)
+    func testTakePicDuringRecordingPushesBusyRecording() async {
+        await enterRecording()
+        await deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
 
         XCTAssertEqual(pusher.lastEvent, .busyrecording)
         XCTAssertTrue(ctrl.takePictureCalls.isEmpty)
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraRecordingVideo)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraRecordingVideo)
     }
 
-    func testZoomAndTorchKeepWorkingDuringRecording() {
-        enterRecording()
-        ref ! RemoteCmd.SetZoom(zoomFactor: 2.0)
-        ref ! RemoteCmd.ToggleTorch()
-        waitForMailbox(session, test: self)
+    func testZoomAndTorchKeepWorkingDuringRecording() async {
+        await enterRecording()
+        await deliver(RemoteCmd.SetZoom(zoomFactor: 2.0))
+        await deliver(RemoteCmd.ToggleTorch())
 
         XCTAssertEqual(ctrl.zoomCalls, [2.0])
         XCTAssertEqual(ctrl.torchToggles, 1)
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraRecordingVideo)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraRecordingVideo)
     }
 
     // MARK: - Exit from sub-states
 
-    func testUnbecomeWatchCameraFromTakingPicPopsToRoot() {
-        enterTakingPic()
-        ref ! UICmd.UnbecomeWatchCamera()
-        waitForMailbox(session, test: self)
+    func testUnbecomeWatchCameraFromTakingPicPopsToRoot() async {
+        await enterTakingPic()
+        await deliver(UICmd.UnbecomeWatchCamera())
 
-        XCTAssertNil(session.currentStateName())
+        // (Was `nil` for Theater's emptied stack — the enum floor maps to .idle.)
+        let name = await stateName()
+        XCTAssertEqual(name, .idle)
         XCTAssertEqual(pusher.disconnectedPushes, 1)
     }
 
-    func testUnbecomeWatchCameraDuringRecordingStopsRecorder() {
-        enterRecording()
-        ref ! UICmd.UnbecomeWatchCamera()
-        waitForMailbox(session, test: self)
+    func testUnbecomeWatchCameraDuringRecordingStopsRecorder() async {
+        await enterRecording()
+        await deliver(UICmd.UnbecomeWatchCamera())
 
-        XCTAssertNil(session.currentStateName())
+        let name = await stateName()
+        XCTAssertEqual(name, .idle)
         XCTAssertEqual(ctrl.stopRecordingCalls, [false])
         XCTAssertEqual(pusher.disconnectedPushes, 1)
     }
 
     // MARK: - Photo/Video mode switching
 
-    func testSetModeSwitchesToVideoAndPushesState() {
-        enterWatchCamera()
-        ref ! UICmd.SetWatchCameraMode(mode: .Video)
-        waitForMailbox(session, test: self)
+    func testSetModeSwitchesToVideoAndPushesState() async {
+        await enterWatchCamera()
+        await deliver(UICmd.SetWatchCameraMode(mode: .Video))
 
         XCTAssertEqual(ctrl.currentCameraMode, .Video)
         XCTAssertEqual(pusher.pushedSnapshots.last?.currentMode, .video)
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        var name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
 
-        ref ! UICmd.SetWatchCameraMode(mode: .Photo)
-        waitForMailbox(session, test: self)
+        await deliver(UICmd.SetWatchCameraMode(mode: .Photo))
 
         XCTAssertEqual(ctrl.currentCameraMode, .Photo)
         XCTAssertEqual(pusher.pushedSnapshots.last?.currentMode, .photo)
+        name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
     }
 
-    func testSetModeDuringCaptureIsRejectedAsBusy() {
-        enterTakingPic()
-        ref ! UICmd.SetWatchCameraMode(mode: .Video)
-        waitForMailbox(session, test: self)
+    func testSetModeDuringCaptureIsRejectedAsBusy() async {
+        await enterTakingPic()
+        await deliver(UICmd.SetWatchCameraMode(mode: .Video))
 
         XCTAssertEqual(ctrl.currentCameraMode, .Photo, "mode must not change mid-capture")
         XCTAssertEqual(pusher.lastEvent, .busy)
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraTakingPic)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraTakingPic)
     }
 
-    func testSetModeDuringRecordingIsRejectedAsBusy() {
-        enterRecording()
-        ref ! UICmd.SetWatchCameraMode(mode: .Photo)
-        waitForMailbox(session, test: self)
+    func testSetModeDuringRecordingIsRejectedAsBusy() async {
+        await enterRecording()
+        ctrl.currentCameraMode = .Video
+        await deliver(UICmd.SetWatchCameraMode(mode: .Photo))
 
         XCTAssertEqual(ctrl.currentCameraMode, .Video, "mode must not change while recording")
         XCTAssertEqual(pusher.lastEvent, .busyrecording)
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCameraRecordingVideo)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCameraRecordingVideo)
     }
 
     // MARK: - Timer countdown plumbing
 
-    func testTimerCountdownIsCarriedAsSnapshotState() {
-        enterWatchCamera()
-        ref ! RemoteCmd.TimerCountdown(value: 3)
-        ref ! RemoteCmd.TimerCountdown(value: 2)
-        ref ! RemoteCmd.TimerCountdown(value: 0)
-        waitForMailbox(session, test: self)
+    func testTimerCountdownIsCarriedAsSnapshotState() async {
+        await enterWatchCamera()
+        await deliver(RemoteCmd.TimerCountdown(value: 3))
+        await deliver(RemoteCmd.TimerCountdown(value: 2))
+        await deliver(RemoteCmd.TimerCountdown(value: 0))
 
         XCTAssertEqual(ctrl.countdownTicks, [3, 2, 0])
         // Ticks travel as snapshot state, never as events.
@@ -461,7 +365,8 @@ class WatchRemoteCamStateTests: XCTestCase {
         let countdowns = pusher.pushedSnapshots.map(\.countdownRemainingSecs)
         XCTAssertTrue(countdowns.contains(3))
         XCTAssertTrue(countdowns.contains(2))
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
 
         // The fire tick must push a countdown-free snapshot: without it the
         // Watch (and the latest-wins context mirror) keeps showing the last tick.
@@ -470,11 +375,10 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertNil(last?.activeCountdownSeconds)
     }
 
-    func testTimerCancelDrivesPhoneUIAndPushesCountdownFreeSnapshot() {
-        enterWatchCamera()
-        ref ! RemoteCmd.TimerCountdown(value: 2)
-        ref ! RemoteCmd.TimerCountdown(value: -1)
-        waitForMailbox(session, test: self)
+    func testTimerCancelDrivesPhoneUIAndPushesCountdownFreeSnapshot() async {
+        await enterWatchCamera()
+        await deliver(RemoteCmd.TimerCountdown(value: 2))
+        await deliver(RemoteCmd.TimerCountdown(value: -1))
 
         XCTAssertEqual(ctrl.countdownTicks, [2, -1],
                        "cancel must tear down the on-phone countdown overlay")
@@ -482,18 +386,18 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertNotNil(last, "cancel must push state so the context mirror can't hold a dead countdown")
         XCTAssertEqual(last?.countdownRemainingSecs, 0)
         XCTAssertNil(last?.activeCountdownSeconds)
-        XCTAssertEqual(session.currentStateName(), .watchRemoteCamera)
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
     }
 
     /// Any push that interleaves with a live countdown (zoom, toggles, capability
     /// refresh) must carry the countdown — it's snapshot state, so no push can
     /// accidentally "clear" it on the Watch.
-    func testPushesDuringCountdownCarryTheCountdown() {
-        enterWatchCamera()
-        ref ! RemoteCmd.TimerCountdown(value: 5)
-        ref ! RemoteCmd.SetZoom(zoomFactor: 2.0)
-        ref ! RemoteCmd.RequestCameraCapabilities()
-        waitForMailbox(session, test: self)
+    func testPushesDuringCountdownCarryTheCountdown() async {
+        await enterWatchCamera()
+        await deliver(RemoteCmd.TimerCountdown(value: 5))
+        await deliver(RemoteCmd.SetZoom(zoomFactor: 2.0))
+        await deliver(RemoteCmd.RequestCameraCapabilities())
 
         let afterTick = pusher.pushedSnapshots.suffix(2)
         XCTAssertEqual(afterTick.count, 2)
@@ -504,20 +408,21 @@ class WatchRemoteCamStateTests: XCTestCase {
 
     // MARK: - Snapshot truthfulness
 
-    func testSnapshotReportsFlashFromController() {
-        ctrl.currentFlashMode = .auto
-        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl)
+    func testSnapshotReportsFlashFromController() async {
+        ctrl.flashMode = .auto
+        let snapshot = await SessionCoordinator.watchStateSnapshot(ctrl: ctrl)
         XCTAssertTrue(snapshot.isFlashEnabled, "auto flash must surface as enabled on the Watch")
 
-        ctrl.currentFlashMode = .off
-        XCTAssertFalse(RemoteCamSession.watchStateSnapshot(ctrl: ctrl).isFlashEnabled)
+        ctrl.flashMode = .off
+        let offSnapshot = await SessionCoordinator.watchStateSnapshot(ctrl: ctrl)
+        XCTAssertFalse(offSnapshot.isFlashEnabled)
     }
 
-    func testSnapshotReportsTorchAndRecordingState() {
-        ctrl.isTorchActive = true
+    func testSnapshotReportsTorchAndRecordingState() async {
+        ctrl.torchActive = true
         ctrl.isRecording = true
         ctrl.currentCameraMode = .Video
-        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: .recordingstarted)
+        let snapshot = await SessionCoordinator.watchStateSnapshot(ctrl: ctrl, event: .recordingstarted)
         XCTAssertTrue(snapshot.isTorchEnabled)
         XCTAssertTrue(snapshot.isRecording)
         XCTAssertEqual(snapshot.currentMode, .video)
@@ -526,15 +431,15 @@ class WatchRemoteCamStateTests: XCTestCase {
 
     // MARK: - Readiness (backgrounded / locked phone)
 
-    func testSnapshotReadyWhenForegrounded() {
-        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: .phototaken, isBackgrounded: false)
+    func testSnapshotReadyWhenForegrounded() async {
+        let snapshot = await SessionCoordinator.watchStateSnapshot(ctrl: ctrl, event: .phototaken, isBackgrounded: false)
         XCTAssertEqual(snapshot.readiness, .ready)
         XCTAssertEqual(snapshot.event, .phototaken, "transient event passes through while foregrounded")
     }
 
-    func testSnapshotNotReadyWhenBackgrounded() {
-        let snapshot = RemoteCamSession.watchStateSnapshot(ctrl: ctrl, event: .phototaken,
-                                                           isBackgrounded: true, countdownRemaining: 3)
+    func testSnapshotNotReadyWhenBackgrounded() async {
+        let snapshot = await SessionCoordinator.watchStateSnapshot(ctrl: ctrl, event: .phototaken,
+                                                                   isBackgrounded: true, countdownRemaining: 3)
         XCTAssertEqual(snapshot.readiness, .phonebackgrounded,
                        "a backgrounded/locked phone can't capture")
         XCTAssertEqual(snapshot.event, .unknown,
@@ -546,13 +451,12 @@ class WatchRemoteCamStateTests: XCTestCase {
     /// The regression this whole change targets: whichever push path runs while the
     /// phone is backgrounded, the snapshot must report not-ready — so a stale "ready"
     /// push can never race ahead and hide the Watch's "app closed" screen.
-    func testBackgroundedPhoneAlwaysPushesNotReady() {
-        session.isPhoneBackgrounded = { true }
-        enterWatchCamera()
+    func testBackgroundedPhoneAlwaysPushesNotReady() async {
+        await coordinator.setIsPhoneBackgrounded { true }
+        await enterWatchCamera()
 
         // A capabilities request is exactly the push that used to win the race with isReady=true.
-        ref ! RemoteCmd.RequestCameraCapabilities()
-        waitForMailbox(session, test: self)
+        await deliver(RemoteCmd.RequestCameraCapabilities())
 
         let pushes = pusher.pushedSnapshots
         XCTAssertFalse(pushes.isEmpty)

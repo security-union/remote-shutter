@@ -14,7 +14,7 @@ protocol AlertHandle: AnyObject {
 }
 
 /// Abstracts UIAlertController presentation so state-machine logic is testable.
-/// All methods must be called from the main thread (dispatched via `^{}`).
+/// All methods must be called from the main thread.
 protocol AlertPresenting: AnyObject {
     /// Show a progress alert. Returns handle for update/dismiss.
     func showAlert(title: String) -> AlertHandle

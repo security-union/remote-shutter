@@ -38,49 +38,51 @@ Never attempt to run `fastlane release` locally — it requires CI environment v
 
 ## Architecture
 
-### Actor Model (Theater framework)
+### Session state machine (SessionCoordinator)
 
-The app uses the **Theater** pod — an actor-model framework. Actors communicate exclusively via messages (the `!` operator sends a message). All state transitions happen inside actor message handlers, never on the main thread (asserted in code).
+See `Docs/ARCHITECTURE.md` for the readable overview. The session is a Swift
+`actor` — **`SessionCoordinator`** (SessionCoordinator.swift) — holding the
+complete state space as the `SessionState` enum (~20 states across the
+scanning/connected, camera, monitor, and watch families) plus all per-state
+message handlers in the same file. Messages enter through `tell(_:)` (or the
+`coordinator ! msg` operator sugar) into a FIFO `AsyncStream` inbox and are
+processed one at a time; state context (peer, lobby, `CameraControlling` ctrl,
+`MonitorPresenter`) lives in actor-isolated properties.
 
-Key actors (registered under `RemoteCamSystem.shared`):
-- **`RemoteCamSession`** (`RemoteCam/user/RemoteCam Session`) — Central session actor managing the state machine. Plain Theater `Actor` bound to the scanner screen through the `ScannerLobby` protocol (`SetScannerLobby` message). Handles MultipeerConnectivity session and routes all remote commands.
-- **`MonitorActor`** (`RemoteCam/user/MonitorActor`) — Bridge between session and `MonitorViewController`. Created/destroyed with the monitor screen lifecycle.
-- **`FrameSender`** (`RemoteCam/user/FrameSender`) — Manages camera frame streaming with back-pressure (waits for ack before sending next frame).
+Key collaborators (plain objects, injected by the screen that owns the session):
+- **`MonitorPresenter`** — routes session results to the monitor screen's
+  `MonitorDisplay`/view model, hopping to main internally.
+- **`FrameSender`** — queue-confined preview-frame streamer with credit-window
+  back-pressure (only sends when the monitor has acked).
+- **`CameraRig`** — the camera device as one non-UI object; the production
+  `CameraControlling` conformer (an `async throws` protocol).
 
-Actor references are retrieved via: `RemoteCamSystem.shared.selectActor(actorPath: "RemoteCam/user/<name>")`
-
-### State Machine
-
-`RemoteCamSession` implements a hierarchical state machine using Theater's `become`/`unbecome`/`popToState` pattern. States are defined in `RemoteCamStates` (States.swift) and implemented across multiple files:
-
-- **RemoteCamScanning.swift** — `scanning` state: peer discovery via MultipeerConnectivity
-- **RemoteCamConnected.swift** — `connected` state: role selection (camera vs monitor)
-- **CamStates.swift** — `camera`, `cameraTakingPic`, `cameraRecordingVideo` states
-- **MonitorStates.swift** — `monitorTogglingFlash`, `monitorTogglingCamera`, `monitorSwitchingLens` states
-- **MonitorPhotoStates.swift** — `monitorPhotoMode`, `monitorTakingPicture` states
-- **MonitorVideoStates.swift** — `monitorVideoMode`, `monitorRecordingVideo` states
-- **CameraVideoStates.swift** — Camera-side video recording states
+Ownership: `DeviceScannerViewController` creates the coordinator + FrameSender
+pair and injects them into the camera/monitor screens; the Watch-remote screen
+owns its own pair. Transient request states arm 10-second generation-counted
+timeouts; long-lived states (recording, modes) deliberately have none.
 
 ### Message Protocol
 
-Two message hierarchies handle communication:
+Two message hierarchies (both subclassing the app's `Message` base in
+Messages.swift) handle communication:
 - **`RemoteCmd`** (RemoteCmds.swift) — Messages sent over MultipeerConnectivity between devices, serialized as **FlatBuffers** (`RemoteCmdFlatBuffers.swift` + schemas in `FlatBufferSchemas.fbs`).
-- **`UICmd`** (UICmds.swift) — Local messages between actors and view controllers within a single device.
+- **`UICmd`** (UICmds.swift) — Local messages from screens into the session coordinator within a single device.
 
 When adding new remote commands, add a table to `FlatBufferSchemas.fbs`, regenerate `FlatBufferSchemas_generated.swift` with `flatc`, and wire the encode/decode paths in `RemoteCmdFlatBuffers.swift`. All FlatBuffer enums must have `Unknown = 0` as the default.
 
 ### UI Architecture
 
-The app is migrating from UIKit to SwiftUI (no storyboards or xibs remain; the window is built programmatically in `SceneDelegate`). See `Docs/UI_MODERNIZATION.md` for the migration plan. Most screens are SwiftUI views hosted by thin UIKit shells via `UIHostingController`:
+Every screen is a SwiftUI view hosted by a thin UIKit shell (no storyboards or xibs; the window is built programmatically in `SceneDelegate`):
 - **WelcomeViewController** — entry point (root of the nav controller), hosts `WelcomeView`
-- **RolePickerController** — role selection, hosts `RolePickerView` (`RemoteCamSystem.shared` is declared in `RemoteCamSystem.swift`)
-- **DeviceScannerViewController** — peer discovery, hosts `DeviceScannerView`; owns the actor lifecycle
-- **MonitorViewController** — hosts `MonitorView`; implements `MonitorDisplay`, the protocol seam through which `MonitorActor` (MonitorActor.swift) drives the screen
-- **CameraViewController** — pure UIKit, manages `AVCaptureSession` for the camera device (no SwiftUI view yet)
-- **WatchRemoteCameraController** — Watch-remote mode, embeds `CameraViewController` as a child
-- View models (`WelcomeViewModel`, `DeviceScannerViewModel`, `MonitorViewModel`, `CameraViewModel`) are ObservableObjects bridging actors to SwiftUI
+- **RolePickerController** — role selection, hosts `RolePickerView`
+- **DeviceScannerViewController** — peer discovery, hosts `DeviceScannerView`; owns the `SessionCoordinator` + `FrameSender` lifecycle
+- **MonitorViewController** — hosts `MonitorView`; implements `MonitorDisplay`, the protocol seam through which `MonitorPresenter` drives the screen
+- **CameraHostController** — hosts `CameraScreenView` (preview + chrome) and owns a `CameraRig`, which holds the capture stack (`CaptureEngine` + `RecordingPipeline` + `FrameStreamingCoordinator`)
+- **WatchRemoteCameraController** — Watch-remote mode, embeds the camera screen and bridges `WCSession` commands into the coordinator
+- View models (`WelcomeViewModel`, `DeviceScannerViewModel`, `MonitorViewModel`, `CameraViewModel`) are ObservableObjects; all `@Published` writes happen on main
 
-The `^{ }` prefix operator (defined in Theater) dispatches a closure to the main thread — you'll see it used extensively for UI updates from actor message handlers.
+Threading: the coordinator serializes via its actor inbox; `CaptureEngine` state is confined to its `sessionQueue`; recording state to the single `dataOutputQueue` (which delivers both video and audio frames); the few per-frame cross-domain values use `Locked<T>`. The full test suite runs clean under Thread Sanitizer — keep it that way.
 
 ### P2P Communication
 
@@ -91,7 +93,7 @@ Uses Apple's **MultipeerConnectivity** framework (service type: `"RemoteCam"`), 
 - **SwiftLint** (~0.41.0) — Linting
 - **FlatBuffers** (local podspec) — Wire-protocol serialization (iOS + watchOS targets)
 
-The Theater actor framework is no longer a pod — the used subset is internalized at `RemoteCam/Theater/` (see `Docs/MODERNIZATION.md`).
+The session uses Swift's native `actor` for concurrency (see `Docs/ARCHITECTURE.md`).
 
 ### Feature Flags
 

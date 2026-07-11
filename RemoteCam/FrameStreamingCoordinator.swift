@@ -35,9 +35,9 @@ final class FrameStreamingCoordinator: NSObject {
     /// pipeline's crop context to avoid cross-queue contention.
     private let watchPreviewContext = CIContext(options: [.useSoftwareRenderer: false])
     /// Streams preview frames to the Apple Watch with ack back-pressure and lazy encoding.
-    /// Runs on `videoDataOutputQueue`, where the capture callback hands it sample buffers.
+    /// Runs on `dataOutputQueue`, where the capture callback hands it sample buffers.
     private lazy var watchPreviewStreamer = WatchPreviewStreamer(
-        queue: engine.videoDataOutputQueue,
+        queue: engine.dataOutputQueue,
         maxInFlight: StreamingConfig.default.watchPreviewMaxInFlight,
         ackTimeout: StreamingConfig.default.watchPreviewAckTimeout)
     /// Streams preview frames to the phone monitor: paces, encodes (HEIC with
@@ -82,11 +82,13 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
     func captureOutput(_ captureOutput: AVCaptureOutput,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
-        if connection == engine.videoConnection {
+        // Route by output identity (`let`s, safe from any thread) rather than
+        // comparing connections, which are sessionQueue-owned mutable state.
+        if captureOutput === engine.videoDataOutput {
             sendFrameToMonitor(captureOutput, didOutput: sampleBuffer, from: connection)
         }
         if (pipeline.recordingWillBeStarted || pipeline.isRecording) && !pipeline.recordingWillBeStopped {
-            pipeline.processFrame(captureOutput, didOutput: sampleBuffer, from: connection)
+            pipeline.processFrame(captureOutput, didOutput: sampleBuffer)
         }
     }
 
@@ -101,12 +103,11 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
             return
         }
 
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer),
-              let device = self.engine.videoDeviceInput?.device else { return }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         frameStreamer.handle(pixelBuffer: pixelBuffer,
-                             position: device.position,
+                             position: engine.currentPositionShared.value,
                              orientation: orientationProvider(),
-                             fps: fps)
+                             fps: fpsSetting.value)
     }
 
     /// Builds a compact still of the current frame for the Apple Watch live

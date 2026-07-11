@@ -95,17 +95,13 @@ class ControllerWiringTests: XCTestCase {
 
     // MARK: - DeviceScannerViewController
 
-    func testDeviceScannerRegistersActorsAndHostsScannerView() {
+    func testDeviceScannerOwnsSessionAndHostsScannerView() {
         // autoreleasepool so UIKit's autoreleased references to the controller
         // are released and deinit actually runs inside this test.
         autoreleasepool {
             var scanner: DeviceScannerViewController? = DeviceScannerViewController(role: .camera)
-            _ = scanner!.view // viewDidLoad creates the session + frame sender actors
+            _ = scanner!.view // viewDidLoad wires the coordinator + frame sender
 
-            XCTAssertNotNil(getRemoteCamSession(),
-                            "viewDidLoad must register 'RemoteCam Session' in the shared system")
-            XCTAssertNotNil(getFrameSender(),
-                            "viewDidLoad must register 'FrameSender' in the shared system")
             XCTAssertNotNil(scanner!.remoteCamSession)
             XCTAssertNotNil(scanner!.frameSender)
             XCTAssertEqual(scanner!.scannerViewModel.role, .camera)
@@ -113,41 +109,25 @@ class ControllerWiringTests: XCTestCase {
                                      in: scanner!)
             scanner = nil
         }
-
-        // Releasing the controller must stop the actors it created.
-        XCTAssertTrue(waitUntil { getRemoteCamSession() == nil },
-                      "deinit must stop the session actor it created")
-        XCTAssertTrue(waitUntil { getFrameSender() == nil },
-                      "deinit must stop the frame sender it created")
+        // The coordinator and frame sender are owned by the controller and
+        // die with it — no shared registry left to assert against.
     }
 
     // MARK: - MonitorViewController
 
-    func testMonitorControllerCreatesAndTearsDownMonitorActor() {
-        // MonitorViewController resolves the session actor at init time; give it one.
-        let sessionRef = RemoteCamSystem.shared.actorOf(
-            clz: TestableRemoteCamSession.self, name: "RemoteCam Session", replace: true)!
-        let sessionInstanceId = RemoteCamSystem.shared.instanceId(forRef: sessionRef)
-        defer {
-            stopActorIfCurrent(ref: sessionRef, instanceId: sessionInstanceId)
-            _ = waitUntil { getRemoteCamSession() == nil }
-        }
+    func testMonitorControllerWiresPresenterAndHostsMonitorView() {
+        let session = SessionCoordinator()
+        defer { session.stop() }
 
         autoreleasepool {
-            var monitorVC: MonitorViewController? = MonitorViewController()
+            var monitorVC: MonitorViewController? = MonitorViewController(session: session)
             _ = monitorVC!.view
 
-            XCTAssertNotNil(getMonitorActor(),
-                            "viewDidLoad must register MonitorActor in the shared system")
             assertHostPinnedToBounds(hostedChild(of: monitorVC!, hosting: MonitorView.self),
                                      in: monitorVC!)
             XCTAssertEqual(monitorVC!.viewModel.uiState, .photoMode,
                            "viewDidLoad must configure the view model for photo mode")
             monitorVC = nil
         }
-
-        // Releasing the controller must stop the MonitorActor it created.
-        XCTAssertTrue(waitUntil { getMonitorActor() == nil },
-                      "deinit must stop the MonitorActor it created")
     }
 }

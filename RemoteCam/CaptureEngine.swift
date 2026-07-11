@@ -16,21 +16,61 @@ import AVFoundation
 /// session actor via the `onPicture` callback.
 final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
+    /// The single owner of all session/device configuration and engine control
+    /// state. Synchronous accessors hop here re-entrantly (`syncOnSessionQueue`);
+    /// async commands hop via continuations; nothing on this queue ever `.sync`s
+    /// back out, so no cycle can form.
+    let sessionQueue = DispatchQueue(label: "camera session queue", attributes: [], target: nil)
+
+    private static let sessionQueueKey = DispatchSpecificKey<Void>()
+
+    override init() {
+        super.init()
+        sessionQueue.setSpecific(key: Self.sessionQueueKey, value: ())
+    }
+
+    /// Runs `body` on the session queue, inline when already there — so
+    /// callbacks fired from inside the queue (e.g. `onStatusChanged`) can
+    /// safely read state without deadlocking on a nested `.sync`.
+    private func syncOnSessionQueue<T>(_ body: () -> T) -> T {
+        if DispatchQueue.getSpecific(key: Self.sessionQueueKey) != nil {
+            return body()
+        }
+        return sessionQueue.sync(execute: body)
+    }
+
+    /// Non-blocking hop for the async command surface.
+    private func onSessionQueue<T>(_ body: @escaping () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            sessionQueue.async { continuation.resume(returning: body()) }
+        }
+    }
+
+    private func onSessionQueueThrowing<T>(_ body: @escaping () throws -> T) async throws -> T {
+        let result: Result<T, Error> = await withCheckedContinuation { continuation in
+            sessionQueue.async { continuation.resume(returning: Result { try body() }) }
+        }
+        return try result.get()
+    }
+
     let captureSession: AVCaptureSession = AVCaptureSession()
     let audioDataOutput = AVCaptureAudioDataOutput()
-    let audioDataOutputQueue = DispatchQueue(
-        label: "recording audio data output queue", attributes: [], target: nil)
-    let cameraConfigQueue = DispatchQueue(
-        label: "camera config queue", attributes: [], target: nil)
 
     let videoDataOutput = AVCaptureVideoDataOutput()
-    let videoDataOutputQueue = DispatchQueue(
-        label: "recording video data output queue", attributes: [], target: nil)
+    /// Delivery queue for BOTH the video and audio sample-buffer delegates —
+    /// one queue so `processFrame` is naturally serialized — and the home of
+    /// all recording state in `RecordingPipeline`.
+    let dataOutputQueue = DispatchQueue(
+        label: "camera data output queue", attributes: [], target: nil)
     let photoOutput = AVCapturePhotoOutput()
     let cameraSettings = AVCapturePhotoSettings()
     var videoConnection: AVCaptureConnection?
     var audioConnection: AVCaptureConnection?
     var videoDeviceInput: AVCaptureDeviceInput!
+
+    /// The active camera position, mirrored for the frame streamer's per-frame
+    /// reads (everything else about the device is sessionQueue-confined).
+    let currentPositionShared = Locked(AVCaptureDevice.Position.back)
 
     /// Orientation the engine last applied to the output/photo connections.
     /// The `CameraRig` keeps its own `orientation` for the preview and
@@ -64,24 +104,35 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     // MARK: - Setup
 
-    /// Configures the capture session and starts it. Returns `false` if no camera
-    /// device is available (the caller then skips preview-layer creation). The
-    /// caller owns the preview layer and the post-setup orientation pass.
-    func setupCamera(sampleBufferDelegate: AVCaptureVideoDataOutputSampleBufferDelegate & AVCaptureAudioDataOutputSampleBufferDelegate) -> Bool {
+    /// Configures the capture session on `sessionQueue` and starts it, then
+    /// calls `completion` on main with whether a camera device was available
+    /// (the caller skips preview publishing when it wasn't). Runs off the main
+    /// thread, so the caller's busy spinner can actually render during setup.
+    func setupCamera(sampleBufferDelegate: AVCaptureVideoDataOutputSampleBufferDelegate & AVCaptureAudioDataOutputSampleBufferDelegate,
+                     completion: @escaping (Bool) -> Void) {
+        sessionQueue.async {
+            let hasCamera = self.setupCameraLocked(sampleBufferDelegate: sampleBufferDelegate)
+            DispatchQueue.main.async {
+                completion(hasCamera)
+            }
+        }
+    }
+
+    private func setupCameraLocked(sampleBufferDelegate: AVCaptureVideoDataOutputSampleBufferDelegate & AVCaptureAudioDataOutputSampleBufferDelegate) -> Bool {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
         self.cameraSettings.isHighResolutionPhotoEnabled = true
-        self.videoDataOutput.setSampleBufferDelegate(sampleBufferDelegate, queue: self.videoDataOutputQueue)
+        self.videoDataOutput.setSampleBufferDelegate(sampleBufferDelegate, queue: self.dataOutputQueue)
         self.videoDataOutput.videoSettings =
             [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
         self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
         if self.captureSession.isRunning {
-            self.cameraConfigQueue.async {
-                self.captureSession.stopRunning()
-            }
+            self.captureSession.stopRunning()
         }
         self.captureSession.beginConfiguration()
         self.captureSession.sessionPreset = .high
 
         guard let videoDevice = preferredCamera(for: .back) ?? AVCaptureDevice.default(for: AVMediaType.video) else {
+            self.captureSession.commitConfiguration()
             return false
         }
         debugLog("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
@@ -91,14 +142,15 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.captureSession.addInput(self.videoDeviceInput)
             self.captureSession.addOutput(self.videoDataOutput)
 
-            try self.setFrameRate(framerate: fps, videoDevice: videoDevice)
+            try self.setFrameRate(framerate: fpsSetting.value, videoDevice: videoDevice)
 
             // Gather complete camera capabilities for both front and back cameras
-            self.gatherAllCameraCapabilities()
+            self.gatherAllCameraCapabilitiesLocked()
 
             // Initialize current state
             self.updateAvailableLensTypes(for: videoDevice.position)
             self.zoomStops = self.discoverZoomStops(for: videoDevice)
+            self.currentPositionShared.value = videoDevice.position
 
             // Start at the wide-angle zoom factor (matches native Camera app "1x")
             let wideZoom = self.wideAngleZoomFactor(for: videoDevice)
@@ -113,47 +165,84 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // This prevents requesting microphone permission upfront
             self.configSessionOutput()
             self.captureSession.commitConfiguration()
-            self.applyDesiredTorch()   // commitConfiguration can reset the torch
-            self.cameraConfigQueue.async {
-                self.captureSession.startRunning()
-            }
+            self.applyDesiredTorchLocked()   // commitConfiguration can reset the torch
+            self.captureSession.startRunning()
         } catch let error as NSError {
             print("error \(error)")
         }
         return true
     }
 
-    func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)> {
-        do {
+    /// Adds the audio input/output for video recording — the config half of
+    /// record-start, kept on `sessionQueue` (the pipeline's data-queue work
+    /// syncs in here once, then continues on its own queue).
+    func configureAudioForRecording(delegate: AVCaptureAudioDataOutputSampleBufferDelegate) -> Bool {
+        syncOnSessionQueue {
+            do {
+                guard let audioDevice = AVCaptureDevice.default(for: .audio) else {
+                    return false
+                }
+                let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
+
+                captureSession.beginConfiguration()
+                if captureSession.canAddInput(audioDeviceInput) {
+                    captureSession.addInput(audioDeviceInput)
+                } else {
+                    print("Could not add audio device input to the session")
+                }
+                if captureSession.canAddOutput(audioDataOutput) {
+                    captureSession.addOutput(audioDataOutput)
+                    audioDataOutput.setSampleBufferDelegate(delegate, queue: dataOutputQueue)
+                }
+                captureSession.commitConfiguration()
+
+                // Restore the user's torch preference — iOS resets the torch on commitConfiguration.
+                applyDesiredTorchLocked()
+
+                audioConnection = audioDataOutput.connection(with: .audio)
+                return true
+            } catch {
+                print("Error setting up audio for video recording: \(error)")
+                return false
+            }
+        }
+    }
+
+    /// Stops the capture session (screen teardown).
+    func stopSession() {
+        sessionQueue.async {
+            if self.captureSession.isRunning {
+                self.captureSession.stopRunning()
+            }
+        }
+    }
+
+    func toggleCamera(orientation: UIInterfaceOrientation) async throws -> (AVCaptureDevice.FlashMode?, AVCaptureDevice.Position) {
+        try await onSessionQueueThrowing {
             let captureSession = self.captureSession
             captureSession.beginConfiguration()
             let device = self.videoDeviceInput?.device
             let newPosition = device?.position.toggle().toOptional()
-            let newDevice = cameraForPosition(position: newPosition!)
+            let newDevice = self.cameraForPosition(position: newPosition!)
             let newInput = try AVCaptureDeviceInput(device: newDevice!)
             captureSession.removeInput(self.videoDeviceInput)
             captureSession.addInput(newInput)
             self.videoDeviceInput = newInput
-            configSessionOutput()
-            try setFrameRate(framerate: fps, videoDevice: newDevice!)
+            self.configSessionOutput()
+            try self.setFrameRate(framerate: fpsSetting.value, videoDevice: newDevice!)
 
             // Update available lens types and zoom stops for new camera position
             self.updateAvailableLensTypes(for: newPosition!)
             self.zoomStops = self.discoverZoomStops(for: newDevice!)
+            self.currentPositionShared.value = newInput.device.position
 
-            do {
-                self.rotateOutputs(orientation: self.orientation)
-                let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
-                captureSession.commitConfiguration()
-                self.applyDesiredTorch()   // restore torch onto the new camera (no-op if it has none)
+            self.rotateOutputsLocked(orientation: orientation)
+            let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
+            captureSession.commitConfiguration()
+            self.applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
 
-                // Camera capabilities are now sent via RemoteCmd.ToggleCameraResp in CamStates.swift
-                // No need to send separate capabilities message here
-
-                return Success((newFlashMode, newInput.device.position))
-            }
-        } catch let error as NSError {
-            return Failure(error: error)
+            // Camera capabilities are sent via RemoteCmd.ToggleCameraResp in the camera state.
+            return (newFlashMode, newInput.device.position)
         }
     }
 
@@ -181,66 +270,59 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         self.captureSession.commitConfiguration()
     }
 
-    func toggleFlash() -> Try<AVCaptureDevice.FlashMode> {
-        let genericDevice = self.videoDeviceInput
-        let device = genericDevice?.device
-        if let hasFlash = device?.hasFlash, hasFlash {
+    func toggleFlash() async throws -> AVCaptureDevice.FlashMode {
+        try await onSessionQueueThrowing {
+            let genericDevice = self.videoDeviceInput
+            let device = genericDevice?.device
+            guard let hasFlash = device?.hasFlash, hasFlash else {
+                throw NSError(domain: "Current camera does not support flash.", code: 0, userInfo: nil)
+            }
             let newFlashMode = self.cameraSettings.flashMode.next()
             self.cameraSettings.flashMode = newFlashMode
-            return Success(newFlashMode)
-        } else {
-            return Failure(error: NSError(domain: "Current camera does not support flash.", code: 0, userInfo: nil))
+            return newFlashMode
         }
     }
 
     // MARK: - Torch Methods for Video Recording
-    func toggleTorch() -> Try<AVCaptureDevice.TorchMode> {
-        let genericDevice = self.videoDeviceInput
-        let device = genericDevice?.device
-        if let hasTorch = device?.hasTorch, hasTorch {
-            do {
-                try device?.lockForConfiguration()
-                let currentTorchMode = device?.torchMode ?? .off
-                let newTorchMode: AVCaptureDevice.TorchMode
-
-                switch currentTorchMode {
-                case .off:
-                    newTorchMode = .on
-                case .on:
-                    newTorchMode = .off
-                case .auto:
-                    newTorchMode = .off
-                @unknown default:
-                    newTorchMode = .off
-                }
-
-                device?.torchMode = newTorchMode
-                device?.unlockForConfiguration()
-                desiredTorchOn = newTorchMode == .on
-                return Success(newTorchMode)
-            } catch let error as NSError {
-                return Failure(error: error)
+    func toggleTorch() async throws -> AVCaptureDevice.TorchMode {
+        try await onSessionQueueThrowing {
+            let device = self.videoDeviceInput?.device
+            guard let hasTorch = device?.hasTorch, hasTorch else {
+                throw NSError(domain: "Current camera does not support torch.", code: 0, userInfo: nil)
             }
-        } else {
-            return Failure(error: NSError(domain: "Current camera does not support torch.", code: 0, userInfo: nil))
+            try device?.lockForConfiguration()
+            let currentTorchMode = device?.torchMode ?? .off
+            let newTorchMode: AVCaptureDevice.TorchMode
+
+            switch currentTorchMode {
+            case .off:
+                newTorchMode = .on
+            case .on:
+                newTorchMode = .off
+            case .auto:
+                newTorchMode = .off
+            @unknown default:
+                newTorchMode = .off
+            }
+
+            device?.torchMode = newTorchMode
+            device?.unlockForConfiguration()
+            self.desiredTorchOnStorage = newTorchMode == .on
+            return newTorchMode
         }
     }
 
-    func setTorchMode(mode: AVCaptureDevice.TorchMode) -> Try<AVCaptureDevice.TorchMode> {
-        let genericDevice = self.videoDeviceInput
-        let device = genericDevice?.device
-        if let hasTorch = device?.hasTorch, hasTorch {
-            do {
-                try device?.lockForConfiguration()
-                device?.torchMode = mode
-                device?.unlockForConfiguration()
-                desiredTorchOn = mode == .on
-                return Success(mode)
-            } catch let error as NSError {
-                return Failure(error: error)
+    func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode {
+        try await onSessionQueueThrowing {
+            let device = self.videoDeviceInput?.device
+            guard let hasTorch = device?.hasTorch, hasTorch else {
+                throw NSError(domain: "Current camera does not support torch.", code: 0, userInfo: nil)
             }
-        } else {
-            return Failure(error: NSError(domain: "Current camera does not support torch.", code: 0, userInfo: nil))
+            try device?.lockForConfiguration()
+            device?.torchMode = mode
+            device?.unlockForConfiguration()
+            self.desiredTorchOnStorage = mode == .on
+            return mode
         }
     }
 
@@ -249,24 +331,57 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// The single source of truth for whether the user wants the torch on. Set only by the
     /// user-facing torch controls (`toggleTorch` / `setTorchMode`); the countdown strobe
     /// drives the hardware directly and never touches this, so it survives a countdown.
-    private(set) var desiredTorchOn = false
+    /// sessionQueue-confined storage; the public getter hops for outside readers.
+    private var desiredTorchOnStorage = false
+    var desiredTorchOn: Bool {
+        syncOnSessionQueue { desiredTorchOnStorage }
+    }
 
-    /// Clears the user's torch intent (screen teardown). Called by the VC's `ensureTorchOff`.
+    /// Clears the user's torch intent (screen teardown). Called by the rig's `ensureTorchOff`.
     func clearTorchIntent() {
-        desiredTorchOn = false
+        syncOnSessionQueue { desiredTorchOnStorage = false }
     }
 
     /// Applies `desiredTorchOn` to the hardware. Reused to restore the torch after any
     /// event that resets it (rotation, session reconfiguration, timer countdown).
     func applyDesiredTorch() {
+        syncOnSessionQueue { applyDesiredTorchLocked() }
+    }
+
+    private func applyDesiredTorchLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard let device = videoDeviceInput?.device, device.hasTorch else { return }
-        let mode: AVCaptureDevice.TorchMode = desiredTorchOn ? .on : .off
+        let mode: AVCaptureDevice.TorchMode = desiredTorchOnStorage ? .on : .off
         guard device.torchMode != mode else { return }
         do {
             try device.lockForConfiguration()
             device.torchMode = mode
             device.unlockForConfiguration()
         } catch {}
+    }
+
+    /// The active capture device, for callers outside the session queue (the
+    /// rig's countdown torch). The device object itself is thread-safe to hold.
+    func currentDevice() -> AVCaptureDevice? {
+        syncOnSessionQueue { videoDeviceInput?.device }
+    }
+
+    /// Whether the torch is currently lit (protocol surface for the states).
+    func isTorchActive() async -> Bool {
+        await onSessionQueue { self.videoDeviceInput?.device.isTorchActive ?? false }
+    }
+
+    /// The flash mode the next photo will use (protocol surface for the states).
+    func currentFlashModeValue() async -> AVCaptureDevice.FlashMode {
+        await onSessionQueue { self.cameraSettings.flashMode }
+    }
+
+    /// Snapshot of the status-overlay fields, for the rig's view-model update
+    /// from any thread.
+    func statusSnapshot() -> (VideoResolution, VideoFrameRate, PhotoFormat, HDRMode) {
+        syncOnSessionQueue {
+            (currentVideoResolution, currentVideoFrameRate, currentPhotoFormat, currentHDRMode)
+        }
     }
 
     // MARK: - Virtual Device Preference
@@ -364,7 +479,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     // MARK: - Camera Capabilities Gathering
-    func gatherAllCameraCapabilities() {
+    func gatherAllCameraCapabilities() async {
+        await onSessionQueue { self.gatherAllCameraCapabilitiesLocked() }
+    }
+
+    private func gatherAllCameraCapabilitiesLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
         debugLog("🔍 DEBUG: gatherAllCameraCapabilities called")
 
         // Gather front camera capabilities
@@ -474,7 +594,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     // MARK: - Current Camera Capabilities for Toggle Response
-    func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp? {
+    func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
+        await onSessionQueue { self.gatherCurrentCameraCapabilitiesLocked() }
+    }
+
+    private func gatherCurrentCameraCapabilitiesLocked() -> RemoteCmd.CameraCapabilitiesResp? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
         debugLog("🔍 DEBUG: gatherCurrentCameraCapabilities called")
 
         guard let currentDevice = self.videoDeviceInput?.device else {
@@ -505,12 +630,17 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     // MARK: - Enhanced Zoom Control Methods
-    func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)> {
+    func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
+        try await onSessionQueueThrowing { try self.setZoomLocked(zoomFactor: zoomFactor) }
+    }
+
+    private func setZoomLocked(zoomFactor: CGFloat) throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
         debugLog("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
 
         guard let device = self.videoDeviceInput?.device else {
             debugLog("❌ DEBUG: No camera device available")
-            return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
+            throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
         }
 
         debugLog("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
@@ -539,23 +669,23 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 maxZoom: device.maxAvailableVideoZoomFactor
             )
 
-            return Success((clampedZoom, currentLensType, zoomRange))
+            return (clampedZoom, currentLensType, zoomRange)
         } catch let error as NSError {
             debugLog("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
-            return Failure(error: error)
+            throw error
         }
     }
 
-    func getCurrentZoomFactor() -> CGFloat {
-        return videoDeviceInput?.device.videoZoomFactor ?? 1.0
+    func getCurrentZoomFactor() async -> CGFloat {
+        await onSessionQueue { self.videoDeviceInput?.device.videoZoomFactor ?? 1.0 }
     }
 
-    func getMaxZoomFactor() -> CGFloat {
-        return videoDeviceInput?.device.maxAvailableVideoZoomFactor ?? 1.0
+    func getMaxZoomFactor() async -> CGFloat {
+        await onSessionQueue { self.videoDeviceInput?.device.maxAvailableVideoZoomFactor ?? 1.0 }
     }
 
-    func getMinZoomFactor() -> CGFloat {
-        return videoDeviceInput?.device.minAvailableVideoZoomFactor ?? 1.0
+    func getMinZoomFactor() async -> CGFloat {
+        await onSessionQueue { self.videoDeviceInput?.device.minAvailableVideoZoomFactor ?? 1.0 }
     }
 
     // MARK: - Enhanced Lens Switching Methods
@@ -598,46 +728,49 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
-    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)> {
+    func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
+        try await onSessionQueueThrowing { try self.switchLensLocked(to: lensType) }
+    }
+
+    private func switchLensLocked(to lensType: CameraLensType) throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard let device = self.videoDeviceInput?.device else {
-            return Failure(error: NSError(domain: "No camera device available", code: 0, userInfo: nil))
+            throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
         }
 
         let targetZoom = zoomFactorForLensType(lensType, device: device)
-        do {
-            try device.lockForConfiguration()
-            let clampedZoom = max(device.minAvailableVideoZoomFactor,
-                                 min(targetZoom, device.maxAvailableVideoZoomFactor))
-            device.videoZoomFactor = clampedZoom
-            currentZoomFactor = clampedZoom
-            currentLensType = lensType
-            device.unlockForConfiguration()
+        try device.lockForConfiguration()
+        let clampedZoom = max(device.minAvailableVideoZoomFactor,
+                             min(targetZoom, device.maxAvailableVideoZoomFactor))
+        device.videoZoomFactor = clampedZoom
+        currentZoomFactor = clampedZoom
+        currentLensType = lensType
+        device.unlockForConfiguration()
 
-            let zoomRange = RemoteCmd.ZoomRange(
-                minZoom: device.minAvailableVideoZoomFactor,
-                maxZoom: device.maxAvailableVideoZoomFactor
-            )
-            return Success((lensType, availableLensTypes, currentZoomFactor, zoomRange))
-        } catch let error as NSError {
-            return Failure(error: error)
+        let zoomRange = RemoteCmd.ZoomRange(
+            minZoom: device.minAvailableVideoZoomFactor,
+            maxZoom: device.maxAvailableVideoZoomFactor
+        )
+        return (lensType, availableLensTypes, currentZoomFactor, zoomRange)
+    }
+
+    func getAvailableLensTypes() async -> [CameraLensType] {
+        await onSessionQueue { self.availableLensTypes }
+    }
+
+    func getCurrentLensType() async -> CameraLensType {
+        await onSessionQueue { self.currentLensType }
+    }
+
+    func getZoomStops() async -> [CGFloat] {
+        await onSessionQueue { self.zoomStops }
+    }
+
+    func getWideAngleZoomFactor() async -> CGFloat {
+        await onSessionQueue {
+            guard let device = self.videoDeviceInput?.device else { return 1.0 }
+            return self.wideAngleZoomFactor(for: device)
         }
-    }
-
-    func getAvailableLensTypes() -> [CameraLensType] {
-        return availableLensTypes
-    }
-
-    func getCurrentLensType() -> CameraLensType {
-        return currentLensType
-    }
-
-    func getZoomStops() -> [CGFloat] {
-        return zoomStops
-    }
-
-    func getWideAngleZoomFactor() -> CGFloat {
-        guard let device = videoDeviceInput?.device else { return 1.0 }
-        return wideAngleZoomFactor(for: device)
     }
 
     /// Applies `orientation` to the video-data and photo output connections and
@@ -645,6 +778,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// so the caller can mirror the original preview-frame refresh timing.
     @discardableResult
     func rotateOutputs(orientation: UIInterfaceOrientation) -> Bool {
+        syncOnSessionQueue { rotateOutputsLocked(orientation: orientation) }
+    }
+
+    @discardableResult
+    private func rotateOutputsLocked(orientation: UIInterfaceOrientation) -> Bool {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
         self.orientation = orientation
         let o = OrientationUtils.transform(o: orientation)
         if let videoConnection = self.videoConnection {
@@ -665,7 +804,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(safeFPS))
         videoDevice.unlockForConfiguration()
         if safeFPS != framerate {
-            RemoteShutter.fps = safeFPS
+            fpsSetting.value = safeFPS
             currentVideoFrameRate = VideoFrameRate.selectableCases.last(where: { $0.value <= safeFPS }) ?? .fps30
             onStatusChanged?()
         }
@@ -703,7 +842,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         return nil
     }
 
-    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate, isRecording: Bool) -> (VideoResolution, VideoFrameRate)? {
+    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate, isRecording: Bool) async -> (VideoResolution, VideoFrameRate)? {
+        await onSessionQueue { self.setVideoQualityLocked(resolution: resolution, frameRate: frameRate, isRecording: isRecording) }
+    }
+
+    private func setVideoQualityLocked(resolution: VideoResolution, frameRate: VideoFrameRate, isRecording: Bool) -> (VideoResolution, VideoFrameRate)? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard !isRecording else { return nil }
         guard let device = videoDeviceInput?.device else { return nil }
 
@@ -754,11 +898,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             debugLog("❌ DEBUG: Failed to restore zoom after quality change: \(error)")
         }
 
-        applyDesiredTorch()   // changing activeFormat/preset also resets the torch
+        applyDesiredTorchLocked()   // changing activeFormat/preset also resets the torch
 
         currentVideoResolution = resolution
         currentVideoFrameRate = appliedFrameRate
-        RemoteShutter.fps = appliedFrameRate.value
+        fpsSetting.value = appliedFrameRate.value
         onStatusChanged?()
 
         return (resolution, appliedFrameRate)
@@ -766,10 +910,18 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     // MARK: - Aspect Ratio Methods
 
-    func setAspectRatio(_ ratio: AspectRatio) -> AspectRatio {
-        currentAspectRatio = ratio
-        onStatusChanged?()
-        return ratio
+    func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio {
+        await onSessionQueue {
+            self.currentAspectRatio = ratio
+            self.onStatusChanged?()
+            return ratio
+        }
+    }
+
+    /// Aspect ratio for callers outside the session queue (the photo-capture
+    /// callback and the pipeline's record-start snapshot).
+    func currentAspectRatioValue() -> AspectRatio {
+        syncOnSessionQueue { currentAspectRatio }
     }
 
     /// Computes a centered crop rect for the given aspect ratio within source dimensions.
@@ -812,15 +964,17 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         return croppedImage.jpegData(compressionQuality: 0.95)
     }
 
-    func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) -> (PhotoFormat, HDRMode)? {
-        if format == .heif {
-            guard photoOutput.availablePhotoCodecTypes.contains(.hevc) else { return nil }
-        }
+    func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) async -> (PhotoFormat, HDRMode)? {
+        await onSessionQueue {
+            if format == .heif {
+                guard self.photoOutput.availablePhotoCodecTypes.contains(.hevc) else { return nil }
+            }
 
-        currentPhotoFormat = format
-        currentHDRMode = hdrMode
-        onStatusChanged?()
-        return (format, hdrMode)
+            self.currentPhotoFormat = format
+            self.currentHDRMode = hdrMode
+            self.onStatusChanged?()
+            return (format, hdrMode)
+        }
     }
 
     func cloneCameraSettings(_ settings: AVCapturePhotoSettings) -> AVCapturePhotoSettings {
@@ -841,9 +995,13 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     func takePicture(_ sendMediaToRemote: Bool) {
-        OperationQueue.main.addOperation {
+        // Clone the settings where they live (sessionQueue), then keep the
+        // capture initiation on main exactly as before.
+        sessionQueue.async {
             let cameraSettings = self.cloneCameraSettings(self.cameraSettings)
-            self.photoOutput.capturePhoto(with: cameraSettings, delegate: self)
+            OperationQueue.main.addOperation {
+                self.photoOutput.capturePhoto(with: cameraSettings, delegate: self)
+            }
         }
     }
 
@@ -855,9 +1013,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         guard let photoData = photo.fileDataRepresentation() else {
             return
         }
-        // Apply aspect ratio cropping if needed
-        if currentAspectRatio != .sixteenNine,
-           let croppedData = cropPhotoData(photoData, to: currentAspectRatio) {
+        // Apply aspect ratio cropping if needed (delivered on an AVFoundation
+        // callback queue; read the aspect through the session queue).
+        let aspectRatio = currentAspectRatioValue()
+        if aspectRatio != .sixteenNine,
+           let croppedData = cropPhotoData(photoData, to: aspectRatio) {
             onPicture?(croppedData, nil)
         } else {
             onPicture?(photoData, nil)

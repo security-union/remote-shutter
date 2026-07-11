@@ -32,7 +32,7 @@ protocol ScannerLobby: AnyObject {
 /// Binds a `ScannerLobby` to `RemoteCamSession` — the protocol-typed
 /// counterpart of Theater's `SetViewCtrl` (whose generic parameter requires
 /// a concrete class).
-public class SetScannerLobby: Actor.Message {
+public class SetScannerLobby: Message {
     let lobby: ScannerLobby
 
     init(lobby: ScannerLobby) {

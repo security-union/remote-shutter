@@ -11,6 +11,8 @@ import StoreKit
 import UIKit
 
 public let tempFile = "remoteshutter_video.mov"
+
+let AppStoreURL = URL(string: "https://apps.apple.com/us/app/remote-shutter/id633274861")!
 public let disableAdsPID = "05"
 public let enableVideoPID = "06"
 public let enableTorchPID = "07"

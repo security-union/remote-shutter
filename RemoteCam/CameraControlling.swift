@@ -12,36 +12,44 @@ import AVFoundation
 /// the camera screen. `CameraRig` is the production implementation;
 /// tests substitute a fake so the state machine can be exercised without
 /// AVFoundation or a view hierarchy.
+///
+/// Commands and reads are `async` — the production rig hops onto the capture
+/// engine's session queue without blocking the caller. Failable commands
+/// `throw` instead of returning `Try` (the states pack the error into the
+/// response message either way). The few synchronous members are backed by
+/// lock-boxed values and are safe from any thread.
 protocol CameraControlling: AnyObject {
     var currentCameraMode: RecordingMode { get set }
     var isRecording: Bool { get }
-    var isTorchActive: Bool { get }
-    var currentFlashMode: AVCaptureDevice.FlashMode { get }
     var cameraViewModel: CameraViewModel { get }
+
+    func isTorchActive() async -> Bool
+    func currentFlashMode() async -> AVCaptureDevice.FlashMode
 
     func updateCameraStatus()
     func takePicture(_ sendMediaToRemote: Bool)
     func startRecordingVideo()
     func stopRecordingVideo(_ shouldSendVideo: Bool)
-    func setZoom(zoomFactor: CGFloat) -> Try<(CGFloat, CameraLensType, RemoteCmd.ZoomRange)>
-    func switchLens(to lensType: CameraLensType) -> Try<(CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)>
-    func toggleFlash() -> Try<AVCaptureDevice.FlashMode>
-    func toggleTorch() -> Try<AVCaptureDevice.TorchMode>
-    func toggleCamera() -> Try<(AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)>
-    func setTorchMode(mode: AVCaptureDevice.TorchMode) -> Try<AVCaptureDevice.TorchMode>
-    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) -> (VideoResolution, VideoFrameRate)?
-    func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) -> (PhotoFormat, HDRMode)?
-    func setAspectRatio(_ ratio: AspectRatio) -> AspectRatio
-    func gatherAllCameraCapabilities()
-    func gatherCurrentCameraCapabilities() -> RemoteCmd.CameraCapabilitiesResp?
 
-    func getCurrentZoomFactor() -> CGFloat
-    func getMinZoomFactor() -> CGFloat
-    func getMaxZoomFactor() -> CGFloat
-    func getCurrentLensType() -> CameraLensType
-    func getAvailableLensTypes() -> [CameraLensType]
-    func getZoomStops() -> [CGFloat]
-    func getWideAngleZoomFactor() -> CGFloat
+    func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange)
+    func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)
+    func toggleFlash() async throws -> AVCaptureDevice.FlashMode
+    func toggleTorch() async throws -> AVCaptureDevice.TorchMode
+    func toggleCamera() async throws -> (AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)
+    func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode
+    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) async -> (VideoResolution, VideoFrameRate)?
+    func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) async -> (PhotoFormat, HDRMode)?
+    func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio
+    func gatherAllCameraCapabilities() async
+    func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp?
+
+    func getCurrentZoomFactor() async -> CGFloat
+    func getMinZoomFactor() async -> CGFloat
+    func getMaxZoomFactor() async -> CGFloat
+    func getCurrentLensType() async -> CameraLensType
+    func getAvailableLensTypes() async -> [CameraLensType]
+    func getZoomStops() async -> [CGFloat]
+    func getWideAngleZoomFactor() async -> CGFloat
 
     /// Drives the on-phone countdown overlay/chime for timer captures.
     /// value > 0: tick; 0: fired; < 0: cancelled.

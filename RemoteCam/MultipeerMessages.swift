@@ -15,32 +15,32 @@ enum DeviceRole {
     case monitor
 }
 
-public class Disconnect: Actor.Message {
+public class Disconnect: Message {
 
 }
 
-public class ConnectToDevice: Actor.Message {
+public class ConnectToDevice: Message {
     public let peer: MCPeerID
 
-    public init(peer: MCPeerID, sender: ActorRef?) {
+    public init(peer: MCPeerID, sender: AnyObject?) {
         self.peer = peer
         super.init(sender: sender)
     }
 }
 
-public class DisconnectPeer: Actor.Message {
+public class DisconnectPeer: Message {
     public let peer: MCPeerID?
 
-    public init(peer: MCPeerID?, sender: ActorRef?) {
+    public init(peer: MCPeerID?, sender: AnyObject?) {
         self.peer = peer
         super.init(sender: sender)
     }
 }
 
-public class OnConnectToDevice: Actor.Message {
+public class OnConnectToDevice: Message {
     public let peer: MCPeerID
 
-    public init(peer: MCPeerID, sender: ActorRef?) {
+    public init(peer: MCPeerID, sender: AnyObject?) {
         self.peer = peer
         super.init(sender: sender)
     }

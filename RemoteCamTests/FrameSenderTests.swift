@@ -14,40 +14,25 @@ import MultipeerConnectivity
 
 class FrameSenderTests: XCTestCase {
 
-    private var system: TestActorSystem!
-    private var sessionRef: ActorRef!
-    private var session: TestableRemoteCamSession!
-    private var senderRef: ActorRef!
     private var frameSender: FrameSender!
     private var peer: MCPeerID!
     private var fakeMP: FakeMultipeerService!
 
     override func setUp() {
         super.setUp()
-        system = TestActorSystem(name: "frameSenderTests")
-        sessionRef = system.actorOf(clz: TestableRemoteCamSession.self, name: "session")
-        session = (system.actorForRef(ref: sessionRef) as! TestableRemoteCamSession)
-        senderRef = system.actorOf(clz: FrameSender.self, name: "frameSender")
-        frameSender = (system.actorForRef(ref: senderRef) as! FrameSender)
+        frameSender = FrameSender()
 
         peer = MCPeerID(displayName: "TestPeer")
         fakeMP = FakeMultipeerService()
         fakeMP.connectedPeers = [peer]
-        fakeMP.sendResult = Success(Actor.Message())
-        session.multipeerService = fakeMP
+        fakeMP.sendResult = Success(Message())
 
-        senderRef ! SetSession(peer: peer, session: session)
-        drainSenderMailbox()
+        frameSender.setSession(peer: peer, transport: fakeMP)
+        frameSender.drain()
     }
 
     override func tearDown() {
-        drainMailboxPumpingRunLoop()
-        system.stop()
-        drainMailboxPumpingRunLoop()
-        system = nil
-        sessionRef = nil
-        session = nil
-        senderRef = nil
+        frameSender.drain()
         frameSender = nil
         peer = nil
         fakeMP = nil
@@ -55,19 +40,6 @@ class FrameSenderTests: XCTestCase {
     }
 
     // MARK: - Helpers
-
-    private func drainSenderMailbox() {
-        let expectation = expectation(description: "frame sender mailbox drained")
-        frameSender.mailbox.addOperation { expectation.fulfill() }
-        wait(for: [expectation], timeout: 5.0)
-    }
-
-    private func drainMailboxPumpingRunLoop() {
-        let deadline = Date(timeIntervalSinceNow: 5.0)
-        while frameSender.mailbox.operationCount > 0 && Date() < deadline {
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
-        }
-    }
 
     private func makeFrame() -> RemoteCmd.SendFrame {
         RemoteCmd.SendFrame(
@@ -83,65 +55,63 @@ class FrameSenderTests: XCTestCase {
         fakeMP.sentMessages.filter { $0.msg is RemoteCmd.SendFrame }.count
     }
 
-    /// The production window size (from StreamingConfig) — the actor is created by the test
-    /// ActorSystem via its required init, so we read the size it actually uses rather than
-    /// hard-coding it.
-    private var windowSize: Int { frameSender.window.maxInFlight }
+    /// The production window size (from StreamingConfig) — read from the
+    /// sender rather than hard-coded.
+    private var windowSize: Int { frameSender.windowSnapshot().maxInFlight }
 
     private func sendFrames(_ count: Int) {
-        for _ in 0..<count { senderRef ! makeFrame() }
-        drainSenderMailbox()
+        for _ in 0..<count { frameSender.send(makeFrame()) }
+        frameSender.drain()
     }
 
     // MARK: - Send path
 
     func testSendFrameSendsUnreliablyAndConsumesOneCredit() {
-        senderRef ! makeFrame()
-        drainSenderMailbox()
+        frameSender.send(makeFrame())
+        frameSender.drain()
 
         XCTAssertEqual(sentFrameCount, 1)
         let sent = fakeMP.sentMessages[0]
         XCTAssertEqual(sent.peers, [peer])
         XCTAssertEqual(sent.mode, .unreliable)
-        XCTAssertEqual(frameSender.window.inFlight, 1)
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, 1)
     }
 
     func testWindowAllowsMultipleFramesInFlight() {
         sendFrames(windowSize)
 
         XCTAssertEqual(sentFrameCount, windowSize, "the whole window may be in flight without any ack")
-        XCTAssertEqual(frameSender.window.inFlight, windowSize)
-        XCTAssertFalse(frameSender.window.hasCredit)
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, windowSize)
+        XCTAssertFalse(frameSender.windowSnapshot().hasCredit)
     }
 
     func testFramesDroppedWhenWindowFull() {
         sendFrames(windowSize + 3)
 
         XCTAssertEqual(sentFrameCount, windowSize, "back-pressure must drop frames once the window is full")
-        XCTAssertEqual(frameSender.window.inFlight, windowSize)
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, windowSize)
     }
 
     func testRequestFrameReleasesExactlyOneCredit() {
-        sendFrames(windowSize)                       // window full
-        senderRef ! RemoteCmd.RequestFrame(sender: nil)
-        senderRef ! makeFrame()                      // one freed slot refills
-        senderRef ! makeFrame()                      // window full again → dropped
-        drainSenderMailbox()
+        sendFrames(windowSize)                                    // window full
+        frameSender.receiveAck(RemoteCmd.RequestFrame(sender: nil))
+        frameSender.send(makeFrame())                             // one freed slot refills
+        frameSender.send(makeFrame())                             // window full again → dropped
+        frameSender.drain()
 
         XCTAssertEqual(sentFrameCount, windowSize + 1, "one ack releases exactly one slot")
-        XCTAssertEqual(frameSender.window.inFlight, windowSize)
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, windowSize)
     }
 
     // MARK: - Ack watchdog
 
     func testAckTimeoutResetsTheWholeWindow() {
         sendFrames(windowSize)
-        XCTAssertEqual(frameSender.window.inFlight, windowSize)
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, windowSize)
 
         // Deliver the watchdog for the wait that is actually outstanding.
-        senderRef ! AckTimeout(generation: frameSender.ackGeneration)
-        drainSenderMailbox()
-        XCTAssertEqual(frameSender.window.inFlight, 0, "a stall resets the whole window")
+        frameSender.fireAckWatchdog(generation: frameSender.currentAckGeneration())
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, 0, "a stall resets the whole window")
 
         // The window is open again: a fresh window's worth of frames flows without any ack.
         sendFrames(windowSize)
@@ -150,31 +120,29 @@ class FrameSenderTests: XCTestCase {
 
     func testStaleAckTimeoutIgnored() {
         // Complete a send/ack cycle so a watchdog for an earlier generation is stale.
-        senderRef ! makeFrame()
-        senderRef ! RemoteCmd.RequestFrame(sender: nil)
-        senderRef ! makeFrame()
-        drainSenderMailbox()
-        XCTAssertEqual(frameSender.window.inFlight, 1)
+        frameSender.send(makeFrame())
+        frameSender.receiveAck(RemoteCmd.RequestFrame(sender: nil))
+        frameSender.send(makeFrame())
+        frameSender.drain()
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, 1)
 
-        senderRef ! AckTimeout(generation: 1)
-        drainSenderMailbox()
+        frameSender.fireAckWatchdog(generation: 1)
 
-        XCTAssertEqual(frameSender.window.inFlight, 1,
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, 1,
                        "a watchdog from an already-completed wait must not reset the window")
     }
 
     func testAckTimeoutIgnoredWhenWindowEmpty() {
-        senderRef ! AckTimeout(generation: frameSender.ackGeneration)
-        drainSenderMailbox()
+        frameSender.fireAckWatchdog(generation: frameSender.currentAckGeneration())
 
-        XCTAssertEqual(frameSender.window.inFlight, 0)
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, 0)
 
-        senderRef ! makeFrame()
-        drainSenderMailbox()
+        frameSender.send(makeFrame())
+        frameSender.drain()
         XCTAssertEqual(sentFrameCount, 1)
     }
 
-    /// End-to-end: the scheduled watchdog itself (not an injected message) resets the
+    /// End-to-end: the scheduled watchdog itself (not an injected firing) resets the
     /// window after `FrameSender.ackTimeout` when acks are lost.
     func testScheduledWatchdogRecoversFromLostAcks() {
         sendFrames(windowSize)
@@ -183,7 +151,8 @@ class FrameSenderTests: XCTestCase {
         // No acks arrive. After the timeout the sender must accept frames again.
         let deadline = Date(timeIntervalSinceNow: FrameSender.ackTimeout + 1.0)
         while sentFrameCount < windowSize + 1 && Date() < deadline {
-            senderRef ! makeFrame()
+            frameSender.send(makeFrame())
+            frameSender.drain()
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
         }
         XCTAssertEqual(sentFrameCount, windowSize + 1,
@@ -194,10 +163,10 @@ class FrameSenderTests: XCTestCase {
 
     func testSetSessionResetsTheWindow() {
         sendFrames(windowSize)
-        XCTAssertEqual(frameSender.window.inFlight, windowSize)
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, windowSize)
 
-        senderRef ! SetSession(peer: peer, session: session)
-        drainSenderMailbox()
-        XCTAssertEqual(frameSender.window.inFlight, 0)
+        frameSender.setSession(peer: peer, transport: fakeMP)
+        frameSender.drain()
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, 0)
     }
 }
