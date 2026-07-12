@@ -87,6 +87,10 @@ struct DeviceScannerView: View {
     private var cameraWaitingState: some View {
         ScrollView {
             VStack(spacing: 20) {
+                wifiBanner
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+
                 // Camera icon
                 ZStack {
                     Circle()
@@ -119,7 +123,7 @@ struct DeviceScannerView: View {
                 .padding(.horizontal, 20)
 
                 // Status
-                statusBadge
+                statusArea
 
                 // Actions
                 VStack(spacing: 12) {
@@ -147,6 +151,10 @@ struct DeviceScannerView: View {
     private var emptyState: some View {
         ScrollView {
             VStack(spacing: 20) {
+                wifiBanner
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+
                 // Remote icon
                 ZStack {
                     Circle()
@@ -179,7 +187,7 @@ struct DeviceScannerView: View {
                 .padding(.horizontal, 20)
 
                 // Status
-                statusBadge
+                statusArea
 
                 // Actions
                 VStack(spacing: 12) {
@@ -235,6 +243,78 @@ struct DeviceScannerView: View {
             .padding(.horizontal, 20)
         }
         .padding(.bottom, 20)
+    }
+
+    // MARK: - Wi-Fi Guidance
+
+    private var wifiBanner: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "wifi")
+                .font(.title3.weight(.semibold))
+                .foregroundColor(AppTheme.accent)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(NSLocalizedString("WifiBannerTitle", comment: "Wi-Fi required banner title"))
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                Text(NSLocalizedString("WifiBannerBody", comment: "Wi-Fi required banner body"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(AppTheme.accentSubtle)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(AppTheme.accent.opacity(0.4), lineWidth: 1)
+        )
+    }
+
+    /// Status badge plus the time-based "check Wi-Fi" tip. TimelineView
+    /// supplies the clock; visibility is recomputed from state every second,
+    /// so there is no timer to cancel and no flag to go stale. Only the tip
+    /// lives inside the TimelineView — the badge doesn't depend on the clock
+    /// and re-rendering it each tick would reset its ProgressView animation.
+    private var statusArea: some View {
+        VStack(spacing: 10) {
+            statusBadge
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                if viewModel.shouldShowWifiEscalation(now: context.date) {
+                    wifiEscalationTip
+                }
+            }
+        }
+    }
+
+    private var wifiEscalationTip: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundColor(.orange)
+                .padding(.top, 2)
+            Text(NSLocalizedString("WifiEscalationTip", comment: "Shown after 15s of scanning without finding a peer"))
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.orange)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color.orange.opacity(0.35), lineWidth: 0.5)
+        )
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Components

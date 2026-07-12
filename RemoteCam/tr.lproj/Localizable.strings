@@ -1,0 +1,332 @@
+/* No comment provided by engineer. */
+"%@, ¿Desea intentar nuevamente?" = "%@, tekrar denemek ister misiniz?";
+
+/* No comment provided by engineer. */
+"AppName" = "Remote Shutter";
+
+/* No comment provided by engineer. */
+"Camera or remote shutter?" = "Kamera mı, uzaktan kumanda mı?";
+
+/* No comment provided by engineer. */
+"Cellular" = "Hücresel";
+
+/* No comment provided by engineer. */
+"CHOOSE A DEVICE" = "BİR CİHAZ SEÇİN";
+
+/* No comment provided by engineer. */
+"Connecting" = "Bağlanıyor";
+
+/* No comment provided by engineer. */
+"Disconnect" = "Bağlantıyı kes";
+
+/* No comment provided by engineer. */
+"Espere..." = "Bekleyin...";
+
+/* No comment provided by engineer. */
+"flash_mode_auto" = "Otomatik";
+
+/* No comment provided by engineer. */
+"flash_mode_off" = "Kapalı";
+
+/* No comment provided by engineer. */
+"flash_mode_on" = "Açık";
+
+/* No comment provided by engineer. */
+"Loading Image" = "Görüntü yükleniyor";
+
+/* Default DejalActivtyView label text */
+"Loading..." = "Yükleniyor...";
+
+/* No comment provided by engineer. */
+"Looking for devices over Wifi and Bluetooth." = "Wi-Fi ve Bluetooth üzerinden cihazlar aranıyor.";
+
+/* No comment provided by engineer. */
+"No Connection" = "Bağlantı yok";
+
+/* No comment provided by engineer. */
+"Reestableciendo compras" = "Satın alımlar geri yükleniyor";
+
+/* No comment provided by engineer. */
+"Requesting capture" = "Çekim isteniyor";
+
+/* No comment provided by engineer. */
+"ROLE PICKER" = "ROL SEÇİCİ";
+
+/* No comment provided by engineer. */
+"Sending Photo to Remote" = "Fotoğraf kumandaya gönderiliyor";
+
+/* No comment provided by engineer. */
+"Si" = "Evet";
+
+"Yes"= "Evet";
+
+/* No comment provided by engineer. */
+"WiFi" = "Wi-Fi";
+
+/* No comment provided by engineer. */
+"¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "%@ cihazınızı daha önce satın aldığınız özelliklerle ücretsiz olarak eşitlemek ister misiniz?";
+
+"Acknowledgments"= "Teşekkürler";
+
+"timeunit"= "sn";
+
+"Settings"="Ayarlar";
+
+"Upgrades"="Yükseltmeler";
+
+"Timer to take photos"="Fotoğraf çekme zamanlayıcısı";
+
+"Incoming Invite from %@"="%@ kişisinden gelen davet";
+
+"Do you wish to accept?,"="Kabul etmek ister misiniz?";
+
+"¡Gracias por usar nuestra App!"="Uygulamamızı kullandığınız için teşekkürler!";
+
+"En otro momento"="Belki sonra";
+
+"Calificar en la AppStore"="Puan ver";
+
+"Mandar Feedback"="Geri bildirim gönder";
+
+"No Gracias"="Hayır, teşekkürler";
+
+"iAds Removed"="Reklamlar kaldırıldı";
+
+"call_to_download" = "Remote Shutter'ı bugün indirin %@";
+
+/* Local Network Permission Modal */
+"local_network_title" = "Yerel Ağa Erişim İzni";
+"local_network_subtitle" = "Remote Shutter, Apple'ın eşler arası çerçevesini kullanarak cihazlarınızı bulup bağlamak için yerel ağ erişimine ihtiyaç duyar.";
+
+"local_network_access_required_title" = "Yerel Ağ Erişimi Gerekli";
+"local_network_required_subtitle" = "Remote Shutter'ın çalışması için yerel ağ erişimi gerekir. Devam etmek için lütfen Ayarlar'dan etkinleştirin.";
+
+"local_network_feature_title" = "Eşler Arası Bağlantı";
+"local_network_feature_description" = "Cihazları yerel ağınızda bulup bağlamak ve sorunsuz uzaktan kumanda sağlamak için Apple'ın MultipeerConnectivity çerçevesini kullanır.";
+
+"local_network_privacy_title" = "Gizlilik Korunuyor";
+"local_network_privacy_description" = "Bağlantınız tamamen yerel ağınız içinde gizli kalır. Harici sunuculara veya üçüncü taraflara hiçbir veri gönderilmez.";
+
+"local_network_benefits_title" = "Anında ve Güvenilir";
+"local_network_benefits_description" = "Doğrudan cihazdan cihaza iletişim hızlı yanıt sağlar ve internet bağlantısı olmadan çalışır.";
+
+"local_network_continue" = "Devam";
+"local_network_cancel" = "İptal";
+"local_network_open_settings" = "Ayarları Aç";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "Kamera ve Fotoğraf Erişimine İzin Ver";
+"camera_permissions_subtitle" = "Remote Shutter'ın, diğer cihazlara bağlıyken görüntü çekmek ve kaydetmek için kameranıza ve fotoğraflarınıza erişmesi gerekir.";
+
+"camera_permissions_required_title" = "Kamera ve Fotoğraf Erişimi Gerekli";
+"camera_permissions_required_subtitle" = "Remote Shutter'ın çalışması için kamera ve fotoğraf erişimi gerekir. Devam etmek için lütfen Ayarlar'dan etkinleştirin.";
+
+"camera_permission_feature_title" = "Kamera Erişimi";
+"camera_permission_feature_description" = "Bir cihazı kamera, diğerini kumanda olarak kullanarak kusursuz kareler için uzaktan fotoğraf çekin.";
+
+"photos_permission_feature_title" = "Fotoğrafları Kaydet";
+"photos_permission_feature_description" = "Çekilen fotoğrafları kolay erişim ve paylaşım için fotoğraf kitaplığınıza otomatik olarak kaydeder.";
+
+"remote_control_feature_title" = "Uzaktan Kumanda";
+"remote_control_feature_description" = "Grup fotoğrafları, selfie'ler ve yaratıcı çekimler için bir cihazla diğer cihazın kamerasını kontrol edin.";
+
+"camera_permissions_continue" = "Devam";
+"camera_permissions_cancel" = "İptal";
+"camera_permissions_open_settings" = "Ayarları Aç";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "Kamera izni henüz istenmedi";
+"camera_permission_denied" = "Kamera erişimi reddedildi";
+"camera_permission_restricted" = "Kamera erişimi kısıtlı";
+"camera_permission_authorized" = "Kamera erişimi verildi";
+"camera_permission_unknown" = "Bilinmeyen kamera izni durumu";
+
+"photos_permission_not_determined" = "Fotoğraf izni henüz istenmedi";
+"photos_permission_denied" = "Fotoğraf erişimi reddedildi";
+"photos_permission_restricted" = "Fotoğraf erişimi kısıtlı";
+"photos_permission_authorized" = "Tam fotoğraf erişimi verildi";
+"photos_permission_limited" = "Sınırlı fotoğraf erişimi verildi";
+"photos_permission_unknown" = "Bilinmeyen fotoğraf izni durumu";
+
+/* Camera Error View */
+"camera_error_title" = "Kamera Erişimi Gerekli";
+"camera_error_subtitle" = "Remote Shutter'ın çalışması için kameranıza ve fotoğraflarınıza erişmesi gerekir. Lütfen Ayarlar'dan izinleri etkinleştirin.";
+"camera_error_open_settings" = "Ayarları Aç";
+"camera_error_go_back" = "Geri Dön";
+"camera_access_required" = "Kamera Erişimi";
+"photos_access_required" = "Fotoğraf Erişimi";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "Mikrofon erişimi reddedildi. Video sessiz kaydedilecek.";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "Mikrofon Erişimi Gerekli";
+"mic_required_subtitle" = "Sesli video kaydetmek için Remote Shutter'ın mikrofonunuza erişmesi gerekir. Lütfen Ayarlar'dan etkinleştirin.";
+"video_recording_feature_title" = "Video Kaydı";
+"video_recording_feature_description" = "Tam bir kayıt deneyimi için cihazınızın mikrofonuyla yüksek kaliteli sesli videolar kaydedin.";
+"mic_open_settings" = "Ayarları Aç";
+"mic_cancel_recording" = "Kaydı İptal Et";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "Video kaydedilemiyor: Mikrofon erişimi reddedildi. Sesli video kaydetmek için lütfen Ayarlar'dan mikrofon erişimini etkinleştirin.";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "Remote Shutter'ı App Store'dan indirmek için bu QR kodunu başka bir cihazdaki Kamera uygulamasıyla tarayın";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "Fotoğraf Kaydedilemiyor";
+"photos_access_denied_photo_subtitle" = "Remote Shutter'ın, çekilen görüntüyü kaydetmek için Fotoğraflar kitaplığınıza erişmesi gerekir. Lütfen Ayarlar'dan Fotoğraf erişimini etkinleştirin.";
+"photos_access_denied_video_title" = "Video Kaydedilemiyor";
+"photos_access_denied_video_subtitle" = "Remote Shutter'ın, kaydedilen videoyu saklamak için Fotoğraflar kitaplığınıza erişmesi gerekir. Lütfen Ayarlar'dan Fotoğraf erişimini etkinleştirin.";
+
+"photos_privacy_feature_title" = "Gizliliğiniz Önemli";
+"photos_privacy_feature_description" = "Fotoğraflar doğrudan cihazınızın kitaplığına kaydedilir. Harici sunuculara hiçbir veri yüklenmez ve izniniz olmadan paylaşılmaz.";
+
+"photos_sharing_feature_title" = "Kolay Paylaşım";
+"photos_sharing_feature_description" = "Çektiğiniz fotoğraf ve videolara Fotoğraflar uygulamasından erişerek arkadaşlarınızla ve ailenizle kolayca paylaşın veya başka uygulamalarda kullanın.";
+
+"photos_open_settings" = "Ayarları Aç";
+"photos_dismiss" = "Kapat";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "Video Aktarılıyor";
+
+/* Help Modal */
+"help_title" = "Remote Shutter Nasıl Çalışır";
+"help_subtitle" = "İki cihazla kusursuz fotoğraf ve video çekin";
+"help_got_it" = "Anladım!";
+"help_done" = "Bitti";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "2. Cihazları Bağlayın";
+"help_connect_description" = "Kamera cihazı çevrimiçi olup bekler. Kumanda cihazında kameraları arayın ve bağlanmak için kameranın adına dokunun.";
+"help_quick_setup_title" = "Hızlı Kurulum";
+"help_quick_setup_description" = "İkinci cihazınıza Remote Shutter'ı App Store'dan indirmek için QR kodunu kullanın";
+"help_same_network_title" = "Eşler Arası Bağlantı";
+"help_same_network_description" = "Cihazlar tıpkı AirDrop gibi Wi-Fi ve Bluetooth kullanarak birbirine doğrudan bağlanır — internet gerekmez";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "1. Rolünüzü Seçin";
+"help_roles_description" = "Önce bu cihazın Kamera mı yoksa Kumanda mı olacağını seçin. Kamera cihazı fotoğraf ve video çeker, kumanda ise onu kontrol eder.";
+"help_camera_device_title" = "Kamera Cihazı";
+"help_camera_device_description" = "Fotoğraf ve video çeker, kamera önizlemesini gösterir";
+"help_remote_device_title" = "Kumanda Cihazı";
+"help_remote_device_description" = "Kamerayı kontrol eder, canlı önizleme gösterir, ayarları yapar";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. Kusursuz Anları Yakalayın";
+"help_capture_description" = "Kamerayı kontrol etmek, ayarları yapmak ve uzaktan fotoğraf veya video çekmek için kumanda cihazını kullanın.";
+"help_remote_shutter_title" = "Uzaktan Deklanşör";
+"help_remote_shutter_description" = "Kamera cihazına dokunmadan fotoğraf çekin";
+"help_video_recording_title" = "Video Kaydı";
+"help_video_recording_description" = "Video kaydını uzaktan başlatın ve durdurun";
+"help_camera_controls_title" = "Kamera Kontrolleri";
+"help_camera_controls_description" = "Flaş, el feneri, zamanlayıcı ve kamera ayarlarını yapın";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "İpuçları ve Püf Noktaları";
+"help_tips_description" = "Bu yararlı ipuçlarıyla Remote Shutter'dan en iyi şekilde yararlanın";
+"help_group_photos_title" = "Grup Fotoğrafları";
+"help_group_photos_description" = "Grup selfie'leri için mükemmel — kamerayı kurun ve herkesi kareye almak için kumandayı kullanın";
+"help_timer_feature_title" = "Zamanlayıcı Özelliği";
+"help_timer_feature_description" = "Fotoğraf çekilmeden önce hazırlanmak için kumanda cihazındaki zamanlayıcıyı kullanın";
+"help_switch_cameras_title" = "Kameraları Değiştir";
+"help_switch_cameras_description" = "Doğrudan kumanda cihazından ön ve arka kamera arasında geçiş yapın";
+"help_auto_save_title" = "Otomatik Kaydetme";
+"help_auto_save_description" = "Fotoğraflar ve videolar her iki cihazın fotoğraf kitaplığına otomatik olarak kaydedilir";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Kumanda bekleniyor";
+"Scan for cameras" = "Kameraları ara";
+"Camera Mode" = "Kamera Modu";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Başka bir cihazda Remote Shutter'ı açın ve Kumanda'yı seçin. Bu kamera onların cihaz listesinde görünecek.";
+"Go Online" = "Çevrimiçi Ol";
+"Go Offline" = "Çevrimdışı Ol";
+"Waiting for a remote to connect..." = "Bir kumandanın bağlanması bekleniyor...";
+"WAITING FOR A REMOTE TO CONNECT..." = "BİR KUMANDANIN BAĞLANMASI BEKLENİYOR...";
+"SEARCHING FOR NEARBY CAMERAS..." = "YAKINDAKİ KAMERALAR ARANIYOR...";
+"Scanning for nearby cameras..." = "Yakındaki kameralar aranıyor...";
+"Start scanning and wait for a Remote device to connect" = "Taramayı başlatın ve bir Kumanda cihazının bağlanmasını bekleyin";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "İki cihazı profesyonel bir uzaktan kamera sistemine dönüştürün";
+"Restore Purchases" = "Satın Alımları Geri Yükle";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Tüm özellikleri açın: video kaydı, el feneri kontrolü ve reklamsız deneyim.";
+"Get Started" = "Başla";
+"Thank you for your support!" = "Desteğiniz için teşekkürler!";
+"Rate on App Store" = "App Store'da Puan Ver";
+"Welcome" = "Hoş Geldiniz";
+"Purchase" = "Satın Al";
+"Restored" = "Geri Yüklendi";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Satın alımlarınız geri yüklendi. Görmüyorsanız doğru Apple Kimliği ile giriş yaptığınızdan emin olun.";
+
+/* Role Picker Screen */
+"Pick a role" = "Bir rol seçin";
+"Camera" = "Kamera";
+"Capture photos & video" = "Fotoğraf ve video çekin";
+"Use the device with the best lens" = "En iyi lense sahip cihazı kullanın";
+"Remote" = "Kumanda";
+"Control the shutter" = "Deklanşörü kontrol edin";
+"Works up to 50 feet away" = "15 metreye kadar çalışır";
+"Remote Mode" = "Kumanda Modu";
+
+/* Alert Messages */
+"Scanning Error" = "Tarama Hatası";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Yakındaki cihazlar taranamadı. Lütfen ağ ayarlarınızı kontrol edip tekrar deneyin.";
+"OK" = "Tamam";
+"Ok" = "Tamam";
+"Error" = "Hata";
+"Connection error" = "Bağlantı hatası";
+"Unable to start recording" = "Kayıt başlatılamadı";
+
+/* Scanner UI */
+"Connect" = "Bağlan";
+"Connecting..." = "Bağlanıyor...";
+"Start Scanning" = "Taramayı Başlat";
+"Stop Scanning" = "Taramayı Durdur";
+"Share App Link" = "Uygulama Bağlantısını Paylaş";
+"Scan for devices" = "Cihazları ara";
+"Open Settings" = "Ayarları Aç";
+"You need at least 2 devices running Remote Shutter" = "Remote Shutter çalıştıran en az 2 cihaza ihtiyacınız var";
+"Scan the QR code on another device to download Remote Shutter" = "Remote Shutter'ı indirmek için başka bir cihazdaki QR kodunu tarayın";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "TARAMA HATASI - AĞ AYARLARINI KONTROL EDİN";
+"TAP THE BUTTON TO GET STARTED" = "BAŞLAMAK İÇİN DÜĞMEYE DOKUNUN";
+
+/* Settings */
+"About" = "Hakkında";
+"Back" = "Geri";
+"Contact Support" = "Destekle İletişime Geç";
+"Discord Community" = "Discord Topluluğu";
+"In-App Purchases" = "Uygulama İçi Satın Alımlar";
+"Purchased" = "Satın Alındı";
+"Send Media to Remote" = "Medyayı Kumandaya Gönder";
+"Source Code" = "Kaynak Kodu";
+"Version" = "Sürüm";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Fotoğraf çekiliyor";
+"Taking picture" = "Fotoğraf çekiliyor";
+"Starting video" = "Video başlatılıyor";
+"Stopping video" = "Video durduruluyor";
+"Recording shorts" = "Kısa video kaydediliyor";
+"Unable to save video" = "Video kaydedilemedi";
+"Unable to save video to Photos app" = "Video Fotoğraflar uygulamasına kaydedilemedi";
+"Purchases restored successfully." = "Satın alımlar başarıyla geri yüklendi.";
+"Pick a role: Camera or Remote" = "Bir rol seçin: Kamera veya Kumanda";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: Tüm Özellikler";
+"Remove Ads" = "Reklamları Kaldır";
+"Enable Torch" = "El Fenerini Etkinleştir";
+"Enable Video" = "Videoyu Etkinleştir";
+
+/* Apple Watch Remote */
+"Watch Remote" = "Watch Kumandası";
+"Control from your wrist" = "Bileğinizden kontrol edin";
+"Watch Connected" = "Watch Bağlandı";
+"Open Watch App" = "Watch Uygulamasını Aç";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "HER İKİ CİHAZDA DA WI-FI'YI AÇIN — GEREKLİ";
+"WifiBannerBody" = "Ağ gerekmez — cihazlar doğrudan birbirine bağlanır.";
+"WifiEscalationTip" = "Hâlâ aranıyor… Wi-Fi'nin açık olduğundan emin olun — hem bu cihazda hem de diğerinde. Kontrol Merkezi'nden kapatmak da kapalı sayılır: Ayarlar > Wi-Fi'yi kullanın.";

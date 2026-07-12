@@ -27,7 +27,7 @@ shift $((OPTIND - 1))
 
 LOCALES=("$@")
 if [ ${#LOCALES[@]} -eq 0 ]; then
-  LOCALES=(en-US da de-DE es-MX fr-FR it ja ko pt-BR zh-Hans)
+  LOCALES=(en-US da de-DE es-MX fr-FR it ja ko pt-BR zh-Hans ru hi vi ms tr)
 fi
 
 # Map platform names to the fastlane filename patterns they own.

@@ -325,3 +325,8 @@
 "Control from your wrist" = "손목에서 제어하세요";
 "Watch Connected" = "Watch 연결됨";
 "Open Watch App" = "Watch 앱 열기";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "두 기기 모두 Wi-Fi를 켜세요 — 필수";
+"WifiBannerBody" = "네트워크는 필요 없습니다. 기기끼리 직접 연결됩니다.";
+"WifiEscalationTip" = "계속 검색 중… 이 기기와 상대 기기 모두 Wi-Fi가 켜져 있는지 확인하세요. 제어 센터에서 끈 것도 꺼진 상태입니다. 설정 > Wi-Fi에서 켜세요.";
