@@ -199,6 +199,59 @@ class MonitorPresenterTests: XCTestCase {
         XCTAssertNil(display.viewModel.activeRemoteDeviceID)
     }
 
+    // MARK: - Audio device list
+
+    /// Mic entries ride the same capabilities message; they must reach the
+    /// view model even when the peer has no front/back CameraInfo (a Mac).
+    func testCapabilitiesDeliverAudioDeviceList() {
+        let audioDevices = [
+            RemoteCmd.AudioDeviceEntry(
+                uniqueID: "builtin-mic", localizedName: "MacBook Pro Microphone", isActive: true),
+            RemoteCmd.AudioDeviceEntry(
+                uniqueID: "usb-mic", localizedName: "USB Microphone", isActive: false)
+        ]
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            audioDevices: audioDevices, activeAudioDeviceID: "builtin-mic", error: nil)
+
+        presenter.updateCapabilities(capabilities)
+        drain()
+
+        XCTAssertEqual(display.viewModel.remoteAudioDevices, audioDevices)
+        XCTAssertEqual(display.viewModel.activeRemoteAudioDeviceID, "builtin-mic")
+    }
+
+    func testLegacyCapabilitiesClearAudioDeviceList() {
+        display.viewModel.remoteAudioDevices = [
+            RemoteCmd.AudioDeviceEntry(uniqueID: "stale", localizedName: "Stale", isActive: true)
+        ]
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            error: nil)
+
+        presenter.updateCapabilities(capabilities)
+        drain()
+
+        XCTAssertTrue(display.viewModel.remoteAudioDevices.isEmpty,
+                      "a legacy peer's capabilities must clear a stale mic list")
+        XCTAssertNil(display.viewModel.activeRemoteAudioDeviceID)
+    }
+
+    /// The mic picker's topology rule: only a real choice (2+) shows it.
+    func testShowsAudioDeviceMenuOnlyWithMultipleMics() {
+        let model = MonitorViewModel()
+        XCTAssertFalse(model.showsAudioDeviceMenu)
+        model.remoteAudioDevices = [
+            RemoteCmd.AudioDeviceEntry(uniqueID: "a", localizedName: "A", isActive: true)
+        ]
+        XCTAssertFalse(model.showsAudioDeviceMenu)
+        model.remoteAudioDevices.append(
+            RemoteCmd.AudioDeviceEntry(uniqueID: "b", localizedName: "B", isActive: false))
+        XCTAssertTrue(model.showsAudioDeviceMenu)
+    }
+
     // MARK: - Camera switch control policy
 
     private func entry(_ id: String, suspended: Bool = false) -> RemoteCmd.CameraDeviceEntry {

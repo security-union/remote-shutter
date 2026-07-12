@@ -330,3 +330,6 @@
 "WifiBannerTitle" = "両方のデバイスでWi-Fiをオンにしてください（必須）";
 "WifiBannerBody" = "ネットワーク接続は不要です。デバイス同士が直接つながります。";
 "WifiEscalationTip" = "検索中… このデバイスと相手のデバイスの両方でWi-Fiがオンになっているか確認してください。コントロールセンターでオフにした場合もオフ扱いになります。設定 > Wi-Fi から有効にしてください。";
+
+/* Microphone selector */
+"Switching microphone" = "マイクを切り替え中";

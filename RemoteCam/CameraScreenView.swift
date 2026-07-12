@@ -18,6 +18,8 @@ struct CameraScreenView: View {
     @ObservedObject var viewModel: CameraViewModel
     /// Local device selection from the picker chrome (nil in previews/tests).
     var onSelectCameraDevice: ((String) -> Void)?
+    /// Local mic selection from the picker chrome (nil in previews/tests).
+    var onSelectAudioDevice: ((String) -> Void)?
 
     var body: some View {
         ZStack {
@@ -40,19 +42,21 @@ struct CameraScreenView: View {
             }
             .allowsHitTesting(false)
 
-            // Local camera-device picker, top leading — a Mac has N cameras.
-            if FeatureFlags.ENABLE_LOCAL_CAMERA_PICKER,
-               viewModel.availableCameraDevices.count > 1 {
-                VStack {
-                    HStack {
-                        cameraDevicePicker
-                        Spacer()
-                    }
-                    Spacer()
+            // Local device pickers, top leading — a Mac has N cameras/mics.
+            VStack(alignment: .leading, spacing: 12) {
+                if FeatureFlags.ENABLE_LOCAL_CAMERA_PICKER,
+                   viewModel.availableCameraDevices.count > 1 {
+                    cameraDevicePicker
                 }
-                .padding(.top, 17)
-                .padding(.leading, 16)
+                if FeatureFlags.ENABLE_LOCAL_MIC_PICKER,
+                   viewModel.availableAudioDevices.count > 1 {
+                    audioDevicePicker
+                }
+                Spacer()
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 17)
+            .padding(.leading, 16)
 
             if viewModel.isBusy {
                 ProgressView()
@@ -80,6 +84,25 @@ struct CameraScreenView: View {
             }
         } label: {
             Image(systemName: "web.camera")
+                .font(.system(size: 20))
+                .foregroundColor(.white)
+                .frame(width: 44, height: 44)
+                .background(Color.black.opacity(0.4))
+                .clipShape(Circle())
+        }
+    }
+
+    private var audioDevicePicker: some View {
+        Menu {
+            ForEach(viewModel.availableAudioDevices, id: \.uniqueID) { device in
+                CameraDeviceMenuItem(
+                    name: device.localizedName,
+                    isActive: device.uniqueID == viewModel.activeAudioDeviceID,
+                    isSuspended: false,
+                    select: { onSelectAudioDevice?(device.uniqueID) })
+            }
+        } label: {
+            Image(systemName: "mic")
                 .font(.system(size: 20))
                 .foregroundColor(.white)
                 .frame(width: 44, height: 44)

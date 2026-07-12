@@ -28,8 +28,9 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case syncmonitorsettings = 17
   case setaspectratio = 18
   case selectcameradevice = 19
+  case selectaudiodevice = 20
 
-  public static var max: RemoteShutter_CommandAction { return .selectcameradevice }
+  public static var max: RemoteShutter_CommandAction { return .selectaudiodevice }
   public static var min: RemoteShutter_CommandAction { return .takepicture }
 }
 
@@ -852,6 +853,58 @@ public struct RemoteShutter_CameraDeviceInfo: FlatBufferObject, Verifiable {
   }
 }
 
+public struct RemoteShutter_AudioDeviceInfo: FlatBufferObject, Verifiable {
+
+  static func validateVersion() { FlatBuffersVersion_25_2_10() }
+  public var __buffer: ByteBuffer! { return _accessor.bb }
+  private var _accessor: Table
+
+  public static var id: String { "RCAM" } 
+  public static func finish(_ fbb: inout FlatBufferBuilder, end: Offset, prefix: Bool = false) { fbb.finish(offset: end, fileId: RemoteShutter_AudioDeviceInfo.id, addPrefix: prefix) }
+  private init(_ t: Table) { _accessor = t }
+  public init(_ bb: ByteBuffer, o: Int32) { _accessor = Table(bb: bb, position: o) }
+
+  private enum VTOFFSET: VOffset {
+    case uniqueId = 4
+    case localizedName = 6
+    case isActive = 8
+    var v: Int32 { Int32(self.rawValue) }
+    var p: VOffset { self.rawValue }
+  }
+
+  public var uniqueId: String? { let o = _accessor.offset(VTOFFSET.uniqueId.v); return o == 0 ? nil : _accessor.string(at: o) }
+  public var uniqueIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.uniqueId.v) }
+  public var localizedName: String? { let o = _accessor.offset(VTOFFSET.localizedName.v); return o == 0 ? nil : _accessor.string(at: o) }
+  public var localizedNameSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.localizedName.v) }
+  public var isActive: Bool { let o = _accessor.offset(VTOFFSET.isActive.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public static func startAudioDeviceInfo(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 3) }
+  public static func add(uniqueId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: uniqueId, at: VTOFFSET.uniqueId.p) }
+  public static func add(localizedName: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: localizedName, at: VTOFFSET.localizedName.p) }
+  public static func add(isActive: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: isActive, def: false,
+   at: VTOFFSET.isActive.p) }
+  public static func endAudioDeviceInfo(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
+  public static func createAudioDeviceInfo(
+    _ fbb: inout FlatBufferBuilder,
+    uniqueIdOffset uniqueId: Offset = Offset(),
+    localizedNameOffset localizedName: Offset = Offset(),
+    isActive: Bool = false
+  ) -> Offset {
+    let __start = RemoteShutter_AudioDeviceInfo.startAudioDeviceInfo(&fbb)
+    RemoteShutter_AudioDeviceInfo.add(uniqueId: uniqueId, &fbb)
+    RemoteShutter_AudioDeviceInfo.add(localizedName: localizedName, &fbb)
+    RemoteShutter_AudioDeviceInfo.add(isActive: isActive, &fbb)
+    return RemoteShutter_AudioDeviceInfo.endAudioDeviceInfo(&fbb, start: __start)
+  }
+
+  public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
+    var _v = try verifier.visitTable(at: position)
+    try _v.visit(field: VTOFFSET.uniqueId.p, fieldName: "uniqueId", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.localizedName.p, fieldName: "localizedName", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.isActive.p, fieldName: "isActive", required: false, type: Bool.self)
+    _v.finish()
+  }
+}
+
 public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
 
   static func validateVersion() { FlatBuffersVersion_25_2_10() }
@@ -966,6 +1019,8 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     case backCamera = 6
     case cameraDevices = 8
     case activeDeviceId = 10
+    case audioDevices = 12
+    case activeAudioDeviceId = 14
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -977,24 +1032,35 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
   public func cameraDevices(at index: Int32) -> RemoteShutter_CameraDeviceInfo? { let o = _accessor.offset(VTOFFSET.cameraDevices.v); return o == 0 ? nil : RemoteShutter_CameraDeviceInfo(_accessor.bb, o: _accessor.indirect(_accessor.vector(at: o) + index * 4)) }
   public var activeDeviceId: String? { let o = _accessor.offset(VTOFFSET.activeDeviceId.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var activeDeviceIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.activeDeviceId.v) }
-  public static func startCameraCapabilities(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 4) }
+  public var hasAudioDevices: Bool { let o = _accessor.offset(VTOFFSET.audioDevices.v); return o == 0 ? false : true }
+  public var audioDevicesCount: Int32 { let o = _accessor.offset(VTOFFSET.audioDevices.v); return o == 0 ? 0 : _accessor.vector(count: o) }
+  public func audioDevices(at index: Int32) -> RemoteShutter_AudioDeviceInfo? { let o = _accessor.offset(VTOFFSET.audioDevices.v); return o == 0 ? nil : RemoteShutter_AudioDeviceInfo(_accessor.bb, o: _accessor.indirect(_accessor.vector(at: o) + index * 4)) }
+  public var activeAudioDeviceId: String? { let o = _accessor.offset(VTOFFSET.activeAudioDeviceId.v); return o == 0 ? nil : _accessor.string(at: o) }
+  public var activeAudioDeviceIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.activeAudioDeviceId.v) }
+  public static func startCameraCapabilities(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 6) }
   public static func add(frontCamera: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: frontCamera, at: VTOFFSET.frontCamera.p) }
   public static func add(backCamera: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: backCamera, at: VTOFFSET.backCamera.p) }
   public static func addVectorOf(cameraDevices: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: cameraDevices, at: VTOFFSET.cameraDevices.p) }
   public static func add(activeDeviceId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: activeDeviceId, at: VTOFFSET.activeDeviceId.p) }
+  public static func addVectorOf(audioDevices: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: audioDevices, at: VTOFFSET.audioDevices.p) }
+  public static func add(activeAudioDeviceId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: activeAudioDeviceId, at: VTOFFSET.activeAudioDeviceId.p) }
   public static func endCameraCapabilities(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraCapabilities(
     _ fbb: inout FlatBufferBuilder,
     frontCameraOffset frontCamera: Offset = Offset(),
     backCameraOffset backCamera: Offset = Offset(),
     cameraDevicesVectorOffset cameraDevices: Offset = Offset(),
-    activeDeviceIdOffset activeDeviceId: Offset = Offset()
+    activeDeviceIdOffset activeDeviceId: Offset = Offset(),
+    audioDevicesVectorOffset audioDevices: Offset = Offset(),
+    activeAudioDeviceIdOffset activeAudioDeviceId: Offset = Offset()
   ) -> Offset {
     let __start = RemoteShutter_CameraCapabilities.startCameraCapabilities(&fbb)
     RemoteShutter_CameraCapabilities.add(frontCamera: frontCamera, &fbb)
     RemoteShutter_CameraCapabilities.add(backCamera: backCamera, &fbb)
     RemoteShutter_CameraCapabilities.addVectorOf(cameraDevices: cameraDevices, &fbb)
     RemoteShutter_CameraCapabilities.add(activeDeviceId: activeDeviceId, &fbb)
+    RemoteShutter_CameraCapabilities.addVectorOf(audioDevices: audioDevices, &fbb)
+    RemoteShutter_CameraCapabilities.add(activeAudioDeviceId: activeAudioDeviceId, &fbb)
     return RemoteShutter_CameraCapabilities.endCameraCapabilities(&fbb, start: __start)
   }
 
@@ -1004,6 +1070,8 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.backCamera.p, fieldName: "backCamera", required: false, type: ForwardOffset<RemoteShutter_CameraInfo>.self)
     try _v.visit(field: VTOFFSET.cameraDevices.p, fieldName: "cameraDevices", required: false, type: ForwardOffset<Vector<ForwardOffset<RemoteShutter_CameraDeviceInfo>, RemoteShutter_CameraDeviceInfo>>.self)
     try _v.visit(field: VTOFFSET.activeDeviceId.p, fieldName: "activeDeviceId", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.audioDevices.p, fieldName: "audioDevices", required: false, type: ForwardOffset<Vector<ForwardOffset<RemoteShutter_AudioDeviceInfo>, RemoteShutter_AudioDeviceInfo>>.self)
+    try _v.visit(field: VTOFFSET.activeAudioDeviceId.p, fieldName: "activeAudioDeviceId", required: false, type: ForwardOffset<String>.self)
     _v.finish()
   }
 }

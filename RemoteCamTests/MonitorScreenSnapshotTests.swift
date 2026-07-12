@@ -17,6 +17,7 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
             onTakePicture: {},
             onToggleCamera: {},
             onSelectCameraDevice: { _ in },
+            onSelectAudioDevice: { _ in },
             onToggleFlash: {},
             onToggleTorch: {},
             onTimerChange: { _ in },
@@ -112,6 +113,24 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
         model.activeRemoteDeviceID = "facetime-0"
 
         let image = renderScreen(named: "monitor-device-menu", makeMonitorView(model))
+        assertHasChrome(image)
+    }
+
+    func testVideoModeWithManyMicsShowsMicMenu() {
+        // Mac-shaped peer in video mode: several mics — the mic menu appears
+        // next to the torch button (video modes only; photo mode hides it).
+        let model = makeConnectedModel()
+        model.currentMode = .Video
+        model.uiState = .videoMode
+        model.remoteAudioDevices = [
+            RemoteCmd.AudioDeviceEntry(
+                uniqueID: "builtin-mic", localizedName: "MacBook Pro Microphone", isActive: true),
+            RemoteCmd.AudioDeviceEntry(
+                uniqueID: "usb-mic", localizedName: "USB Microphone", isActive: false)
+        ]
+        model.activeRemoteAudioDeviceID = "builtin-mic"
+
+        let image = renderScreen(named: "monitor-mic-menu", makeMonitorView(model))
         assertHasChrome(image)
     }
 

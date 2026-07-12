@@ -48,6 +48,16 @@ protocol CameraControlling: AnyObject {
     /// accept the input swap and still never deliver (a wedged virtual
     /// camera) — switch responses are only successful once this confirms.
     func awaitFrameDelivery(timeout: TimeInterval) async -> Bool
+    /// All selectable audio inputs, in stable discovery order (a Mac exposes
+    /// N mics; an iPhone typically one).
+    func availableAudioDevices() async -> [AudioDeviceDescriptor]
+    /// The mic recording will use, or nil when the device has none.
+    func currentAudioDevice() async -> AudioDeviceDescriptor?
+    /// Points recording at the mic with this uniqueID, falling back to the
+    /// first available if it vanished (unplugged). Unlike cameras the mic
+    /// input only lives in the session during/after recording, so this stores
+    /// the choice and record-start resolves it.
+    func selectAudioDevice(uniqueID: String) async throws -> AudioDeviceDescriptor
     func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode
     func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) async -> (VideoResolution, VideoFrameRate)?
     func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) async -> (PhotoFormat, HDRMode)?

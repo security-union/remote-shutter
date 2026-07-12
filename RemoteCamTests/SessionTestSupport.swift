@@ -194,6 +194,32 @@ class FakeCameraControlling: CameraControlling {
             zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 10),
             currentZoom: 1.0)
     }
+    /// iPhone-shaped by default (one mic); tests reshape this to a Mac
+    /// (N mics) to exercise the audio-selection paths.
+    var availableAudioDeviceList: [AudioDeviceDescriptor] = [
+        AudioDeviceDescriptor(uniqueID: "fake-mic", localizedName: "Built-in Microphone")
+    ]
+    var activeAudioDeviceID = "fake-mic"
+    var audioDeviceSelections: [String] = []
+    /// False simulates a legacy peer whose capabilities carry no audio list
+    /// — the monitor must never send SelectAudioDevice to it.
+    var advertisesAudioDevices = true
+
+    func availableAudioDevices() async -> [AudioDeviceDescriptor] { availableAudioDeviceList }
+    func currentAudioDevice() async -> AudioDeviceDescriptor? {
+        availableAudioDeviceList.first { $0.uniqueID == activeAudioDeviceID }
+    }
+    func selectAudioDevice(uniqueID: String) async throws -> AudioDeviceDescriptor {
+        if let errorToThrow { throw errorToThrow }
+        audioDeviceSelections.append(uniqueID)
+        guard let device = AudioDeviceDescriptor.resolveSelection(
+                requestedID: uniqueID, available: availableAudioDeviceList) else {
+            throw NSError(domain: "No microphone available", code: 0, userInfo: nil)
+        }
+        activeAudioDeviceID = device.uniqueID
+        return device
+    }
+
     func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode {
         if let errorToThrow { throw errorToThrow }
         torchActive = mode == .on
@@ -231,11 +257,21 @@ class FakeCameraControlling: CameraControlling {
                     info: nil)
             }
             : []
+        let audioEntries: [RemoteCmd.AudioDeviceEntry] = advertisesAudioDevices
+            ? availableAudioDeviceList.map {
+                RemoteCmd.AudioDeviceEntry(
+                    uniqueID: $0.uniqueID,
+                    localizedName: $0.localizedName,
+                    isActive: $0.uniqueID == activeAudioDeviceID)
+            }
+            : []
         return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
             currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
             cameraDevices: entries,
             activeDeviceID: advertisesCameraDevices ? activeDeviceID : nil,
+            audioDevices: audioEntries,
+            activeAudioDeviceID: advertisesAudioDevices ? activeAudioDeviceID : nil,
             error: nil)
     }
 

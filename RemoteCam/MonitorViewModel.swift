@@ -87,6 +87,17 @@ class MonitorViewModel: ObservableObject {
     var cameraSwitchControl: CameraSwitchControl {
         Self.switchControl(for: remoteCameraDevices)
     }
+
+    // MARK: - Remote Audio Devices (empty = peer predates mic selection)
+    @Published var remoteAudioDevices: [RemoteCmd.AudioDeviceEntry] = []
+    @Published var activeRemoteAudioDeviceID: String?
+
+    /// The mic picker only appears when there is an actual choice — a peer
+    /// with 0 (legacy) or 1 mics has nothing to select. Mode gating (video
+    /// only) is the view's job; this is pure topology.
+    var showsAudioDeviceMenu: Bool {
+        remoteAudioDevices.count > 1
+    }
     
     // MARK: - Video Transfer Progress Properties
     @Published var isVideoTransferring: Bool = false
@@ -265,6 +276,18 @@ class MonitorViewModel: ObservableObject {
             }
             if self.activeRemoteDeviceID != activeID {
                 self.activeRemoteDeviceID = activeID
+            }
+        }
+    }
+
+    func updateAudioDevices(_ devices: [RemoteCmd.AudioDeviceEntry], activeID: String?) {
+        DispatchQueue.main.async {
+            // Same change-guarding as the camera list.
+            if self.remoteAudioDevices != devices {
+                self.remoteAudioDevices = devices
+            }
+            if self.activeRemoteAudioDeviceID != activeID {
+                self.activeRemoteAudioDeviceID = activeID
             }
         }
     }

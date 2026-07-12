@@ -60,8 +60,9 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SetTorch: return m.toFlatBuffer()
         case let m as RemoteCmd.SetTorchResp: return m.toFlatBuffer()
         case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
-        case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
+        case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also Select{Camera,Audio}DeviceResp (subclasses)
         case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
+        case let m as RemoteCmd.SelectAudioDevice: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
@@ -505,6 +506,68 @@ final class RemoteCmdSerializationTests: XCTestCase {
                 positionRaw: $0.positionRaw, isActive: $0.isActive, info: nil)
         })
         XCTAssertEqual(decoded.activeDeviceID, "back-0")
+    }
+
+    // MARK: - 13c. Audio device (microphone) selection
+
+    func testSelectAudioDevice_roundTrip() {
+        let original = RemoteCmd.SelectAudioDevice(uniqueID: "com.apple.avfoundation:USB-mic-0x99")
+        let decoded: RemoteCmd.SelectAudioDevice = roundTrip(original)
+        XCTAssertEqual(decoded.uniqueID, "com.apple.avfoundation:USB-mic-0x99")
+    }
+
+    func testSelectAudioDeviceResp_roundTripCarriesAudioDeviceList() {
+        let audioDevices = [
+            RemoteCmd.AudioDeviceEntry(
+                uniqueID: "builtin-mic", localizedName: "MacBook Pro Microphone", isActive: false),
+            RemoteCmd.AudioDeviceEntry(
+                uniqueID: "usb-mic", localizedName: "USB Microphone", isActive: true)
+        ]
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            audioDevices: audioDevices, activeAudioDeviceID: "usb-mic", error: nil)
+        let original = RemoteCmd.SelectAudioDeviceResp(cameraCapabilities: capabilities, error: nil)
+
+        let decoded: RemoteCmd.SelectAudioDeviceResp = roundTrip(original)
+        let decodedCaps = decoded.cameraCapabilities
+        XCTAssertNil(decoded.error)
+        XCTAssertEqual(decodedCaps?.activeAudioDeviceID, "usb-mic")
+        XCTAssertEqual(decodedCaps?.audioDevices, audioDevices)
+    }
+
+    func testSelectAudioDeviceResp_withError() {
+        let err = NSError(domain: "busy", code: 7, userInfo: [NSLocalizedDescriptionKey: "busy"])
+        let original = RemoteCmd.SelectAudioDeviceResp(cameraCapabilities: nil, error: err)
+        let decoded: RemoteCmd.SelectAudioDeviceResp = roundTrip(original)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertNil(decoded.cameraCapabilities)
+    }
+
+    func testCameraCapabilitiesResp_legacyShapeDecodesEmptyAudioList() {
+        // A peer that predates mic selection encodes no audio_devices — the
+        // decoded list must be empty (the monitor's gate stays closed).
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertTrue(decoded.audioDevices.isEmpty)
+        XCTAssertNil(decoded.activeAudioDeviceID)
+    }
+
+    func testCameraCapabilitiesResp_audioDeviceListRoundTrip() {
+        let audioDevices = [
+            RemoteCmd.AudioDeviceEntry(
+                uniqueID: "builtin-mic", localizedName: "iPhone Microphone", isActive: true)
+        ]
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            audioDevices: audioDevices, activeAudioDeviceID: "builtin-mic", error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertEqual(decoded.audioDevices, audioDevices)
+        XCTAssertEqual(decoded.activeAudioDeviceID, "builtin-mic")
     }
 
     // MARK: - 14. SwitchLens

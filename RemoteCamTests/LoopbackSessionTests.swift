@@ -547,6 +547,99 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(stillRecording, .cameraRecordingVideo)
     }
 
+    // MARK: - Audio device (microphone) selection
+
+    /// Reshapes the fake camera to a Mac with two mics and connects both sides.
+    private func connectMacShapedCameraWithTwoMics(
+        monitorMode: RecordingMode = .Video
+    ) async -> LoopbackFakeCamera {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.availableAudioDeviceList = [
+            AudioDeviceDescriptor(uniqueID: "builtin-mic", localizedName: "MacBook Pro Microphone"),
+            AudioDeviceDescriptor(uniqueID: "usb-mic", localizedName: "USB Microphone")
+        ]
+        fakeCamera.activeAudioDeviceID = "builtin-mic"
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: monitorMode)
+        cameraTransport.sentMessages.removeAll()
+        monitorTransport.sentMessages.removeAll()
+        return fakeCamera
+    }
+
+    func testSelectAudioDeviceHappyPathAcrossTheWire() async {
+        let fakeCamera = await connectMacShapedCameraWithTwoMics()
+
+        monitorCoordinator.tell(UICmd.SelectAudioDevice(uniqueID: "usb-mic"))
+        await drainBothSessions()
+
+        // The camera switched mics and answered with fresh capabilities.
+        XCTAssertEqual(fakeCamera.audioDeviceSelections, ["usb-mic"])
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectAudioDeviceResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNil(resps.first?.error)
+        XCTAssertEqual(resps.first?.cameraCapabilities?.activeAudioDeviceID, "usb-mic")
+        XCTAssertEqual(resps.first?.cameraCapabilities?.audioDevices.count, 2)
+        XCTAssertEqual(
+            resps.first?.cameraCapabilities?.audioDevices.first { $0.isActive }?.uniqueID,
+            "usb-mic")
+
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+        XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
+    }
+
+    /// The safety gate: old peers decode unknown command actions (20) as
+    /// TakePicture, so a monitor must never emit SelectAudioDevice unless the
+    /// peer's capabilities advertised an audio-device list.
+    func testSelectAudioDeviceIsNeverSentToLegacyPeer() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.advertisesAudioDevices = false   // legacy-shaped capabilities
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Video)
+        monitorTransport.sentMessages.removeAll()
+
+        monitorCoordinator.tell(UICmd.SelectAudioDevice(uniqueID: "usb-mic"))
+        await drainBothSessions()
+
+        XCTAssertFalse(monitorTransport.sentMessages.contains { $0 is RemoteCmd.SelectAudioDevice },
+                       "SelectAudioDevice must be gated on advertised audio_devices")
+        XCTAssertTrue(fakeCamera.audioDeviceSelections.isEmpty)
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty,
+                      "an ungated command would decode as TakePicture on an old peer")
+        // The monitor quietly stays where it was.
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+    }
+
+    func testSelectAudioDeviceWhileRecordingIsRejected() async {
+        let fakeCamera = await connectMacShapedCameraWithTwoMics(monitorMode: .Video)
+
+        // Start a recording so the camera sits in a busy state.
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: false))
+        await drainBothSessions()
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .cameraRecordingVideo)
+        cameraTransport.sentMessages.removeAll()
+
+        // Deliver the command straight to the busy camera (as a peer would).
+        cameraCoordinator.tell(RemoteCmd.SelectAudioDevice(uniqueID: "usb-mic"))
+        await drainBothSessions()
+
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectAudioDeviceResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNotNil(resps.first?.error, "busy camera must reject mic selection")
+        XCTAssertTrue(fakeCamera.audioDeviceSelections.isEmpty)
+        // Still recording — the request must not disturb the session.
+        let stillRecording = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(stillRecording, .cameraRecordingVideo)
+    }
+
     func testSetZoomHappyPathEchoesFactorAndRange() async {
         let fakeCamera = await connectCameraAndMonitor()
 

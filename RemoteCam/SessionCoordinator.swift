@@ -176,6 +176,11 @@ public actor SessionCoordinator {
     /// actions as TakePicture (the FlatBuffers field default).
     private var peerAdvertisedCameraDevices = false
 
+    /// Same gate for `RemoteCmd.SelectAudioDevice`: only peers that
+    /// advertised an audio-device list understand action 20; old decoders
+    /// would read it as TakePicture.
+    private var peerAdvertisedAudioDevices = false
+
     /// Test support: the generation of the most recently armed timeout.
     func currentTimeoutGeneration() -> Int { timeoutGeneration }
 
@@ -375,6 +380,7 @@ public actor SessionCoordinator {
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
         peerAdvertisedCameraDevices = false
+        peerAdvertisedAudioDevices = false
         switch state {
         case .scanning:
             // Already there — re-entering would restart discovery and reset
@@ -605,6 +611,19 @@ public actor SessionCoordinator {
                     cameraCapabilities: capabilities, error: nil))
             } catch {
                 await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
+                    cameraCapabilities: nil, error: error as NSError))
+            }
+
+        case let select as RemoteCmd.SelectAudioDevice:
+            // No frame confirmation — audio only flows during recording, and
+            // the recording states reject this command outright (root).
+            do {
+                _ = try await ctrl.selectAudioDevice(uniqueID: select.uniqueID)
+                let capabilities = await ctrl.gatherCurrentCameraCapabilities()
+                await sendOrGoToScanning(RemoteCmd.SelectAudioDeviceResp(
+                    cameraCapabilities: capabilities, error: nil))
+            } catch {
+                await sendOrGoToScanning(RemoteCmd.SelectAudioDeviceResp(
                     cameraCapabilities: nil, error: error as NSError))
             }
 
@@ -938,6 +957,8 @@ public actor SessionCoordinator {
             await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.SelectCameraDevice:
             await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
+        case is RemoteCmd.SelectAudioDevice:
+            await sendOrGoToScanning(RemoteCmd.SelectAudioDeviceResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.ToggleFlash:
             await sendOrGoToScanning(RemoteCmd.ToggleFlashResp(flashMode: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.SetZoom:
@@ -1114,6 +1135,19 @@ public actor SessionCoordinator {
                 await popToScanning()
             }
 
+        case let select as UICmd.SelectAudioDevice:
+            guard peerAdvertisedAudioDevices else {
+                debugLog("SelectAudioDevice dropped: peer did not advertise audio devices")
+                break
+            }
+            if sendMessage(RemoteCmd.SelectAudioDevice(uniqueID: select.uniqueID)) {
+                await showCameraAlert(NSLocalizedString("Switching microphone", comment: ""))
+                let generation = scheduleTimeout(.monitorTogglingCamera)
+                await transition(to: .monitorTogglingCamera(mode: mode, generation: generation))
+            } else {
+                await popToScanning()
+            }
+
         case is UICmd.ToggleFlash where mode == .photo:
             if sendMessage(RemoteCmd.ToggleFlash()) {
                 await showCameraAlert("Requesting flash toggle")
@@ -1152,6 +1186,7 @@ public actor SessionCoordinator {
 
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
             peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
+            peerAdvertisedAudioDevices = !capabilities.audioDevices.isEmpty
             monitor?.updateCapabilities(capabilities)
 
         case let zoom as UICmd.SetZoom:
@@ -1282,6 +1317,8 @@ public actor SessionCoordinator {
             break // Already sent from parent state; ignore duplicate taps
         case is UICmd.SelectCameraDevice where kind == .camera:
             break // A selection is already in flight; ignore duplicate taps
+        case is UICmd.SelectAudioDevice where kind == .camera:
+            break // A selection is already in flight; ignore duplicate taps
 
         case let flashResp as RemoteCmd.ToggleFlashResp where kind == .flash:
             if flashResp.flashMode != nil {
@@ -1296,12 +1333,13 @@ public actor SessionCoordinator {
             await transition(to: .monitor(mode: mode))
 
         case let toggleResp as RemoteCmd.ToggleCameraResp where kind == .camera:
-            // Also matches SelectCameraDeviceResp (a subclass): a completed
-            // device selection re-syncs the monitor exactly like a toggle.
-            // Forward the fresh capabilities so the monitor UI re-syncs to the
-            // new camera (lens list, zoom range, quality).
+            // Also matches Select{Camera,Audio}DeviceResp (subclasses): a
+            // completed device selection re-syncs the monitor exactly like a
+            // toggle. Forward the fresh capabilities so the monitor UI
+            // re-syncs to the new camera (lens list, zoom range, quality).
             if let capabilities = toggleResp.cameraCapabilities {
                 peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
+                peerAdvertisedAudioDevices = !capabilities.audioDevices.isEmpty
                 monitor?.updateCapabilities(capabilities)
                 await dismissCameraAlert()
             } else if let error = toggleResp.error {

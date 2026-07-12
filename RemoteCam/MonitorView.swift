@@ -12,6 +12,7 @@ struct MonitorView: View {
     let onTakePicture: () -> Void
     let onToggleCamera: () -> Void
     let onSelectCameraDevice: (String) -> Void
+    let onSelectAudioDevice: (String) -> Void
     let onToggleFlash: () -> Void
     let onToggleTorch: () -> Void
     let onTimerChange: (Int) -> Void
@@ -637,7 +638,22 @@ struct MonitorView: View {
                     torchButton
                 }
             } else if viewModel.uiState == .videoMode || viewModel.uiState == .shortsMode {
-                torchButton
+                HStack(spacing: 20) {
+                    torchButton
+                    // Mic picker: video modes only (a mic is meaningless for
+                    // photos) and only when the peer offers a real choice.
+                    // Hidden while recording (uiState .videoRecording) — the
+                    // camera peer rejects mid-recording selection anyway.
+                    if viewModel.showsAudioDeviceMenu {
+                        AudioDeviceMenuView(
+                            devices: viewModel.remoteAudioDevices,
+                            activeDeviceID: viewModel.activeRemoteAudioDeviceID,
+                            isEnabled: viewModel.isToggleCameraEnabled,
+                            onSelectAudioDevice: onSelectAudioDevice
+                        )
+                        .equatable()
+                    }
+                }
             }
 
             Spacer()
@@ -679,6 +695,7 @@ struct MonitorView_Previews: PreviewProvider {
             onTakePicture: {},
             onToggleCamera: {},
             onSelectCameraDevice: { _ in },
+            onSelectAudioDevice: { _ in },
             onToggleFlash: {},
             onToggleTorch: {},
             onTimerChange: { _ in },
@@ -781,6 +798,43 @@ struct CameraSwitchControlView: View, Equatable {
             .font(.system(size: 24))
             .foregroundColor(isEnabled ? .white : .gray)
             .frame(width: 44, height: 44)
+    }
+}
+
+// MARK: - Audio Device Menu
+
+/// The mic picker: a menu of the peer's audio inputs. Equatable for the same
+/// reason as `CameraSwitchControlView` — rebuilding a Menu dismisses it while
+/// open, and monitor updates are frequent. Callbacks are excluded from
+/// equality (stable controller closures).
+struct AudioDeviceMenuView: View, Equatable {
+    let devices: [RemoteCmd.AudioDeviceEntry]
+    let activeDeviceID: String?
+    let isEnabled: Bool
+    let onSelectAudioDevice: (String) -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.devices == rhs.devices
+            && lhs.activeDeviceID == rhs.activeDeviceID
+            && lhs.isEnabled == rhs.isEnabled
+    }
+
+    var body: some View {
+        Menu {
+            ForEach(devices, id: \.uniqueID) { device in
+                CameraDeviceMenuItem(
+                    name: device.localizedName,
+                    isActive: device.uniqueID == activeDeviceID,
+                    isSuspended: false,
+                    select: { onSelectAudioDevice(device.uniqueID) })
+            }
+        } label: {
+            Image(systemName: "mic")
+                .font(.system(size: 20))
+                .foregroundColor(isEnabled ? .white : .gray)
+                .frame(width: 44, height: 44)
+        }
+        .disabled(!isEnabled)
     }
 }
 

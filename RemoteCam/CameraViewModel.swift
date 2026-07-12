@@ -35,6 +35,23 @@ class CameraViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Local Audio Devices (mic picker chrome; a Mac has N mics)
+    @Published var availableAudioDevices: [AudioDeviceDescriptor] = []
+    @Published var activeAudioDeviceID: String?
+
+    func updateAudioDevices(_ devices: [AudioDeviceDescriptor], activeID: String?) {
+        DispatchQueue.main.async {
+            // Same change-guarding as the camera list: don't rebuild the
+            // picker menu for identical content.
+            if self.availableAudioDevices != devices {
+                self.availableAudioDevices = devices
+            }
+            if self.activeAudioDeviceID != activeID {
+                self.activeAudioDeviceID = activeID
+            }
+        }
+    }
+
     // MARK: - Mode & Quality Status
     @Published var currentMode: RecordingMode = .Photo
     @Published var qualityInfo: String = "1080p 30fps"

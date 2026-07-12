@@ -114,6 +114,9 @@ public final class MonitorPresenter {
             display.viewModel.updateCameraDevices(
                 capabilities.cameraDevices,
                 activeID: capabilities.activeDeviceID)
+            display.viewModel.updateAudioDevices(
+                capabilities.audioDevices,
+                activeID: capabilities.activeAudioDeviceID)
 
             guard let cameraInfo = capabilities.getCurrentCameraInfo() else { return }
             // Update lens controls in view model

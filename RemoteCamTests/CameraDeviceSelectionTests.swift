@@ -149,11 +149,12 @@ final class CameraDeviceSelectionTests: XCTestCase {
     func testCameraViewModelPublishesDeviceList() async {
         let model = CameraViewModel()
         model.updateCameraDevices([backCamera, usbCamera], activeID: "usb-0")
-        // updateCameraDevices hops to main; pump the queue once.
-        await Task.yield()
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
-        XCTAssertEqual(model.availableCameraDevices, [backCamera, usbCamera])
-        XCTAssertEqual(model.activeCameraDeviceID, "usb-0")
+        // updateCameraDevices hops to main.async; a MainActor hop enqueues
+        // behind it on the main queue, so this read is deterministic.
+        await MainActor.run {
+            XCTAssertEqual(model.availableCameraDevices, [self.backCamera, self.usbCamera])
+            XCTAssertEqual(model.activeCameraDeviceID, "usb-0")
+        }
     }
 
     func testFakeCameraSelectionUpdatesActiveDevice() async throws {
@@ -164,5 +165,51 @@ final class CameraDeviceSelectionTests: XCTestCase {
         XCTAssertEqual(current?.uniqueID, "fake-front")
         XCTAssertEqual(fake.deviceSelections, ["fake-front"])
         XCTAssertNil(result.flashMode, "front camera has no flash in the fake")
+    }
+
+    // MARK: - Audio device (microphone) selection policy
+
+    private let builtinMic = AudioDeviceDescriptor(
+        uniqueID: "builtin-mic", localizedName: "MacBook Pro Microphone")
+    private let usbMic = AudioDeviceDescriptor(
+        uniqueID: "usb-mic", localizedName: "USB Microphone")
+
+    func testAudioExactIDMatchWins() {
+        let resolved = AudioDeviceDescriptor.resolveSelection(
+            requestedID: "usb-mic", available: [builtinMic, usbMic])
+        XCTAssertEqual(resolved?.uniqueID, "usb-mic")
+    }
+
+    func testAudioVanishedIDFallsBackToFirstAvailable() {
+        let resolved = AudioDeviceDescriptor.resolveSelection(
+            requestedID: "unplugged-mic", available: [builtinMic, usbMic])
+        XCTAssertEqual(resolved?.uniqueID, "builtin-mic")
+    }
+
+    func testAudioNoDevicesResolvesNil() {
+        XCTAssertNil(AudioDeviceDescriptor.resolveSelection(
+            requestedID: "usb-mic", available: []))
+    }
+
+    func testCameraViewModelPublishesAudioDeviceList() async {
+        let model = CameraViewModel()
+        model.updateAudioDevices([builtinMic, usbMic], activeID: "usb-mic")
+        // updateAudioDevices hops to main.async; a MainActor hop enqueues
+        // behind it on the main queue, so this read is deterministic.
+        await MainActor.run {
+            XCTAssertEqual(model.availableAudioDevices, [self.builtinMic, self.usbMic])
+            XCTAssertEqual(model.activeAudioDeviceID, "usb-mic")
+        }
+    }
+
+    func testFakeAudioSelectionUpdatesActiveDevice() async throws {
+        let fake = FakeCameraControlling()
+        fake.availableAudioDeviceList = [builtinMic, usbMic]
+        fake.activeAudioDeviceID = "builtin-mic"
+        let result = try await fake.selectAudioDevice(uniqueID: "usb-mic")
+        XCTAssertEqual(result.uniqueID, "usb-mic")
+        let current = await fake.currentAudioDevice()
+        XCTAssertEqual(current?.uniqueID, "usb-mic")
+        XCTAssertEqual(fake.audioDeviceSelections, ["usb-mic"])
     }
 }

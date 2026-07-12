@@ -330,3 +330,6 @@
 "WifiBannerTitle" = "TURN ON WI-FI ON BOTH DEVICES — REQUIRED";
 "WifiBannerBody" = "No network needed — the devices connect directly.";
 "WifiEscalationTip" = "Still searching… Check Wi-Fi is on — on this device and the other one. Turning it off in Control Center still counts as off: use Settings > Wi-Fi.";
+
+/* Microphone selector */
+"Switching microphone" = "Switching microphone";

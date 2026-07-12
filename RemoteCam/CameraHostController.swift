@@ -25,6 +25,9 @@ final class CameraHostController: UIHostingController<CameraScreenView> {
             viewModel: rig.cameraViewModel,
             onSelectCameraDevice: { [weak rig] uniqueID in
                 rig?.selectCameraDeviceLocally(uniqueID: uniqueID)
+            },
+            onSelectAudioDevice: { [weak rig] uniqueID in
+                rig?.selectAudioDeviceLocally(uniqueID: uniqueID)
             }))
     }
 

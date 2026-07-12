@@ -28,9 +28,12 @@ enum CommandAction : byte {
     TimerCountdown = 16,
     SyncMonitorSettings = 17,
     SetAspectRatio = 18,
-    SelectCameraDevice = 19    // never sent to peers that did not advertise
+    SelectCameraDevice = 19,   // never sent to peers that did not advertise
                                // camera_devices — old decoders read unknown
                                // actions as TakePicture (the field default)
+    SelectAudioDevice = 20     // same gate: never sent to peers that did not
+                               // advertise audio_devices. Payload rides in
+                               // CommandParameters.device_unique_id.
 }
 
 enum CameraPosition : byte {
@@ -132,7 +135,7 @@ table CommandParameters {
     recording_mode: RecordingModeEnum;
     aspect_ratio: AspectRatioEnum;
     // Appended fields only below this line (FlatBuffers schema evolution).
-    device_unique_id: string;        // payload for SelectCameraDevice
+    device_unique_id: string;        // payload for SelectCameraDevice / SelectAudioDevice
 }
 
 // MARK: - Command Structure
@@ -198,6 +201,14 @@ table CameraDeviceInfo {
     is_suspended: bool;
 }
 
+// One selectable audio input (microphone) on the camera peer. Mics have no
+// front/back identity, so unlike CameraDeviceInfo there is no position field.
+table AudioDeviceInfo {
+    unique_id: string;
+    localized_name: string;
+    is_active: bool;
+}
+
 table CameraState {
     current_camera: CameraPosition;
     current_lens: CameraLensType;
@@ -221,6 +232,10 @@ table CameraCapabilities {
     // not send SelectCameraDevice to such a peer.
     camera_devices: [CameraDeviceInfo];
     active_device_id: string;
+    // Empty/absent = peer predates audio-device selection; a monitor must
+    // not send SelectAudioDevice to such a peer.
+    audio_devices: [AudioDeviceInfo];
+    active_audio_device_id: string;
 }
 
 // MARK: - Response Structure

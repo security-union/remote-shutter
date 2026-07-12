@@ -34,6 +34,15 @@ struct FeatureFlags {
     static let ENABLE_LOCAL_CAMERA_PICKER = false
     #endif
 
+    /// Show the local microphone picker on the camera screen. Same rationale
+    /// and platform gate as the camera picker: a Mac has N audio inputs
+    /// (built-in, USB, Continuity); iPhone keeps its single mic.
+    #if targetEnvironment(macCatalyst)
+    static let ENABLE_LOCAL_MIC_PICKER = true
+    #else
+    static let ENABLE_LOCAL_MIC_PICKER = false
+    #endif
+
     // MARK: - Future Feature Flags
     // Add new feature flags here as needed
     // Example:

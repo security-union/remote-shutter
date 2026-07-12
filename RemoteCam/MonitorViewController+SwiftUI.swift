@@ -20,6 +20,9 @@ extension MonitorViewController {
             onSelectCameraDevice: { [weak self] uniqueID in
                 self?.handleSelectCameraDevice(uniqueID)
             },
+            onSelectAudioDevice: { [weak self] uniqueID in
+                self?.handleSelectAudioDevice(uniqueID)
+            },
             onToggleFlash: { [weak self] in
                 self?.handleToggleFlash()
             },
@@ -165,6 +168,10 @@ extension MonitorViewController {
     
     private func handleSelectCameraDevice(_ uniqueID: String) {
         session ! UICmd.SelectCameraDevice(uniqueID: uniqueID)
+    }
+
+    private func handleSelectAudioDevice(_ uniqueID: String) {
+        session ! UICmd.SelectAudioDevice(uniqueID: uniqueID)
     }
 
     private func handleToggleCamera() {

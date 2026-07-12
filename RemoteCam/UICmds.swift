@@ -418,6 +418,17 @@ public class UICmd {
         }
     }
 
+    /// Monitor UI asks the camera peer to record with a specific microphone
+    /// (by uniqueID from the advertised `audioDevices` list).
+    public class SelectAudioDevice: Message {
+        public let uniqueID: String
+
+        public init(uniqueID: String) {
+            self.uniqueID = uniqueID
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Video Resource Transfer Messages
     
     @objc(_TtCC10ActorsDemo5UICmd17SendVideoResource)public class SendVideoResource: Message, NSCoding {

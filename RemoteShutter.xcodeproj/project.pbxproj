@@ -106,6 +106,7 @@
 		AB12CD34EF5601789ABC0DE2 /* RecordingPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE1 /* RecordingPipeline.swift */; };
 		AB12CD34EF5601789ABC0DE6 /* FrameStreamingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */; };
 		CADE5E1EC000000000000002 /* CameraDeviceDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000001 /* CameraDeviceDescriptor.swift */; };
+		CADE5E1EC000000000000008 /* AudioDeviceDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000007 /* AudioDeviceDescriptor.swift */; };
 		CADE5E1EC000000000000004 /* CameraDeviceSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000003 /* CameraDeviceSelectionTests.swift */; };
 		CADE5E1EC000000000000006 /* CaptureIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000005 /* CaptureIntegrationTests.swift */; };
 		AB12CD34EF5601789ABC0DE8 /* CameraScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */; };
@@ -319,6 +320,7 @@
 		AB12CD34EF5601789ABC0DE1 /* RecordingPipeline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingPipeline.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FrameStreamingCoordinator.swift; sourceTree = "<group>"; };
 		CADE5E1EC000000000000001 /* CameraDeviceDescriptor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraDeviceDescriptor.swift; sourceTree = "<group>"; };
+		CADE5E1EC000000000000007 /* AudioDeviceDescriptor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AudioDeviceDescriptor.swift; sourceTree = "<group>"; };
 		CADE5E1EC000000000000003 /* CameraDeviceSelectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraDeviceSelectionTests.swift; sourceTree = "<group>"; };
 		CADE5E1EC000000000000005 /* CaptureIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureIntegrationTests.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraScreenView.swift; sourceTree = "<group>"; };
@@ -532,6 +534,7 @@
 				A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */,
 				0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */,
 				CADE5E1EC000000000000001 /* CameraDeviceDescriptor.swift */,
+				CADE5E1EC000000000000007 /* AudioDeviceDescriptor.swift */,
 				AB12CD34EF5601789ABC0DE1 /* RecordingPipeline.swift */,
 				AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */,
 				AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */,
@@ -1151,6 +1154,7 @@
 				99F50887F138FD71CF957A08 /* CameraControlling.swift in Sources */,
 				9667E6BB6F62D30AB6928304 /* CaptureEngine.swift in Sources */,
 				CADE5E1EC000000000000002 /* CameraDeviceDescriptor.swift in Sources */,
+				CADE5E1EC000000000000008 /* AudioDeviceDescriptor.swift in Sources */,
 				AB12CD34EF5601789ABC0DE2 /* RecordingPipeline.swift in Sources */,
 				AB12CD34EF5601789ABC0DE6 /* FrameStreamingCoordinator.swift in Sources */,
 				AB12CD34EF5601789ABC0DE8 /* CameraScreenView.swift in Sources */,

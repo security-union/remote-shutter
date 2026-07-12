@@ -41,8 +41,9 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SetTorch: return m.toFlatBuffer()
     case let m as RemoteCmd.SetTorchResp: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
-    case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
+    case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also Select{Camera,Audio}DeviceResp (subclasses)
     case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
+    case let m as RemoteCmd.SelectAudioDevice: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
@@ -401,12 +402,29 @@ private func encodeCapabilitiesEnvelope(
     }
     let activeIDOffset = c.activeDeviceID.map { fbb.create(string: $0) } ?? Offset()
 
+    var audioDevicesVector = Offset()
+    if !c.audioDevices.isEmpty {
+        let audioOffsets = c.audioDevices.map { entry -> Offset in
+            let idOffset = fbb.create(string: entry.uniqueID)
+            let nameOffset = fbb.create(string: entry.localizedName)
+            return RemoteShutter_AudioDeviceInfo.createAudioDeviceInfo(
+                &fbb,
+                uniqueIdOffset: idOffset,
+                localizedNameOffset: nameOffset,
+                isActive: entry.isActive)
+        }
+        audioDevicesVector = fbb.createVector(ofOffsets: audioOffsets)
+    }
+    let activeAudioIDOffset = c.activeAudioDeviceID.map { fbb.create(string: $0) } ?? Offset()
+
     let capsOffset = RemoteShutter_CameraCapabilities.createCameraCapabilities(
         &fbb,
         frontCameraOffset: frontOffset,
         backCameraOffset: backOffset,
         cameraDevicesVectorOffset: devicesVector,
-        activeDeviceIdOffset: activeIDOffset)
+        activeDeviceIdOffset: activeIDOffset,
+        audioDevicesVectorOffset: audioDevicesVector,
+        activeAudioDeviceIdOffset: activeAudioIDOffset)
 
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
@@ -776,10 +794,14 @@ extension RemoteCmd.ToggleCamera {
 
 extension RemoteCmd.ToggleCameraResp {
     func toFlatBuffer() -> Data {
-        // SelectCameraDeviceResp subclasses this type; the payload shape is
-        // identical, only the wire action differs.
-        let action: RemoteShutter_CommandAction =
-            self is RemoteCmd.SelectCameraDeviceResp ? .selectcameradevice : .togglecamera
+        // SelectCameraDeviceResp/SelectAudioDeviceResp subclass this type;
+        // the payload shape is identical, only the wire action differs.
+        let action: RemoteShutter_CommandAction
+        switch self {
+        case is RemoteCmd.SelectAudioDeviceResp: action = .selectaudiodevice
+        case is RemoteCmd.SelectCameraDeviceResp: action = .selectcameradevice
+        default: action = .togglecamera
+        }
         return encodeCapabilitiesResponse(action: action, capabilities: cameraCapabilities, error: error)
     }
 }
@@ -790,6 +812,15 @@ extension RemoteCmd.SelectCameraDevice {
         let idOffset = fbb.create(string: uniqueID)
         let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, deviceUniqueIdOffset: idOffset)
         return buildCommand(&fbb, action: .selectcameradevice, parameters: params)
+    }
+}
+
+extension RemoteCmd.SelectAudioDevice {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let idOffset = fbb.create(string: uniqueID)
+        let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, deviceUniqueIdOffset: idOffset)
+        return buildCommand(&fbb, action: .selectaudiodevice, parameters: params)
     }
 }
 
@@ -1056,6 +1087,9 @@ extension RemoteCmd {
 
         case .selectcameradevice:
             return SelectCameraDevice(uniqueID: params?.deviceUniqueId ?? "")
+
+        case .selectaudiodevice:
+            return SelectAudioDevice(uniqueID: params?.deviceUniqueId ?? "")
         }
     }
 
@@ -1143,6 +1177,13 @@ extension RemoteCmd {
             let capabilities = decodeCameraCapabilitiesResp(resp, error: nil)
             return SelectCameraDeviceResp(cameraCapabilities: capabilities, error: nil)
 
+        case .selectaudiodevice:
+            if nsError != nil {
+                return SelectAudioDeviceResp(cameraCapabilities: nil, error: nsError)
+            }
+            let capabilities = decodeCameraCapabilitiesResp(resp, error: nil)
+            return SelectAudioDeviceResp(cameraCapabilities: capabilities, error: nil)
+
         case .setvideoquality:
             let state = resp.currentState
             let resolution: VideoResolution? = state.map { fromFBResolution($0.videoResolution) }
@@ -1191,6 +1232,20 @@ extension RemoteCmd {
         }
         let activeDeviceID = caps?.activeDeviceId ?? state?.activeDeviceId
 
+        // Appended fields: absent on legacy peers, which leaves the audio
+        // list empty — the signal that SelectAudioDevice must not be sent.
+        var audioDevices: [AudioDeviceEntry] = []
+        if let caps {
+            for i in 0..<caps.audioDevicesCount {
+                guard let d = caps.audioDevices(at: i) else { continue }
+                audioDevices.append(AudioDeviceEntry(
+                    uniqueID: d.uniqueId ?? "",
+                    localizedName: d.localizedName ?? "",
+                    isActive: d.isActive))
+            }
+        }
+        let activeAudioDeviceID = caps?.activeAudioDeviceId
+
         return CameraCapabilitiesResp(
             frontCamera: frontCamera,
             backCamera: backCamera,
@@ -1203,6 +1258,8 @@ extension RemoteCmd {
             currentHDRMode: state.map { fromFBHDRMode($0.hdrMode) } ?? .off,
             cameraDevices: cameraDevices,
             activeDeviceID: activeDeviceID,
+            audioDevices: audioDevices,
+            activeAudioDeviceID: activeAudioDeviceID,
             error: error
         )
     }

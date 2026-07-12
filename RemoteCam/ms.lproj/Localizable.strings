@@ -330,3 +330,6 @@
 "WifiBannerTitle" = "HIDUPKAN WI-FI PADA KEDUA-DUA PERANTI — WAJIB";
 "WifiBannerBody" = "Tiada rangkaian diperlukan — peranti menyambung terus.";
 "WifiEscalationTip" = "Masih mencari… Pastikan Wi-Fi dihidupkan — pada peranti ini dan peranti satu lagi. Mematikannya dalam Pusat Kawalan masih dikira mati: gunakan Tetapan > Wi-Fi.";
+
+/* Microphone selector */
+"Switching microphone" = "Menukar mikrofon";

@@ -209,3 +209,6 @@
 "WifiBannerTitle" = "ATTIVA IL WI-FI SU ENTRAMBI I DISPOSITIVI — OBBLIGATORIO";
 "WifiBannerBody" = "Nessuna rete necessaria — i dispositivi si collegano direttamente.";
 "WifiEscalationTip" = "Ricerca in corso… Controlla che il Wi-Fi sia attivo su questo dispositivo e sull'altro. Spento dal Centro di Controllo conta come spento: usa Impostazioni > Wi-Fi.";
+
+/* Microphone selector */
+"Switching microphone" = "Cambio microfono";

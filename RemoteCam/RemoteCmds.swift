@@ -313,6 +313,25 @@ public class RemoteCmd: Message {
         }
     }
 
+    // MARK: - Audio Device List (N microphones; selection matters on Macs)
+
+    /// One selectable audio input (microphone) on the camera peer, as
+    /// advertised in `CameraCapabilitiesResp.audioDevices`. An empty list
+    /// means the peer predates audio-device selection — the monitor must not
+    /// send `SelectAudioDevice` to it. Mics have no front/back identity, so
+    /// unlike `CameraDeviceEntry` there is no position.
+    public struct AudioDeviceEntry: Codable, Equatable {
+        public let uniqueID: String
+        public let localizedName: String
+        public let isActive: Bool
+
+        public init(uniqueID: String, localizedName: String, isActive: Bool) {
+            self.uniqueID = uniqueID
+            self.localizedName = localizedName
+            self.isActive = isActive
+        }
+    }
+
     // MARK: - Enhanced Camera Response
 
     public class CameraCapabilitiesResp: Message {
@@ -327,6 +346,8 @@ public class RemoteCmd: Message {
         public let currentHDRMode: HDRMode
         public let cameraDevices: [CameraDeviceEntry]
         public let activeDeviceID: String?
+        public let audioDevices: [AudioDeviceEntry]
+        public let activeAudioDeviceID: String?
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
@@ -338,6 +359,8 @@ public class RemoteCmd: Message {
                    currentHDRMode: HDRMode = .off,
                    cameraDevices: [CameraDeviceEntry] = [],
                    activeDeviceID: String? = nil,
+                   audioDevices: [AudioDeviceEntry] = [],
+                   activeAudioDeviceID: String? = nil,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
@@ -350,6 +373,8 @@ public class RemoteCmd: Message {
             self.currentHDRMode = currentHDRMode
             self.cameraDevices = cameraDevices
             self.activeDeviceID = activeDeviceID
+            self.audioDevices = audioDevices
+            self.activeAudioDeviceID = activeAudioDeviceID
             self.error = error
             super.init(sender: nil)
         }
@@ -511,6 +536,26 @@ public class RemoteCmd: Message {
     /// selection exactly like a completed front/back toggle — fresh
     /// capabilities in, UI re-synced — so it shares that state's handling.
     public class SelectCameraDeviceResp: ToggleCameraResp {}
+
+    // MARK: - Audio Device Selection (guarded by capability advertising)
+
+    /// Switch the camera peer's recording microphone to the device with this
+    /// uniqueID. Only valid against peers whose capabilities carried a
+    /// non-empty `audioDevices` list — old decoders read unknown actions as
+    /// TakePicture.
+    public class SelectAudioDevice: Message {
+        public let uniqueID: String
+
+        public init(uniqueID: String) {
+            self.uniqueID = uniqueID
+            super.init(sender: nil)
+        }
+    }
+
+    /// Subclasses ToggleCameraResp for the same reason as
+    /// SelectCameraDeviceResp: a completed mic selection re-syncs the monitor
+    /// with fresh capabilities (which carry the audio device list).
+    public class SelectAudioDeviceResp: ToggleCameraResp {}
 
     public class SetZoomResp: Message {
         public let zoomFactor: CGFloat?

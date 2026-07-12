@@ -78,6 +78,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     var videoConnection: AVCaptureConnection?
     var audioConnection: AVCaptureConnection?
     var videoDeviceInput: AVCaptureDeviceInput!
+    /// The mic input, present only once recording has configured audio (audio
+    /// setup is deferred to record-start so the permission prompt is too).
+    /// Retained so a later selection can swap it. sessionQueue-confined.
+    private var audioDeviceInput: AVCaptureDeviceInput?
+    /// The user's chosen mic uniqueID; nil = system default. Recording
+    /// resolves it at configure time, falling back if the device vanished.
+    /// sessionQueue-confined.
+    private var selectedAudioDeviceID: String?
 
     /// The active camera position, mirrored for the frame streamer's per-frame
     /// reads (everything else about the device is sessionQueue-confined).
@@ -148,6 +156,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
         refreshSuspensionObserversLocked()
         lastNotifiedDevices = selectableDevicesLocked().map { CameraDeviceDescriptor(device: $0) }
+        lastNotifiedAudioDevices = selectableAudioDevicesLocked().map { AudioDeviceDescriptor(device: $0) }
         debugLog("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
 
         do {
@@ -196,16 +205,25 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     func configureAudioForRecording(delegate: AVCaptureAudioDataOutputSampleBufferDelegate) -> Bool {
         syncOnSessionQueue {
             do {
-                guard let audioDevice = AVCaptureDevice.default(for: .audio) else {
+                guard let audioDevice = resolvedAudioDeviceLocked() else {
                     return false
                 }
-                let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
 
                 captureSession.beginConfiguration()
-                if captureSession.canAddInput(audioDeviceInput) {
-                    captureSession.addInput(audioDeviceInput)
-                } else {
-                    print("Could not add audio device input to the session")
+                // A previous recording may have left an input for a different
+                // mic in the session (selection changed in between).
+                if let existing = audioDeviceInput, existing.device.uniqueID != audioDevice.uniqueID {
+                    captureSession.removeInput(existing)
+                    audioDeviceInput = nil
+                }
+                if audioDeviceInput == nil {
+                    let input = try AVCaptureDeviceInput(device: audioDevice)
+                    if captureSession.canAddInput(input) {
+                        captureSession.addInput(input)
+                        audioDeviceInput = input
+                    } else {
+                        print("Could not add audio device input to the session")
+                    }
                 }
                 if captureSession.canAddOutput(audioDataOutput) {
                     captureSession.addOutput(audioDataOutput)
@@ -620,6 +638,79 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
+    // MARK: - Audio devices (microphone selection)
+
+    /// All selectable audio inputs, in stable discovery order. A Mac exposes
+    /// N mics (built-in, USB, Continuity); an iPhone typically one.
+    /// Enumeration never triggers the microphone permission prompt — only
+    /// attaching an input does, and that stays deferred to record-start.
+    private func selectableAudioDevicesLocked() -> [AVCaptureDevice] {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        let types: [AVCaptureDevice.DeviceType]
+        if #available(iOS 17.0, macCatalyst 17.0, *) {
+            types = [.microphone]
+        } else {
+            types = [.builtInMicrophone]
+        }
+        return AVCaptureDevice.DiscoverySession(
+            deviceTypes: types, mediaType: .audio, position: .unspecified).devices
+    }
+
+    /// The mic recording will actually use: the user's selection when it is
+    /// still attached, else the system default, else the first discovered.
+    private func resolvedAudioDeviceLocked() -> AVCaptureDevice? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        let available = selectableAudioDevicesLocked()
+        if let id = selectedAudioDeviceID,
+           let device = available.first(where: { $0.uniqueID == id }) {
+            return device
+        }
+        return AVCaptureDevice.default(for: .audio) ?? available.first
+    }
+
+    func availableAudioDevices() async -> [AudioDeviceDescriptor] {
+        await onSessionQueue {
+            self.selectableAudioDevicesLocked().map { AudioDeviceDescriptor(device: $0) }
+        }
+    }
+
+    func currentAudioDevice() async -> AudioDeviceDescriptor? {
+        await onSessionQueue {
+            ((self.audioDeviceInput?.device) ?? self.resolvedAudioDeviceLocked())
+                .map { AudioDeviceDescriptor(device: $0) }
+        }
+    }
+
+    func selectAudioDevice(uniqueID: String) async throws -> AudioDeviceDescriptor {
+        try await onSessionQueueThrowing {
+            let available = self.selectableAudioDevicesLocked()
+            let descriptors = available.map { AudioDeviceDescriptor(device: $0) }
+            guard let resolved = AudioDeviceDescriptor.resolveSelection(
+                    requestedID: uniqueID, available: descriptors),
+                  let device = available.first(where: { $0.uniqueID == resolved.uniqueID }) else {
+                throw NSError(domain: "No microphone available", code: 0, userInfo: nil)
+            }
+            self.selectedAudioDeviceID = device.uniqueID
+            // If a mic input is already in the session (a recording has run,
+            // so permission is granted), swap it now; otherwise the next
+            // record-start resolves the stored selection.
+            if let existing = self.audioDeviceInput, existing.device.uniqueID != device.uniqueID {
+                self.captureSession.beginConfiguration()
+                self.captureSession.removeInput(existing)
+                self.audioDeviceInput = nil
+                if let input = try? AVCaptureDeviceInput(device: device),
+                   self.captureSession.canAddInput(input) {
+                    self.captureSession.addInput(input)
+                    self.audioDeviceInput = input
+                }
+                self.captureSession.commitConfiguration()
+                self.applyDesiredTorchLocked()
+                self.audioConnection = self.audioDataOutput.connection(with: .audio)
+            }
+            return resolved
+        }
+    }
+
     /// Platform-aware lens refresh: iOS keeps its position-based discovery;
     /// Mac cameras have a single lens.
     private func updateAvailableLensTypes(for device: AVCaptureDevice) {
@@ -645,8 +736,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     fileprivate func observeDeviceConnections() {
         let center = NotificationCenter.default
         let handle = { [weak self] (note: Notification, disconnected: Bool) in
-            guard let device = note.object as? AVCaptureDevice, device.hasMediaType(.video) else { return }
-            self?.handleDeviceStateChange(disconnectedID: disconnected ? device.uniqueID : nil)
+            guard let device = note.object as? AVCaptureDevice else { return }
+            if device.hasMediaType(.video) {
+                self?.handleDeviceStateChange(disconnectedID: disconnected ? device.uniqueID : nil)
+            } else if device.hasMediaType(.audio) {
+                self?.handleAudioDeviceStateChange()
+            }
         }
         deviceConnectionObservers = [
             center.addObserver(forName: AVCaptureDevice.wasConnectedNotification,
@@ -721,6 +816,20 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             guard activeIsGone || devices != self.lastNotifiedDevices else { return }
             self.lastNotifiedDevices = devices
             self.refreshSuspensionObserversLocked()
+            self.onCameraDevicesChanged?()
+        }
+    }
+
+    /// Audio analog of `lastNotifiedDevices`: mic hot-plug changes the
+    /// advertised capabilities, so it rides the same rig notification —
+    /// but only when the mic list actually changed. sessionQueue-confined.
+    private var lastNotifiedAudioDevices: [AudioDeviceDescriptor] = []
+
+    private func handleAudioDeviceStateChange() {
+        sessionQueue.async {
+            let devices = self.selectableAudioDevicesLocked().map { AudioDeviceDescriptor(device: $0) }
+            guard devices != self.lastNotifiedAudioDevices else { return }
+            self.lastNotifiedAudioDevices = devices
             self.onCameraDevicesChanged?()
         }
     }
@@ -909,6 +1018,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         debugLog("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
 
         let (deviceEntries, activeDeviceID) = cameraDeviceEntriesLocked()
+        let (audioEntries, activeAudioDeviceID) = audioDeviceEntriesLocked()
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo,
             backCamera: backCameraInfo,
@@ -921,6 +1031,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             currentHDRMode: currentHDRMode,
             cameraDevices: deviceEntries,
             activeDeviceID: activeDeviceID,
+            audioDevices: audioEntries,
+            activeAudioDeviceID: activeAudioDeviceID,
             error: nil
         )
 
@@ -941,6 +1053,20 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 isActive: device.uniqueID == activeID,
                 isSuspended: device.isSuspended,
                 info: deviceInfoLocked(for: device))
+        }
+        return (entries, activeID)
+    }
+
+    /// The selectable-mic list advertised in capabilities — the feature gate
+    /// that lets a monitor remote-select this device's microphone.
+    private func audioDeviceEntriesLocked() -> ([RemoteCmd.AudioDeviceEntry], String?) {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        let activeID = (audioDeviceInput?.device ?? resolvedAudioDeviceLocked())?.uniqueID
+        let entries = selectableAudioDevicesLocked().map { device in
+            RemoteCmd.AudioDeviceEntry(
+                uniqueID: device.uniqueID,
+                localizedName: device.localizedName,
+                isActive: device.uniqueID == activeID)
         }
         return (entries, activeID)
     }

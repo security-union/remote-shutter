@@ -143,6 +143,7 @@ final class CameraRig {
             Task { [weak self] in
                 guard let self else { return }
                 await self.refreshCameraDeviceList()
+                await self.refreshAudioDeviceList()
                 if !self.isWatchRemoteMode {
                     self.session ! RemoteCmd.RequestCameraCapabilities()
                 }
@@ -236,6 +237,32 @@ final class CameraRig {
         }
     }
 
+    // MARK: - Local microphone picker
+
+    /// Publishes the selectable-mic list + active mic on the view model
+    /// (drives the camera screen's mic picker chrome).
+    func refreshAudioDeviceList() async {
+        let devices = await engine.availableAudioDevices()
+        let active = await engine.currentAudioDevice()
+        cameraViewModel.updateAudioDevices(devices, activeID: active?.uniqueID)
+    }
+
+    /// Mic selection from the camera screen's own picker: stores/swaps the
+    /// mic, then pushes fresh capabilities to a connected monitor so its
+    /// picker stays in sync. No frame confirmation — audio only flows during
+    /// recording.
+    func selectAudioDeviceLocally(uniqueID: String) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard (try? await self.selectAudioDevice(uniqueID: uniqueID)) != nil else { return }
+            if !self.isWatchRemoteMode {
+                // The coordinator's camera state answers this by broadcasting
+                // capabilities — the same path a monitor's request takes.
+                self.session ! RemoteCmd.RequestCameraCapabilities()
+            }
+        }
+    }
+
     /// Shorter than the watchdog (5s), longer than any healthy camera's
     /// first frame (Continuity ≈ 2.6s measured).
     static let frameConfirmTimeout: TimeInterval = 4
@@ -276,7 +303,10 @@ final class CameraRig {
                 self.sessionPublished.value = true
                 self.rotateCameraToOrientation(orientation: self.orientation)
                 self.armFirstFrameWatchdog()
-                Task { await self.refreshCameraDeviceList() }
+                Task {
+                    await self.refreshCameraDeviceList()
+                    await self.refreshAudioDeviceList()
+                }
             }
         }
     }
@@ -427,6 +457,20 @@ extension CameraRig: CameraControlling {
         let result = try await engine.selectCameraDevice(uniqueID: uniqueID, orientation: orientation)
         armFirstFrameWatchdog()
         await refreshCameraDeviceList()   // keep the local picker's checkmark honest
+        return result
+    }
+
+    func availableAudioDevices() async -> [AudioDeviceDescriptor] {
+        await engine.availableAudioDevices()
+    }
+
+    func currentAudioDevice() async -> AudioDeviceDescriptor? {
+        await engine.currentAudioDevice()
+    }
+
+    func selectAudioDevice(uniqueID: String) async throws -> AudioDeviceDescriptor {
+        let result = try await engine.selectAudioDevice(uniqueID: uniqueID)
+        await refreshAudioDeviceList()   // keep the local picker's checkmark honest
         return result
     }
 
