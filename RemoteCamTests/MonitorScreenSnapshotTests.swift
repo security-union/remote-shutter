@@ -16,6 +16,7 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
             viewModel: viewModel,
             onTakePicture: {},
             onToggleCamera: {},
+            onSelectCameraDevice: { _ in },
             onToggleFlash: {},
             onToggleTorch: {},
             onTimerChange: { _ in },
@@ -32,7 +33,7 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
     /// A connected monitor with a live frame and the full lens/zoom surface.
     private func makeConnectedModel() -> MonitorViewModel {
         let model = MonitorViewModel()
-        model.cameraImage = syntheticCameraFrame()
+        model.frames.cameraImage = syntheticCameraFrame()
         model.availableLensTypes = [.ultraWide, .wideAngle, .telephoto]
         model.currentLensType = .wideAngle
         model.zoomStops = [1.0, 2.0, 5.0]
@@ -69,6 +70,48 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
         model.uiState = .photoMode
 
         let image = renderScreen(named: "monitor-waiting-for-frame", makeMonitorView(model))
+        assertHasChrome(image)
+    }
+
+    func testTwoCamerasShowFlipButtonAndActiveName() {
+        // iPhone-shaped peer: two usable cameras — the classic flip button,
+        // plus the active-camera name overlay on the preview.
+        let model = makeConnectedModel()
+        model.currentMode = .Photo
+        model.uiState = .photoMode
+        model.remoteCameraDevices = [
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "back-0", localizedName: "Back Dual Wide Camera",
+                positionRaw: 0, isActive: true, info: nil),
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "front-0", localizedName: "Front Camera",
+                positionRaw: 1, isActive: false, info: nil)
+        ]
+        model.activeRemoteDeviceID = "back-0"
+
+        let image = renderScreen(named: "monitor-two-camera-flip", makeMonitorView(model))
+        assertHasChrome(image)
+    }
+
+    func testManyCamerasShowDeviceMenu() {
+        // Mac-shaped peer: several cameras, one suspended (grayed in the menu).
+        let model = makeConnectedModel()
+        model.currentMode = .Photo
+        model.uiState = .photoMode
+        model.remoteCameraDevices = [
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "facetime-0", localizedName: "FaceTime HD Camera",
+                positionRaw: 0, isActive: true, info: nil),
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "usb-0", localizedName: "USB Camera",
+                positionRaw: 0, isActive: false, info: nil),
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "builtin-0", localizedName: "MacBook Pro Camera",
+                positionRaw: 0, isActive: false, isSuspended: true, info: nil)
+        ]
+        model.activeRemoteDeviceID = "facetime-0"
+
+        let image = renderScreen(named: "monitor-device-menu", makeMonitorView(model))
         assertHasChrome(image)
     }
 

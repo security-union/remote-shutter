@@ -41,7 +41,8 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SetTorch: return m.toFlatBuffer()
     case let m as RemoteCmd.SetTorchResp: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
-    case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer()
+    case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
+    case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
@@ -368,6 +369,81 @@ private func decodeCameraInfo(_ fb: RemoteShutter_CameraInfo) -> RemoteCmd.Camer
     )
 }
 
+// MARK: - Capabilities envelope encode helpers
+
+/// Encodes a `CameraCapabilitiesResp` into the wire `CameraCapabilities` +
+/// `CameraState` pair, including the appended camera-device list. Shared by
+/// every response that carries capabilities (request/toggle/select).
+private func encodeCapabilitiesEnvelope(
+    _ c: RemoteCmd.CameraCapabilitiesResp,
+    _ fbb: inout FlatBufferBuilder
+) -> (caps: Offset, state: Offset) {
+    let frontOffset = c.frontCamera.map { encodeCameraInfo($0, &fbb) } ?? Offset()
+    let backOffset = c.backCamera.map { encodeCameraInfo($0, &fbb) } ?? Offset()
+
+    var devicesVector = Offset()
+    if !c.cameraDevices.isEmpty {
+        let deviceOffsets = c.cameraDevices.map { entry -> Offset in
+            let idOffset = fbb.create(string: entry.uniqueID)
+            let nameOffset = fbb.create(string: entry.localizedName)
+            let infoOffset = entry.info.map { encodeCameraInfo($0, &fbb) } ?? Offset()
+            return RemoteShutter_CameraDeviceInfo.createCameraDeviceInfo(
+                &fbb,
+                uniqueIdOffset: idOffset,
+                localizedNameOffset: nameOffset,
+                position: toFBCamPos(entry.position),
+                hasUnspecifiedPosition: entry.position == .unspecified,
+                isActive: entry.isActive,
+                infoOffset: infoOffset,
+                isSuspended: entry.isSuspended)
+        }
+        devicesVector = fbb.createVector(ofOffsets: deviceOffsets)
+    }
+    let activeIDOffset = c.activeDeviceID.map { fbb.create(string: $0) } ?? Offset()
+
+    let capsOffset = RemoteShutter_CameraCapabilities.createCameraCapabilities(
+        &fbb,
+        frontCameraOffset: frontOffset,
+        backCameraOffset: backOffset,
+        cameraDevicesVectorOffset: devicesVector,
+        activeDeviceIdOffset: activeIDOffset)
+
+    let stateOffset = RemoteShutter_CameraState.createCameraState(
+        &fbb,
+        currentCamera: toFBCamPos(c.currentCamera),
+        currentLens: toFBLens(c.currentLens),
+        zoomFactor: Double(c.currentZoom),
+        videoResolution: toFBResolution(c.currentVideoResolution),
+        videoFrameRate: toFBFrameRate(c.currentVideoFrameRate),
+        photoFormat: toFBPhotoFormat(c.currentPhotoFormat),
+        hdrMode: toFBHDRMode(c.currentHDRMode),
+        activeDeviceIdOffset: activeIDOffset)
+
+    return (capsOffset, stateOffset)
+}
+
+/// Builds a full capabilities-carrying response for the given action.
+private func encodeCapabilitiesResponse(action: RemoteShutter_CommandAction,
+                                        capabilities: RemoteCmd.CameraCapabilitiesResp?,
+                                        error: Error?) -> Data {
+    var fbb = FlatBufferBuilder()
+    let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+    var capsOffset = Offset()
+    var stateOffset = Offset()
+    if let c = capabilities {
+        (capsOffset, stateOffset) = encodeCapabilitiesEnvelope(c, &fbb)
+    }
+    let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+        &fbb,
+        action: action,
+        success: error == nil,
+        errorOffset: errorOffset,
+        currentStateOffset: stateOffset,
+        capabilitiesOffset: capsOffset
+    )
+    return buildResponse(&fbb, action: action, response: resp)
+}
+
 // MARK: - toFlatBuffer() extensions
 
 extension RemoteCmd.StartRecordingVideo {
@@ -526,33 +602,7 @@ extension RemoteCmd.SetZoomResp {
 
 extension RemoteCmd.CameraCapabilitiesResp {
     func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (self.error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
-
-        let frontOffset = frontCamera.map { encodeCameraInfo($0, &fbb) } ?? Offset()
-        let backOffset = backCamera.map { encodeCameraInfo($0, &fbb) } ?? Offset()
-        let capsOffset = RemoteShutter_CameraCapabilities.createCameraCapabilities(&fbb, frontCameraOffset: frontOffset, backCameraOffset: backOffset)
-
-        let stateOffset = RemoteShutter_CameraState.createCameraState(
-            &fbb,
-            currentCamera: toFBCamPos(currentCamera),
-            currentLens: toFBLens(currentLens),
-            zoomFactor: Double(currentZoom),
-            videoResolution: toFBResolution(currentVideoResolution),
-            videoFrameRate: toFBFrameRate(currentVideoFrameRate),
-            photoFormat: toFBPhotoFormat(currentPhotoFormat),
-            hdrMode: toFBHDRMode(currentHDRMode)
-        )
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .requestcapabilities,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset,
-            capabilitiesOffset: capsOffset
-        )
-        return buildResponse(&fbb, action: .requestcapabilities, response: resp)
+        encodeCapabilitiesResponse(action: .requestcapabilities, capabilities: self, error: error)
     }
 }
 
@@ -726,36 +776,20 @@ extension RemoteCmd.ToggleCamera {
 
 extension RemoteCmd.ToggleCameraResp {
     func toFlatBuffer() -> Data {
+        // SelectCameraDeviceResp subclasses this type; the payload shape is
+        // identical, only the wire action differs.
+        let action: RemoteShutter_CommandAction =
+            self is RemoteCmd.SelectCameraDeviceResp ? .selectcameradevice : .togglecamera
+        return encodeCapabilitiesResponse(action: action, capabilities: cameraCapabilities, error: error)
+    }
+}
+
+extension RemoteCmd.SelectCameraDevice {
+    func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
-
-        var capsOffset = Offset()
-        var stateOffset = Offset()
-        if let c = cameraCapabilities {
-            let frontOffset = c.frontCamera.map { encodeCameraInfo($0, &fbb) } ?? Offset()
-            let backOffset = c.backCamera.map { encodeCameraInfo($0, &fbb) } ?? Offset()
-            capsOffset = RemoteShutter_CameraCapabilities.createCameraCapabilities(&fbb, frontCameraOffset: frontOffset, backCameraOffset: backOffset)
-            stateOffset = RemoteShutter_CameraState.createCameraState(
-                &fbb,
-                currentCamera: toFBCamPos(c.currentCamera),
-                currentLens: toFBLens(c.currentLens),
-                zoomFactor: Double(c.currentZoom),
-                videoResolution: toFBResolution(c.currentVideoResolution),
-                videoFrameRate: toFBFrameRate(c.currentVideoFrameRate),
-                photoFormat: toFBPhotoFormat(c.currentPhotoFormat),
-                hdrMode: toFBHDRMode(c.currentHDRMode)
-            )
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .togglecamera,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset,
-            capabilitiesOffset: capsOffset
-        )
-        return buildResponse(&fbb, action: .togglecamera, response: resp)
+        let idOffset = fbb.create(string: uniqueID)
+        let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, deviceUniqueIdOffset: idOffset)
+        return buildCommand(&fbb, action: .selectcameradevice, parameters: params)
     }
 }
 
@@ -1019,6 +1053,9 @@ extension RemoteCmd {
         case .setaspectratio:
             let ratio = fromFBAspectRatio(params?.aspectRatio ?? .unknown)
             return SetAspectRatio(aspectRatio: ratio)
+
+        case .selectcameradevice:
+            return SelectCameraDevice(uniqueID: params?.deviceUniqueId ?? "")
         }
     }
 
@@ -1099,6 +1136,13 @@ extension RemoteCmd {
             let capabilities = decodeCameraCapabilitiesResp(resp, error: nil)
             return ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
 
+        case .selectcameradevice:
+            if nsError != nil {
+                return SelectCameraDeviceResp(cameraCapabilities: nil, error: nsError)
+            }
+            let capabilities = decodeCameraCapabilitiesResp(resp, error: nil)
+            return SelectCameraDeviceResp(cameraCapabilities: capabilities, error: nil)
+
         case .setvideoquality:
             let state = resp.currentState
             let resolution: VideoResolution? = state.map { fromFBResolution($0.videoResolution) }
@@ -1128,6 +1172,25 @@ extension RemoteCmd {
         let frontCamera: CameraInfo? = caps?.frontCamera.map { decodeCameraInfo($0) }
         let backCamera: CameraInfo? = caps?.backCamera.map { decodeCameraInfo($0) }
 
+        // Appended fields: absent on legacy peers, which leaves the device
+        // list empty — the signal that SelectCameraDevice must not be sent.
+        var cameraDevices: [CameraDeviceEntry] = []
+        if let caps {
+            for i in 0..<caps.cameraDevicesCount {
+                guard let d = caps.cameraDevices(at: i) else { continue }
+                let position: AVCaptureDevice.Position =
+                    d.hasUnspecifiedPosition ? .unspecified : fromFBCamPos(d.position)
+                cameraDevices.append(CameraDeviceEntry(
+                    uniqueID: d.uniqueId ?? "",
+                    localizedName: d.localizedName ?? "",
+                    positionRaw: position.rawValue,
+                    isActive: d.isActive,
+                    isSuspended: d.isSuspended,
+                    info: d.info.map { decodeCameraInfo($0) }))
+            }
+        }
+        let activeDeviceID = caps?.activeDeviceId ?? state?.activeDeviceId
+
         return CameraCapabilitiesResp(
             frontCamera: frontCamera,
             backCamera: backCamera,
@@ -1138,6 +1201,8 @@ extension RemoteCmd {
             currentVideoFrameRate: state.map { fromFBFrameRate($0.videoFrameRate) } ?? .fps30,
             currentPhotoFormat: state.map { fromFBPhotoFormat($0.photoFormat) } ?? .jpeg,
             currentHDRMode: state.map { fromFBHDRMode($0.hdrMode) } ?? .off,
+            cameraDevices: cameraDevices,
+            activeDeviceID: activeDeviceID,
             error: error
         )
     }

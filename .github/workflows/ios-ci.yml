@@ -62,6 +62,12 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
           
     - name: Run Tests
+      # xcodebuild only forwards TEST_RUNNER_-prefixed variables into the
+      # test process (prefix stripped), so plain CI=true never reaches the
+      # tests. CaptureIntegrationTests reads CI to skip before touching TCC —
+      # a headless runner can never answer the camera prompt and would hang.
+      env:
+        TEST_RUNNER_CI: 'true'
       run: |
         xcodebuild \
           -workspace RemoteShutter.xcworkspace \
@@ -106,4 +112,30 @@ jobs:
         name: build-logs
         path: |
           ~/Library/Developer/Xcode/DerivedData/**/Logs/**
-        retention-days: 5 
+        retention-days: 5
+
+  build-mac-catalyst:
+    name: Build Mac Catalyst
+    runs-on: macos-26
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '26.2'
+
+    - name: Build for Mac Catalyst
+      run: |
+        xcodebuild \
+          -workspace RemoteShutter.xcworkspace \
+          -scheme RemoteCam \
+          -destination 'platform=macOS,variant=Mac Catalyst' \
+          -configuration Debug \
+          build \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO 

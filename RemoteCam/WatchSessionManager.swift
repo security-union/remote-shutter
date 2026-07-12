@@ -9,7 +9,9 @@
 
 import Foundation
 import UIKit
+#if !targetEnvironment(macCatalyst)
 import WatchConnectivity
+#endif
 import FlatBuffers
 
 /// Seam through which `RemoteCamSession`'s watch states publish camera state,
@@ -18,6 +20,30 @@ protocol WatchStatePushing: AnyObject {
     func pushCameraState(_ snapshot: WatchCameraStateSnapshot)
     func pushDisconnectedState()
 }
+
+#if targetEnvironment(macCatalyst)
+
+/// WatchConnectivity does not exist on the Mac. This stub keeps every call
+/// site compiling; `watchPaired` stays false, so the Watch Remote role never
+/// surfaces in the UI and the coordinator's watch states never fire.
+class WatchSessionManager: NSObject, ObservableObject {
+
+    static let shared = WatchSessionManager()
+
+    @Published private(set) var watchPaired = false
+    weak var cameraController: WatchRemoteCameraController?
+
+    func activate() {}
+    var isWatchPaired: Bool { false }
+    var isWatchReachable: Bool { false }
+    func pushCameraState(_ snapshot: WatchCameraStateSnapshot) {}
+    func pushDisconnectedState() {}
+    func pushPreviewFrame(jpeg: Data) {}
+}
+
+extension WatchSessionManager: WatchStatePushing {}
+
+#else
 
 class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
@@ -208,3 +234,5 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 }
 
 extension WatchSessionManager: WatchStatePushing {}
+
+#endif

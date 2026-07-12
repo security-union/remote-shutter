@@ -27,7 +27,10 @@ enum CommandAction : byte {
     SetPhotoQuality = 15,
     TimerCountdown = 16,
     SyncMonitorSettings = 17,
-    SetAspectRatio = 18
+    SetAspectRatio = 18,
+    SelectCameraDevice = 19    // never sent to peers that did not advertise
+                               // camera_devices — old decoders read unknown
+                               // actions as TakePicture (the field default)
 }
 
 enum CameraPosition : byte {
@@ -128,6 +131,8 @@ table CommandParameters {
     countdown_value: int;
     recording_mode: RecordingModeEnum;
     aspect_ratio: AspectRatioEnum;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    device_unique_id: string;        // payload for SelectCameraDevice
 }
 
 // MARK: - Command Structure
@@ -176,6 +181,23 @@ table CameraInfo {
     wide_angle_zoom_factor: double;
 }
 
+// One selectable physical camera on the camera peer. `position` is Back when
+// the device has no front/back identity (Mac external/Continuity/Desk View
+// cameras); has_unspecified_position disambiguates for peers that understand
+// device selection.
+table CameraDeviceInfo {
+    unique_id: string;
+    localized_name: string;
+    position: CameraPosition;
+    has_unspecified_position: bool;
+    is_active: bool;
+    info: CameraInfo;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    // Connected but delivering no frames (Mac clamshell built-in camera):
+    // shown grayed out in pickers, excluded from selection.
+    is_suspended: bool;
+}
+
 table CameraState {
     current_camera: CameraPosition;
     current_lens: CameraLensType;
@@ -187,11 +209,18 @@ table CameraState {
     photo_format: PhotoFormat;
     hdr_mode: HDRMode;
     aspect_ratio: AspectRatioEnum;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    active_device_id: string;
 }
 
 table CameraCapabilities {
     front_camera: CameraInfo;
     back_camera: CameraInfo;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    // Empty/absent = peer predates camera-device selection; a monitor must
+    // not send SelectCameraDevice to such a peer.
+    camera_devices: [CameraDeviceInfo];
+    active_device_id: string;
 }
 
 // MARK: - Response Structure

@@ -101,13 +101,21 @@ class PermissionManager: ObservableObject {
     // MARK: - Settings Navigation
     
     func openAppSettings() {
+        #if targetEnvironment(macCatalyst)
+        // macOS has no per-app settings page; land on Privacy & Security,
+        // where the camera/microphone/photos toggles live.
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy") {
+            UIApplication.shared.open(url)
+        }
+        #else
         guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
             return
         }
-        
+
         if UIApplication.shared.canOpenURL(settingsUrl) {
             UIApplication.shared.open(settingsUrl)
         }
+        #endif
     }
     
     // MARK: - Helper Methods

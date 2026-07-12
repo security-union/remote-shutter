@@ -406,7 +406,18 @@ public class UICmd {
             super.init(sender: nil)
         }
     }
-    
+
+    /// Monitor UI asks the camera peer to switch to a specific device
+    /// (by uniqueID from the advertised `cameraDevices` list).
+    public class SelectCameraDevice: Message {
+        public let uniqueID: String
+
+        public init(uniqueID: String) {
+            self.uniqueID = uniqueID
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Video Resource Transfer Messages
     
     @objc(_TtCC10ActorsDemo5UICmd17SendVideoResource)public class SendVideoResource: Message, NSCoding {

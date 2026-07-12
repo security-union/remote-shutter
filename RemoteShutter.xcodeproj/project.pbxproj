@@ -105,6 +105,9 @@
 		9667E6BB6F62D30AB6928304 /* CaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */; };
 		AB12CD34EF5601789ABC0DE2 /* RecordingPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE1 /* RecordingPipeline.swift */; };
 		AB12CD34EF5601789ABC0DE6 /* FrameStreamingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */; };
+		CADE5E1EC000000000000002 /* CameraDeviceDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000001 /* CameraDeviceDescriptor.swift */; };
+		CADE5E1EC000000000000004 /* CameraDeviceSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000003 /* CameraDeviceSelectionTests.swift */; };
+		CADE5E1EC000000000000006 /* CaptureIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000005 /* CaptureIntegrationTests.swift */; };
 		AB12CD34EF5601789ABC0DE8 /* CameraScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */; };
 		AB12CD34EF5601789ABC0DE4 /* RecordingPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */; };
 		AB12CD34EF5601789ABC0DEA /* CameraScreenSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */; };
@@ -114,7 +117,7 @@
 		AB12CD34EF5601789ABC0DEE /* MonitorScreenSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DED /* MonitorScreenSnapshotTests.swift */; };
 		99F50887F138FD71CF957A08 /* CameraControlling.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */; };
 		A0C6EAACDA1985B1DD5E8EC0 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50951447985E618A5F3818CD /* WatchConnectivity.framework */; };
-		A31965B5A3A1F59F96002E63 /* RemoteShutterWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 36D2A99A351652C2D0C29B95 /* RemoteShutterWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A31965B5A3A1F59F96002E63 /* RemoteShutterWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 36D2A99A351652C2D0C29B95 /* RemoteShutterWatch.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA0001012E940001000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
 		AA0001042E940004000A1001 /* AlertPresenting.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032E940003000A1001 /* AlertPresenting.swift */; };
 		AA0001052E940005000A1001 /* UIAlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062E940006000A1001 /* UIAlertPresenter.swift */; };
@@ -315,6 +318,9 @@
 		0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureEngine.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE1 /* RecordingPipeline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingPipeline.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FrameStreamingCoordinator.swift; sourceTree = "<group>"; };
+		CADE5E1EC000000000000001 /* CameraDeviceDescriptor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraDeviceDescriptor.swift; sourceTree = "<group>"; };
+		CADE5E1EC000000000000003 /* CameraDeviceSelectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraDeviceSelectionTests.swift; sourceTree = "<group>"; };
+		CADE5E1EC000000000000005 /* CaptureIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureIntegrationTests.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraScreenView.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecordingPipelineTests.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraScreenSnapshotTests.swift; sourceTree = "<group>"; };
@@ -525,6 +531,7 @@
 				35D7D050D0AB3D3E4F07879D /* ScannerLobby.swift */,
 				A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */,
 				0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */,
+				CADE5E1EC000000000000001 /* CameraDeviceDescriptor.swift */,
 				AB12CD34EF5601789ABC0DE1 /* RecordingPipeline.swift */,
 				AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */,
 				AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */,
@@ -553,6 +560,8 @@
 				47C3D2AB20DA09223CE0EF3D /* ControllerWiringTests.swift */,
 				58B23042ABDA0FD46696039B /* MonitorPresenterTests.swift */,
 				A342ACE91A767718D76C4C60 /* CaptureEngineTests.swift */,
+				CADE5E1EC000000000000003 /* CameraDeviceSelectionTests.swift */,
+				CADE5E1EC000000000000005 /* CaptureIntegrationTests.swift */,
 				AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */,
 				AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */,
 				C4F2A81D9E3B47CA8D5E1A01 /* DeviceScannerSnapshotTests.swift */,
@@ -1141,6 +1150,7 @@
 				4259A755DF0013E098FD3CCC /* ScannerLobby.swift in Sources */,
 				99F50887F138FD71CF957A08 /* CameraControlling.swift in Sources */,
 				9667E6BB6F62D30AB6928304 /* CaptureEngine.swift in Sources */,
+				CADE5E1EC000000000000002 /* CameraDeviceDescriptor.swift in Sources */,
 				AB12CD34EF5601789ABC0DE2 /* RecordingPipeline.swift in Sources */,
 				AB12CD34EF5601789ABC0DE6 /* FrameStreamingCoordinator.swift in Sources */,
 				AB12CD34EF5601789ABC0DE8 /* CameraScreenView.swift in Sources */,
@@ -1168,6 +1178,8 @@
 				531BD3C020987337266B50EC /* ControllerWiringTests.swift in Sources */,
 				8FC594E5A315D918BE429895 /* MonitorPresenterTests.swift in Sources */,
 				E1660E880D768347CB5B3297 /* CaptureEngineTests.swift in Sources */,
+				CADE5E1EC000000000000004 /* CameraDeviceSelectionTests.swift in Sources */,
+				CADE5E1EC000000000000006 /* CaptureIntegrationTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DE4 /* RecordingPipelineTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DEA /* CameraScreenSnapshotTests.swift in Sources */,
 				C4F2A81D9E3B47CA8D5E1A02 /* DeviceScannerSnapshotTests.swift in Sources */,
@@ -1250,6 +1262,7 @@
 		F9BE2447CA8A8A4E4BC91CD6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = RemoteShutterWatch;
+			platformFilter = ios;
 			target = 95689A3D40F14A2997A50972 /* RemoteShutterWatch */;
 			targetProxy = 149314AE20875A710CF3EA3D /* PBXContainerItemProxy */;
 		};
@@ -1311,13 +1324,14 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_SWIFT3_OBJC_INFERENCE = On;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1,2,6";
 			};
 			name = Debug;
 		};
@@ -1351,12 +1365,13 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_SWIFT3_OBJC_INFERENCE = On;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1,2,6";
 			};
 			name = Release;
 		};
@@ -1366,6 +1381,9 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				SUPPORTS_MACCATALYST = YES;
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/RemoteShutter.app/Contents/MacOS/RemoteShutter";
 				CLANG_ENABLE_MODULES = YES;
 				INFOPLIST_FILE = RemoteCamTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -1388,6 +1406,9 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = "$(inherited)";
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				SUPPORTS_MACCATALYST = YES;
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/RemoteShutter.app/Contents/MacOS/RemoteShutter";
 				CLANG_ENABLE_MODULES = YES;
 				INFOPLIST_FILE = RemoteCamTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;

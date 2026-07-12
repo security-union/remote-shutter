@@ -25,6 +25,15 @@ struct FeatureFlags {
     /// Enable Apple Watch companion app as standalone remote control
     static let ENABLE_WATCH_APP = true
 
+    /// Show the local camera-device picker on the camera screen. On for Mac
+    /// Catalyst only (a Mac has N cameras — built-in, Continuity, USB);
+    /// iPhone keeps its flip button.
+    #if targetEnvironment(macCatalyst)
+    static let ENABLE_LOCAL_CAMERA_PICKER = true
+    #else
+    static let ENABLE_LOCAL_CAMERA_PICKER = false
+    #endif
+
     // MARK: - Future Feature Flags
     // Add new feature flags here as needed
     // Example:

@@ -219,7 +219,7 @@ public class RemoteCmd: Message {
 
     // MARK: - Camera Capabilities Structure
 
-    public struct CameraInfo: Codable {
+    public struct CameraInfo: Codable, Equatable {
         public let availableLenses: [CameraLensType]
         public let hasFlash: Bool
         public let hasTorch: Bool
@@ -269,13 +269,47 @@ public class RemoteCmd: Message {
         }
     }
 
-    public struct ZoomRange: Codable {
+    public struct ZoomRange: Codable, Equatable {
         public let minZoom: CGFloat
         public let maxZoom: CGFloat
 
         public init(minZoom: CGFloat, maxZoom: CGFloat) {
             self.minZoom = minZoom
             self.maxZoom = maxZoom
+        }
+    }
+
+    // MARK: - Camera Device List (N cameras; Macs have no front/back pair)
+
+    /// One selectable camera on the camera peer, as advertised in
+    /// `CameraCapabilitiesResp.cameraDevices`. An empty device list means the
+    /// peer predates device selection — the monitor must not send
+    /// `SelectCameraDevice` to it.
+    public struct CameraDeviceEntry: Codable, Equatable {
+        public let uniqueID: String
+        public let localizedName: String
+        /// AVCaptureDevice.Position.rawValue; `.unspecified` is preserved here
+        /// (the wire carries Back + has_unspecified_position for old peers).
+        public let positionRaw: Int
+        public let isActive: Bool
+        /// Connected but delivering no frames (Mac clamshell built-in camera):
+        /// pickers show it grayed out; selection is rejected.
+        public let isSuspended: Bool
+        public let info: CameraInfo?
+
+        public var position: AVCaptureDevice.Position {
+            AVCaptureDevice.Position(rawValue: positionRaw) ?? .unspecified
+        }
+
+        public init(uniqueID: String, localizedName: String,
+                    positionRaw: Int, isActive: Bool,
+                    isSuspended: Bool = false, info: CameraInfo?) {
+            self.uniqueID = uniqueID
+            self.localizedName = localizedName
+            self.positionRaw = positionRaw
+            self.isActive = isActive
+            self.isSuspended = isSuspended
+            self.info = info
         }
     }
 
@@ -291,6 +325,8 @@ public class RemoteCmd: Message {
         public let currentVideoFrameRate: VideoFrameRate
         public let currentPhotoFormat: PhotoFormat
         public let currentHDRMode: HDRMode
+        public let cameraDevices: [CameraDeviceEntry]
+        public let activeDeviceID: String?
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
@@ -300,6 +336,8 @@ public class RemoteCmd: Message {
                    currentVideoFrameRate: VideoFrameRate = .fps30,
                    currentPhotoFormat: PhotoFormat = .jpeg,
                    currentHDRMode: HDRMode = .off,
+                   cameraDevices: [CameraDeviceEntry] = [],
+                   activeDeviceID: String? = nil,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
@@ -310,6 +348,8 @@ public class RemoteCmd: Message {
             self.currentVideoFrameRate = currentVideoFrameRate
             self.currentPhotoFormat = currentPhotoFormat
             self.currentHDRMode = currentHDRMode
+            self.cameraDevices = cameraDevices
+            self.activeDeviceID = activeDeviceID
             self.error = error
             super.init(sender: nil)
         }
@@ -452,6 +492,25 @@ public class RemoteCmd: Message {
             super.init(sender: nil)
         }
     }
+
+    // MARK: - Camera Device Selection (guarded by capability advertising)
+
+    /// Switch the camera peer to the device with this uniqueID. Only valid
+    /// against peers whose capabilities carried a non-empty `cameraDevices`
+    /// list — old decoders read unknown actions as TakePicture.
+    public class SelectCameraDevice: Message {
+        public let uniqueID: String
+
+        public init(uniqueID: String) {
+            self.uniqueID = uniqueID
+            super.init(sender: nil)
+        }
+    }
+
+    /// Subclasses ToggleCameraResp: the monitor treats a completed device
+    /// selection exactly like a completed front/back toggle — fresh
+    /// capabilities in, UI re-synced — so it shares that state's handling.
+    public class SelectCameraDeviceResp: ToggleCameraResp {}
 
     public class SetZoomResp: Message {
         public let zoomFactor: CGFloat?

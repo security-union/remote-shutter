@@ -27,6 +27,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     override init() {
         super.init()
         sessionQueue.setSpecific(key: Self.sessionQueueKey, value: ())
+        observeDeviceConnections()
+    }
+
+    deinit {
+        deviceConnectionObservers.forEach(NotificationCenter.default.removeObserver)
     }
 
     /// Runs `body` on the session queue, inline when already there — so
@@ -54,6 +59,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     let captureSession: AVCaptureSession = AVCaptureSession()
+
+    /// Whether the session is supposed to be running (between setup and
+    /// stopSession) — the reference for runtime-error recovery, per Apple's
+    /// AVCam resume pattern. sessionQueue-confined.
+    private var isExpectedToRun = false
+
     let audioDataOutput = AVCaptureAudioDataOutput()
 
     let videoDataOutput = AVCaptureVideoDataOutput()
@@ -131,10 +142,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         self.captureSession.beginConfiguration()
         self.captureSession.sessionPreset = .high
 
-        guard let videoDevice = preferredCamera(for: .back) ?? AVCaptureDevice.default(for: AVMediaType.video) else {
+        guard let videoDevice = initialCameraLocked() else {
             self.captureSession.commitConfiguration()
             return false
         }
+        refreshSuspensionObserversLocked()
+        lastNotifiedDevices = selectableDevicesLocked().map { CameraDeviceDescriptor(device: $0) }
         debugLog("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
 
         do {
@@ -143,9 +156,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.captureSession.addOutput(self.videoDataOutput)
 
             try self.setFrameRate(framerate: fpsSetting.value, videoDevice: videoDevice)
-
-            // Gather complete camera capabilities for both front and back cameras
-            self.gatherAllCameraCapabilitiesLocked()
 
             // Initialize current state
             self.updateAvailableLensTypes(for: videoDevice.position)
@@ -167,6 +177,13 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.captureSession.commitConfiguration()
             self.applyDesiredTorchLocked()   // commitConfiguration can reset the torch
             self.captureSession.startRunning()
+            self.isExpectedToRun = true
+
+            // Capability probing AFTER the session is live (AVCam configures
+            // minimally and probes nothing at setup): on a Mac this walks
+            // every attached camera's formats — including a wireless
+            // Continuity iPhone — and must never delay the first frame.
+            self.gatherAllCameraCapabilitiesLocked()
         } catch let error as NSError {
             print("error \(error)")
         }
@@ -211,6 +228,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// Stops the capture session (screen teardown).
     func stopSession() {
         sessionQueue.async {
+            self.isExpectedToRun = false
             if self.captureSession.isRunning {
                 self.captureSession.stopRunning()
             }
@@ -219,31 +237,115 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     func toggleCamera(orientation: UIInterfaceOrientation) async throws -> (AVCaptureDevice.FlashMode?, AVCaptureDevice.Position) {
         try await onSessionQueueThrowing {
-            let captureSession = self.captureSession
-            captureSession.beginConfiguration()
-            let device = self.videoDeviceInput?.device
-            let newPosition = device?.position.toggle().toOptional()
-            let newDevice = self.cameraForPosition(position: newPosition!)
-            let newInput = try AVCaptureDeviceInput(device: newDevice!)
-            captureSession.removeInput(self.videoDeviceInput)
-            captureSession.addInput(newInput)
-            self.videoDeviceInput = newInput
-            self.configSessionOutput()
-            try self.setFrameRate(framerate: fpsSetting.value, videoDevice: newDevice!)
-
-            // Update available lens types and zoom stops for new camera position
-            self.updateAvailableLensTypes(for: newPosition!)
-            self.zoomStops = self.discoverZoomStops(for: newDevice!)
-            self.currentPositionShared.value = newInput.device.position
-
-            self.rotateOutputsLocked(orientation: orientation)
-            let newFlashMode: AVCaptureDevice.FlashMode? = (newInput.device.hasFlash) ? self.cameraSettings.flashMode : nil
-            captureSession.commitConfiguration()
-            self.applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
-
+            guard let newDevice = self.nextToggleDeviceLocked() else {
+                throw NSError(domain: "Unable to find camera position", code: 0, userInfo: nil)
+            }
+            let result = try self.swapToDeviceLocked(newDevice, orientation: orientation)
             // Camera capabilities are sent via RemoteCmd.ToggleCameraResp in the camera state.
-            return (newFlashMode, newInput.device.position)
+            return (result.flashMode, result.device.position)
         }
+    }
+
+    /// The camera a fresh session starts on. iOS: the preferred (virtual)
+    /// back device. Mac: the system's preferred camera when healthy — it
+    /// tracks the user's choice across apps — else the first non-suspended
+    /// device (a clamshell MacBook's built-in camera is connected but
+    /// delivers no frames).
+    private func initialCameraLocked() -> AVCaptureDevice? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        #if targetEnvironment(macCatalyst)
+        var candidates: [AVCaptureDevice] = []
+        if #available(macCatalyst 17.0, *), let system = AVCaptureDevice.systemPreferredCamera {
+            candidates.append(system)
+        }
+        if let systemDefault = AVCaptureDevice.default(for: .video) {
+            candidates.append(systemDefault)
+        }
+        candidates += selectableDevicesLocked()
+        return candidates.first { !$0.isSuspended }
+        #else
+        return preferredCamera(for: .back) ?? AVCaptureDevice.default(for: .video)
+        #endif
+    }
+
+    /// The device the front/back flip lands on. The decision is the pure
+    /// `CameraDeviceDescriptor.nextToggleSelection` (unit-tested): iOS flips
+    /// position, a Mac cycles the attached cameras skipping suspended ones —
+    /// an old-protocol monitor's flip button still does something sensible
+    /// against a Mac camera.
+    private func nextToggleDeviceLocked() -> AVCaptureDevice? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        #if targetEnvironment(macCatalyst)
+        let flipPosition = false
+        #else
+        let flipPosition = true
+        #endif
+        let available = selectableDevicesLocked()
+        guard let next = CameraDeviceDescriptor.nextToggleSelection(
+                currentID: videoDeviceInput?.device.uniqueID,
+                available: available.map { CameraDeviceDescriptor(device: $0) },
+                flipPosition: flipPosition) else { return nil }
+        return available.first { $0.uniqueID == next.uniqueID }
+    }
+
+    /// Swaps the session input to `newDevice`, reapplying frame rate, lens
+    /// state, orientation and torch — the shared core of `toggleCamera` and
+    /// `selectCameraDevice`.
+    private func swapToDeviceLocked(_ newDevice: AVCaptureDevice,
+                                    orientation: UIInterfaceOrientation) throws -> CameraSelectionResult {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        let newInput = try AVCaptureDeviceInput(device: newDevice)
+        captureSession.beginConfiguration()
+        let previousInput = videoDeviceInput
+        if let previousInput {
+            captureSession.removeInput(previousInput)
+        }
+        guard captureSession.canAddInput(newInput) else {
+            // AVCam pattern: restore the previous input and report, instead
+            // of letting addInput raise an uncatchable ObjC exception (a
+            // device can reject the session's current preset).
+            if let previousInput, captureSession.canAddInput(previousInput) {
+                captureSession.addInput(previousInput)
+            }
+            captureSession.commitConfiguration()
+            throw NSError(
+                domain: "\(newDevice.localizedName) is not compatible with the current session",
+                code: 0, userInfo: nil)
+        }
+        captureSession.addInput(newInput)
+        videoDeviceInput = newInput
+        // AVCam's changeCamera keeps the outputs in place across an input
+        // swap — connections re-form automatically; only the cached refs
+        // need refreshing. (Removing/re-adding outputs here is gratuitous
+        // session churn and diverges from Apple's reference.)
+        videoConnection = videoDataOutput.connection(with: .video)
+        audioConnection = audioDataOutput.connection(with: .audio)
+        try setFrameRate(framerate: fpsSetting.value, videoDevice: newDevice)
+
+        updateAvailableLensTypes(for: newDevice)
+        zoomStops = discoverZoomStops(for: newDevice)
+        currentPositionShared.value = newDevice.position
+        currentZoomFactor = newDevice.videoZoomFactor
+        currentLensType = lensTypeForZoomFactor(currentZoomFactor, device: newDevice)
+
+        rotateOutputsLocked(orientation: orientation)
+        let newFlashMode: AVCaptureDevice.FlashMode? = newDevice.hasFlash ? cameraSettings.flashMode : nil
+        captureSession.commitConfiguration()
+        applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
+        // Swapping away from a dead device must also revive a session that a
+        // runtime error stopped — otherwise the new camera never delivers.
+        if isExpectedToRun && !captureSession.isRunning {
+            captureSession.startRunning()
+        }
+
+        return CameraSelectionResult(
+            device: CameraDeviceDescriptor(device: newDevice),
+            flashMode: newFlashMode,
+            availableLensTypes: availableLensTypes,
+            zoomRange: RemoteCmd.ZoomRange(
+                minZoom: newDevice.minAvailableVideoZoomFactor,
+                maxZoom: newDevice.maxAvailableVideoZoomFactor),
+            currentZoom: currentZoomFactor)
     }
 
     private func configSessionOutput() {
@@ -452,6 +554,200 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         return preferredCamera(for: position)
     }
 
+    // MARK: - Device Selection (uniqueID-based; a Mac has N cameras)
+
+    /// Every camera the user can select on this platform, in stable discovery
+    /// order. Catalyst enumerates all attached cameras (built-in, Continuity,
+    /// Desk View, external); iOS offers the preferred (virtual) device per
+    /// position — lens choice within a position stays the zoom/lens
+    /// machinery's job.
+    private func selectableDevicesLocked() -> [AVCaptureDevice] {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        #if targetEnvironment(macCatalyst)
+        var types: [AVCaptureDevice.DeviceType] = [.builtInWideAngleCamera]
+        if #available(macCatalyst 17.0, *) {
+            // Desk View has no Catalyst API; its feed arrives as a regular
+            // Continuity Camera device.
+            types += [.continuityCamera, .external]
+        }
+        return AVCaptureDevice.DiscoverySession(
+            deviceTypes: types, mediaType: .video, position: .unspecified).devices
+        #else
+        return [preferredCamera(for: .back), preferredCamera(for: .front)].compactMap { $0 }
+        #endif
+    }
+
+    func availableCameraDevices() async -> [CameraDeviceDescriptor] {
+        await onSessionQueue {
+            self.selectableDevicesLocked().map { CameraDeviceDescriptor(device: $0) }
+        }
+    }
+
+    func currentCameraDevice() async -> CameraDeviceDescriptor? {
+        await onSessionQueue {
+            (self.videoDeviceInput?.device).map { CameraDeviceDescriptor(device: $0) }
+        }
+    }
+
+    func selectCameraDevice(uniqueID: String, orientation: UIInterfaceOrientation) async throws -> CameraSelectionResult {
+        try await onSessionQueueThrowing {
+            let available = self.selectableDevicesLocked()
+            let descriptors = available.map { CameraDeviceDescriptor(device: $0) }
+            // Explicitly requesting a suspended camera is an error, not a
+            // silent switch to some other device (pickers gray these out;
+            // an old-protocol peer can still ask).
+            if let requested = descriptors.first(where: { $0.uniqueID == uniqueID }),
+               requested.isSuspended {
+                throw NSError(
+                    domain: "\(requested.localizedName) is unavailable (suspended)",
+                    code: 0, userInfo: nil)
+            }
+            let fallbackPosition = self.videoDeviceInput?.device.position ?? .unspecified
+            guard let resolved = CameraDeviceDescriptor.resolveSelection(
+                    requestedID: uniqueID, available: descriptors, fallbackPosition: fallbackPosition),
+                  let device = available.first(where: { $0.uniqueID == resolved.uniqueID }) else {
+                throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
+            }
+            let result = try self.swapToDeviceLocked(device, orientation: orientation)
+            #if targetEnvironment(macCatalyst)
+            if #available(macCatalyst 17.0, *) {
+                // Apple's "manual mode": feed the system-wide preference so
+                // other apps and future launches respect the user's pick.
+                AVCaptureDevice.userPreferredCamera = device
+            }
+            #endif
+            return result
+        }
+    }
+
+    /// Platform-aware lens refresh: iOS keeps its position-based discovery;
+    /// Mac cameras have a single lens.
+    private func updateAvailableLensTypes(for device: AVCaptureDevice) {
+        #if targetEnvironment(macCatalyst)
+        availableLensTypes = [.wideAngle]
+        #else
+        updateAvailableLensTypes(for: device.position)
+        #endif
+    }
+
+    // MARK: - Device state (hot-plug, suspension, runtime errors)
+
+    /// Fired on the session queue whenever the set or health of attached
+    /// cameras changes: hot-plug, lid open/close (suspension), or a session
+    /// runtime error. Built-in iOS cameras never fire this.
+    var onCameraDevicesChanged: (() -> Void)?
+
+    private var deviceConnectionObservers: [NSObjectProtocol] = []
+    /// KVO on `isSuspended` per discovered device — there is no notification
+    /// for suspension; Apple documents key-value observing this property.
+    private var suspensionObservations: [NSKeyValueObservation] = []
+
+    fileprivate func observeDeviceConnections() {
+        let center = NotificationCenter.default
+        let handle = { [weak self] (note: Notification, disconnected: Bool) in
+            guard let device = note.object as? AVCaptureDevice, device.hasMediaType(.video) else { return }
+            self?.handleDeviceStateChange(disconnectedID: disconnected ? device.uniqueID : nil)
+        }
+        deviceConnectionObservers = [
+            center.addObserver(forName: AVCaptureDevice.wasConnectedNotification,
+                               object: nil, queue: nil) { handle($0, false) },
+            center.addObserver(forName: AVCaptureDevice.wasDisconnectedNotification,
+                               object: nil, queue: nil) { handle($0, true) },
+            center.addObserver(forName: .AVCaptureSessionRuntimeError,
+                               object: captureSession, queue: nil) { [weak self] note in
+                let error = note.userInfo?[AVCaptureSessionErrorKey] as? NSError
+                debugLog("CaptureEngine: session runtime error: \(error?.localizedDescription ?? "unknown")")
+                self?.resumeSessionIfNeeded()
+            },
+            center.addObserver(forName: .AVCaptureSessionWasInterrupted,
+                               object: captureSession, queue: nil) { [weak self] note in
+                debugLog("CaptureEngine: session interrupted (reason \(String(describing: note.userInfo?[AVCaptureSessionInterruptionReasonKey])))")
+                self?.handleDeviceStateChange()
+            },
+            center.addObserver(forName: .AVCaptureSessionInterruptionEnded,
+                               object: captureSession, queue: nil) { [weak self] _ in
+                debugLog("CaptureEngine: session interruption ended")
+                self?.resumeSessionIfNeeded()
+            }
+        ]
+    }
+
+    /// Full stop/start bounce. A session that begins on a source which never
+    /// produces a frame (sandboxed-out virtual camera) can stay wedged —
+    /// isRunning true, valid graph, zero buffers — even after the input is
+    /// swapped to a good device; only a restart revives delivery. Used by the
+    /// rig's first-frame watchdog after a stall-triggered fallback.
+    func restartSession() {
+        sessionQueue.async {
+            guard self.isExpectedToRun else { return }
+            if self.captureSession.isRunning {
+                self.captureSession.stopRunning()
+            }
+            self.captureSession.startRunning()
+        }
+    }
+
+    /// AVCam's resume pattern, shared by the runtime-error and
+    /// interruption-ended observers: both can leave the session stopped;
+    /// restart when it is supposed to be running, then run the normal
+    /// device-state refresh so both ends re-sync.
+    private func resumeSessionIfNeeded() {
+        sessionQueue.async {
+            if self.isExpectedToRun && !self.captureSession.isRunning {
+                self.captureSession.startRunning()
+            }
+        }
+        handleDeviceStateChange()
+    }
+
+    /// The device set as of the last state-change notification, so flapping
+    /// sources (a Continuity iPhone connects/disconnects as it locks and
+    /// idles) don't re-notify the rig — and rebuild both picker menus — for
+    /// an unchanged list. sessionQueue-confined.
+    private var lastNotifiedDevices: [CameraDeviceDescriptor] = []
+
+    /// One event path for every "the cameras changed" trigger: refresh the
+    /// suspension observers, move off a dead active device, and tell the rig
+    /// — but only when something observable actually changed.
+    private func handleDeviceStateChange(disconnectedID: String? = nil) {
+        sessionQueue.async {
+            let active = self.videoDeviceInput?.device
+            let activeIsGone = (disconnectedID != nil && active?.uniqueID == disconnectedID)
+                || (active?.isSuspended ?? false)
+            if activeIsGone {
+                self.fallBackToHealthyDeviceLocked()
+            }
+            let devices = self.selectableDevicesLocked().map { CameraDeviceDescriptor(device: $0) }
+            guard activeIsGone || devices != self.lastNotifiedDevices else { return }
+            self.lastNotifiedDevices = devices
+            self.refreshSuspensionObserversLocked()
+            self.onCameraDevicesChanged?()
+        }
+    }
+
+    private func refreshSuspensionObserversLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        suspensionObservations = selectableDevicesLocked().map { device in
+            device.observe(\.isSuspended) { [weak self] _, _ in
+                self?.handleDeviceStateChange()
+            }
+        }
+    }
+
+    /// The active camera was unplugged or suspended: land on the best healthy
+    /// device (same position first, then first available) instead of
+    /// freezing on a source that will never deliver a frame.
+    private func fallBackToHealthyDeviceLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        let available = selectableDevicesLocked().filter { $0.isConnected }
+        let descriptors = available.map { CameraDeviceDescriptor(device: $0) }
+        guard let resolved = CameraDeviceDescriptor.resolveSelection(
+                requestedID: "", available: descriptors,
+                fallbackPosition: currentPositionShared.value),
+              let device = available.first(where: { $0.uniqueID == resolved.uniqueID }) else { return }
+        _ = try? swapToDeviceLocked(device, orientation: orientation)
+    }
+
     func getAllDeviceTypes() -> [AVCaptureDevice.DeviceType] {
         var deviceTypes: [AVCaptureDevice.DeviceType] = [
             .builtInWideAngleCamera,
@@ -612,6 +908,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         debugLog("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
         debugLog("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
 
+        let (deviceEntries, activeDeviceID) = cameraDeviceEntriesLocked()
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo,
             backCamera: backCameraInfo,
@@ -622,11 +919,50 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             currentVideoFrameRate: currentVideoFrameRate,
             currentPhotoFormat: currentPhotoFormat,
             currentHDRMode: currentHDRMode,
+            cameraDevices: deviceEntries,
+            activeDeviceID: activeDeviceID,
             error: nil
         )
 
         debugLog("🔍 DEBUG: Created capabilities response successfully")
         return capabilities
+    }
+
+    /// The selectable-device list advertised in capabilities — the feature
+    /// gate that lets a monitor remote-select this device's cameras.
+    private func cameraDeviceEntriesLocked() -> ([RemoteCmd.CameraDeviceEntry], String?) {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        let activeID = videoDeviceInput?.device.uniqueID
+        let entries = selectableDevicesLocked().map { device in
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: device.uniqueID,
+                localizedName: device.localizedName,
+                positionRaw: device.position.rawValue,
+                isActive: device.uniqueID == activeID,
+                isSuspended: device.isSuspended,
+                info: deviceInfoLocked(for: device))
+        }
+        return (entries, activeID)
+    }
+
+    /// Per-device CameraInfo for the advertised list. iOS reuses the cached
+    /// position-based info; Mac cameras get a minimal single-lens profile.
+    private func deviceInfoLocked(for device: AVCaptureDevice) -> RemoteCmd.CameraInfo? {
+        #if targetEnvironment(macCatalyst)
+        return RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle],
+            hasFlash: device.hasFlash,
+            hasTorch: device.hasTorch,
+            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(
+                minZoom: device.minAvailableVideoZoomFactor,
+                maxZoom: device.maxAvailableVideoZoomFactor)])
+        #else
+        switch device.position {
+        case .front: return frontCameraInfo
+        case .back: return backCameraInfo
+        default: return nil
+        }
+        #endif
     }
 
     // MARK: - Enhanced Zoom Control Methods
@@ -787,22 +1123,68 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         self.orientation = orientation
         let o = OrientationUtils.transform(o: orientation)
         if let videoConnection = self.videoConnection {
-            videoConnection.videoOrientation = o
+            applyCaptureOrientationLocked(o, to: videoConnection)
         }
         if let photoConnection = self.photoOutput.connection(with: AVMediaType.video) {
-            photoConnection.videoOrientation = o
+            applyCaptureOrientationLocked(o, to: photoConnection)
             return true
         }
         return false
     }
 
+    /// The only place capture-connection orientation is ever written. The
+    /// pipeline invariant is that buffers leave the connection upright —
+    /// everything downstream (encoders, wire, monitor, Watch, recorder) is
+    /// orientation-preserving. iOS sensors are portrait-native and need the
+    /// interface-derived rotation; Mac cameras are landscape-native and
+    /// already upright, so `appliesInterfaceRotation` is false on Catalyst.
+    private func applyCaptureOrientationLocked(_ o: AVCaptureVideoOrientation,
+                                               to connection: AVCaptureConnection) {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard OrientationUtils.appliesInterfaceRotation,
+              connection.isVideoOrientationSupported else { return }
+        connection.videoOrientation = o
+    }
+
+    /// Chooses the frame-rate range closest to the request. Supported rates
+    /// form disjoint ranges (a Mac camera's format may support exactly
+    /// 60–60), and a rate outside every range raises an Objective-C exception
+    /// that Swift cannot catch — so the answer is always inside a range,
+    /// never merely below the maximum. Ties prefer the lower rate (don't
+    /// exceed the request unnecessarily); nil when no ranges are reported.
+    static func resolveFrameRate(requested: Int,
+                                 supportedRanges: [ClosedRange<Double>]) -> (fps: Int, rangeIndex: Int)? {
+        let requestedFPS = Double(requested)
+        let nearest = supportedRanges.enumerated()
+            .map { (index: $0.offset,
+                    fps: min(max(requestedFPS, $0.element.lowerBound), $0.element.upperBound)) }
+            .min { (abs($0.fps - requestedFPS), $0.fps) < (abs($1.fps - requestedFPS), $1.fps) }
+        return nearest.map { (fps: Int($0.fps), rangeIndex: $0.index) }
+    }
+
     func setFrameRate(framerate: Int, videoDevice: AVCaptureDevice) throws {
-        let maxFPS = Int(maxSupportedFPS(for: videoDevice))
-        let safeFPS = max(1, min(framerate, maxFPS))
+        let ranges = videoDevice.activeFormat.videoSupportedFrameRateRanges
+        guard let resolved = Self.resolveFrameRate(
+                requested: framerate,
+                supportedRanges: ranges.map { $0.minFrameRate...$0.maxFrameRate }) else {
+            return   // no ranges reported: leave the device's defaults alone
+        }
+        // Clamp the desired duration into the chosen range's OWN CMTimes —
+        // never rebuild from integers. A UVC camera's "60 fps" is often
+        // 59.99976 (1000000/60000240): an integer 1/60 falls outside the
+        // range, which throws on DAL hardware and silently wedges software
+        // cameras (OBS stopped delivering frames entirely).
+        let range = ranges[resolved.rangeIndex]
+        var duration = CMTimeMake(value: 1, timescale: Int32(max(1, resolved.fps)))
+        if CMTimeCompare(duration, range.minFrameDuration) < 0 { duration = range.minFrameDuration }
+        if CMTimeCompare(duration, range.maxFrameDuration) > 0 { duration = range.maxFrameDuration }
+
         try videoDevice.lockForConfiguration()
-        videoDevice.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: Int32(safeFPS))
-        videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(safeFPS))
+        videoDevice.activeVideoMaxFrameDuration = duration
+        videoDevice.activeVideoMinFrameDuration = duration
         videoDevice.unlockForConfiguration()
+
+        let safeFPS = resolved.fps
         if safeFPS != framerate {
             fpsSetting.value = safeFPS
             currentVideoFrameRate = VideoFrameRate.selectableCases.last(where: { $0.value <= safeFPS }) ?? .fps30

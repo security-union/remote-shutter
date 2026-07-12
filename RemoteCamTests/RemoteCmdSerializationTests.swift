@@ -60,7 +60,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SetTorch: return m.toFlatBuffer()
         case let m as RemoteCmd.SetTorchResp: return m.toFlatBuffer()
         case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
-        case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
+        case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
@@ -395,6 +396,115 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertNil(decoded.backCamera)
         XCTAssertEqual(decoded.currentCamera, .front)
         XCTAssertEqual(decoded.currentLens, .ultraWide)
+    }
+
+    // MARK: - 13b. Camera device selection
+
+    func testSelectCameraDevice_roundTrip() {
+        let original = RemoteCmd.SelectCameraDevice(uniqueID: "com.apple.avfoundation:USB-0x1234")
+        let decoded: RemoteCmd.SelectCameraDevice = roundTrip(original)
+        XCTAssertEqual(decoded.uniqueID, "com.apple.avfoundation:USB-0x1234")
+    }
+
+    func testSelectCameraDeviceResp_roundTripCarriesDeviceList() {
+        let usbInfo = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle],
+            hasFlash: false,
+            hasTorch: false,
+            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 1.0)]
+        )
+        let devices = [
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "builtin-0", localizedName: "FaceTime HD Camera",
+                positionRaw: AVCaptureDevice.Position.front.rawValue,
+                isActive: false, info: nil),
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "usb-0", localizedName: "USB Camera",
+                positionRaw: AVCaptureDevice.Position.unspecified.rawValue,
+                isActive: true, info: usbInfo)
+        ]
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            cameraDevices: devices, activeDeviceID: "usb-0", error: nil)
+        let original = RemoteCmd.SelectCameraDeviceResp(cameraCapabilities: capabilities, error: nil)
+
+        let decoded: RemoteCmd.SelectCameraDeviceResp = roundTrip(original)
+        let decodedCaps = decoded.cameraCapabilities
+        XCTAssertNil(decoded.error)
+        XCTAssertEqual(decodedCaps?.activeDeviceID, "usb-0")
+        XCTAssertEqual(decodedCaps?.cameraDevices.count, 2)
+        XCTAssertEqual(decodedCaps?.cameraDevices[0].uniqueID, "builtin-0")
+        XCTAssertEqual(decodedCaps?.cameraDevices[0].localizedName, "FaceTime HD Camera")
+        XCTAssertEqual(decodedCaps?.cameraDevices[0].position, .front)
+        XCTAssertFalse(decodedCaps?.cameraDevices[0].isActive ?? true)
+        // .unspecified survives the wire via has_unspecified_position.
+        XCTAssertEqual(decodedCaps?.cameraDevices[1].position, .unspecified)
+        XCTAssertTrue(decodedCaps?.cameraDevices[1].isActive ?? false)
+        XCTAssertEqual(decodedCaps?.cameraDevices[1].info?.availableLenses, [.wideAngle])
+    }
+
+    func testCameraDeviceEntry_suspendedFlagRoundTrips() {
+        let devices = [
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "builtin-0", localizedName: "MacBook Pro Camera",
+                positionRaw: AVCaptureDevice.Position.unspecified.rawValue,
+                isActive: false, isSuspended: true, info: nil),
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "usb-0", localizedName: "USB Camera",
+                positionRaw: AVCaptureDevice.Position.unspecified.rawValue,
+                isActive: true, isSuspended: false, info: nil)
+        ]
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            cameraDevices: devices, activeDeviceID: "usb-0", error: nil)
+        let original = RemoteCmd.SelectCameraDeviceResp(cameraCapabilities: capabilities, error: nil)
+
+        let decoded: RemoteCmd.SelectCameraDeviceResp = roundTrip(original)
+        XCTAssertEqual(decoded.cameraCapabilities?.cameraDevices[0].isSuspended, true,
+                       "suspension must cross the wire so the monitor can gray the device out")
+        XCTAssertEqual(decoded.cameraCapabilities?.cameraDevices[1].isSuspended, false)
+    }
+
+    func testSelectCameraDeviceResp_withError() {
+        let err = NSError(domain: "busy", code: 7, userInfo: [NSLocalizedDescriptionKey: "busy"])
+        let original = RemoteCmd.SelectCameraDeviceResp(cameraCapabilities: nil, error: err)
+        let decoded: RemoteCmd.SelectCameraDeviceResp = roundTrip(original)
+        XCTAssertNotNil(decoded.error)
+        XCTAssertNil(decoded.cameraCapabilities)
+    }
+
+    func testCameraCapabilitiesResp_legacyShapeDecodesEmptyDeviceList() {
+        // A peer that predates device selection encodes no camera_devices —
+        // the decoded list must be empty (the monitor's gate stays closed).
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertTrue(decoded.cameraDevices.isEmpty)
+        XCTAssertNil(decoded.activeDeviceID)
+    }
+
+    func testCameraCapabilitiesResp_deviceListRoundTrip() {
+        let devices = [
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "back-0", localizedName: "Back Triple Camera",
+                positionRaw: AVCaptureDevice.Position.back.rawValue,
+                isActive: true, info: nil)
+        ]
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            cameraDevices: devices, activeDeviceID: "back-0", error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertEqual(decoded.cameraDevices, devices.map {
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: $0.uniqueID, localizedName: $0.localizedName,
+                positionRaw: $0.positionRaw, isActive: $0.isActive, info: nil)
+        })
+        XCTAssertEqual(decoded.activeDeviceID, "back-0")
     }
 
     // MARK: - 14. SwitchLens

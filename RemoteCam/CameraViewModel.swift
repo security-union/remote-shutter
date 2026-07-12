@@ -17,6 +17,24 @@ class CameraViewModel: ObservableObject {
     /// Spinner shown while the capture session is being configured.
     @Published var isBusy = false
 
+    // MARK: - Local Camera Devices (picker chrome; a Mac has N cameras)
+    @Published var availableCameraDevices: [CameraDeviceDescriptor] = []
+    @Published var activeCameraDeviceID: String?
+
+    func updateCameraDevices(_ devices: [CameraDeviceDescriptor], activeID: String?) {
+        DispatchQueue.main.async {
+            // Refreshes are frequent (Continuity cameras flap as the phone
+            // locks/idles); only publish real changes so the picker menu
+            // isn't rebuilt for identical content.
+            if self.availableCameraDevices != devices {
+                self.availableCameraDevices = devices
+            }
+            if self.activeCameraDeviceID != activeID {
+                self.activeCameraDeviceID = activeID
+            }
+        }
+    }
+
     // MARK: - Mode & Quality Status
     @Published var currentMode: RecordingMode = .Photo
     @Published var qualityInfo: String = "1080p 30fps"

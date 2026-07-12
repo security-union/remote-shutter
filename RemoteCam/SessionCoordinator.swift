@@ -170,6 +170,12 @@ public actor SessionCoordinator {
     private var ctrl: CameraControlling?
     private var monitor: MonitorPresenter?
 
+    /// Whether the connected camera peer advertised a camera-device list in
+    /// its capabilities — the feature gate for `RemoteCmd.SelectCameraDevice`.
+    /// Never send that command otherwise: old decoders read unknown command
+    /// actions as TakePicture (the FlatBuffers field default).
+    private var peerAdvertisedCameraDevices = false
+
     /// Test support: the generation of the most recently armed timeout.
     func currentTimeoutGeneration() -> Int { timeoutGeneration }
 
@@ -368,6 +374,7 @@ public actor SessionCoordinator {
     /// Pop to scanning (stops at the lobby floor like the old machine) and
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
+        peerAdvertisedCameraDevices = false
         switch state {
         case .scanning:
             // Already there — re-entering would restart discovery and reset
@@ -578,12 +585,26 @@ public actor SessionCoordinator {
         case is RemoteCmd.ToggleCamera:
             do {
                 _ = try await ctrl.toggleCamera()
+                try await confirmFrameDelivery(ctrl)
                 await ctrl.gatherAllCameraCapabilities()
                 let capabilities = await ctrl.gatherCurrentCameraCapabilities()
                 await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
                     cameraCapabilities: capabilities, error: nil))
             } catch {
                 await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
+                    cameraCapabilities: nil, error: error as NSError))
+            }
+
+        case let select as RemoteCmd.SelectCameraDevice:
+            do {
+                _ = try await ctrl.selectCameraDevice(uniqueID: select.uniqueID)
+                try await confirmFrameDelivery(ctrl)
+                await ctrl.gatherAllCameraCapabilities()
+                let capabilities = await ctrl.gatherCurrentCameraCapabilities()
+                await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
+                    cameraCapabilities: capabilities, error: nil))
+            } catch {
+                await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
                     cameraCapabilities: nil, error: error as NSError))
             }
 
@@ -678,6 +699,23 @@ public actor SessionCoordinator {
 
         default:
             await handleRoot(msg)
+        }
+    }
+
+    /// A camera can accept an input swap and still never deliver a frame (a
+    /// wedged virtual camera): a switch is only *successful* once a frame
+    /// actually arrives, so the monitor gets a real error instead of a
+    /// silently black preview. Bounded wait — shorter than the rig watchdog
+    /// (5s, which restores a working device) and the monitor's state timeout
+    /// (10s). Deliberately blocks this camera's inbox meanwhile: the peer is
+    /// waiting on this exact response, and busy states already reject
+    /// concurrent commands.
+    private func confirmFrameDelivery(_ ctrl: CameraControlling) async throws {
+        guard await ctrl.awaitFrameDelivery(timeout: 4) else {
+            let name = await ctrl.currentCameraDevice()?.localizedName ?? "Camera"
+            throw NSError(
+                domain: String(format: NSLocalizedString("%@ is not delivering video", comment: "dead camera"), name),
+                code: 0, userInfo: nil)
         }
     }
 
@@ -898,6 +936,8 @@ public actor SessionCoordinator {
             await sendOrGoToScanning(RemoteCmd.TakePicResp(sender: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.ToggleCamera:
             await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
+        case is RemoteCmd.SelectCameraDevice:
+            await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.ToggleFlash:
             await sendOrGoToScanning(RemoteCmd.ToggleFlashResp(flashMode: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.SetZoom:
@@ -1061,6 +1101,19 @@ public actor SessionCoordinator {
                 await popToScanning()
             }
 
+        case let select as UICmd.SelectCameraDevice:
+            guard peerAdvertisedCameraDevices else {
+                debugLog("SelectCameraDevice dropped: peer did not advertise camera devices")
+                break
+            }
+            if sendMessage(RemoteCmd.SelectCameraDevice(uniqueID: select.uniqueID)) {
+                await showCameraAlert(NSLocalizedString("Switching camera", comment: ""))
+                let generation = scheduleTimeout(.monitorTogglingCamera)
+                await transition(to: .monitorTogglingCamera(mode: mode, generation: generation))
+            } else {
+                await popToScanning()
+            }
+
         case is UICmd.ToggleFlash where mode == .photo:
             if sendMessage(RemoteCmd.ToggleFlash()) {
                 await showCameraAlert("Requesting flash toggle")
@@ -1098,6 +1151,7 @@ public actor SessionCoordinator {
             }
 
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
+            peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
             monitor?.updateCapabilities(capabilities)
 
         case let zoom as UICmd.SetZoom:
@@ -1226,6 +1280,8 @@ public actor SessionCoordinator {
             break // Already sent from parent state; ignore duplicate taps
         case is UICmd.ToggleCamera where kind == .camera:
             break // Already sent from parent state; ignore duplicate taps
+        case is UICmd.SelectCameraDevice where kind == .camera:
+            break // A selection is already in flight; ignore duplicate taps
 
         case let flashResp as RemoteCmd.ToggleFlashResp where kind == .flash:
             if flashResp.flashMode != nil {
@@ -1240,9 +1296,12 @@ public actor SessionCoordinator {
             await transition(to: .monitor(mode: mode))
 
         case let toggleResp as RemoteCmd.ToggleCameraResp where kind == .camera:
+            // Also matches SelectCameraDeviceResp (a subclass): a completed
+            // device selection re-syncs the monitor exactly like a toggle.
             // Forward the fresh capabilities so the monitor UI re-syncs to the
             // new camera (lens list, zoom range, quality).
             if let capabilities = toggleResp.cameraCapabilities {
+                peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
                 monitor?.updateCapabilities(capabilities)
                 await dismissCameraAlert()
             } else if let error = toggleResp.error {
@@ -1806,6 +1865,16 @@ extension SessionCoordinator: MultipeerServiceDelegate {
     }
 
     public nonisolated func peerDidConnect(_ peer: MCPeerID) {
+        // Warm MultipeerConnectivity's unreliable datagram channel: it
+        // negotiates lazily on first use (~10s) and silently drops sends
+        // until ready ("giving up for participant" in the MC logs). One
+        // no-op ping here starts that clock at connect, so negotiation
+        // finishes while the user is still picking roles and the live
+        // preview flows from its very first frame. RequestFrame is the safe
+        // no-op: a stray one is treated as a frame-credit ack, and the
+        // credit window clamps at zero.
+        _ = transportShared.value?.send(
+            RemoteCmd.RequestFrame(sender: nil), to: [peer], mode: .unreliable)
         tell(OnConnectToDevice(peer: peer, sender: nil))
     }
 

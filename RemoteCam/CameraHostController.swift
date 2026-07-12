@@ -21,7 +21,11 @@ final class CameraHostController: UIHostingController<CameraScreenView> {
 
     init(rig: CameraRig) {
         self.rig = rig
-        super.init(rootView: CameraScreenView(viewModel: rig.cameraViewModel))
+        super.init(rootView: CameraScreenView(
+            viewModel: rig.cameraViewModel,
+            onSelectCameraDevice: { [weak rig] uniqueID in
+                rig?.selectCameraDeviceLocally(uniqueID: uniqueID)
+            }))
     }
 
     @available(*, unavailable)
@@ -104,6 +108,11 @@ final class CameraHostController: UIHostingController<CameraScreenView> {
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
+        #if targetEnvironment(macCatalyst)
+        // Window resizes reach here on the Mac, but there is no device
+        // rotation — the capture orientation stays fixed (getOrientation()).
+        return
+        #else
         coordinator.animate(alongsideTransition: { [weak self] _ in
             guard let self else { return }
             // Mid-transition the window scene already reports the TARGET
@@ -119,6 +128,7 @@ final class CameraHostController: UIHostingController<CameraScreenView> {
             // torch state.
             self?.rig.restoreTorchAfterRotation()
         })
+        #endif
     }
 
     // MARK: - Permissions UI

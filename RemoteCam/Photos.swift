@@ -18,8 +18,15 @@ func goToPhotos() {
 }
 
 func getOrientation() -> UIInterfaceOrientation {
+    #if targetEnvironment(macCatalyst)
+    // Macs don't rotate and their cameras are landscape-native: report a
+    // fixed landscape orientation so capture connections and streamed frames
+    // stay unrotated and monitors render them as-is.
+    return .landscapeRight
+    #else
     return UIApplication.shared.connectedScenes
         .compactMap { $0 as? UIWindowScene }
         .first(where: { $0.activationState == .foregroundActive })?
         .interfaceOrientation ?? .portrait
+    #endif
 }

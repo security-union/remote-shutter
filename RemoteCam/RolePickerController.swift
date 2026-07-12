@@ -72,7 +72,13 @@ public class RolePickerController: UIViewController {
     }
 
     func becomeWatchRemote() {
+        #if targetEnvironment(macCatalyst)
+        // No WatchConnectivity on the Mac; the role-picker row is already
+        // hidden (watchPaired stays false), this guards the seam itself.
+        return
+        #else
         checkCameraPermissionsForWatchRemote()
+        #endif
     }
 
     private func checkCameraPermissionsForWatchRemote() {

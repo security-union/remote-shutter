@@ -10,13 +10,24 @@ enum MonitorUIState {
     case shortsMode
 }
 
+// MARK: - Frame Display Model
+
+/// The live-preview frame stream, isolated from the rest of the monitor's
+/// state: frames arrive ~20×/sec, and publishing them through the main view
+/// model re-rendered every control on each frame (the device menu visibly
+/// flickered). Only the preview's `LiveFrameView` observes this.
+final class FrameDisplayModel: ObservableObject {
+    @Published var cameraImage: UIImage?
+}
+
 // MARK: - Monitor View Model
 class MonitorViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var currentMode: RecordingMode = .Photo
     @Published var uiState: MonitorUIState = .photoMode
     @Published var isRecording: Bool = false
-    @Published var cameraImage: UIImage?
+    /// Live frames — deliberately NOT @Published here; see FrameDisplayModel.
+    let frames = FrameDisplayModel()
     @Published var flashStatus: String = ""
     @Published var isFlashEnabled: Bool = false
     @Published var isTorchEnabled: Bool = false
@@ -46,6 +57,36 @@ class MonitorViewModel: ObservableObject {
 
     // MARK: - Aspect Ratio Properties
     @Published var currentAspectRatio: AspectRatio = .sixteenNine
+
+    // MARK: - Remote Camera Devices (empty = peer predates device selection)
+    @Published var remoteCameraDevices: [RemoteCmd.CameraDeviceEntry] = []
+    @Published var activeRemoteDeviceID: String?
+
+    /// Which switch control the monitor shows for the peer's cameras.
+    enum CameraSwitchControl {
+        /// One camera — nothing to switch to.
+        case hidden
+        /// Two usable cameras (or a legacy peer with no device list):
+        /// the classic flip button, tap toggles.
+        case flipButton
+        /// Three or more cameras — or a suspended one worth *seeing* grayed
+        /// out: a menu, tap opens the device list.
+        case deviceMenu
+    }
+
+    static func switchControl(for devices: [RemoteCmd.CameraDeviceEntry]) -> CameraSwitchControl {
+        guard !devices.isEmpty else { return .flipButton }   // legacy peer: count unknown
+        let healthy = devices.filter { !$0.isSuspended }
+        switch (devices.count, healthy.count) {
+        case (1, _): return .hidden
+        case (2, 2): return .flipButton
+        default: return .deviceMenu
+        }
+    }
+
+    var cameraSwitchControl: CameraSwitchControl {
+        Self.switchControl(for: remoteCameraDevices)
+    }
     
     // MARK: - Video Transfer Progress Properties
     @Published var isVideoTransferring: Bool = false
@@ -166,7 +207,7 @@ class MonitorViewModel: ObservableObject {
     // MARK: - Update Methods (called from MonitorViewController Actor messages)
     func updateCameraImage(_ image: UIImage?) {
         DispatchQueue.main.async {
-            self.cameraImage = image
+            self.frames.cameraImage = image
         }
     }
     
@@ -211,6 +252,20 @@ class MonitorViewModel: ObservableObject {
     func updateAspectRatio(_ ratio: AspectRatio) {
         DispatchQueue.main.async {
             self.currentAspectRatio = ratio
+        }
+    }
+
+    func updateCameraDevices(_ devices: [RemoteCmd.CameraDeviceEntry], activeID: String?) {
+        DispatchQueue.main.async {
+            // Capabilities re-broadcasts are frequent (device switches,
+            // hot-plug); only publish real changes so the picker menu isn't
+            // rebuilt for identical content.
+            if self.remoteCameraDevices != devices {
+                self.remoteCameraDevices = devices
+            }
+            if self.activeRemoteDeviceID != activeID {
+                self.activeRemoteDeviceID = activeID
+            }
         }
     }
 

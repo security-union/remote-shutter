@@ -109,6 +109,12 @@ public final class MonitorPresenter {
 
     func updateCapabilities(_ capabilities: RemoteCmd.CameraCapabilitiesResp) {
         onMain { display in
+            // Device list first: a Mac camera has no front/back info, so the
+            // guard below would otherwise starve the device picker.
+            display.viewModel.updateCameraDevices(
+                capabilities.cameraDevices,
+                activeID: capabilities.activeDeviceID)
+
             guard let cameraInfo = capabilities.getCurrentCameraInfo() else { return }
             // Update lens controls in view model
             display.updateLensTypesInViewModel(
