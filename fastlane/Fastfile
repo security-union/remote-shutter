@@ -163,6 +163,11 @@ platform :ios do
       platform: "catalyst",
       app_identifier: ["com.blackfireapps.remotecamera"],
       git_url: ENV["MATCH_GIT_URL"],
+      # Mac App Store apps ship as a .pkg signed with the SEPARATE Mac
+      # Installer Distribution certificate — match doesn't fetch it unless
+      # asked, and export dies with 'No signing certificate "Mac Installer
+      # Distribution" found' (run 29181889025).
+      additional_cert_types: ["mac_installer_distribution"],
       readonly: false
     )
     update_code_signing_settings(
