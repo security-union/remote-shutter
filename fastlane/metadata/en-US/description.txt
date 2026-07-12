@@ -1,4 +1,4 @@
-Turn any two devices into a wireless remote camera system — no internet, no WiFi, no account needed. Just connect and shoot.
+Turn any two devices into a wireless remote camera system — no internet, no router, no account needed. Just connect and shoot.
 
 Remote Shutter uses peer-to-peer technology to link two devices directly. One becomes the camera, the other becomes your remote control with a live monitor. Perfect for group photos, selfies, tripod shots, creative angles, and hands-free photography.
 
@@ -17,7 +17,7 @@ FEATURES
 - Adjustable photo timer
 - Record video remotely
 - Works with iPhone, iPad, and Mac
-- No internet or WiFi network required — direct device-to-device connection
+- No internet or Wi-Fi network required — direct device-to-device connection (just keep Wi-Fi and Bluetooth turned on)
 
 HOW TO USE
 1. Open Remote Shutter on two devices

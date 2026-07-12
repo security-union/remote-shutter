@@ -292,7 +292,9 @@ window.MANIFEST = {
       callouts: [
         { text: "CAMERA", anchor: [270, 1360], dx: -40, dy: -160 },
         { text: "PRO CAMERA", anchor: [340, 1830], dx: -80, dy: 170 },
-        { text: "REMOTE", anchor: [905, 1150], dx: -250, dy: -20 }
+        // Label ABOVE the phone — pulling it left collides with CAMERA in
+        // locales with long words (e.g. ru КАМЕРА/ПУЛЬТ).
+        { text: "REMOTE", anchor: [1010, 945], dx: 30, dy: -150 }
       ]
     },
 
