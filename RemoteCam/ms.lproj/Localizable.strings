@@ -1,0 +1,332 @@
+/* No comment provided by engineer. */
+"%@, ¿Desea intentar nuevamente?" = "%@, Adakah anda mahu cuba lagi?";
+
+/* No comment provided by engineer. */
+"AppName" = "Remote Shutter";
+
+/* No comment provided by engineer. */
+"Camera or remote shutter?" = "Kamera atau pengatup jauh?";
+
+/* No comment provided by engineer. */
+"Cellular" = "Selular";
+
+/* No comment provided by engineer. */
+"CHOOSE A DEVICE" = "PILIH SATU PERANTI";
+
+/* No comment provided by engineer. */
+"Connecting" = "Menyambung";
+
+/* No comment provided by engineer. */
+"Disconnect" = "Putuskan Sambungan";
+
+/* No comment provided by engineer. */
+"Espere..." = "Tunggu...";
+
+/* No comment provided by engineer. */
+"flash_mode_auto" = "Auto";
+
+/* No comment provided by engineer. */
+"flash_mode_off" = "Mati";
+
+/* No comment provided by engineer. */
+"flash_mode_on" = "Hidup";
+
+/* No comment provided by engineer. */
+"Loading Image" = "Memuatkan Imej";
+
+/* Default DejalActivtyView label text */
+"Loading..." = "Memuatkan...";
+
+/* No comment provided by engineer. */
+"Looking for devices over Wifi and Bluetooth." = "Mencari peranti melalui Wifi dan Bluetooth.";
+
+/* No comment provided by engineer. */
+"No Connection" = "Tiada Sambungan";
+
+/* No comment provided by engineer. */
+"Reestableciendo compras" = "Memulihkan Pembelian";
+
+/* No comment provided by engineer. */
+"Requesting capture" = "Meminta tangkapan";
+
+/* No comment provided by engineer. */
+"ROLE PICKER" = "PEMILIH PERANAN";
+
+/* No comment provided by engineer. */
+"Sending Photo to Remote" = "Menghantar Foto ke Kawalan Jauh";
+
+/* No comment provided by engineer. */
+"Si" = "Ya";
+
+"Yes"= "Ya";
+
+/* No comment provided by engineer. */
+"WiFi" = "WiFi";
+
+/* No comment provided by engineer. */
+"¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "Adakah anda mahu menyegerakkan %@ anda dengan ciri yang telah anda beli sebelum ini (percuma)?";
+
+"Acknowledgments"= "Penghargaan";
+
+"timeunit"= "saat";
+
+"Settings"="Tetapan";
+
+"Upgrades"="Naik Taraf";
+
+"Timer to take photos"="Pemasa untuk mengambil foto";
+
+"Incoming Invite from %@"="Jemputan Masuk daripada %@";
+
+"Do you wish to accept?,"="Adakah anda mahu menerima?";
+
+"¡Gracias por usar nuestra App!"="Terima kasih kerana menggunakan app ini!";
+
+"En otro momento"="Mungkin nanti";
+
+"Calificar en la AppStore"="Nilai";
+
+"Mandar Feedback"="Hantar maklum balas";
+
+"No Gracias"="Tidak, Terima Kasih";
+
+"iAds Removed"="Iklan Dialih Keluar";
+
+"call_to_download" = "Muat turun Remote Shutter hari ini %@";
+
+/* Local Network Permission Modal */
+"local_network_title" = "Permintaan untuk Mengakses Rangkaian Setempat";
+"local_network_subtitle" = "Remote Shutter memerlukan akses rangkaian setempat untuk menemui dan menyambungkan peranti anda menggunakan rangka kerja peer-to-peer Apple.";
+
+"local_network_access_required_title" = "Akses Rangkaian Setempat Diperlukan";
+"local_network_required_subtitle" = "Remote Shutter memerlukan akses rangkaian setempat untuk berfungsi. Sila dayakannya dalam Tetapan untuk meneruskan.";
+
+"local_network_feature_title" = "Sambungan Peer-to-Peer";
+"local_network_feature_description" = "Menggunakan rangka kerja MultipeerConnectivity Apple untuk menemui dan menyambungkan peranti pada rangkaian setempat anda bagi kawalan jauh yang lancar.";
+
+"local_network_privacy_title" = "Privasi Dilindungi";
+"local_network_privacy_description" = "Sambungan anda kekal sepenuhnya peribadi dalam rangkaian setempat anda. Tiada data dihantar ke pelayan luar atau pihak ketiga.";
+
+"local_network_benefits_title" = "Segera & Boleh Dipercayai";
+"local_network_benefits_description" = "Komunikasi terus antara peranti memastikan masa tindak balas yang pantas dan berfungsi tanpa sambungan internet.";
+
+"local_network_continue" = "Teruskan";
+"local_network_cancel" = "Batal";
+"local_network_open_settings" = "Buka Tetapan";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "Benarkan Akses Kamera & Foto";
+"camera_permissions_subtitle" = "Remote Shutter memerlukan akses ke kamera dan foto anda untuk menangkap dan menyimpan imej apabila disambungkan dengan peranti lain.";
+
+"camera_permissions_required_title" = "Akses Kamera & Foto Diperlukan";
+"camera_permissions_required_subtitle" = "Remote Shutter memerlukan akses kamera dan foto untuk berfungsi. Sila dayakannya dalam Tetapan untuk meneruskan.";
+
+"camera_permission_feature_title" = "Akses Kamera";
+"camera_permission_feature_description" = "Ambil foto dari jauh menggunakan satu peranti sebagai kamera dan satu lagi sebagai kawalan jauh untuk gambar yang sempurna.";
+
+"photos_permission_feature_title" = "Simpan Foto";
+"photos_permission_feature_description" = "Simpan foto yang ditangkap secara automatik ke pustaka foto anda untuk akses dan perkongsian yang mudah.";
+
+"remote_control_feature_title" = "Kawalan Jauh";
+"remote_control_feature_description" = "Gunakan satu peranti untuk mengawal kamera pada peranti lain bagi foto berkumpulan, swafoto dan gambar kreatif.";
+
+"camera_permissions_continue" = "Teruskan";
+"camera_permissions_cancel" = "Batal";
+"camera_permissions_open_settings" = "Buka Tetapan";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "Kebenaran kamera belum diminta";
+"camera_permission_denied" = "Akses kamera dinafikan";
+"camera_permission_restricted" = "Akses kamera disekat";
+"camera_permission_authorized" = "Akses kamera diberikan";
+"camera_permission_unknown" = "Status kebenaran kamera tidak diketahui";
+
+"photos_permission_not_determined" = "Kebenaran foto belum diminta";
+"photos_permission_denied" = "Akses foto dinafikan";
+"photos_permission_restricted" = "Akses foto disekat";
+"photos_permission_authorized" = "Akses penuh foto diberikan";
+"photos_permission_limited" = "Akses foto terhad diberikan";
+"photos_permission_unknown" = "Status kebenaran foto tidak diketahui";
+
+/* Camera Error View */
+"camera_error_title" = "Akses Kamera Diperlukan";
+"camera_error_subtitle" = "Remote Shutter memerlukan akses ke kamera dan foto anda untuk berfungsi. Sila dayakan kebenaran dalam Tetapan.";
+"camera_error_open_settings" = "Buka Tetapan";
+"camera_error_go_back" = "Kembali";
+"camera_access_required" = "Akses Kamera";
+"photos_access_required" = "Akses Foto";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "Akses mikrofon dinafikan. Video akan dirakam tanpa audio.";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "Akses Mikrofon Diperlukan";
+"mic_required_subtitle" = "Untuk merakam video dengan audio, Remote Shutter memerlukan akses ke mikrofon anda. Sila dayakannya dalam Tetapan.";
+"video_recording_feature_title" = "Rakaman Video";
+"video_recording_feature_description" = "Rakam video berkualiti tinggi dengan audio menggunakan mikrofon peranti anda untuk pengalaman rakaman yang lengkap.";
+"mic_open_settings" = "Buka Tetapan";
+"mic_cancel_recording" = "Batalkan Rakaman";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "Tidak dapat merakam video: Akses mikrofon telah dinafikan. Sila dayakan akses mikrofon dalam Tetapan untuk merakam video dengan audio.";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "Imbas kod QR ini dengan app Kamera anda pada peranti lain untuk memuat turun Remote Shutter dari App Store";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "Tidak Dapat Menyimpan Foto";
+"photos_access_denied_photo_subtitle" = "Remote Shutter memerlukan akses ke pustaka Foto anda untuk menyimpan imej yang ditangkap. Sila dayakan akses Foto dalam Tetapan.";
+"photos_access_denied_video_title" = "Tidak Dapat Menyimpan Video";
+"photos_access_denied_video_subtitle" = "Remote Shutter memerlukan akses ke pustaka Foto anda untuk menyimpan video yang dirakam. Sila dayakan akses Foto dalam Tetapan.";
+
+"photos_privacy_feature_title" = "Privasi Anda Penting";
+"photos_privacy_feature_description" = "Foto disimpan terus ke pustaka peranti anda. Tiada data dimuat naik ke pelayan luar atau dikongsi tanpa kebenaran anda.";
+
+"photos_sharing_feature_title" = "Perkongsian Mudah";
+"photos_sharing_feature_description" = "Akses foto dan video yang anda tangkap dari app Foto untuk berkongsi dengan mudah bersama rakan dan keluarga atau gunakan dalam app lain.";
+
+"photos_open_settings" = "Buka Tetapan";
+"photos_dismiss" = "Tolak";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "Memindahkan Video";
+
+/* Help Modal */
+"help_title" = "Cara Remote Shutter Berfungsi";
+"help_subtitle" = "Ambil foto dan video yang sempurna menggunakan dua peranti";
+"help_got_it" = "Faham!";
+"help_done" = "Selesai";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "2. Sambungkan Peranti";
+"help_connect_description" = "Peranti Kamera pergi dalam talian dan menunggu. Pada peranti Kawalan Jauh, imbas untuk mencari kamera dan ketik nama kamera untuk menyambung.";
+"help_quick_setup_title" = "Persediaan Pantas";
+"help_quick_setup_description" = "Gunakan kod QR untuk memuat turun Remote Shutter pada peranti kedua anda dari App Store";
+"help_same_network_title" = "Sambungan Peer-to-Peer";
+"help_same_network_description" = "Peranti menyambung terus antara satu sama lain menggunakan Wi-Fi dan Bluetooth, sama seperti AirDrop - tanpa internet";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "1. Pilih Peranan Anda";
+"help_roles_description" = "Mula-mula, pilih sama ada peranti ini akan menjadi Kamera atau Kawalan Jauh. Peranti kamera menangkap foto dan video, manakala kawalan jauh mengawalnya.";
+"help_camera_device_title" = "Peranti Kamera";
+"help_camera_device_description" = "Mengambil foto dan video, menunjukkan pratonton kamera";
+"help_remote_device_title" = "Peranti Kawalan Jauh";
+"help_remote_device_description" = "Mengawal kamera, menunjukkan pratonton langsung, melaraskan tetapan";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. Tangkap Detik Sempurna";
+"help_capture_description" = "Gunakan peranti kawalan jauh untuk mengawal kamera, melaraskan tetapan, dan menangkap foto atau video dari jauh.";
+"help_remote_shutter_title" = "Pengatup Jauh";
+"help_remote_shutter_description" = "Ambil foto tanpa menyentuh peranti kamera";
+"help_video_recording_title" = "Rakaman Video";
+"help_video_recording_description" = "Mula dan hentikan rakaman video dari jauh";
+"help_camera_controls_title" = "Kawalan Kamera";
+"help_camera_controls_description" = "Laraskan denyar, lampu suluh, pemasa dan tetapan kamera";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "Petua & Tip";
+"help_tips_description" = "Manfaatkan sepenuhnya Remote Shutter dengan petua berguna ini";
+"help_group_photos_title" = "Foto Berkumpulan";
+"help_group_photos_description" = "Sesuai untuk swafoto berkumpulan - sediakan kamera dan gunakan kawalan jauh untuk menangkap semua orang dalam gambar";
+"help_timer_feature_title" = "Ciri Pemasa";
+"help_timer_feature_description" = "Gunakan pemasa pada peranti kawalan jauh untuk bersiap sedia sebelum foto diambil";
+"help_switch_cameras_title" = "Tukar Kamera";
+"help_switch_cameras_description" = "Tukar antara kamera hadapan dan belakang terus dari peranti kawalan jauh";
+"help_auto_save_title" = "Simpan Automatik";
+"help_auto_save_description" = "Foto dan video disimpan secara automatik ke pustaka foto kedua-dua peranti";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Menunggu kawalan jauh";
+"Scan for cameras" = "Imbas untuk cari kamera";
+"Camera Mode" = "Mod Kamera";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Pada peranti lain, buka Remote Shutter dan pilih Kawalan Jauh. Kamera ini akan muncul dalam senarai peranti mereka.";
+"Go Online" = "Pergi Dalam Talian";
+"Go Offline" = "Pergi Luar Talian";
+"Waiting for a remote to connect..." = "Menunggu kawalan jauh untuk menyambung...";
+"WAITING FOR A REMOTE TO CONNECT..." = "MENUNGGU KAWALAN JAUH UNTUK MENYAMBUNG...";
+"SEARCHING FOR NEARBY CAMERAS..." = "MENCARI KAMERA BERDEKATAN...";
+"Scanning for nearby cameras..." = "Mengimbas kamera berdekatan...";
+"Start scanning and wait for a Remote device to connect" = "Mula mengimbas dan tunggu peranti Kawalan Jauh untuk menyambung";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Jadikan dua peranti sebagai sistem kamera jauh profesional";
+"Restore Purchases" = "Pulihkan Pembelian";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Buka semua ciri: rakaman video, kawalan lampu suluh dan pengalaman tanpa iklan.";
+"Get Started" = "Mula";
+"Thank you for your support!" = "Terima kasih atas sokongan anda!";
+"Rate on App Store" = "Nilai di App Store";
+"Welcome" = "Selamat Datang";
+"Purchase" = "Beli";
+"Restored" = "Dipulihkan";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Pembelian anda telah dipulihkan. Jika anda tidak melihatnya, pastikan anda log masuk dengan Apple ID yang betul.";
+
+/* Role Picker Screen */
+"Pick a role" = "Pilih peranan";
+"Camera" = "Kamera";
+"Capture photos & video" = "Tangkap foto & video";
+"Use the device with the best lens" = "Gunakan peranti dengan kanta terbaik";
+"Remote" = "Kawalan Jauh";
+"Control the shutter" = "Kawal pengatup";
+"Works up to 50 feet away" = "Berfungsi sehingga 50 kaki jauh";
+"Remote Mode" = "Mod Kawalan Jauh";
+
+/* Alert Messages */
+"Scanning Error" = "Ralat Imbasan";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Tidak dapat mengimbas peranti berdekatan. Sila semak tetapan rangkaian anda dan cuba lagi.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Ralat";
+"Connection error" = "Ralat sambungan";
+"Unable to start recording" = "Tidak dapat memulakan rakaman";
+
+/* Scanner UI */
+"Connect" = "Sambung";
+"Connecting..." = "Menyambung...";
+"Start Scanning" = "Mula Mengimbas";
+"Stop Scanning" = "Hentikan Imbasan";
+"Share App Link" = "Kongsi Pautan App";
+"Scan for devices" = "Imbas untuk cari peranti";
+"Open Settings" = "Buka Tetapan";
+"You need at least 2 devices running Remote Shutter" = "Anda memerlukan sekurang-kurangnya 2 peranti yang menjalankan Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Imbas kod QR pada peranti lain untuk memuat turun Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "RALAT IMBASAN - SEMAK TETAPAN RANGKAIAN";
+"TAP THE BUTTON TO GET STARTED" = "KETIK BUTANG UNTUK BERMULA";
+
+/* Settings */
+"About" = "Perihal";
+"Back" = "Kembali";
+"Contact Support" = "Hubungi Sokongan";
+"Discord Community" = "Komuniti Discord";
+"In-App Purchases" = "Pembelian Dalam App";
+"Purchased" = "Telah Dibeli";
+"Send Media to Remote" = "Hantar Media ke Kawalan Jauh";
+"Source Code" = "Kod Sumber";
+"Version" = "Versi";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Mengambil foto";
+"Taking picture" = "Mengambil gambar";
+"Starting video" = "Memulakan video";
+"Stopping video" = "Menghentikan video";
+"Recording shorts" = "Merakam shorts";
+"Unable to save video" = "Tidak dapat menyimpan video";
+"Unable to save video to Photos app" = "Tidak dapat menyimpan video ke app Foto";
+"Purchases restored successfully." = "Pembelian berjaya dipulihkan.";
+"Pick a role: Camera or Remote" = "Pilih peranan: Kamera atau Kawalan Jauh";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: Semua Ciri";
+"Remove Ads" = "Alih Keluar Iklan";
+"Enable Torch" = "Dayakan Lampu Suluh";
+"Enable Video" = "Dayakan Video";
+
+/* Apple Watch Remote */
+"Watch Remote" = "Kawalan Jauh Watch";
+"Control from your wrist" = "Kawal dari pergelangan tangan anda";
+"Watch Connected" = "Watch Disambungkan";
+"Open Watch App" = "Buka App Watch";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "HIDUPKAN WI-FI PADA KEDUA-DUA PERANTI — WAJIB";
+"WifiBannerBody" = "Tiada rangkaian diperlukan — peranti menyambung terus.";
+"WifiEscalationTip" = "Masih mencari… Pastikan Wi-Fi dihidupkan — pada peranti ini dan peranti satu lagi. Mematikannya dalam Pusat Kawalan masih dikira mati: gunakan Tetapan > Wi-Fi.";

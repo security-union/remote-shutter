@@ -158,5 +158,85 @@ window.I18N = {
       "PHOTO & VIDEO": "照片和视频", "TIMER": "定时器",
       "ZOOM & LENS": "变焦和镜头", "FLASH & TORCH": "闪光灯和手电筒"
     }
+  },
+  "hi": {
+    sublines: { "0": "इंटरनेट की ज़रूरत नहीं — AirDrop जैसा पीयर-टू-पीयर।", "1": "रियर कैमरे से लिया। किसी भी सेल्फी से तेज़।" },
+    headlines: {
+      "0": ["एक फ़ोन है कैमरा।", "दूसरा है रिमोट।"],
+      "1": ["सब फ़्रेम में।", "आप भी।"],
+      "2": ["सब कुछ देखें।", "सब कुछ कंट्रोल करें।"],
+      "3": ["पास जाएँ।", "बिना पास गए।"],
+      "4": ["नया: शटर दबाएँ", "अपनी कलाई से।"],
+      "5": ["न इंटरनेट। न अकाउंट।", "बस कनेक्ट करें।"]
+    },
+    labels: {
+      "CAMERA": "कैमरा", "REMOTE": "रिमोट",
+      "PHOTO & VIDEO": "फ़ोटो और वीडियो", "TIMER": "टाइमर",
+      "ZOOM & LENS": "ज़ूम और लेंस", "FLASH & TORCH": "फ़्लैश और टॉर्च"
+    }
+  },
+  "vi": {
+    sublines: { "0": "Không cần internet — ngang hàng, như AirDrop.", "1": "Chụp bằng camera sau. Sắc nét hơn mọi ảnh selfie." },
+    headlines: {
+      "0": ["Một máy là máy ảnh.", "Máy kia là điều khiển."],
+      "1": ["Mọi người vào khung.", "Kể cả bạn."],
+      "2": ["Thấy mọi thứ.", "Điều khiển mọi thứ."],
+      "3": ["Lại gần.", "Mà không cần đến gần."],
+      "4": ["MỚI: Bấm màn trập", "từ cổ tay bạn."],
+      "5": ["Không internet. Không tài khoản.", "Chỉ việc kết nối."]
+    },
+    labels: {
+      "CAMERA": "MÁY ẢNH", "REMOTE": "ĐIỀU KHIỂN",
+      "PHOTO & VIDEO": "ẢNH & VIDEO", "TIMER": "HẸN GIỜ",
+      "ZOOM & LENS": "THU PHÓNG & ỐNG KÍNH", "FLASH & TORCH": "ĐÈN FLASH & ĐÈN PIN"
+    }
+  },
+  "ms": {
+    sublines: { "0": "Tiada internet perlu — peer-to-peer, seperti AirDrop.", "1": "Dirakam dengan kamera belakang. Lebih tajam dari swafoto." },
+    headlines: {
+      "0": ["Satu telefon jadi kamera.", "Satu lagi jadi kawalan."],
+      "1": ["Semua masuk gambar.", "Termasuk anda."],
+      "2": ["Lihat segalanya.", "Kawal segalanya."],
+      "3": ["Semakin dekat.", "Tanpa mendekat."],
+      "4": ["BAHARU: Cetuskan pengatup", "dari pergelangan tangan."],
+      "5": ["Tiada internet. Tiada akaun.", "Cuma sambung."]
+    },
+    labels: {
+      "CAMERA": "KAMERA", "REMOTE": "KAWALAN JAUH",
+      "PHOTO & VIDEO": "FOTO & VIDEO", "TIMER": "PEMASA",
+      "ZOOM & LENS": "ZUM & KANTA", "FLASH & TORCH": "DENYAR & LAMPU"
+    }
+  },
+  "tr": {
+    sublines: { "0": "İnternet gerekmez — AirDrop gibi eşler arası.", "1": "Arka kamerayla çekildi. Her selfie'den keskin." },
+    headlines: {
+      "0": ["Bir telefon kamera olur.", "Diğeri kumanda."],
+      "1": ["Herkes karede.", "Sen de dahil."],
+      "2": ["Her şeyi gör.", "Her şeyi kontrol et."],
+      "3": ["Yaklaş.", "Yaklaşmadan."],
+      "4": ["YENİ: Deklanşörü", "bileğinden tetikle."],
+      "5": ["İnternet yok. Hesap yok.", "Sadece bağlan."]
+    },
+    labels: {
+      "CAMERA": "KAMERA", "REMOTE": "KUMANDA",
+      "PHOTO & VIDEO": "FOTOĞRAF VE VİDEO", "TIMER": "ZAMANLAYICI",
+      "ZOOM & LENS": "ZOOM VE OBJEKTİF", "FLASH & TORCH": "FLAŞ VE EL FENERİ"
+    }
+  },
+  "ru": {
+    sublines: { "0": "Интернет не нужен — peer-to-peer, как AirDrop.", "1": "Снято на основную камеру. Чётче любого селфи." },
+    headlines: {
+      "0": ["Один телефон — камера.", "Другой — пульт."],
+      "1": ["Все в кадре.", "И вы тоже."],
+      "2": ["Всё видно.", "Всё под контролем."],
+      "3": ["Снимайте вблизи.", "Не приближаясь."],
+      "4": ["НОВОЕ: спуск затвора", "прямо с запястья."],
+      "5": ["Без интернета. Без аккаунта.", "Просто подключитесь."]
+    },
+    labels: {
+      "CAMERA": "КАМЕРА", "REMOTE": "ПУЛЬТ",
+      "PHOTO & VIDEO": "ФОТО И ВИДЕО", "TIMER": "ТАЙМЕР",
+      "ZOOM & LENS": "ЗУМ И ОБЪЕКТИВ", "FLASH & TORCH": "ВСПЫШКА И ФОНАРИК"
+    }
   }
 };

@@ -1,0 +1,332 @@
+/* No comment provided by engineer. */
+"%@, ¿Desea intentar nuevamente?" = "%@, क्या आप फिर से कोशिश करना चाहेंगे?";
+
+/* No comment provided by engineer. */
+"AppName" = "Remote Shutter";
+
+/* No comment provided by engineer. */
+"Camera or remote shutter?" = "कैमरा या रिमोट शटर?";
+
+/* No comment provided by engineer. */
+"Cellular" = "सेल्युलर";
+
+/* No comment provided by engineer. */
+"CHOOSE A DEVICE" = "एक डिवाइस चुनें";
+
+/* No comment provided by engineer. */
+"Connecting" = "कनेक्ट हो रहा है";
+
+/* No comment provided by engineer. */
+"Disconnect" = "डिस्कनेक्ट करें";
+
+/* No comment provided by engineer. */
+"Espere..." = "प्रतीक्षा करें...";
+
+/* No comment provided by engineer. */
+"flash_mode_auto" = "ऑटो";
+
+/* No comment provided by engineer. */
+"flash_mode_off" = "बंद";
+
+/* No comment provided by engineer. */
+"flash_mode_on" = "चालू";
+
+/* No comment provided by engineer. */
+"Loading Image" = "इमेज लोड हो रही है";
+
+/* Default DejalActivtyView label text */
+"Loading..." = "लोड हो रहा है...";
+
+/* No comment provided by engineer. */
+"Looking for devices over Wifi and Bluetooth." = "Wi-Fi और Bluetooth पर डिवाइस खोजे जा रहे हैं।";
+
+/* No comment provided by engineer. */
+"No Connection" = "कोई कनेक्शन नहीं";
+
+/* No comment provided by engineer. */
+"Reestableciendo compras" = "खरीदारी पुनर्स्थापित की जा रही है";
+
+/* No comment provided by engineer. */
+"Requesting capture" = "कैप्चर का अनुरोध किया जा रहा है";
+
+/* No comment provided by engineer. */
+"ROLE PICKER" = "भूमिका चुनें";
+
+/* No comment provided by engineer. */
+"Sending Photo to Remote" = "रिमोट को फ़ोटो भेजी जा रही है";
+
+/* No comment provided by engineer. */
+"Si" = "हाँ";
+
+"Yes"= "हाँ";
+
+/* No comment provided by engineer. */
+"WiFi" = "Wi-Fi";
+
+/* No comment provided by engineer. */
+"¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "क्या आप अपने %@ को पहले खरीदी गई सुविधाओं के साथ सिंक करना चाहते हैं (मुफ़्त)?";
+
+"Acknowledgments"= "आभार";
+
+"timeunit"= "सेकंड";
+
+"Settings"="सेटिंग्स";
+
+"Upgrades"="अपग्रेड";
+
+"Timer to take photos"="फ़ोटो लेने के लिए टाइमर";
+
+"Incoming Invite from %@"="%@ से आमंत्रण आ रहा है";
+
+"Do you wish to accept?,"="क्या आप स्वीकार करना चाहते हैं?";
+
+"¡Gracias por usar nuestra App!"="हमारा ऐप उपयोग करने के लिए धन्यवाद!";
+
+"En otro momento"="बाद में";
+
+"Calificar en la AppStore"="रेट करें";
+
+"Mandar Feedback"="फ़ीडबैक भेजें";
+
+"No Gracias"="नहीं, धन्यवाद";
+
+"iAds Removed"="विज्ञापन हटा दिए गए";
+
+"call_to_download" = "आज ही Remote Shutter डाउनलोड करें %@";
+
+/* Local Network Permission Modal */
+"local_network_title" = "लोकल नेटवर्क तक पहुँच का अनुरोध";
+"local_network_subtitle" = "Apple के पीयर-टू-पीयर फ्रेमवर्क से आपके डिवाइस खोजने और कनेक्ट करने के लिए Remote Shutter को लोकल नेटवर्क तक पहुँच चाहिए।";
+
+"local_network_access_required_title" = "लोकल नेटवर्क पहुँच आवश्यक";
+"local_network_required_subtitle" = "Remote Shutter को काम करने के लिए लोकल नेटवर्क पहुँच चाहिए। जारी रखने के लिए कृपया इसे सेटिंग्स में चालू करें।";
+
+"local_network_feature_title" = "पीयर-टू-पीयर कनेक्शन";
+"local_network_feature_description" = "आपके लोकल नेटवर्क पर डिवाइस खोजने और कनेक्ट करने के लिए Apple के MultipeerConnectivity फ्रेमवर्क का उपयोग करता है, ताकि रिमोट कंट्रोल सहज रहे।";
+
+"local_network_privacy_title" = "गोपनीयता सुरक्षित";
+"local_network_privacy_description" = "आपका कनेक्शन पूरी तरह आपके लोकल नेटवर्क के भीतर निजी रहता है। कोई डेटा किसी बाहरी सर्वर या तीसरे पक्ष को नहीं भेजा जाता।";
+
+"local_network_benefits_title" = "तुरंत और भरोसेमंद";
+"local_network_benefits_description" = "सीधे डिवाइस-से-डिवाइस संचार तेज़ रिस्पॉन्स सुनिश्चित करता है और इंटरनेट कनेक्टिविटी के बिना काम करता है।";
+
+"local_network_continue" = "जारी रखें";
+"local_network_cancel" = "रद्द करें";
+"local_network_open_settings" = "सेटिंग्स खोलें";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "कैमरा और फ़ोटो तक पहुँच दें";
+"camera_permissions_subtitle" = "अन्य डिवाइस से कनेक्ट होने पर इमेज कैप्चर और सेव करने के लिए Remote Shutter को आपके कैमरा और फ़ोटो तक पहुँच चाहिए।";
+
+"camera_permissions_required_title" = "कैमरा और फ़ोटो पहुँच आवश्यक";
+"camera_permissions_required_subtitle" = "Remote Shutter को काम करने के लिए कैमरा और फ़ोटो पहुँच चाहिए। जारी रखने के लिए कृपया इन्हें सेटिंग्स में चालू करें।";
+
+"camera_permission_feature_title" = "कैमरा पहुँच";
+"camera_permission_feature_description" = "एक डिवाइस को कैमरा और दूसरे को रिमोट कंट्रोल बनाकर बेहतरीन शॉट्स के लिए दूर से फ़ोटो लें।";
+
+"photos_permission_feature_title" = "फ़ोटो सेव करें";
+"photos_permission_feature_description" = "आसान पहुँच और शेयरिंग के लिए कैप्चर की गई फ़ोटो अपने आप आपकी फ़ोटो लाइब्रेरी में सेव करें।";
+
+"remote_control_feature_title" = "रिमोट कंट्रोल";
+"remote_control_feature_description" = "ग्रुप फ़ोटो, सेल्फी और क्रिएटिव शॉट्स के लिए एक डिवाइस से दूसरे डिवाइस के कैमरा को कंट्रोल करें।";
+
+"camera_permissions_continue" = "जारी रखें";
+"camera_permissions_cancel" = "रद्द करें";
+"camera_permissions_open_settings" = "सेटिंग्स खोलें";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "कैमरा अनुमति अभी तक नहीं माँगी गई";
+"camera_permission_denied" = "कैमरा पहुँच अस्वीकृत";
+"camera_permission_restricted" = "कैमरा पहुँच प्रतिबंधित";
+"camera_permission_authorized" = "कैमरा पहुँच स्वीकृत";
+"camera_permission_unknown" = "कैमरा अनुमति की स्थिति अज्ञात";
+
+"photos_permission_not_determined" = "फ़ोटो अनुमति अभी तक नहीं माँगी गई";
+"photos_permission_denied" = "फ़ोटो पहुँच अस्वीकृत";
+"photos_permission_restricted" = "फ़ोटो पहुँच प्रतिबंधित";
+"photos_permission_authorized" = "पूर्ण फ़ोटो पहुँच स्वीकृत";
+"photos_permission_limited" = "सीमित फ़ोटो पहुँच स्वीकृत";
+"photos_permission_unknown" = "फ़ोटो अनुमति की स्थिति अज्ञात";
+
+/* Camera Error View */
+"camera_error_title" = "कैमरा पहुँच आवश्यक";
+"camera_error_subtitle" = "Remote Shutter को काम करने के लिए आपके कैमरा और फ़ोटो तक पहुँच चाहिए। कृपया सेटिंग्स में अनुमतियाँ चालू करें।";
+"camera_error_open_settings" = "सेटिंग्स खोलें";
+"camera_error_go_back" = "वापस जाएँ";
+"camera_access_required" = "कैमरा पहुँच";
+"photos_access_required" = "फ़ोटो पहुँच";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "माइक्रोफ़ोन पहुँच अस्वीकृत। वीडियो ऑडियो के बिना रिकॉर्ड होगा।";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "माइक्रोफ़ोन पहुँच आवश्यक";
+"mic_required_subtitle" = "ऑडियो के साथ वीडियो रिकॉर्ड करने के लिए Remote Shutter को आपके माइक्रोफ़ोन तक पहुँच चाहिए। कृपया इसे सेटिंग्स में चालू करें।";
+"video_recording_feature_title" = "वीडियो रिकॉर्डिंग";
+"video_recording_feature_description" = "पूर्ण रिकॉर्डिंग अनुभव के लिए अपने डिवाइस के माइक्रोफ़ोन से ऑडियो सहित उच्च गुणवत्ता वाले वीडियो रिकॉर्ड करें।";
+"mic_open_settings" = "सेटिंग्स खोलें";
+"mic_cancel_recording" = "रिकॉर्डिंग रद्द करें";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "वीडियो रिकॉर्ड नहीं हो सकता: माइक्रोफ़ोन पहुँच अस्वीकृत थी। ऑडियो सहित वीडियो रिकॉर्ड करने के लिए कृपया सेटिंग्स में माइक्रोफ़ोन पहुँच चालू करें।";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "App Store से Remote Shutter डाउनलोड करने के लिए इस QR कोड को दूसरे डिवाइस के कैमरा ऐप से स्कैन करें";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "फ़ोटो सेव नहीं हो सकती";
+"photos_access_denied_photo_subtitle" = "कैप्चर की गई इमेज सेव करने के लिए Remote Shutter को आपकी फ़ोटो लाइब्रेरी तक पहुँच चाहिए। कृपया सेटिंग्स में फ़ोटो पहुँच चालू करें।";
+"photos_access_denied_video_title" = "वीडियो सेव नहीं हो सकता";
+"photos_access_denied_video_subtitle" = "रिकॉर्ड किया गया वीडियो सेव करने के लिए Remote Shutter को आपकी फ़ोटो लाइब्रेरी तक पहुँच चाहिए। कृपया सेटिंग्स में फ़ोटो पहुँच चालू करें।";
+
+"photos_privacy_feature_title" = "आपकी गोपनीयता मायने रखती है";
+"photos_privacy_feature_description" = "फ़ोटो सीधे आपके डिवाइस की लाइब्रेरी में सेव होती हैं। कोई डेटा बाहरी सर्वर पर अपलोड या आपकी अनुमति के बिना साझा नहीं किया जाता।";
+
+"photos_sharing_feature_title" = "आसान शेयरिंग";
+"photos_sharing_feature_description" = "दोस्तों और परिवार के साथ आसानी से साझा करने या अन्य ऐप्स में उपयोग करने के लिए फ़ोटो ऐप से अपनी कैप्चर की गई फ़ोटो और वीडियो देखें।";
+
+"photos_open_settings" = "सेटिंग्स खोलें";
+"photos_dismiss" = "खारिज करें";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "वीडियो ट्रांसफ़र हो रहा है";
+
+/* Help Modal */
+"help_title" = "Remote Shutter कैसे काम करता है";
+"help_subtitle" = "दो डिवाइस से बेहतरीन फ़ोटो और वीडियो लें";
+"help_got_it" = "समझ गया!";
+"help_done" = "हो गया";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "2. डिवाइस कनेक्ट करें";
+"help_connect_description" = "कैमरा डिवाइस ऑनलाइन होकर प्रतीक्षा करता है। रिमोट डिवाइस पर, कैमरों के लिए स्कैन करें और कनेक्ट करने के लिए कैमरा के नाम पर टैप करें।";
+"help_quick_setup_title" = "त्वरित सेटअप";
+"help_quick_setup_description" = "अपने दूसरे डिवाइस पर App Store से Remote Shutter डाउनलोड करने के लिए QR कोड का उपयोग करें";
+"help_same_network_title" = "पीयर-टू-पीयर कनेक्शन";
+"help_same_network_description" = "डिवाइस Wi-Fi और Bluetooth से एक-दूसरे से सीधे कनेक्ट होते हैं, बिल्कुल AirDrop की तरह - इंटरनेट की ज़रूरत नहीं";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "1. अपनी भूमिका चुनें";
+"help_roles_description" = "पहले, चुनें कि यह डिवाइस कैमरा होगा या रिमोट। कैमरा डिवाइस फ़ोटो और वीडियो कैप्चर करता है, जबकि रिमोट उसे कंट्रोल करता है।";
+"help_camera_device_title" = "कैमरा डिवाइस";
+"help_camera_device_description" = "फ़ोटो और वीडियो लेता है, कैमरा प्रीव्यू दिखाता है";
+"help_remote_device_title" = "रिमोट डिवाइस";
+"help_remote_device_description" = "कैमरा कंट्रोल करता है, लाइव प्रीव्यू दिखाता है, सेटिंग्स समायोजित करता है";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. बेहतरीन पल कैप्चर करें";
+"help_capture_description" = "कैमरा कंट्रोल करने, सेटिंग्स समायोजित करने और दूर से फ़ोटो या वीडियो कैप्चर करने के लिए रिमोट डिवाइस का उपयोग करें।";
+"help_remote_shutter_title" = "रिमोट शटर";
+"help_remote_shutter_description" = "कैमरा डिवाइस को छुए बिना फ़ोटो लें";
+"help_video_recording_title" = "वीडियो रिकॉर्डिंग";
+"help_video_recording_description" = "वीडियो रिकॉर्डिंग दूर से शुरू और बंद करें";
+"help_camera_controls_title" = "कैमरा कंट्रोल";
+"help_camera_controls_description" = "फ़्लैश, टॉर्च, टाइमर और कैमरा सेटिंग्स समायोजित करें";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "टिप्स और ट्रिक्स";
+"help_tips_description" = "इन उपयोगी टिप्स के साथ Remote Shutter का पूरा फ़ायदा उठाएँ";
+"help_group_photos_title" = "ग्रुप फ़ोटो";
+"help_group_photos_description" = "ग्रुप सेल्फी के लिए बढ़िया - कैमरा सेट करें और शॉट में सभी को कैप्चर करने के लिए रिमोट का उपयोग करें";
+"help_timer_feature_title" = "टाइमर सुविधा";
+"help_timer_feature_description" = "फ़ोटो लेने से पहले तैयार होने के लिए रिमोट डिवाइस पर टाइमर का उपयोग करें";
+"help_switch_cameras_title" = "कैमरा बदलें";
+"help_switch_cameras_description" = "रिमोट डिवाइस से सीधे फ्रंट और बैक कैमरा के बीच स्विच करें";
+"help_auto_save_title" = "ऑटो सेव";
+"help_auto_save_description" = "फ़ोटो और वीडियो अपने आप दोनों डिवाइस की फ़ोटो लाइब्रेरी में सेव हो जाते हैं";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "रिमोट की प्रतीक्षा में";
+"Scan for cameras" = "कैमरों के लिए स्कैन करें";
+"Camera Mode" = "कैमरा मोड";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "दूसरे डिवाइस पर, Remote Shutter खोलें और Remote चुनें। यह कैमरा उनकी डिवाइस सूची में दिखेगा।";
+"Go Online" = "ऑनलाइन हों";
+"Go Offline" = "ऑफ़लाइन हों";
+"Waiting for a remote to connect..." = "किसी रिमोट के कनेक्ट होने की प्रतीक्षा में...";
+"WAITING FOR A REMOTE TO CONNECT..." = "किसी रिमोट के कनेक्ट होने की प्रतीक्षा में...";
+"SEARCHING FOR NEARBY CAMERAS..." = "आस-पास के कैमरे खोजे जा रहे हैं...";
+"Scanning for nearby cameras..." = "आस-पास के कैमरे स्कैन किए जा रहे हैं...";
+"Start scanning and wait for a Remote device to connect" = "स्कैन करना शुरू करें और किसी रिमोट डिवाइस के कनेक्ट होने की प्रतीक्षा करें";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "दो डिवाइस को एक प्रोफेशनल रिमोट कैमरा सिस्टम में बदलें";
+"Restore Purchases" = "खरीदारी पुनर्स्थापित करें";
+"Unlock all features: video recording, torch control, and ad-free experience." = "सभी सुविधाएँ अनलॉक करें: वीडियो रिकॉर्डिंग, टॉर्च कंट्रोल और विज्ञापन-मुक्त अनुभव।";
+"Get Started" = "शुरू करें";
+"Thank you for your support!" = "आपके सहयोग के लिए धन्यवाद!";
+"Rate on App Store" = "App Store पर रेट करें";
+"Welcome" = "स्वागत है";
+"Purchase" = "खरीदें";
+"Restored" = "पुनर्स्थापित";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "आपकी खरीदारी पुनर्स्थापित कर दी गई है। यदि वे नहीं दिख रहीं, तो जाँचें कि आप सही Apple ID से साइन इन हैं।";
+
+/* Role Picker Screen */
+"Pick a role" = "एक भूमिका चुनें";
+"Camera" = "कैमरा";
+"Capture photos & video" = "फ़ोटो और वीडियो कैप्चर करें";
+"Use the device with the best lens" = "सबसे अच्छे लेंस वाले डिवाइस का उपयोग करें";
+"Remote" = "रिमोट";
+"Control the shutter" = "शटर को कंट्रोल करें";
+"Works up to 50 feet away" = "50 फ़ीट दूर तक काम करता है";
+"Remote Mode" = "रिमोट मोड";
+
+/* Alert Messages */
+"Scanning Error" = "स्कैनिंग त्रुटि";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "आस-पास के डिवाइस स्कैन नहीं हो सके। कृपया अपनी नेटवर्क सेटिंग्स जाँचें और फिर से कोशिश करें।";
+"OK" = "ठीक है";
+"Ok" = "ठीक है";
+"Error" = "त्रुटि";
+"Connection error" = "कनेक्शन त्रुटि";
+"Unable to start recording" = "रिकॉर्डिंग शुरू नहीं हो सकी";
+
+/* Scanner UI */
+"Connect" = "कनेक्ट करें";
+"Connecting..." = "कनेक्ट हो रहा है...";
+"Start Scanning" = "स्कैन करना शुरू करें";
+"Stop Scanning" = "स्कैन करना बंद करें";
+"Share App Link" = "ऐप लिंक शेयर करें";
+"Scan for devices" = "डिवाइस के लिए स्कैन करें";
+"Open Settings" = "सेटिंग्स खोलें";
+"You need at least 2 devices running Remote Shutter" = "आपको Remote Shutter चलाने वाले कम से कम 2 डिवाइस चाहिए";
+"Scan the QR code on another device to download Remote Shutter" = "Remote Shutter डाउनलोड करने के लिए दूसरे डिवाइस पर QR कोड स्कैन करें";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "स्कैनिंग त्रुटि - नेटवर्क सेटिंग्स जाँचें";
+"TAP THE BUTTON TO GET STARTED" = "शुरू करने के लिए बटन टैप करें";
+
+/* Settings */
+"About" = "जानकारी";
+"Back" = "वापस";
+"Contact Support" = "सपोर्ट से संपर्क करें";
+"Discord Community" = "Discord समुदाय";
+"In-App Purchases" = "ऐप-में खरीदारी";
+"Purchased" = "खरीदा गया";
+"Send Media to Remote" = "रिमोट को मीडिया भेजें";
+"Source Code" = "सोर्स कोड";
+"Version" = "वर्शन";
+
+/* Camera/Monitor Status */
+"Taking photo" = "फ़ोटो ली जा रही है";
+"Taking picture" = "तस्वीर ली जा रही है";
+"Starting video" = "वीडियो शुरू हो रहा है";
+"Stopping video" = "वीडियो रुक रहा है";
+"Recording shorts" = "शॉर्ट्स रिकॉर्ड हो रहे हैं";
+"Unable to save video" = "वीडियो सेव नहीं हो सका";
+"Unable to save video to Photos app" = "वीडियो फ़ोटो ऐप में सेव नहीं हो सका";
+"Purchases restored successfully." = "खरीदारी सफलतापूर्वक पुनर्स्थापित हो गई।";
+"Pick a role: Camera or Remote" = "एक भूमिका चुनें: कैमरा या रिमोट";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "प्रो: सभी सुविधाएँ";
+"Remove Ads" = "विज्ञापन हटाएँ";
+"Enable Torch" = "टॉर्च चालू करें";
+"Enable Video" = "वीडियो चालू करें";
+
+/* Apple Watch Remote */
+"Watch Remote" = "Watch रिमोट";
+"Control from your wrist" = "अपनी कलाई से कंट्रोल करें";
+"Watch Connected" = "Watch कनेक्ट हुई";
+"Open Watch App" = "Watch ऐप खोलें";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "दोनों डिवाइस पर Wi-Fi चालू करें — ज़रूरी है";
+"WifiBannerBody" = "किसी नेटवर्क की ज़रूरत नहीं — डिवाइस सीधे कनेक्ट होते हैं।";
+"WifiEscalationTip" = "अभी भी खोज रहे हैं… जाँचें कि Wi-Fi चालू है — इस डिवाइस पर और दूसरे पर भी। Control Center से बंद करना भी बंद ही गिना जाता है: सेटिंग्स > Wi-Fi का उपयोग करें।";

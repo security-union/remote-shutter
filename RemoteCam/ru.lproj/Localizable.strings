@@ -1,0 +1,332 @@
+/* No comment provided by engineer. */
+"%@, ¿Desea intentar nuevamente?" = "%@, попробовать ещё раз?";
+
+/* No comment provided by engineer. */
+"AppName" = "Remote Shutter";
+
+/* No comment provided by engineer. */
+"Camera or remote shutter?" = "Камера или пульт?";
+
+/* No comment provided by engineer. */
+"Cellular" = "Сотовая сеть";
+
+/* No comment provided by engineer. */
+"CHOOSE A DEVICE" = "ВЫБЕРИТЕ УСТРОЙСТВО";
+
+/* No comment provided by engineer. */
+"Connecting" = "Подключение";
+
+/* No comment provided by engineer. */
+"Disconnect" = "Отключиться";
+
+/* No comment provided by engineer. */
+"Espere..." = "Подождите…";
+
+/* No comment provided by engineer. */
+"flash_mode_auto" = "Авто";
+
+/* No comment provided by engineer. */
+"flash_mode_off" = "Выкл.";
+
+/* No comment provided by engineer. */
+"flash_mode_on" = "Вкл.";
+
+/* No comment provided by engineer. */
+"Loading Image" = "Загрузка изображения";
+
+/* Default DejalActivtyView label text */
+"Loading..." = "Загрузка…";
+
+/* No comment provided by engineer. */
+"Looking for devices over Wifi and Bluetooth." = "Поиск устройств по Wi-Fi и Bluetooth.";
+
+/* No comment provided by engineer. */
+"No Connection" = "Нет соединения";
+
+/* No comment provided by engineer. */
+"Reestableciendo compras" = "Восстановление покупок";
+
+/* No comment provided by engineer. */
+"Requesting capture" = "Запрос съёмки";
+
+/* No comment provided by engineer. */
+"ROLE PICKER" = "ВЫБОР РОЛИ";
+
+/* No comment provided by engineer. */
+"Sending Photo to Remote" = "Отправка фото на пульт";
+
+/* No comment provided by engineer. */
+"Si" = "Да";
+
+"Yes"= "Да";
+
+/* No comment provided by engineer. */
+"WiFi" = "Wi-Fi";
+
+/* No comment provided by engineer. */
+"¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "Синхронизировать %@ с ранее приобретёнными функциями (бесплатно)?";
+
+"Acknowledgments"= "Благодарности";
+
+"timeunit"= "сек";
+
+"Settings"="Настройки";
+
+"Upgrades"="Улучшения";
+
+"Timer to take photos"="Таймер для съёмки фото";
+
+"Incoming Invite from %@"="Входящее приглашение от %@";
+
+"Do you wish to accept?,"="Принять?";
+
+"¡Gracias por usar nuestra App!"="Спасибо, что пользуетесь приложением!";
+
+"En otro momento"="Позже";
+
+"Calificar en la AppStore"="Оценить";
+
+"Mandar Feedback"="Отправить отзыв";
+
+"No Gracias"="Нет, спасибо";
+
+"iAds Removed"="Реклама удалена";
+
+"call_to_download" = "Скачайте Remote Shutter сегодня %@";
+
+/* Local Network Permission Modal */
+"local_network_title" = "Запрос доступа к локальной сети";
+"local_network_subtitle" = "Remote Shutter требуется доступ к локальной сети, чтобы находить и подключать ваши устройства через технологию Apple peer-to-peer.";
+
+"local_network_access_required_title" = "Требуется доступ к локальной сети";
+"local_network_required_subtitle" = "Для работы Remote Shutter нужен доступ к локальной сети. Включите его в Настройках, чтобы продолжить.";
+
+"local_network_feature_title" = "Соединение peer-to-peer";
+"local_network_feature_description" = "Использует фреймворк Apple MultipeerConnectivity для обнаружения и подключения устройств в локальной сети для удобного удалённого управления.";
+
+"local_network_privacy_title" = "Конфиденциальность защищена";
+"local_network_privacy_description" = "Ваше соединение остаётся полностью приватным в пределах локальной сети. Данные не отправляются на внешние серверы или третьим лицам.";
+
+"local_network_benefits_title" = "Быстро и надёжно";
+"local_network_benefits_description" = "Прямая связь между устройствами обеспечивает быстрый отклик и работает без подключения к интернету.";
+
+"local_network_continue" = "Продолжить";
+"local_network_cancel" = "Отмена";
+"local_network_open_settings" = "Открыть Настройки";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "Разрешите доступ к камере и фото";
+"camera_permissions_subtitle" = "Remote Shutter требуется доступ к камере и фото, чтобы снимать и сохранять изображения при подключении к другим устройствам.";
+
+"camera_permissions_required_title" = "Требуется доступ к камере и фото";
+"camera_permissions_required_subtitle" = "Для работы Remote Shutter нужен доступ к камере и фото. Включите его в Настройках, чтобы продолжить.";
+
+"camera_permission_feature_title" = "Доступ к камере";
+"camera_permission_feature_description" = "Делайте снимки удалённо: одно устройство — камера, другое — пульт для идеальных кадров.";
+
+"photos_permission_feature_title" = "Сохранение фото";
+"photos_permission_feature_description" = "Автоматически сохраняйте снимки в медиатеку для удобного доступа и обмена.";
+
+"remote_control_feature_title" = "Удалённое управление";
+"remote_control_feature_description" = "Управляйте камерой одного устройства с другого для групповых фото, селфи и креативных кадров.";
+
+"camera_permissions_continue" = "Продолжить";
+"camera_permissions_cancel" = "Отмена";
+"camera_permissions_open_settings" = "Открыть Настройки";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "Разрешение на камеру ещё не запрошено";
+"camera_permission_denied" = "Доступ к камере запрещён";
+"camera_permission_restricted" = "Доступ к камере ограничен";
+"camera_permission_authorized" = "Доступ к камере предоставлен";
+"camera_permission_unknown" = "Неизвестный статус доступа к камере";
+
+"photos_permission_not_determined" = "Разрешение на фото ещё не запрошено";
+"photos_permission_denied" = "Доступ к фото запрещён";
+"photos_permission_restricted" = "Доступ к фото ограничен";
+"photos_permission_authorized" = "Предоставлен полный доступ к фото";
+"photos_permission_limited" = "Предоставлен ограниченный доступ к фото";
+"photos_permission_unknown" = "Неизвестный статус доступа к фото";
+
+/* Camera Error View */
+"camera_error_title" = "Требуется доступ к камере";
+"camera_error_subtitle" = "Для работы Remote Shutter нужен доступ к камере и фото. Включите разрешения в Настройках.";
+"camera_error_open_settings" = "Открыть Настройки";
+"camera_error_go_back" = "Назад";
+"camera_access_required" = "Доступ к камере";
+"photos_access_required" = "Доступ к фото";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "Доступ к микрофону запрещён. Видео будет записано без звука.";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "Требуется доступ к микрофону";
+"mic_required_subtitle" = "Чтобы записывать видео со звуком, Remote Shutter нужен доступ к микрофону. Включите его в Настройках.";
+"video_recording_feature_title" = "Запись видео";
+"video_recording_feature_description" = "Записывайте видео высокого качества со звуком через микрофон устройства для полноценной съёмки.";
+"mic_open_settings" = "Открыть Настройки";
+"mic_cancel_recording" = "Отменить запись";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "Не удаётся записать видео: доступ к микрофону запрещён. Включите доступ к микрофону в Настройках, чтобы записывать видео со звуком.";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "Отсканируйте этот QR-код приложением «Камера» на другом устройстве, чтобы скачать Remote Shutter из App Store";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "Не удаётся сохранить фото";
+"photos_access_denied_photo_subtitle" = "Remote Shutter нужен доступ к медиатеке «Фото», чтобы сохранить снимок. Включите доступ к фото в Настройках.";
+"photos_access_denied_video_title" = "Не удаётся сохранить видео";
+"photos_access_denied_video_subtitle" = "Remote Shutter нужен доступ к медиатеке «Фото», чтобы сохранить запись. Включите доступ к фото в Настройках.";
+
+"photos_privacy_feature_title" = "Ваша конфиденциальность важна";
+"photos_privacy_feature_description" = "Фото сохраняются прямо в медиатеку устройства. Данные не загружаются на внешние серверы и не передаются без вашего разрешения.";
+
+"photos_sharing_feature_title" = "Удобный обмен";
+"photos_sharing_feature_description" = "Открывайте снятые фото и видео в приложении «Фото», чтобы легко делиться ими с близкими или использовать в других приложениях.";
+
+"photos_open_settings" = "Открыть Настройки";
+"photos_dismiss" = "Закрыть";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "Передача видео";
+
+/* Help Modal */
+"help_title" = "Как работает Remote Shutter";
+"help_subtitle" = "Делайте идеальные фото и видео с помощью двух устройств";
+"help_got_it" = "Понятно!";
+"help_done" = "Готово";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "2. Подключите устройства";
+"help_connect_description" = "Устройство-камера выходит в сеть и ждёт. На устройстве-пульте найдите камеры и коснитесь имени камеры, чтобы подключиться.";
+"help_quick_setup_title" = "Быстрая настройка";
+"help_quick_setup_description" = "Используйте QR-код, чтобы скачать Remote Shutter на второе устройство из App Store";
+"help_same_network_title" = "Соединение peer-to-peer";
+"help_same_network_description" = "Устройства подключаются напрямую друг к другу по Wi-Fi и Bluetooth, как AirDrop — интернет не нужен";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "1. Выберите роль";
+"help_roles_description" = "Сначала выберите, чем будет это устройство — камерой или пультом. Камера снимает фото и видео, а пульт ею управляет.";
+"help_camera_device_title" = "Устройство-камера";
+"help_camera_device_description" = "Снимает фото и видео, показывает изображение с камеры";
+"help_remote_device_title" = "Устройство-пульт";
+"help_remote_device_description" = "Управляет камерой, показывает живое изображение, меняет настройки";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. Ловите идеальные моменты";
+"help_capture_description" = "Используйте пульт, чтобы управлять камерой, менять настройки и снимать фото или видео на расстоянии.";
+"help_remote_shutter_title" = "Дистанционный спуск";
+"help_remote_shutter_description" = "Снимайте фото, не касаясь устройства-камеры";
+"help_video_recording_title" = "Запись видео";
+"help_video_recording_description" = "Начинайте и останавливайте запись видео удалённо";
+"help_camera_controls_title" = "Управление камерой";
+"help_camera_controls_description" = "Настраивайте вспышку, фонарик, таймер и параметры камеры";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "Советы и хитрости";
+"help_tips_description" = "Получите максимум от Remote Shutter с помощью этих полезных советов";
+"help_group_photos_title" = "Групповые фото";
+"help_group_photos_description" = "Идеально для групповых селфи: установите камеру и снимите всех с помощью пульта";
+"help_timer_feature_title" = "Таймер";
+"help_timer_feature_description" = "Используйте таймер на пульте, чтобы успеть подготовиться до съёмки";
+"help_switch_cameras_title" = "Переключение камер";
+"help_switch_cameras_description" = "Переключайтесь между фронтальной и основной камерами прямо с пульта";
+"help_auto_save_title" = "Автосохранение";
+"help_auto_save_description" = "Фото и видео автоматически сохраняются в медиатеки обоих устройств";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Ожидание пульта";
+"Scan for cameras" = "Поиск камер";
+"Camera Mode" = "Режим камеры";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "На другом устройстве откройте Remote Shutter и выберите «Пульт». Эта камера появится в списке устройств.";
+"Go Online" = "Выйти в сеть";
+"Go Offline" = "Выйти из сети";
+"Waiting for a remote to connect..." = "Ожидание подключения пульта…";
+"WAITING FOR A REMOTE TO CONNECT..." = "ОЖИДАНИЕ ПОДКЛЮЧЕНИЯ ПУЛЬТА…";
+"SEARCHING FOR NEARBY CAMERAS..." = "ПОИСК КАМЕР ПОБЛИЗОСТИ…";
+"Scanning for nearby cameras..." = "Поиск камер поблизости…";
+"Start scanning and wait for a Remote device to connect" = "Начните поиск и дождитесь подключения устройства-пульта";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Превратите два устройства в профессиональную систему удалённой камеры";
+"Restore Purchases" = "Восстановить покупки";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Откройте все функции: запись видео, управление фонариком и работа без рекламы.";
+"Get Started" = "Начать";
+"Thank you for your support!" = "Спасибо за вашу поддержку!";
+"Rate on App Store" = "Оценить в App Store";
+"Welcome" = "Добро пожаловать";
+"Purchase" = "Покупка";
+"Restored" = "Восстановлено";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Ваши покупки восстановлены. Если вы их не видите, убедитесь, что вошли с правильным Apple ID.";
+
+/* Role Picker Screen */
+"Pick a role" = "Выберите роль";
+"Camera" = "Камера";
+"Capture photos & video" = "Снимайте фото и видео";
+"Use the device with the best lens" = "Используйте устройство с лучшим объективом";
+"Remote" = "Пульт";
+"Control the shutter" = "Управляйте спуском";
+"Works up to 50 feet away" = "Работает на расстоянии до 15 метров";
+"Remote Mode" = "Режим пульта";
+
+/* Alert Messages */
+"Scanning Error" = "Ошибка поиска";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Не удаётся найти устройства поблизости. Проверьте сетевые настройки и повторите попытку.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Ошибка";
+"Connection error" = "Ошибка соединения";
+"Unable to start recording" = "Не удаётся начать запись";
+
+/* Scanner UI */
+"Connect" = "Подключить";
+"Connecting..." = "Подключение…";
+"Start Scanning" = "Начать поиск";
+"Stop Scanning" = "Остановить поиск";
+"Share App Link" = "Поделиться ссылкой";
+"Scan for devices" = "Поиск устройств";
+"Open Settings" = "Открыть Настройки";
+"You need at least 2 devices running Remote Shutter" = "Нужно минимум 2 устройства с Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Отсканируйте QR-код на другом устройстве, чтобы скачать Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "ОШИБКА ПОИСКА — ПРОВЕРЬТЕ СЕТЕВЫЕ НАСТРОЙКИ";
+"TAP THE BUTTON TO GET STARTED" = "НАЖМИТЕ КНОПКУ, ЧТОБЫ НАЧАТЬ";
+
+/* Settings */
+"About" = "О приложении";
+"Back" = "Назад";
+"Contact Support" = "Связаться с поддержкой";
+"Discord Community" = "Сообщество в Discord";
+"In-App Purchases" = "Встроенные покупки";
+"Purchased" = "Куплено";
+"Send Media to Remote" = "Отправлять медиа на пульт";
+"Source Code" = "Исходный код";
+"Version" = "Версия";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Съёмка фото";
+"Taking picture" = "Съёмка фото";
+"Starting video" = "Запуск видео";
+"Stopping video" = "Остановка видео";
+"Recording shorts" = "Запись роликов";
+"Unable to save video" = "Не удаётся сохранить видео";
+"Unable to save video to Photos app" = "Не удаётся сохранить видео в приложение «Фото»";
+"Purchases restored successfully." = "Покупки успешно восстановлены.";
+"Pick a role: Camera or Remote" = "Выберите роль: камера или пульт";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: все функции";
+"Remove Ads" = "Убрать рекламу";
+"Enable Torch" = "Включить фонарик";
+"Enable Video" = "Включить видео";
+
+/* Apple Watch Remote */
+"Watch Remote" = "Пульт на Watch";
+"Control from your wrist" = "Управляйте с запястья";
+"Watch Connected" = "Watch подключены";
+"Open Watch App" = "Открыть приложение Watch";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "ВКЛЮЧИТЕ WI-FI НА ОБОИХ УСТРОЙСТВАХ — ОБЯЗАТЕЛЬНО";
+"WifiBannerBody" = "Сеть не нужна — устройства подключаются напрямую.";
+"WifiEscalationTip" = "Всё ещё идёт поиск… Проверьте, что Wi-Fi включён — и на этом устройстве, и на другом. Отключение в Пункте управления всё равно считается выключением: используйте «Настройки» > «Wi-Fi».";

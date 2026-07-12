@@ -1,0 +1,332 @@
+/* No comment provided by engineer. */
+"%@, ¿Desea intentar nuevamente?" = "%@, bạn có muốn thử lại không?";
+
+/* No comment provided by engineer. */
+"AppName" = "Remote Shutter";
+
+/* No comment provided by engineer. */
+"Camera or remote shutter?" = "Máy ảnh hay điều khiển từ xa?";
+
+/* No comment provided by engineer. */
+"Cellular" = "Di động";
+
+/* No comment provided by engineer. */
+"CHOOSE A DEVICE" = "CHỌN MỘT THIẾT BỊ";
+
+/* No comment provided by engineer. */
+"Connecting" = "Đang kết nối";
+
+/* No comment provided by engineer. */
+"Disconnect" = "Ngắt kết nối";
+
+/* No comment provided by engineer. */
+"Espere..." = "Vui lòng chờ...";
+
+/* No comment provided by engineer. */
+"flash_mode_auto" = "Tự động";
+
+/* No comment provided by engineer. */
+"flash_mode_off" = "Tắt";
+
+/* No comment provided by engineer. */
+"flash_mode_on" = "Bật";
+
+/* No comment provided by engineer. */
+"Loading Image" = "Đang tải ảnh";
+
+/* Default DejalActivtyView label text */
+"Loading..." = "Đang tải...";
+
+/* No comment provided by engineer. */
+"Looking for devices over Wifi and Bluetooth." = "Đang tìm thiết bị qua Wi-Fi và Bluetooth.";
+
+/* No comment provided by engineer. */
+"No Connection" = "Không có kết nối";
+
+/* No comment provided by engineer. */
+"Reestableciendo compras" = "Đang khôi phục giao dịch mua";
+
+/* No comment provided by engineer. */
+"Requesting capture" = "Đang yêu cầu chụp";
+
+/* No comment provided by engineer. */
+"ROLE PICKER" = "CHỌN VAI TRÒ";
+
+/* No comment provided by engineer. */
+"Sending Photo to Remote" = "Đang gửi ảnh đến điều khiển từ xa";
+
+/* No comment provided by engineer. */
+"Si" = "Có";
+
+"Yes"= "Có";
+
+/* No comment provided by engineer. */
+"WiFi" = "Wi-Fi";
+
+/* No comment provided by engineer. */
+"¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "Bạn có muốn đồng bộ %@ với các tính năng đã mua trước đây không (miễn phí)?";
+
+"Acknowledgments"= "Ghi nhận";
+
+"timeunit"= "giây";
+
+"Settings"="Cài đặt";
+
+"Upgrades"="Nâng cấp";
+
+"Timer to take photos"="Hẹn giờ chụp ảnh";
+
+"Incoming Invite from %@"="Lời mời đến từ %@";
+
+"Do you wish to accept?,"="Bạn có muốn chấp nhận không?";
+
+"¡Gracias por usar nuestra App!"="Cảm ơn bạn đã sử dụng ứng dụng!";
+
+"En otro momento"="Để sau";
+
+"Calificar en la AppStore"="Đánh giá";
+
+"Mandar Feedback"="Gửi phản hồi";
+
+"No Gracias"="Không, cảm ơn";
+
+"iAds Removed"="Đã gỡ quảng cáo";
+
+"call_to_download" = "Tải Remote Shutter ngay hôm nay %@";
+
+/* Local Network Permission Modal */
+"local_network_title" = "Yêu cầu truy cập mạng nội bộ";
+"local_network_subtitle" = "Remote Shutter cần quyền truy cập mạng nội bộ để tìm và kết nối các thiết bị của bạn bằng công nghệ ngang hàng của Apple.";
+
+"local_network_access_required_title" = "Cần quyền truy cập mạng nội bộ";
+"local_network_required_subtitle" = "Remote Shutter cần quyền truy cập mạng nội bộ để hoạt động. Vui lòng bật trong Cài đặt để tiếp tục.";
+
+"local_network_feature_title" = "Kết nối ngang hàng";
+"local_network_feature_description" = "Sử dụng công nghệ MultipeerConnectivity của Apple để tìm và kết nối các thiết bị trên mạng nội bộ nhằm điều khiển từ xa liền mạch.";
+
+"local_network_privacy_title" = "Quyền riêng tư được bảo vệ";
+"local_network_privacy_description" = "Kết nối của bạn hoàn toàn riêng tư trong mạng nội bộ. Không có dữ liệu nào được gửi đến máy chủ bên ngoài hay bên thứ ba.";
+
+"local_network_benefits_title" = "Tức thì & Đáng tin cậy";
+"local_network_benefits_description" = "Giao tiếp trực tiếp giữa các thiết bị đảm bảo phản hồi nhanh và hoạt động mà không cần kết nối internet.";
+
+"local_network_continue" = "Tiếp tục";
+"local_network_cancel" = "Hủy";
+"local_network_open_settings" = "Mở Cài đặt";
+
+/* Camera Permissions Modal */
+"camera_permissions_title" = "Cho phép truy cập Máy ảnh & Ảnh";
+"camera_permissions_subtitle" = "Remote Shutter cần quyền truy cập máy ảnh và ảnh để chụp và lưu hình ảnh khi kết nối với các thiết bị khác.";
+
+"camera_permissions_required_title" = "Cần quyền truy cập Máy ảnh & Ảnh";
+"camera_permissions_required_subtitle" = "Remote Shutter cần quyền truy cập máy ảnh và ảnh để hoạt động. Vui lòng bật trong Cài đặt để tiếp tục.";
+
+"camera_permission_feature_title" = "Truy cập máy ảnh";
+"camera_permission_feature_description" = "Chụp ảnh từ xa bằng cách dùng một thiết bị làm máy ảnh và thiết bị kia làm điều khiển để có những bức ảnh hoàn hảo.";
+
+"photos_permission_feature_title" = "Lưu ảnh";
+"photos_permission_feature_description" = "Tự động lưu ảnh đã chụp vào thư viện ảnh của bạn để dễ dàng truy cập và chia sẻ.";
+
+"remote_control_feature_title" = "Điều khiển từ xa";
+"remote_control_feature_description" = "Dùng một thiết bị để điều khiển máy ảnh trên thiết bị khác cho ảnh nhóm, ảnh tự sướng và những góc chụp sáng tạo.";
+
+"camera_permissions_continue" = "Tiếp tục";
+"camera_permissions_cancel" = "Hủy";
+"camera_permissions_open_settings" = "Mở Cài đặt";
+
+/* Permission Status Descriptions */
+"camera_permission_not_determined" = "Chưa yêu cầu quyền máy ảnh";
+"camera_permission_denied" = "Đã từ chối quyền truy cập máy ảnh";
+"camera_permission_restricted" = "Quyền truy cập máy ảnh bị giới hạn";
+"camera_permission_authorized" = "Đã cấp quyền truy cập máy ảnh";
+"camera_permission_unknown" = "Trạng thái quyền máy ảnh không xác định";
+
+"photos_permission_not_determined" = "Chưa yêu cầu quyền truy cập ảnh";
+"photos_permission_denied" = "Đã từ chối quyền truy cập ảnh";
+"photos_permission_restricted" = "Quyền truy cập ảnh bị giới hạn";
+"photos_permission_authorized" = "Đã cấp toàn quyền truy cập ảnh";
+"photos_permission_limited" = "Đã cấp quyền truy cập ảnh giới hạn";
+"photos_permission_unknown" = "Trạng thái quyền truy cập ảnh không xác định";
+
+/* Camera Error View */
+"camera_error_title" = "Cần quyền truy cập máy ảnh";
+"camera_error_subtitle" = "Remote Shutter cần quyền truy cập máy ảnh và ảnh để hoạt động. Vui lòng bật quyền trong Cài đặt.";
+"camera_error_open_settings" = "Mở Cài đặt";
+"camera_error_go_back" = "Quay lại";
+"camera_access_required" = "Truy cập máy ảnh";
+"photos_access_required" = "Truy cập ảnh";
+
+/* Microphone Permission */
+"microphone_denied_video_without_audio" = "Đã từ chối quyền truy cập micrô. Video sẽ được quay không có âm thanh.";
+
+/* Microphone Permission Prompt */
+"mic_required_title" = "Cần quyền truy cập micrô";
+"mic_required_subtitle" = "Để quay video có âm thanh, Remote Shutter cần quyền truy cập micrô. Vui lòng bật trong Cài đặt.";
+"video_recording_feature_title" = "Quay video";
+"video_recording_feature_description" = "Quay video chất lượng cao có âm thanh bằng micrô của thiết bị để có trải nghiệm quay hoàn chỉnh.";
+"mic_open_settings" = "Mở Cài đặt";
+"mic_cancel_recording" = "Hủy quay video";
+
+/* Microphone Error Messages */
+"microphone_access_denied_error" = "Không thể quay video: Quyền truy cập micrô đã bị từ chối. Vui lòng bật quyền truy cập micrô trong Cài đặt để quay video có âm thanh.";
+
+/* QR Code Instructions */
+"qr_code_download_instruction" = "Quét mã QR này bằng ứng dụng Máy ảnh trên thiết bị khác để tải Remote Shutter từ App Store";
+
+/* Photos Access Denied Modal */
+"photos_access_denied_photo_title" = "Không thể lưu ảnh";
+"photos_access_denied_photo_subtitle" = "Remote Shutter cần quyền truy cập thư viện Ảnh để lưu hình ảnh đã chụp. Vui lòng bật quyền truy cập Ảnh trong Cài đặt.";
+"photos_access_denied_video_title" = "Không thể lưu video";
+"photos_access_denied_video_subtitle" = "Remote Shutter cần quyền truy cập thư viện Ảnh để lưu video đã quay. Vui lòng bật quyền truy cập Ảnh trong Cài đặt.";
+
+"photos_privacy_feature_title" = "Quyền riêng tư của bạn rất quan trọng";
+"photos_privacy_feature_description" = "Ảnh được lưu trực tiếp vào thư viện của thiết bị. Không có dữ liệu nào được tải lên máy chủ bên ngoài hay chia sẻ mà không có sự cho phép của bạn.";
+
+"photos_sharing_feature_title" = "Chia sẻ dễ dàng";
+"photos_sharing_feature_description" = "Truy cập ảnh và video đã chụp từ ứng dụng Ảnh để dễ dàng chia sẻ với bạn bè, người thân hoặc dùng trong các ứng dụng khác.";
+
+"photos_open_settings" = "Mở Cài đặt";
+"photos_dismiss" = "Bỏ qua";
+
+/* Video Transfer Progress */
+"video_transfer_progress_title" = "Đang truyền video";
+
+/* Help Modal */
+"help_title" = "Remote Shutter hoạt động thế nào";
+"help_subtitle" = "Chụp ảnh và quay video hoàn hảo bằng hai thiết bị";
+"help_got_it" = "Đã hiểu!";
+"help_done" = "Xong";
+
+/* Help Page 1 - Connect Devices */
+"help_connect_title" = "2. Kết nối thiết bị";
+"help_connect_description" = "Thiết bị Máy ảnh sẽ trực tuyến và chờ. Trên thiết bị Điều khiển, quét tìm máy ảnh và chạm vào tên máy ảnh để kết nối.";
+"help_quick_setup_title" = "Thiết lập nhanh";
+"help_quick_setup_description" = "Dùng mã QR để tải Remote Shutter về thiết bị thứ hai từ App Store";
+"help_same_network_title" = "Kết nối ngang hàng";
+"help_same_network_description" = "Các thiết bị kết nối trực tiếp với nhau qua Wi-Fi và Bluetooth, giống như AirDrop — không cần internet";
+
+/* Help Page 2 - Choose Roles */
+"help_roles_title" = "1. Chọn vai trò của bạn";
+"help_roles_description" = "Trước tiên, chọn thiết bị này là Máy ảnh hay Điều khiển. Thiết bị máy ảnh chụp ảnh và quay video, còn điều khiển sẽ điều khiển nó.";
+"help_camera_device_title" = "Thiết bị máy ảnh";
+"help_camera_device_description" = "Chụp ảnh và quay video, hiển thị bản xem trước máy ảnh";
+"help_remote_device_title" = "Thiết bị điều khiển";
+"help_remote_device_description" = "Điều khiển máy ảnh, hiển thị xem trước trực tiếp, điều chỉnh cài đặt";
+
+/* Help Page 3 - Capture Media */
+"help_capture_title" = "3. Ghi lại những khoảnh khắc hoàn hảo";
+"help_capture_description" = "Dùng thiết bị điều khiển để điều khiển máy ảnh, điều chỉnh cài đặt và chụp ảnh hoặc quay video từ xa.";
+"help_remote_shutter_title" = "Chụp từ xa";
+"help_remote_shutter_description" = "Chụp ảnh mà không cần chạm vào thiết bị máy ảnh";
+"help_video_recording_title" = "Quay video";
+"help_video_recording_description" = "Bắt đầu và dừng quay video từ xa";
+"help_camera_controls_title" = "Điều khiển máy ảnh";
+"help_camera_controls_description" = "Điều chỉnh đèn flash, đèn pin, hẹn giờ và cài đặt máy ảnh";
+
+/* Help Page 4 - Tips & Tricks */
+"help_tips_title" = "Mẹo & Thủ thuật";
+"help_tips_description" = "Tận dụng tối đa Remote Shutter với những mẹo hữu ích này";
+"help_group_photos_title" = "Ảnh nhóm";
+"help_group_photos_description" = "Hoàn hảo cho ảnh tự sướng nhóm — đặt máy ảnh và dùng điều khiển để chụp mọi người vào khung hình";
+"help_timer_feature_title" = "Tính năng hẹn giờ";
+"help_timer_feature_description" = "Dùng hẹn giờ trên thiết bị điều khiển để chuẩn bị trước khi chụp ảnh";
+"help_switch_cameras_title" = "Chuyển đổi máy ảnh";
+"help_switch_cameras_description" = "Chuyển đổi giữa camera trước và sau ngay từ thiết bị điều khiển";
+"help_auto_save_title" = "Tự động lưu";
+"help_auto_save_description" = "Ảnh và video được tự động lưu vào thư viện ảnh của cả hai thiết bị";
+
+/* Scanner - Role-aware UI */
+"Waiting for remote" = "Đang chờ điều khiển";
+"Scan for cameras" = "Quét tìm máy ảnh";
+"Camera Mode" = "Chế độ máy ảnh";
+"On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Trên thiết bị khác, mở Remote Shutter và chọn Điều khiển. Máy ảnh này sẽ xuất hiện trong danh sách thiết bị của họ.";
+"Go Online" = "Trực tuyến";
+"Go Offline" = "Ngoại tuyến";
+"Waiting for a remote to connect..." = "Đang chờ điều khiển kết nối...";
+"WAITING FOR A REMOTE TO CONNECT..." = "ĐANG CHỜ ĐIỀU KHIỂN KẾT NỐI...";
+"SEARCHING FOR NEARBY CAMERAS..." = "ĐANG TÌM MÁY ẢNH GẦN ĐÂY...";
+"Scanning for nearby cameras..." = "Đang tìm máy ảnh gần đây...";
+"Start scanning and wait for a Remote device to connect" = "Bắt đầu quét và chờ thiết bị Điều khiển kết nối";
+
+/* Welcome Screen */
+"Turn two devices into a professional remote camera system" = "Biến hai thiết bị thành hệ thống máy ảnh điều khiển từ xa chuyên nghiệp";
+"Restore Purchases" = "Khôi phục giao dịch mua";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Mở khóa mọi tính năng: quay video, điều khiển đèn pin và trải nghiệm không quảng cáo.";
+"Get Started" = "Bắt đầu";
+"Thank you for your support!" = "Cảm ơn sự ủng hộ của bạn!";
+"Rate on App Store" = "Đánh giá trên App Store";
+"Welcome" = "Chào mừng";
+"Purchase" = "Mua";
+"Restored" = "Đã khôi phục";
+"Your purchases have been restored. If you don't see them, check that you're signed in with the correct Apple ID." = "Giao dịch mua của bạn đã được khôi phục. Nếu không thấy, hãy kiểm tra bạn đã đăng nhập đúng Apple ID.";
+
+/* Role Picker Screen */
+"Pick a role" = "Chọn vai trò";
+"Camera" = "Máy ảnh";
+"Capture photos & video" = "Chụp ảnh & quay video";
+"Use the device with the best lens" = "Dùng thiết bị có ống kính tốt nhất";
+"Remote" = "Điều khiển";
+"Control the shutter" = "Điều khiển màn trập";
+"Works up to 50 feet away" = "Hoạt động ở khoảng cách tới 15 mét";
+"Remote Mode" = "Chế độ điều khiển";
+
+/* Alert Messages */
+"Scanning Error" = "Lỗi quét";
+"Unable to scan for nearby devices. Please check your network settings and try again." = "Không thể quét thiết bị gần đây. Vui lòng kiểm tra cài đặt mạng và thử lại.";
+"OK" = "OK";
+"Ok" = "OK";
+"Error" = "Lỗi";
+"Connection error" = "Lỗi kết nối";
+"Unable to start recording" = "Không thể bắt đầu quay";
+
+/* Scanner UI */
+"Connect" = "Kết nối";
+"Connecting..." = "Đang kết nối...";
+"Start Scanning" = "Bắt đầu quét";
+"Stop Scanning" = "Dừng quét";
+"Share App Link" = "Chia sẻ liên kết ứng dụng";
+"Scan for devices" = "Quét tìm thiết bị";
+"Open Settings" = "Mở Cài đặt";
+"You need at least 2 devices running Remote Shutter" = "Bạn cần ít nhất 2 thiết bị chạy Remote Shutter";
+"Scan the QR code on another device to download Remote Shutter" = "Quét mã QR trên thiết bị khác để tải Remote Shutter";
+"SCANNING ERROR - CHECK NETWORK SETTINGS" = "LỖI QUÉT - KIỂM TRA CÀI ĐẶT MẠNG";
+"TAP THE BUTTON TO GET STARTED" = "CHẠM VÀO NÚT ĐỂ BẮT ĐẦU";
+
+/* Settings */
+"About" = "Giới thiệu";
+"Back" = "Quay lại";
+"Contact Support" = "Liên hệ hỗ trợ";
+"Discord Community" = "Cộng đồng Discord";
+"In-App Purchases" = "Mua trong ứng dụng";
+"Purchased" = "Đã mua";
+"Send Media to Remote" = "Gửi phương tiện đến điều khiển";
+"Source Code" = "Mã nguồn";
+"Version" = "Phiên bản";
+
+/* Camera/Monitor Status */
+"Taking photo" = "Đang chụp ảnh";
+"Taking picture" = "Đang chụp ảnh";
+"Starting video" = "Đang bắt đầu quay";
+"Stopping video" = "Đang dừng quay";
+"Recording shorts" = "Đang quay video ngắn";
+"Unable to save video" = "Không thể lưu video";
+"Unable to save video to Photos app" = "Không thể lưu video vào ứng dụng Ảnh";
+"Purchases restored successfully." = "Đã khôi phục giao dịch mua thành công.";
+"Pick a role: Camera or Remote" = "Chọn vai trò: Máy ảnh hoặc Điều khiển";
+
+/* Purchase Fallback Titles */
+"Pro: All Features" = "Pro: Tất cả tính năng";
+"Remove Ads" = "Gỡ quảng cáo";
+"Enable Torch" = "Bật đèn pin";
+"Enable Video" = "Bật video";
+
+/* Apple Watch Remote */
+"Watch Remote" = "Điều khiển Watch";
+"Control from your wrist" = "Điều khiển từ cổ tay";
+"Watch Connected" = "Đã kết nối Watch";
+"Open Watch App" = "Mở ứng dụng Watch";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "BẬT WI-FI TRÊN CẢ HAI THIẾT BỊ — BẮT BUỘC";
+"WifiBannerBody" = "Không cần mạng — các thiết bị kết nối trực tiếp.";
+"WifiEscalationTip" = "Vẫn đang tìm… Kiểm tra Wi-Fi đã bật — trên thiết bị này và thiết bị kia. Tắt trong Trung tâm điều khiển vẫn bị tính là tắt: hãy dùng Cài đặt > Wi-Fi.";
