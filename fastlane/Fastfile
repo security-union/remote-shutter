@@ -175,6 +175,11 @@ platform :ios do
     build_app(
       workspace: "RemoteShutter.xcworkspace",
       scheme: "RemoteCam",
+      # catalyst_platform alone does NOT pick the archive destination — gym
+      # archives for native macOS (no UIKit) and dependency scanning fails
+      # with "Unable to find module dependency: 'UIKit'" (run 29180954433).
+      # The Catalyst variant must be requested explicitly, same as ios-ci.yml.
+      destination: "generic/platform=macOS,variant=Mac Catalyst",
       catalyst_platform: "macos",
       export_method: "app-store",
       clean: true,
