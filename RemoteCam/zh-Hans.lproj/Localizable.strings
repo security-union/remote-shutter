@@ -325,3 +325,8 @@
 "Control from your wrist" = "从手腕控制";
 "Watch Connected" = "手表已连接";
 "Open Watch App" = "打开手表应用";
+
+/* Wi-Fi Guidance (scanner screen) */
+"WifiBannerTitle" = "请在两台设备上开启Wi-Fi（必须）";
+"WifiBannerBody" = "无需连接网络——设备之间直接连接。";
+"WifiEscalationTip" = "仍在搜索… 请确认这台设备和另一台设备的Wi-Fi都已开启。在控制中心关闭也算关闭：请前往 设置 > Wi-Fi 开启。";
