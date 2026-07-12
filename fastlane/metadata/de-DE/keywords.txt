@@ -1,1 +1,1 @@
-Fernbedienung,Kamera,Fernauslöser,Fotos aufnehmen,Kamera verbinden,Fernsteuerung,Auslöser,Kamera App
+Fernkamera,Fernauslöser,Selfie-Fernbedienung,Gruppenfoto,Stativ,Fototimer,Webcam,Mac Kamera

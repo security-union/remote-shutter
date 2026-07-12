@@ -22,6 +22,58 @@ are dark and off. Subjects framed in the upper two thirds of the image; the lowe
 third stays simple. No text, no logos, no watermarks. Vertical 9:16.`;
 
 const PROMPTS = {
+  // ---- Mac App Store listing scenes (landscape 16:10 canvases) ----
+  mac0_studio: `Over-the-shoulder shot from behind and to the right of a
+professional female photographer standing at a white product table in a
+bright, minimal photo studio. Her head and right shoulder are softly out of
+focus at the right edge of the near foreground. With her LEFT hand in a white
+glove she reaches down to adjust a luxury watch lying on the product table.
+In her RIGHT hand she holds an unbranded modern smartphone upright in portrait
+orientation raised at chest height, screen facing back toward the viewer,
+completely black and switched off, no reflections, shown large in the upper
+half of the frame. Several steps away in the lower-left of the frame, on a
+separate light wooden side desk, an unbranded modern aluminum laptop sits
+open, its screen facing the viewer, completely black and off, all four corners
+of the screen fully visible, nothing overlapping the laptop. Beside the
+laptop, a professional compact cinema camera on a small desktop mount aims at
+the product table, connected to the laptop by a neat black cable. The
+photographer is clearly far from the laptop — she works at the table while
+the Mac and camera film from across the room. White cyclorama wall, softbox
+visible, soft high-key daylight, 35mm look. ${STYLE}`,
+  mac3_direct: `A bright home-studio scene, vertical composition: in the lower
+half of the frame, an unbranded modern aluminum laptop sits open on a tidy desk,
+screen facing the viewer straight on, completely black and switched off, no
+reflections, shown large. Nothing and no one is between the viewer and the
+laptop — the desk is empty around it and all four corners of the laptop screen
+are fully visible. A person stands off to the far left edge of the frame in
+soft focus, watching the dark screen like a director's monitor, not touching
+the desk. Behind and above, through a large bright window, a leafy garden: a
+rustic wooden bird feeder where a bright red cardinal perches, and an unbranded
+modern smartphone mounted on a small flexible mini tripod clamped to the feeder
+pole RIGHT NEXT to the cardinal, its lens almost touching the feeder ledge,
+screen dark — the phone and the bird close together in the upper third,
+both clearly recognizable. Morning light, warm interior, telephoto garden
+compression. The laptop screen large and clearly visible. ${STYLE}`,
+  // Short prompt per the Veo/Nano Banana five-part formula:
+  // [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]
+  mac2_cook: `Over-the-shoulder shot from behind a home cook at a wooden kitchen
+counter. She garnishes a colorful charcuterie board while her other hand rests
+on the trackpad of an open laptop beside her, its dark screen facing the viewer,
+fully visible. A smartphone on an articulated arm under the upper cabinet points
+straight down at the board. Bright modern kitchen, soft daylight, photorealistic
+commercial photography in the style of an Apple ad. Vertical 9:16.`,
+  mac3_window: `A bright home-office scene, vertical composition: in the lower
+half of the frame, an unbranded modern aluminum laptop sits open on a tidy desk,
+screen facing the viewer straight on, completely black and switched off, no
+reflections, shown large, all four corners of the screen fully visible, nothing
+overlapping the laptop. Behind the desk, a large bright window onto a leafy
+garden. Mounted on the INSIDE of the window glass with a small suction-cup phone
+mount, an unbranded modern smartphone in portrait orientation, its camera facing
+out through the glass and its dark switched-off screen facing back into the room
+toward the viewer, in the upper third. Just outside the glass, inches from the
+phone, a rustic wooden bird feeder hangs with a bright red cardinal perched on
+its ledge, sharp and clearly visible next to the phone. Morning light, warm
+interior, telephoto garden compression. ${STYLE}`,
   slot0_v1: `A professional female photographer in a bright, minimal photo studio
 doing a product shoot. In the midground, an unbranded modern smartphone is mounted on
 a high-end carbon-fiber tripod with a geared head, aimed at a small product table
@@ -130,9 +182,10 @@ if (process.argv[2] === "edit") {
 } else {
   const id = process.argv[2];
   const count = Number(process.argv[3] || 1);
+  const aspect = process.argv[4] || "9:16";
   if (!PROMPTS[id]) { console.error(`unknown scene id; have: ${Object.keys(PROMPTS)}`); process.exit(1); }
   for (let i = 1; i <= count; i++) {
-    const inline = await callModel([{ text: PROMPTS[id] }], "9:16");
+    const inline = await callModel([{ text: PROMPTS[id] }], aspect);
     const ext = inline.mimeType?.includes("jpeg") ? "jpg" : "png";
     save(join(OUT_DIR, `${id}_c${i}.${ext}`), inline);
   }

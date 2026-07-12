@@ -11,8 +11,11 @@ no AI calls, no manual image editing.
 cd store_assets/screenshot-pipeline
 ./ship-locales.sh              # render all 10 locales -> fastlane/screenshots/<locale>/
 ./ship-locales.sh it ja        # or just specific locales
+./ship-locales.sh -p mac       # only one platform (iphone,ipad,mac,banner); others untouched
+./ship-locales.sh -p mac it ja # combine: platform subset x locale subset
 node render.mjs                # render en-US only, into out/ (no fastlane copy)
 node render.mjs --locale de-DE # render one locale into out/de-DE/
+node render.mjs --plans mac    # render only one device plan
 node render.mjs 0 banner       # re-render only specific slots
 ```
 

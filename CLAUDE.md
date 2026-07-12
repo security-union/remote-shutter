@@ -118,7 +118,9 @@ Centralized in `FeatureFlags.swift`. Check existing flags before adding new ones
 
 ### App Store Metadata (Fastlane)
 
-Metadata lives in `fastlane/metadata/<locale>/`. When editing `keywords.txt` files, **keywords must be 100 characters or fewer** (including commas). App Store Connect will reject the upload if any locale exceeds this limit. Always verify with `wc -c` before committing. Other field limits: app name 30 chars, subtitle 30 chars, promotional text 170 chars, description 4000 chars.
+Metadata lives in `fastlane/metadata/<locale>/`. When editing `keywords.txt` files, **keywords must be 100 characters or fewer** (including commas). App Store Connect will reject the upload if any locale exceeds this limit. Always verify with `wc -m` (characters, not bytes — CJK keyword sets legitimately exceed 100 *bytes*) before committing. Other field limits: app name 30 chars, subtitle 30 chars, promotional text 170 chars, description 4000 chars.
+
+Search indexing (cross-localization): each storefront indexes exactly two locales — its own language plus a designated secondary. Most European storefronts (France, Germany, Italy, …) index **English (U.K.)**, not en-US; the US storefront indexes en-US + es-MX. For this reason `en-GB` is a byte-for-byte copy of `en-US`, and `es-ES` of `es-MX` — **keep them in sync whenever the source locale changes**. Keywords never combine across locales (a word in en-US can't form a phrase with a word in fr-FR), so every locale's keyword set must stand alone. The app *name* is indexed on every storefront and outranks the keyword field — brand queries ("remote shutter") match everywhere regardless of keywords. Screenshots for en-GB/es-ES are not duplicated; ASC falls back to the primary locale's media. Product-name rule from the 6.0.10 rejection (5.2.5): Apple product names ("Apple Watch", "iPhone") are compatibility-context-only — fine in descriptions, **never in app name or subtitles**. Metadata must not contradict in-app requirements (2.3.1): the app requires the Wi-Fi radio ON, so say "no router / no Wi-Fi network needed", never "no WiFi".
 
 ### App Store Screenshots
 
