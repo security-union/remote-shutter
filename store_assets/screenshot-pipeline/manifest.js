@@ -356,6 +356,31 @@ window.MANIFEST = {
       ]
     },
 
+    // mac2: hands-full cooking — overhead iPhone on an under-cabinet arm films
+    // the charcuterie board; she runs the shot from the Mac on the counter.
+    "mac2": {
+      layout: "landscape",
+      headline: ["Hands full?", "Camera handled."],
+      accentLine: 1,
+      scene: "../ai-scenes/mac2_cook_c1_crop.jpg",
+      sceneSize: [1536, 1770],
+      scenePosition: "50% 50%",
+      surfaces: [
+        {
+          // MacBook screen: monitor UI with the overhead board feed baked in.
+          quad: [[-53, 1094], [414, 967], [130, 1598], [579, 1391]],
+          size: [3842, 2102],
+          bezel: 0,
+          radius: 18,
+          ui: "assets/ui-monitor-mac-cook.png"
+        }
+      ],
+      callouts: [
+        { text: "CAMERA", anchor: [800, 170], dx: -90, dy: 170 },
+        { text: "REMOTE", anchor: [300, 1150], dx: 60, dy: -180 }
+      ]
+    },
+
     // ---- In-App Event card / horizontal marketing banner (16:9) ----
     "banner": {
       layout: "landscape",

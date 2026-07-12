@@ -13,7 +13,7 @@ window.I18N = {
       "4": ["NEW: Fire the shutter", "from your wrist."],
       "5": ["No internet. No account.", "Just connect."],
       "mac0": ["Your Mac is the camera.", "Your iPhone is the remote."],
-      "mac2": ["Every camera on your Mac.", "One tap away."],
+      "mac2": ["Hands full?", "Camera handled."],
       "mac3": ["Direct the shot", "from the big screen."],
       "mac1": ["See everything.", "Control everything."]
     },
@@ -29,7 +29,7 @@ window.I18N = {
       "4": ["NYT: Udløs kameraet", "fra dit håndled."],
       "5": ["Intet internet. Ingen konto.", "Bare forbind."],
       "mac0": ["Din Mac er kameraet.", "Din iPhone er fjernbetjeningen."],
-      "mac2": ["Alle kameraer på din Mac.", "Ét tryk væk."],
+      "mac2": ["Hænderne fulde?", "Kameraet klarer det."],
       "mac3": ["Instruér billedet", "fra den store skærm."],
       "mac1": ["Se alt.", "Styr alt."]
     },
@@ -50,7 +50,7 @@ window.I18N = {
       "4": ["NEU: Auslösen", "direkt vom Handgelenk."],
       "5": ["Kein Internet. Kein Konto.", "Einfach verbinden."],
       "mac0": ["Dein Mac ist die Kamera.", "Dein iPhone die Fernbedienung."],
-      "mac2": ["Jede Kamera an deinem Mac.", "Ein Tipp genügt."],
+      "mac2": ["Hände voll?", "Die Kamera läuft."],
       "mac3": ["Führ Regie", "vom großen Bildschirm."],
       "mac1": ["Alles sehen.", "Alles steuern."]
     },
@@ -71,7 +71,7 @@ window.I18N = {
       "4": ["NUEVO: Dispara", "desde tu muñeca."],
       "5": ["Sin internet. Sin cuenta.", "Solo conéctate."],
       "mac0": ["Tu Mac es la cámara.", "Tu iPhone es el control."],
-      "mac2": ["Cada cámara de tu Mac.", "A un toque."],
+      "mac2": ["¿Manos ocupadas?", "La cámara se encarga."],
       "mac3": ["Dirige la toma", "desde la pantalla grande."],
       "mac1": ["Ve todo.", "Controla todo."]
     },
@@ -92,7 +92,7 @@ window.I18N = {
       "4": ["NOUVEAU : Déclenchez", "depuis votre poignet."],
       "5": ["Pas d'internet. Pas de compte.", "Connectez, c'est tout."],
       "mac0": ["Votre Mac est l'appareil photo.", "Votre iPhone, la télécommande."],
-      "mac2": ["Chaque caméra de votre Mac.", "En un toucher."],
+      "mac2": ["Les mains prises ?", "La caméra s'en charge."],
       "mac3": ["Dirigez la scène", "depuis le grand écran."],
       "mac1": ["Voyez tout.", "Contrôlez tout."]
     },
@@ -113,7 +113,7 @@ window.I18N = {
       "4": ["NOVITÀ: Scatta", "dal tuo polso."],
       "5": ["Niente internet. Nessun account.", "Basta connettersi."],
       "mac0": ["Il tuo Mac è la fotocamera.", "Il tuo iPhone è il telecomando."],
-      "mac2": ["Ogni fotocamera del tuo Mac.", "A un tocco."],
+      "mac2": ["Mani occupate?", "Ci pensa la fotocamera."],
       "mac3": ["Dirigi la scena", "dal grande schermo."],
       "mac1": ["Vedi tutto.", "Controlli tutto."]
     },
@@ -134,7 +134,7 @@ window.I18N = {
       "4": ["新機能: 手首から", "シャッターを切る。"],
       "5": ["ネット不要。アカウント不要。", "つなぐだけ。"],
       "mac0": ["Macがカメラに。", "iPhoneがリモコンに。"],
-      "mac2": ["Macのすべてのカメラを。", "ワンタップで。"],
+      "mac2": ["手がふさがっていても、", "カメラはおまかせ。"],
       "mac3": ["大画面で", "撮影を演出。"],
       "mac1": ["すべて見える。", "すべて操作できる。"]
     },
@@ -155,7 +155,7 @@ window.I18N = {
       "4": ["NEW: 손목에서", "셔터를 누르세요."],
       "5": ["인터넷 불필요. 계정 불필요.", "연결만 하세요."],
       "mac0": ["Mac이 카메라,", "iPhone이 리모컨."],
-      "mac2": ["Mac의 모든 카메라를,", "한 번의 탭으로."],
+      "mac2": ["손이 바빠도", "카메라는 알아서."],
       "mac3": ["큰 화면에서", "촬영을 연출하세요."],
       "mac1": ["모두 보고,", "모두 제어하세요."]
     },
@@ -176,7 +176,7 @@ window.I18N = {
       "4": ["NOVO: Dispare", "do seu pulso."],
       "5": ["Sem internet. Sem conta.", "É só conectar."],
       "mac0": ["Seu Mac é a câmera.", "Seu iPhone é o controle."],
-      "mac2": ["Cada câmera do seu Mac.", "A um toque."],
+      "mac2": ["Mãos ocupadas?", "A câmera resolve."],
       "mac3": ["Dirija a cena", "pela tela grande."],
       "mac1": ["Veja tudo.", "Controle tudo."]
     },
@@ -197,7 +197,7 @@ window.I18N = {
       "4": ["新功能：抬腕", "即可拍摄。"],
       "5": ["无需网络。无需账户。", "连接即用。"],
       "mac0": ["Mac 就是相机。", "iPhone 就是遥控器。"],
-      "mac2": ["Mac 上的每个相机，", "一键切换。"],
+      "mac2": ["腾不开手？", "相机替你搞定。"],
       "mac3": ["在大屏幕上", "把控画面。"],
       "mac1": ["尽收眼底。", "尽在掌控。"]
     },

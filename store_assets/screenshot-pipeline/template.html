@@ -273,6 +273,14 @@
 
   // ---- Perspective surfaces (mode A) ----
   if (slot.surfaces && map) {
+    // Surfaces live in canvas coordinates but belong to the scene: clip them
+    // to the scene region so quads reaching past its edge crop cleanly.
+    const surfWrap = document.createElement("div");
+    surfWrap.style.position = "absolute";
+    surfWrap.style.inset = "0";
+    surfWrap.style.zIndex = "2";
+    surfWrap.style.clipPath = `inset(${region.y}px ${cw - region.x - region.w}px ${chTotal - region.y - region.h}px ${region.x}px)`;
+    canvas.appendChild(surfWrap);
     for (const s of slot.surfaces) {
       const [w, h] = s.size;
       const bezel = s.bezel || 0;
@@ -329,7 +337,7 @@
       if (s.blur) ui.style.filter = `blur(${s.blur}px)`;
       el.appendChild(ui);
       el.style.transform = matrix3d(w, h, s.quad.map(map));
-      canvas.appendChild(el);
+      surfWrap.appendChild(el);
     }
   }
 
