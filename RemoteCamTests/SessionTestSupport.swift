@@ -157,6 +157,43 @@ class FakeCameraControlling: CameraControlling {
         if let errorToThrow { throw errorToThrow }
         return (flashMode, .back)
     }
+
+    /// iPhone-shaped by default; tests reshape this to a Mac (N devices,
+    /// `.unspecified` positions) to exercise the device-selection paths.
+    var availableDevices: [CameraDeviceDescriptor] = [
+        CameraDeviceDescriptor(uniqueID: "fake-back", localizedName: "Back Camera",
+                               position: .back, deviceType: .builtInWideAngleCamera),
+        CameraDeviceDescriptor(uniqueID: "fake-front", localizedName: "Front Camera",
+                               position: .front, deviceType: .builtInWideAngleCamera)
+    ]
+    var activeDeviceID = "fake-back"
+    var deviceSelections: [String] = []
+
+    func availableCameraDevices() async -> [CameraDeviceDescriptor] { availableDevices }
+    func currentCameraDevice() async -> CameraDeviceDescriptor? {
+        availableDevices.first { $0.uniqueID == activeDeviceID }
+    }
+    func selectCameraDevice(uniqueID: String) async throws -> CameraSelectionResult {
+        if let errorToThrow { throw errorToThrow }
+        deviceSelections.append(uniqueID)
+        // Mirrors the engine: explicitly selecting a suspended device errors.
+        if let requested = availableDevices.first(where: { $0.uniqueID == uniqueID }),
+           requested.isSuspended {
+            throw NSError(domain: "\(requested.localizedName) is unavailable (suspended)", code: 0, userInfo: nil)
+        }
+        let fallbackPosition = availableDevices.first { $0.uniqueID == activeDeviceID }?.position ?? .unspecified
+        guard let device = CameraDeviceDescriptor.resolveSelection(
+                requestedID: uniqueID, available: availableDevices, fallbackPosition: fallbackPosition) else {
+            throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
+        }
+        activeDeviceID = device.uniqueID
+        return CameraSelectionResult(
+            device: device,
+            flashMode: device.position == .back ? flashMode : nil,
+            availableLensTypes: [.wideAngle],
+            zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 10),
+            currentZoom: 1.0)
+    }
     func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode {
         if let errorToThrow { throw errorToThrow }
         torchActive = mode == .on
@@ -168,12 +205,38 @@ class FakeCameraControlling: CameraControlling {
     func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) async -> (PhotoFormat, HDRMode)? {
         (format, hdrMode)
     }
+    /// False simulates a legacy peer whose capabilities carry no device list
+    /// — the monitor must never send SelectCameraDevice to it.
+    var advertisesCameraDevices = true
+
+    /// Devices that accept the input swap but never deliver a frame (a
+    /// wedged virtual camera). While one is active, awaitFrameDelivery fails.
+    var stalledDeviceIDs: Set<String> = []
+
+    func awaitFrameDelivery(timeout: TimeInterval) async -> Bool {
+        !stalledDeviceIDs.contains(activeDeviceID)
+    }
+
     func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio { ratio }
     func gatherAllCameraCapabilities() async { gatherCapabilitiesCalls += 1 }
     func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
-        RemoteCmd.CameraCapabilitiesResp(
+        let entries: [RemoteCmd.CameraDeviceEntry] = advertisesCameraDevices
+            ? availableDevices.map {
+                RemoteCmd.CameraDeviceEntry(
+                    uniqueID: $0.uniqueID,
+                    localizedName: $0.localizedName,
+                    positionRaw: $0.position.rawValue,
+                    isActive: $0.uniqueID == activeDeviceID,
+                    isSuspended: $0.isSuspended,
+                    info: nil)
+            }
+            : []
+        return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil)
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            cameraDevices: entries,
+            activeDeviceID: advertisesCameraDevices ? activeDeviceID : nil,
+            error: nil)
     }
 
     func getCurrentZoomFactor() async -> CGFloat { zoomCalls.last ?? 1.0 }

@@ -68,6 +68,12 @@ final class FrameSender {
         queue.async {
             guard self.hasSession, let peer = self.peer, let transport = self.transport else { return }
             guard self.window.hasCredit else { return } // back-pressure: drop until a credit frees
+            // ALWAYS .unreliable for frames: a live viewfinder shows the
+            // newest frame or nothing — reliable mode queues and retransmits,
+            // turning any network hiccup into an ever-staler laggy stream.
+            // MC's datagram channel negotiates for ~10s after "Connected" and
+            // drops sends until ready; that is solved by warming the channel
+            // at session connect, never by switching frames to reliable.
             if transport.send(frame, to: [peer], mode: .unreliable).isFailure() {
                 self.coordinator?.tell(FrameSendFailed())
                 return

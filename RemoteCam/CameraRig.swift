@@ -137,7 +137,108 @@ final class CameraRig {
         pipeline.onPhotosAccessDenied = { [weak self] in
             self?.onPhotosAccessDenied?()
         }
+        engine.onCameraDevicesChanged = { [weak self] in
+            // Hot-plug (fires on the session queue): refresh the picker and,
+            // when a monitor is connected, re-advertise capabilities.
+            Task { [weak self] in
+                guard let self else { return }
+                await self.refreshCameraDeviceList()
+                if !self.isWatchRemoteMode {
+                    self.session ! RemoteCmd.RequestCameraCapabilities()
+                }
+            }
+        }
     }
+
+    // MARK: - First-frame watchdog
+
+    /// A camera can be connected yet never deliver a frame (suspended
+    /// clamshell built-in, stalled virtual camera). Without a watchdog that
+    /// is an infinite spinner with no error. Armed after every session start
+    /// and device switch; on stall it falls back to the next healthy device
+    /// once, then surfaces an error.
+    private let watchdogGeneration = Locked(0)
+    private static let firstFrameTimeout: TimeInterval = 5
+
+    func armFirstFrameWatchdog(allowFallback: Bool = true) {
+        var generation = 0
+        watchdogGeneration.mutate { $0 += 1; generation = $0 }
+        let armedAt = Date().timeIntervalSinceReferenceDate
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(
+            deadline: .now() + Self.firstFrameTimeout
+        ) { [weak self] in
+            guard let self,
+                  self.watchdogGeneration.value == generation,
+                  self.streamingCoordinator.lastVideoFrameAt.value < armedAt else { return }
+            self.handleFrameStall(allowFallback: allowFallback)
+        }
+    }
+
+    /// Cancels any armed watchdog (screen teardown).
+    private func disarmFirstFrameWatchdog() {
+        watchdogGeneration.mutate { $0 += 1 }
+    }
+
+    private func handleFrameStall(allowFallback: Bool) {
+        Task { [weak self] in
+            guard let self else { return }
+            let current = await self.currentCameraDevice()
+            debugLog("CameraRig: no frames from \(current?.localizedName ?? "unknown camera") within \(Self.firstFrameTimeout)s")
+            let devices = await self.availableCameraDevices()
+            let next = devices.first { !$0.isSuspended && $0.uniqueID != current?.uniqueID }
+            guard allowFallback, let next,
+                  (try? await self.selectCameraDevice(uniqueID: next.uniqueID)) != nil else {
+                showError(NSLocalizedString("Camera is not delivering video", comment: ""))
+                return
+            }
+            debugLog("CameraRig: fell back to \(next.localizedName)")
+            // A session that started on the dead source can stay wedged
+            // (running, valid graph, no buffers) — bounce it to revive
+            // delivery on the fallback device.
+            self.engine.restartSession()
+            // One fallback attempt per stall — a second stall is an error.
+            self.armFirstFrameWatchdog(allowFallback: false)
+            if !self.isWatchRemoteMode {
+                self.session ! RemoteCmd.RequestCameraCapabilities()
+            }
+        }
+    }
+
+    // MARK: - Local camera-device picker
+
+    /// Publishes the selectable-device list + active device on the view model
+    /// (drives the camera screen's picker chrome).
+    func refreshCameraDeviceList() async {
+        let devices = await engine.availableCameraDevices()
+        let active = await engine.currentCameraDevice()
+        cameraViewModel.updateCameraDevices(devices, activeID: active?.uniqueID)
+    }
+
+    /// Device selection from the camera screen's own picker: switches the
+    /// device, confirms frames actually flow, then pushes fresh capabilities
+    /// to a connected monitor so its controls stay in sync. A camera that
+    /// accepts the swap but never delivers gets a visible error (the
+    /// watchdog restores a working device underneath).
+    func selectCameraDeviceLocally(uniqueID: String) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let result = try? await self.selectCameraDevice(uniqueID: uniqueID) else { return }
+            if await !self.awaitFrameDelivery(timeout: Self.frameConfirmTimeout) {
+                showError(String(
+                    format: NSLocalizedString("%@ is not delivering video", comment: "dead camera"),
+                    result.device.localizedName))
+            }
+            if !self.isWatchRemoteMode {
+                // The coordinator's camera state answers this by broadcasting
+                // capabilities — the same path a monitor's request takes.
+                self.session ! RemoteCmd.RequestCameraCapabilities()
+            }
+        }
+    }
+
+    /// Shorter than the watchdog (5s), longer than any healthy camera's
+    /// first frame (Continuity ≈ 2.6s measured).
+    static let frameConfirmTimeout: TimeInterval = 4
 
     /// Photos-library access denied while saving a finished video. Main thread.
     var onPhotosAccessDenied: (() -> Void)?
@@ -148,24 +249,41 @@ final class CameraRig {
 
     /// Configures and starts the capture session once (on the engine's session
     /// queue); safe to call on every appearance. The busy spinner shows while
-    /// the engine works — and now actually renders, since setup is off main.
+    /// the engine works.
+    ///
+    /// AVCam's ordering: the preview layer attaches to the (idle) session
+    /// BEFORE configuration, so the first rendered frame IS session start.
+    /// Attaching after `startRunning` mutates a live graph — trivial on an
+    /// iPhone, but a slow renegotiation on Mac hardware (UVC/Continuity),
+    /// which made the Mac preview lag iOS by seconds.
     func startCameraOnce() {
         guard !didInitializeCamera else { return }
         didInitializeCamera = true
         cameraViewModel.isBusy = true
-        engine.setupCamera(sampleBufferDelegate: streamingCoordinator) { [weak self] hasCamera in
-            // Completion arrives on main.
-            guard let self = self else { return }
-            self.cameraViewModel.isBusy = false
-            guard hasCamera else { return }
-            self.cameraViewModel.previewSession = self.engine.captureSession
-            self.sessionPublished.value = true
-            self.rotateCameraToOrientation(orientation: self.orientation)
+        cameraViewModel.previewSession = engine.captureSession
+        // Next main tick: the SwiftUI pass attaching the layer lands first,
+        // preserving AVCam's attach → configure → start happens-before.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.engine.setupCamera(sampleBufferDelegate: self.streamingCoordinator) { [weak self] hasCamera in
+                // Completion arrives on main.
+                guard let self = self else { return }
+                self.cameraViewModel.isBusy = false
+                guard hasCamera else {
+                    self.cameraViewModel.previewSession = nil
+                    return
+                }
+                self.sessionPublished.value = true
+                self.rotateCameraToOrientation(orientation: self.orientation)
+                self.armFirstFrameWatchdog()
+                Task { await self.refreshCameraDeviceList() }
+            }
         }
     }
 
     /// Stops the capture session (screen teardown).
     func stopSession() {
+        disarmFirstFrameWatchdog()
         engine.stopSession()
     }
 
@@ -276,7 +394,40 @@ extension CameraRig: CameraControlling {
             // (also after a failed toggle, matching the previous behavior).
             rotateCameraToOrientation(orientation: orientation)
         }
-        return try await engine.toggleCamera(orientation: orientation)
+        let result = try await engine.toggleCamera(orientation: orientation)
+        armFirstFrameWatchdog()
+        await refreshCameraDeviceList()   // keep the local picker's checkmark honest
+        return result
+    }
+
+    func availableCameraDevices() async -> [CameraDeviceDescriptor] {
+        await engine.availableCameraDevices()
+    }
+
+    func awaitFrameDelivery(timeout: TimeInterval) async -> Bool {
+        let since = Date().timeIntervalSinceReferenceDate
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if streamingCoordinator.lastVideoFrameAt.value > since { return true }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        return false
+    }
+
+    func currentCameraDevice() async -> CameraDeviceDescriptor? {
+        await engine.currentCameraDevice()
+    }
+
+    func selectCameraDevice(uniqueID: String) async throws -> CameraSelectionResult {
+        let orientation = self.orientation
+        defer {
+            // Same post-swap preview rotation as toggleCamera.
+            rotateCameraToOrientation(orientation: orientation)
+        }
+        let result = try await engine.selectCameraDevice(uniqueID: uniqueID, orientation: orientation)
+        armFirstFrameWatchdog()
+        await refreshCameraDeviceList()   // keep the local picker's checkmark honest
+        return result
     }
 
     func toggleFlash() async throws -> AVCaptureDevice.FlashMode {

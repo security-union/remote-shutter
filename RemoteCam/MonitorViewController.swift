@@ -9,6 +9,7 @@
 import UIKit
 import SwiftUI
 import AVFoundation
+import PhotosUI
 
 let timerDefault = "timerDefault"
 
@@ -18,7 +19,7 @@ let timerDefault = "timerDefault"
 UI for the monitor.
 */
 
-public class MonitorViewController: UIViewController, UIImagePickerControllerDelegate & UINavigationControllerDelegate {
+public class MonitorViewController: UIViewController {
 
     let session: SessionCoordinator
 
@@ -184,19 +185,31 @@ public class MonitorViewController: UIViewController, UIImagePickerControllerDel
     
     // All legacy UIKit methods removed - using SwiftUI view model integration instead
     
-    // MARK: - Essential UIImagePickerController Delegate (keep for now)
-    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-        if let image = info[.originalImage] {
-            let activityViewController = UIActivityViewController(activityItems: [image], applicationActivities: [])
-            picker.dismiss(animated: true) {
-                #if targetEnvironment(macCatalyst)
-                activityViewController.modalPresentationStyle = UIModalPresentationStyle.pageSheet
-                #else
-                activityViewController.modalPresentationStyle = UIModalPresentationStyle.popover
-                // Note: Using view instead of removed galleryButton
-                activityViewController.popoverPresentationController?.sourceView = self.view
-                #endif
-                self.present(activityViewController, animated: true)
+}
+
+// MARK: - Gallery picker (PHPicker: modern, no photo-library permission prompt)
+
+extension MonitorViewController: PHPickerViewControllerDelegate {
+    public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        guard let provider = results.first?.itemProvider,
+              provider.canLoadObject(ofClass: UIImage.self) else {
+            picker.dismiss(animated: true)
+            return
+        }
+        provider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
+            DispatchQueue.main.async {
+                picker.dismiss(animated: true) {
+                    guard let self, let image = object as? UIImage else { return }
+                    let activityViewController = UIActivityViewController(
+                        activityItems: [image], applicationActivities: [])
+                    #if targetEnvironment(macCatalyst)
+                    activityViewController.modalPresentationStyle = .pageSheet
+                    #else
+                    activityViewController.modalPresentationStyle = .popover
+                    activityViewController.popoverPresentationController?.sourceView = self.view
+                    #endif
+                    self.present(activityViewController, animated: true)
+                }
             }
         }
     }

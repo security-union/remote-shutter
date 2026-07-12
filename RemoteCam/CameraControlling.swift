@@ -36,6 +36,18 @@ protocol CameraControlling: AnyObject {
     func toggleFlash() async throws -> AVCaptureDevice.FlashMode
     func toggleTorch() async throws -> AVCaptureDevice.TorchMode
     func toggleCamera() async throws -> (AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)
+    /// All selectable local cameras, in stable discovery order (a Mac exposes
+    /// N devices; an iPhone its front/back pair).
+    func availableCameraDevices() async -> [CameraDeviceDescriptor]
+    /// The active device, or nil before setup completes.
+    func currentCameraDevice() async -> CameraDeviceDescriptor?
+    /// Switches capture to the device with this uniqueID, falling back to a
+    /// same-position or first-available device if it vanished (unplugged).
+    func selectCameraDevice(uniqueID: String) async throws -> CameraSelectionResult
+    /// Whether a video frame arrives within `timeout` from now. A camera can
+    /// accept the input swap and still never deliver (a wedged virtual
+    /// camera) — switch responses are only successful once this confirms.
+    func awaitFrameDelivery(timeout: TimeInterval) async -> Bool
     func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode
     func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) async -> (VideoResolution, VideoFrameRate)?
     func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) async -> (PhotoFormat, HDRMode)?

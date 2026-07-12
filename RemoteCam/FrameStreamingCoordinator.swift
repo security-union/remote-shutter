@@ -74,6 +74,11 @@ final class FrameStreamingCoordinator: NSObject {
     func acknowledgeWatchPreview() {
         watchPreviewStreamer.acknowledge()
     }
+
+    /// Wall-clock of the most recent video sample buffer, for the rig's
+    /// first-frame watchdog (a suspended or stalled camera delivers nothing,
+    /// forever). Written per-frame on the data queue, read from the watchdog.
+    let lastVideoFrameAt = Locked<TimeInterval>(0)
 }
 
 extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegate,
@@ -85,6 +90,7 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
         // Route by output identity (`let`s, safe from any thread) rather than
         // comparing connections, which are sessionQueue-owned mutable state.
         if captureOutput === engine.videoDataOutput {
+            lastVideoFrameAt.value = Date().timeIntervalSinceReferenceDate
             sendFrameToMonitor(captureOutput, didOutput: sampleBuffer, from: connection)
         }
         if (pipeline.recordingWillBeStarted || pipeline.isRecording) && !pipeline.recordingWillBeStopped {

@@ -182,19 +182,6 @@ public enum AspectRatio: Int, CaseIterable, Codable {
     }
 }
 
-extension AVCaptureDevice.Position {
-    public func toggle() -> Try<AVCaptureDevice.Position> {
-        switch self {
-        case .back:
-            return Success(.front)
-        case .front:
-            return Success(.back)
-        default:
-            return Failure(error: NSError(domain: "Unable to find camera position", code: 0, userInfo: nil))
-        }
-    }
-}
-
 extension AVCaptureDevice.FlashMode {
     public func next() -> AVCaptureDevice.FlashMode {
         switch self {

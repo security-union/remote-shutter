@@ -16,6 +16,8 @@ import AVFoundation
 /// capture ownership and actor glue live on `CameraRig`.
 struct CameraScreenView: View {
     @ObservedObject var viewModel: CameraViewModel
+    /// Local device selection from the picker chrome (nil in previews/tests).
+    var onSelectCameraDevice: ((String) -> Void)?
 
     var body: some View {
         ZStack {
@@ -38,6 +40,20 @@ struct CameraScreenView: View {
             }
             .allowsHitTesting(false)
 
+            // Local camera-device picker, top leading — a Mac has N cameras.
+            if FeatureFlags.ENABLE_LOCAL_CAMERA_PICKER,
+               viewModel.availableCameraDevices.count > 1 {
+                VStack {
+                    HStack {
+                        cameraDevicePicker
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                .padding(.top, 17)
+                .padding(.leading, 16)
+            }
+
             if viewModel.isBusy {
                 ProgressView()
                     .progressViewStyle(.circular)
@@ -50,6 +66,25 @@ struct CameraScreenView: View {
                 isRecording: viewModel.isRecordingTimerActive)
 
             CameraProgressOverlayView(viewModel: viewModel)
+        }
+    }
+
+    private var cameraDevicePicker: some View {
+        Menu {
+            ForEach(viewModel.availableCameraDevices, id: \.uniqueID) { device in
+                CameraDeviceMenuItem(
+                    name: device.localizedName,
+                    isActive: device.uniqueID == viewModel.activeCameraDeviceID,
+                    isSuspended: device.isSuspended,
+                    select: { onSelectCameraDevice?(device.uniqueID) })
+            }
+        } label: {
+            Image(systemName: "web.camera")
+                .font(.system(size: 20))
+                .foregroundColor(.white)
+                .frame(width: 44, height: 44)
+                .background(Color.black.opacity(0.4))
+                .clipShape(Circle())
         }
     }
 }
@@ -82,10 +117,13 @@ struct CameraPreviewView: UIViewRepresentable {
         if uiView.previewLayer.session !== session {
             uiView.previewLayer.session = session
         }
-        if let connection = uiView.previewLayer.connection,
-           connection.videoOrientation != videoOrientation {
-            connection.videoOrientation = videoOrientation
-        }
+        // Same policy as the capture connections (OrientationUtils): iOS
+        // rotates the preview to the interface; Mac cameras render native.
+        guard OrientationUtils.appliesInterfaceRotation,
+              let connection = uiView.previewLayer.connection,
+              connection.isVideoOrientationSupported,
+              connection.videoOrientation != videoOrientation else { return }
+        connection.videoOrientation = videoOrientation
     }
 }
 

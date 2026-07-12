@@ -301,10 +301,17 @@ public class DeviceScannerViewController: UIViewController {
     }
 
     func goToAppSettings() {
+        #if targetEnvironment(macCatalyst)
+        // Local-network permission lives in System Settings on the Mac.
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork") {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
+        #else
         if let bundleId = Bundle.main.bundleIdentifier,
            let url = URL(string: "\(UIApplication.openSettingsURLString)&path=LOCATION/\(bundleId)") {
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }
+        #endif
     }
 
     func shareAppLink() {

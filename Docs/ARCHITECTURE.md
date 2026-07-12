@@ -156,6 +156,52 @@ pushes a full **state snapshot** after every change (readiness, mode, zoom, lens
 countdown, events). Snapshots-not-events means a Watch that misses a message is
 corrected by the next push.
 
+## macOS (Mac Catalyst)
+
+The same app target builds for Mac Catalyst (`platform=macOS,variant=Mac
+Catalyst`); a Mac is a first-class peer in either role. What differs from iOS:
+
+- **Camera identity is a device list, not front/back.** Macs expose N cameras
+  (built-in, Continuity, USB) identified by `uniqueID`
+  (`CameraDeviceDescriptor`); external cameras report `.unspecified` position.
+  Capabilities advertise the list (`camera_devices` on the wire) and
+  `SelectCameraDevice` switches by ID — a monitor may only send it to peers
+  that advertised the list, because old decoders read unknown command actions
+  as TakePicture. The flip button on a Mac camera cycles through devices.
+- **Pickers.** The camera screen shows a local device-picker menu
+  (`FeatureFlags.ENABLE_LOCAL_CAMERA_PICKER`, Catalyst-only); the monitor's
+  flip button grows a long-press device menu when the peer advertised devices.
+- **No WatchConnectivity.** `WatchSessionManager` compiles as a stub on
+  Catalyst (`watchPaired` stays false), so the Watch role never surfaces and
+  the coordinator's watch states never fire.
+- **Fixed orientation.** Macs don't rotate: `getOrientation()` reports
+  `.landscapeRight`, window resizes are not treated as rotations, and streamed
+  frames stay landscape-native.
+- **Shims.** Display sleep is held off via a `ProcessInfo` activity, and
+  settings deep links open System Settings privacy panes.
+
+### Capture invariants (hard-won on real Mac hardware)
+
+- **Frames are always sent `.unreliable`** — a live viewfinder drops stale
+  frames, it never queues them. MC's datagram channel negotiates for ~10s
+  after "Connected" and drops sends until ready, so `peerDidConnect` warms it
+  with one unreliable no-op `RequestFrame` (a stray one is a harmless credit
+  ack) — negotiation overlaps role selection.
+- **Frame durations come from the chosen `AVFrameRateRange`'s own CMTimes,**
+  never `CMTimeMake(1, fps)`: a UVC camera's "60 fps" is really 60.00024,
+  and integer durations throw on DAL hardware and silently wedge software
+  cameras (`CaptureEngine.resolveFrameRate` + duration clamp).
+- **A session that starts on a never-delivering source wedges** (running,
+  valid graph, zero buffers) and an input swap alone does not revive it —
+  the rig's first-frame watchdog falls back to a healthy device and bounces
+  the session (`CaptureEngine.restartSession`). Runtime errors and ended
+  interruptions resume via the same AVCam-style restart path.
+- The rig-level hardware integration suite is a local/manual gate (CI
+  runners have no cameras; the tests skip themselves):
+  `xcodebuild test -workspace RemoteShutter.xcworkspace -scheme RemoteCam
+  -destination 'platform=macOS,variant=Mac Catalyst'
+  -only-testing:RemoteShutterTests/CaptureIntegrationTests`
+
 ## Testing in one line each
 
 - **`LoopbackSessionTests`** — two real coordinators wired through an in-process

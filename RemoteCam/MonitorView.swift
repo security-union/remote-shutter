@@ -11,6 +11,7 @@ struct MonitorView: View {
     // Callbacks to MonitorViewController for Actor integration
     let onTakePicture: () -> Void
     let onToggleCamera: () -> Void
+    let onSelectCameraDevice: (String) -> Void
     let onToggleFlash: () -> Void
     let onToggleTorch: () -> Void
     let onTimerChange: (Int) -> Void
@@ -49,29 +50,33 @@ struct MonitorView: View {
             // Camera preview background
             Color.black
             
-            // Camera image with aspect ratio crop overlay
-            if let image = viewModel.cameraImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .clipped()
-                    .overlay(
-                        AspectRatioCropOverlay(
-                            selectedRatio: viewModel.currentAspectRatio,
-                            imageSize: image.size
-                        )
-                    )
-            } else {
-                // Placeholder
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .overlay(
-                        Image(systemName: "camera")
-                            .font(.system(size: 50))
-                            .foregroundColor(.white.opacity(0.5))
-                    )
-            }
+            // Camera image with aspect ratio crop overlay. Its own view so
+            // the ~20fps frame stream re-renders ONLY this subtree — not the
+            // menu and the rest of the chrome.
+            LiveFrameView(frames: viewModel.frames,
+                          aspectRatio: viewModel.currentAspectRatio)
             
+            // Which camera is driving the preview — iOS and Mac peers both
+            // advertise their device list, so the name is always real.
+            if let active = viewModel.remoteCameraDevices.first(where: { $0.isActive }) {
+                VStack {
+                    HStack {
+                        Text(active.localizedName)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.9))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.black.opacity(0.45))
+                            .cornerRadius(6)
+                            .padding(.top, 20)
+                            .padding(.leading, 12)
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+            }
+
             // Recording indicator with duration timer
             if viewModel.isShowingRecordingDuration {
                 VStack {
@@ -553,12 +558,18 @@ struct MonitorView: View {
             // Main Action Button (Take Photo/Record Video)
             mainActionButton
             
-            // Toggle Camera Button
-            actionButton(
-                systemImage: "arrow.triangle.2.circlepath.camera",
-                action: onToggleCamera,
-                isEnabled: viewModel.isToggleCameraEnabled
+            // Camera switch control, isolated behind Equatable: it must not
+            // re-render (an open menu dismisses if rebuilt) unless the
+            // devices, active ID, or enabled state actually changed.
+            CameraSwitchControlView(
+                control: viewModel.cameraSwitchControl,
+                devices: viewModel.remoteCameraDevices,
+                activeDeviceID: viewModel.activeRemoteDeviceID,
+                isEnabled: viewModel.isToggleCameraEnabled,
+                onToggleCamera: onToggleCamera,
+                onSelectCameraDevice: onSelectCameraDevice
             )
+            .equatable()
         }
     }
     
@@ -667,6 +678,7 @@ struct MonitorView_Previews: PreviewProvider {
             viewModel: MonitorViewModel(),
             onTakePicture: {},
             onToggleCamera: {},
+            onSelectCameraDevice: { _ in },
             onToggleFlash: {},
             onToggleTorch: {},
             onTimerChange: { _ in },
@@ -680,6 +692,122 @@ struct MonitorView_Previews: PreviewProvider {
             onAspectRatioChange: { _ in }
         )
         .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - Live Frame View
+
+/// Renders the streamed preview frames. Deliberately its own view observing
+/// only `FrameDisplayModel`: frames publish ~20×/sec, and observing them
+/// from `MonitorView` re-rendered every control on each frame.
+struct LiveFrameView: View {
+    @ObservedObject var frames: FrameDisplayModel
+    let aspectRatio: AspectRatio
+
+    var body: some View {
+        if let image = frames.cameraImage {
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .clipped()
+                .overlay(
+                    AspectRatioCropOverlay(
+                        selectedRatio: aspectRatio,
+                        imageSize: image.size
+                    )
+                )
+        } else {
+            // Placeholder until the first frame arrives.
+            Rectangle()
+                .fill(Color.gray.opacity(0.3))
+                .overlay(
+                    Image(systemName: "camera")
+                        .font(.system(size: 50))
+                        .foregroundColor(.white.opacity(0.5))
+                )
+        }
+    }
+}
+
+// MARK: - Camera Switch Control
+
+/// The flip button / device menu, sized to the peer's cameras (one: hidden;
+/// two usable: flip; more: menu). Equatable so SwiftUI provably skips it on
+/// unrelated monitor updates — rebuilding a Menu dismisses it while open.
+/// Callbacks are deliberately excluded from equality (they are stable
+/// controller closures).
+struct CameraSwitchControlView: View, Equatable {
+    let control: MonitorViewModel.CameraSwitchControl
+    let devices: [RemoteCmd.CameraDeviceEntry]
+    let activeDeviceID: String?
+    let isEnabled: Bool
+    let onToggleCamera: () -> Void
+    let onSelectCameraDevice: (String) -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.control == rhs.control
+            && lhs.devices == rhs.devices
+            && lhs.activeDeviceID == rhs.activeDeviceID
+            && lhs.isEnabled == rhs.isEnabled
+    }
+
+    var body: some View {
+        switch control {
+        case .hidden:
+            Color.clear.frame(width: 44, height: 44)   // keep the shutter centered
+        case .flipButton:
+            Button(action: onToggleCamera) {
+                switchIcon
+            }
+            .disabled(!isEnabled)
+        case .deviceMenu:
+            Menu {
+                ForEach(devices, id: \.uniqueID) { device in
+                    CameraDeviceMenuItem(
+                        name: device.localizedName,
+                        isActive: device.uniqueID == activeDeviceID,
+                        isSuspended: device.isSuspended,
+                        select: { onSelectCameraDevice(device.uniqueID) })
+                }
+            } label: {
+                switchIcon
+            }
+            .disabled(!isEnabled)
+        }
+    }
+
+    private var switchIcon: some View {
+        Image(systemName: "arrow.triangle.2.circlepath.camera")
+            .font(.system(size: 24))
+            .foregroundColor(isEnabled ? .white : .gray)
+            .frame(width: 44, height: 44)
+    }
+}
+
+// MARK: - Camera Device Menu Item
+
+/// One camera in a device-picker menu: checkmark on the active device;
+/// suspended devices (connected but delivering no frames — e.g. a clamshell
+/// MacBook's built-in camera) are grayed out and not selectable.
+/// Shared by the monitor's remote picker and the camera screen's local picker.
+struct CameraDeviceMenuItem: View {
+    let name: String
+    let isActive: Bool
+    let isSuspended: Bool
+    let select: () -> Void
+
+    var body: some View {
+        Button(action: select) {
+            if isActive {
+                Label(name, systemImage: "checkmark")
+            } else if isSuspended {
+                Label(String(format: NSLocalizedString("%@ (unavailable)", comment: "suspended camera"), name),
+                      systemImage: "moon.zzz")
+            } else {
+                Text(name)
+            }
+        }
+        .disabled(isSuspended)
     }
 }
 

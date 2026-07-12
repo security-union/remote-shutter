@@ -151,6 +151,79 @@ class MonitorPresenterTests: XCTestCase {
         XCTAssertEqual(display.zoomUpdates[0].maxFactor, 8.0, accuracy: 0.001)
     }
 
+    // MARK: - Camera device list
+
+    /// A Mac camera peer advertises N devices but has no front/back
+    /// CameraInfo — the device list must reach the view model anyway.
+    func testCapabilitiesWithoutPositionInfoStillDeliverDeviceList() {
+        let devices = [
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "facetime-0", localizedName: "FaceTime HD Camera",
+                positionRaw: AVCaptureDevice.Position.unspecified.rawValue,
+                isActive: true, info: nil),
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "usb-0", localizedName: "USB Camera",
+                positionRaw: AVCaptureDevice.Position.unspecified.rawValue,
+                isActive: false, info: nil)
+        ]
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            cameraDevices: devices, activeDeviceID: "facetime-0", error: nil)
+
+        presenter.updateCapabilities(capabilities)
+        drain()
+
+        XCTAssertEqual(display.viewModel.remoteCameraDevices, devices)
+        XCTAssertEqual(display.viewModel.activeRemoteDeviceID, "facetime-0")
+        // No front/back info: the lens/zoom sync is skipped, not crashed.
+        XCTAssertTrue(display.lensUpdates.isEmpty)
+    }
+
+    func testLegacyCapabilitiesClearDeviceList() {
+        display.viewModel.remoteCameraDevices = [
+            RemoteCmd.CameraDeviceEntry(
+                uniqueID: "stale", localizedName: "Stale",
+                positionRaw: 0, isActive: true, info: nil)
+        ]
+        let capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            error: nil)
+
+        presenter.updateCapabilities(capabilities)
+        drain()
+
+        XCTAssertTrue(display.viewModel.remoteCameraDevices.isEmpty,
+                      "a legacy peer's capabilities must clear a stale device list")
+        XCTAssertNil(display.viewModel.activeRemoteDeviceID)
+    }
+
+    // MARK: - Camera switch control policy
+
+    private func entry(_ id: String, suspended: Bool = false) -> RemoteCmd.CameraDeviceEntry {
+        RemoteCmd.CameraDeviceEntry(
+            uniqueID: id, localizedName: id, positionRaw: 0,
+            isActive: false, isSuspended: suspended, info: nil)
+    }
+
+    func testSwitchControlMatchesCameraTopology() {
+        // Legacy peer (no list): count unknown — keep the classic flip.
+        XCTAssertEqual(MonitorViewModel.switchControl(for: []), .flipButton)
+        // One camera: nothing to switch to.
+        XCTAssertEqual(MonitorViewModel.switchControl(for: [entry("a")]), .hidden)
+        // Two usable cameras: the classic flip button.
+        XCTAssertEqual(MonitorViewModel.switchControl(for: [entry("a"), entry("b")]), .flipButton)
+        // Two cameras but one suspended: the menu explains the grayed device.
+        XCTAssertEqual(
+            MonitorViewModel.switchControl(for: [entry("a"), entry("b", suspended: true)]),
+            .deviceMenu)
+        // Three or more: the menu.
+        XCTAssertEqual(
+            MonitorViewModel.switchControl(for: [entry("a"), entry("b"), entry("c")]),
+            .deviceMenu)
+    }
+
     // MARK: - Video transfer progress
 
     func testVideoTransferMessagesDriveViewModel() {

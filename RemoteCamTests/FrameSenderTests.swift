@@ -73,8 +73,31 @@ class FrameSenderTests: XCTestCase {
         XCTAssertEqual(sentFrameCount, 1)
         let sent = fakeMP.sentMessages[0]
         XCTAssertEqual(sent.peers, [peer])
+        // Frames are ALWAYS .unreliable (hard rule): a live viewfinder drops
+        // stale frames, it never queues them.
         XCTAssertEqual(sent.mode, .unreliable)
         XCTAssertEqual(frameSender.windowSnapshot().inFlight, 1)
+    }
+
+    /// The datagram-channel warm-up must be harmless on the receiving side:
+    /// a stray RequestFrame before any frame is in flight is a no-op ack.
+    func testStrayAckOnEmptyWindowIsHarmless() {
+        frameSender.receiveAck(RemoteCmd.RequestFrame(sender: nil))
+        frameSender.drain()
+        XCTAssertEqual(frameSender.windowSnapshot().inFlight, 0)
+    }
+
+    /// Peer connect fires exactly one unreliable no-op ping so MC starts
+    /// negotiating its lossy datagram channel (~10s) during role selection
+    /// instead of during the first seconds of live preview.
+    func testPeerConnectSendsOneUnreliableWarmUpPing() async {
+        let harness = await makeCoordinatorHarness()
+        harness.coordinator.peerDidConnect(harness.peer)
+        await harness.coordinator.waitForIdle()
+
+        let pings = harness.fakeMP.sentMessages.filter { $0.msg is RemoteCmd.RequestFrame }
+        XCTAssertEqual(pings.count, 1, "connect must warm the unreliable channel exactly once")
+        XCTAssertEqual(pings.first?.mode, .unreliable)
     }
 
     func testWindowAllowsMultipleFramesInFlight() {

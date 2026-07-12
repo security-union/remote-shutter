@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import AVFoundation
+import PhotosUI
 
 // MARK: - MonitorViewController SwiftUI Integration
 extension MonitorViewController {
@@ -15,6 +16,9 @@ extension MonitorViewController {
             },
             onToggleCamera: { [weak self] in
                 self?.handleToggleCamera()
+            },
+            onSelectCameraDevice: { [weak self] uniqueID in
+                self?.handleSelectCameraDevice(uniqueID)
             },
             onToggleFlash: { [weak self] in
                 self?.handleToggleFlash()
@@ -159,6 +163,10 @@ extension MonitorViewController {
         }
     }
     
+    private func handleSelectCameraDevice(_ uniqueID: String) {
+        session ! UICmd.SelectCameraDevice(uniqueID: uniqueID)
+    }
+
     private func handleToggleCamera() {
         session ! UICmd.ToggleCamera()
     }
@@ -247,20 +255,13 @@ extension MonitorViewController {
     // MARK: - Helper Methods
     
     private func showGallery() {
-        let imagePickerController = UIImagePickerController()
-        imagePickerController.delegate = self
-        imagePickerController.sourceType = .photoLibrary
-        imagePickerController.mediaTypes = ["public.image", "public.movie"]
-        
-        #if targetEnvironment(macCatalyst)
-        imagePickerController.modalPresentationStyle = .pageSheet
-        #else
-        imagePickerController.modalPresentationStyle = .popover
-        imagePickerController.popoverPresentationController?.sourceView = view
-        imagePickerController.popoverPresentationController?.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
-        #endif
-        
-        present(imagePickerController, animated: true)
+        var config = PHPickerConfiguration()
+        config.filter = .any(of: [.images, .videos])
+        config.selectionLimit = 1
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = self
+        picker.modalPresentationStyle = .pageSheet
+        present(picker, animated: true)
     }
     
     private func showSettings() {

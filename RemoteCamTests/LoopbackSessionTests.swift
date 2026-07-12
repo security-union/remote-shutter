@@ -394,6 +394,159 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(monitorState, .monitor)
     }
 
+    // MARK: - Camera device selection
+
+    func testSelectCameraDeviceHappyPathAcrossTheWire() async {
+        let fakeCamera = await connectCameraAndMonitor()
+
+        monitorCoordinator.tell(UICmd.SelectCameraDevice(uniqueID: "fake-front"))
+        await drainBothSessions()
+
+        // The camera switched devices and answered with fresh capabilities.
+        XCTAssertEqual(fakeCamera.deviceSelections, ["fake-front"])
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNil(resps.first?.error)
+        XCTAssertEqual(resps.first?.cameraCapabilities?.activeDeviceID, "fake-front")
+        XCTAssertEqual(resps.first?.cameraCapabilities?.cameraDevices.count, 2)
+        XCTAssertEqual(
+            resps.first?.cameraCapabilities?.cameraDevices.first { $0.isActive }?.uniqueID,
+            "fake-front")
+
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+        XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
+    }
+
+    /// The safety gate: old peers decode unknown command actions as
+    /// TakePicture, so a monitor must never emit SelectCameraDevice unless the
+    /// peer's capabilities advertised a device list.
+    func testSelectCameraDeviceIsNeverSentToLegacyPeer() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.advertisesCameraDevices = false   // legacy-shaped capabilities
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Photo)
+        monitorTransport.sentMessages.removeAll()
+
+        monitorCoordinator.tell(UICmd.SelectCameraDevice(uniqueID: "fake-front"))
+        await drainBothSessions()
+
+        XCTAssertFalse(monitorTransport.sentMessages.contains { $0 is RemoteCmd.SelectCameraDevice },
+                       "SelectCameraDevice must be gated on advertised camera_devices")
+        XCTAssertTrue(fakeCamera.deviceSelections.isEmpty)
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty,
+                      "an ungated command would decode as TakePicture on an old peer")
+        // The monitor quietly stays where it was.
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+    }
+
+    /// A suspended camera (clamshell built-in: connected, zero frames) is
+    /// advertised with its flag so the monitor grays it out — and if a peer
+    /// selects it anyway (old UI, race), the camera answers with an error
+    /// instead of switching to a dead device.
+    func testSuspendedDeviceIsAdvertisedAndRejectedOnSelection() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.availableDevices.append(CameraDeviceDescriptor(
+            uniqueID: "builtin-lid-closed", localizedName: "MacBook Pro Camera",
+            position: .unspecified, deviceType: .builtInWideAngleCamera,
+            isSuspended: true))
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Photo)
+        cameraTransport.sentMessages.removeAll()
+
+        // The handshake capabilities already advertised the suspended device.
+        monitorCoordinator.tell(UICmd.SelectCameraDevice(uniqueID: "builtin-lid-closed"))
+        await drainBothSessions()
+
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNotNil(resps.first?.error, "selecting a suspended camera must fail loudly")
+        // The camera did not switch away from its healthy device.
+        let current = await fakeCamera.currentCameraDevice()
+        XCTAssertEqual(current?.uniqueID, "fake-back")
+    }
+
+    /// Hot-plug contract: when a camera appears or vanishes, the rig tells its
+    /// OWN coordinator RequestCameraCapabilities (CameraRig's
+    /// onCameraDevicesChanged handler) — the camera state must answer by
+    /// broadcasting fresh capabilities, so the monitor's picker updates live.
+    func testHotPlugRebroadcastsCapabilitiesWithNewDeviceList() async {
+        let fakeCamera = await connectCameraAndMonitor()
+
+        // A USB camera appears…
+        fakeCamera.availableDevices.append(CameraDeviceDescriptor(
+            uniqueID: "usb-0", localizedName: "USB Camera",
+            position: .unspecified, deviceType: .builtInWideAngleCamera))
+        // …and the rig nudges its own coordinator, as the hot-plug observer does.
+        cameraCoordinator.tell(RemoteCmd.RequestCameraCapabilities())
+        await drainBothSessions()
+
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
+        XCTAssertEqual(resps.count, 1, "hot-plug must trigger exactly one capabilities broadcast")
+        XCTAssertEqual(resps.first?.cameraDevices.count, 3)
+        XCTAssertTrue(resps.first?.cameraDevices.contains { $0.uniqueID == "usb-0" } ?? false,
+                      "the freshly plugged camera must be advertised to the monitor")
+    }
+
+    /// A camera can accept the input swap and then never deliver a frame (a
+    /// wedged virtual camera, e.g. OBS in a sandboxed app). The selection
+    /// must come back as a VISIBLE error naming the device — not a success
+    /// followed by a silently black preview.
+    func testSelectingCameraThatDeliversNoFramesReturnsError() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.availableDevices.append(CameraDeviceDescriptor(
+            uniqueID: "obs-0", localizedName: "OBS Virtual Camera",
+            position: .unspecified, deviceType: .builtInWideAngleCamera))
+        fakeCamera.stalledDeviceIDs = ["obs-0"]
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Photo)
+        cameraTransport.sentMessages.removeAll()
+
+        monitorCoordinator.tell(UICmd.SelectCameraDevice(uniqueID: "obs-0"))
+        await drainBothSessions()
+
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNotNil(resps.first?.error, "a no-frames camera must fail the selection")
+        XCTAssertTrue(resps.first?.error?._domain.contains("OBS Virtual Camera") ?? false,
+                      "the error must name the dead device")
+        // The monitor surfaced it as an alert (the toggling state's error path).
+        XCTAssertFalse(monitorAlerts.shownErrors.isEmpty)
+    }
+
+    func testSelectCameraDeviceWhileRecordingIsRejected() async {
+        let fakeCamera = await connectCameraAndMonitor(monitorMode: .Video)
+
+        // Start a recording so the camera sits in a busy state.
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: false))
+        await drainBothSessions()
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .cameraRecordingVideo)
+        cameraTransport.sentMessages.removeAll()
+
+        // Deliver the command straight to the busy camera (as a peer would).
+        cameraCoordinator.tell(RemoteCmd.SelectCameraDevice(uniqueID: "fake-front"))
+        await drainBothSessions()
+
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNotNil(resps.first?.error, "busy camera must reject device selection")
+        XCTAssertTrue(fakeCamera.deviceSelections.isEmpty)
+        // Still recording — the request must not disturb the session.
+        let stillRecording = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(stillRecording, .cameraRecordingVideo)
+    }
+
     func testSetZoomHappyPathEchoesFactorAndRange() async {
         let fakeCamera = await connectCameraAndMonitor()
 
