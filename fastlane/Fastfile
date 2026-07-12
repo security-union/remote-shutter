@@ -194,8 +194,10 @@ platform :ios do
       platform: "osx",
       skip_metadata: false,
       skip_screenshots: false,
-      # ASC mirrors fastlane/screenshots/ — deliver picks the Mac display
-      # family by the 2880x1800 resolution of the *_APP_DESKTOP_*.png files.
+      # Mac screenshots live in their own tree: deliver uploads EVERY file in
+      # screenshots_path to the run's platform, and APP_DESKTOP display types
+      # are invalid on the iOS version (run 29181223484) — and vice versa.
+      screenshots_path: "./fastlane/screenshots_mac",
       overwrite_screenshots: true,
       precheck_include_in_app_purchases: false,
       force: true,
