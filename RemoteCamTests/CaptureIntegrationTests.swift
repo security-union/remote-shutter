@@ -34,6 +34,7 @@ final class CaptureIntegrationTests: XCTestCase {
 
     override func setUp() async throws {
         try await super.setUp()
+        try Self.skipIfHeadless()
         #if targetEnvironment(macCatalyst)
         if #available(macCatalyst 17.0, *) {
             // selectCameraDevice writes the SYSTEM-WIDE preference (Apple's
@@ -52,6 +53,23 @@ final class CaptureIntegrationTests: XCTestCase {
         }
         #endif
         try await super.tearDown()
+    }
+
+    /// Skips the whole suite before ANY AVFoundation call on machines that
+    /// cannot answer a TCC prompt. `requestAccess(for: .video)` on a fresh
+    /// headless runner posts a prompt no one can click — the await never
+    /// resumes and the CI job hangs forever (run 29173204289). The skip must
+    /// therefore happen up front, not after probing the camera.
+    /// GitHub Actions sets `CI=true`; ios-ci.yml forwards it to the test
+    /// process as `TEST_RUNNER_CI` (xcodebuild strips the prefix). Local
+    /// interactive runs keep the real TCC prompt.
+    private static func skipIfHeadless() throws {
+        if ProcessInfo.processInfo.environment["CI"] != nil {
+            throw XCTSkip("headless CI — no camera, and a TCC prompt could never be answered")
+        }
+        #if targetEnvironment(simulator)
+        throw XCTSkip("iOS simulator has no cameras")
+        #endif
     }
 
     /// Timestamp source the rig's own watchdog uses.
@@ -122,7 +140,6 @@ final class CaptureIntegrationTests: XCTestCase {
         try await startRealRig()
 
         guard let latency = await waitForFrames(since: 0) else {
-            let device = await rig.currentCameraDevice()
             return XCTFail("no frames within \(Self.framesDeadline)s — \(await diagnostics())")
         }
         let device = await rig.currentCameraDevice()
