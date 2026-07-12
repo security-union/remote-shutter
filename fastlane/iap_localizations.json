@@ -41,6 +41,26 @@
       "zh-Hans": {
         "name": "移除广告",
         "description": "关闭所有横幅广告。"
+      },
+      "vi": {
+        "name": "Gỡ quảng cáo",
+        "description": "Tắt tất cả quảng cáo biểu ngữ."
+      },
+      "hi": {
+        "name": "विज्ञापन हटाएँ",
+        "description": "सभी बैनर विज्ञापन बंद करता है।"
+      },
+      "ms": {
+        "name": "Alih Keluar Iklan",
+        "description": "Matikan semua iklan sepanduk."
+      },
+      "tr": {
+        "name": "Reklamları Kaldır",
+        "description": "Tüm banner reklamları kapatır."
+      },
+      "ru": {
+        "name": "Убрать рекламу",
+        "description": "Отключает все рекламные баннеры."
       }
     },
     "06": {
@@ -83,6 +103,26 @@
       "zh-Hans": {
         "name": "专业版：全部功能",
         "description": "视频、手电筒控制，无广告。"
+      },
+      "vi": {
+        "name": "Pro: Tất cả tính năng",
+        "description": "Video, đèn pin và không quảng cáo."
+      },
+      "hi": {
+        "name": "प्रो: सभी सुविधाएँ",
+        "description": "वीडियो, टॉर्च कंट्रोल और विज्ञापन-मुक्त।"
+      },
+      "ms": {
+        "name": "Pro: Semua Ciri",
+        "description": "Video, kawalan lampu suluh, tiada iklan."
+      },
+      "tr": {
+        "name": "Pro: Tüm Özellikler",
+        "description": "Video, el feneri kontrolü, reklamsız."
+      },
+      "ru": {
+        "name": "Pro: все функции",
+        "description": "Видео, управление фонариком, без рекламы."
       }
     },
     "07": {
@@ -125,6 +165,26 @@
       "zh-Hans": {
         "name": "手电筒控制",
         "description": "远程打开相机手电筒。"
+      },
+      "vi": {
+        "name": "Bật đèn pin",
+        "description": "Điều khiển đèn pin khi quay video."
+      },
+      "hi": {
+        "name": "टॉर्च कंट्रोल",
+        "description": "कैमरे की टॉर्च दूर से चालू करें।"
+      },
+      "ms": {
+        "name": "Kawalan Lampu Suluh",
+        "description": "Hidupkan lampu suluh kamera dari jauh."
+      },
+      "tr": {
+        "name": "El Feneri Kontrolü",
+        "description": "Kamera el fenerini uzaktan açın."
+      },
+      "ru": {
+        "name": "Управление фонариком",
+        "description": "Включайте фонарик камеры удалённо."
       }
     },
     "08": {
@@ -167,6 +227,26 @@
       "zh-Hans": {
         "name": "视频录制",
         "description": "使用远程相机录制视频。"
+      },
+      "vi": {
+        "name": "Bật video",
+        "description": "Chỉ quay video."
+      },
+      "hi": {
+        "name": "वीडियो रिकॉर्डिंग",
+        "description": "रिमोट कैमरे से वीडियो रिकॉर्ड करें।"
+      },
+      "ms": {
+        "name": "Rakaman Video",
+        "description": "Rakam video dengan kamera jauh."
+      },
+      "tr": {
+        "name": "Video Kaydı",
+        "description": "Uzaktan kamerayla video kaydedin."
+      },
+      "ru": {
+        "name": "Запись видео",
+        "description": "Снимайте видео удалённой камерой."
       }
     }
   }
