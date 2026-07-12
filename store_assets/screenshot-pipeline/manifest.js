@@ -257,7 +257,7 @@ window.MANIFEST = {
       layout: "landscape",
       headline: ["Your Mac is the camera.", "Your iPhone is the remote."],
       accentLine: 1,
-      scene: "../ai-scenes/mac0_studio_e1.jpg",
+      scene: "../ai-scenes/mac0_studio_e2.jpg",
       sceneSize: [1536, 2752],
       scenePosition: "50% 50%",
       surfaces: [
@@ -308,7 +308,7 @@ window.MANIFEST = {
       surfaces: [
         {
           // MacBook screen: real Mac monitor UI, live view of the cardinal.
-          quad: [[562, 1315], [1376, 1323], [518, 1823], [1385, 1872]],
+          quad: [[566, 1314], [1386, 1323], [511, 1841], [1378, 1866]],
           size: [3842, 2102],
           bezel: 0,
           radius: 18,
@@ -317,7 +317,7 @@ window.MANIFEST = {
         },
         {
           // Camera phone in the GorillaPod clamp: live view with camera chrome.
-          quad: [[1117, 568], [1253, 564], [1123, 864], [1255, 868]],
+          quad: [[1120, 566], [1247, 566], [1119, 865], [1250, 863]],
           size: [1210, 2572],
           bezel: 0,
           radius: 170,
@@ -331,6 +331,28 @@ window.MANIFEST = {
       callouts: [
         { text: "REMOTE", anchor: [950, 1320], dx: 50, dy: -140 },
         { text: "CAMERA", anchor: [1187, 700], dx: -110, dy: 180 }
+      ]
+    },
+
+    // mac1: remote UI feature callouts — real Mac monitor-window capture
+    // (chrome + rounded corners + baked preview in the asset), no scene.
+    "mac1": {
+      layout: "landscape",
+      headline: ["See everything.", "Control everything."],
+      accentLine: 1,
+      mockup: {
+        device: "mac",
+        ui: "assets/ui-monitor-mac-remote.png",
+        naturalSize: [1716, 1807],
+        width: 1025,
+        left: "68%",
+        top: 60
+      },
+      callouts: [
+        { text: "PHOTO & VIDEO", anchorScreen: [0.474, 0.596], dx: 250, dy: 70 },
+        { text: "TIMER", anchorScreen: [0.092, 0.705], dx: -210, dy: 0 },
+        { text: "ZOOM & LENS", anchorScreen: [0.10, 0.757], dx: -210, dy: 110 },
+        { text: "FLASH & TORCH", anchorScreen: [0.485, 0.965], dx: 260, dy: 0 }
       ]
     },
 

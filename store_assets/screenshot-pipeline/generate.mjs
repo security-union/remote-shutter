@@ -54,6 +54,14 @@ pole RIGHT NEXT to the cardinal, its lens almost touching the feeder ledge,
 screen dark — the phone and the bird close together in the upper third,
 both clearly recognizable. Morning light, warm interior, telephoto garden
 compression. The laptop screen large and clearly visible. ${STYLE}`,
+  // Short prompt per the Veo/Nano Banana five-part formula:
+  // [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]
+  mac2_cook: `Over-the-shoulder shot from behind a home cook at a wooden kitchen
+counter. She garnishes a colorful charcuterie board while her other hand rests
+on the trackpad of an open laptop beside her, its dark screen facing the viewer,
+fully visible. A smartphone on an articulated arm under the upper cabinet points
+straight down at the board. Bright modern kitchen, soft daylight, photorealistic
+commercial photography in the style of an Apple ad. Vertical 9:16.`,
   mac3_window: `A bright home-office scene, vertical composition: in the lower
 half of the frame, an unbranded modern aluminum laptop sits open on a tidy desk,
 screen facing the viewer straight on, completely black and switched off, no

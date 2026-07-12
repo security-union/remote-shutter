@@ -216,7 +216,28 @@
     ipad: { ar: 2360 / 1640, sr: 36, fr: 60, pad: 26, pv: [22.0, 2.0, 55.9, 70.0], sbH: 2.0, sbF: 19, sbP: 40 },
   };
   let mockupMetrics = null;
-  if (slot.mockup) {
+  if (slot.mockup && slot.mockup.device === "mac") {
+    // Mac window screenshot placed as-is (chrome + rounded alpha baked in).
+    const m = slot.mockup;
+    const nat = m.naturalSize || [1716, 1807];
+    const screenW = (m.width || 960) * k;
+    const screenH = screenW * nat[1] / nat[0];
+    const rad = 26 * screenW / nat[0];
+    const el = document.createElement("div");
+    el.className = "mockup";
+    el.style.left = `calc(${m.left || "72%"} - ${screenW / 2}px)`;
+    el.style.top = (m.top || 90) * k + "px";
+    el.style.borderRadius = rad + "px";
+    el.style.boxShadow = `0 ${60 * k}px ${120 * k}px rgba(0,0,0,.5), 0 ${20 * k}px ${40 * k}px rgba(0,0,0,.35)`;
+    el.innerHTML = `<div class="screen" style="width:${screenW}px;height:${screenH}px;border-radius:${rad}px;background:transparent;">
+      <img class="ui" src="${m.ui}"></div>`;
+    canvas.appendChild(el);
+    mockupMetrics = {
+      screenLeft: cw * parseFloat(m.left || "72") / 100 - screenW / 2,
+      screenTop: (m.top || 90) * k,
+      screenW, screenH,
+    };
+  } else if (slot.mockup) {
     const m = slot.mockup;
     const P = MOCKUP_PRESETS[m.device || "iphone"];
     const screenW = (m.width || 620) * k;
