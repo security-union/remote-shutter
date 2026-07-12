@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: "Which app to release"
+        description: "Which app to release (default: both)"
         type: choice
-        options: [ios, mac]
-        default: ios
+        options: [both, ios, mac]
+        default: both
 
 permissions:
   contents: read
@@ -30,9 +30,12 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
 
-      - name: Build and upload to App Store
+      # The two lanes run sequentially on one runner: match writes to the
+      # same signing repo, so parallel jobs could race on the first run.
+      - name: Build and upload iOS to App Store
+        if: ${{ inputs.platform != 'mac' }}
         timeout-minutes: 30
-        run: bundle exec fastlane ${{ inputs.platform == 'mac' && 'release_mac' || 'release' }}
+        run: bundle exec fastlane release
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -41,12 +44,25 @@ jobs:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
 
-      - name: Upload IPA artifact
+      - name: Build and upload Mac to App Store
+        if: ${{ inputs.platform != 'ios' }}
+        timeout-minutes: 30
+        run: bundle exec fastlane release_mac
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+
+      - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: RemoteShutter.ipa
+          name: RemoteShutter-builds
           path: |
             **/*.ipa
+            **/*.pkg
             **/*.dSYM
           retention-days: 30
