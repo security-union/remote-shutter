@@ -349,10 +349,10 @@ window.MANIFEST = {
         top: 60
       },
       callouts: [
-        { text: "PHOTO & VIDEO", anchorScreen: [0.474, 0.596], dx: 250, dy: 70 },
-        { text: "TIMER", anchorScreen: [0.092, 0.705], dx: -210, dy: 0 },
+        { text: "PHOTO & VIDEO", anchorScreen: [0.474, 0.596], dx: 250, dy: 100 },
+        { text: "TIMER", anchorScreen: [0.092, 0.705], dx: -230, dy: -80 },
         { text: "ZOOM & LENS", anchorScreen: [0.10, 0.757], dx: -210, dy: 110 },
-        { text: "FLASH & TORCH", anchorScreen: [0.485, 0.965], dx: 260, dy: 0 }
+        { text: "FLASH & TORCH", anchorScreen: [0.452, 0.965], dx: -280, dy: 0 }
       ]
     },
 
