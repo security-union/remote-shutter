@@ -116,6 +116,33 @@ class SnapshotTestCase: XCTestCase {
                       file: file, line: line)
     }
 
+    /// Light-theme screens can't promise dark pixels (hasChrome's contract),
+    /// especially on the CI ImageRenderer path where UIKit-backed subviews are
+    /// omitted. A real render still has tonal variance; a failed one is a
+    /// uniform fill. Samples the same coarse grid as hasChrome.
+    func assertRendered(_ image: UIImage, file: StaticString = #filePath, line: UInt = #line) {
+        guard let cgImage = image.cgImage,
+              let data = cgImage.dataProvider?.data,
+              let bytes = CFDataGetBytePtr(data) else {
+            XCTFail("Could not read render pixels", file: file, line: line)
+            return
+        }
+        let bytesPerRow = cgImage.bytesPerRow
+        let bytesPerPixel = cgImage.bitsPerPixel / 8
+        var minLum = 255, maxLum = 0
+        for row in stride(from: 0, to: cgImage.height, by: 32) {
+            for col in stride(from: 0, to: cgImage.width, by: 32) {
+                let offset = row * bytesPerRow + col * bytesPerPixel
+                let luminance = (Int(bytes[offset]) + Int(bytes[offset + 1]) + Int(bytes[offset + 2])) / 3
+                minLum = min(minLum, luminance)
+                maxLum = max(maxLum, luminance)
+            }
+        }
+        XCTAssertGreaterThanOrEqual(maxLum - minLum, 60,
+                                    "Expected tonal variance in the render (got \(minLum)...\(maxLum)) — looks like a blank/uniform fill",
+                                    file: file, line: line)
+    }
+
     /// A stand-in for the streamed camera frame: a gradient "scene" with a
     /// bright subject, so snapshots show the live-feed area realistically.
     func syntheticCameraFrame(size: CGSize = CGSize(width: 1920, height: 1080)) -> UIImage {
