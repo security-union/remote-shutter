@@ -26,7 +26,20 @@ class SnapshotTestCase: XCTestCase {
         super.tearDown()
     }
 
+    /// True when the last renderScreen call fell back to ImageRenderer
+    /// (headless CI). ScrollView-rooted screens produce no content on that
+    /// path — tests for such screens should skip pixel assertions when set.
+    private(set) var usedImageRendererFallback = false
+
+    func skipPixelAssertsIfHeadless() throws {
+        if usedImageRendererFallback {
+            throw XCTSkip("Headless CI: window render blank and ScrollView content "
+                          + "does not lay out under ImageRenderer — pixel assertions skipped")
+        }
+    }
+
     func renderScreen<Screen: View>(named name: String, _ screen: Screen) -> UIImage {
+        usedImageRendererFallback = false
         let host = UIHostingController(rootView: screen)
         window.rootViewController = host
         window.makeKeyAndVisible()
@@ -61,6 +74,7 @@ class SnapshotTestCase: XCTestCase {
             if let rendered = renderer.uiImage {
                 image = rendered
             }
+            usedImageRendererFallback = true
         }
 
         let attachment = XCTAttachment(image: image)

@@ -28,17 +28,19 @@ final class DeviceScannerSnapshotTests: SnapshotTestCase {
         return renderScreen(named: name, screen)
     }
 
-    func testRemoteModeShowsWifiBanner() {
+    func testRemoteModeShowsWifiBanner() throws {
         let image = renderScanner(named: "scanner-remote-wifi-banner") { model in
             model.role = .monitor
         }
+        try skipPixelAssertsIfHeadless()
         assertRendered(image)
     }
 
-    func testCameraModeShowsWifiBanner() {
+    func testCameraModeShowsWifiBanner() throws {
         let image = renderScanner(named: "scanner-camera-wifi-banner") { model in
             model.role = .camera
         }
+        try skipPixelAssertsIfHeadless()
         assertRendered(image)
     }
 
@@ -46,7 +48,7 @@ final class DeviceScannerSnapshotTests: SnapshotTestCase {
     /// threshold, and verify the TimelineView surfaces the Wi-Fi tip. Slow by
     /// design (~16s) — it is the only test that exercises the actual
     /// TimelineView wiring rather than the pure function.
-    func testEscalationTipAppearsAfterFifteenSeconds() {
+    func testEscalationTipAppearsAfterFifteenSeconds() throws {
         let model = DeviceScannerViewModel()
         model.role = .monitor
         model.startedScanning()
@@ -67,10 +69,12 @@ final class DeviceScannerSnapshotTests: SnapshotTestCase {
         while Date() < deadline {
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.5))
         }
+        // Behavioral check first — it must hold on every runner, headless or not.
         XCTAssertTrue(model.shouldShowWifiEscalation(now: Date()),
                       "escalation should be active 16s after scanning started")
 
         let image = renderScreen(named: "scanner-remote-wifi-escalation", screen)
+        try skipPixelAssertsIfHeadless()
         assertRendered(image)
     }
 }
