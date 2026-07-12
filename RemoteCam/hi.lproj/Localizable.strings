@@ -194,7 +194,7 @@
 /* Help Modal */
 "help_title" = "Remote Shutter कैसे काम करता है";
 "help_subtitle" = "दो डिवाइस से बेहतरीन फ़ोटो और वीडियो लें";
-"help_got_it" = "समझ गया!";
+"help_got_it" = "ठीक है!";
 "help_done" = "हो गया";
 
 /* Help Page 1 - Connect Devices */
@@ -293,11 +293,11 @@
 "TAP THE BUTTON TO GET STARTED" = "शुरू करने के लिए बटन टैप करें";
 
 /* Settings */
-"About" = "जानकारी";
+"About" = "परिचय";
 "Back" = "वापस";
 "Contact Support" = "सपोर्ट से संपर्क करें";
 "Discord Community" = "Discord समुदाय";
-"In-App Purchases" = "ऐप-में खरीदारी";
+"In-App Purchases" = "ऐप में खरीदारी";
 "Purchased" = "खरीदा गया";
 "Send Media to Remote" = "रिमोट को मीडिया भेजें";
 "Source Code" = "सोर्स कोड";

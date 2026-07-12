@@ -186,7 +186,7 @@
 "photos_sharing_feature_description" = "Akses foto dan video yang anda tangkap dari app Foto untuk berkongsi dengan mudah bersama rakan dan keluarga atau gunakan dalam app lain.";
 
 "photos_open_settings" = "Buka Tetapan";
-"photos_dismiss" = "Tolak";
+"photos_dismiss" = "Ketepikan";
 
 /* Video Transfer Progress */
 "video_transfer_progress_title" = "Memindahkan Video";
@@ -199,7 +199,7 @@
 
 /* Help Page 1 - Connect Devices */
 "help_connect_title" = "2. Sambungkan Peranti";
-"help_connect_description" = "Peranti Kamera pergi dalam talian dan menunggu. Pada peranti Kawalan Jauh, imbas untuk mencari kamera dan ketik nama kamera untuk menyambung.";
+"help_connect_description" = "Peranti Kamera masuk dalam talian dan menunggu. Pada peranti Kawalan Jauh, imbas untuk mencari kamera dan ketik nama kamera untuk menyambung.";
 "help_quick_setup_title" = "Persediaan Pantas";
 "help_quick_setup_description" = "Gunakan kod QR untuk memuat turun Remote Shutter pada peranti kedua anda dari App Store";
 "help_same_network_title" = "Sambungan Peer-to-Peer";
@@ -240,8 +240,8 @@
 "Scan for cameras" = "Imbas untuk cari kamera";
 "Camera Mode" = "Mod Kamera";
 "On another device, open Remote Shutter and select Remote. This camera will appear in their device list." = "Pada peranti lain, buka Remote Shutter dan pilih Kawalan Jauh. Kamera ini akan muncul dalam senarai peranti mereka.";
-"Go Online" = "Pergi Dalam Talian";
-"Go Offline" = "Pergi Luar Talian";
+"Go Online" = "Dalam Talian";
+"Go Offline" = "Luar Talian";
 "Waiting for a remote to connect..." = "Menunggu kawalan jauh untuk menyambung...";
 "WAITING FOR A REMOTE TO CONNECT..." = "MENUNGGU KAWALAN JAUH UNTUK MENYAMBUNG...";
 "SEARCHING FOR NEARBY CAMERAS..." = "MENCARI KAMERA BERDEKATAN...";
@@ -267,7 +267,7 @@
 "Use the device with the best lens" = "Gunakan peranti dengan kanta terbaik";
 "Remote" = "Kawalan Jauh";
 "Control the shutter" = "Kawal pengatup";
-"Works up to 50 feet away" = "Berfungsi sehingga 50 kaki jauh";
+"Works up to 50 feet away" = "Berfungsi dari jarak sehingga 50 kaki";
 "Remote Mode" = "Mod Kawalan Jauh";
 
 /* Alert Messages */

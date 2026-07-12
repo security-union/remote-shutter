@@ -66,7 +66,7 @@
 /* No comment provided by engineer. */
 "¿Desea sincronizar su %@ con los productos previamente comprados en la AppStore (gratuitamente)?" = "Bạn có muốn đồng bộ %@ với các tính năng đã mua trước đây không (miễn phí)?";
 
-"Acknowledgments"= "Ghi nhận";
+"Acknowledgments"= "Lời cảm ơn";
 
 "timeunit"= "giây";
 
@@ -299,7 +299,7 @@
 "Discord Community" = "Cộng đồng Discord";
 "In-App Purchases" = "Mua trong ứng dụng";
 "Purchased" = "Đã mua";
-"Send Media to Remote" = "Gửi phương tiện đến điều khiển";
+"Send Media to Remote" = "Gửi ảnh & video đến điều khiển";
 "Source Code" = "Mã nguồn";
 "Version" = "Phiên bản";
 

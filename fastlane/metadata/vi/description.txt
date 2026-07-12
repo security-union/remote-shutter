@@ -1,4 +1,4 @@
-Biến hai thiết bị bất kỳ thành hệ thống máy ảnh điều khiển từ xa không dây — không cần internet, không cần WiFi, không cần tài khoản. Chỉ việc kết nối và chụp.
+Biến hai thiết bị bất kỳ thành hệ thống máy ảnh điều khiển từ xa không dây — không cần internet, không cần Wi-Fi, không cần tài khoản. Chỉ việc kết nối và chụp.
 
 Remote Shutter dùng công nghệ ngang hàng để liên kết trực tiếp hai thiết bị. Một thiết bị trở thành máy ảnh, thiết bị kia trở thành điều khiển từ xa với màn hình xem trực tiếp. Hoàn hảo cho ảnh nhóm, ảnh tự sướng, ảnh chụp bằng chân máy, những góc chụp sáng tạo và chụp ảnh rảnh tay.
 
@@ -12,7 +12,7 @@ TÍNH NĂNG
 - Hẹn giờ chụp ảnh có thể điều chỉnh
 - Quay video từ xa
 - Hoạt động với iPhone, iPad và Mac
-- Không cần internet hay mạng WiFi — kết nối trực tiếp giữa các thiết bị
+- Không cần internet hay mạng Wi-Fi — kết nối trực tiếp giữa các thiết bị
 
 CÁCH SỬ DỤNG
 1. Mở Remote Shutter trên hai thiết bị

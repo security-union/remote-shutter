@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Kamera ve Fotoğraf Erişimine İzin Ver";
-"camera_permissions_subtitle" = "Remote Shutter, diğer cihazlara bağlıyken görüntü çekmek ve kaydetmek için kameranıza ve fotoğraflarınıza erişmesi gerekir.";
+"camera_permissions_subtitle" = "Remote Shutter'ın, diğer cihazlara bağlıyken görüntü çekmek ve kaydetmek için kameranıza ve fotoğraflarınıza erişmesi gerekir.";
 
 "camera_permissions_required_title" = "Kamera ve Fotoğraf Erişimi Gerekli";
 "camera_permissions_required_subtitle" = "Remote Shutter'ın çalışması için kamera ve fotoğraf erişimi gerekir. Devam etmek için lütfen Ayarlar'dan etkinleştirin.";
@@ -175,9 +175,9 @@
 
 /* Photos Access Denied Modal */
 "photos_access_denied_photo_title" = "Fotoğraf Kaydedilemiyor";
-"photos_access_denied_photo_subtitle" = "Remote Shutter, çekilen görüntüyü kaydetmek için Fotoğraflar kitaplığınıza erişmesi gerekir. Lütfen Ayarlar'dan Fotoğraf erişimini etkinleştirin.";
+"photos_access_denied_photo_subtitle" = "Remote Shutter'ın, çekilen görüntüyü kaydetmek için Fotoğraflar kitaplığınıza erişmesi gerekir. Lütfen Ayarlar'dan Fotoğraf erişimini etkinleştirin.";
 "photos_access_denied_video_title" = "Video Kaydedilemiyor";
-"photos_access_denied_video_subtitle" = "Remote Shutter, kaydedilen videoyu saklamak için Fotoğraflar kitaplığınıza erişmesi gerekir. Lütfen Ayarlar'dan Fotoğraf erişimini etkinleştirin.";
+"photos_access_denied_video_subtitle" = "Remote Shutter'ın, kaydedilen videoyu saklamak için Fotoğraflar kitaplığınıza erişmesi gerekir. Lütfen Ayarlar'dan Fotoğraf erişimini etkinleştirin.";
 
 "photos_privacy_feature_title" = "Gizliliğiniz Önemli";
 "photos_privacy_feature_description" = "Fotoğraflar doğrudan cihazınızın kitaplığına kaydedilir. Harici sunuculara hiçbir veri yüklenmez ve izniniz olmadan paylaşılmaz.";

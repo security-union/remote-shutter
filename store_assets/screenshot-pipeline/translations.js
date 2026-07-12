@@ -192,7 +192,7 @@ window.I18N = {
     }
   },
   "ms": {
-    sublines: { "0": "Tiada internet perlu — peer-to-peer, seperti AirDrop.", "1": "Dirakam dengan kamera belakang. Lebih tajam dari swafoto." },
+    sublines: { "0": "Tiada internet perlu — peer-to-peer, seperti AirDrop.", "1": "Dirakam dengan kamera belakang. Lebih tajam daripada swafoto." },
     headlines: {
       "0": ["Satu telefon jadi kamera.", "Satu lagi jadi kawalan."],
       "1": ["Semua masuk gambar.", "Termasuk anda."],
@@ -204,7 +204,7 @@ window.I18N = {
     labels: {
       "CAMERA": "KAMERA", "REMOTE": "KAWALAN JAUH",
       "PHOTO & VIDEO": "FOTO & VIDEO", "TIMER": "PEMASA",
-      "ZOOM & LENS": "ZUM & KANTA", "FLASH & TORCH": "DENYAR & LAMPU"
+      "ZOOM & LENS": "ZUM & KANTA", "FLASH & TORCH": "DENYAR & SULUH"
     }
   },
   "tr": {

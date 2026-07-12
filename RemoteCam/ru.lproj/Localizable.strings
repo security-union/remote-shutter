@@ -68,7 +68,7 @@
 
 "Acknowledgments"= "Благодарности";
 
-"timeunit"= "сек";
+"timeunit"= "с";
 
 "Settings"="Настройки";
 
@@ -102,7 +102,7 @@
 "local_network_required_subtitle" = "Для работы Remote Shutter нужен доступ к локальной сети. Включите его в Настройках, чтобы продолжить.";
 
 "local_network_feature_title" = "Соединение peer-to-peer";
-"local_network_feature_description" = "Использует фреймворк Apple MultipeerConnectivity для обнаружения и подключения устройств в локальной сети для удобного удалённого управления.";
+"local_network_feature_description" = "Использует фреймворк Apple MultipeerConnectivity, чтобы находить и подключать устройства в локальной сети для удобного удалённого управления.";
 
 "local_network_privacy_title" = "Конфиденциальность защищена";
 "local_network_privacy_description" = "Ваше соединение остаётся полностью приватным в пределах локальной сети. Данные не отправляются на внешние серверы или третьим лицам.";
@@ -251,7 +251,7 @@
 /* Welcome Screen */
 "Turn two devices into a professional remote camera system" = "Превратите два устройства в профессиональную систему удалённой камеры";
 "Restore Purchases" = "Восстановить покупки";
-"Unlock all features: video recording, torch control, and ad-free experience." = "Откройте все функции: запись видео, управление фонариком и работа без рекламы.";
+"Unlock all features: video recording, torch control, and ad-free experience." = "Разблокируйте все функции: запись видео, управление фонариком и работу без рекламы.";
 "Get Started" = "Начать";
 "Thank you for your support!" = "Спасибо за вашу поддержку!";
 "Rate on App Store" = "Оценить в App Store";
