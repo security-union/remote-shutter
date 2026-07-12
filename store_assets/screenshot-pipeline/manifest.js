@@ -263,7 +263,7 @@ window.MANIFEST = {
       surfaces: [
         {
           // MacBook screen: real Catalyst camera UI, live view of the watch.
-          quad: [[30, 1375], [505, 1310], [99, 1706], [536, 1620]],
+          quad: [[30, 1396], [464, 1319], [102, 1705], [533, 1602]],
           size: [3842, 2102],
           bezel: 0,
           radius: 18,
@@ -274,7 +274,7 @@ window.MANIFEST = {
         {
           // iPhone in her hand: real monitor UI, live preview of the watch —
           // same treatment as slot 3's remote phone.
-          quad: [[905, 951], [1130, 936], [985, 1429], [1173, 1408]],
+          quad: [[910, 952], [1114, 928], [979, 1417], [1183, 1392]],
           size: [1210, 2572],
           bezel: 0,
           radius: 185,
@@ -322,7 +322,8 @@ window.MANIFEST = {
           bezel: 0,
           radius: 170,
           chrome: "camera",
-          img: "../ai-scenes/mac3_preview_zoom.jpg",
+          // Exactly the frame shown on the Mac (same file, phone-screen aspect).
+          img: "../ai-scenes/mac3_preview_port.jpg",
           pos: "50% 50%",
           scale: 1.0
         }

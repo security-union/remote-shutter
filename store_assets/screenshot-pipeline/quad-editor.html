@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<!-- Manual quad editor: drag the composited UI corners onto the device screens,
+     then copy the manifest-ready quads. Usage (from this directory):
+       open "quad-editor.html?slot=mac0"
+     Wheel = zoom, drag background = pan, drag circles = move corners.
+     Alt-drag a circle = move the whole quad. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Quad editor</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1e1e20; color: #eee;
+               font: 13px -apple-system, sans-serif; overflow: hidden; }
+  #stage { position: absolute; inset: 0 320px 0 0; overflow: hidden; cursor: grab; }
+  #world { position: absolute; transform-origin: 0 0; }
+  #world img.scene { display: block; user-select: none; -webkit-user-drag: none; }
+  .surf { position: absolute; top: 0; left: 0; transform-origin: 0 0; opacity: 0.9; }
+  .surf img { width: 100%; height: 100%; display: block; }
+  .handle { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+            border-radius: 50%; border: 3px solid #0af; background: rgba(0,170,255,.25);
+            cursor: crosshair; z-index: 10; }
+  .handle.h1 { border-color: #fa0; background: rgba(255,170,0,.25); }
+  #panel { position: absolute; top: 0; right: 0; bottom: 0; width: 320px;
+           background: #2a2a2e; padding: 14px; box-sizing: border-box;
+           display: flex; flex-direction: column; gap: 10px; }
+  textarea { flex: 1; background: #1a1a1c; color: #9f9; border: 1px solid #444;
+             font: 12px ui-monospace, monospace; padding: 8px; white-space: pre; }
+  button { padding: 10px; font-size: 14px; background: #0a84ff; color: white;
+           border: 0; border-radius: 8px; cursor: pointer; }
+  button:active { opacity: .7; }
+  label { display: flex; gap: 8px; align-items: center; }
+  input[type=range] { flex: 1; }
+  .hint { color: #999; font-size: 11px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="world"></div></div>
+<div id="panel">
+  <b id="title">quad editor</b>
+  <label>UI opacity <input type="range" id="op" min="20" max="100" value="90"></label>
+  <textarea id="out" readonly spellcheck="false"></textarea>
+  <button id="copy">Copy quads to clipboard</button>
+  <div class="hint">
+    Wheel: zoom &middot; drag background: pan<br>
+    Drag a circle: move that corner<br>
+    &#8997; Alt-drag a circle: move the whole quad<br>
+    Blue = surface 0, orange = surface 1.<br>
+    When happy, press Copy and paste the block back to Claude.
+  </div>
+</div>
+<script src="manifest.js"></script>
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const slotId = params.get("slot") || "mac0";
+  const slot = window.MANIFEST.slots[slotId];
+  if (!slot) { document.body.textContent = "unknown slot " + slotId; return; }
+  document.getElementById("title").textContent = "quad editor — " + slotId;
+
+  // --- homography (same math as template.html) ---
+  function basisToPoints(p1, p2, p3, p4) {
+    const m = [p1[0], p2[0], p3[0], p1[1], p2[1], p3[1], 1, 1, 1];
+    const v = solve(m, [p4[0], p4[1], 1]);
+    return mul(m, [v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]]);
+  }
+  function solve(m, v) {
+    const inv = invert(m);
+    return [dot(inv, 0, v), dot(inv, 1, v), dot(inv, 2, v)];
+  }
+  function invert(m) {
+    const [a,b,c,d,e,f,g,h,i] = m;
+    const A = e*i-f*h, B = c*h-b*i, C = b*f-c*e;
+    const det = a*A + d*B + g*C;
+    return [A/det, B/det, C/det,
+            (f*g-d*i)/det, (a*i-c*g)/det, (c*d-a*f)/det,
+            (d*h-e*g)/det, (b*g-a*h)/det, (a*e-b*d)/det];
+  }
+  const dot = (m, r, v) => m[r*3]*v[0] + m[r*3+1]*v[1] + m[r*3+2]*v[2];
+  function mul(a, b) {
+    const r = [];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++)
+      r[3*i+j] = a[3*i]*b[j] + a[3*i+1]*b[3+j] + a[3*i+2]*b[6+j];
+    return r;
+  }
+  function matrix3d(w, h, quad) {
+    const s = basisToPoints([0,0],[w,0],[0,h],[w,h]);
+    const d = basisToPoints(...quad);
+    const t = mul(d, invert(s));
+    for (let i = 0; i < 9; i++) t[i] /= t[8];
+    const m = [t[0],t[3],0,t[6], t[1],t[4],0,t[7], 0,0,1,0, t[2],t[5],0,t[8]];
+    return "matrix3d(" + m.join(",") + ")";
+  }
+
+  // --- state ---
+  const world = document.getElementById("world");
+  const stage = document.getElementById("stage");
+  let zoom = 0.35, panX = 20, panY = 20;
+  const quads = slot.surfaces.map(s => s.quad.map(p => p.slice()));
+
+  const scene = new Image();
+  scene.className = "scene";
+  scene.src = slot.scene;
+  world.appendChild(scene);
+
+  const surfEls = slot.surfaces.map((s, i) => {
+    const el = document.createElement("div");
+    el.className = "surf";
+    el.style.width = s.size[0] + "px";
+    el.style.height = s.size[1] + "px";
+    const img = document.createElement("img");
+    img.src = s.ui || s.img;
+    el.appendChild(img);
+    world.appendChild(el);
+    return el;
+  });
+  const handles = quads.flatMap((q, si) => q.map((p, ci) => {
+    const h = document.createElement("div");
+    h.className = "handle h" + si;
+    h.dataset.si = si; h.dataset.ci = ci;
+    world.appendChild(h);
+    return h;
+  }));
+
+  function render() {
+    world.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+    slot.surfaces.forEach((s, i) => {
+      surfEls[i].style.transform = matrix3d(s.size[0], s.size[1], quads[i]);
+    });
+    handles.forEach(h => {
+      const p = quads[h.dataset.si][h.dataset.ci];
+      h.style.left = p[0] + "px";
+      h.style.top = p[1] + "px";
+      h.style.width = 26/zoom + "px"; h.style.height = 26/zoom + "px";
+      h.style.margin = `${-13/zoom}px 0 0 ${-13/zoom}px`;
+      h.style.borderWidth = 3/zoom + "px";
+    });
+    const txt = quads.map((q, i) =>
+      `// ${slotId} surface ${i}\nquad: [${q.map(p => `[${Math.round(p[0])}, ${Math.round(p[1])}]`).join(", ")}],`
+    ).join("\n");
+    document.getElementById("out").value = txt;
+  }
+
+  // --- interaction ---
+  let drag = null;
+  handles.forEach(h => h.addEventListener("pointerdown", e => {
+    e.stopPropagation(); e.preventDefault();
+    const si = +h.dataset.si, ci = +h.dataset.ci;
+    drag = { si, ci, all: e.altKey, x: e.clientX, y: e.clientY,
+             start: quads[si].map(p => p.slice()) };
+    h.setPointerCapture(e.pointerId);
+  }));
+  window.addEventListener("pointermove", e => {
+    if (drag) {
+      const dx = (e.clientX - drag.x)/zoom, dy = (e.clientY - drag.y)/zoom;
+      if (drag.all) {
+        quads[drag.si] = drag.start.map(p => [p[0]+dx, p[1]+dy]);
+      } else {
+        quads[drag.si][drag.ci] = [drag.start[drag.ci][0]+dx, drag.start[drag.ci][1]+dy];
+      }
+      render();
+    } else if (pan) {
+      panX = pan.px + e.clientX - pan.x;
+      panY = pan.py + e.clientY - pan.y;
+      render();
+    }
+  });
+  window.addEventListener("pointerup", () => { drag = null; pan = null; });
+  let pan = null;
+  stage.addEventListener("pointerdown", e => {
+    pan = { x: e.clientX, y: e.clientY, px: panX, py: panY };
+  });
+  stage.addEventListener("wheel", e => {
+    e.preventDefault();
+    const k = Math.exp(-e.deltaY * 0.0015);
+    const rx = e.clientX - panX, ry = e.clientY - panY;
+    zoom *= k; panX = e.clientX - rx*k; panY = e.clientY - ry*k;
+    render();
+  }, { passive: false });
+  document.getElementById("op").addEventListener("input", e => {
+    surfEls.forEach(el => el.style.opacity = e.target.value/100);
+  });
+  document.getElementById("copy").addEventListener("click", () => {
+    const ta = document.getElementById("out");
+    ta.select(); document.execCommand("copy");
+    document.getElementById("copy").textContent = "Copied ✓";
+    setTimeout(() => document.getElementById("copy").textContent = "Copy quads to clipboard", 1200);
+  });
+
+  scene.onload = render;
+  render();
+})();
+</script>
+</body>
+</html>
