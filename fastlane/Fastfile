@@ -163,6 +163,11 @@ platform :ios do
       platform: "catalyst",
       app_identifier: ["com.blackfireapps.remotecamera"],
       git_url: ENV["MATCH_GIT_URL"],
+      # Mac App Store apps ship as a .pkg signed with the SEPARATE Mac
+      # Installer Distribution certificate — match doesn't fetch it unless
+      # asked, and export dies with 'No signing certificate "Mac Installer
+      # Distribution" found' (run 29181889025).
+      additional_cert_types: ["mac_installer_distribution"],
       readonly: false
     )
     update_code_signing_settings(
@@ -194,8 +199,10 @@ platform :ios do
       platform: "osx",
       skip_metadata: false,
       skip_screenshots: false,
-      # ASC mirrors fastlane/screenshots/ — deliver picks the Mac display
-      # family by the 2880x1800 resolution of the *_APP_DESKTOP_*.png files.
+      # Mac screenshots live in their own tree: deliver uploads EVERY file in
+      # screenshots_path to the run's platform, and APP_DESKTOP display types
+      # are invalid on the iOS version (run 29181223484) — and vice versa.
+      screenshots_path: "./fastlane/screenshots_mac",
       overwrite_screenshots: true,
       precheck_include_in_app_purchases: false,
       force: true,

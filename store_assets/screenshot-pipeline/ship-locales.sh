@@ -15,6 +15,10 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 FASTLANE="$(cd ../../fastlane/screenshots && pwd)"
+# Mac screenshots ship to a separate tree: deliver uploads everything in its
+# screenshots_path to ONE platform, and APP_DESKTOP display types are invalid
+# on the iOS version (and iPhone/iPad types on macOS).
+FASTLANE_MAC="$(cd ../../fastlane && pwd)/screenshots_mac"
 
 PLATFORMS=""
 while getopts "p:" opt; do
@@ -56,15 +60,17 @@ for L in "${LOCALES[@]}"; do
   echo "=== $L ==="
   node render.mjs --locale "$L" ${PLATFORMS:+--plans "$PLATFORMS"}
   SRC="out"; [ "$L" != "en-US" ] && SRC="out/$L"
-  mkdir -p "$FASTLANE/$L"
   # Replace only the selected platforms' screenshots (keeps Watch captures;
   # the event card is not a fastlane asset).
   SHIPPED=0
   for pat in "${PATTERNS[@]}"; do
-    find "$FASTLANE/$L" -maxdepth 1 -name "$pat" -delete
-    find "$SRC" -maxdepth 1 -name "$pat" -exec cp {} "$FASTLANE/$L/" \;
+    DEST="$FASTLANE/$L"
+    [ "$pat" = "*_APP_DESKTOP_*.png" ] && DEST="$FASTLANE_MAC/$L"
+    mkdir -p "$DEST"
+    find "$DEST" -maxdepth 1 -name "$pat" -delete
+    find "$SRC" -maxdepth 1 -name "$pat" -exec cp {} "$DEST/" \;
     N=$(find "$SRC" -maxdepth 1 -name "$pat" | wc -l | tr -d ' ')
     SHIPPED=$((SHIPPED + N))
   done
-  echo "shipped $SHIPPED files -> fastlane/screenshots/$L/"
+  echo "shipped $SHIPPED files -> fastlane/screenshots[_mac]/$L/"
 done
