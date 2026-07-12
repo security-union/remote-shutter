@@ -250,6 +250,89 @@ window.MANIFEST = {
       }
     },
 
+    // ---- Mac App Store listing (landscape 16:10 canvas, 2880x1800) ----
+    // mac0: studio hero — the Mac runs the camera (pro cinema camera on the
+    // desk feeding it), the iPhone in hand is the remote.
+    "mac0": {
+      layout: "landscape",
+      headline: ["Your Mac is the camera.", "Your iPhone is the remote."],
+      accentLine: 1,
+      scene: "../ai-scenes/mac0_studio_e1.jpg",
+      sceneSize: [1536, 2752],
+      scenePosition: "50% 50%",
+      surfaces: [
+        {
+          // MacBook screen: real Catalyst camera UI, live view of the watch.
+          quad: [[30, 1375], [505, 1310], [99, 1706], [536, 1620]],
+          size: [3842, 2102],
+          bezel: 0,
+          radius: 18,
+          // Real capture with the live view baked in (the camera screen is
+          // full-bleed with floating chrome — no clean preview rect exists).
+          ui: "assets/ui-camera-mac.png"
+        },
+        {
+          // iPhone in her hand: real monitor UI, live preview of the watch —
+          // same treatment as slot 3's remote phone.
+          quad: [[905, 951], [1130, 936], [985, 1429], [1173, 1408]],
+          size: [1210, 2572],
+          bezel: 0,
+          radius: 185,
+          ui: "assets/ui-monitor-iphone.png",
+          preview: {
+            // Same landscape frame as the Mac, letterboxed (real app behavior).
+            img: "../ai-scenes/mac0_preview_phone.jpg",
+            rect: [17.86, 5.61, 64.36, 52.88],
+            pos: "50% 50%",
+            scale: 1.0
+          },
+          statusbar: { heightPct: 5.6, font: 42, pad: 60 }
+        }
+      ],
+      callouts: [
+        { text: "CAMERA", anchor: [270, 1360], dx: -40, dy: -160 },
+        { text: "PRO CAMERA", anchor: [340, 1830], dx: -80, dy: 170 },
+        { text: "REMOTE", anchor: [905, 1150], dx: -250, dy: -20 }
+      ]
+    },
+
+    // mac3: the Mac as the director's monitor — iPhone on the windowsill
+    // tripod films the feeder; the big screen shows the live view.
+    "mac3": {
+      layout: "landscape",
+      headline: ["Direct the shot", "from the big screen."],
+      accentLine: 1,
+      scene: "../ai-scenes/mac3_direct_e1.jpg",
+      sceneSize: [1536, 2752],
+      scenePosition: "50% 30%",
+      surfaces: [
+        {
+          // MacBook screen: real Mac monitor UI, live view of the cardinal.
+          quad: [[562, 1315], [1376, 1323], [518, 1823], [1385, 1872]],
+          size: [3842, 2102],
+          bezel: 0,
+          radius: 18,
+          // Real capture with the live view baked into the viewfinder region.
+          ui: "assets/ui-monitor-mac.png"
+        },
+        {
+          // Camera phone in the GorillaPod clamp: live view with camera chrome.
+          quad: [[1117, 568], [1253, 564], [1123, 864], [1255, 868]],
+          size: [1210, 2572],
+          bezel: 0,
+          radius: 170,
+          chrome: "camera",
+          img: "../ai-scenes/mac3_preview_zoom.jpg",
+          pos: "50% 50%",
+          scale: 1.0
+        }
+      ],
+      callouts: [
+        { text: "REMOTE", anchor: [950, 1320], dx: 50, dy: -140 },
+        { text: "CAMERA", anchor: [1187, 700], dx: -110, dy: 180 }
+      ]
+    },
+
     // ---- In-App Event card / horizontal marketing banner (16:9) ----
     "banner": {
       layout: "landscape",

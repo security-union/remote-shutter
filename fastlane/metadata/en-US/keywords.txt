@@ -1,1 +1,1 @@
-remote camera,wireless shutter,selfie remote,group photo,tripod,photobooth,remote photo,photo timer
+remote camera,wireless shutter,selfie remote,group photo,tripod,photo timer,webcam,mac camera

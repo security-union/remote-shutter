@@ -1,14 +1,28 @@
-Remote Shutter è un'applicazione che richiede due dispositivi.  Funziona sia su macOS che su iOS.
- Con Remote Shutter uno dei tuoi dispositivi è il telecomando o il monitor della fotocamera, e l'altro dispositivo, che fa da fotocamera, lo posizioni ovunque tu voglia scattare.  Utilizzando il telefono connesso è possibile scattare foto da una distanza massima di 15 metri.
- L'otturatore remoto rende facile scattare foto da angolazioni difficili, che altrimenti ti costringerebbero in una posizione scomoda.  Provalo gratis!
- Caratteristiche:
- - NOVITÀ: Controlla la fotocamera dal tuo Apple Watch: scatta direttamente dal polso
- - Scatta foto fino a 15 metri di distanza
- - Cambia l'orientamento della fotocamera
- - Usa il flash della fotocamera
- - Timer della fotocamera regolabile
- COME USARE
- Quando apri l'app per la prima volta, il telefono inizierà a cercare i dispositivi con cui connettersi.  La fotocamera si connette con una connessione P2P all'altro dispositivo.  Una volta collegati i dispositivi, dovrai scegliere quale dispositivo è la fotocamera e quale dispositivo è il telecomando.
- 1. Collega i tuoi dispositivi
- 2. Scegli il ruolo del dispositivo (fotocamera o telecomando)
- 3. Imposta e scatta foto!
+Trasforma due dispositivi in un sistema di fotocamera remota wireless — senza internet, senza WiFi, senza account. Basta connettere e scattare.
+
+Remote Shutter usa la tecnologia peer-to-peer per collegare due dispositivi direttamente. Uno diventa la fotocamera, l'altro il tuo telecomando con monitor dal vivo. Perfetto per foto di gruppo, selfie, scatti su treppiede, angolazioni creative e fotografia a mani libere.
+
+NOVITÀ — SUPPORTO COMPLETO PER MAC
+- Usa il tuo Mac come fotocamera: webcam integrate, USB e professionali, persino il tuo iPhone tramite Fotocamera Continuity
+- Passa tra tutte le fotocamere collegate al tuo Mac, dal vivo dal tuo iPhone
+- Oppure ribalta tutto: usa il grande schermo del Mac come monitor di regia per la fotocamera del tuo iPhone
+
+CARATTERISTICHE
+- Controlla la fotocamera dal tuo Apple Watch — scatta direttamente dal polso
+- Selfie e foto di gruppo con la nitida fotocamera posteriore — inquadrati dall'anteprima dal vivo del telecomando
+- Scatto remoto wireless fino a 15 metri di distanza
+- Anteprima dal vivo della fotocamera sul dispositivo telecomando
+- Cambia fotocamera da remoto — anteriore/posteriore su iPhone, qualsiasi fotocamera collegata su Mac
+- Controllo del flash
+- Timer regolabile
+- Registra video da remoto
+- Funziona con iPhone, iPad e Mac
+- Nessun internet o rete WiFi necessari — connessione diretta tra dispositivi
+
+COME USARE
+1. Apri Remote Shutter su due dispositivi
+2. I dispositivi si connettono automaticamente in peer-to-peer
+3. Scegli quale dispositivo è la fotocamera e quale il telecomando
+4. Inizia a scattare da qualsiasi punto della stanza!
+
+Che tu stia fotografando prodotti con una fotocamera professionale sul tuo Mac, dirigendo dal grande schermo o preparando una foto di famiglia, Remote Shutter ti dà il pieno controllo wireless della fotocamera da un altro dispositivo.

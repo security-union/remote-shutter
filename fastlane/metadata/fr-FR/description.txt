@@ -1,14 +1,28 @@
-Remote Shutter est une application qui nécessite deux appareils. Elle fonctionne à la fois sur macOS et iOS.
-Avec Remote Shutter, l'un de vos appareils devient la télécommande ou le moniteur de l'appareil photo, et l'autre est installé là où vous souhaitez prendre une photo, en tant qu'appareil photo. Grâce à la connexion entre les deux appareils, vous pouvez prendre des photos jusqu'à 15 mètres de distance.
-Remote Shutter vous permet de photographier facilement des sujets sous des angles difficiles qui vous obligeraient sinon à adopter une position inconfortable. Essayez Remote Shutter gratuitement !
-Fonctionnalités :
-- NOUVEAU : contrôlez votre appareil photo depuis votre Apple Watch, déclenchez l'obturateur depuis votre poignet
-- Prenez des photos jusqu'à 15 mètres de distance
-- Basculez l'orientation de l'appareil photo
-- Utilisez le flash de l'appareil photo
-- Minuterie de l'appareil photo réglable
+Transformez deux appareils en un système de caméra à distance sans fil — sans internet, sans WiFi, sans compte. Connectez-vous et photographiez.
+
+Remote Shutter relie directement deux appareils grâce à la technologie peer-to-peer. L'un devient l'appareil photo, l'autre votre télécommande avec moniteur en direct. Parfait pour les photos de groupe, les selfies, les prises sur trépied, les angles créatifs et la photographie mains libres.
+
+NOUVEAU — PRISE EN CHARGE COMPLÈTE DU MAC
+- Utilisez votre Mac comme appareil photo : webcams intégrées, USB et professionnelles, et même votre iPhone via Continuité (Continuity Camera)
+- Basculez entre toutes les caméras connectées à votre Mac, en direct depuis votre iPhone
+- Ou inversez : utilisez le grand écran de votre Mac comme moniteur de réalisation pour la caméra de votre iPhone
+
+FONCTIONNALITÉS
+- Contrôlez votre appareil photo depuis votre Apple Watch — déclenchez l'obturateur depuis votre poignet
+- Selfies et photos de groupe avec l'appareil arrière net — cadrez-vous depuis l'aperçu en direct de la télécommande
+- Déclencheur à distance sans fil jusqu'à 15 mètres
+- Aperçu de la caméra en direct sur votre appareil télécommande
+- Changez de caméra à distance — avant/arrière sur iPhone, toute caméra connectée sur Mac
+- Contrôle du flash
+- Minuterie réglable
+- Enregistrez des vidéos à distance
+- Compatible avec iPhone, iPad et Mac
+- Aucun internet ni réseau WiFi requis — connexion directe entre appareils
+
 COMMENT UTILISER
-Lorsque vous ouvrez l'application pour la première fois, l'appareil commence à rechercher d'autres appareils avec lesquels se connecter. L'appareil photo se connecte à l'autre appareil via une connexion P2P. Une fois les appareils connectés, vous devrez choisir quel appareil est l'appareil photo et quel appareil est la télécommande.
-1. Connectez vos appareils
-2. Choisissez le rôle de chaque appareil (appareil photo ou télécommande)
-3. Installez et prenez des photos !
+1. Ouvrez Remote Shutter sur deux appareils
+2. Les appareils se connectent automatiquement en peer-to-peer
+3. Choisissez quel appareil est la caméra et lequel est la télécommande
+4. Photographiez depuis n'importe où dans la pièce !
+
+Que vous photographiiez des produits avec un appareil professionnel sur votre Mac, que vous dirigiez depuis le grand écran ou que vous prépariez une photo de famille, Remote Shutter vous offre le contrôle sans fil complet de votre appareil photo depuis un autre appareil.

@@ -19,7 +19,7 @@ for L in "${LOCALES[@]}"; do
   mkdir -p "$FASTLANE/$L"
   # Replace all phone/iPad screenshots (keeps Watch captures); the event card
   # is not a fastlane asset.
-  find "$FASTLANE/$L" -maxdepth 1 \( -name "*_APP_IPHONE_*.png" -o -name "*_APP_IPAD_*.png" \) -delete
+  find "$FASTLANE/$L" -maxdepth 1 \( -name "*_APP_IPHONE_*.png" -o -name "*_APP_IPAD_*.png" -o -name "*_APP_DESKTOP_*.png" \) -delete
   find "$SRC" -maxdepth 1 -name "*_APP_*.png" -exec cp {} "$FASTLANE/$L/" \;
   echo "shipped $(find "$SRC" -maxdepth 1 -name '*_APP_*.png' | wc -l | tr -d ' ') files -> fastlane/screenshots/$L/"
 done

@@ -1,18 +1,28 @@
-Med Remote Shutter bliver den ene enhed dit kamera, mens den anden bliver din skærm og fjernbetjening. Du placerer kameraet, hvor du vil, og tager billedet, mens du følger med på den anden skærm. Remote Shutter virker op til 15 meters afstand og gør det nemt at tage billeder fra svære vinkler — så du slipper for at sidde i en ubehagelig stilling for at få dit helt unikke billede.
+Forvandl to enheder til et trådløst fjernkamera — uden internet, uden WiFi, uden konto. Bare forbind og tag billeder.
 
-Prøv Remote Shutter gratis! 
+Remote Shutter bruger peer-to-peer-teknologi til at forbinde to enheder direkte. Den ene bliver kameraet, den anden bliver din fjernbetjening med live-skærm. Perfekt til gruppebilleder, selfies, stativoptagelser, kreative vinkler og håndfri fotografering.
 
-Funktioner: 
-- NYT: Styr dit kamera fra dit Apple Watch — udløs lukkeren fra håndleddet
-- Tag billeder fra op til 15 meter væk 
-- Skift kameraets retning 
-- Brug kamerablitz 
-- Justerbar kameratimer 
-- Optag video
+NYT — FULD MAC-UNDERSTØTTELSE
+- Brug din Mac som kamera: indbygget, USB- og pro-webcams, endda din iPhone via Continuity Camera
+- Skift mellem alle kameraer, der er tilsluttet din Mac — live fra din iPhone
+- Eller vend det om: brug din Macs store skærm som instruktørskærm for dit iPhone-kamera
 
-SÅDAN BRUGER DU APP’EN: 
-Når du først åbner app’en, begynder telefonen at søge efter enheder, den skal forbindes med. Kameraet opretter P2P-forbindelse (Peer-to-Peer) til den anden enhed du ønsker at forbinde med. Når enhederne er tilsluttet, skal du vælge, hvilken enhed der er kameraet, og hvilken der er fjernbetjeningen. 
+FUNKTIONER
+- Styr dit kamera fra dit Apple Watch — udløs lukkeren fra håndleddet
+- Selfies og gruppebilleder på det skarpe bagkamera — komponér dig selv fra fjernbetjeningens live-preview
+- Trådløs fjernudløser på op til 15 meters afstand
+- Live kameravisning på din fjernbetjening
+- Skift kamera på afstand — front/bag på iPhone, ethvert tilsluttet kamera på Mac
+- Styring af kamerablitz
+- Justerbar kameratimer
+- Optag video på afstand
+- Virker med iPhone, iPad og Mac
+- Ingen internet eller WiFi nødvendig — direkte forbindelse mellem enheder
 
-1. Tilslut dine enheder 
-2. Vælg hvilken rolle enhederne har (kamera og fjernbetjening) 
-3. Opsæt og start med at tage billeder!
+SÅDAN BRUGER DU DEN
+1. Åbn Remote Shutter på to enheder
+2. Enhederne forbindes automatisk via peer-to-peer
+3. Vælg hvilken enhed der er kameraet, og hvilken der er fjernbetjeningen
+4. Begynd at tage billeder fra hvor som helst i rummet!
+
+Uanset om du fotograferer produkter med et pro-kamera på din Mac, instruerer fra den store skærm eller stiller op til et familiebillede, giver Remote Shutter dig fuld trådløs kontrol over dit kamera fra en anden enhed.

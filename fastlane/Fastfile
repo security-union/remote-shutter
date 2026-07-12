@@ -148,4 +148,53 @@ platform :ios do
       submit_for_review: false
     )
   end
+
+  desc "Build the Mac Catalyst app and upload to App Store Connect (macOS platform)"
+  lane :release_mac do
+    load_asc_api_key
+    setup_ci
+    # Catalyst distribution signs with a Mac Catalyst provisioning profile
+    # against the same bundle ID (universal purchase — one ASC app record).
+    # readonly: false mints the catalyst certs/profile into the match repo on
+    # the first run. The watch app is NOT part of the Catalyst build (its
+    # embed phase is platform-filtered to iOS).
+    match(
+      type: "appstore",
+      platform: "catalyst",
+      app_identifier: ["com.blackfireapps.remotecamera"],
+      git_url: ENV["MATCH_GIT_URL"],
+      readonly: false
+    )
+    update_code_signing_settings(
+      path: "RemoteShutter.xcodeproj",
+      targets: ["RemoteShutter"],
+      use_automatic_signing: false,
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore com.blackfireapps.remotecamera catalyst"
+    )
+    build_app(
+      workspace: "RemoteShutter.xcworkspace",
+      scheme: "RemoteCam",
+      catalyst_platform: "macos",
+      export_method: "app-store",
+      clean: true,
+      output_directory: "./build",
+      export_options: {
+        provisioningProfiles: {
+          "com.blackfireapps.remotecamera" => "match AppStore com.blackfireapps.remotecamera catalyst"
+        }
+      }
+    )
+    upload_to_app_store(
+      platform: "osx",
+      skip_metadata: false,
+      skip_screenshots: false,
+      # ASC mirrors fastlane/screenshots/ — deliver picks the Mac display
+      # family by the 2880x1800 resolution of the *_APP_DESKTOP_*.png files.
+      overwrite_screenshots: true,
+      precheck_include_in_app_purchases: false,
+      force: true,
+      submit_for_review: false
+    )
+  end
 end

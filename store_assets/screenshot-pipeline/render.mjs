@@ -22,6 +22,9 @@ const PLANS = [
   ["APP_IPHONE_65", 1284, 2778, ["0", "1", "3", "4", "2"]],
   ["APP_IPAD_PRO_3GEN_129", 2048, 2732, ["0", "3i", "2i"]],
   ["APP_IPAD_PRO_3GEN_11", 1640, 2360, ["0", "3i", "2i"]],
+  // Mac App Store listing (deliver detects the Mac display family by the
+  // 2880x1800 16:10 resolution).
+  ["APP_DESKTOP", 2880, 1800, ["mac0", "mac3"]],
 ];
 
 // Locale: `node render.mjs --locale it [slots...]` — headline/label strings come

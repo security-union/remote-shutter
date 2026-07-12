@@ -1,19 +1,28 @@
-Remote Shutter é um aplicativo que requer dois dispositivos. Funciona tanto no macOS quanto no iOS.
+Transforme dois dispositivos em um sistema de câmera remota sem fio — sem internet, sem WiFi, sem conta. É só conectar e fotografar.
 
-Com o Remote Shutter, um dos seus dispositivos é o controle remoto ou o monitor da câmera, e o outro dispositivo fica posicionado, como câmera, no local onde você quer tirar a foto. Com os dispositivos conectados, você pode tirar fotos a até 15 metros de distância.
+O Remote Shutter usa tecnologia ponto a ponto para conectar dois dispositivos diretamente. Um vira a câmera, o outro vira seu controle remoto com monitor ao vivo. Perfeito para fotos em grupo, selfies, fotos com tripé, ângulos criativos e fotografia com as mãos livres.
 
-Remote Shutter facilita tirar fotos de coisas em ângulos difíceis que colocariam você em uma posição desconfortável. Experimente o Remote Shutter gratuitamente!
+NOVO — SUPORTE COMPLETO PARA MAC
+- Use seu Mac como câmera: webcams integradas, USB e profissionais, e até seu iPhone via Continuity Camera
+- Alterne entre todas as câmeras conectadas ao seu Mac, ao vivo pelo seu iPhone
+- Ou inverta: use a tela grande do Mac como monitor de direção para a câmera do seu iPhone
 
-Recursos:
-- NOVO: Controle sua câmera pelo seu Apple Watch — dispare o obturador no seu pulso
-- Tire fotos a até 15 metros de distância
-- Alterne a orientação da câmera
-- Use o flash da câmera
-- Temporizador de câmera ajustável
+RECURSOS
+- Controle sua câmera pelo seu Apple Watch — dispare o obturador no seu pulso
+- Selfies e fotos em grupo na nítida câmera traseira — enquadre-se pela prévia ao vivo do controle remoto
+- Disparador remoto sem fio a até 15 metros de distância
+- Prévia da câmera ao vivo no seu dispositivo de controle
+- Troque de câmera a distância — frontal/traseira no iPhone, qualquer câmera conectada no Mac
+- Controle do flash da câmera
+- Temporizador ajustável
+- Grave vídeo a distância
+- Funciona com iPhone, iPad e Mac
+- Não precisa de internet nem rede WiFi — conexão direta entre dispositivos
 
 COMO USAR
+1. Abra o Remote Shutter em dois dispositivos
+2. Os dispositivos se conectam automaticamente por ponto a ponto
+3. Escolha qual dispositivo é a câmera e qual é o controle remoto
+4. Comece a fotografar de qualquer lugar do ambiente!
 
-Quando você abrir o aplicativo pela primeira vez, o telefone começará a procurar dispositivos para se conectar. A câmera se conecta com uma conexão P2P ao outro dispositivo. Assim que os dispositivos estiverem conectados, você terá que escolher qual dispositivo é a câmera e qual é o controle remoto.
-1. Conecte seus dispositivos
-2. Escolha qual função o dispositivo tem (câmera ou controle remoto)
-3. Configure e tire fotos!
+Seja fotografando produtos com uma câmera profissional no seu Mac, dirigindo pela tela grande ou preparando uma foto de família, o Remote Shutter te dá controle total sem fio da sua câmera a partir de outro dispositivo.
