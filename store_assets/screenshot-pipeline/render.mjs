@@ -29,18 +29,26 @@ const PLANS = [
 
 // Locale: `node render.mjs --locale it [slots...]` — headline/label strings come
 // from the static translations.js table; output goes to out/<locale>/.
+// Platforms: `--plans iphone,ipad,mac,banner` renders only those device plans
+// (default: all). Aliases map to the PLANS device-name prefixes.
 const args = process.argv.slice(2);
 const locIdx = args.indexOf("--locale");
 const LOCALE = locIdx >= 0 ? args.splice(locIdx, 2)[1] : "en-US";
+const plansIdx = args.indexOf("--plans");
+const PLAN_ALIAS = { iphone: "APP_IPHONE", ipad: "APP_IPAD", mac: "APP_DESKTOP", desktop: "APP_DESKTOP", banner: "banner" };
+const PLAN_FILTER = plansIdx >= 0
+  ? args.splice(plansIdx, 2)[1].split(",").map((p) => PLAN_ALIAS[p.trim().toLowerCase()] || p.trim())
+  : null;
+const planOn = (dev) => !PLAN_FILTER || PLAN_FILTER.some((w) => dev.toUpperCase().startsWith(w.toUpperCase()));
 const OUT = `out/${LOCALE === "en-US" ? "" : LOCALE + "/"}`;
 
-const RENDERS = PLANS.flatMap(([dev, width, height, slots]) =>
+const RENDERS = PLANS.filter(([dev]) => planOn(dev)).flatMap(([dev, width, height, slots]) =>
   slots.map((slot, i) => ({
     slot, width, height, out: `${OUT}${i}_${dev}_${i}.png`,
   })),
 );
 // In-App Event card (16:9, min 1920x1080); rendered at 2x for crispness.
-RENDERS.push({ slot: "banner", width: 1920, height: 1080, dsf: 2, out: `${OUT}event_card_3840x2160.png` });
+if (planOn("banner")) RENDERS.push({ slot: "banner", width: 1920, height: 1080, dsf: 2, out: `${OUT}event_card_3840x2160.png` });
 
 // Headless Chrome on macOS reserves ~87px of the window for chrome even in
 // --headless=new, shrinking the viewport. Pad the window and crop afterwards;
