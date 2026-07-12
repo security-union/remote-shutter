@@ -40,8 +40,20 @@ struct MonitorView: View {
                 }
             }
         }
-        .ignoresSafeArea(edges: .top)
+        .ignoresSafeArea(edges: Self.topBleedEdges)
         .statusBarHidden()
+    }
+
+    /// iPhone/iPad draw the preview full-bleed under the notch/status bar.
+    /// The Mac's toolbar (Back button, window title) is opaque chrome — the
+    /// screen must never draw under it, or the active-camera label and timer
+    /// land on top of the Back button.
+    private static var topBleedEdges: Edge.Set {
+        #if targetEnvironment(macCatalyst)
+        []
+        #else
+        .top
+        #endif
     }
     
     // MARK: - Camera Preview Section
