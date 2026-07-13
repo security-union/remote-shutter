@@ -18,6 +18,18 @@ struct RolePickerView: View {
             VStack(spacing: 12) {
                 Spacer()
 
+                Button(action: openGearPage) {
+                    glassPanel(
+                        icon: "bag.fill",
+                        title: NSLocalizedString("Recommended Gear", comment: ""),
+                        subtitle: NSLocalizedString("Tripods, mounts & lenses", comment: ""),
+                        tint: AppTheme.accentLight
+                    )
+                }
+                .buttonStyle(.plain)
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 20)
+
                 Button(action: onCamera) {
                     glassPanel(
                         icon: "camera.fill",
