@@ -93,6 +93,22 @@ struct SettingsView: View {
 
     private var aboutSection: some View {
         Section {
+            Button {
+                openGearPage()
+            } label: {
+                HStack {
+                    Image(systemName: "bag.fill")
+                        .foregroundColor(AppTheme.accent)
+                        .frame(width: 28)
+                    Text(NSLocalizedString("Recommended Gear", comment: ""))
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
             linkRow(
                 icon: "envelope.fill",
                 title: NSLocalizedString("Contact Support", comment: ""),
