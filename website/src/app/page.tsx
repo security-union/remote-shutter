@@ -157,6 +157,14 @@ export default function Home() {
           </div>
         </section>
 
+        <section className={styles.blog} id="gear">
+          <h2 className={styles.sectionTitle}>Gear</h2>
+          <p className={styles.blogIntro}>
+            Tripods, mounts, and lenses that pair with the app.{' '}
+            <Link href="/gear">See what we recommend</Link>
+          </p>
+        </section>
+
         <section className={styles.blog} id="blog">
           <h2 className={styles.sectionTitle}>Blog</h2>
           <p className={styles.blogIntro}>

@@ -1,1 +1,1 @@
-https://github.com/security-union/remote-shutter
+https://security-union.github.io/remote-shutter

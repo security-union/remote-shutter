@@ -11,6 +11,7 @@ export default function Header() {
         <div className={styles.links}>
           <a href="#features">Features</a>
           <a href="#how-it-works">How It Works</a>
+          <Link href="/gear">Gear</Link>
           <Link href="/blog">Blog</Link>
           <Link href="/privacy">Privacy</Link>
         </div>
