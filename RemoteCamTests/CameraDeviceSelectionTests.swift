@@ -149,9 +149,8 @@ final class CameraDeviceSelectionTests: XCTestCase {
     func testCameraViewModelPublishesDeviceList() async {
         let model = CameraViewModel()
         model.updateCameraDevices([backCamera, usbCamera], activeID: "usb-0")
-        // updateCameraDevices hops to main; pump the queue once.
-        await Task.yield()
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+        // updateCameraDevices hops to main; suspending lets the main queue drain.
+        try? await Task.sleep(nanoseconds: 50_000_000)
         XCTAssertEqual(model.availableCameraDevices, [backCamera, usbCamera])
         XCTAssertEqual(model.activeCameraDeviceID, "usb-0")
     }
