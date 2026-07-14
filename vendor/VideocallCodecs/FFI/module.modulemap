@@ -1,0 +1,4 @@
+module videocall_codecsFFI {
+    header "videocall_codecsFFI.h"
+    export *
+}

@@ -19,10 +19,16 @@ Pod::Spec.new do |s|
   s.watchos.deployment_target = '10.0'
   s.swift_version    = '5.0'
 
-  # The static xcframework provides the low-level `videocall_codecsFFI` module;
-  # the generated Swift wrapper (source_files) imports it and exposes the API.
+  # The static xcframework provides the linked symbols; the loose FFI/ dir
+  # carries the C header + a modulemap so `import videocall_codecsFFI` resolves
+  # (a static-lib xcframework's own module isn't exposed to Swift under
+  # use_frameworks!). SWIFT_INCLUDE_PATHS puts that modulemap on the import path.
   s.vendored_frameworks = 'VideocallCodecs.xcframework'
   s.source_files        = 'videocall_codecs.swift'
+  s.preserve_paths      = 'FFI/**'
 
-  s.pod_target_xcconfig = { 'BUILD_LIBRARY_FOR_DISTRIBUTION' => 'YES' }
+  s.pod_target_xcconfig = {
+    'BUILD_LIBRARY_FOR_DISTRIBUTION' => 'YES',
+    'SWIFT_INCLUDE_PATHS'            => '$(PODS_TARGET_SRCROOT)/FFI',
+  }
 end
