@@ -213,18 +213,22 @@ struct WatchAckEncoder {
 
 // MARK: - Live Preview Frame (iPhone -> Watch)
 
-/// Low-res, heavily-compressed JPEG of the live camera feed so the Watch user can
-/// frame the shot. Streamed on the live WCSession channel only (never the durable
-/// applicationContext mirror). Entirely separate from the full-quality capture path.
+/// Low-res live-preview frame so the Watch user can frame the shot. The payload is
+/// codec-tagged: VP9 (one frame of a stateful stream, decoded by the Rust Vp9Decoder)
+/// or an HEIC/JPEG still (`UIImage(data:)` sniffs the container; `.unknown` = legacy
+/// sender that predates the tag, always a still). Streamed on the live WCSession
+/// channel only (never the durable applicationContext mirror). Entirely separate
+/// from the full-quality capture path.
 struct WatchPreviewFrameEncoder {
 
-    static func encode(jpeg: Data, epochMs: UInt64) -> Data {
+    static func encode(payload: Data, codec: RemoteShutter_StreamCodec, epochMs: UInt64) -> Data {
         var fbb = FlatBufferBuilder()
-        let jpegVec = fbb.createVector(bytes: jpeg)
+        let payloadVec = fbb.createVector(bytes: payload)
         let frame = RemoteShutter_WatchPreviewFrame.createWatchPreviewFrame(
             &fbb,
-            jpegVectorOffset: jpegVec,
-            epochMs: epochMs
+            jpegVectorOffset: payloadVec,
+            epochMs: epochMs,
+            codec: codec
         )
         let msg = RemoteShutter_WatchMessage.createWatchMessage(
             &fbb,
@@ -235,14 +239,14 @@ struct WatchPreviewFrameEncoder {
         return fbb.data
     }
 
-    static func decode(_ data: Data) -> (jpeg: Data, epochMs: UInt64)? {
+    static func decode(_ data: Data) -> (payload: Data, codec: RemoteShutter_StreamCodec, epochMs: UInt64)? {
         let bytes = [UInt8](data)
         var buffer = ByteBuffer(bytes: bytes)
         guard let msg: RemoteShutter_WatchMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
             return nil
         }
         guard msg.type == .watchpreviewframemsg, let frame = msg.previewFrame else { return nil }
-        return (Data(frame.jpeg), frame.epochMs)
+        return (Data(frame.jpeg), frame.codec, frame.epochMs)
     }
 }
 

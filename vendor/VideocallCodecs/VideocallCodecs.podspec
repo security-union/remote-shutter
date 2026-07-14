@@ -19,16 +19,24 @@ Pod::Spec.new do |s|
   s.watchos.deployment_target = '10.0'
   s.swift_version    = '5.0'
 
-  # The static xcframework provides the linked symbols; the loose FFI/ dir
-  # carries the C header + a modulemap so `import videocall_codecsFFI` resolves
-  # (a static-lib xcframework's own module isn't exposed to Swift under
-  # use_frameworks!). SWIFT_INCLUDE_PATHS puts that modulemap on the import path.
+  # The xcframework is self-describing: each slice carries its own
+  # module.modulemap + videocall_codecsFFI.h, so `import videocall_codecsFFI`
+  # in the generated Swift wrapper resolves from the vendored framework itself.
+  # (Do NOT add a second, loose modulemap — it triggers "redefinition of module
+  # 'videocall_codecsFFI'".)
   s.vendored_frameworks = 'VideocallCodecs.xcframework'
   s.source_files        = 'videocall_codecs.swift'
-  s.preserve_paths      = 'FFI/**'
 
-  s.pod_target_xcconfig = {
-    'BUILD_LIBRARY_FOR_DISTRIBUTION' => 'YES',
-    'SWIFT_INCLUDE_PATHS'            => '$(PODS_TARGET_SRCROOT)/FFI',
+  # Every slice in the xcframework is arm64-only (the Rust build produces no
+  # x86_64 simulator/macOS objects), so tell Xcode not to try linking that
+  # arch — a multi-arch simulator build otherwise fails in ld. Applied to the
+  # consuming app targets too (user_target_xcconfig): they link the framework
+  # and hit the same missing-arch wall.
+  excluded = {
+    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'x86_64',
+    'EXCLUDED_ARCHS[sdk=watchsimulator*]'  => 'x86_64',
+    'EXCLUDED_ARCHS[sdk=macosx*]'          => 'x86_64'
   }
+  s.pod_target_xcconfig  = { 'BUILD_LIBRARY_FOR_DISTRIBUTION' => 'YES' }.merge(excluded)
+  s.user_target_xcconfig = excluded
 end

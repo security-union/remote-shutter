@@ -20,6 +20,11 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     private let viewModel: WatchCameraViewModel
     private var wcSession: WCSession?
 
+    /// Stateful VP9 stream decoder (owns its own serial queue). Never torn down:
+    /// a new stream from the phone always opens with a keyframe, which re-syncs
+    /// a stale decoder by itself.
+    private let vp9Decoder = WatchVP9PreviewDecoder()
+
     // Main-queue confined.
     private var retryCount = 0
     private let maxRetries = 10
@@ -130,9 +135,8 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     /// next one — the same explicit-request back-pressure the peer monitor uses.
     func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
         if let frame = WatchPreviewFrameEncoder.decode(messageData) {
-            debugLog("WatchSession: received preview frame (\(messageData.count) bytes)")
-            renderPreview(jpeg: frame.jpeg, epochMs: frame.epochMs)
-            requestNextPreviewFrame()
+            debugLog("WatchSession: received preview frame (\(messageData.count) bytes, codec \(frame.codec))")
+            renderPreview(payload: frame.payload, codec: frame.codec, epochMs: frame.epochMs)
             return
         }
 
@@ -149,11 +153,30 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    /// Decodes the tiny JPEG off the main thread, then hands the image to the view model.
-    private func renderPreview(jpeg: Data, epochMs: UInt64) {
-        guard let image = UIImage(data: jpeg) else { return }
-        DispatchQueue.main.async { [weak self] in
-            self?.viewModel.updatePreview(image: image, epochMs: epochMs)
+    /// Routes the payload to its codec's decoder off the main thread, hands the image to
+    /// the view model, and acks so the phone releases the next frame. An undecodable VP9
+    /// frame is dropped but STILL acked (drop-but-ack): the stream keeps flowing and the
+    /// phone's periodic keyframe re-syncs it.
+    private func renderPreview(payload: Data, codec: RemoteShutter_StreamCodec, epochMs: UInt64) {
+        switch codec {
+        case .vp9:
+            vp9Decoder.decode(frame: payload) { [weak self] image in
+                guard let self else { return }
+                if let image {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.viewModel.updatePreview(image: image, epochMs: epochMs)
+                    }
+                }
+                self.requestNextPreviewFrame()
+            }
+        default:
+            // Stills (HEIC/JPEG) and legacy codec-less senders: UIImage sniffs the container.
+            if let image = UIImage(data: payload) {
+                DispatchQueue.main.async { [weak self] in
+                    self?.viewModel.updatePreview(image: image, epochMs: epochMs)
+                }
+            }
+            requestNextPreviewFrame()
         }
     }
 

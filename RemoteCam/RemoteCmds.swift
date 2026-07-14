@@ -141,10 +141,13 @@ public class RemoteCmd: Message, @unchecked Sendable {
     /// Payload format of a streamed preview frame. Mirrors the wire enum
     /// `RemoteShutter_StreamCodec`; frames from peers that predate the field
     /// arrive as `.jpeg`. `.hevc` is reserved for the video-codec follow-up.
+    /// `.vp9` is a stateful video stream (videocall-codecs): keyframe first,
+    /// then inter frames in order — used on the Watch preview channel.
     public enum StreamCodec {
         case jpeg
         case hevc
         case heic
+        case vp9
     }
 
     public class SendFrame: Message, @unchecked Sendable {

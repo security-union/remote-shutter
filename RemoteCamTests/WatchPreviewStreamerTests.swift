@@ -17,13 +17,14 @@ final class WatchPreviewStreamerTests: XCTestCase {
     private var queue: DispatchQueue!
     private var streamer: WatchPreviewStreamer!
 
-    private var sent: [Data] = []
+    private var sentFrames: [EncodedFrame] = []
+    private var sent: [Data] { sentFrames.map(\.data) }
     private var encodeCount = 0
 
     override func setUp() {
         super.setUp()
         queue = DispatchQueue(label: "watch-preview-streamer-test")
-        sent = []
+        sentFrames = []
         encodeCount = 0
         streamer = makeStreamer()
     }
@@ -37,8 +38,8 @@ final class WatchPreviewStreamerTests: XCTestCase {
     private func makeStreamer(maxInFlight: Int = 1,
                               ackTimeout: TimeInterval = 1.0) -> WatchPreviewStreamer {
         WatchPreviewStreamer(queue: queue, maxInFlight: maxInFlight, ackTimeout: ackTimeout,
-                             send: { [weak self] jpeg in
-            self?.sent.append(jpeg)
+                             send: { [weak self] frame in
+            self?.sentFrames.append(frame)
         })
     }
 
@@ -50,7 +51,7 @@ final class WatchPreviewStreamerTests: XCTestCase {
         queue.sync {
             result = streamer.offer { [weak self] in
                 self?.encodeCount += 1
-                return Data([tag])
+                return EncodedFrame(data: Data([tag]), codec: .vp9)
             }
         }
         return result
@@ -65,6 +66,7 @@ final class WatchPreviewStreamerTests: XCTestCase {
     func testFirstFrameIsEncodedAndSent() {
         XCTAssertTrue(offer(1))
         XCTAssertEqual(sent, [Data([1])])
+        XCTAssertEqual(sentFrames.map(\.codec), [.vp9], "the encoder's codec tag must reach the transport")
         XCTAssertEqual(encodeCount, 1)
     }
 

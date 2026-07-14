@@ -18,18 +18,24 @@ import MultipeerConnectivity
 
 private final class FakeEncoder: FrameEncoding {
     let codec: RemoteCmd.StreamCodec
-    var result: Data?
+    var result: FrameEncodeResult
     private(set) var encodeCount = 0
 
     init(codec: RemoteCmd.StreamCodec, result: Data?) {
         self.codec = codec
-        self.result = result
+        self.result = result.map(FrameEncodeResult.encoded) ?? .failed
     }
 
-    func encode(pixelBuffer: CVPixelBuffer) -> Data? {
+    func encode(pixelBuffer: CVPixelBuffer) -> FrameEncodeResult {
         encodeCount += 1
         return result
     }
+}
+
+/// Unwraps `.encoded` payload bytes for assertions on the real encoders.
+func encodedData(_ result: FrameEncodeResult) -> Data? {
+    if case .encoded(let data) = result { return data }
+    return nil
 }
 
 // MARK: - Helpers
@@ -244,14 +250,14 @@ final class FrameEncoderTests: XCTestCase {
 
     func testJPEGEncoderProducesDecodableDownscaledImage() throws {
         let encoder = JPEGFrameEncoder(maxLongEdge: 100, quality: 0.6)
-        let data = try XCTUnwrap(encoder.encode(pixelBuffer: makePixelBuffer(width: 400, height: 200)))
+        let data = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: makePixelBuffer(width: 400, height: 200))))
         let image = try XCTUnwrap(UIImage(data: data))
         XCTAssertLessThanOrEqual(max(image.size.width, image.size.height), 100)
     }
 
     func testHEICEncoderProducesDecodableDownscaledImage() throws {
         let encoder = HEICFrameEncoder(maxLongEdge: 100, quality: 0.5)
-        let data = encoder.encode(pixelBuffer: makePixelBuffer(width: 400, height: 200))
+        let data = encodedData(encoder.encode(pixelBuffer: makePixelBuffer(width: 400, height: 200)))
         try XCTSkipIf(data == nil, "HEVC encoder unavailable on this simulator/host")
         let image = try XCTUnwrap(UIImage(data: data!))
         XCTAssertLessThanOrEqual(max(image.size.width, image.size.height), 100)
@@ -259,7 +265,7 @@ final class FrameEncoderTests: XCTestCase {
 
     func testSmallFrameIsNotUpscaled() throws {
         let encoder = JPEGFrameEncoder(maxLongEdge: 960, quality: 0.6)
-        let data = try XCTUnwrap(encoder.encode(pixelBuffer: makePixelBuffer(width: 64, height: 32)))
+        let data = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: makePixelBuffer(width: 64, height: 32))))
         let image = try XCTUnwrap(UIImage(data: data))
         XCTAssertEqual(max(image.size.width, image.size.height), 64)
     }

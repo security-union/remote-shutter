@@ -38,7 +38,7 @@ class WatchSessionManager: NSObject, ObservableObject {
     var isWatchReachable: Bool { false }
     func pushCameraState(_ snapshot: WatchCameraStateSnapshot) {}
     func pushDisconnectedState() {}
-    func pushPreviewFrame(jpeg: Data) {}
+    func pushPreviewFrame(payload: Data, codec: RemoteCmd.StreamCodec) {}
 }
 
 extension WatchSessionManager: WatchStatePushing {}
@@ -135,17 +135,20 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - Live Preview Streaming
 
-    /// Sends one preview JPEG to the Watch on the live channel, fire-and-forget — the
-    /// same proven delivery path as state pushes. Back-pressure is handled by the
-    /// `WatchPreviewStreamer`, which waits for the Watch's explicit "request next frame"
-    /// ack before releasing another. Never uses `updateApplicationContext`: that durable,
-    /// coalesced mirror is reserved for camera state and would fight the stream.
-    func pushPreviewFrame(jpeg: Data) {
+    /// Sends one codec-tagged preview frame (VP9/HEIC/JPEG) to the Watch on the live
+    /// channel, fire-and-forget — the same proven delivery path as state pushes.
+    /// Back-pressure is handled by the `WatchPreviewStreamer`, which waits for the
+    /// Watch's explicit "request next frame" ack before releasing another. Never uses
+    /// `updateApplicationContext`: that durable, coalesced mirror is reserved for
+    /// camera state and would fight the stream.
+    func pushPreviewFrame(payload: Data, codec: RemoteCmd.StreamCodec) {
         guard let session = wcSession, session.isReachable else { return }
 
         let epochMs = UInt64(Date().timeIntervalSince1970 * 1000)
-        let data = WatchPreviewFrameEncoder.encode(jpeg: jpeg, epochMs: epochMs)
-        debugLog("WatchSessionManager: pushing preview frame (\(data.count) bytes)")
+        let data = WatchPreviewFrameEncoder.encode(payload: payload,
+                                                   codec: toFBStreamCodec(codec),
+                                                   epochMs: epochMs)
+        debugLog("WatchSessionManager: pushing preview frame (\(data.count) bytes, codec \(codec))")
         session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
             debugLog("WatchSessionManager: Failed to push preview frame: \(error)")
         })

@@ -112,19 +112,23 @@ private func fromFBCamPos(_ pos: RemoteShutter_CameraPosition) -> AVCaptureDevic
     }
 }
 
-private func toFBStreamCodec(_ codec: RemoteCmd.StreamCodec) -> RemoteShutter_StreamCodec {
+// Internal (not private): the Watch preview transport (WatchSessionManager)
+// maps its codec tag through the same single conversion.
+func toFBStreamCodec(_ codec: RemoteCmd.StreamCodec) -> RemoteShutter_StreamCodec {
     switch codec {
     case .jpeg: return .jpeg
     case .hevc: return .hevc
     case .heic: return .heic
+    case .vp9: return .vp9
     }
 }
 
-private func fromFBStreamCodec(_ codec: RemoteShutter_StreamCodec) -> RemoteCmd.StreamCodec {
+func fromFBStreamCodec(_ codec: RemoteShutter_StreamCodec) -> RemoteCmd.StreamCodec {
     switch codec {
     case .jpeg: return .jpeg
     case .hevc: return .hevc
     case .heic: return .heic
+    case .vp9: return .vp9
     case .unknown: return .jpeg   // legacy sender: field absent => JPEG payload
     }
 }

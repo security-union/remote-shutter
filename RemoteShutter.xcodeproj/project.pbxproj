@@ -164,6 +164,9 @@
 		CAFEBABE000C000000000003 /* JPEGFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000C000000000001 /* JPEGFrameEncoder.swift */; };
 		CAFEBABE000D000000000002 /* HEICFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */; };
 		CAFEBABE000D000000000003 /* HEICFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */; };
+		CAFEBABE0010000000000002 /* VP9FrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */; };
+		CAFEBABE0011000000000002 /* WatchVP9PreviewDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0011000000000001 /* WatchVP9PreviewDecoder.swift */; };
+		CAFEBABE0012000000000002 /* VP9StreamingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0012000000000001 /* VP9StreamingTests.swift */; };
 		CAFEBABE000E000000000002 /* FrameStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000E000000000001 /* FrameStreamer.swift */; };
 		CAFEBABE000E000000000003 /* FrameStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000E000000000001 /* FrameStreamer.swift */; };
 		CAFEBABE000F000000000002 /* FrameStreamReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000F000000000001 /* FrameStreamReceiver.swift */; };
@@ -396,6 +399,9 @@
 		CAFEBABE000B000000000001 /* FrameCodecs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameCodecs.swift; sourceTree = "<group>"; };
 		CAFEBABE000C000000000001 /* JPEGFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JPEGFrameEncoder.swift; sourceTree = "<group>"; };
 		CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEICFrameEncoder.swift; sourceTree = "<group>"; };
+		CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9FrameEncoder.swift; sourceTree = "<group>"; };
+		CAFEBABE0011000000000001 /* WatchVP9PreviewDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchVP9PreviewDecoder.swift; sourceTree = "<group>"; };
+		CAFEBABE0012000000000001 /* VP9StreamingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9StreamingTests.swift; sourceTree = "<group>"; };
 		CAFEBABE000E000000000001 /* FrameStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStreamer.swift; sourceTree = "<group>"; };
 		CAFEBABE000F000000000001 /* FrameStreamReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStreamReceiver.swift; sourceTree = "<group>"; };
 		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
@@ -550,6 +556,7 @@
 				CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */,
 				CAFEBABE0003000000000001 /* WatchSerializationTests.swift */,
 				CAFEBABE0006000000000001 /* WatchPreviewStreamerTests.swift */,
+				CAFEBABE0012000000000001 /* VP9StreamingTests.swift */,
 				CAFEBABE0004000000000001 /* WatchRemoteCamStateTests.swift */,
 				069284351BE5BF5C00AF4678 /* Info.plist */,
 				036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */,
@@ -621,6 +628,7 @@
 				CAFEBABE000B000000000001 /* FrameCodecs.swift */,
 				CAFEBABE000C000000000001 /* JPEGFrameEncoder.swift */,
 				CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */,
+				CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */,
 				CAFEBABE000E000000000001 /* FrameStreamer.swift */,
 				CAFEBABE000F000000000001 /* FrameStreamReceiver.swift */,
 				06CDFB1D252E9CD200EA56FB /* UICmds.swift */,
@@ -758,6 +766,7 @@
 			children = (
 				D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatchApp.swift */,
 				2B6BF3CD6986238A77C3A216 /* WatchSessionDelegate.swift */,
+				CAFEBABE0011000000000001 /* WatchVP9PreviewDecoder.swift */,
 				6816F7F01F22AF52E28D6518 /* WatchCameraViewModel.swift */,
 				F9F37D4A9FA8416A43EFEFF1 /* WatchControlView.swift */,
 				DC9A830256BC7B3762B17FEF /* WatchConnectionView.swift */,
@@ -1089,6 +1098,7 @@
 				CAFEBABE000B000000000002 /* FrameCodecs.swift in Sources */,
 				CAFEBABE000C000000000002 /* JPEGFrameEncoder.swift in Sources */,
 				CAFEBABE000D000000000002 /* HEICFrameEncoder.swift in Sources */,
+				CAFEBABE0010000000000002 /* VP9FrameEncoder.swift in Sources */,
 				CAFEBABE000E000000000002 /* FrameStreamer.swift in Sources */,
 				CAFEBABE000F000000000002 /* FrameStreamReceiver.swift in Sources */,
 				77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */,
@@ -1173,6 +1183,7 @@
 				CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */,
 				CAFEBABE0003000000000002 /* WatchSerializationTests.swift in Sources */,
 				CAFEBABE0006000000000002 /* WatchPreviewStreamerTests.swift in Sources */,
+				CAFEBABE0012000000000002 /* VP9StreamingTests.swift in Sources */,
 				CAFEBABE0004000000000002 /* WatchRemoteCamStateTests.swift in Sources */,
 				3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */,
 				B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */,
@@ -1200,6 +1211,7 @@
 				8F558AB2F4887617AF3E8FCD /* RemoteShutterWatchApp.swift in Sources */,
 				DEADBEEF0001000000000004 /* DebugLog.swift in Sources */,
 				2D869319DCFDFEFF351153A4 /* WatchSessionDelegate.swift in Sources */,
+				CAFEBABE0011000000000002 /* WatchVP9PreviewDecoder.swift in Sources */,
 				D2B94CD08C14086E035FBAA4 /* WatchCameraViewModel.swift in Sources */,
 				33F5D268690A3D022A6A54BA /* WatchControlView.swift in Sources */,
 				E2292969B1882D3FCB671CB3 /* WatchConnectionView.swift in Sources */,

@@ -21,12 +21,12 @@
 /* Begin PBXBuildFile section */
 		04B5DC52C407EC1325D1F98BE999C317 /* Verifiable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E863A68B264E645EF3DF16D56D3312 /* Verifiable.swift */; };
 		0D5F14F51AD007AE1EBD7BD077CF9CAC /* ByteBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11438BAEEEDC90E0CD57886C008B2A6F /* ByteBuffer.swift */; };
-		1521864105EC91689566EAACCF36887D /* VideocallCodecs-watchOS-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 73E8B1F0588F5F7400885388D54E69BD /* VideocallCodecs-watchOS-dummy.m */; };
+		1521864105EC91689566EAACCF36887D /* VideocallCodecs-watchOS-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = C14CE208847CE50FCBB4107DD91C4595 /* VideocallCodecs-watchOS-dummy.m */; };
 		162A9FAA1484CB7185338F853412CC74 /* Table.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24B0B7D658FE86EBC7A4CE19E70229D0 /* Table.swift */; };
 		17BFDE946BDA753A5E2B2AAF380BBFC7 /* FlatBuffersUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC136811433897B0CC9173F76073D1E3 /* FlatBuffersUtils.swift */; };
 		1A04019A637C7141AEB20F9F6FB1B621 /* FlatBufferBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F16A0EA5BC99B9111A59F07AFEBE9E5 /* FlatBufferBuilder.swift */; };
 		1A4B79F52E8300B620D3212216025967 /* TableVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F583504891E0A74AEB7355084A81945 /* TableVerifier.swift */; };
-		20684032783E69A6BA7DFA91A36C9131 /* videocall_codecs.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCFBAA7E172BF7DFEABB5A359FA5A040 /* videocall_codecs.swift */; };
+		20684032783E69A6BA7DFA91A36C9131 /* videocall_codecs.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CE6D098AC56234015DE560CED26B66 /* videocall_codecs.swift */; };
 		20F260415215BD0BD7B637C35D9DCF0F /* Pods-RemoteShutterWatch-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = E959D91414A603889BBB9F262D4983EF /* Pods-RemoteShutterWatch-dummy.m */; };
 		223B785E639A881C63F4918CE2E6F7E9 /* FlatBuffers-watchOS-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 1F4AF0C86CD309478E2B111FF4BB108D /* FlatBuffers-watchOS-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		25CE986801C061A8A37253725034E6D4 /* Offset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BCBB6FCF2C40F196F76B64375AEF7BA /* Offset.swift */; };
@@ -36,13 +36,13 @@
 		36D0571450D6548F3CD97A4954671F67 /* TableVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F583504891E0A74AEB7355084A81945 /* TableVerifier.swift */; };
 		3C2E01637A895AD389576B286C4C1BDA /* FlatBuffers-iOS-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = E648F328945BA447D98FF18A1E285825 /* FlatBuffers-iOS-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		40747B3A58AAC505A14DD7CB3310AFFA /* VeriferOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655D3883EE2796414823C26836120948 /* VeriferOptions.swift */; };
-		53B2499FBAAD9BE9C38AB8B094170D33 /* videocall_codecs.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCFBAA7E172BF7DFEABB5A359FA5A040 /* videocall_codecs.swift */; };
+		53B2499FBAAD9BE9C38AB8B094170D33 /* videocall_codecs.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CE6D098AC56234015DE560CED26B66 /* videocall_codecs.swift */; };
 		562C6F67F886D68DAD9187D633DE1040 /* Enum.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3109F985E6B39BC4F51066BDBB5A89C /* Enum.swift */; };
 		5AC5C1C6E3EE33551B8DF6B3E3206944 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18CA81315FDE5EE9398A64F785D2A98 /* Constants.swift */; };
 		6693C2D10940776E4AE552A723E3E019 /* FlatBufferObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C70AB92CA2E65F3D8DFCBBD676CA5D /* FlatBufferObject.swift */; };
 		671F1C63A8217FCC76881B41F7CF3C81 /* Int+extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38902781BACBD6731721922FCDB8C488 /* Int+extension.swift */; };
 		67F0D86926D5C205BF815692CF943299 /* Offset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BCBB6FCF2C40F196F76B64375AEF7BA /* Offset.swift */; };
-		691B92637BEE1B604DFDBF6E7B22EE8D /* VideocallCodecs-watchOS-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = AEFAD57ECE60A78074D7961D6A62B97C /* VideocallCodecs-watchOS-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		691B92637BEE1B604DFDBF6E7B22EE8D /* VideocallCodecs-watchOS-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = F82D65404FF577222F1E1603CF56185E /* VideocallCodecs-watchOS-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		6F0A2261A51B0B18EA0F6F2D5ADE0223 /* Root.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9C52F51531956B20F22679BA4AC639 /* Root.swift */; };
 		706D97BA20E22447A0B189FE98EDA8A9 /* Mutable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F43A4FE0F9D5A0BF9F6EEA6C3AD7B0 /* Mutable.swift */; };
 		76372D30E94DE81C36B162D92CAAEF1E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7E621E336003FBC52FC840E50C1DCF9E /* Foundation.framework */; };
@@ -60,7 +60,7 @@
 		A12E4C14B3600C3C3527436CB17242EE /* String+extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53DCB51E22AA19CAF11E98FFB9D28ED7 /* String+extension.swift */; };
 		A3160764D132DB18C0D485D496E85A7C /* String+extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53DCB51E22AA19CAF11E98FFB9D28ED7 /* String+extension.swift */; };
 		A6DCE0EBC2CF7859A8F84B12F641173D /* Struct.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDC29FA0CCF529F8B5A7BCFDCD8C186 /* Struct.swift */; };
-		AF398947E56EF7DCA66AFF5EA107E144 /* VideocallCodecs-iOS-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = 45DBE51498627C2898238D7069CBBB69 /* VideocallCodecs-iOS-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		AF398947E56EF7DCA66AFF5EA107E144 /* VideocallCodecs-iOS-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = E9D638D2402AF1C255A749247443786F /* VideocallCodecs-iOS-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		B0226935FDF0D6C22B2952090F323BB8 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B656997DD59E714100CBC23AB4134E /* Foundation.framework */; };
 		B23F253D3F132CE833CA039F14165E6C /* Table.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24B0B7D658FE86EBC7A4CE19E70229D0 /* Table.swift */; };
 		B561339D70650C404D3C3086A7BF2823 /* FlatbuffersErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FB6D5246EE46BF7F8ACFF21310C3C46 /* FlatbuffersErrors.swift */; };
@@ -68,7 +68,7 @@
 		C02EC6B7CBFAA48E1E90EF916DB4FF3A /* Pods-RemoteShutter-umbrella.h in Headers */ = {isa = PBXBuildFile; fileRef = CB8310B03FFFB2FFB02DE1D555C76321 /* Pods-RemoteShutter-umbrella.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		D35DA73FB8D7D9DFA392B2AB182D2990 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B656997DD59E714100CBC23AB4134E /* Foundation.framework */; };
 		D4304071E2614D2650A29B5E938B8CDF /* Int+extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38902781BACBD6731721922FCDB8C488 /* Int+extension.swift */; };
-		D82A0471B204AB8D2749FBA46D2E5BC7 /* VideocallCodecs-iOS-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 02B7BFFB29FDD5825EBDC9B9F40235AB /* VideocallCodecs-iOS-dummy.m */; };
+		D82A0471B204AB8D2749FBA46D2E5BC7 /* VideocallCodecs-iOS-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 190C83ACE16BF313B3367467A0F9CD0A /* VideocallCodecs-iOS-dummy.m */; };
 		DE433FB2B069F9FAE5F32B8978F19AF2 /* ByteBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11438BAEEEDC90E0CD57886C008B2A6F /* ByteBuffer.swift */; };
 		DFCC2283A71A212D46C72C293CDE9D64 /* Enum.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3109F985E6B39BC4F51066BDBB5A89C /* Enum.swift */; };
 		E07E40465F2050473F1A122DD8886E78 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE303418086F4318E0DFCFB53327656A /* Message.swift */; };
@@ -85,52 +85,51 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		3589CCE3166DFF468EAA0E5F545C65AA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 84C23EBC9721AAFCB14D7056C289BC4C;
-			remoteInfo = "VideocallCodecs-iOS";
-		};
-		527C6B64E59F54EF9716AD6C60D0FA01 /* PBXContainerItemProxy */ = {
+		3BB03501A7119E6215D62FD7CF747BFF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 298E0ECADC997E17D81AAC898566D792;
 			remoteInfo = "FlatBuffers-iOS";
 		};
-		70FCC285DAE04CE846F6C5EEA6E88281 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = E42E11C908435CC8EDBCDB0C2821A55E;
-			remoteInfo = "VideocallCodecs-watchOS";
-		};
-		96955F19201D43BF0085809416DAEC49 /* PBXContainerItemProxy */ = {
+		7A7A50C211A0D1B25529D8ABA1CCD277 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 49600CDCCC4E83C6CBB9BBDB533A9E9D;
 			remoteInfo = "Pods-RemoteShutter";
 		};
-		9CA35B201DB62B3C3D52DABCE0DF5566 /* PBXContainerItemProxy */ = {
+		A37B93E84508B9C1EEB1E91B08BC4C82 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = F33F692F2F4288B07D643C772815E020;
 			remoteInfo = "FlatBuffers-watchOS";
 		};
-		BD946063FEDBADFBF567B88FA7E1F9E2 /* PBXContainerItemProxy */ = {
+		E35F29DD1E1FD369B90D378D3B6D6011 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 84C23EBC9721AAFCB14D7056C289BC4C;
+			remoteInfo = "VideocallCodecs-iOS";
+		};
+		ED496CDBAFF997F9F477210BDC043E2F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 52B60EC2A583F24ACBB69C113F5488B9;
 			remoteInfo = SwiftLint;
 		};
+		EF9436FB40D20BC168602F380EFAC5B8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFDFE7DC352907FC980B868725387E98 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E42E11C908435CC8EDBCDB0C2821A55E;
+			remoteInfo = "VideocallCodecs-watchOS";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		02B7BFFB29FDD5825EBDC9B9F40235AB /* VideocallCodecs-iOS-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "VideocallCodecs-iOS-dummy.m"; sourceTree = "<group>"; };
 		04C9386E8670275F274487CFCDC9FBD6 /* VideocallCodecs-iOS */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = "VideocallCodecs-iOS"; path = VideocallCodecs.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		071B2AE6792AD8DB6B8BB2D6AF55939E /* FlatBuffers-iOS */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = "FlatBuffers-iOS"; path = FlatBuffers.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		08D9BB92B313CA86BF112C2E02E5CD6F /* NativeObject.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NativeObject.swift; path = swift/Sources/FlatBuffers/NativeObject.swift; sourceTree = "<group>"; };
@@ -139,78 +138,79 @@
 		0E6166C413A8764234F69FA5601BD52E /* SwiftLint.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = SwiftLint.release.xcconfig; sourceTree = "<group>"; };
 		0EEA2474BA233D3A88792D36CC6766A2 /* Pods-RemoteShutterTests-acknowledgements.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutterTests-acknowledgements.plist"; sourceTree = "<group>"; };
 		0F6F34E409DA74472B40DFE73810E76A /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
-		0F84CFB3062207FEC3EF20D73C9D60CE /* VideocallCodecs-watchOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "VideocallCodecs-watchOS.debug.xcconfig"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS.debug.xcconfig"; sourceTree = "<group>"; };
 		11438BAEEEDC90E0CD57886C008B2A6F /* ByteBuffer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ByteBuffer.swift; path = swift/Sources/FlatBuffers/ByteBuffer.swift; sourceTree = "<group>"; };
+		190C83ACE16BF313B3367467A0F9CD0A /* VideocallCodecs-iOS-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "VideocallCodecs-iOS-dummy.m"; sourceTree = "<group>"; };
+		1A45CCB52F0C59F55D5EE72B30A3E9B4 /* VideocallCodecs-iOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "VideocallCodecs-iOS.debug.xcconfig"; sourceTree = "<group>"; };
 		1B9CE7EFF4A8245B75605BDF0A7F7074 /* FlatBuffers-iOS-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "FlatBuffers-iOS-dummy.m"; sourceTree = "<group>"; };
 		1F4AF0C86CD309478E2B111FF4BB108D /* FlatBuffers-watchOS-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "FlatBuffers-watchOS-umbrella.h"; path = "../FlatBuffers-watchOS/FlatBuffers-watchOS-umbrella.h"; sourceTree = "<group>"; };
-		21869823FE9B9344EF0BF2E62DF41787 /* VideocallCodecs-iOS-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "VideocallCodecs-iOS-prefix.pch"; sourceTree = "<group>"; };
 		24B0B7D658FE86EBC7A4CE19E70229D0 /* Table.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Table.swift; path = swift/Sources/FlatBuffers/Table.swift; sourceTree = "<group>"; };
 		25B656997DD59E714100CBC23AB4134E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		2BCBB6FCF2C40F196F76B64375AEF7BA /* Offset.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Offset.swift; path = swift/Sources/FlatBuffers/Offset.swift; sourceTree = "<group>"; };
-		332939DD3DAA9D8C007323AB2CC6FFBC /* VideocallCodecs-watchOS.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; name = "VideocallCodecs-watchOS.modulemap"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS.modulemap"; sourceTree = "<group>"; };
 		362CCA5534569B08BD4B5A425C36DBE0 /* Verifier.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Verifier.swift; path = swift/Sources/FlatBuffers/Verifier.swift; sourceTree = "<group>"; };
 		38902781BACBD6731721922FCDB8C488 /* Int+extension.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = "Int+extension.swift"; path = "swift/Sources/FlatBuffers/Int+extension.swift"; sourceTree = "<group>"; };
 		391E83A1075A6C9C0E0D048641A5ADBB /* FlatBuffers-iOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "FlatBuffers-iOS.release.xcconfig"; sourceTree = "<group>"; };
 		3E475D2F1F9C6F41B96502FC9D64D5DA /* Pods-RemoteShutterWatch.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutterWatch.release.xcconfig"; sourceTree = "<group>"; };
 		429B899A5D043EF67D4D7F4C982ED083 /* FlatBuffers-watchOS.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; name = "FlatBuffers-watchOS.modulemap"; path = "../FlatBuffers-watchOS/FlatBuffers-watchOS.modulemap"; sourceTree = "<group>"; };
-		452140D497A1E9D73A81F78683144F14 /* VideocallCodecs-iOS-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "VideocallCodecs-iOS-Info.plist"; sourceTree = "<group>"; };
-		45DBE51498627C2898238D7069CBBB69 /* VideocallCodecs-iOS-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "VideocallCodecs-iOS-umbrella.h"; sourceTree = "<group>"; };
+		4CCAE33BD3ACCC9C22A0098D0382512F /* VideocallCodecs.xcframework */ = {isa = PBXFileReference; includeInIndex = 1; name = VideocallCodecs.xcframework; path = ../../vendor/VideocallCodecs/VideocallCodecs.xcframework; sourceTree = "<group>"; };
 		4CFB247C3FAC50BC87F988A65ACDA66E /* Pods-RemoteShutterTests */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = "Pods-RemoteShutterTests"; path = Pods_RemoteShutterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		4E7D6CB00B9367EE193CB0968E014BBC /* VideocallCodecs-watchOS-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "VideocallCodecs-watchOS-prefix.pch"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-prefix.pch"; sourceTree = "<group>"; };
 		4FB6D5246EE46BF7F8ACFF21310C3C46 /* FlatbuffersErrors.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FlatbuffersErrors.swift; path = swift/Sources/FlatBuffers/FlatbuffersErrors.swift; sourceTree = "<group>"; };
 		52F43A4FE0F9D5A0BF9F6EEA6C3AD7B0 /* Mutable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Mutable.swift; path = swift/Sources/FlatBuffers/Mutable.swift; sourceTree = "<group>"; };
 		53DCB51E22AA19CAF11E98FFB9D28ED7 /* String+extension.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = "String+extension.swift"; path = "swift/Sources/FlatBuffers/String+extension.swift"; sourceTree = "<group>"; };
 		53E863A68B264E645EF3DF16D56D3312 /* Verifiable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Verifiable.swift; path = swift/Sources/FlatBuffers/Verifiable.swift; sourceTree = "<group>"; };
 		594C40B39A46BBA394EE2F520827E564 /* FlatBuffers-watchOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "FlatBuffers-watchOS.release.xcconfig"; path = "../FlatBuffers-watchOS/FlatBuffers-watchOS.release.xcconfig"; sourceTree = "<group>"; };
+		5951348289934B8337F4DD086D75D1CF /* VideocallCodecs-iOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "VideocallCodecs-iOS.release.xcconfig"; sourceTree = "<group>"; };
 		5D1D50E923BF95A1DCCDF637C50BD480 /* Pods-RemoteShutter */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = "Pods-RemoteShutter"; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E31C1CB905B499F8A797C3EDBBB2AFB /* Pods-RemoteShutter-acknowledgements.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutter-acknowledgements.plist"; sourceTree = "<group>"; };
 		5F3080F9862D70DBC65A583BE91C9190 /* FlatBuffers-iOS-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "FlatBuffers-iOS-Info.plist"; sourceTree = "<group>"; };
 		655D3883EE2796414823C26836120948 /* VeriferOptions.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VeriferOptions.swift; path = swift/Sources/FlatBuffers/VeriferOptions.swift; sourceTree = "<group>"; };
 		65892D5C60C4F0802979B03768F4EA20 /* Pods-RemoteShutterTests-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Pods-RemoteShutterTests-dummy.m"; sourceTree = "<group>"; };
+		65F9DB17B78AD32F71A85141500339A6 /* VideocallCodecs-watchOS.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; name = "VideocallCodecs-watchOS.modulemap"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS.modulemap"; sourceTree = "<group>"; };
+		6853AADAE2A5652715DB526D8C399BCD /* VideocallCodecs-watchOS-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; name = "VideocallCodecs-watchOS-Info.plist"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-Info.plist"; sourceTree = "<group>"; };
+		6975E5955953084CC077743FC629B2B4 /* VideocallCodecs-watchOS-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "VideocallCodecs-watchOS-prefix.pch"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-prefix.pch"; sourceTree = "<group>"; };
 		6DE67AE01D0DFA14EC5B56A2D1A2D4DA /* Pods-RemoteShutter.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "Pods-RemoteShutter.modulemap"; sourceTree = "<group>"; };
 		71C70AB92CA2E65F3D8DFCBBD676CA5D /* FlatBufferObject.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FlatBufferObject.swift; path = swift/Sources/FlatBuffers/FlatBufferObject.swift; sourceTree = "<group>"; };
 		72B67A84FCEEB25020CE8B957A7395B2 /* Pods-RemoteShutterTests.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "Pods-RemoteShutterTests.modulemap"; sourceTree = "<group>"; };
-		73E8B1F0588F5F7400885388D54E69BD /* VideocallCodecs-watchOS-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = "VideocallCodecs-watchOS-dummy.m"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-dummy.m"; sourceTree = "<group>"; };
+		736125BEA06691193FABFE4AE55414AD /* VideocallCodecs-watchOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "VideocallCodecs-watchOS.debug.xcconfig"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS.debug.xcconfig"; sourceTree = "<group>"; };
+		7B2BBB8E83BB1FA59CE7E18E6234EF8D /* VideocallCodecs-watchOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "VideocallCodecs-watchOS.release.xcconfig"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS.release.xcconfig"; sourceTree = "<group>"; };
 		7D9E8B27C587B8CD1E24F600DE71D219 /* Pods-RemoteShutterTests-acknowledgements.markdown */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "Pods-RemoteShutterTests-acknowledgements.markdown"; sourceTree = "<group>"; };
 		7E621E336003FBC52FC840E50C1DCF9E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		85407659D1795458A68ED20F72D907B5 /* Pods-RemoteShutterWatch-acknowledgements.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutterWatch-acknowledgements.plist"; sourceTree = "<group>"; };
-		8756A98EE3BB9E9D1084CEC9FE20A568 /* VideocallCodecs.xcframework */ = {isa = PBXFileReference; includeInIndex = 1; name = VideocallCodecs.xcframework; path = ../../vendor/VideocallCodecs/VideocallCodecs.xcframework; sourceTree = "<group>"; };
+		8F04ED2073A0ED0406A5CC3B1237F545 /* VideocallCodecs-iOS-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "VideocallCodecs-iOS-Info.plist"; sourceTree = "<group>"; };
 		8F16A0EA5BC99B9111A59F07AFEBE9E5 /* FlatBufferBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FlatBufferBuilder.swift; path = swift/Sources/FlatBuffers/FlatBufferBuilder.swift; sourceTree = "<group>"; };
 		8F583504891E0A74AEB7355084A81945 /* TableVerifier.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TableVerifier.swift; path = swift/Sources/FlatBuffers/TableVerifier.swift; sourceTree = "<group>"; };
 		91EA5889539DE678762688C40981F78E /* FlatBuffers-watchOS-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "FlatBuffers-watchOS-prefix.pch"; path = "../FlatBuffers-watchOS/FlatBuffers-watchOS-prefix.pch"; sourceTree = "<group>"; };
-		923452E7363101CB4958DD3D8860B1D7 /* VideocallCodecs.podspec */ = {isa = PBXFileReference; explicitFileType = text.script.ruby; includeInIndex = 1; indentWidth = 2; lastKnownFileType = text; name = VideocallCodecs.podspec; path = ../../vendor/VideocallCodecs/VideocallCodecs.podspec; sourceTree = "<group>"; tabWidth = 2; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
+		923E0BB0DD563933F501F02AD5FCBD0C /* VideocallCodecs-iOS-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "VideocallCodecs-iOS-prefix.pch"; sourceTree = "<group>"; };
 		930633CC028D29704DFD8A3334F27E88 /* Pods-RemoteShutterTests-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutterTests-Info.plist"; sourceTree = "<group>"; };
 		96927D39F706C0BDA649A67C28A76503 /* Pods-RemoteShutterWatch-frameworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "Pods-RemoteShutterWatch-frameworks.sh"; sourceTree = "<group>"; };
-		9A903D56F5E783B918F8F0944625B71E /* VideocallCodecs-iOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "VideocallCodecs-iOS.release.xcconfig"; sourceTree = "<group>"; };
 		9D940727FF8FB9C785EB98E56350EF41 /* Podfile */ = {isa = PBXFileReference; explicitFileType = text.script.ruby; includeInIndex = 1; indentWidth = 2; lastKnownFileType = text; name = Podfile; path = ../Podfile; sourceTree = SOURCE_ROOT; tabWidth = 2; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
 		A0D1D9A3A431AB22E79CEE93DA2A0B67 /* FlatBuffers-iOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "FlatBuffers-iOS.debug.xcconfig"; sourceTree = "<group>"; };
 		A3109F985E6B39BC4F51066BDBB5A89C /* Enum.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Enum.swift; path = swift/Sources/FlatBuffers/Enum.swift; sourceTree = "<group>"; };
 		A432D04B563A9EE64D171C86B0387DB5 /* Pods-RemoteShutter-frameworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "Pods-RemoteShutter-frameworks.sh"; sourceTree = "<group>"; };
-		A86CDD99ABBE13ADA855707F1E9067E9 /* VideocallCodecs-watchOS-xcframeworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; name = "VideocallCodecs-watchOS-xcframeworks.sh"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-xcframeworks.sh"; sourceTree = "<group>"; };
-		ACD83C11BAB1BBCBE21F2E709EE154CB /* VideocallCodecs-iOS.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "VideocallCodecs-iOS.modulemap"; sourceTree = "<group>"; };
-		AEFAD57ECE60A78074D7961D6A62B97C /* VideocallCodecs-watchOS-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "VideocallCodecs-watchOS-umbrella.h"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-umbrella.h"; sourceTree = "<group>"; };
+		A58C5E4AA3F395647A0A88DC90A1373D /* VideocallCodecs-iOS.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "VideocallCodecs-iOS.modulemap"; sourceTree = "<group>"; };
 		B18CA81315FDE5EE9398A64F785D2A98 /* Constants.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Constants.swift; path = swift/Sources/FlatBuffers/Constants.swift; sourceTree = "<group>"; };
+		B2937D1A0509C73B8E5169EDDD11496D /* VideocallCodecs-iOS-xcframeworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "VideocallCodecs-iOS-xcframeworks.sh"; sourceTree = "<group>"; };
+		B5CE6D098AC56234015DE560CED26B66 /* videocall_codecs.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = videocall_codecs.swift; path = ../../vendor/VideocallCodecs/videocall_codecs.swift; sourceTree = "<group>"; };
 		B66EBDFFAD0CCAF2FAB9D7BF09B269A4 /* FlatBuffers-watchOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "FlatBuffers-watchOS.debug.xcconfig"; path = "../FlatBuffers-watchOS/FlatBuffers-watchOS.debug.xcconfig"; sourceTree = "<group>"; };
+		C14CE208847CE50FCBB4107DD91C4595 /* VideocallCodecs-watchOS-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = "VideocallCodecs-watchOS-dummy.m"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-dummy.m"; sourceTree = "<group>"; };
 		C52CB8E60457C8AA5CC43596A6A846AA /* FlatBuffers-iOS-prefix.pch */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "FlatBuffers-iOS-prefix.pch"; sourceTree = "<group>"; };
-		C9400949CEF83301DAE724DD32CC7DF1 /* VideocallCodecs-iOS-xcframeworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; path = "VideocallCodecs-iOS-xcframeworks.sh"; sourceTree = "<group>"; };
-		C9481F837CAF7E533D22FD1EAF07CE41 /* VideocallCodecs-iOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "VideocallCodecs-iOS.debug.xcconfig"; sourceTree = "<group>"; };
-		CADAC7C0BF1E56895224C23C7D7732C6 /* VideocallCodecs-watchOS-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; name = "VideocallCodecs-watchOS-Info.plist"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-Info.plist"; sourceTree = "<group>"; };
+		C96F93094F7B3D1D041801D29BD8E803 /* VideocallCodecs.podspec */ = {isa = PBXFileReference; explicitFileType = text.script.ruby; includeInIndex = 1; indentWidth = 2; lastKnownFileType = text; name = VideocallCodecs.podspec; path = ../../vendor/VideocallCodecs/VideocallCodecs.podspec; sourceTree = "<group>"; tabWidth = 2; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
 		CB8310B03FFFB2FFB02DE1D555C76321 /* Pods-RemoteShutter-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-RemoteShutter-umbrella.h"; sourceTree = "<group>"; };
 		CDDC29FA0CCF529F8B5A7BCFDCD8C186 /* Struct.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Struct.swift; path = swift/Sources/FlatBuffers/Struct.swift; sourceTree = "<group>"; };
 		D48B990D8775FB25F729DFBDA9A18703 /* VideocallCodecs-watchOS */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = "VideocallCodecs-watchOS"; path = VideocallCodecs.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D52E4F2BAD62676D09F816E453F8972D /* Pods-RemoteShutterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutterTests.release.xcconfig"; sourceTree = "<group>"; };
-		D8AB98B4DF4B965DBE7273BF757C19DE /* VideocallCodecs-watchOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "VideocallCodecs-watchOS.release.xcconfig"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS.release.xcconfig"; sourceTree = "<group>"; };
+		D77281174B354E8C4A7A347633A0EE73 /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; name = README.md; path = ../../vendor/VideocallCodecs/README.md; sourceTree = "<group>"; };
 		DC136811433897B0CC9173F76073D1E3 /* FlatBuffersUtils.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FlatBuffersUtils.swift; path = swift/Sources/FlatBuffers/FlatBuffersUtils.swift; sourceTree = "<group>"; };
 		DCD0A5D3AA4BB266861EA350C5037715 /* SwiftLint.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = SwiftLint.debug.xcconfig; sourceTree = "<group>"; };
-		DCFBAA7E172BF7DFEABB5A359FA5A040 /* videocall_codecs.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = videocall_codecs.swift; path = ../../vendor/VideocallCodecs/videocall_codecs.swift; sourceTree = "<group>"; };
 		DE2CCC22583C4FECE7819C1E170900BD /* Pods-RemoteShutter-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Pods-RemoteShutter-dummy.m"; sourceTree = "<group>"; };
 		DE3D098087E1D2E8FCDA2F5995BD6B76 /* FlatBuffers-watchOS */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; name = "FlatBuffers-watchOS"; path = FlatBuffers.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E648F328945BA447D98FF18A1E285825 /* FlatBuffers-iOS-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "FlatBuffers-iOS-umbrella.h"; sourceTree = "<group>"; };
 		E6748A7BF0CEDD5CCBED76837CD717A9 /* Pods-RemoteShutterWatch-acknowledgements.markdown */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = "Pods-RemoteShutterWatch-acknowledgements.markdown"; sourceTree = "<group>"; };
 		E959D91414A603889BBB9F262D4983EF /* Pods-RemoteShutterWatch-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = "Pods-RemoteShutterWatch-dummy.m"; sourceTree = "<group>"; };
+		E9D638D2402AF1C255A749247443786F /* VideocallCodecs-iOS-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "VideocallCodecs-iOS-umbrella.h"; sourceTree = "<group>"; };
 		EB208643AD94BC472C94518428DF22EE /* FlatBuffers-watchOS-dummy.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = "FlatBuffers-watchOS-dummy.m"; path = "../FlatBuffers-watchOS/FlatBuffers-watchOS-dummy.m"; sourceTree = "<group>"; };
 		EC1290731A9CE9E8B2CB0EE1EB6C4FD0 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
 		EC3CF5E3D2A2965D75DC195177C52B32 /* Pods-RemoteShutterWatch-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-RemoteShutterWatch-umbrella.h"; sourceTree = "<group>"; };
+		EE02184F3FB3B945DBA2014CEE7890D6 /* VideocallCodecs-watchOS-xcframeworks.sh */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.script.sh; name = "VideocallCodecs-watchOS-xcframeworks.sh"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-xcframeworks.sh"; sourceTree = "<group>"; };
 		EE303418086F4318E0DFCFB53327656A /* Message.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Message.swift; path = swift/Sources/FlatBuffers/Message.swift; sourceTree = "<group>"; };
 		F3F5542D421744B77E72A892541EFC7D /* Pods-RemoteShutterTests-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-RemoteShutterTests-umbrella.h"; sourceTree = "<group>"; };
 		F42FC3A963D1D0DC85DB83FA0CA0D085 /* Pods-RemoteShutterTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutterTests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -218,6 +218,7 @@
 		F64E97D68DC51B85C0E8F67613547558 /* FlatBuffers-watchOS-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; name = "FlatBuffers-watchOS-Info.plist"; path = "../FlatBuffers-watchOS/FlatBuffers-watchOS-Info.plist"; sourceTree = "<group>"; };
 		F6848A4AE2CF9626FA300A98786047C4 /* FlatBuffers-iOS.modulemap */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.module; path = "FlatBuffers-iOS.modulemap"; sourceTree = "<group>"; };
 		F7B4DCF5626E84B2ADB7F3A8B0ADFEC3 /* Pods-RemoteShutterWatch.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Pods-RemoteShutterWatch.debug.xcconfig"; sourceTree = "<group>"; };
+		F82D65404FF577222F1E1603CF56185E /* VideocallCodecs-watchOS-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = "VideocallCodecs-watchOS-umbrella.h"; path = "../VideocallCodecs-watchOS/VideocallCodecs-watchOS-umbrella.h"; sourceTree = "<group>"; };
 		F87D68110B08198ACD7436B79717BF34 /* Pods-RemoteShutterWatch-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutterWatch-Info.plist"; sourceTree = "<group>"; };
 		FC1F2A518D78A8EDB680321EEAF07B3E /* Pods-RemoteShutter-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-RemoteShutter-Info.plist"; sourceTree = "<group>"; };
 		FE9C52F51531956B20F22679BA4AC639 /* Root.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Root.swift; path = swift/Sources/FlatBuffers/Root.swift; sourceTree = "<group>"; };
@@ -293,6 +294,15 @@
 			name = "Targets Support Files";
 			sourceTree = "<group>";
 		};
+		0DB587D3E22531ADB51B42C475E3AC85 /* Pod */ = {
+			isa = PBXGroup;
+			children = (
+				D77281174B354E8C4A7A347633A0EE73 /* README.md */,
+				C96F93094F7B3D1D041801D29BD8E803 /* VideocallCodecs.podspec */,
+			);
+			name = Pod;
+			sourceTree = "<group>";
+		};
 		15154309D0BB4B4A70CBF97BDB90B00F /* FlatBuffers */ = {
 			isa = PBXGroup;
 			children = (
@@ -320,18 +330,6 @@
 			);
 			name = FlatBuffers;
 			path = FlatBuffers;
-			sourceTree = "<group>";
-		};
-		1C09D3B196BF8269DF4F36D838E05248 /* VideocallCodecs */ = {
-			isa = PBXGroup;
-			children = (
-				DCFBAA7E172BF7DFEABB5A359FA5A040 /* videocall_codecs.swift */,
-				B64ADB611A333C8B6EC31807C98B3926 /* Frameworks */,
-				C6B3ED0B71570524FC1461B06CB37EE7 /* Pod */,
-				9CE7C78EA7C9950672B6427E5FB29301 /* Support Files */,
-			);
-			name = VideocallCodecs;
-			path = ../Vendor/VideocallCodecs;
 			sourceTree = "<group>";
 		};
 		23FFD0B00E347E1691545D21772591C0 /* Pods-RemoteShutter */ = {
@@ -368,6 +366,30 @@
 			path = "Target Support Files/Pods-RemoteShutterWatch";
 			sourceTree = "<group>";
 		};
+		25EE8DEE32C0DA266470056BA29505AE /* Support Files */ = {
+			isa = PBXGroup;
+			children = (
+				A58C5E4AA3F395647A0A88DC90A1373D /* VideocallCodecs-iOS.modulemap */,
+				190C83ACE16BF313B3367467A0F9CD0A /* VideocallCodecs-iOS-dummy.m */,
+				8F04ED2073A0ED0406A5CC3B1237F545 /* VideocallCodecs-iOS-Info.plist */,
+				923E0BB0DD563933F501F02AD5FCBD0C /* VideocallCodecs-iOS-prefix.pch */,
+				E9D638D2402AF1C255A749247443786F /* VideocallCodecs-iOS-umbrella.h */,
+				B2937D1A0509C73B8E5169EDDD11496D /* VideocallCodecs-iOS-xcframeworks.sh */,
+				1A45CCB52F0C59F55D5EE72B30A3E9B4 /* VideocallCodecs-iOS.debug.xcconfig */,
+				5951348289934B8337F4DD086D75D1CF /* VideocallCodecs-iOS.release.xcconfig */,
+				65F9DB17B78AD32F71A85141500339A6 /* VideocallCodecs-watchOS.modulemap */,
+				C14CE208847CE50FCBB4107DD91C4595 /* VideocallCodecs-watchOS-dummy.m */,
+				6853AADAE2A5652715DB526D8C399BCD /* VideocallCodecs-watchOS-Info.plist */,
+				6975E5955953084CC077743FC629B2B4 /* VideocallCodecs-watchOS-prefix.pch */,
+				F82D65404FF577222F1E1603CF56185E /* VideocallCodecs-watchOS-umbrella.h */,
+				EE02184F3FB3B945DBA2014CEE7890D6 /* VideocallCodecs-watchOS-xcframeworks.sh */,
+				736125BEA06691193FABFE4AE55414AD /* VideocallCodecs-watchOS.debug.xcconfig */,
+				7B2BBB8E83BB1FA59CE7E18E6234EF8D /* VideocallCodecs-watchOS.release.xcconfig */,
+			);
+			name = "Support Files";
+			path = "../../Pods/Target Support Files/VideocallCodecs-iOS";
+			sourceTree = "<group>";
+		};
 		54CCD06893F300F5B2C02DAFD57093E1 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -375,6 +397,18 @@
 				C8EB97685ED026C24AE2CF55F8F7CD30 /* watchOS */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		811ED7B9E48DD0049721FD1F2682D7AC /* VideocallCodecs */ = {
+			isa = PBXGroup;
+			children = (
+				B5CE6D098AC56234015DE560CED26B66 /* videocall_codecs.swift */,
+				B663A32465C5EE9B8B1FF2796669D626 /* Frameworks */,
+				0DB587D3E22531ADB51B42C475E3AC85 /* Pod */,
+				25EE8DEE32C0DA266470056BA29505AE /* Support Files */,
+			);
+			name = VideocallCodecs;
+			path = ../Vendor/VideocallCodecs;
 			sourceTree = "<group>";
 		};
 		8D0566CDFC6849B29AC6E816FE8F5817 /* Pods-RemoteShutterTests */ = {
@@ -391,30 +425,6 @@
 			);
 			name = "Pods-RemoteShutterTests";
 			path = "Target Support Files/Pods-RemoteShutterTests";
-			sourceTree = "<group>";
-		};
-		9CE7C78EA7C9950672B6427E5FB29301 /* Support Files */ = {
-			isa = PBXGroup;
-			children = (
-				ACD83C11BAB1BBCBE21F2E709EE154CB /* VideocallCodecs-iOS.modulemap */,
-				02B7BFFB29FDD5825EBDC9B9F40235AB /* VideocallCodecs-iOS-dummy.m */,
-				452140D497A1E9D73A81F78683144F14 /* VideocallCodecs-iOS-Info.plist */,
-				21869823FE9B9344EF0BF2E62DF41787 /* VideocallCodecs-iOS-prefix.pch */,
-				45DBE51498627C2898238D7069CBBB69 /* VideocallCodecs-iOS-umbrella.h */,
-				C9400949CEF83301DAE724DD32CC7DF1 /* VideocallCodecs-iOS-xcframeworks.sh */,
-				C9481F837CAF7E533D22FD1EAF07CE41 /* VideocallCodecs-iOS.debug.xcconfig */,
-				9A903D56F5E783B918F8F0944625B71E /* VideocallCodecs-iOS.release.xcconfig */,
-				332939DD3DAA9D8C007323AB2CC6FFBC /* VideocallCodecs-watchOS.modulemap */,
-				73E8B1F0588F5F7400885388D54E69BD /* VideocallCodecs-watchOS-dummy.m */,
-				CADAC7C0BF1E56895224C23C7D7732C6 /* VideocallCodecs-watchOS-Info.plist */,
-				4E7D6CB00B9367EE193CB0968E014BBC /* VideocallCodecs-watchOS-prefix.pch */,
-				AEFAD57ECE60A78074D7961D6A62B97C /* VideocallCodecs-watchOS-umbrella.h */,
-				A86CDD99ABBE13ADA855707F1E9067E9 /* VideocallCodecs-watchOS-xcframeworks.sh */,
-				0F84CFB3062207FEC3EF20D73C9D60CE /* VideocallCodecs-watchOS.debug.xcconfig */,
-				D8AB98B4DF4B965DBE7273BF757C19DE /* VideocallCodecs-watchOS.release.xcconfig */,
-			);
-			name = "Support Files";
-			path = "../../Pods/Target Support Files/VideocallCodecs-iOS";
 			sourceTree = "<group>";
 		};
 		9E421C40A3A84BFEC9A4B5B572DF5C39 /* Support Files */ = {
@@ -441,10 +451,10 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		B64ADB611A333C8B6EC31807C98B3926 /* Frameworks */ = {
+		B663A32465C5EE9B8B1FF2796669D626 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				8756A98EE3BB9E9D1084CEC9FE20A568 /* VideocallCodecs.xcframework */,
+				4CCAE33BD3ACCC9C22A0098D0382512F /* VideocallCodecs.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -455,14 +465,6 @@
 				25B656997DD59E714100CBC23AB4134E /* Foundation.framework */,
 			);
 			name = iOS;
-			sourceTree = "<group>";
-		};
-		C6B3ED0B71570524FC1461B06CB37EE7 /* Pod */ = {
-			isa = PBXGroup;
-			children = (
-				923452E7363101CB4958DD3D8860B1D7 /* VideocallCodecs.podspec */,
-			);
-			name = Pod;
 			sourceTree = "<group>";
 		};
 		C8EB97685ED026C24AE2CF55F8F7CD30 /* watchOS */ = {
@@ -528,7 +530,7 @@
 		E7659CD24708B338B784F078B9C2933E /* Development Pods */ = {
 			isa = PBXGroup;
 			children = (
-				1C09D3B196BF8269DF4F36D838E05248 /* VideocallCodecs */,
+				811ED7B9E48DD0049721FD1F2682D7AC /* VideocallCodecs */,
 			);
 			name = "Development Pods";
 			sourceTree = "<group>";
@@ -625,9 +627,9 @@
 			buildRules = (
 			);
 			dependencies = (
-				FCC0FAEAF573F74D45E8DCE149F57B33 /* PBXTargetDependency */,
-				7A8CB6C99E8AA09D5DE5AA34E6978E07 /* PBXTargetDependency */,
-				80109C1F9CB68B31536AF1016E0AB6A0 /* PBXTargetDependency */,
+				34D6809E5946D939767590879305DB24 /* PBXTargetDependency */,
+				DF85B12DEF859B3DA4E53B863B52E045 /* PBXTargetDependency */,
+				3FE3A92996329F1FF6B8C8A44065BB79 /* PBXTargetDependency */,
 			);
 			name = "Pods-RemoteShutter";
 			productName = Pods_RemoteShutter;
@@ -646,8 +648,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				D35AF43A453FB72F3B2EA52A32E7B152 /* PBXTargetDependency */,
-				D92780E52AA1E8E1A460E81DACE8C19E /* PBXTargetDependency */,
+				6AE884EF7474F2C151BF8AC8729FA71D /* PBXTargetDependency */,
+				388CDA200D7AAAAF005F6F2FFBC1AA6F /* PBXTargetDependency */,
 			);
 			name = "Pods-RemoteShutterWatch";
 			productName = Pods_RemoteShutterWatch;
@@ -722,7 +724,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				BD60AED7F3A5240BEC0CDFC8EC3DF1F5 /* PBXTargetDependency */,
+				84B69A58E2502AD27C706E011A575181 /* PBXTargetDependency */,
 			);
 			name = "Pods-RemoteShutterTests";
 			productName = Pods_RemoteShutterTests;
@@ -956,41 +958,41 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		7A8CB6C99E8AA09D5DE5AA34E6978E07 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = SwiftLint;
-			target = 52B60EC2A583F24ACBB69C113F5488B9 /* SwiftLint */;
-			targetProxy = BD946063FEDBADFBF567B88FA7E1F9E2 /* PBXContainerItemProxy */;
-		};
-		80109C1F9CB68B31536AF1016E0AB6A0 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "VideocallCodecs-iOS";
-			target = 84C23EBC9721AAFCB14D7056C289BC4C /* VideocallCodecs-iOS */;
-			targetProxy = 3589CCE3166DFF468EAA0E5F545C65AA /* PBXContainerItemProxy */;
-		};
-		BD60AED7F3A5240BEC0CDFC8EC3DF1F5 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "Pods-RemoteShutter";
-			target = 49600CDCCC4E83C6CBB9BBDB533A9E9D /* Pods-RemoteShutter */;
-			targetProxy = 96955F19201D43BF0085809416DAEC49 /* PBXContainerItemProxy */;
-		};
-		D35AF43A453FB72F3B2EA52A32E7B152 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "FlatBuffers-watchOS";
-			target = F33F692F2F4288B07D643C772815E020 /* FlatBuffers-watchOS */;
-			targetProxy = 9CA35B201DB62B3C3D52DABCE0DF5566 /* PBXContainerItemProxy */;
-		};
-		D92780E52AA1E8E1A460E81DACE8C19E /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "VideocallCodecs-watchOS";
-			target = E42E11C908435CC8EDBCDB0C2821A55E /* VideocallCodecs-watchOS */;
-			targetProxy = 70FCC285DAE04CE846F6C5EEA6E88281 /* PBXContainerItemProxy */;
-		};
-		FCC0FAEAF573F74D45E8DCE149F57B33 /* PBXTargetDependency */ = {
+		34D6809E5946D939767590879305DB24 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "FlatBuffers-iOS";
 			target = 298E0ECADC997E17D81AAC898566D792 /* FlatBuffers-iOS */;
-			targetProxy = 527C6B64E59F54EF9716AD6C60D0FA01 /* PBXContainerItemProxy */;
+			targetProxy = 3BB03501A7119E6215D62FD7CF747BFF /* PBXContainerItemProxy */;
+		};
+		388CDA200D7AAAAF005F6F2FFBC1AA6F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "VideocallCodecs-watchOS";
+			target = E42E11C908435CC8EDBCDB0C2821A55E /* VideocallCodecs-watchOS */;
+			targetProxy = EF9436FB40D20BC168602F380EFAC5B8 /* PBXContainerItemProxy */;
+		};
+		3FE3A92996329F1FF6B8C8A44065BB79 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "VideocallCodecs-iOS";
+			target = 84C23EBC9721AAFCB14D7056C289BC4C /* VideocallCodecs-iOS */;
+			targetProxy = E35F29DD1E1FD369B90D378D3B6D6011 /* PBXContainerItemProxy */;
+		};
+		6AE884EF7474F2C151BF8AC8729FA71D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "FlatBuffers-watchOS";
+			target = F33F692F2F4288B07D643C772815E020 /* FlatBuffers-watchOS */;
+			targetProxy = A37B93E84508B9C1EEB1E91B08BC4C82 /* PBXContainerItemProxy */;
+		};
+		84B69A58E2502AD27C706E011A575181 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "Pods-RemoteShutter";
+			target = 49600CDCCC4E83C6CBB9BBDB533A9E9D /* Pods-RemoteShutter */;
+			targetProxy = 7A7A50C211A0D1B25529D8ABA1CCD277 /* PBXContainerItemProxy */;
+		};
+		DF85B12DEF859B3DA4E53B863B52E045 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = SwiftLint;
+			target = 52B60EC2A583F24ACBB69C113F5488B9 /* SwiftLint */;
+			targetProxy = ED496CDBAFF997F9F477210BDC043E2F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1138,7 +1140,7 @@
 		};
 		3E221C5A6340D45E3AA449574F3BD9FA /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0F84CFB3062207FEC3EF20D73C9D60CE /* VideocallCodecs-watchOS.debug.xcconfig */;
+			baseConfigurationReference = 736125BEA06691193FABFE4AE55414AD /* VideocallCodecs-watchOS.debug.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
@@ -1179,7 +1181,7 @@
 		};
 		58457CCC5077178E12086D98CC11D7CA /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D8AB98B4DF4B965DBE7273BF757C19DE /* VideocallCodecs-watchOS.release.xcconfig */;
+			baseConfigurationReference = 7B2BBB8E83BB1FA59CE7E18E6234EF8D /* VideocallCodecs-watchOS.release.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
@@ -1406,7 +1408,7 @@
 		};
 		98A0EA7639CC5A6BAD5A1D8E05093936 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C9481F837CAF7E533D22FD1EAF07CE41 /* VideocallCodecs-iOS.debug.xcconfig */;
+			baseConfigurationReference = 1A45CCB52F0C59F55D5EE72B30A3E9B4 /* VideocallCodecs-iOS.debug.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";
@@ -1446,7 +1448,7 @@
 		};
 		98B027B59BB05C505F786D8720E017A8 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9A903D56F5E783B918F8F0944625B71E /* VideocallCodecs-iOS.release.xcconfig */;
+			baseConfigurationReference = 5951348289934B8337F4DD086D75D1CF /* VideocallCodecs-iOS.release.xcconfig */;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "";

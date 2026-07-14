@@ -1,5 +1,8 @@
 ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES
 CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64
+EXCLUDED_ARCHS[sdk=macosx*] = x86_64
+EXCLUDED_ARCHS[sdk=watchsimulator*] = x86_64
 FRAMEWORK_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/FlatBuffers-iOS" "${PODS_CONFIGURATION_BUILD_DIR}/VideocallCodecs-iOS" "${PODS_ROOT}/../Vendor/VideocallCodecs"
 GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1
 HEADER_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/FlatBuffers-iOS/FlatBuffers.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/VideocallCodecs-iOS/VideocallCodecs.framework/Headers" "${PODS_XCFRAMEWORKS_BUILD_DIR}/VideocallCodecs/Headers"

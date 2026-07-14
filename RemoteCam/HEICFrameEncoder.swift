@@ -33,13 +33,14 @@ final class HEICFrameEncoder: FrameEncoding {
         self.quality = quality
     }
 
-    func encode(pixelBuffer: CVPixelBuffer) -> Data? {
-        guard let scaled = downscaledCIImage(from: pixelBuffer, maxLongEdge: maxLongEdge) else { return nil }
-        return context.heifRepresentation(
-            of: scaled,
-            format: .RGBA8,
-            colorSpace: colorSpace,
-            options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: quality]
-        )
+    func encode(pixelBuffer: CVPixelBuffer) -> FrameEncodeResult {
+        guard let scaled = downscaledCIImage(from: pixelBuffer, maxLongEdge: maxLongEdge),
+              let data = context.heifRepresentation(
+                of: scaled,
+                format: .RGBA8,
+                colorSpace: colorSpace,
+                options: [kCGImageDestinationLossyCompressionQuality as CIImageRepresentationOption: quality]
+              ) else { return .failed }
+        return .encoded(data)
     }
 }

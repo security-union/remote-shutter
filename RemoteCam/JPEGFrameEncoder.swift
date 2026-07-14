@@ -25,9 +25,10 @@ final class JPEGFrameEncoder: FrameEncoding {
         self.quality = quality
     }
 
-    func encode(pixelBuffer: CVPixelBuffer) -> Data? {
+    func encode(pixelBuffer: CVPixelBuffer) -> FrameEncodeResult {
         guard let scaled = downscaledCIImage(from: pixelBuffer, maxLongEdge: maxLongEdge),
-              let cgImage = context.createCGImage(scaled, from: scaled.extent) else { return nil }
-        return UIImage(cgImage: cgImage).jpegData(compressionQuality: quality)
+              let cgImage = context.createCGImage(scaled, from: scaled.extent),
+              let data = UIImage(cgImage: cgImage).jpegData(compressionQuality: quality) else { return .failed }
+        return .encoded(data)
     }
 }

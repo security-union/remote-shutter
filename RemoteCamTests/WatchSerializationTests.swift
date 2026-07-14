@@ -189,25 +189,48 @@ final class WatchSerializationTests: XCTestCase {
 
     // MARK: - Live Preview Frame (iPhone -> Watch)
 
-    func testPreviewFrameRoundTripPreservesJPEGAndEpoch() throws {
+    func testPreviewFrameRoundTripPreservesPayloadCodecAndEpoch() throws {
         let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46])
-        let data = WatchPreviewFrameEncoder.encode(jpeg: jpeg, epochMs: 1_765_000_000_999)
+        let data = WatchPreviewFrameEncoder.encode(payload: jpeg, codec: .heic, epochMs: 1_765_000_000_999)
         let decoded = try XCTUnwrap(WatchPreviewFrameEncoder.decode(data), "preview frame should decode")
-        XCTAssertEqual(decoded.jpeg, jpeg)
+        XCTAssertEqual(decoded.payload, jpeg)
+        XCTAssertEqual(decoded.codec, .heic)
         XCTAssertEqual(decoded.epochMs, 1_765_000_000_999)
     }
 
-    func testPreviewFrameRoundTripEmptyJPEG() throws {
+    func testPreviewFrameRoundTripVP9Codec() throws {
         let decoded = try XCTUnwrap(WatchPreviewFrameEncoder.decode(
-            WatchPreviewFrameEncoder.encode(jpeg: Data(), epochMs: 0)))
-        XCTAssertTrue(decoded.jpeg.isEmpty)
+            WatchPreviewFrameEncoder.encode(payload: Data([0x9D]), codec: .vp9, epochMs: 7)))
+        XCTAssertEqual(decoded.codec, .vp9)
+    }
+
+    /// A frame built without the codec field (legacy sender) must decode as
+    /// `.unknown`, which the Watch treats as a sniffable still image.
+    func testPreviewFrameWithoutCodecDecodesAsUnknown() throws {
+        var fbb = FlatBufferBuilder()
+        let payloadVec = fbb.createVector(bytes: Data([0x01, 0x02]))
+        let frame = RemoteShutter_WatchPreviewFrame.createWatchPreviewFrame(
+            &fbb, jpegVectorOffset: payloadVec, epochMs: 5)
+        let msg = RemoteShutter_WatchMessage.createWatchMessage(
+            &fbb, type: .watchpreviewframemsg, previewFrameOffset: frame)
+        fbb.finish(offset: msg)
+
+        let decoded = try XCTUnwrap(WatchPreviewFrameEncoder.decode(fbb.data))
+        XCTAssertEqual(decoded.codec, .unknown)
+        XCTAssertEqual(decoded.payload, Data([0x01, 0x02]))
+    }
+
+    func testPreviewFrameRoundTripEmptyPayload() throws {
+        let decoded = try XCTUnwrap(WatchPreviewFrameEncoder.decode(
+            WatchPreviewFrameEncoder.encode(payload: Data(), codec: .jpeg, epochMs: 0)))
+        XCTAssertTrue(decoded.payload.isEmpty)
         XCTAssertEqual(decoded.epochMs, 0)
     }
 
     /// A preview frame must not decode as state/ack/command, and vice-versa — the
     /// Watch routes a single live channel purely by message type.
     func testPreviewFrameCrossTypeDecodingIsRejected() {
-        let preview = WatchPreviewFrameEncoder.encode(jpeg: Data([0x01, 0x02]), epochMs: 1)
+        let preview = WatchPreviewFrameEncoder.encode(payload: Data([0x01, 0x02]), codec: .jpeg, epochMs: 1)
         XCTAssertNil(WatchStateEncoder.decode(preview))
         XCTAssertNil(WatchCommandEncoder.decode(preview))
         XCTAssertNil(WatchAckEncoder.decode(preview))

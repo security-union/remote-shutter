@@ -188,8 +188,9 @@ public enum RemoteShutter_StreamCodec: Int8, Enum, Verifiable {
   case jpeg = 1
   case hevc = 2
   case heic = 3
+  case vp9 = 4
 
-  public static var max: RemoteShutter_StreamCodec { return .heic }
+  public static var max: RemoteShutter_StreamCodec { return .vp9 }
   public static var min: RemoteShutter_StreamCodec { return .unknown }
 }
 
@@ -1484,6 +1485,7 @@ public struct RemoteShutter_WatchPreviewFrame: FlatBufferObject, Verifiable {
   private enum VTOFFSET: VOffset {
     case jpeg = 4
     case epochMs = 6
+    case codec = 8
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1493,18 +1495,22 @@ public struct RemoteShutter_WatchPreviewFrame: FlatBufferObject, Verifiable {
   public func jpeg(at index: Int32) -> UInt8 { let o = _accessor.offset(VTOFFSET.jpeg.v); return o == 0 ? 0 : _accessor.directRead(of: UInt8.self, offset: _accessor.vector(at: o) + index * 1) }
   public var jpeg: [UInt8] { return _accessor.getVector(at: VTOFFSET.jpeg.v) ?? [] }
   public var epochMs: UInt64 { let o = _accessor.offset(VTOFFSET.epochMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
-  public static func startWatchPreviewFrame(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 2) }
+  public var codec: RemoteShutter_StreamCodec { let o = _accessor.offset(VTOFFSET.codec.v); return o == 0 ? .unknown : RemoteShutter_StreamCodec(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public static func startWatchPreviewFrame(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 3) }
   public static func addVectorOf(jpeg: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: jpeg, at: VTOFFSET.jpeg.p) }
   public static func add(epochMs: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: epochMs, def: 0, at: VTOFFSET.epochMs.p) }
+  public static func add(codec: RemoteShutter_StreamCodec, _ fbb: inout FlatBufferBuilder) { fbb.add(element: codec.rawValue, def: 0, at: VTOFFSET.codec.p) }
   public static func endWatchPreviewFrame(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createWatchPreviewFrame(
     _ fbb: inout FlatBufferBuilder,
     jpegVectorOffset jpeg: Offset = Offset(),
-    epochMs: UInt64 = 0
+    epochMs: UInt64 = 0,
+    codec: RemoteShutter_StreamCodec = .unknown
   ) -> Offset {
     let __start = RemoteShutter_WatchPreviewFrame.startWatchPreviewFrame(&fbb)
     RemoteShutter_WatchPreviewFrame.addVectorOf(jpeg: jpeg, &fbb)
     RemoteShutter_WatchPreviewFrame.add(epochMs: epochMs, &fbb)
+    RemoteShutter_WatchPreviewFrame.add(codec: codec, &fbb)
     return RemoteShutter_WatchPreviewFrame.endWatchPreviewFrame(&fbb, start: __start)
   }
 
@@ -1512,6 +1518,7 @@ public struct RemoteShutter_WatchPreviewFrame: FlatBufferObject, Verifiable {
     var _v = try verifier.visitTable(at: position)
     try _v.visit(field: VTOFFSET.jpeg.p, fieldName: "jpeg", required: false, type: ForwardOffset<Vector<UInt8, UInt8>>.self)
     try _v.visit(field: VTOFFSET.epochMs.p, fieldName: "epochMs", required: false, type: UInt64.self)
+    try _v.visit(field: VTOFFSET.codec.p, fieldName: "codec", required: false, type: RemoteShutter_StreamCodec.self)
     _v.finish()
   }
 }

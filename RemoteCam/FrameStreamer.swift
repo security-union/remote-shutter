@@ -26,6 +26,9 @@ final class FrameStreamer {
     private var encoders: [FrameEncoding]
     private var frameCount = 0
     private var sequenceNumber: UInt32 = 0
+    /// Last codec announced at .info, so the selected format is visible in
+    /// Console without per-frame chatter. Capture-queue confined.
+    private var lastAnnouncedCodec: RemoteCmd.StreamCodec?
 
     /// - Parameter encoders: injectable for tests; nil builds the chain from
     ///   `config.preferredCodecs`.
@@ -48,19 +51,22 @@ final class FrameStreamer {
         frameCount += 1
         guard frameCount % config.frameDivisor == 0 else { return }
 
-        guard let data = encodeWithFallback(&encoders, pixelBuffer: pixelBuffer),
-              let codec = activeCodec else { return }
+        guard let frame = encodeWithFallback(&encoders, pixelBuffer: pixelBuffer) else { return }
 
+        if frame.codec != lastAnnouncedCodec {
+            lastAnnouncedCodec = frame.codec
+            StreamLog.encode.info("peer preview stream codec selected: \(String(describing: frame.codec))")
+        }
         sequenceNumber &+= 1
         StreamLog.encode.debug(
-            "frame seq=\(self.sequenceNumber) codec=\(String(describing: codec)) bytes=\(data.count)")
+            "frame seq=\(self.sequenceNumber) codec=\(String(describing: frame.codec)) bytes=\(frame.data.count)")
         send(RemoteCmd.SendFrame(
-            data: data,
+            data: frame.data,
             sender: nil,
             fps: fps,
             camPosition: position,
             camOrientation: orientation,
-            codec: codec,
+            codec: frame.codec,
             sequenceNumber: sequenceNumber
         ))
     }
@@ -74,6 +80,8 @@ final class FrameStreamer {
                 return JPEGFrameEncoder(maxLongEdge: config.maxLongEdge, quality: config.jpegQuality)
             case .hevc:
                 return nil // video codec: follow-up PR (HEVCFrameEncoder)
+            case .vp9:
+                return nil // Watch-preview codec today; peer-monitor VP9 is a follow-up
             }
         }
     }
