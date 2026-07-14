@@ -1,0 +1,6 @@
+framework module VideocallCodecs {
+  umbrella header "VideocallCodecs-iOS-umbrella.h"
+
+  export *
+  module * { export * }
+}

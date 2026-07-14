@@ -11,6 +11,7 @@ import FlatBuffers
 import AVFoundation
 import UIKit
 
+
 // MARK: - FlatBuffer serialization for MultipeerService
 
 /// Serializes any RemoteCmd message to FlatBuffers Data for sending over MultipeerConnectivity.
