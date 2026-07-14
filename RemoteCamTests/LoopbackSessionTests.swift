@@ -95,7 +95,7 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
 /// back to its session — the same message the real capture callback sends —
 /// and completes a stopped recording by injecting `StopRecordingVideoResp`,
 /// the way the real pipeline's completion does.
-final class LoopbackFakeCamera: FakeCameraControlling {
+final class LoopbackFakeCamera: FakeCameraControlling, @unchecked Sendable {
     weak var coordinator: SessionCoordinator?
 
     override func takePicture(_ sendMediaToRemote: Bool) {

@@ -13,7 +13,10 @@ import MultipeerConnectivity
 /// `DeviceScannerViewController` is the production implementation; tests
 /// drive the session with a fake. This is the seam that keeps the session
 /// actor ignorant of UIKit.
-protocol ScannerLobby: AnyObject {
+///
+/// `Sendable` because the session actor captures the lobby in main-queue
+/// hops; the production conformer is a main-actor view controller.
+protocol ScannerLobby: AnyObject, Sendable {
 
     var peerID: MCPeerID { get }
     var role: DeviceRole { get }
@@ -32,7 +35,7 @@ protocol ScannerLobby: AnyObject {
 /// Binds a `ScannerLobby` to `RemoteCamSession` — the protocol-typed
 /// counterpart of Theater's `SetViewCtrl` (whose generic parameter requires
 /// a concrete class).
-public class SetScannerLobby: Message {
+public class SetScannerLobby: Message, @unchecked Sendable {
     let lobby: ScannerLobby
 
     init(lobby: ScannerLobby) {

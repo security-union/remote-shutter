@@ -19,14 +19,16 @@ public func showError(_ error: String) {
 }
 
 /// Wraps a live `UIAlertController` as an `AlertHandle`.
-class UIAlertHandle: AlertHandle {
+/// `@unchecked Sendable`: main-thread-confined (see `AlertHandle`).
+class UIAlertHandle: AlertHandle, @unchecked Sendable {
     let alertController: UIAlertController
     var currentTitle: String? { alertController.title }
     init(_ alert: UIAlertController) { self.alertController = alert }
 }
 
 /// Production implementation that uses the existing `UIAlertController.show()` extension.
-class UIAlertPresenter: AlertPresenting {
+/// `@unchecked Sendable`: main-thread-confined (see `AlertPresenting`).
+class UIAlertPresenter: AlertPresenting, @unchecked Sendable {
 
     /// The one error alert on screen, if any. Every error in the app funnels
     /// through `presentErrorDeduped`, so an error identical to the visible one

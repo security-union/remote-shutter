@@ -33,7 +33,7 @@ public class UICmd {
     /// Sent by a transient state to itself after a delay to prevent getting stuck
     /// waiting for a response that never arrives. The generation counter ensures
     /// stale timeouts from a previous entry into the same state are ignored.
-    public class StateTimeout: Message {
+    public class StateTimeout: Message, @unchecked Sendable {
         let stateName: RemoteCamState
         let generation: Int
         init(stateName: RemoteCamState, generation: Int) {
@@ -43,17 +43,17 @@ public class UICmd {
         }
     }
 
-    public class RenderPhotoMode: Message {}
+    public class RenderPhotoMode: Message, @unchecked Sendable {}
 
-    public class RenderVideoMode: Message {}
+    public class RenderVideoMode: Message, @unchecked Sendable {}
 
-    public class RenderVideoModeRecording: Message {}
+    public class RenderVideoModeRecording: Message, @unchecked Sendable {}
     
-    public class RenderShortsMode: Message {}
+    public class RenderShortsMode: Message, @unchecked Sendable {}
 
-    public class BecomeMonitorFailed: Message {}
+    public class BecomeMonitorFailed: Message, @unchecked Sendable {}
 
-    public class FailedToSaveImage: Message {
+    public class FailedToSaveImage: Message, @unchecked Sendable {
         let error: Error
 
         init(sender: AnyObject?, error: Error) {
@@ -62,7 +62,7 @@ public class UICmd {
         }
     }
     
-    public class MicrophoneAccessDenied: Message {
+    public class MicrophoneAccessDenied: Message, @unchecked Sendable {
         let error: Error
 
         init(error: Error) {
@@ -71,11 +71,11 @@ public class UICmd {
         }
     }
 
-    public class AddMonitor: Message {
+    public class AddMonitor: Message, @unchecked Sendable {
 
     }
 
-    public class AddImageView: Message {
+    public class AddImageView: Message, @unchecked Sendable {
         let imageView: UIImageView
 
         public required init(imageView: UIImageView) {
@@ -84,16 +84,16 @@ public class UICmd {
         }
     }
 
-    public class StartScanning: Message {
+    public class StartScanning: Message, @unchecked Sendable {
     }
 
-    public class UnbecomeCamera: Message {
+    public class UnbecomeCamera: Message, @unchecked Sendable {
     }
 
-    public class UnbecomeMonitor: Message {
+    public class UnbecomeMonitor: Message, @unchecked Sendable {
     }
 
-    public class BecomeMonitor: Message {
+    public class BecomeMonitor: Message, @unchecked Sendable {
         let presenter: MonitorPresenter
         let mode: RecordingMode
 
@@ -104,7 +104,7 @@ public class UICmd {
         }
     }
 
-    public class BecomeCamera: Message {
+    public class BecomeCamera: Message, @unchecked Sendable {
         let ctrl: CameraControlling
 
         init(sender: AnyObject?, ctrl: CameraControlling) {
@@ -113,7 +113,7 @@ public class UICmd {
         }
     }
 
-    public     class TakePicture: Message {
+    public     class TakePicture: Message, @unchecked Sendable {
         let sendMediaToRemote: Bool
 
         public init(sender: AnyObject?, sendMediaToRemote: Bool) {
@@ -122,7 +122,7 @@ public class UICmd {
         }
     }
     
-    class SyncRecordingStartTime: Message {
+    class SyncRecordingStartTime: Message, @unchecked Sendable {
         let startTime: Date
         
         public init(startTime: Date) {
@@ -131,7 +131,7 @@ public class UICmd {
         }
     }
 
-    public class OnPicture: Message {
+    public class OnPicture: Message, @unchecked Sendable {
 
         public let pic: Data?
         public let error: Error?
@@ -149,14 +149,14 @@ public class UICmd {
         }
     }
 
-    public class RequestCameraCapabilities: Message {
+    public class RequestCameraCapabilities: Message, @unchecked Sendable {
         public init() {
             super.init(sender: nil)
         }
     }
 
     // MARK: - Zoom Commands
-    @objc(_TtCC10ActorsDemo5UICmd8SetZoom)public class SetZoom: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd8SetZoom)public class SetZoom: Message, NSCoding, @unchecked Sendable {
         public let zoomFactor: CGFloat
         
         public init(zoomFactor: CGFloat) {
@@ -174,7 +174,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd12SetZoomResp)public class SetZoomResp: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd12SetZoomResp)public class SetZoomResp: Message, NSCoding, @unchecked Sendable {
         public let zoomFactor: CGFloat?
         public let currentLens: CameraLensType?
         public let zoomRange: ZoomRange?
@@ -222,7 +222,7 @@ public class UICmd {
     }
 
     // MARK: - Lens Switching Commands
-    @objc(_TtCC10ActorsDemo5UICmd10SwitchLens)public class SwitchLens: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd10SwitchLens)public class SwitchLens: Message, NSCoding, @unchecked Sendable {
         public let lensType: CameraLensType
         
         public init(lensType: CameraLensType) {
@@ -241,7 +241,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd14SwitchLensResp)public class SwitchLensResp: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd14SwitchLensResp)public class SwitchLensResp: Message, NSCoding, @unchecked Sendable {
         public let lensType: CameraLensType?
         public let availableLenses: [CameraLensType]?
         public let currentZoom: CGFloat?
@@ -300,7 +300,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd11ToggleFlash)public class ToggleFlash: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd11ToggleFlash)public class ToggleFlash: Message, NSCoding, @unchecked Sendable {
         public func encode(with aCoder: NSCoder) {
         }
 
@@ -313,7 +313,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd11ToggleTorch)public class ToggleTorch: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd11ToggleTorch)public class ToggleTorch: Message, NSCoding, @unchecked Sendable {
         public func encode(with aCoder: NSCoder) {
         }
 
@@ -326,7 +326,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd15ToggleFlashResp)public class ToggleFlashResp: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd15ToggleFlashResp)public class ToggleFlashResp: Message, NSCoding, @unchecked Sendable {
 
         public let error: Error?
         public let flashMode: AVCaptureDevice.FlashMode?
@@ -354,7 +354,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd12ToggleCamera)public class ToggleCamera: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd12ToggleCamera)public class ToggleCamera: Message, NSCoding, @unchecked Sendable {
 
         public init() {
             super.init(sender: nil)
@@ -369,7 +369,7 @@ public class UICmd {
 
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd16ToggleCameraResp)public class ToggleCameraResp: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd16ToggleCameraResp)public class ToggleCameraResp: Message, NSCoding, @unchecked Sendable {
 
         public let error: Error?
         public let flashMode: AVCaptureDevice.FlashMode?
@@ -409,7 +409,7 @@ public class UICmd {
 
     /// Monitor UI asks the camera peer to switch to a specific device
     /// (by uniqueID from the advertised `cameraDevices` list).
-    public class SelectCameraDevice: Message {
+    public class SelectCameraDevice: Message, @unchecked Sendable {
         public let uniqueID: String
 
         public init(uniqueID: String) {
@@ -420,7 +420,7 @@ public class UICmd {
 
     // MARK: - Video Resource Transfer Messages
     
-    @objc(_TtCC10ActorsDemo5UICmd17SendVideoResource)public class SendVideoResource: Message, NSCoding {
+    @objc(_TtCC10ActorsDemo5UICmd17SendVideoResource)public class SendVideoResource: Message, NSCoding, @unchecked Sendable {
         public let videoURL: URL
         public let peers: [MCPeerID]
         public let shouldSendToPeer: Bool
@@ -446,7 +446,7 @@ public class UICmd {
         }
     }
     
-    @objc(_TtCC10ActorsDemo5UICmd26VideoResourceTransferStarted)public class VideoResourceTransferStarted: Message {
+    @objc(_TtCC10ActorsDemo5UICmd26VideoResourceTransferStarted)public class VideoResourceTransferStarted: Message, @unchecked Sendable {
         public let totalBytes: Int64
         public let resourceName: String
         
@@ -457,7 +457,7 @@ public class UICmd {
         }
     }
     
-    @objc(_TtCC10ActorsDemo5UICmd27VideoResourceTransferProgress)public class VideoResourceTransferProgress: Message {
+    @objc(_TtCC10ActorsDemo5UICmd27VideoResourceTransferProgress)public class VideoResourceTransferProgress: Message, @unchecked Sendable {
         public let completedBytes: Int64
         public let totalBytes: Int64
         public let progress: Double
@@ -474,7 +474,7 @@ public class UICmd {
         }
     }
     
-    @objc(_TtCC10ActorsDemo5UICmd28VideoResourceTransferCompleted)public class VideoResourceTransferCompleted: Message {
+    @objc(_TtCC10ActorsDemo5UICmd28VideoResourceTransferCompleted)public class VideoResourceTransferCompleted: Message, @unchecked Sendable {
         public let resourceName: String
         public let success: Bool
         
@@ -487,7 +487,7 @@ public class UICmd {
     
     // MARK: - Video Quality Commands
 
-    public class SetVideoQuality: Message {
+    public class SetVideoQuality: Message, @unchecked Sendable {
         public let resolution: VideoResolution
         public let frameRate: VideoFrameRate
 
@@ -500,7 +500,7 @@ public class UICmd {
 
     // MARK: - Photo Quality Commands
 
-    public class SetPhotoQuality: Message {
+    public class SetPhotoQuality: Message, @unchecked Sendable {
         public let format: PhotoFormat
         public let hdrMode: HDRMode
 
@@ -513,7 +513,7 @@ public class UICmd {
 
     // MARK: - Timer Countdown Command
 
-    public class TimerCountdown: Message {
+    public class TimerCountdown: Message, @unchecked Sendable {
         public let value: Int
 
         public init(value: Int) {
@@ -524,7 +524,7 @@ public class UICmd {
 
     // MARK: - Sync Monitor Settings Command
 
-    public class SyncMonitorSettings: Message {
+    public class SyncMonitorSettings: Message, @unchecked Sendable {
         let mode: RecordingMode
 
         init(mode: RecordingMode) {
@@ -535,7 +535,7 @@ public class UICmd {
 
     // MARK: - Browser Events
 
-    public class BrowserFoundPeer: Message {
+    public class BrowserFoundPeer: Message, @unchecked Sendable {
         public let peer: MCPeerID
 
         public init(peer: MCPeerID) {
@@ -544,7 +544,7 @@ public class UICmd {
         }
     }
 
-    public class BrowserLostPeer: Message {
+    public class BrowserLostPeer: Message, @unchecked Sendable {
         public let peer: MCPeerID
 
         public init(peer: MCPeerID) {
@@ -553,7 +553,7 @@ public class UICmd {
         }
     }
 
-    public class BrowserFailed: Message {
+    public class BrowserFailed: Message, @unchecked Sendable {
         public let error: Error
 
         public init(error: Error) {
@@ -562,7 +562,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd25VideoResourceTransferFailed)public class VideoResourceTransferFailed: Message {
+    @objc(_TtCC10ActorsDemo5UICmd25VideoResourceTransferFailed)public class VideoResourceTransferFailed: Message, @unchecked Sendable {
         public let error: Error
         public let resourceName: String
 
@@ -575,7 +575,7 @@ public class UICmd {
 
     // MARK: - Aspect Ratio
 
-    public class SetAspectRatio: Message {
+    public class SetAspectRatio: Message, @unchecked Sendable {
         public let aspectRatio: AspectRatio
 
         public init(aspectRatio: AspectRatio) {
@@ -590,7 +590,7 @@ public class UICmd {
     /// `StreamingConfig.stallTimeout`. Monitor states respond by re-sending
     /// `RemoteCmd.RequestFrame`, re-arming the one-frame-in-flight ping-pong
     /// after a lost message on either side.
-    public class StreamStalled: Message {
+    public class StreamStalled: Message, @unchecked Sendable {
         public init() {
             super.init(sender: nil)
         }
@@ -602,7 +602,7 @@ public class UICmd {
 
 extension UICmd {
     /// Sent by WatchRemoteCameraController to enter Watch Remote camera mode.
-    public class BecomeWatchCamera: Message {
+    public class BecomeWatchCamera: Message, @unchecked Sendable {
         let ctrl: CameraControlling
 
         init(ctrl: CameraControlling) {
@@ -612,10 +612,10 @@ extension UICmd {
     }
 
     /// Sent by WatchRemoteCameraController when exiting Watch Remote mode.
-    public class UnbecomeWatchCamera: Message {}
+    public class UnbecomeWatchCamera: Message, @unchecked Sendable {}
 
     /// Watch-initiated photo/video mode switch.
-    public class SetWatchCameraMode: Message {
+    public class SetWatchCameraMode: Message, @unchecked Sendable {
         let mode: RecordingMode
 
         init(mode: RecordingMode) {

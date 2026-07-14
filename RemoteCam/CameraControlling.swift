@@ -17,8 +17,10 @@ import AVFoundation
 /// engine's session queue without blocking the caller. Failable commands
 /// `throw` instead of returning `Try` (the states pack the error into the
 /// response message either way). The few synchronous members are backed by
-/// lock-boxed values and are safe from any thread.
-protocol CameraControlling: AnyObject {
+/// lock-boxed values and are safe from any thread — which is also why the
+/// protocol requires `Sendable` (the session actor captures the rig in
+/// cross-queue hops).
+protocol CameraControlling: AnyObject, Sendable {
     var currentCameraMode: RecordingMode { get set }
     var isRecording: Bool { get }
     var cameraViewModel: CameraViewModel { get }

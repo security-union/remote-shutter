@@ -746,6 +746,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -776,6 +777,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MODULEMAP_FILE = "Target Support Files/FlatBuffers-watchOS/FlatBuffers-watchOS.modulemap";
 				PRODUCT_MODULE_NAME = FlatBuffers;
 				PRODUCT_NAME = FlatBuffers;
@@ -815,6 +817,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACH_O_TYPE = staticlib;
 				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutterWatch/Pods-RemoteShutterWatch.modulemap";
 				OTHER_LDFLAGS = "";
@@ -855,6 +858,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACH_O_TYPE = staticlib;
 				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.modulemap";
 				OTHER_LDFLAGS = "";
@@ -894,6 +898,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACH_O_TYPE = staticlib;
 				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutterWatch/Pods-RemoteShutterWatch.modulemap";
 				OTHER_LDFLAGS = "";
@@ -935,6 +940,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACH_O_TYPE = staticlib;
 				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.modulemap";
 				OTHER_LDFLAGS = "";
@@ -1038,6 +1044,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MODULEMAP_FILE = "Target Support Files/FlatBuffers-iOS/FlatBuffers-iOS.modulemap";
 				PRODUCT_MODULE_NAME = FlatBuffers;
 				PRODUCT_NAME = FlatBuffers;
@@ -1077,6 +1084,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACH_O_TYPE = staticlib;
 				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutterTests/Pods-RemoteShutterTests.modulemap";
 				OTHER_LDFLAGS = "";
@@ -1105,6 +1113,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -1135,6 +1144,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACH_O_TYPE = staticlib;
 				MODULEMAP_FILE = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.modulemap";
 				OTHER_LDFLAGS = "";
@@ -1176,6 +1186,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MODULEMAP_FILE = "Target Support Files/FlatBuffers-iOS/FlatBuffers-iOS.modulemap";
 				PRODUCT_MODULE_NAME = FlatBuffers;
 				PRODUCT_NAME = FlatBuffers;
@@ -1215,6 +1226,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				MODULEMAP_FILE = "Target Support Files/FlatBuffers-watchOS/FlatBuffers-watchOS.modulemap";
 				PRODUCT_MODULE_NAME = FlatBuffers;
 				PRODUCT_NAME = FlatBuffers;

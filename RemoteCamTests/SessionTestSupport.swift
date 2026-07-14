@@ -51,13 +51,13 @@ class FakeMultipeerService: MultipeerServiceProtocol {
 
 // MARK: - Fake AlertPresenter
 
-class FakeAlertHandle: AlertHandle {
+class FakeAlertHandle: AlertHandle, @unchecked Sendable {
     var currentTitle: String?
     var dismissed = false
     init(title: String) { self.currentTitle = title }
 }
 
-class FakeAlertPresenter: AlertPresenting {
+class FakeAlertPresenter: AlertPresenting, @unchecked Sendable {
     var shownAlerts: [FakeAlertHandle] = []
     var shownErrors: [String] = []
 
@@ -80,7 +80,7 @@ class FakeAlertPresenter: AlertPresenting {
 // MARK: - Fake ScannerLobby
 
 /// Plain fake for the session's lobby seam — no UIKit involved.
-class FakeScannerLobby: ScannerLobby {
+class FakeScannerLobby: ScannerLobby, @unchecked Sendable {
     let peerID = MCPeerID(displayName: "FakeLobby")
     var role: DeviceRole = .monitor
     let scannerViewModel = DeviceScannerViewModel()
@@ -99,7 +99,7 @@ class FakeScannerLobby: ScannerLobby {
 /// Async fake for the camera seam: records every call, returns canned
 /// values, never touches AVFoundation. Shared by the session, loopback and
 /// watch state tests.
-class FakeCameraControlling: CameraControlling {
+class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     var currentCameraMode: RecordingMode = .Photo
     var isRecording = false
     let cameraViewModel = CameraViewModel()

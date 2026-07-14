@@ -11,7 +11,7 @@ import MultipeerConnectivity
 
 /// Failed to push a frame to the peer — the session pops to scanning with a
 /// connection alert, exactly as any other failed send.
-final class FrameSendFailed: Message {}
+final class FrameSendFailed: Message, @unchecked Sendable {}
 
 /**
  Streams preview frames to the monitor with credit-based back-pressure:
