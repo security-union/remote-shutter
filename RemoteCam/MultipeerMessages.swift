@@ -15,11 +15,11 @@ enum DeviceRole {
     case monitor
 }
 
-public class Disconnect: Message {
+public class Disconnect: Message, @unchecked Sendable {
 
 }
 
-public class ConnectToDevice: Message {
+public class ConnectToDevice: Message, @unchecked Sendable {
     public let peer: MCPeerID
 
     public init(peer: MCPeerID, sender: AnyObject?) {
@@ -28,7 +28,7 @@ public class ConnectToDevice: Message {
     }
 }
 
-public class DisconnectPeer: Message {
+public class DisconnectPeer: Message, @unchecked Sendable {
     public let peer: MCPeerID?
 
     public init(peer: MCPeerID?, sender: AnyObject?) {
@@ -37,7 +37,7 @@ public class DisconnectPeer: Message {
     }
 }
 
-public class OnConnectToDevice: Message {
+public class OnConnectToDevice: Message, @unchecked Sendable {
     public let peer: MCPeerID
 
     public init(peer: MCPeerID, sender: AnyObject?) {

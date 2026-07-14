@@ -23,8 +23,11 @@ let fpsSetting = Locked(30)
  `CameraControlling` conformer handed to the actor system. The view-controller
  shell (`CameraHostController`) owns navigation, permissions UI and lifecycle,
  and reaches back in through the closure seams below.
+
+ `@unchecked Sendable`: state is confined to the capture queues, and the
+ synchronous cross-thread members are lock-boxed (see `CameraControlling`).
  */
-final class CameraRig {
+final class CameraRig: @unchecked Sendable {
 
     /// Owns the capture session, still-photo capture and all camera configuration.
     let engine = CaptureEngine()

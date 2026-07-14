@@ -21,15 +21,15 @@ func getDeviceInfo() -> (Int, String, String) {
     }
 }
 
-public class RemoteCmd: Message {
+public class RemoteCmd: Message, @unchecked Sendable {
 
-    public class StartRecordingVideo: RemoteCmd {
+    public class StartRecordingVideo: RemoteCmd, @unchecked Sendable {
         public override init(sender: AnyObject?) {
             super.init(sender: sender)
         }
     }
 
-    public class StartRecordingVideoAck: RemoteCmd {
+    public class StartRecordingVideoAck: RemoteCmd, @unchecked Sendable {
         let recordingStartTime: Date?
         let error: Error?
 
@@ -52,7 +52,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class StopRecordingVideo: RemoteCmd {
+    public class StopRecordingVideo: RemoteCmd, @unchecked Sendable {
         let sendMediaToPeer: Bool
 
         public override init(sender: AnyObject?) {
@@ -66,13 +66,13 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class StopRecordingVideoAck: RemoteCmd {
+    public class StopRecordingVideoAck: RemoteCmd, @unchecked Sendable {
         public override init(sender: AnyObject? = nil) {
             super.init(sender: sender)
         }
     }
 
-    public class StopRecordingVideoResp: Message {
+    public class StopRecordingVideoResp: Message, @unchecked Sendable {
         let video: Data?
         let error: Error?
 
@@ -95,7 +95,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class TakePic: RemoteCmd {
+    public class TakePic: RemoteCmd, @unchecked Sendable {
         let sendMediaToPeer: Bool
 
         public override init(sender: AnyObject?) {
@@ -109,13 +109,13 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class TakePicAck: Message {
+    public class TakePicAck: Message, @unchecked Sendable {
         public override init(sender: AnyObject?) {
             super.init(sender: sender)
         }
     }
 
-    public class TakePicResp: Message {
+    public class TakePicResp: Message, @unchecked Sendable {
         let pic: Data?
         let error: Error?
 
@@ -147,7 +147,7 @@ public class RemoteCmd: Message {
         case heic
     }
 
-    public class SendFrame: Message {
+    public class SendFrame: Message, @unchecked Sendable {
         public let data: Data
         public let fps: NSInteger
         public let camPosition: AVCaptureDevice.Position
@@ -172,13 +172,13 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class RequestFrame: Message {
+    public class RequestFrame: Message, @unchecked Sendable {
         public override init(sender: AnyObject?) {
             super.init(sender: sender)
         }
     }
 
-    public class OnFrame: Message {
+    public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
         public let peerId: MCPeerID
         public let fps: NSInteger
@@ -208,7 +208,7 @@ public class RemoteCmd: Message {
 
     // MARK: - Zoom Remote Commands
 
-    public class SetZoom: Message {
+    public class SetZoom: Message, @unchecked Sendable {
         public let zoomFactor: CGFloat
 
         public init(zoomFactor: CGFloat) {
@@ -315,7 +315,7 @@ public class RemoteCmd: Message {
 
     // MARK: - Enhanced Camera Response
 
-    public class CameraCapabilitiesResp: Message {
+    public class CameraCapabilitiesResp: Message, @unchecked Sendable {
         public let frontCamera: CameraInfo?
         public let backCamera: CameraInfo?
         public let currentCamera: AVCaptureDevice.Position
@@ -361,7 +361,7 @@ public class RemoteCmd: Message {
 
     // MARK: - Lens Switching Remote Commands
 
-    public class SwitchLens: Message {
+    public class SwitchLens: Message, @unchecked Sendable {
         public let lensType: CameraLensType
 
         public init(lensType: CameraLensType) {
@@ -370,7 +370,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class SwitchLensResp: Message {
+    public class SwitchLensResp: Message, @unchecked Sendable {
         public let lensType: CameraLensType?
         public let availableLenses: [CameraLensType]?
         public let currentZoom: CGFloat?
@@ -388,7 +388,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class PeerBecameCamera: Message {
+    public class PeerBecameCamera: Message, @unchecked Sendable {
         let bundleVersion: Int, shortVersion: String, platform: String
 
         class func createWithDefaults() -> PeerBecameCamera {
@@ -404,7 +404,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class PeerBecameMonitor: Message {
+    public class PeerBecameMonitor: Message, @unchecked Sendable {
         let bundleVersion: Int, shortVersion: String, platform: String
 
         class func createWithDefaults() -> PeerBecameMonitor {
@@ -420,13 +420,13 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class ToggleFlash: Message {
+    public class ToggleFlash: Message, @unchecked Sendable {
         public init() {
             super.init(sender: nil)
         }
     }
 
-    public class ToggleFlashResp: Message {
+    public class ToggleFlashResp: Message, @unchecked Sendable {
         public let error: Error?
         public let flashMode: AVCaptureDevice.FlashMode?
 
@@ -439,13 +439,13 @@ public class RemoteCmd: Message {
 
     // MARK: - Torch Commands for Video Recording
 
-    public class ToggleTorch: Message {
+    public class ToggleTorch: Message, @unchecked Sendable {
         public init() {
             super.init(sender: nil)
         }
     }
 
-    public class ToggleTorchResp: Message {
+    public class ToggleTorchResp: Message, @unchecked Sendable {
         public let error: Error?
         public let torchMode: AVCaptureDevice.TorchMode?
 
@@ -456,7 +456,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class SetTorch: Message {
+    public class SetTorch: Message, @unchecked Sendable {
         public let torchMode: AVCaptureDevice.TorchMode
 
         public init(torchMode: AVCaptureDevice.TorchMode) {
@@ -465,7 +465,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class SetTorchResp: Message {
+    public class SetTorchResp: Message, @unchecked Sendable {
         public let error: Error?
         public let torchMode: AVCaptureDevice.TorchMode?
 
@@ -476,13 +476,13 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class ToggleCamera: Message {
+    public class ToggleCamera: Message, @unchecked Sendable {
         public init() {
             super.init(sender: nil)
         }
     }
 
-    public class ToggleCameraResp: Message {
+    public class ToggleCameraResp: Message, @unchecked Sendable {
         public let error: Error?
         public let cameraCapabilities: CameraCapabilitiesResp?
 
@@ -498,7 +498,7 @@ public class RemoteCmd: Message {
     /// Switch the camera peer to the device with this uniqueID. Only valid
     /// against peers whose capabilities carried a non-empty `cameraDevices`
     /// list — old decoders read unknown actions as TakePicture.
-    public class SelectCameraDevice: Message {
+    public class SelectCameraDevice: Message, @unchecked Sendable {
         public let uniqueID: String
 
         public init(uniqueID: String) {
@@ -510,9 +510,9 @@ public class RemoteCmd: Message {
     /// Subclasses ToggleCameraResp: the monitor treats a completed device
     /// selection exactly like a completed front/back toggle — fresh
     /// capabilities in, UI re-synced — so it shares that state's handling.
-    public class SelectCameraDeviceResp: ToggleCameraResp {}
+    public class SelectCameraDeviceResp: ToggleCameraResp, @unchecked Sendable {}
 
-    public class SetZoomResp: Message {
+    public class SetZoomResp: Message, @unchecked Sendable {
         public let zoomFactor: CGFloat?
         public let currentLens: CameraLensType?
         public let zoomRange: ZoomRange?
@@ -527,7 +527,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class RequestCameraCapabilities: Message {
+    public class RequestCameraCapabilities: Message, @unchecked Sendable {
         public init() {
             super.init(sender: nil)
         }
@@ -535,7 +535,7 @@ public class RemoteCmd: Message {
 
     // MARK: - Video Quality Commands
 
-    public class SetVideoQuality: Message {
+    public class SetVideoQuality: Message, @unchecked Sendable {
         public let resolution: VideoResolution
         public let frameRate: VideoFrameRate
 
@@ -546,7 +546,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class SetVideoQualityResp: Message {
+    public class SetVideoQualityResp: Message, @unchecked Sendable {
         public let resolution: VideoResolution?
         public let frameRate: VideoFrameRate?
         public let error: Error?
@@ -561,7 +561,7 @@ public class RemoteCmd: Message {
 
     // MARK: - Photo Quality Commands
 
-    public class SetPhotoQuality: Message {
+    public class SetPhotoQuality: Message, @unchecked Sendable {
         public let format: PhotoFormat
         public let hdrMode: HDRMode
 
@@ -572,7 +572,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class SetPhotoQualityResp: Message {
+    public class SetPhotoQualityResp: Message, @unchecked Sendable {
         public let format: PhotoFormat?
         public let hdrMode: HDRMode?
         public let error: Error?
@@ -587,7 +587,7 @@ public class RemoteCmd: Message {
 
     // MARK: - Timer Countdown Command
 
-    public class TimerCountdown: Message {
+    public class TimerCountdown: Message, @unchecked Sendable {
         public let value: Int
 
         public init(value: Int) {
@@ -598,7 +598,7 @@ public class RemoteCmd: Message {
 
     // MARK: - Sync Monitor Settings Command
 
-    public class SyncMonitorSettings: Message {
+    public class SyncMonitorSettings: Message, @unchecked Sendable {
         let mode: RecordingMode
 
         init(mode: RecordingMode) {
@@ -609,7 +609,7 @@ public class RemoteCmd: Message {
 
     // MARK: - Aspect Ratio Commands
 
-    public class SetAspectRatio: Message {
+    public class SetAspectRatio: Message, @unchecked Sendable {
         public let aspectRatio: AspectRatio
 
         public init(aspectRatio: AspectRatio) {
@@ -618,7 +618,7 @@ public class RemoteCmd: Message {
         }
     }
 
-    public class SetAspectRatioResp: Message {
+    public class SetAspectRatioResp: Message, @unchecked Sendable {
         public let aspectRatio: AspectRatio?
         public let error: Error?
 

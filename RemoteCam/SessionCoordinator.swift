@@ -92,13 +92,13 @@ enum SessionState: Equatable {
 /// Deferred transitions — the old machine enqueued these back onto its mailbox
 /// so already-queued messages could land in the current state first. The FIFO
 /// inbox reproduces that exactly.
-final class DeferredPopToCamera: Message {}
-final class DeferredPopAndScan: Message {}
+final class DeferredPopToCamera: Message, @unchecked Sendable {}
+final class DeferredPopAndScan: Message, @unchecked Sendable {}
 /// Incompatibility detected by the transport (routed through the inbox — the
 /// old code mutated state directly on the delegate thread).
-final class IncompatibilityDetected: Message {}
+final class IncompatibilityDetected: Message, @unchecked Sendable {}
 /// Retry tick for the capabilities ladder.
-final class RetryCapabilities: Message {
+final class RetryCapabilities: Message, @unchecked Sendable {
     let attempt: Int
     init(attempt: Int) {
         self.attempt = attempt
@@ -124,14 +124,15 @@ public actor SessionCoordinator {
 
     private nonisolated let inboxContinuation: Locked<AsyncStream<Message>.Continuation?> = Locked(nil)
     private nonisolated let pendingCount = Locked(0)
-    private var pumpTask: Task<Void, Never>?
 
     public init() {
         var continuation: AsyncStream<Message>.Continuation!
         let stream = AsyncStream<Message>(bufferingPolicy: .unbounded) { continuation = $0 }
         self.inboxContinuation.value = continuation
         let pending = pendingCount
-        pumpTask = Task { [weak self] in
+        // The pump task keeps itself alive until the stream finishes (stop()),
+        // so no reference is retained here.
+        Task { [weak self] in
             for await msg in stream {
                 guard let self else { break }
                 await self.handle(msg)
@@ -235,9 +236,10 @@ public actor SessionCoordinator {
 
     var connectedPeers: [MCPeerID] { multipeerService?.connectedPeers ?? [] }
 
-    private func unableToProcessError(_ msg: Message) -> NSError {
-        NSError(
-            domain: "Unable to process \(type(of: msg)) command, since \(UIDevice.current.name) is not in the camera screen.", code: 0, userInfo: nil)
+    private func unableToProcessError(_ msg: Message) async -> NSError {
+        let deviceName = await MainActor.run { UIDevice.current.name }
+        return NSError(
+            domain: "Unable to process \(type(of: msg)) command, since \(deviceName) is not in the camera screen.", code: 0, userInfo: nil)
     }
 
     @discardableResult
@@ -1048,7 +1050,7 @@ public actor SessionCoordinator {
         }
         let speedTracker = SpeedTracker()
 
-        var service = service
+        let service = service
         progress.publisher(for: \.fractionCompleted)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] fractionCompleted in
@@ -1922,7 +1924,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
         }
         let speedTracker = SpeedTracker()
 
-        var service = service
+        let service = service
         progress.publisher(for: \.fractionCompleted)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] fractionCompleted in
