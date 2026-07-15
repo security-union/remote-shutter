@@ -25,13 +25,14 @@ import Foundation
 /// any thread and hops onto `queue`.
 final class WatchPreviewStreamer {
 
-    /// Produces the JPEG for the current frame. Invoked synchronously inside `offer(_:)`
-    /// on `queue`, while the sample buffer backing it is still valid. Returns `nil` to skip.
-    typealias Encode = () -> Data?
+    /// Produces the encoded payload for the current frame (VP9/HEIC/JPEG, tagged with
+    /// its codec). Invoked synchronously inside `offer(_:)` on `queue`, while the sample
+    /// buffer backing it is still valid. Returns `nil` to skip.
+    typealias Encode = () -> EncodedFrame?
 
     /// Sends one encoded frame to the Watch. Fire-and-forget — the ack comes back
     /// separately via `acknowledge()`. Injectable so the protocol can be tested.
-    typealias Send = (_ jpeg: Data) -> Void
+    typealias Send = (_ frame: EncodedFrame) -> Void
 
     private let queue: DispatchQueue
     private let send: Send
@@ -51,8 +52,8 @@ final class WatchPreviewStreamer {
     }
 
     /// Default transport: the live WCSession preview channel.
-    static let defaultSend: Send = { jpeg in
-        WatchSessionManager.shared.pushPreviewFrame(jpeg: jpeg)
+    static let defaultSend: Send = { frame in
+        WatchSessionManager.shared.pushPreviewFrame(payload: frame.data, codec: frame.codec)
     }
 
     /// Offers the current frame to the stream. If the in-flight window is already full,
@@ -63,10 +64,10 @@ final class WatchPreviewStreamer {
     func offer(_ encode: Encode) -> Bool {
         dispatchPrecondition(condition: .onQueue(queue))
         guard window.hasCredit else { return false }
-        guard let jpeg = encode() else { return false }
+        guard let frame = encode() else { return false }
         window.acquire()
         armWatchdog()
-        send(jpeg)
+        send(frame)
         return true
     }
 

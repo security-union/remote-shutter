@@ -11,6 +11,7 @@ import FlatBuffers
 import AVFoundation
 import UIKit
 
+
 // MARK: - FlatBuffer serialization for MultipeerService
 
 /// Serializes any RemoteCmd message to FlatBuffers Data for sending over MultipeerConnectivity.
@@ -27,6 +28,7 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.TakePicResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
+    case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
@@ -111,19 +113,23 @@ private func fromFBCamPos(_ pos: RemoteShutter_CameraPosition) -> AVCaptureDevic
     }
 }
 
-private func toFBStreamCodec(_ codec: RemoteCmd.StreamCodec) -> RemoteShutter_StreamCodec {
+// Internal (not private): the Watch preview transport (WatchSessionManager)
+// maps its codec tag through the same single conversion.
+func toFBStreamCodec(_ codec: RemoteCmd.StreamCodec) -> RemoteShutter_StreamCodec {
     switch codec {
     case .jpeg: return .jpeg
     case .hevc: return .hevc
     case .heic: return .heic
+    case .vp9: return .vp9
     }
 }
 
-private func fromFBStreamCodec(_ codec: RemoteShutter_StreamCodec) -> RemoteCmd.StreamCodec {
+func fromFBStreamCodec(_ codec: RemoteShutter_StreamCodec) -> RemoteCmd.StreamCodec {
     switch codec {
     case .jpeg: return .jpeg
     case .hevc: return .hevc
     case .heic: return .heic
+    case .vp9: return .vp9
     case .unknown: return .jpeg   // legacy sender: field absent => JPEG payload
     }
 }
@@ -682,6 +688,13 @@ extension RemoteCmd.PeerBecameMonitor {
     }
 }
 
+extension RemoteCmd.RequestKeyframe {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        return buildCommand(&fbb, action: .requestkeyframe)
+    }
+}
+
 extension RemoteCmd.ToggleFlash {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1014,6 +1027,9 @@ extension RemoteCmd {
                 shortVersion: params?.shortVersion ?? "0",
                 platform: params?.platform ?? "0"
             )
+
+        case .requestkeyframe:
+            return RequestKeyframe(sender: nil)
 
         case .toggleflash:
             return ToggleFlash()

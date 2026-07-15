@@ -66,7 +66,6 @@ public class WatchRemoteCameraController: UIViewController {
         setupActors()
         setupCameraScreen()
         setupWatchStatusOverlay()
-        bindToWatchManager()
     }
 
     public override func viewDidAppear(_ animated: Bool) {
@@ -153,7 +152,12 @@ public class WatchRemoteCameraController: UIViewController {
 
     // MARK: - Watch Manager Binding
 
+    /// Bound in `viewWillAppear` (not `viewDidLoad`) so a cancelled interactive
+    /// swipe-back — which fires `viewWillDisappear` → `unbindFromWatchManager` —
+    /// re-binds when the screen settles back. Idempotent: re-binding to the same
+    /// controller is a no-op.
     private func bindToWatchManager() {
+        guard WatchSessionManager.shared.cameraController !== self else { return }
         WatchSessionManager.shared.cameraController = self
     }
 
@@ -168,6 +172,7 @@ public class WatchRemoteCameraController: UIViewController {
 
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        bindToWatchManager()
         navigationController?.setNavigationBarHidden(false, animated: animated)
         navigationItem.title = NSLocalizedString("Watch Remote", comment: "")
         navigationController?.navigationBar.prefersLargeTitles = false
@@ -314,5 +319,12 @@ public class WatchRemoteCameraController: UIViewController {
         guard cameraHost != nil else { return }
         let session = remoteCamSession
         session ! RemoteCmd.RequestCameraCapabilities()
+    }
+
+    /// Routes a Watch `.requeststate` command into the coordinator so the reply is
+    /// authoritative (see `UICmd.RequestWatchStateReply`). `reply` is the WCSession
+    /// `replyHandler`; the coordinator calls it once with the encoded ack+state.
+    func requestWatchStateReply(_ reply: @escaping (Data) -> Void) {
+        remoteCamSession ! UICmd.RequestWatchStateReply(reply: reply)
     }
 }

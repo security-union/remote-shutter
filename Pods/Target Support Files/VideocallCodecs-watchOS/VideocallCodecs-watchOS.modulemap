@@ -1,0 +1,6 @@
+framework module VideocallCodecs {
+  umbrella header "VideocallCodecs-watchOS-umbrella.h"
+
+  export *
+  module * { export * }
+}

@@ -28,9 +28,14 @@ enum CommandAction : byte {
     TimerCountdown = 16,
     SyncMonitorSettings = 17,
     SetAspectRatio = 18,
-    SelectCameraDevice = 19    // never sent to peers that did not advertise
+    SelectCameraDevice = 19,   // never sent to peers that did not advertise
                                // camera_devices — old decoders read unknown
                                // actions as TakePicture (the field default)
+    RequestKeyframe = 20       // monitor -> camera: force the next VP9 preview
+                               // frame to be a keyframe (decoder desync
+                               // recovery). Only sent to a peer that has
+                               // already delivered a VP9 frame — old decoders
+                               // read unknown actions as TakePicture.
 }
 
 enum CameraPosition : byte {
@@ -106,11 +111,14 @@ enum AspectRatioEnum : byte {
 
 // Payload format of FrameData.image_data. Unknown = legacy peer that predates
 // this field — treat as JPEG. HEVC is reserved for the video-codec follow-up.
+// VP9 is a stateful video stream (videocall-codecs): keyframe first, then
+// inter frames in order.
 enum StreamCodec : byte {
     Unknown = 0,
     JPEG = 1,
     HEVC = 2,
-    HEIC = 3
+    HEIC = 3,
+    VP9 = 4
 }
 
 // MARK: - Command Parameters
@@ -352,9 +360,11 @@ table WatchCommandAck {
 // Low-res, heavily-compressed live preview frame streamed iPhone -> Watch so the
 // user can frame the shot. Separate from the full-quality capture pipeline.
 table WatchPreviewFrame {
-    jpeg: [ubyte];        // still-image container: HEIC when the iPhone has an HEVC
-                          // encoder, JPEG otherwise; UIImage(data:) sniffs either
+    jpeg: [ubyte];        // payload bytes. Stills (HEIC/JPEG): UIImage(data:) sniffs the
+                          // container. VP9: one compressed frame of a stateful stream.
     epoch_ms: uint64;     // ordering, mirrors WatchCameraState.state_epoch_ms
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    codec: StreamCodec;   // absent/Unknown => legacy still image (sniff via UIImage)
 }
 
 // Renumbered pre-release so Unknown = 0 (project convention for all enums).

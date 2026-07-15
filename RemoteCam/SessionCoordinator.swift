@@ -177,6 +177,15 @@ public actor SessionCoordinator {
     /// actions as TakePicture (the FlatBuffers field default).
     private var peerAdvertisedCameraDevices = false
 
+    /// Monitor side: at least one VP9 preview frame has arrived. Proves the
+    /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`
+    /// (old decoders read that unknown action as TakePicture — same precedent as
+    /// SelectCameraDevice).
+    private var monitorReceivedVP9Frame = false
+
+    /// Test support.
+    func monitorReceivedVP9FrameForTesting() -> Bool { monitorReceivedVP9Frame }
+
     /// Test support: the generation of the most recently armed timeout.
     func currentTimeoutGeneration() -> Int { timeoutGeneration }
 
@@ -377,6 +386,7 @@ public actor SessionCoordinator {
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
         peerAdvertisedCameraDevices = false
+        monitorReceivedVP9Frame = false
         switch state {
         case .scanning:
             // Already there — re-entering would restart discovery and reset
@@ -524,13 +534,17 @@ public actor SessionCoordinator {
             if became.bundleVersion <= 0 {
                 await showIncompatibilityMessage()
             }
+            // NOTE: a monitor never version-gates the camera — an old camera
+            // streams HEIC/JPEG stills, which this monitor still decodes. Only
+            // the `<= 0` incompatibility (unknown build) is reported, as before.
             // (Auto-role-follow forwarding was wired to an actor that was never
             // registered; the dead send is not reproduced.)
 
         case let became as RemoteCmd.PeerBecameMonitor:
-            if became.bundleVersion <= 0 {
-                await showIncompatibilityMessage()
-            }
+            // This device is the camera-to-be; a monitor too old to decode VP9
+            // must update rather than see a broken preview. One check covers
+            // both the legacy (`<= 0`) and too-old cases.
+            await enforceMonitorVP9Compatibility(became)
 
         case is Disconnect:
             await popToScanning()
@@ -555,8 +569,20 @@ public actor SessionCoordinator {
         }
 
         switch msg {
-        case is RemoteCmd.PeerBecameMonitor, is RemoteCmd.RequestCameraCapabilities:
+        case let became as RemoteCmd.PeerBecameMonitor:
+            // Version-gate the monitor before answering: a monitor too old to
+            // decode VP9 is sent to the update-required flow (this pops out of
+            // the camera state), so we don't stream it an undecodable preview.
+            guard await enforceMonitorVP9Compatibility(became) else { break }
             await attemptToSendCapabilities(attempt: 0)
+
+        case is RemoteCmd.RequestCameraCapabilities:
+            await attemptToSendCapabilities(attempt: 0)
+
+        case is RemoteCmd.RequestKeyframe:
+            // The monitor's VP9 decoder desynced — force the next preview frame
+            // to be a keyframe. Straight to the streamer; no state change.
+            frameSender?.requestKeyframe()
 
         case is RemoteCmd.RequestFrame, is RemoteCmd.SendFrame:
             break // frame plumbing is FrameSender's job
@@ -736,6 +762,43 @@ public actor SessionCoordinator {
         }
     }
 
+    /// Camera side: a new camera always streams VP9, so a monitor too old to
+    /// decode it must be told to update rather than shown a broken preview.
+    /// Routes an out-of-date (or unknown-build, `<= 0`) monitor to the existing
+    /// incompatibility flow — a single, version-in/verdict-out policy
+    /// (`VP9PreviewCompatibility.peerCanDecodeVP9Preview`). Returns true when the
+    /// monitor is compatible and the caller should continue, false when it
+    /// popped to scanning. No per-connection capability handshake.
+    @discardableResult
+    private func enforceMonitorVP9Compatibility(_ became: RemoteCmd.PeerBecameMonitor) async -> Bool {
+        guard VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: became.bundleVersion) else {
+            StreamLog.encode.info("""
+                monitor bundleVersion \(became.bundleVersion) < \
+                \(VP9PreviewCompatibility.minimumPeerBundleVersion) — too old for VP9 preview, requesting update
+                """)
+            await showIncompatibilityMessage()
+            return false
+        }
+        return true
+    }
+
+    /// Monitor side: latch that a VP9 frame arrived, which proves the camera
+    /// peer speaks VP9 and unlocks `RemoteCmd.RequestKeyframe`.
+    private func noteMonitorFrame(_ frame: RemoteCmd.OnFrame) {
+        if frame.codec == .vp9 { monitorReceivedVP9Frame = true }
+    }
+
+    /// Monitor side: ask the camera for a keyframe, but only once it has proven
+    /// itself a VP9-speaking peer (else the unknown action decodes as
+    /// TakePicture on an old camera). Sent `.reliable` so recovery isn't lost.
+    private func requestKeyframeIfVP9() {
+        guard monitorReceivedVP9Frame else {
+            debugLog("RequestKeyframe dropped: peer has not sent a VP9 frame")
+            return
+        }
+        sendMessage(RemoteCmd.RequestKeyframe(sender: nil), mode: .reliable)
+    }
+
     private func inCameraTakingPic(_ msg: Message, sendMediaToPeer: Bool, generation: Int) async {
         switch msg {
         case let timeout as UICmd.StateTimeout:
@@ -807,6 +870,11 @@ public actor SessionCoordinator {
                 await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
                     lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error as NSError))
             }
+
+        case is RemoteCmd.RequestKeyframe:
+            // The preview stream keeps flowing while recording, so a desynced
+            // monitor decoder can ask for a keyframe here too.
+            frameSender?.requestKeyframe()
 
         case let ack as RemoteCmd.StartRecordingVideoAck:
             // The pipeline's success ack, carrying the recording start time for
@@ -927,6 +995,9 @@ public actor SessionCoordinator {
         case let become as UICmd.BecomeWatchCamera:
             ctrl = become.ctrl
             await transition(to: .watchCamera)
+
+        case let request as UICmd.RequestWatchStateReply:
+            await replyWithWatchState(request)
 
         case let rejected as UICmd.BecomeCamera:
             rejected.ctrl.exitCamera()
@@ -1085,11 +1156,15 @@ public actor SessionCoordinator {
     private func inMonitor(_ msg: Message, mode: MonitorMode) async {
         switch msg {
         case let frame as RemoteCmd.OnFrame:
+            noteMonitorFrame(frame)
             monitor?.show(frame: frame)
             await requestFrame()
 
         case is UICmd.StreamStalled:
             await requestFrame()
+
+        case is UICmd.RequestVideoKeyframe:
+            requestKeyframeIfVP9()
 
         case is UICmd.UnbecomeMonitor:
             await transition(to: .connected)
@@ -1387,11 +1462,15 @@ public actor SessionCoordinator {
     private func inMonitorRecordingVideo(_ msg: Message) async {
         switch msg {
         case let frame as RemoteCmd.OnFrame:
+            noteMonitorFrame(frame)
             monitor?.show(frame: frame)
             await requestFrame()
 
         case is UICmd.StreamStalled:
             await requestFrame()
+
+        case is UICmd.RequestVideoKeyframe:
+            requestKeyframeIfVP9()
 
         case let ack as RemoteCmd.StartRecordingVideoAck:
             if let error = ack.error {
@@ -1696,6 +1775,34 @@ public actor SessionCoordinator {
     }
 
     // MARK: - Watch state snapshot
+
+    /// True while the machine is in any Watch Remote camera state.
+    private var isInWatchState: Bool {
+        switch state {
+        case .watchCamera, .watchCameraTakingPic, .watchCameraStartingVideo, .watchCameraRecordingVideo:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Answers a Watch `.requeststate` command authoritatively. In a watch state the
+    /// reply carries `Ok` plus the full camera snapshot (freshly epoch-stamped, like
+    /// `pushCameraState`); otherwise it truthfully reports `.notinwatchmode`. This is
+    /// the one place the "phone is ready" verdict and the snapshot travel together, so
+    /// the Watch never receives an Ok that isn't backed by state.
+    private func replyWithWatchState(_ request: UICmd.RequestWatchStateReply) async {
+        guard isInWatchState, let ctrl else {
+            request.reply(WatchStateReplyEncoder.encode(status: .notinwatchmode, snapshot: nil))
+            return
+        }
+        var snapshot = await Self.watchStateSnapshot(
+            ctrl: ctrl,
+            isBackgrounded: isPhoneBackgrounded(),
+            countdownRemaining: watchCountdownRemaining)
+        snapshot.stateEpochMs = UInt64(Date().timeIntervalSince1970 * 1000)
+        request.reply(WatchStateReplyEncoder.encode(status: .ok, snapshot: snapshot))
+    }
 
     func pushWatchState(event: RemoteShutter_WatchEventType = .unknown) async {
         guard let ctrl else { return }

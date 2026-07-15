@@ -100,11 +100,25 @@ struct WatchStateEncoder {
 
     static func encode(_ snapshot: WatchCameraStateSnapshot) -> Data {
         var fbb = FlatBufferBuilder()
+        let state = buildState(snapshot, into: &fbb)
+        let msg = RemoteShutter_WatchMessage.createWatchMessage(
+            &fbb,
+            type: .watchstatemsg,
+            stateOffset: state
+        )
+        fbb.finish(offset: msg)
+        return fbb.data
+    }
 
+    /// Appends a `WatchCameraState` table to an in-flight builder and returns its
+    /// offset. Shared by the plain state push and the `.requeststate` reply (which
+    /// carries the state alongside its ack in one `WatchMessage`).
+    static func buildState(_ snapshot: WatchCameraStateSnapshot,
+                           into fbb: inout FlatBufferBuilder) -> Offset {
         let lensVec = fbb.createVector(snapshot.availableLensTypes.map { $0.rawValue })
         let stopsVec = fbb.createVector(snapshot.zoomStops)
 
-        let state = RemoteShutter_WatchCameraState.createWatchCameraState(
+        return RemoteShutter_WatchCameraState.createWatchCameraState(
             &fbb,
             readiness: snapshot.readiness,
             event: snapshot.event,
@@ -122,13 +136,6 @@ struct WatchStateEncoder {
             wideAngleZoomFactor: snapshot.wideAngleZoomFactor,
             stateEpochMs: snapshot.stateEpochMs
         )
-        let msg = RemoteShutter_WatchMessage.createWatchMessage(
-            &fbb,
-            type: .watchstatemsg,
-            stateOffset: state
-        )
-        fbb.finish(offset: msg)
-        return fbb.data
     }
 
     static func decode(_ data: Data) -> WatchCameraStateSnapshot? {
@@ -138,7 +145,12 @@ struct WatchStateEncoder {
             return nil
         }
         guard msg.type == .watchstatemsg, let state = msg.state else { return nil }
+        return snapshot(from: state)
+    }
 
+    /// Maps a decoded `WatchCameraState` table into the plain-value snapshot.
+    /// Shared by the plain state decode and the `.requeststate` reply decode.
+    static func snapshot(from state: RemoteShutter_WatchCameraState) -> WatchCameraStateSnapshot {
         var lenses: [RemoteShutter_CameraLensType] = []
         for i in 0..<state.availableLensTypesCount {
             if let lens = state.availableLensTypes(at: i) {
@@ -168,6 +180,52 @@ struct WatchStateEncoder {
             wideAngleZoomFactor: state.wideAngleZoomFactor,
             stateEpochMs: state.stateEpochMs
         )
+    }
+}
+
+// MARK: - Authoritative reply to a `.requeststate` command (iPhone -> Watch)
+
+/// The reply to a Watch `.requeststate` command IS the camera state. The phone
+/// computes it inside the `SessionCoordinator` (whose FIFO inbox guarantees the
+/// answer reflects the machine's real state), so an Ok can never precede — and
+/// then lose — a separate state push. One `WatchMessage` carries both the ack and,
+/// when the phone is in a watch state, the full `WatchCameraState` snapshot.
+struct WatchStateReplyEncoder {
+
+    /// `snapshot == nil` (paired with a `.notinwatchmode` status) is the truthful
+    /// "phone isn't on the Watch Remote screen" reply — no state table is written.
+    static func encode(status: RemoteShutter_WatchAckStatus,
+                       snapshot: WatchCameraStateSnapshot?) -> Data {
+        var fbb = FlatBufferBuilder()
+        let stateOffset: Offset = snapshot.map { WatchStateEncoder.buildState($0, into: &fbb) } ?? Offset()
+        let ack = RemoteShutter_WatchCommandAck.createWatchCommandAck(
+            &fbb,
+            status: status,
+            action: .requeststate,
+            detailOffset: Offset()
+        )
+        let msg = RemoteShutter_WatchMessage.createWatchMessage(
+            &fbb,
+            type: .watchcommandackmsg,
+            stateOffset: stateOffset,
+            ackOffset: ack
+        )
+        fbb.finish(offset: msg)
+        return fbb.data
+    }
+
+    /// Extracts the camera snapshot a reply carried, or `nil` when it carried none
+    /// (a `.notinwatchmode` reply, or a bare ack from an older phone). Unlike
+    /// `WatchStateEncoder.decode`, it reads the `state` table regardless of the
+    /// message `type`, since a reply is typed as an ack message.
+    static func decodeState(_ data: Data) -> WatchCameraStateSnapshot? {
+        let bytes = [UInt8](data)
+        var buffer = ByteBuffer(bytes: bytes)
+        guard let msg: RemoteShutter_WatchMessage = try? getCheckedRoot(byteBuffer: &buffer),
+              let state = msg.state else {
+            return nil
+        }
+        return WatchStateEncoder.snapshot(from: state)
     }
 }
 
@@ -213,18 +271,22 @@ struct WatchAckEncoder {
 
 // MARK: - Live Preview Frame (iPhone -> Watch)
 
-/// Low-res, heavily-compressed JPEG of the live camera feed so the Watch user can
-/// frame the shot. Streamed on the live WCSession channel only (never the durable
-/// applicationContext mirror). Entirely separate from the full-quality capture path.
+/// Low-res live-preview frame so the Watch user can frame the shot. The payload is
+/// codec-tagged: VP9 (one frame of a stateful stream, decoded by the Rust Vp9Decoder)
+/// or an HEIC/JPEG still (`UIImage(data:)` sniffs the container; `.unknown` = legacy
+/// sender that predates the tag, always a still). Streamed on the live WCSession
+/// channel only (never the durable applicationContext mirror). Entirely separate
+/// from the full-quality capture path.
 struct WatchPreviewFrameEncoder {
 
-    static func encode(jpeg: Data, epochMs: UInt64) -> Data {
+    static func encode(payload: Data, codec: RemoteShutter_StreamCodec, epochMs: UInt64) -> Data {
         var fbb = FlatBufferBuilder()
-        let jpegVec = fbb.createVector(bytes: jpeg)
+        let payloadVec = fbb.createVector(bytes: payload)
         let frame = RemoteShutter_WatchPreviewFrame.createWatchPreviewFrame(
             &fbb,
-            jpegVectorOffset: jpegVec,
-            epochMs: epochMs
+            jpegVectorOffset: payloadVec,
+            epochMs: epochMs,
+            codec: codec
         )
         let msg = RemoteShutter_WatchMessage.createWatchMessage(
             &fbb,
@@ -235,14 +297,14 @@ struct WatchPreviewFrameEncoder {
         return fbb.data
     }
 
-    static func decode(_ data: Data) -> (jpeg: Data, epochMs: UInt64)? {
+    static func decode(_ data: Data) -> (payload: Data, codec: RemoteShutter_StreamCodec, epochMs: UInt64)? {
         let bytes = [UInt8](data)
         var buffer = ByteBuffer(bytes: bytes)
         guard let msg: RemoteShutter_WatchMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
             return nil
         }
         guard msg.type == .watchpreviewframemsg, let frame = msg.previewFrame else { return nil }
-        return (Data(frame.jpeg), frame.epochMs)
+        return (Data(frame.jpeg), frame.codec, frame.epochMs)
     }
 }
 
@@ -321,6 +383,27 @@ enum WatchConnectionPhase: Equatable {
         case .notinwatchmode: return .phoneNotInWatchMode
         case .unknown: return .connecting
         }
+    }
+}
+
+// MARK: - Watch State Poll Policy
+
+/// Decides whether the Watch should keep asking the phone for camera state.
+///
+/// Fixed-rate, infinite polling with no backoff and no give-up budget: while the
+/// UI is still trying to connect (`.connecting`), the phone is reachable, and the
+/// app is active, the Watch re-sends `.requeststate` at a steady cadence. It stops
+/// the instant any of those stops holding — a snapshot arrives (phase leaves
+/// `.connecting`), reachability drops, or the app deactivates. Pure so the decision
+/// is unit-testable without WCSession or a run loop.
+enum WatchStatePollPolicy {
+    /// Seconds between polls. No backoff — every tick is the same.
+    static let interval: TimeInterval = 2.0
+
+    static func shouldPoll(phase: WatchConnectionPhase,
+                           isReachable: Bool,
+                           isActive: Bool) -> Bool {
+        phase == .connecting && isReachable && isActive
     }
 }
 

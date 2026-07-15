@@ -141,10 +141,13 @@ public class RemoteCmd: Message, @unchecked Sendable {
     /// Payload format of a streamed preview frame. Mirrors the wire enum
     /// `RemoteShutter_StreamCodec`; frames from peers that predate the field
     /// arrive as `.jpeg`. `.hevc` is reserved for the video-codec follow-up.
+    /// `.vp9` is a stateful video stream (videocall-codecs): keyframe first,
+    /// then inter frames in order — used on the Watch preview channel.
     public enum StreamCodec {
         case jpeg
         case hevc
         case heic
+        case vp9
     }
 
     public class SendFrame: Message, @unchecked Sendable {
@@ -173,6 +176,18 @@ public class RemoteCmd: Message, @unchecked Sendable {
     }
 
     public class RequestFrame: Message, @unchecked Sendable {
+        public override init(sender: AnyObject?) {
+            super.init(sender: sender)
+        }
+    }
+
+    /// Monitor -> camera: force the next VP9 preview frame to be a keyframe so a
+    /// desynced decoder (joined mid-stream, dropped a delta frame) can re-sync
+    /// without waiting for the camera's periodic keyframe. The monitor only
+    /// sends this after it has received at least one VP9 frame, which proves the
+    /// peer is a VP9-speaking build — old decoders read the unknown action as
+    /// TakePicture, so the gate mirrors the SelectCameraDevice precedent.
+    public class RequestKeyframe: Message, @unchecked Sendable {
         public override init(sender: AnyObject?) {
             super.init(sender: sender)
         }

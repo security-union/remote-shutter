@@ -6,7 +6,7 @@
 //  Sends FlatBuffer-encoded commands to iPhone via sendMessageData with
 //  per-command acks; receives state via live messages and applicationContext.
 //
-//  Threading: all mutable state (retry bookkeeping) is confined to the main
+//  Threading: all mutable state (poll bookkeeping) is confined to the main
 //  queue — WCSession delegate callbacks hop there before touching it.
 //
 
@@ -20,11 +20,19 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     private let viewModel: WatchCameraViewModel
     private var wcSession: WCSession?
 
-    // Main-queue confined.
-    private var retryCount = 0
-    private let maxRetries = 10
-    /// Armed after a requestState is acked Ok; fires if no state arrives.
-    private var stateArrivalCheck: DispatchWorkItem?
+    /// Stateful VP9 stream decoder (owns its own serial queue). Never torn down:
+    /// a new stream from the phone always opens with a keyframe, which re-syncs
+    /// a stale decoder by itself.
+    private let vp9Decoder = WatchVP9PreviewDecoder()
+
+    // MARK: - Poll bookkeeping (main-queue confined)
+
+    /// Whether the app is foreground-active. Polling only runs while active; the
+    /// scene phase drives this via `setActive(_:)`.
+    private var isActive = true
+    /// True while a poll tick is scheduled, so overlapping kicks can't spin up a
+    /// second concurrent loop.
+    private var pollScheduled = false
 
     init(viewModel: WatchCameraViewModel) {
         self.viewModel = viewModel
@@ -59,8 +67,7 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
                 self.viewModel.update(from: state)
             }
             if activationState == .activated && reachable {
-                self.retryCount = 0
-                self.retryRequestState()
+                self.kickPolling()
             }
         }
     }
@@ -72,55 +79,84 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
             guard let self else { return }
             self.viewModel.isPhoneReachable = reachable
             if reachable {
-                self.retryCount = 0
-                self.retryRequestState()
+                self.kickPolling()
             }
         }
     }
 
-    // MARK: - Retry Logic (main-queue confined)
+    // MARK: - State Polling (fixed-rate, infinite; main-queue confined)
 
-    private func retryRequestState() {
+    /// Starts the poll loop if it isn't already running. Idempotent — the
+    /// `pollScheduled` guard keeps overlapping kicks from spinning up a second loop.
+    private func kickPolling() {
         dispatchPrecondition(condition: .onQueue(.main))
-        guard retryCount < maxRetries else { return }
+        guard !pollScheduled else { return }
+        pollTick()
+    }
+
+    /// One poll tick: if the policy still says to poll, send `.requeststate` and
+    /// schedule the next tick at the fixed cadence. When the policy says stop
+    /// (state applied, unreachable, or inactive), the loop simply ends.
+    private func pollTick() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard WatchStatePollPolicy.shouldPoll(
+            phase: viewModel.phase,
+            isReachable: wcSession?.isReachable ?? false,
+            isActive: isActive) else {
+            pollScheduled = false
+            return
+        }
+
+        sendRequestState()
+        pollScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + WatchStatePollPolicy.interval) { [weak self] in
+            self?.pollTick()
+        }
+    }
+
+    private func sendRequestState() {
+        dispatchPrecondition(condition: .onQueue(.main))
         guard let session = wcSession, session.isReachable else { return }
-
-        let attempt = retryCount
-        retryCount += 1
-        debugLog("WatchSession: requestState attempt \(attempt + 1)")
-
         let data = WatchCommandEncoder.encode(action: .requeststate)
         session.sendMessageData(data, replyHandler: { [weak self] reply in
-            self?.handleAck(reply, action: .requeststate)
-        }, errorHandler: { [weak self] error in
-            debugLog("WatchSession: requestState attempt \(attempt + 1) failed: \(error.localizedDescription)")
-            let delay = min(Double(attempt + 1) * 2.0, 10.0)
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                self?.retryRequestState()
-            }
+            self?.handleStateReply(reply)
+        }, errorHandler: { error in
+            // No manual re-arm: the fixed-rate poll loop sends again on its own tick.
+            debugLog("WatchSession: requestState failed: \(error.localizedDescription)")
         })
+    }
+
+    /// Foreground/background from the scene phase. Deactivating stops the loop on
+    /// its next tick; reactivating re-kicks it.
+    func setActive(_ active: Bool) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.isActive = active
+            if active { self.kickPolling() }
+        }
     }
 
     func manualRetry() {
         DispatchQueue.main.async { [weak self] in
-            self?.retryCount = 0
+            guard let self else { return }
             // Drop any stale readiness verdict — back to "connecting" until the
             // phone answers.
-            self?.viewModel.readiness = .unknown
-            self?.retryRequestState()
+            self.viewModel.readiness = .unknown
+            self.kickPolling()
         }
     }
 
-    /// The phone acked a state request but never pushed state — ask again.
-    private func armStateArrivalCheck() {
-        dispatchPrecondition(condition: .onQueue(.main))
-        stateArrivalCheck?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            debugLog("WatchSession: state never arrived after Ok ack, re-requesting")
-            self?.retryRequestState()
+    /// The authoritative reply to `.requeststate`: an Ok carries the full snapshot
+    /// (apply it exactly like a live push, honoring the epoch guard); a
+    /// `.notinwatchmode` reply carries no state and falls through to the ack path.
+    private func handleStateReply(_ data: Data) {
+        if let snapshot = WatchStateReplyEncoder.decodeState(data) {
+            DispatchQueue.main.async { [weak self] in
+                self?.viewModel.update(from: snapshot)
+            }
+            return
         }
-        stateArrivalCheck = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0, execute: work)
+        handleAck(data, action: .requeststate)
     }
 
     // MARK: - Receiving State from iPhone
@@ -130,9 +166,8 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
     /// next one — the same explicit-request back-pressure the peer monitor uses.
     func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
         if let frame = WatchPreviewFrameEncoder.decode(messageData) {
-            debugLog("WatchSession: received preview frame (\(messageData.count) bytes)")
-            renderPreview(jpeg: frame.jpeg, epochMs: frame.epochMs)
-            requestNextPreviewFrame()
+            debugLog("WatchSession: received preview frame (\(messageData.count) bytes, codec \(frame.codec))")
+            renderPreview(payload: frame.payload, codec: frame.codec, epochMs: frame.epochMs)
             return
         }
 
@@ -142,18 +177,34 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
             return
         }
         DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.retryCount = 0
-            self.stateArrivalCheck?.cancel()
-            self.viewModel.update(from: state)
+            self?.viewModel.update(from: state)
         }
     }
 
-    /// Decodes the tiny JPEG off the main thread, then hands the image to the view model.
-    private func renderPreview(jpeg: Data, epochMs: UInt64) {
-        guard let image = UIImage(data: jpeg) else { return }
-        DispatchQueue.main.async { [weak self] in
-            self?.viewModel.updatePreview(image: image, epochMs: epochMs)
+    /// Routes the payload to its codec's decoder off the main thread, hands the image to
+    /// the view model, and acks so the phone releases the next frame. An undecodable VP9
+    /// frame is dropped but STILL acked (drop-but-ack): the stream keeps flowing and the
+    /// phone's periodic keyframe re-syncs it.
+    private func renderPreview(payload: Data, codec: RemoteShutter_StreamCodec, epochMs: UInt64) {
+        switch codec {
+        case .vp9:
+            vp9Decoder.decode(frame: payload) { [weak self] image in
+                guard let self else { return }
+                if let image {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.viewModel.updatePreview(image: image, epochMs: epochMs)
+                    }
+                }
+                self.requestNextPreviewFrame()
+            }
+        default:
+            // Stills (HEIC/JPEG) and legacy codec-less senders: UIImage sniffs the container.
+            if let image = UIImage(data: payload) {
+                DispatchQueue.main.async { [weak self] in
+                    self?.viewModel.updatePreview(image: image, epochMs: epochMs)
+                }
+            }
+            requestNextPreviewFrame()
         }
     }
 
@@ -164,9 +215,7 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
         guard let stateData = applicationContext[WatchContextKeys.state] as? Data,
               let state = WatchStateEncoder.decode(stateData) else { return }
         DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.stateArrivalCheck?.cancel()
-            self.viewModel.update(from: state)
+            self?.viewModel.update(from: state)
         }
     }
 
@@ -182,9 +231,6 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
                 // answered from the Watch Remote screen; its state push follows.
                 if self.viewModel.readiness == .notinwatchmode {
                     self.viewModel.readiness = .unknown
-                }
-                if action == .requeststate {
-                    self.armStateArrivalCheck()
                 }
             case .notinwatchmode:
                 self.viewModel.notePhoneNotInWatchMode()
@@ -232,12 +278,6 @@ class WatchSessionDelegate: NSObject, ObservableObject, WCSessionDelegate {
         })
     }
 
-    func requestState() {
-        DispatchQueue.main.async { [weak self] in
-            self?.retryCount = 0
-            self?.retryRequestState()
-        }
-    }
     func setZoom(_ factor: Double) { sendCommand(action: .setzoom, zoomFactor: factor, critical: false) }
     func takePicture(timerSeconds: Int = 0) { sendCommand(action: .takepicture, timerSeconds: Int32(timerSeconds)) }
     func startRecording(timerSeconds: Int = 0) {

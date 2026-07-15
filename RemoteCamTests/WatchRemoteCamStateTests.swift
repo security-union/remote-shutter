@@ -429,6 +429,56 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertEqual(snapshot.event, .recordingstarted)
     }
 
+    // MARK: - Authoritative state reply (the reply IS the state)
+
+    /// In a watch state the coordinator answers `.requeststate` with Ok plus a
+    /// decodable, ready snapshot — one message the Watch applies like a live push.
+    func testRequestWatchStateReplyInWatchStateCarriesOkAndReadySnapshot() async {
+        await enterWatchCamera()
+
+        let box = Locked<Data?>(nil)
+        await deliver(UICmd.RequestWatchStateReply { box.value = $0 })
+
+        guard let reply = box.value else { return XCTFail("coordinator must answer the reply") }
+
+        let snapshot = WatchStateReplyEncoder.decodeState(reply)
+        XCTAssertNotNil(snapshot, "an in-watch-state reply must carry a snapshot")
+        XCTAssertEqual(snapshot?.readiness, .ready)
+        XCTAssertGreaterThan(snapshot?.stateEpochMs ?? 0, 0, "reply snapshot must be epoch-stamped")
+
+        let ack = WatchAckEncoder.decode(reply)
+        XCTAssertEqual(ack?.status, .ok)
+        XCTAssertEqual(ack?.action, .requeststate)
+    }
+
+    /// Outside any watch state the reply is a truthful `.notinwatchmode` with no
+    /// snapshot — no more false Ok stranding the Watch on "connecting".
+    func testRequestWatchStateReplyOutsideWatchStateIsNotInWatchMode() async {
+        // Never entered a watch state — the machine sits at its idle floor.
+        let box = Locked<Data?>(nil)
+        await deliver(UICmd.RequestWatchStateReply { box.value = $0 })
+
+        guard let reply = box.value else { return XCTFail("coordinator must answer the reply") }
+        XCTAssertNil(WatchStateReplyEncoder.decodeState(reply),
+                     "a non-watch-state reply must not carry a snapshot")
+        XCTAssertEqual(WatchAckEncoder.decode(reply)?.status, .notinwatchmode)
+    }
+
+    /// A backgrounded phone that's still in a watch state replies Ok, but the
+    /// snapshot reports not-ready — the reply never claims ready falsely.
+    func testRequestWatchStateReplyReportsBackgroundedReadiness() async {
+        await coordinator.setIsPhoneBackgrounded { true }
+        await enterWatchCamera()
+
+        let box = Locked<Data?>(nil)
+        await deliver(UICmd.RequestWatchStateReply { box.value = $0 })
+
+        guard let reply = box.value else { return XCTFail("coordinator must answer the reply") }
+        XCTAssertEqual(WatchStateReplyEncoder.decodeState(reply)?.readiness, .phonebackgrounded)
+        XCTAssertEqual(WatchAckEncoder.decode(reply)?.status, .ok,
+                       "the phone is in watch mode, so the ack is still Ok")
+    }
+
     // MARK: - Readiness (backgrounded / locked phone)
 
     func testSnapshotReadyWhenForegrounded() async {

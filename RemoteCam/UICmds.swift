@@ -595,6 +595,17 @@ public class UICmd {
             super.init(sender: nil)
         }
     }
+
+    /// Raised by the monitor's frame receiver when the VP9 preview decoder
+    /// desyncs (an undecodable frame, or a sequence gap on the stateful stream).
+    /// The monitor state forwards it as `RemoteCmd.RequestKeyframe` — but only to
+    /// a peer that has already delivered a VP9 frame, since old peers decode the
+    /// unknown action as TakePicture.
+    public class RequestVideoKeyframe: Message, @unchecked Sendable {
+        public init() {
+            super.init(sender: nil)
+        }
+    }
 }
 
 
@@ -613,6 +624,20 @@ extension UICmd {
 
     /// Sent by WatchRemoteCameraController when exiting Watch Remote mode.
     public class UnbecomeWatchCamera: Message, @unchecked Sendable {}
+
+    /// A Watch `.requeststate` command routed into the coordinator so the reply is
+    /// authoritative: the coordinator answers `reply` with an encoded ack+state
+    /// message (Ok + snapshot in a watch state, `.notinwatchmode` otherwise). The
+    /// FIFO inbox guarantees the answer reflects the machine's real state, so an
+    /// Ok can never precede — and then lose — a separately-channelled state push.
+    public class RequestWatchStateReply: Message, @unchecked Sendable {
+        let reply: (Data) -> Void
+
+        init(reply: @escaping (Data) -> Void) {
+            self.reply = reply
+            super.init(sender: nil)
+        }
+    }
 
     /// Watch-initiated photo/video mode switch.
     public class SetWatchCameraMode: Message, @unchecked Sendable {

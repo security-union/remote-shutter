@@ -9,6 +9,7 @@ use_frameworks!
 target 'RemoteShutter' do
     pod 'SwiftLint', '~> 0.41.0'
     pod 'FlatBuffers', :podspec => 'LocalPodspecs/FlatBuffers.podspec.json'
+    pod 'VideocallCodecs', :path => 'Vendor/VideocallCodecs'
 
     target 'RemoteShutterTests' do
         inherit! :search_paths
@@ -18,6 +19,7 @@ end
 target 'RemoteShutterWatch' do
     platform :watchos, '10.0'
     pod 'FlatBuffers', :podspec => 'LocalPodspecs/FlatBuffers.podspec.json'
+    pod 'VideocallCodecs', :path => 'Vendor/VideocallCodecs'
 end
 
 post_install do |installer|

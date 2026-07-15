@@ -38,7 +38,7 @@ class WatchSessionManager: NSObject, ObservableObject {
     var isWatchReachable: Bool { false }
     func pushCameraState(_ snapshot: WatchCameraStateSnapshot) {}
     func pushDisconnectedState() {}
-    func pushPreviewFrame(jpeg: Data) {}
+    func pushPreviewFrame(payload: Data, codec: RemoteCmd.StreamCodec) {}
 }
 
 extension WatchSessionManager: WatchStatePushing {}
@@ -135,17 +135,20 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - Live Preview Streaming
 
-    /// Sends one preview JPEG to the Watch on the live channel, fire-and-forget — the
-    /// same proven delivery path as state pushes. Back-pressure is handled by the
-    /// `WatchPreviewStreamer`, which waits for the Watch's explicit "request next frame"
-    /// ack before releasing another. Never uses `updateApplicationContext`: that durable,
-    /// coalesced mirror is reserved for camera state and would fight the stream.
-    func pushPreviewFrame(jpeg: Data) {
+    /// Sends one codec-tagged preview frame (VP9/HEIC/JPEG) to the Watch on the live
+    /// channel, fire-and-forget — the same proven delivery path as state pushes.
+    /// Back-pressure is handled by the `WatchPreviewStreamer`, which waits for the
+    /// Watch's explicit "request next frame" ack before releasing another. Never uses
+    /// `updateApplicationContext`: that durable, coalesced mirror is reserved for
+    /// camera state and would fight the stream.
+    func pushPreviewFrame(payload: Data, codec: RemoteCmd.StreamCodec) {
         guard let session = wcSession, session.isReachable else { return }
 
         let epochMs = UInt64(Date().timeIntervalSince1970 * 1000)
-        let data = WatchPreviewFrameEncoder.encode(jpeg: jpeg, epochMs: epochMs)
-        debugLog("WatchSessionManager: pushing preview frame (\(data.count) bytes)")
+        let data = WatchPreviewFrameEncoder.encode(payload: payload,
+                                                   codec: toFBStreamCodec(codec),
+                                                   epochMs: epochMs)
+        debugLog("WatchSessionManager: pushing preview frame (\(data.count) bytes, codec \(codec))")
         session.sendMessageData(data, replyHandler: nil, errorHandler: { error in
             debugLog("WatchSessionManager: Failed to push preview frame: \(error)")
         })
@@ -196,7 +199,23 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
                  didReceiveMessageData messageData: Data,
                  replyHandler: @escaping (Data) -> Void) {
         debugLog("WatchSessionManager: didReceiveMessageData WITH reply (\(messageData.count) bytes)")
-        // Always reply — a dropped replyHandler surfaces as a timeout error on the Watch.
+
+        // The reply to `.requeststate` IS the state: route it into the coordinator
+        // so the answer is computed from the machine's real state (Ok + snapshot in
+        // a watch state, `.notinwatchmode` otherwise). This replaces the old
+        // synchronous Ok, which could "lie" — acking before a state push that a
+        // reachability race then silently dropped, stranding the Watch on "connecting".
+        if let decoded = WatchCommandEncoder.decode(messageData), decoded.action == .requeststate {
+            guard let controller = cameraController else {
+                replyHandler(WatchStateReplyEncoder.encode(status: .notinwatchmode, snapshot: nil))
+                return
+            }
+            controller.requestWatchStateReply(replyHandler)
+            return
+        }
+
+        // Every other command keeps its fast synchronous ack — a dropped replyHandler
+        // surfaces as a timeout error on the Watch.
         replyHandler(handleIncomingData(messageData))
     }
 

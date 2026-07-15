@@ -112,6 +112,11 @@ public class MonitorViewController: UIViewController {
                 session ! UICmd.StreamStalled()
             }
         }
+        frameStreamReceiver.onKeyframeNeeded = { [weak self] in
+            if let session = self?.session {
+                session ! UICmd.RequestVideoKeyframe()
+            }
+        }
         frameStreamReceiver.start()
         
         // Setup SwiftUI view instead of storyboard

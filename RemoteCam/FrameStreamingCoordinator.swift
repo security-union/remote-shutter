@@ -30,6 +30,10 @@ final class FrameStreamingCoordinator: NSObject {
     private let orientationProvider: () -> UIInterfaceOrientation
     /// True when the Apple Watch is the remote (no MultipeerConnectivity peer).
     private let isWatchRemoteMode: () -> Bool
+    /// The credit window has room — the lazy back-pressure gate for VP9.
+    private let frameCreditAvailable: () -> Bool
+    /// Reads-and-clears a monitor keyframe request (decoder re-sync).
+    private let takePeerKeyframeRequest: () -> Bool
 
     /// Dedicated context for the tiny Apple Watch preview, kept off the recording
     /// pipeline's crop context to avoid cross-queue contention.
@@ -40,34 +44,63 @@ final class FrameStreamingCoordinator: NSObject {
         queue: engine.dataOutputQueue,
         maxInFlight: StreamingConfig.default.watchPreviewMaxInFlight,
         ackTimeout: StreamingConfig.default.watchPreviewAckTimeout)
-    /// Streams preview frames to the phone monitor: paces, encodes (HEIC with
-    /// JPEG fallback), and hands frames to the FrameSender actor.
+    /// Streams preview frames to the phone monitor: paces, encodes, and hands
+    /// frames to the FrameSender actor. Uses VP9 (a stateful video stream, lazy
+    /// + credit-gated) whenever the codec is available at runtime — the monitor
+    /// is version-gated by the coordinator, so it can always decode VP9. Falls
+    /// back to HEIC/JPEG stills only when VP9 is unavailable at runtime (dev-only).
     /// Runs on `videoDataOutputQueue`.
-    private lazy var frameStreamer = FrameStreamer(send: frameSink)
-    /// Encoder chain for the Watch preview (HEIC with permanent JPEG fallback).
+    private lazy var frameStreamer = FrameStreamer(
+        creditAvailable: frameCreditAvailable,
+        takeKeyframeRequest: takePeerKeyframeRequest,
+        makeVP9Encoder: {
+            // Runtime-gated: nil on any arch without the VP9 codec, so the
+            // stream falls back to stills there (dev-only; every shipping arm64
+            // config has VP9).
+            guard VP9Support.isAvailable else { return nil }
+            let config = StreamingConfig.default
+            return VP9FrameEncoder(maxLongEdge: config.maxLongEdge, settings: config.peerVP9)
+        },
+        send: frameSink)
+    /// Encoder chain for the Watch preview, built from
+    /// `StreamingConfig.watchPreferredCodecs` (VP9 video stream first, with
+    /// permanent HEIC-then-JPEG still fallback).
     /// Runs on `videoDataOutputQueue` via `watchPreviewStreamer.offer`.
     private lazy var watchFrameEncoders: [FrameEncoding] = {
         let config = StreamingConfig.default
-        return [
-            HEICFrameEncoder(context: watchPreviewContext,
-                             maxLongEdge: config.watchMaxLongEdge,
-                             quality: config.watchHEICQuality),
-            JPEGFrameEncoder(context: watchPreviewContext,
-                             maxLongEdge: config.watchMaxLongEdge,
-                             quality: config.watchJPEGQuality)
-        ]
+        return config.watchPreferredCodecs.compactMap { codec in
+            switch codec {
+            case .vp9:
+                return VP9FrameEncoder(maxLongEdge: config.watchMaxLongEdge,
+                                       settings: config.watchVP9)
+            case .heic:
+                return HEICFrameEncoder(context: watchPreviewContext,
+                                        maxLongEdge: config.watchMaxLongEdge,
+                                        quality: config.watchHEICQuality)
+            case .jpeg:
+                return JPEGFrameEncoder(context: watchPreviewContext,
+                                        maxLongEdge: config.watchMaxLongEdge,
+                                        quality: config.watchJPEGQuality)
+            case .hevc:
+                return nil // never a watch codec (no VideoToolbox on watchOS)
+            }
+        }
     }()
 
     init(engine: CaptureEngine,
          pipeline: RecordingPipeline,
          orientationProvider: @escaping () -> UIInterfaceOrientation,
          isWatchRemoteMode: @escaping () -> Bool,
-         frameSink: @escaping FrameStreamer.Send) {
+         frameSink: @escaping FrameStreamer.Send,
+         frameCreditAvailable: @escaping () -> Bool = { true },
+         takePeerKeyframeRequest: @escaping () -> Bool = { false }) {
         self.engine = engine
         self.pipeline = pipeline
         self.orientationProvider = orientationProvider
         self.isWatchRemoteMode = isWatchRemoteMode
         self.frameSink = frameSink
+        self.frameCreditAvailable = frameCreditAvailable
+        self.takePeerKeyframeRequest = takePeerKeyframeRequest
     }
 
     /// The Watch acked the in-flight preview frame — let the streamer send the next.
@@ -79,6 +112,10 @@ final class FrameStreamingCoordinator: NSObject {
     /// first-frame watchdog (a suspended or stalled camera delivers nothing,
     /// forever). Written per-frame on the data queue, read from the watchdog.
     let lastVideoFrameAt = Locked<TimeInterval>(0)
+
+    /// Last Watch-preview codec announced at .info, so the selected format is
+    /// visible in Console without per-frame chatter. Capture-queue confined.
+    private var lastAnnouncedWatchCodec: RemoteCmd.StreamCodec?
 }
 
 extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegate,
@@ -105,7 +142,7 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
         // and the only consumer is the Apple Watch. The streamer applies ack back-pressure
         // and only invokes the encode when it's actually ready to send.
         if isWatchRemoteMode() {
-            watchPreviewStreamer.offer { [weak self] in self?.watchPreviewImageData(from: sampleBuffer) }
+            watchPreviewStreamer.offer { [weak self] in self?.watchPreviewFrame(from: sampleBuffer) }
             return
         }
 
@@ -116,14 +153,19 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
                              fps: fpsSetting.value)
     }
 
-    /// Builds a compact still of the current frame for the Apple Watch live
-    /// preview: long edge ~320 px (matching the Watch screen width), HEIC when
-    /// the hardware supports it (~half the bytes of JPEG, so roughly double the
-    /// frame rate over the WCSession pipe), JPEG otherwise. The Watch decodes
-    /// either transparently via UIImage(data:). The sample buffer is already
-    /// oriented by `videoConnection.videoOrientation`, so it renders upright.
-    private func watchPreviewImageData(from sampleBuffer: CMSampleBuffer) -> Data? {
+    /// Builds a compact frame of the current capture for the Apple Watch live
+    /// preview: long edge ~320 px (matching the Watch screen width), VP9 when
+    /// the codec runs (a fraction of a still's bytes), HEIC/JPEG still
+    /// otherwise. The payload is tagged with its codec so the Watch routes it
+    /// to the right decoder. The sample buffer is already oriented by
+    /// `videoConnection.videoOrientation`, so it renders upright.
+    private func watchPreviewFrame(from sampleBuffer: CMSampleBuffer) -> EncodedFrame? {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
-        return encodeWithFallback(&watchFrameEncoders, pixelBuffer: pixelBuffer)
+        let frame = encodeWithFallback(&watchFrameEncoders, pixelBuffer: pixelBuffer)
+        if let frame, frame.codec != lastAnnouncedWatchCodec {
+            lastAnnouncedWatchCodec = frame.codec
+            StreamLog.encode.info("Watch preview stream codec selected: \(String(describing: frame.codec))")
+        }
+        return frame
     }
 }

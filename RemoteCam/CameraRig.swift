@@ -43,7 +43,9 @@ final class CameraRig: @unchecked Sendable {
         pipeline: pipeline,
         orientationProvider: { [weak self] in self?.orientation ?? .portrait },
         isWatchRemoteMode: { [weak self] in self?.isWatchRemoteMode ?? false },
-        frameSink: { [frameSender] frame in frameSender.send(frame) })
+        frameSink: { [frameSender] frame in frameSender.send(frame) },
+        frameCreditAvailable: { [frameSender] in frameSender.hasCredit() },
+        takePeerKeyframeRequest: { [frameSender] in frameSender.takeKeyframeRequest() })
 
     var isRecording: Bool { pipeline.isRecording }
 
