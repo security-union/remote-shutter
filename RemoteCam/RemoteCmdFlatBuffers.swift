@@ -28,6 +28,7 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.TakePicResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
+    case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
@@ -687,6 +688,13 @@ extension RemoteCmd.PeerBecameMonitor {
     }
 }
 
+extension RemoteCmd.RequestKeyframe {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        return buildCommand(&fbb, action: .requestkeyframe)
+    }
+}
+
 extension RemoteCmd.ToggleFlash {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1019,6 +1027,9 @@ extension RemoteCmd {
                 shortVersion: params?.shortVersion ?? "0",
                 platform: params?.platform ?? "0"
             )
+
+        case .requestkeyframe:
+            return RequestKeyframe(sender: nil)
 
         case .toggleflash:
             return ToggleFlash()

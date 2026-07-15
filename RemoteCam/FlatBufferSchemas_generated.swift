@@ -28,8 +28,9 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case syncmonitorsettings = 17
   case setaspectratio = 18
   case selectcameradevice = 19
+  case requestkeyframe = 20
 
-  public static var max: RemoteShutter_CommandAction { return .selectcameradevice }
+  public static var max: RemoteShutter_CommandAction { return .requestkeyframe }
   public static var min: RemoteShutter_CommandAction { return .takepicture }
 }
 

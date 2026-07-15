@@ -15,6 +15,18 @@ import VideocallCodecs
 
 @testable import RemoteShutter
 
+/// One explicit fixture for every encoder test — `VP9Settings` has no field
+/// defaults on purpose (each stream states its full tuning), so tests do too.
+private extension VP9Settings {
+    static let test = VP9Settings(
+        bitrateKbps: 300,
+        fps: 30,
+        keyframeInterval: 30,
+        minQuantizer: 40,
+        maxQuantizer: 60,
+        cpuUsed: 7)
+}
+
 final class VP9StreamingTests: XCTestCase {
 
     // MARK: - Helpers
@@ -98,7 +110,7 @@ final class VP9StreamingTests: XCTestCase {
     // MARK: - VP9FrameEncoder pipeline (BGRA -> I420 -> VP9)
 
     func testFrameEncoderProducesDecodableDownscaledFrame() throws {
-        let encoder = VP9FrameEncoder(maxLongEdge: 100, settings: .init())
+        let encoder = VP9FrameEncoder(maxLongEdge: 100, settings: .test)
         let buffer = makeSolidPixelBuffer(width: 400, height: 200, blue: 128, green: 128, red: 128)
 
         let data = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: buffer)),
@@ -118,7 +130,7 @@ final class VP9StreamingTests: XCTestCase {
     }
 
     func testFrameEncoderStreamsConsecutiveFrames() throws {
-        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .init())
+        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .test)
         let decoder = Vp9Decoder()
         var decodedCount = 0
         for shade in [UInt8(60), 120, 180] {
@@ -141,7 +153,7 @@ final class VP9StreamingTests: XCTestCase {
     /// a fresh session whose first frame is a keyframe, so a decoder that joins
     /// at the new geometry (or lost the old stream) re-syncs immediately.
     func testFrameEncoderRestartsWithKeyframeOnGeometryChange() throws {
-        let encoder = VP9FrameEncoder(maxLongEdge: 100, settings: .init())
+        let encoder = VP9FrameEncoder(maxLongEdge: 100, settings: .test)
         let landscape = makeSolidPixelBuffer(width: 400, height: 200, blue: 200, green: 100, red: 50)
         _ = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: landscape)))
 
@@ -163,5 +175,74 @@ final class VP9StreamingTests: XCTestCase {
         }
         XCTAssertEqual(toFBStreamCodec(.vp9), .vp9)
         XCTAssertEqual(fromFBStreamCodec(.unknown), .jpeg, "legacy senders default to JPEG")
+    }
+
+    // MARK: - Version-gate decision
+
+    func testPeerCanDecodeVP9PreviewIsBundleVersionGated() {
+        let threshold = VP9PreviewCompatibility.minimumPeerBundleVersion
+        XCTAssertTrue(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: threshold),
+                      "the first VP9 release qualifies at exactly the threshold")
+        XCTAssertTrue(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: threshold + 5),
+                      "newer peers qualify")
+        XCTAssertFalse(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: threshold - 1),
+                       "a peer one build below the threshold cannot decode VP9")
+        XCTAssertFalse(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: 0),
+                       "unknown/legacy build (<= 0) also cannot decode VP9 — one check covers both")
+        XCTAssertFalse(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: -1))
+    }
+
+    func testForceKeyframeMakesNextFrameASelfContainedKeyframe() throws {
+        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .test)
+        let key = makeSolidPixelBuffer(width: 128, height: 64, blue: 90, green: 90, red: 90)
+        _ = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: key)), "first frame is a keyframe")
+
+        // Force a keyframe: the very next encoded frame must decode on a FRESH
+        // decoder (i.e. it is itself a keyframe, not a delta needing history).
+        encoder.forceKeyframe()
+        let next = makeSolidPixelBuffer(width: 128, height: 64, blue: 90, green: 90, red: 90)
+        let data = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: next)),
+                                 "forced keyframe must encode immediately")
+        XCTAssertNoThrow(try Vp9Decoder().decode(frame: data),
+                         "a forced keyframe must decode without any prior frame")
+    }
+}
+
+// MARK: - Monitor-side peer VP9 decoder
+
+final class PeerVP9PreviewDecoderTests: XCTestCase {
+
+    private func makeSolidPixelBuffer(width: Int, height: Int, shade: UInt8) -> CVPixelBuffer {
+        let buffer = makePixelBuffer(width: width, height: height)
+        CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+        let base = CVPixelBufferGetBaseAddress(buffer)!
+        let rowBytes = CVPixelBufferGetBytesPerRow(buffer)
+        for y in 0..<height {
+            let row = base.advanced(by: y * rowBytes).assumingMemoryBound(to: UInt8.self)
+            for x in 0..<width {
+                row[x * 4] = shade; row[x * 4 + 1] = shade; row[x * 4 + 2] = shade; row[x * 4 + 3] = 255
+            }
+        }
+        return buffer
+    }
+
+    func testDecodesKeyframeToImage() throws {
+        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .test)
+        let data = try XCTUnwrap(encodedData(encoder.encode(
+            pixelBuffer: makeSolidPixelBuffer(width: 128, height: 64, shade: 120))))
+
+        let decoder = PeerVP9PreviewDecoder()
+        let image = decoder.decode(data)
+        XCTAssertNotNil(image, "a keyframe must render an image")
+    }
+
+    /// A mid-stream delta frame with no keyframe first is undecodable — the
+    /// decoder returns nil (the caller then requests a keyframe), the exact
+    /// desync-recovery contract.
+    func testUndecodableFrameReturnsNil() {
+        let decoder = PeerVP9PreviewDecoder()
+        XCTAssertNil(decoder.decode(Data([0xDE, 0xAD, 0xBE, 0xEF])),
+                     "garbage/mid-stream data must not crash and must return nil")
     }
 }

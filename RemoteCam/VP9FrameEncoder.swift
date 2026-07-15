@@ -23,12 +23,12 @@ import CoreVideo
 import Accelerate
 import VideocallCodecs
 
-final class VP9FrameEncoder: FrameEncoding {
+final class VP9FrameEncoder: StreamVideoEncoding {
 
     let codec: RemoteCmd.StreamCodec = .vp9
 
     private let maxLongEdge: Int
-    private let settings: StreamingConfig.VP9Settings
+    private let settings: VP9Settings
 
     /// BGRA -> planar YpCbCr conversion tables, generated once.
     private var conversion = vImage_ARGBToYpCbCr()
@@ -46,7 +46,7 @@ final class VP9FrameEncoder: FrameEncoding {
     private var scaledBGRACapacity = 0
     private var i420 = Data()
 
-    init(maxLongEdge: CGFloat, settings: StreamingConfig.VP9Settings) {
+    init(maxLongEdge: CGFloat, settings: VP9Settings) {
         self.maxLongEdge = Int(maxLongEdge)
         self.settings = settings
 
@@ -68,6 +68,17 @@ final class VP9FrameEncoder: FrameEncoding {
 
     deinit {
         scaledBGRA?.deallocate()
+    }
+
+    /// Forces the next encoded frame to be a keyframe by dropping the current
+    /// Rust session; `encode` remakes it on the next call and a fresh session's
+    /// first frame is always a keyframe. Capture-queue confined like `encode` —
+    /// answers a monitor's RequestKeyframe so a desynced decoder re-syncs
+    /// immediately instead of waiting for the periodic keyframe.
+    func forceKeyframe() {
+        session = nil
+        sessionWidth = 0
+        sessionHeight = 0
     }
 
     func encode(pixelBuffer: CVPixelBuffer) -> FrameEncodeResult {

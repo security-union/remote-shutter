@@ -578,6 +578,126 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(monitorState, .monitor)
     }
 
+    // MARK: - VP9 preview version gate
+
+    /// Puts the camera-side session into `.camera` with a fake capture device.
+    private func enterCameraState() async -> LoopbackFakeCamera {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        cameraTransport.sentMessages.removeAll()
+        return fakeCamera
+    }
+
+    /// A version-qualified monitor (bundleVersion >= threshold) is answered
+    /// normally: the camera stays in `.camera` and broadcasts capabilities, then
+    /// streams VP9 to it. No capability handshake, no incompatibility.
+    func testQualifiedMonitorIsAcceptedAndAnswered() async {
+        let threshold = VP9PreviewCompatibility.minimumPeerBundleVersion
+        _ = await enterCameraState()
+
+        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: threshold, shortVersion: "7.0", platform: "iPhone"))
+        await drainBothSessions()
+
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .camera, "a qualified monitor keeps the camera streaming")
+        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.CameraCapabilitiesResp },
+                      "the camera answers a qualified monitor with capabilities")
+    }
+
+    /// A monitor too old to decode VP9 (0 < bundleVersion < threshold) is sent to
+    /// the update-required flow: the camera pops to scanning and never answers it
+    /// (no stills fallback, no capability negotiation).
+    func testOutOfDateMonitorIsToldToUpdate() async {
+        let old = VP9PreviewCompatibility.minimumPeerBundleVersion - 1
+        _ = await enterCameraState()
+
+        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: old, shortVersion: "6.9", platform: "iPhone"))
+        await drainBothSessions()
+
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .scanning, "an out-of-date monitor sends the camera to update/scanning")
+        XCTAssertFalse(cameraTransport.sentMessages.contains { $0 is RemoteCmd.CameraCapabilitiesResp },
+                       "the camera must not answer a monitor that can't decode its VP9 stream")
+    }
+
+    /// The legacy `bundleVersion <= 0` (unknown build) case behaves as before:
+    /// the same incompatibility flow, now via the single version check.
+    func testUnknownBuildMonitorStillTreatedAsIncompatible() async {
+        _ = await enterCameraState()
+
+        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: 0, shortVersion: "0", platform: "iPhone"))
+        await drainBothSessions()
+
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .scanning, "an unknown-build (<= 0) monitor is still incompatible")
+    }
+
+    // MARK: - VP9 keyframe recovery
+
+    /// Once the monitor has received a VP9 frame, a decoder desync sends
+    /// RequestKeyframe, which reaches the camera and forces a keyframe.
+    func testKeyframeRequestRoundTripAfterVP9Frame() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Photo)
+
+        // The camera's FrameSender is where a keyframe request lands.
+        let cameraFrameSender = FrameSender(coordinator: cameraCoordinator)
+        cameraCoordinator.setFrameSender(cameraFrameSender)
+        monitorTransport.sentMessages.removeAll()
+
+        // The monitor received a VP9 frame (as the transport would deliver one).
+        monitorCoordinator.tell(vp9Frame())
+        await drainBothSessions()
+
+        monitorCoordinator.tell(UICmd.RequestVideoKeyframe())
+        await drainBothSessions()
+
+        XCTAssertTrue(monitorTransport.sentMessages.contains { $0 is RemoteCmd.RequestKeyframe },
+                      "a desync after a VP9 frame must send RequestKeyframe")
+        XCTAssertTrue(cameraFrameSender.takeKeyframeRequest(),
+                      "the camera must forward the request to its VP9 streamer")
+        // The camera did not misread it as a photo request.
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .camera)
+    }
+
+    /// The old-peer gate: a keyframe request is NEVER sent before a VP9 frame has
+    /// been seen — an old camera decodes the unknown action as TakePicture.
+    func testKeyframeRequestGatedUntilVP9FrameSeen() async {
+        let fakeCamera = await connectCameraAndMonitor()
+        monitorTransport.sentMessages.removeAll()
+
+        // No VP9 frame has arrived yet.
+        monitorCoordinator.tell(UICmd.RequestVideoKeyframe())
+        await drainBothSessions()
+
+        XCTAssertFalse(monitorTransport.sentMessages.contains { $0 is RemoteCmd.RequestKeyframe },
+                       "RequestKeyframe must be gated on having received a VP9 frame")
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty,
+                      "an ungated request would decode as TakePicture on an old peer")
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+    }
+
+    /// Builds an OnFrame the way the transport delivers a camera VP9 frame.
+    private func vp9Frame() -> RemoteCmd.OnFrame {
+        RemoteCmd.OnFrame(
+            data: Data([1, 2, 3]), sender: nil, peerId: cameraTransport.localPeerID,
+            fps: 30, camPosition: .back, camOrientation: .portrait,
+            codec: .vp9, sequenceNumber: 1)
+    }
+
     /// The full 3-step stop protocol across both machines:
     /// StopRecordingVideo → StopRecordingVideoAck → StopRecordingVideoResp.
     func testVideoRecordingStartStopProtocolAcrossTheWire() async {

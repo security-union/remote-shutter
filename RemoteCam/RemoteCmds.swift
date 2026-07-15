@@ -181,6 +181,18 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Monitor -> camera: force the next VP9 preview frame to be a keyframe so a
+    /// desynced decoder (joined mid-stream, dropped a delta frame) can re-sync
+    /// without waiting for the camera's periodic keyframe. The monitor only
+    /// sends this after it has received at least one VP9 frame, which proves the
+    /// peer is a VP9-speaking build — old decoders read the unknown action as
+    /// TakePicture, so the gate mirrors the SelectCameraDevice precedent.
+    public class RequestKeyframe: Message, @unchecked Sendable {
+        public override init(sender: AnyObject?) {
+            super.init(sender: sender)
+        }
+    }
+
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
         public let peerId: MCPeerID

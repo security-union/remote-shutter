@@ -42,6 +42,16 @@ final class FrameSender {
     private var transport: (any MultipeerServiceProtocol)?
     private var hasSession = false
 
+    /// Cross-queue mirror of `window.hasCredit`, so the capture-queue frame
+    /// streamer can gate VP9 encoding on back-pressure without hopping onto this
+    /// queue. Updated inside `queue` on every window change.
+    private let creditAvailableMirror = Locked<Bool>(true)
+
+    /// Set by the coordinator when the monitor requests a keyframe (decoder
+    /// re-sync); read-and-cleared once by the frame streamer on the capture
+    /// queue, which forces the next VP9 frame to be a keyframe.
+    private let keyframeRequestPending = Locked<Bool>(false)
+
     /// Send failures pop the session to scanning (via the inbox).
     weak var coordinator: SessionCoordinator?
 
@@ -59,7 +69,23 @@ final class FrameSender {
             self.hasSession = true
             self.peer = peer
             self.transport = transport
+            self.refreshCreditMirror()
         }
+    }
+
+    /// Whether the credit window currently has room. Safe to call from any
+    /// thread (reads the lock-boxed mirror); the capture-queue frame streamer
+    /// uses it to gate VP9 encoding.
+    func hasCredit() -> Bool { creditAvailableMirror.value }
+
+    /// The monitor asked for a keyframe — arm it. Safe from any thread.
+    func requestKeyframe() { keyframeRequestPending.value = true }
+
+    /// Reads-and-clears a pending keyframe request (capture queue).
+    func takeKeyframeRequest() -> Bool {
+        var pending = false
+        keyframeRequestPending.mutate { pending = $0; $0 = false }
+        return pending
     }
 
     /// Offer a frame; sends if the credit window allows, drops otherwise.
@@ -67,18 +93,32 @@ final class FrameSender {
     func send(_ frame: RemoteCmd.SendFrame) {
         queue.async {
             guard self.hasSession, let peer = self.peer, let transport = self.transport else { return }
-            guard self.window.hasCredit else { return } // back-pressure: drop until a credit frees
-            // ALWAYS .unreliable for frames: a live viewfinder shows the
-            // newest frame or nothing — reliable mode queues and retransmits,
-            // turning any network hiccup into an ever-staler laggy stream.
-            // MC's datagram channel negotiates for ~10s after "Connected" and
-            // drops sends until ready; that is solved by warming the channel
-            // at session connect, never by switching frames to reliable.
-            if transport.send(frame, to: [peer], mode: .unreliable).isFailure() {
+            let isVideo = frame.codec == .vp9
+            if !isVideo {
+                // Stills are independent frames: drop under back-pressure so a
+                // network hiccup can't build a stale queue. VP9 is gated BEFORE
+                // encode (FrameStreamer only encodes with credit), so a VP9
+                // frame reaching here already has room — dropping it would
+                // corrupt the stateful stream, so it is never dropped here.
+                guard self.window.hasCredit else { return }
+            }
+            // Transport mode is codec-specific:
+            //  • Stills go .unreliable — a live viewfinder shows the newest
+            //    frame or nothing; reliable mode would queue+retransmit stale
+            //    frames, turning any hiccup into an ever-staler laggy stream.
+            //  • VP9 is a stateful stream: a dropped delta frame corrupts decode
+            //    until a keyframe, so it goes .reliable. The credit window
+            //    (applied at encode time) keeps the reliable queue from ever
+            //    building up, and a lost-ack watchdog frees it if acks stop.
+            // MC's datagram channel negotiates for ~10s after "Connected"; that
+            // is solved by warming the channel at peer connect.
+            let mode: MCSessionSendDataMode = isVideo ? .reliable : .unreliable
+            if transport.send(frame, to: [peer], mode: mode).isFailure() {
                 self.coordinator?.tell(FrameSendFailed())
                 return
             }
             self.window.acquire()
+            self.refreshCreditMirror()
             self.armAckWatchdog()
         }
     }
@@ -87,6 +127,7 @@ final class FrameSender {
     func receiveAck(_ request: RemoteCmd.RequestFrame) {
         queue.async {
             self.window.release()
+            self.refreshCreditMirror()
             // Keep guarding any frames still outstanding; stand the watchdog
             // down (by bumping the generation) once the window is empty.
             if self.window.isEmpty {
@@ -95,6 +136,13 @@ final class FrameSender {
                 self.armAckWatchdog()
             }
         }
+    }
+
+    /// Republishes the credit-available mirror. Call inside `queue` after every
+    /// window mutation.
+    private func refreshCreditMirror() {
+        dispatchPrecondition(condition: .onQueue(queue))
+        creditAvailableMirror.value = window.hasCredit
     }
 
     private func armAckWatchdog() {
@@ -112,6 +160,7 @@ final class FrameSender {
         StreamLog.transport.info(
             "ack watchdog fired after \(Self.ackTimeout, format: .fixed(precision: 1))s — resetting window")
         window.reset()
+        refreshCreditMirror()
     }
 
     // MARK: - Test support

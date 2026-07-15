@@ -46,6 +46,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.TakePicResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
+        case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
@@ -590,6 +591,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.bundleVersion, 65)
         XCTAssertEqual(decoded.shortVersion, "4.14.1")
         XCTAssertEqual(decoded.platform, "iPad")
+    }
+
+    func testRequestKeyframe_roundTrip() {
+        let original = RemoteCmd.RequestKeyframe(sender: nil)
+        let decoded: RemoteCmd.RequestKeyframe = roundTrip(original)
+        XCTAssertNotNil(decoded)
     }
 
     // MARK: - 18. ToggleFlash
