@@ -39,6 +39,13 @@ final class WatchVP9PreviewDecoder {
     private var conversion = vImage_YpCbCrToARGB()
     /// Identity channel order: emit A,R,G,B exactly as the CGImage expects.
     private let identityPermute: [UInt8] = [0, 1, 2, 3]
+    /// Reused ARGB destination for every frame — allocating a fresh buffer per
+    /// frame at stream rate churns memory. vImage converts into the context's
+    /// backing store in place; `makeImage()` snapshots it with copy-on-write
+    /// pages, so overwriting it for the next frame cannot corrupt an image
+    /// already handed out. Recreated only when the stream dimensions change.
+    /// Queue-confined like the decoder.
+    private var argbContext: CGContext?
 
     init(maxFailureStreak: Int = 30) {
         self.maxFailureStreak = maxFailureStreak
@@ -97,44 +104,40 @@ final class WatchVP9PreviewDecoder {
         guard width > 0, height > 0,
               decoded.data.count >= lumaBytes + 2 * chromaBytes else { return nil }
 
-        var argb = Data(count: width * height * 4)
-        let converted: Bool = argb.withUnsafeMutableBytes { dstRaw in
-            guard let dstBase = dstRaw.baseAddress else { return false }
-            return decoded.data.withUnsafeBytes { srcRaw -> Bool in
-                guard let srcBase = srcRaw.baseAddress else { return false }
-                var yp = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: srcBase),
-                                       height: vImagePixelCount(height),
-                                       width: vImagePixelCount(width),
-                                       rowBytes: width)
-                var cb = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: srcBase + lumaBytes),
-                                       height: vImagePixelCount(chromaHeight),
-                                       width: vImagePixelCount(chromaWidth),
-                                       rowBytes: chromaWidth)
-                var cr = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: srcBase + lumaBytes + chromaBytes),
-                                       height: vImagePixelCount(chromaHeight),
-                                       width: vImagePixelCount(chromaWidth),
-                                       rowBytes: chromaWidth)
-                var dst = vImage_Buffer(data: dstBase,
-                                        height: vImagePixelCount(height),
-                                        width: vImagePixelCount(width),
-                                        rowBytes: width * 4)
-                return vImageConvert_420Yp8_Cb8_Cr8ToARGB8888(
-                    &yp, &cb, &cr, &dst, &conversion, identityPermute, 255,
-                    vImage_Flags(kvImageNoFlags)) == kvImageNoError
-            }
-        }
-        guard converted else { return nil }
-
-        guard let provider = CGDataProvider(data: argb as CFData),
-              let cgImage = CGImage(
+        if argbContext == nil || argbContext?.width != width || argbContext?.height != height {
+            argbContext = CGContext(
+                data: nil,                       // CG owns (and reuses) the buffer
                 width: width, height: height,
-                bitsPerComponent: 8, bitsPerPixel: 32,
-                bytesPerRow: width * 4,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,                  // CG picks an aligned stride
                 space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipFirst.rawValue),
-                provider: provider, decode: nil,
-                shouldInterpolate: false,
-                intent: .defaultIntent) else { return nil }
+                bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue)
+        }
+        guard let context = argbContext, let dstBase = context.data else { return nil }
+
+        let converted: Bool = decoded.data.withUnsafeBytes { srcRaw -> Bool in
+            guard let srcBase = srcRaw.baseAddress else { return false }
+            var yp = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: srcBase),
+                                   height: vImagePixelCount(height),
+                                   width: vImagePixelCount(width),
+                                   rowBytes: width)
+            var cb = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: srcBase + lumaBytes),
+                                   height: vImagePixelCount(chromaHeight),
+                                   width: vImagePixelCount(chromaWidth),
+                                   rowBytes: chromaWidth)
+            var cr = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: srcBase + lumaBytes + chromaBytes),
+                                   height: vImagePixelCount(chromaHeight),
+                                   width: vImagePixelCount(chromaWidth),
+                                   rowBytes: chromaWidth)
+            var dst = vImage_Buffer(data: dstBase,
+                                    height: vImagePixelCount(height),
+                                    width: vImagePixelCount(width),
+                                    rowBytes: context.bytesPerRow)
+            return vImageConvert_420Yp8_Cb8_Cr8ToARGB8888(
+                &yp, &cb, &cr, &dst, &conversion, identityPermute, 255,
+                vImage_Flags(kvImageNoFlags)) == kvImageNoError
+        }
+        guard converted, let cgImage = context.makeImage() else { return nil }
         return UIImage(cgImage: cgImage)
     }
 }
