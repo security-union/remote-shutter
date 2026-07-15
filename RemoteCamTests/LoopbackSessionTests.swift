@@ -637,6 +637,36 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertFalse(enabled, "no VP9 without a local encoder, even to a VP9 monitor")
     }
 
+    /// VP9 negotiation is per-connection, not per-state-entry: it must survive a
+    /// photo capture (which re-enters .camera and re-binds the FrameSender). A
+    /// regression guard — clearing it on re-bind would kill VP9 after one photo.
+    func testVP9SupportSurvivesPhotoCapture() async {
+        await connectBothSessions()
+        await cameraCoordinator.setLocalVP9Available(true)
+        await monitorCoordinator.setLocalVP9Available(true)
+
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.coordinator = cameraCoordinator
+        let cameraFrameSender = FrameSender(coordinator: cameraCoordinator)
+        cameraCoordinator.setFrameSender(cameraFrameSender)
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Photo)
+
+        XCTAssertTrue(cameraFrameSender.peerSupportsVP9.value, "VP9 enabled after negotiation")
+
+        // Take a photo — the camera walks .camera -> takingPic -> back to .camera.
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: false))
+        await drainBothSessions()
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .camera)
+
+        XCTAssertTrue(cameraFrameSender.peerSupportsVP9.value,
+                      "VP9 must still be enabled after a photo re-enters .camera")
+        let stillNegotiated = await cameraCoordinator.peerSupportsVP9PreviewForTesting()
+        XCTAssertTrue(stillNegotiated)
+    }
+
     // MARK: - VP9 keyframe recovery
 
     /// Once the monitor has received a VP9 frame, a decoder desync sends

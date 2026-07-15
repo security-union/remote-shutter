@@ -67,10 +67,12 @@ final class FrameSender {
     /// Binds the streaming target. Re-binding (each time the camera state is
     /// re-entered) resets the credit window, matching the old re-become.
     func setSession(peer: MCPeerID, transport: any MultipeerServiceProtocol) {
-        // A re-bind is a fresh connection: the new monitor re-advertises VP9
-        // (or doesn't), so drop the previous negotiation until it does.
-        peerSupportsVP9.value = false
-        keyframeRequestPending.value = false
+        // NOTE: this re-binds on every camera-state (re-)entry — e.g. after
+        // taking a photo — within the SAME connection, so it must NOT touch the
+        // VP9 negotiation. That is per-connection state (the monitor advertises
+        // it once, on PeerBecameMonitor) and is reset by the coordinator on
+        // popToScanning, not here; clearing it here would drop VP9 after the
+        // first photo and never recover.
         queue.async {
             if self.hasSession {
                 self.window.reset()
