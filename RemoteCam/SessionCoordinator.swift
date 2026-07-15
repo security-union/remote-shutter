@@ -928,6 +928,9 @@ public actor SessionCoordinator {
             ctrl = become.ctrl
             await transition(to: .watchCamera)
 
+        case let request as UICmd.RequestWatchStateReply:
+            await replyWithWatchState(request)
+
         case let rejected as UICmd.BecomeCamera:
             rejected.ctrl.exitCamera()
 
@@ -1696,6 +1699,34 @@ public actor SessionCoordinator {
     }
 
     // MARK: - Watch state snapshot
+
+    /// True while the machine is in any Watch Remote camera state.
+    private var isInWatchState: Bool {
+        switch state {
+        case .watchCamera, .watchCameraTakingPic, .watchCameraStartingVideo, .watchCameraRecordingVideo:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Answers a Watch `.requeststate` command authoritatively. In a watch state the
+    /// reply carries `Ok` plus the full camera snapshot (freshly epoch-stamped, like
+    /// `pushCameraState`); otherwise it truthfully reports `.notinwatchmode`. This is
+    /// the one place the "phone is ready" verdict and the snapshot travel together, so
+    /// the Watch never receives an Ok that isn't backed by state.
+    private func replyWithWatchState(_ request: UICmd.RequestWatchStateReply) async {
+        guard isInWatchState, let ctrl else {
+            request.reply(WatchStateReplyEncoder.encode(status: .notinwatchmode, snapshot: nil))
+            return
+        }
+        var snapshot = await Self.watchStateSnapshot(
+            ctrl: ctrl,
+            isBackgrounded: isPhoneBackgrounded(),
+            countdownRemaining: watchCountdownRemaining)
+        snapshot.stateEpochMs = UInt64(Date().timeIntervalSince1970 * 1000)
+        request.reply(WatchStateReplyEncoder.encode(status: .ok, snapshot: snapshot))
+    }
 
     func pushWatchState(event: RemoteShutter_WatchEventType = .unknown) async {
         guard let ctrl else { return }

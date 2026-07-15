@@ -21,12 +21,11 @@ struct RemoteShutterWatchApp: App {
                 .environmentObject(appDelegate.sessionDelegate)
         }
         .onChange(of: scenePhase) { _, newPhase in
-            // Reopening the app must re-sync: activation/reachability callbacks
-            // don't fire when the app resumes while the phone stayed reachable,
-            // and whatever state we last showed may be long stale.
-            if newPhase == .active {
-                appDelegate.sessionDelegate.requestState()
-            }
+            // Drive the state poll loop from the scene phase. Reopening must re-sync
+            // (activation/reachability callbacks don't fire when the app resumes while
+            // the phone stayed reachable, and the last state shown may be long stale);
+            // deactivating stops polling so the Watch isn't chattering in the pocket.
+            appDelegate.sessionDelegate.setActive(newPhase == .active)
         }
     }
 }

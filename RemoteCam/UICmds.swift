@@ -614,6 +614,20 @@ extension UICmd {
     /// Sent by WatchRemoteCameraController when exiting Watch Remote mode.
     public class UnbecomeWatchCamera: Message, @unchecked Sendable {}
 
+    /// A Watch `.requeststate` command routed into the coordinator so the reply is
+    /// authoritative: the coordinator answers `reply` with an encoded ack+state
+    /// message (Ok + snapshot in a watch state, `.notinwatchmode` otherwise). The
+    /// FIFO inbox guarantees the answer reflects the machine's real state, so an
+    /// Ok can never precede — and then lose — a separately-channelled state push.
+    public class RequestWatchStateReply: Message, @unchecked Sendable {
+        let reply: (Data) -> Void
+
+        init(reply: @escaping (Data) -> Void) {
+            self.reply = reply
+            super.init(sender: nil)
+        }
+    }
+
     /// Watch-initiated photo/video mode switch.
     public class SetWatchCameraMode: Message, @unchecked Sendable {
         let mode: RecordingMode
