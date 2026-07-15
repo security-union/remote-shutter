@@ -112,7 +112,7 @@ enum AspectRatioEnum : byte {
 // Payload format of FrameData.image_data. Unknown = legacy peer that predates
 // this field — treat as JPEG. HEVC is reserved for the video-codec follow-up.
 // VP9 is a stateful video stream (videocall-codecs): keyframe first, then
-// inter frames in order — currently used on the Watch preview channel.
+// inter frames in order.
 enum StreamCodec : byte {
     Unknown = 0,
     JPEG = 1,
