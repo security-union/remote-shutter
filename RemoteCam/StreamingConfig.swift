@@ -12,12 +12,17 @@ import CoreGraphics
 
 struct StreamingConfig {
 
-    /// Still codecs to try for the phone-monitor (peer) stream, in order. The
-    /// streamer permanently falls back to the next entry when an encoder fails
-    /// (e.g. HEIC on hardware without an HEVC encoder). VP9 is NOT in this
-    /// chain: it is a stateful video stream managed separately (lazy,
-    /// credit-gated) and only enabled once the monitor advertises VP9 decode
-    /// support — an old peer would render VP9 bytes as a broken still.
+    /// Still codecs to try for the phone-monitor (peer) stream, in order. This
+    /// chain only holds self-contained encodings of a single frame, which makes
+    /// per-frame fallback meaningful: when an encoder fails (e.g. HEIC on
+    /// hardware without an HEVC encoder) the streamer re-encodes that same
+    /// frame with the next entry and steps down permanently. VP9 is NOT in
+    /// this chain because a VP9 frame is a delta against decoder state, not a
+    /// standalone picture — no still can substitute for it, and mixing codecs
+    /// mid-stream corrupts the decode. Whether to stream VP9 at all is a
+    /// per-session mode decision made elsewhere (runtime encoder availability
+    /// + the peer bundleVersion gate in VP9PreviewCompatibility); this chain
+    /// is what runs when that mode is off.
     var preferredCodecs: [RemoteCmd.StreamCodec] = [.heic, .jpeg]
 
     /// Long edge of the frame sent to the phone monitor. Replaces the old
