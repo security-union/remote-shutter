@@ -15,6 +15,18 @@ import VideocallCodecs
 
 @testable import RemoteShutter
 
+/// One explicit fixture for every encoder test — `VP9Settings` has no field
+/// defaults on purpose (each stream states its full tuning), so tests do too.
+private extension VP9Settings {
+    static let test = VP9Settings(
+        bitrateKbps: 300,
+        fps: 30,
+        keyframeInterval: 30,
+        minQuantizer: 40,
+        maxQuantizer: 60,
+        cpuUsed: 7)
+}
+
 final class VP9StreamingTests: XCTestCase {
 
     // MARK: - Helpers
@@ -98,7 +110,7 @@ final class VP9StreamingTests: XCTestCase {
     // MARK: - VP9FrameEncoder pipeline (BGRA -> I420 -> VP9)
 
     func testFrameEncoderProducesDecodableDownscaledFrame() throws {
-        let encoder = VP9FrameEncoder(maxLongEdge: 100, settings: .init())
+        let encoder = VP9FrameEncoder(maxLongEdge: 100, settings: .test)
         let buffer = makeSolidPixelBuffer(width: 400, height: 200, blue: 128, green: 128, red: 128)
 
         let data = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: buffer)),
@@ -118,7 +130,7 @@ final class VP9StreamingTests: XCTestCase {
     }
 
     func testFrameEncoderStreamsConsecutiveFrames() throws {
-        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .init())
+        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .test)
         let decoder = Vp9Decoder()
         var decodedCount = 0
         for shade in [UInt8(60), 120, 180] {
@@ -141,7 +153,7 @@ final class VP9StreamingTests: XCTestCase {
     /// a fresh session whose first frame is a keyframe, so a decoder that joins
     /// at the new geometry (or lost the old stream) re-syncs immediately.
     func testFrameEncoderRestartsWithKeyframeOnGeometryChange() throws {
-        let encoder = VP9FrameEncoder(maxLongEdge: 100, settings: .init())
+        let encoder = VP9FrameEncoder(maxLongEdge: 100, settings: .test)
         let landscape = makeSolidPixelBuffer(width: 400, height: 200, blue: 200, green: 100, red: 50)
         _ = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: landscape)))
 
@@ -181,7 +193,7 @@ final class VP9StreamingTests: XCTestCase {
     }
 
     func testForceKeyframeMakesNextFrameASelfContainedKeyframe() throws {
-        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .init())
+        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .test)
         let key = makeSolidPixelBuffer(width: 128, height: 64, blue: 90, green: 90, red: 90)
         _ = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: key)), "first frame is a keyframe")
 
@@ -216,7 +228,7 @@ final class PeerVP9PreviewDecoderTests: XCTestCase {
     }
 
     func testDecodesKeyframeToImage() throws {
-        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .init())
+        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .test)
         let data = try XCTUnwrap(encodedData(encoder.encode(
             pixelBuffer: makeSolidPixelBuffer(width: 128, height: 64, shade: 120))))
 

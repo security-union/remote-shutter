@@ -10,6 +10,34 @@
 import Foundation
 import CoreGraphics
 
+/// Tuning for one VP9 preview stream (videocall-codecs / libvpx realtime).
+/// Every field is deliberately defaulted-free: each stream (peer, Watch)
+/// states its full configuration at the construction site, so the two can be
+/// compared side by side in `StreamingConfig` instead of hiding behind
+/// struct defaults.
+struct VP9Settings {
+    /// Target bitrate of the encoded stream.
+    var bitrateKbps: UInt32
+    /// Encoder timebase fps. Actual delivery is paced by the transport's
+    /// ack/credit round-trips, not by this value.
+    var fps: UInt32
+    /// Forced keyframe every N frames. Bounds decoder re-sync latency after
+    /// any desync: a receiver recovers in at most N frames even if its
+    /// keyframe request is lost.
+    var keyframeInterval: UInt32
+    /// VP9 quantizer window, valid 0–63; lower = better quality, more bits.
+    /// The encoder moves inside [min, max] to hold `bitrateKbps`.
+    var minQuantizer: UInt32
+    var maxQuantizer: UInt32
+    /// libvpx speed preset (`VP9E_SET_CPUUSED`). Valid realtime range 0–9:
+    /// higher = faster encode at lower quality per bit, and values >= 5
+    /// additionally enable realtime-only shortcuts. Both previews encode on
+    /// the capture queue, so this stays near the fast end (7) — dropping it
+    /// below ~5 risks stalling frame delivery for quality the preview
+    /// doesn't need.
+    var cpuUsed: UInt8
+}
+
 struct StreamingConfig {
 
     /// Still codecs to try for the phone-monitor (peer) stream, in order. This
@@ -31,20 +59,25 @@ struct StreamingConfig {
     var heicQuality: CGFloat = 0.5
     var jpegQuality: CGFloat = 0.6
 
-    /// VP9 tuning for the phone-monitor (peer) preview: a bigger frame (960 px)
-    /// and a higher bitrate than the Watch's 320 px stream. The first frame of
-    /// every encoder session is a keyframe, and a forced keyframe every
-    /// `keyframeInterval` bounds decoder re-sync latency after any desync.
-    var peerVP9 = VP9Settings(bitrateKbps: 800, fps: 30, keyframeInterval: 30,
-                              minQuantizer: 32, maxQuantizer: 56, cpuUsed: 7)
+    /// VP9 tuning for the phone-monitor (peer) preview at 960 px
+    /// (`maxLongEdge`). Values tuned on hardware: 300 kbps holds a smooth
+    /// preview over MultipeerConnectivity without queue growth.
+    var peerVP9 = VP9Settings(
+        bitrateKbps: 300,
+        fps: 30,
+        keyframeInterval: 30,
+        minQuantizer: 40,
+        maxQuantizer: 56,
+        cpuUsed: 7)
 
-    /// Send every Nth capture callback (30fps capture / 2 = 15fps offered).
-    var frameDivisor: Int = 2
+    /// Offer every Nth capture callback to the peer stream (1 = full capture
+    /// rate; the credit window, not this divisor, is the real pacing).
+    var frameDivisor: Int = 1
 
     /// Phone-monitor (peer) frame back-pressure window: how many frames may be in
-    /// flight (sent, not yet acked via `RemoteCmd.RequestFrame`) at once. Mirrors the
-    /// Watch preview window — see `watchPreviewMaxInFlight`.
-    var peerMaxInFlight: Int = 5
+    /// flight (sent, not yet acked via `RemoteCmd.RequestFrame`) at once. Same
+    /// mechanism as `watchPreviewMaxInFlight`, tuned independently.
+    var peerMaxInFlight: Int = 10
     /// Re-opens the peer window if no `RequestFrame` ack arrives within this long, so a
     /// lost ack can't wedge the stream.
     var peerAckTimeout: TimeInterval = 1.0
@@ -60,24 +93,16 @@ struct StreamingConfig {
     var watchHEICQuality: CGFloat = 0.5
     var watchJPEGQuality: CGFloat = 0.55
 
-    /// VP9 tuning for the Watch preview stream (videocall-codecs). Inter frames
-    /// are a fraction of a still's size, so the same WCSession byte budget
-    /// carries more frames per second than HEIC/JPEG stills.
-    struct VP9Settings {
-        /// Target bitrate for the ~320 px preview.
-        var bitrateKbps: UInt32 = 300
-        /// Encoder timebase fps (WCSession round-trips pace actual delivery).
-        var fps: UInt32 = 30
-        /// Forced keyframe every N frames: after a dropped/undecodable frame the
-        /// Watch re-syncs in at most N frames (~3 s at ~10 fps delivered).
-        var keyframeInterval: UInt32 = 30
-        /// VP9 quantizer window (0-63, lower = better quality).
-        var minQuantizer: UInt32 = 40
-        var maxQuantizer: UInt32 = 60
-        /// Fastest speed preset — encode runs on the capture queue.
-        var cpuUsed: UInt8 = 7
-    }
-    var watchVP9 = VP9Settings()
+    /// VP9 tuning for the Watch preview stream at 320 px (`watchMaxLongEdge`).
+    /// Inter frames are a fraction of a still's size, so the same WCSession
+    /// byte budget carries more frames per second than HEIC/JPEG stills.
+    var watchVP9 = VP9Settings(
+        bitrateKbps: 300,
+        fps: 30,
+        keyframeInterval: 30,
+        minQuantizer: 40,
+        maxQuantizer: 60,
+        cpuUsed: 7)
 
     /// Apple Watch preview back-pressure window: how many frames may be in flight
     /// (sent, not yet acked) at once. >1 keeps the pipe full while acks travel back

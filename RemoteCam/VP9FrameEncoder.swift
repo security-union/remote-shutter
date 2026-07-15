@@ -28,7 +28,7 @@ final class VP9FrameEncoder: StreamVideoEncoding {
     let codec: RemoteCmd.StreamCodec = .vp9
 
     private let maxLongEdge: Int
-    private let settings: StreamingConfig.VP9Settings
+    private let settings: VP9Settings
 
     /// BGRA -> planar YpCbCr conversion tables, generated once.
     private var conversion = vImage_ARGBToYpCbCr()
@@ -46,7 +46,7 @@ final class VP9FrameEncoder: StreamVideoEncoding {
     private var scaledBGRACapacity = 0
     private var i420 = Data()
 
-    init(maxLongEdge: CGFloat, settings: StreamingConfig.VP9Settings) {
+    init(maxLongEdge: CGFloat, settings: VP9Settings) {
         self.maxLongEdge = Int(maxLongEdge)
         self.settings = settings
 
