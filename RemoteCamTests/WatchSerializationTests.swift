@@ -187,6 +187,51 @@ final class WatchSerializationTests: XCTestCase {
         XCTAssertNil(WatchStateEncoder.decode(WatchAckEncoder.encode(status: .ok)))
     }
 
+    // MARK: - Authoritative State Reply (iPhone -> Watch, reply to `.requeststate`)
+
+    /// An Ok reply carries the full snapshot in the same message — the reply IS the
+    /// state, so the Watch never gets an Ok that isn't backed by state.
+    func testStateReplyOkCarriesDecodableSnapshot() throws {
+        let snapshot = WatchCameraStateSnapshot(
+            readiness: .ready,
+            currentZoomFactor: 2.0,
+            currentMode: .video,
+            currentLensType: .telephoto,
+            availableLensTypes: [.wideangle, .telephoto],
+            stateEpochMs: 1_765_000_000_123)
+        let data = WatchStateReplyEncoder.encode(status: .ok, snapshot: snapshot)
+
+        let decoded = try XCTUnwrap(WatchStateReplyEncoder.decodeState(data),
+                                    "an Ok reply must carry a decodable snapshot")
+        XCTAssertEqual(decoded.readiness, .ready)
+        XCTAssertEqual(decoded.currentZoomFactor, 2.0, accuracy: 0.0001)
+        XCTAssertEqual(decoded.currentMode, .video)
+        XCTAssertEqual(decoded.currentLensType, .telephoto)
+        XCTAssertEqual(decoded.availableLensTypes, [.wideangle, .telephoto])
+        XCTAssertEqual(decoded.stateEpochMs, 1_765_000_000_123)
+
+        // The ack half is still readable for older-phone-style handling.
+        let ack = try XCTUnwrap(WatchAckEncoder.decode(data))
+        XCTAssertEqual(ack.status, .ok)
+        XCTAssertEqual(ack.action, .requeststate)
+    }
+
+    /// A `.notinwatchmode` reply carries no state table: `decodeState` returns nil
+    /// and the ack tells the Watch the phone truthfully isn't in Watch Remote mode.
+    func testStateReplyNotInWatchModeCarriesNoState() throws {
+        let data = WatchStateReplyEncoder.encode(status: .notinwatchmode, snapshot: nil)
+        XCTAssertNil(WatchStateReplyEncoder.decodeState(data),
+                     "a notinwatchmode reply must not carry a snapshot")
+        let ack = try XCTUnwrap(WatchAckEncoder.decode(data))
+        XCTAssertEqual(ack.status, .notinwatchmode)
+    }
+
+    /// A bare ack (older phone, or any non-reply ack) has no state to extract.
+    func testReplyStateDecodeRejectsBareAck() {
+        XCTAssertNil(WatchStateReplyEncoder.decodeState(WatchAckEncoder.encode(status: .ok)))
+        XCTAssertNil(WatchStateReplyEncoder.decodeState(WatchCommandEncoder.encode(action: .requeststate)))
+    }
+
     // MARK: - Live Preview Frame (iPhone -> Watch)
 
     func testPreviewFrameRoundTripPreservesPayloadCodecAndEpoch() throws {
@@ -337,5 +382,50 @@ final class ZoomSendThrottleTests: XCTestCase {
     func testFireTrailingWithNothingPendingReturnsNil() {
         var throttle = ZoomSendThrottle(interval: 0.05)
         XCTAssertNil(throttle.fireTrailing(now: Date()))
+    }
+}
+
+// MARK: - Watch State Poll Policy
+
+final class WatchStatePollPolicyTests: XCTestCase {
+
+    /// Fixed 2s cadence, no backoff — the single source of truth for the poll rate.
+    func testCadenceIsFixedTwoSeconds() {
+        XCTAssertEqual(WatchStatePollPolicy.interval, 2.0, accuracy: 0.0001)
+    }
+
+    /// The only combination that polls: still connecting, reachable, and active.
+    func testPollsOnlyWhileConnectingReachableAndActive() {
+        XCTAssertTrue(WatchStatePollPolicy.shouldPoll(
+            phase: .connecting, isReachable: true, isActive: true))
+    }
+
+    /// Once a snapshot is applied the phase leaves `.connecting`, so polling stops.
+    func testStopsOnceStateApplied() {
+        for phase: WatchConnectionPhase in [.ready, .phoneNotReady, .phoneNotInWatchMode, .inactive] {
+            XCTAssertFalse(WatchStatePollPolicy.shouldPoll(
+                phase: phase, isReachable: true, isActive: true),
+                "\(phase) must not poll — only .connecting does")
+        }
+    }
+
+    func testStopsWhenUnreachable() {
+        XCTAssertFalse(WatchStatePollPolicy.shouldPoll(
+            phase: .connecting, isReachable: false, isActive: true))
+    }
+
+    func testStopsWhenInactive() {
+        XCTAssertFalse(WatchStatePollPolicy.shouldPoll(
+            phase: .connecting, isReachable: true, isActive: false))
+    }
+
+    /// There is no give-up budget: the same inputs always yield the same verdict,
+    /// no matter how many times the decision is taken (infinite polling).
+    func testIsStatelessSoPollingNeverGivesUp() {
+        for _ in 0..<1_000 {
+            XCTAssertTrue(WatchStatePollPolicy.shouldPoll(
+                phase: .connecting, isReachable: true, isActive: true),
+                "polling must never exhaust a retry budget")
+        }
     }
 }

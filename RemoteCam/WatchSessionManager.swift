@@ -199,7 +199,23 @@ class WatchSessionManager: NSObject, ObservableObject, WCSessionDelegate {
                  didReceiveMessageData messageData: Data,
                  replyHandler: @escaping (Data) -> Void) {
         debugLog("WatchSessionManager: didReceiveMessageData WITH reply (\(messageData.count) bytes)")
-        // Always reply — a dropped replyHandler surfaces as a timeout error on the Watch.
+
+        // The reply to `.requeststate` IS the state: route it into the coordinator
+        // so the answer is computed from the machine's real state (Ok + snapshot in
+        // a watch state, `.notinwatchmode` otherwise). This replaces the old
+        // synchronous Ok, which could "lie" — acking before a state push that a
+        // reachability race then silently dropped, stranding the Watch on "connecting".
+        if let decoded = WatchCommandEncoder.decode(messageData), decoded.action == .requeststate {
+            guard let controller = cameraController else {
+                replyHandler(WatchStateReplyEncoder.encode(status: .notinwatchmode, snapshot: nil))
+                return
+            }
+            controller.requestWatchStateReply(replyHandler)
+            return
+        }
+
+        // Every other command keeps its fast synchronous ack — a dropped replyHandler
+        // surfaces as a timeout error on the Watch.
         replyHandler(handleIncomingData(messageData))
     }
 
