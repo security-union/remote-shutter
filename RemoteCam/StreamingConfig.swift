@@ -39,7 +39,7 @@ struct StreamingConfig {
     /// Phone-monitor (peer) frame back-pressure window: how many frames may be in
     /// flight (sent, not yet acked via `RemoteCmd.RequestFrame`) at once. Mirrors the
     /// Watch preview window — see `watchPreviewMaxInFlight`.
-    var peerMaxInFlight: Int = 3
+    var peerMaxInFlight: Int = 5
     /// Re-opens the peer window if no `RequestFrame` ack arrives within this long, so a
     /// lost ack can't wedge the stream.
     var peerAckTimeout: TimeInterval = 1.0
