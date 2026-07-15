@@ -102,7 +102,7 @@ struct StreamingConfig {
         keyframeInterval: 30,
         minQuantizer: 40,
         maxQuantizer: 60,
-        cpuUsed: 7)
+        cpuUsed: 6)
 
     /// Apple Watch preview back-pressure window: how many frames may be in flight
     /// (sent, not yet acked) at once. >1 keeps the pipe full while acks travel back
