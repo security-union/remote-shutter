@@ -164,4 +164,69 @@ final class VP9StreamingTests: XCTestCase {
         XCTAssertEqual(toFBStreamCodec(.vp9), .vp9)
         XCTAssertEqual(fromFBStreamCodec(.unknown), .jpeg, "legacy senders default to JPEG")
     }
+
+    // MARK: - Negotiation decision
+
+    func testCameraOffersVP9OnlyWhenBothSidesSupportIt() {
+        XCTAssertTrue(VP9Negotiation.cameraShouldSendVP9(peerAdvertisedVP9: true, localVP9Available: true))
+        XCTAssertFalse(VP9Negotiation.cameraShouldSendVP9(peerAdvertisedVP9: true, localVP9Available: false),
+                       "no VP9 without a local encoder")
+        XCTAssertFalse(VP9Negotiation.cameraShouldSendVP9(peerAdvertisedVP9: false, localVP9Available: true),
+                       "no VP9 to a monitor that can't decode it (legacy peer)")
+        XCTAssertFalse(VP9Negotiation.cameraShouldSendVP9(peerAdvertisedVP9: false, localVP9Available: false))
+    }
+
+    func testForceKeyframeMakesNextFrameASelfContainedKeyframe() throws {
+        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .init())
+        let key = makeSolidPixelBuffer(width: 128, height: 64, blue: 90, green: 90, red: 90)
+        _ = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: key)), "first frame is a keyframe")
+
+        // Force a keyframe: the very next encoded frame must decode on a FRESH
+        // decoder (i.e. it is itself a keyframe, not a delta needing history).
+        encoder.forceKeyframe()
+        let next = makeSolidPixelBuffer(width: 128, height: 64, blue: 90, green: 90, red: 90)
+        let data = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: next)),
+                                 "forced keyframe must encode immediately")
+        XCTAssertNoThrow(try Vp9Decoder().decode(frame: data),
+                         "a forced keyframe must decode without any prior frame")
+    }
+}
+
+// MARK: - Monitor-side peer VP9 decoder
+
+final class PeerVP9PreviewDecoderTests: XCTestCase {
+
+    private func makeSolidPixelBuffer(width: Int, height: Int, shade: UInt8) -> CVPixelBuffer {
+        let buffer = makePixelBuffer(width: width, height: height)
+        CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+        let base = CVPixelBufferGetBaseAddress(buffer)!
+        let rowBytes = CVPixelBufferGetBytesPerRow(buffer)
+        for y in 0..<height {
+            let row = base.advanced(by: y * rowBytes).assumingMemoryBound(to: UInt8.self)
+            for x in 0..<width {
+                row[x * 4] = shade; row[x * 4 + 1] = shade; row[x * 4 + 2] = shade; row[x * 4 + 3] = 255
+            }
+        }
+        return buffer
+    }
+
+    func testDecodesKeyframeToImage() throws {
+        let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .init())
+        let data = try XCTUnwrap(encodedData(encoder.encode(
+            pixelBuffer: makeSolidPixelBuffer(width: 128, height: 64, shade: 120))))
+
+        let decoder = PeerVP9PreviewDecoder()
+        let image = decoder.decode(data)
+        XCTAssertNotNil(image, "a keyframe must render an image")
+    }
+
+    /// A mid-stream delta frame with no keyframe first is undecodable — the
+    /// decoder returns nil (the caller then requests a keyframe), the exact
+    /// desync-recovery contract.
+    func testUndecodableFrameReturnsNil() {
+        let decoder = PeerVP9PreviewDecoder()
+        XCTAssertNil(decoder.decode(Data([0xDE, 0xAD, 0xBE, 0xEF])),
+                     "garbage/mid-stream data must not crash and must return nil")
+    }
 }

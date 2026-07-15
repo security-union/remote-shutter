@@ -783,8 +783,10 @@ public actor SessionCoordinator {
             peerAdvertisedVP9: became.supportsVP9Preview,
             localVP9Available: localVP9Available)
         frameSender?.peerSupportsVP9.value = peerSupportsVP9Preview
-        StreamLog.encode.info("peer VP9 preview \(self.peerSupportsVP9Preview ? "enabled" : "disabled") "
-            + "(monitor advertised: \(became.supportsVP9Preview), local codec: \(self.localVP9Available))")
+        StreamLog.encode.info("""
+            peer VP9 preview \(self.peerSupportsVP9Preview ? "enabled" : "disabled") \
+            (monitor advertised: \(became.supportsVP9Preview), local codec: \(self.localVP9Available))
+            """)
     }
 
     /// Monitor side: latch that a VP9 frame arrived, which proves the camera

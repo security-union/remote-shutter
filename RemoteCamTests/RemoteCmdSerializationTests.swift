@@ -46,6 +46,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.TakePicResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
+        case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
@@ -590,6 +591,20 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.bundleVersion, 65)
         XCTAssertEqual(decoded.shortVersion, "4.14.1")
         XCTAssertEqual(decoded.platform, "iPad")
+        XCTAssertFalse(decoded.supportsVP9Preview, "default (and legacy) is no VP9 support")
+    }
+
+    func testPeerBecameMonitor_vp9FlagRoundTrips() {
+        let original = RemoteCmd.PeerBecameMonitor(bundleVersion: 65, shortVersion: "4.14.1",
+                                                   platform: "iPad", supportsVP9Preview: true)
+        let decoded: RemoteCmd.PeerBecameMonitor = roundTrip(original)
+        XCTAssertTrue(decoded.supportsVP9Preview, "advertised VP9 decode support must survive the wire")
+    }
+
+    func testRequestKeyframe_roundTrip() {
+        let original = RemoteCmd.RequestKeyframe(sender: nil)
+        let decoded: RemoteCmd.RequestKeyframe = roundTrip(original)
+        XCTAssertNotNil(decoded)
     }
 
     // MARK: - 18. ToggleFlash

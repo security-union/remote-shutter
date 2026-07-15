@@ -38,6 +38,23 @@ func encodedData(_ result: FrameEncodeResult) -> Data? {
     return nil
 }
 
+/// Fake stateful VP9 encoder: records encode + forceKeyframe calls so the
+/// streamer's lazy-encode and keyframe wiring can be asserted without the codec.
+private final class FakeVideoEncoder: StreamVideoEncoding {
+    let codec: RemoteCmd.StreamCodec = .vp9
+    var result: FrameEncodeResult
+    private(set) var encodeCount = 0
+    private(set) var forceKeyframeCount = 0
+
+    init(result: FrameEncodeResult = .encoded(Data([9]))) { self.result = result }
+
+    func encode(pixelBuffer: CVPixelBuffer) -> FrameEncodeResult {
+        encodeCount += 1
+        return result
+    }
+    func forceKeyframe() { forceKeyframeCount += 1 }
+}
+
 // MARK: - Helpers
 
 func makePixelBuffer(width: Int = 64, height: Int = 32) -> CVPixelBuffer {
@@ -137,6 +154,93 @@ final class FrameStreamerTests: XCTestCase {
         XCTAssertEqual(sentFrames[0].camOrientation, .landscapeRight)
         XCTAssertEqual(sentFrames[0].fps, 24)
         XCTAssertEqual(sentFrames[0].data, Data([7]))
+    }
+
+    // MARK: - VP9 path (negotiation + lazy credit gate + keyframe)
+
+    private func makeVP9Streamer(vp9: FakeVideoEncoder,
+                                 stillEncoders: [FrameEncoding],
+                                 vp9Enabled: @escaping () -> Bool,
+                                 creditAvailable: @escaping () -> Bool = { true },
+                                 takeKeyframeRequest: @escaping () -> Bool = { false }) -> FrameStreamer {
+        var config = StreamingConfig.default
+        config.frameDivisor = 1
+        return FrameStreamer(
+            config: config,
+            encoders: stillEncoders,
+            vp9Enabled: vp9Enabled,
+            creditAvailable: creditAvailable,
+            takeKeyframeRequest: takeKeyframeRequest,
+            makeVP9Encoder: { vp9 }
+        ) { [weak self] frame in self?.sentFrames.append(frame) }
+    }
+
+    func testUsesStillsUntilVP9Negotiated() {
+        let vp9 = FakeVideoEncoder()
+        var enabled = false
+        let still = FakeEncoder(codec: .heic, result: Data([1]))
+        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [still], vp9Enabled: { enabled })
+
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(vp9.encodeCount, 0, "no VP9 before the monitor advertises it")
+        XCTAssertEqual(sentFrames.map(\.codec), [.heic])
+
+        enabled = true
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(vp9.encodeCount, 1, "VP9 kicks in once negotiated")
+        XCTAssertEqual(sentFrames.map(\.codec), [.heic, .vp9])
+    }
+
+    /// The core stateful-stream invariant: with no credit, VP9 must NOT be
+    /// encoded (encoding-then-dropping would corrupt every later delta frame).
+    func testVP9IsNotEncodedWithoutCredit() {
+        let vp9 = FakeVideoEncoder()
+        var credit = false
+        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [FakeEncoder(codec: .heic, result: Data([1]))],
+                                       vp9Enabled: { true }, creditAvailable: { credit })
+
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(vp9.encodeCount, 0, "no credit: the encoder must not even see the frame")
+        XCTAssertTrue(sentFrames.isEmpty, "no frame goes out under back-pressure")
+
+        credit = true
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(vp9.encodeCount, 1)
+        XCTAssertEqual(sentFrames.map(\.codec), [.vp9])
+    }
+
+    func testVP9SkippedResultSendsNothingButKeepsStream() {
+        let vp9 = FakeVideoEncoder(result: .skipped)
+        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [FakeEncoder(codec: .heic, result: Data([1]))],
+                                       vp9Enabled: { true })
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(vp9.encodeCount, 1)
+        XCTAssertTrue(sentFrames.isEmpty, "a buffered (skipped) frame produces no wire frame")
+    }
+
+    func testKeyframeRequestForcesKeyframeBeforeEncode() {
+        let vp9 = FakeVideoEncoder()
+        var pending = true
+        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [FakeEncoder(codec: .heic, result: Data([1]))],
+                                       vp9Enabled: { true },
+                                       takeKeyframeRequest: { defer { pending = false }; return pending })
+
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(vp9.forceKeyframeCount, 1, "a pending request forces a keyframe")
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(vp9.forceKeyframeCount, 1, "consumed once — not re-forced every frame")
+    }
+
+    func testVP9PermanentFailureLatchesToStills() {
+        let vp9 = FakeVideoEncoder(result: .failed)
+        let still = FakeEncoder(codec: .heic, result: Data([2]))
+        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [still], vp9Enabled: { true })
+
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+
+        XCTAssertEqual(vp9.encodeCount, 1, "a failed VP9 encoder is latched off, never retried")
+        XCTAssertEqual(sentFrames.map(\.codec), [.heic, .heic], "the stream falls back to stills")
     }
 }
 
