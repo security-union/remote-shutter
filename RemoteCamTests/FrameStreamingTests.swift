@@ -156,11 +156,12 @@ final class FrameStreamerTests: XCTestCase {
         XCTAssertEqual(sentFrames[0].data, Data([7]))
     }
 
-    // MARK: - VP9 path (negotiation + lazy credit gate + keyframe)
+    // MARK: - VP9 path (always-on when available + lazy credit gate + keyframe)
 
-    private func makeVP9Streamer(vp9: FakeVideoEncoder,
+    /// - Parameter vp9: the VP9 encoder the factory returns; nil models VP9
+    ///   unavailable at runtime (the dev-only stills fallback).
+    private func makeVP9Streamer(vp9: FakeVideoEncoder?,
                                  stillEncoders: [FrameEncoding],
-                                 vp9Enabled: @escaping () -> Bool,
                                  creditAvailable: @escaping () -> Bool = { true },
                                  takeKeyframeRequest: @escaping () -> Bool = { false }) -> FrameStreamer {
         var config = StreamingConfig.default
@@ -168,27 +169,28 @@ final class FrameStreamerTests: XCTestCase {
         return FrameStreamer(
             config: config,
             encoders: stillEncoders,
-            vp9Enabled: vp9Enabled,
             creditAvailable: creditAvailable,
             takeKeyframeRequest: takeKeyframeRequest,
             makeVP9Encoder: { vp9 }
         ) { [weak self] frame in self?.sentFrames.append(frame) }
     }
 
-    func testUsesStillsUntilVP9Negotiated() {
+    func testStreamsVP9WhenTheEncoderIsAvailable() {
         let vp9 = FakeVideoEncoder()
-        var enabled = false
-        let still = FakeEncoder(codec: .heic, result: Data([1]))
-        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [still], vp9Enabled: { enabled })
+        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [FakeEncoder(codec: .heic, result: Data([1]))])
 
         streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
-        XCTAssertEqual(vp9.encodeCount, 0, "no VP9 before the monitor advertises it")
+        XCTAssertEqual(vp9.encodeCount, 1, "a new camera streams VP9 to every (version-gated) monitor")
+        XCTAssertEqual(sentFrames.map(\.codec), [.vp9])
+    }
+
+    /// Dev-only fallback: when VP9 is unavailable at runtime (factory returns
+    /// nil) the stream stays alive on stills. No per-peer negotiation involved.
+    func testFallsBackToStillsWhenVP9Unavailable() {
+        let streamer = makeVP9Streamer(vp9: nil, stillEncoders: [FakeEncoder(codec: .heic, result: Data([1]))])
+
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
         XCTAssertEqual(sentFrames.map(\.codec), [.heic])
-
-        enabled = true
-        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
-        XCTAssertEqual(vp9.encodeCount, 1, "VP9 kicks in once negotiated")
-        XCTAssertEqual(sentFrames.map(\.codec), [.heic, .vp9])
     }
 
     /// The core stateful-stream invariant: with no credit, VP9 must NOT be
@@ -197,7 +199,7 @@ final class FrameStreamerTests: XCTestCase {
         let vp9 = FakeVideoEncoder()
         var credit = false
         let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [FakeEncoder(codec: .heic, result: Data([1]))],
-                                       vp9Enabled: { true }, creditAvailable: { credit })
+                                       creditAvailable: { credit })
 
         streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
         XCTAssertEqual(vp9.encodeCount, 0, "no credit: the encoder must not even see the frame")
@@ -211,8 +213,7 @@ final class FrameStreamerTests: XCTestCase {
 
     func testVP9SkippedResultSendsNothingButKeepsStream() {
         let vp9 = FakeVideoEncoder(result: .skipped)
-        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [FakeEncoder(codec: .heic, result: Data([1]))],
-                                       vp9Enabled: { true })
+        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [FakeEncoder(codec: .heic, result: Data([1]))])
         streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
         XCTAssertEqual(vp9.encodeCount, 1)
         XCTAssertTrue(sentFrames.isEmpty, "a buffered (skipped) frame produces no wire frame")
@@ -222,7 +223,6 @@ final class FrameStreamerTests: XCTestCase {
         let vp9 = FakeVideoEncoder()
         var pending = true
         let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [FakeEncoder(codec: .heic, result: Data([1]))],
-                                       vp9Enabled: { true },
                                        takeKeyframeRequest: { defer { pending = false }; return pending })
 
         streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
@@ -234,7 +234,7 @@ final class FrameStreamerTests: XCTestCase {
     func testVP9PermanentFailureLatchesToStills() {
         let vp9 = FakeVideoEncoder(result: .failed)
         let still = FakeEncoder(codec: .heic, result: Data([2]))
-        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [still], vp9Enabled: { true })
+        let streamer = makeVP9Streamer(vp9: vp9, stillEncoders: [still])
 
         streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
         streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
@@ -288,6 +288,20 @@ final class FrameStreamReceiverTests: XCTestCase {
     func testDecodesFrameAndEmitsImage() {
         deliver(makeOnFrame(data: validJPEG, sequenceNumber: 1))
         XCTAssertEqual(images.count, 1)
+    }
+
+    /// Old-camera → new-monitor: an old camera streams stills tagged JPEG (a
+    /// legacy sender's absent codec also decodes as JPEG). The monitor must keep
+    /// rendering them through the still path even though it also has a VP9
+    /// decoder — no keyframe request is raised for a still.
+    func testLegacyStillFrameStillRendersOnNewMonitor() {
+        var keyframeRequests = 0
+        receiver.onKeyframeNeeded = { keyframeRequests += 1 }
+
+        deliver(makeOnFrame(data: validJPEG, codec: .jpeg, sequenceNumber: 1))
+
+        XCTAssertEqual(images.count, 1, "a JPEG still from an old camera must render")
+        XCTAssertEqual(keyframeRequests, 0, "stills never trigger a VP9 keyframe request")
     }
 
     func testUndecodableFrameEmitsNothingButCountsAsActivity() {

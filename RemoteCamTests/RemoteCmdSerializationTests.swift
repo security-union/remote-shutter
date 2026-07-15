@@ -591,14 +591,6 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.bundleVersion, 65)
         XCTAssertEqual(decoded.shortVersion, "4.14.1")
         XCTAssertEqual(decoded.platform, "iPad")
-        XCTAssertFalse(decoded.supportsVP9Preview, "default (and legacy) is no VP9 support")
-    }
-
-    func testPeerBecameMonitor_vp9FlagRoundTrips() {
-        let original = RemoteCmd.PeerBecameMonitor(bundleVersion: 65, shortVersion: "4.14.1",
-                                                   platform: "iPad", supportsVP9Preview: true)
-        let decoded: RemoteCmd.PeerBecameMonitor = roundTrip(original)
-        XCTAssertTrue(decoded.supportsVP9Preview, "advertised VP9 decode support must survive the wire")
     }
 
     func testRequestKeyframe_roundTrip() {

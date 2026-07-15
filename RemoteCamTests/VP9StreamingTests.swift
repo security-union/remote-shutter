@@ -165,15 +165,19 @@ final class VP9StreamingTests: XCTestCase {
         XCTAssertEqual(fromFBStreamCodec(.unknown), .jpeg, "legacy senders default to JPEG")
     }
 
-    // MARK: - Negotiation decision
+    // MARK: - Version-gate decision
 
-    func testCameraOffersVP9OnlyWhenBothSidesSupportIt() {
-        XCTAssertTrue(VP9Negotiation.cameraShouldSendVP9(peerAdvertisedVP9: true, localVP9Available: true))
-        XCTAssertFalse(VP9Negotiation.cameraShouldSendVP9(peerAdvertisedVP9: true, localVP9Available: false),
-                       "no VP9 without a local encoder")
-        XCTAssertFalse(VP9Negotiation.cameraShouldSendVP9(peerAdvertisedVP9: false, localVP9Available: true),
-                       "no VP9 to a monitor that can't decode it (legacy peer)")
-        XCTAssertFalse(VP9Negotiation.cameraShouldSendVP9(peerAdvertisedVP9: false, localVP9Available: false))
+    func testPeerCanDecodeVP9PreviewIsBundleVersionGated() {
+        let threshold = VP9PreviewCompatibility.minimumPeerBundleVersion
+        XCTAssertTrue(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: threshold),
+                      "the first VP9 release qualifies at exactly the threshold")
+        XCTAssertTrue(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: threshold + 5),
+                      "newer peers qualify")
+        XCTAssertFalse(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: threshold - 1),
+                       "a peer one build below the threshold cannot decode VP9")
+        XCTAssertFalse(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: 0),
+                       "unknown/legacy build (<= 0) also cannot decode VP9 — one check covers both")
+        XCTAssertFalse(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: -1))
     }
 
     func testForceKeyframeMakesNextFrameASelfContainedKeyframe() throws {

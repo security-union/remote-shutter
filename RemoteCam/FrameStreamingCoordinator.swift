@@ -30,8 +30,6 @@ final class FrameStreamingCoordinator: NSObject {
     private let orientationProvider: () -> UIInterfaceOrientation
     /// True when the Apple Watch is the remote (no MultipeerConnectivity peer).
     private let isWatchRemoteMode: () -> Bool
-    /// The connected monitor advertised VP9 decode support (negotiation gate).
-    private let peerVP9Enabled: () -> Bool
     /// The credit window has room — the lazy back-pressure gate for VP9.
     private let frameCreditAvailable: () -> Bool
     /// Reads-and-clears a monitor keyframe request (decoder re-sync).
@@ -48,16 +46,17 @@ final class FrameStreamingCoordinator: NSObject {
         ackTimeout: StreamingConfig.default.watchPreviewAckTimeout)
     /// Streams preview frames to the phone monitor: paces, encodes, and hands
     /// frames to the FrameSender actor. Uses VP9 (a stateful video stream, lazy
-    /// + credit-gated) once the monitor advertises VP9 decode support and the
-    /// codec is available at runtime; otherwise HEIC with JPEG fallback.
+    /// + credit-gated) whenever the codec is available at runtime — the monitor
+    /// is version-gated by the coordinator, so it can always decode VP9. Falls
+    /// back to HEIC/JPEG stills only when VP9 is unavailable at runtime (dev-only).
     /// Runs on `videoDataOutputQueue`.
     private lazy var frameStreamer = FrameStreamer(
-        vp9Enabled: peerVP9Enabled,
         creditAvailable: frameCreditAvailable,
         takeKeyframeRequest: takePeerKeyframeRequest,
         makeVP9Encoder: {
             // Runtime-gated: nil on any arch without the VP9 codec, so the
-            // stream stays on stills there.
+            // stream falls back to stills there (dev-only; every shipping arm64
+            // config has VP9).
             guard VP9Support.isAvailable else { return nil }
             let config = StreamingConfig.default
             return VP9FrameEncoder(maxLongEdge: config.maxLongEdge, settings: config.peerVP9)
@@ -93,7 +92,6 @@ final class FrameStreamingCoordinator: NSObject {
          orientationProvider: @escaping () -> UIInterfaceOrientation,
          isWatchRemoteMode: @escaping () -> Bool,
          frameSink: @escaping FrameStreamer.Send,
-         peerVP9Enabled: @escaping () -> Bool = { false },
          frameCreditAvailable: @escaping () -> Bool = { true },
          takePeerKeyframeRequest: @escaping () -> Bool = { false }) {
         self.engine = engine
@@ -101,7 +99,6 @@ final class FrameStreamingCoordinator: NSObject {
         self.orientationProvider = orientationProvider
         self.isWatchRemoteMode = isWatchRemoteMode
         self.frameSink = frameSink
-        self.peerVP9Enabled = peerVP9Enabled
         self.frameCreditAvailable = frameCreditAvailable
         self.takePeerKeyframeRequest = takePeerKeyframeRequest
     }

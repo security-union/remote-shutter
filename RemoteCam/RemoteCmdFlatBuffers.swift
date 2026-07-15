@@ -682,8 +682,7 @@ extension RemoteCmd.PeerBecameMonitor {
             &fbb,
             bundleVersion: Int32(bundleVersion),
             shortVersionOffset: shortVersionOffset,
-            platformOffset: platformOffset,
-            supportsVp9Preview: supportsVP9Preview
+            platformOffset: platformOffset
         )
         return buildCommand(&fbb, action: .peerbecamemonitor, parameters: params)
     }
@@ -1026,8 +1025,7 @@ extension RemoteCmd {
             return PeerBecameMonitor(
                 bundleVersion: Int(params?.bundleVersion ?? 0),
                 shortVersion: params?.shortVersion ?? "0",
-                platform: params?.platform ?? "0",
-                supportsVP9Preview: params?.supportsVp9Preview ?? false
+                platform: params?.platform ?? "0"
             )
 
         case .requestkeyframe:

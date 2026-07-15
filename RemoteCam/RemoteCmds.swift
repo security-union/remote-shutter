@@ -421,24 +421,16 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     public class PeerBecameMonitor: Message, @unchecked Sendable {
         let bundleVersion: Int, shortVersion: String, platform: String
-        /// This monitor advertises that it can decode the VP9 preview stream.
-        /// The camera peer only enables VP9 encoding when this is true (and its
-        /// own codec is available); false on legacy monitors keeps the camera
-        /// on the HEIC/JPEG still path. Absent on the wire decodes as false.
-        let supportsVP9Preview: Bool
 
-        class func createWithDefaults(supportsVP9Preview: Bool) -> PeerBecameMonitor {
+        class func createWithDefaults() -> PeerBecameMonitor {
             let (bundleVersion, shortVersion, platform) = getDeviceInfo()
-            return PeerBecameMonitor(bundleVersion: bundleVersion, shortVersion: shortVersion,
-                                     platform: platform, supportsVP9Preview: supportsVP9Preview)
+            return PeerBecameMonitor(bundleVersion: bundleVersion, shortVersion: shortVersion, platform: platform)
         }
 
-        public init(bundleVersion: Int, shortVersion: String, platform: String,
-                    supportsVP9Preview: Bool = false) {
+        public init(bundleVersion: Int, shortVersion: String, platform: String) {
             self.bundleVersion = bundleVersion
             self.shortVersion = shortVersion
             self.platform = platform
-            self.supportsVP9Preview = supportsVP9Preview
             super.init(sender: nil)
         }
     }

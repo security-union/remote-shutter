@@ -6,16 +6,22 @@
 //  sequence numbers, and hands the result to the FrameSender actor for
 //  ack-gated transport.
 //
-//  Two codec strategies share one pacer:
-//   • Stills (HEIC with JPEG fallback) — independent frames, sent .unreliable.
-//     Encoded eagerly; the FrameSender drops under back-pressure because a lost
-//     still just means the viewfinder shows the previous one.
-//   • VP9 (a stateful video stream) — enabled only once the monitor advertises
-//     VP9 decode support. A dropped delta frame corrupts decode until a
-//     keyframe, so VP9 must NOT be encoded-then-dropped: it is encoded LAZILY,
-//     only when the credit window has room, and sent .reliable so the transport
-//     never drops it either. Skipping a frame before the encoder sees it keeps
-//     the stream continuous (the encoder just runs at a lower frame rate).
+//  A new camera streams VP9 to every peer monitor (the monitor is version-gated
+//  by SessionCoordinator before any frame flows — an out-of-date monitor is sent
+//  to the update-required flow, not shown stills). Two codec strategies share
+//  one pacer:
+//   • VP9 (a stateful video stream) — the normal path. A dropped delta frame
+//     corrupts decode until a keyframe, so VP9 must NOT be encoded-then-dropped:
+//     it is encoded LAZILY, only when the credit window has room, and sent
+//     .reliable so the transport never drops it either. Skipping a frame before
+//     the encoder sees it keeps the stream continuous (the encoder just runs at
+//     a lower frame rate).
+//   • Stills (HEIC with JPEG fallback) — a DEV-ONLY fallback for the case where
+//     the VP9 codec is unavailable at runtime (`makeVP9Encoder` returns nil,
+//     e.g. a broken/absent VideocallCodecs slice). Every shipping arm64 config
+//     has VP9, so this path does not run in production; it only keeps the
+//     preview alive on an odd build. Stills are independent frames, sent
+//     .unreliable; the FrameSender drops them under back-pressure.
 //
 //  Confined to the capture queue: `handle` must only be called from the
 //  AVCaptureVideoDataOutput callback queue (same contract as
@@ -40,9 +46,6 @@ final class FrameStreamer {
     /// Console without per-frame chatter. Capture-queue confined.
     private var lastAnnouncedCodec: RemoteCmd.StreamCodec?
 
-    /// True once the monitor has advertised VP9 decode support (negotiation) —
-    /// read per frame on the capture queue.
-    private let vp9Enabled: () -> Bool
     /// True when the credit window has room for another in-flight frame — the
     /// lazy back-pressure gate for the stateful VP9 stream.
     private let creditAvailable: () -> Bool
@@ -60,12 +63,13 @@ final class FrameStreamer {
     /// - Parameters:
     ///   - encoders: injectable still chain for tests; nil builds it from
     ///     `config.preferredCodecs`.
-    ///   - vp9Enabled/creditAvailable/takeKeyframeRequest/makeVP9Encoder: the
-    ///     VP9 seams; their defaults disable VP9 entirely (stills only), which
-    ///     is the behavior the still-path tests pin.
+    ///   - makeVP9Encoder: builds the VP9 encoder on first use; its default
+    ///     (nil) disables VP9 (stills only), the behavior the still-path tests
+    ///     pin. Production passes a factory gated on `VP9Support.isAvailable`.
+    ///   - creditAvailable/takeKeyframeRequest: the VP9 back-pressure and
+    ///     keyframe seams.
     init(config: StreamingConfig = .default,
          encoders: [FrameEncoding]? = nil,
-         vp9Enabled: @escaping () -> Bool = { false },
          creditAvailable: @escaping () -> Bool = { true },
          takeKeyframeRequest: @escaping () -> Bool = { false },
          makeVP9Encoder: @escaping () -> StreamVideoEncoding? = { nil },
@@ -73,7 +77,6 @@ final class FrameStreamer {
         self.config = config
         self.send = send
         self.encoders = encoders ?? Self.makeEncoders(config: config)
-        self.vp9Enabled = vp9Enabled
         self.creditAvailable = creditAvailable
         self.takeKeyframeRequest = takeKeyframeRequest
         self.makeVP9Encoder = makeVP9Encoder
@@ -99,10 +102,12 @@ final class FrameStreamer {
         }
     }
 
-    /// Whether the VP9 stream is active for this frame (negotiated, not failed,
-    /// encoder constructible). Builds the encoder lazily on first use.
+    /// Whether the VP9 stream is active for this frame: not permanently failed
+    /// and the encoder is constructible (VP9 available at runtime). Built lazily
+    /// on first use; nil means VP9 is unavailable and the dev-only still
+    /// fallback runs instead.
     private var useVP9: Bool {
-        guard vp9Enabled(), !vp9Failed else { return false }
+        guard !vp9Failed else { return false }
         if vp9Encoder == nil { vp9Encoder = makeVP9Encoder() }
         return vp9Encoder != nil
     }

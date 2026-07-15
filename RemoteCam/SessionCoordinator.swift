@@ -177,25 +177,13 @@ public actor SessionCoordinator {
     /// actions as TakePicture (the FlatBuffers field default).
     private var peerAdvertisedCameraDevices = false
 
-    /// Camera side: the connected monitor advertised VP9 decode support AND this
-    /// device can encode VP9 — the gate for streaming VP9 preview frames.
-    /// Mirrored onto the FrameSender so the capture-queue streamer reads it.
-    private var peerSupportsVP9Preview = false
-
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`
     /// (old decoders read that unknown action as TakePicture — same precedent as
     /// SelectCameraDevice).
     private var monitorReceivedVP9Frame = false
 
-    /// Whether this device's VP9 codec is available at runtime. Drives both the
-    /// monitor's advertised decode support and the camera's encode decision.
-    /// Overridable in tests to simulate a legacy (VP9-less) peer.
-    var localVP9Available = VP9Support.isAvailable
-    func setLocalVP9Available(_ available: Bool) { localVP9Available = available }
-
     /// Test support.
-    func peerSupportsVP9PreviewForTesting() -> Bool { peerSupportsVP9Preview }
     func monitorReceivedVP9FrameForTesting() -> Bool { monitorReceivedVP9Frame }
 
     /// Test support: the generation of the most recently armed timeout.
@@ -398,9 +386,7 @@ public actor SessionCoordinator {
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
         peerAdvertisedCameraDevices = false
-        peerSupportsVP9Preview = false
         monitorReceivedVP9Frame = false
-        frameSender?.peerSupportsVP9.value = false
         switch state {
         case .scanning:
             // Already there — re-entering would restart discovery and reset
@@ -542,23 +528,23 @@ public actor SessionCoordinator {
         case let become as UICmd.BecomeMonitor:
             monitor = become.presenter
             await transition(to: .monitor(mode: become.mode == .Photo ? .photo : .video))
-            await sendOrGoToScanning(RemoteCmd.PeerBecameMonitor.createWithDefaults(
-                supportsVP9Preview: localVP9Available))
+            await sendOrGoToScanning(RemoteCmd.PeerBecameMonitor.createWithDefaults())
 
         case let became as RemoteCmd.PeerBecameCamera:
             if became.bundleVersion <= 0 {
                 await showIncompatibilityMessage()
             }
+            // NOTE: a monitor never version-gates the camera — an old camera
+            // streams HEIC/JPEG stills, which this monitor still decodes. Only
+            // the `<= 0` incompatibility (unknown build) is reported, as before.
             // (Auto-role-follow forwarding was wired to an actor that was never
             // registered; the dead send is not reproduced.)
 
         case let became as RemoteCmd.PeerBecameMonitor:
-            if became.bundleVersion <= 0 {
-                await showIncompatibilityMessage()
-            }
-            // Record VP9 negotiation even before this device becomes the camera,
-            // so it's in place if the role is picked after the monitor announces.
-            recordPeerVP9Support(became)
+            // This device is the camera-to-be; a monitor too old to decode VP9
+            // must update rather than see a broken preview. One check covers
+            // both the legacy (`<= 0`) and too-old cases.
+            await enforceMonitorVP9Compatibility(became)
 
         case is Disconnect:
             await popToScanning()
@@ -584,7 +570,10 @@ public actor SessionCoordinator {
 
         switch msg {
         case let became as RemoteCmd.PeerBecameMonitor:
-            recordPeerVP9Support(became)
+            // Version-gate the monitor before answering: a monitor too old to
+            // decode VP9 is sent to the update-required flow (this pops out of
+            // the camera state), so we don't stream it an undecodable preview.
+            guard await enforceMonitorVP9Compatibility(became) else { break }
             await attemptToSendCapabilities(attempt: 0)
 
         case is RemoteCmd.RequestCameraCapabilities:
@@ -773,20 +762,24 @@ public actor SessionCoordinator {
         }
     }
 
-    /// Camera side: decide whether to stream VP9 to this monitor and publish the
-    /// decision onto the FrameSender, which the capture-queue streamer reads. VP9
-    /// is enabled only when the monitor advertised decode support AND this device
-    /// can encode it — otherwise the stream stays on stills that every peer
-    /// understands (the negotiation gate, mirroring SelectCameraDevice).
-    private func recordPeerVP9Support(_ became: RemoteCmd.PeerBecameMonitor) {
-        peerSupportsVP9Preview = VP9Negotiation.cameraShouldSendVP9(
-            peerAdvertisedVP9: became.supportsVP9Preview,
-            localVP9Available: localVP9Available)
-        frameSender?.peerSupportsVP9.value = peerSupportsVP9Preview
-        StreamLog.encode.info("""
-            peer VP9 preview \(self.peerSupportsVP9Preview ? "enabled" : "disabled") \
-            (monitor advertised: \(became.supportsVP9Preview), local codec: \(self.localVP9Available))
-            """)
+    /// Camera side: a new camera always streams VP9, so a monitor too old to
+    /// decode it must be told to update rather than shown a broken preview.
+    /// Routes an out-of-date (or unknown-build, `<= 0`) monitor to the existing
+    /// incompatibility flow — a single, version-in/verdict-out policy
+    /// (`VP9PreviewCompatibility.peerCanDecodeVP9Preview`). Returns true when the
+    /// monitor is compatible and the caller should continue, false when it
+    /// popped to scanning. No per-connection capability handshake.
+    @discardableResult
+    private func enforceMonitorVP9Compatibility(_ became: RemoteCmd.PeerBecameMonitor) async -> Bool {
+        guard VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: became.bundleVersion) else {
+            StreamLog.encode.info("""
+                monitor bundleVersion \(became.bundleVersion) < \
+                \(VP9PreviewCompatibility.minimumPeerBundleVersion) — too old for VP9 preview, requesting update
+                """)
+            await showIncompatibilityMessage()
+            return false
+        }
+        return true
     }
 
     /// Monitor side: latch that a VP9 frame arrived, which proves the camera

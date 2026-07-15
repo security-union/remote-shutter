@@ -141,11 +141,6 @@ table CommandParameters {
     aspect_ratio: AspectRatioEnum;
     // Appended fields only below this line (FlatBuffers schema evolution).
     device_unique_id: string;        // payload for SelectCameraDevice
-    // A monitor advertises here (on PeerBecameMonitor) that it can decode the
-    // VP9 preview stream. Absent/false on legacy monitors, so the camera keeps
-    // sending HEIC/JPEG stills to them. The camera only enables VP9 encoding
-    // when this is true AND its own runtime VP9 codec is available.
-    supports_vp9_preview: bool;
 }
 
 // MARK: - Command Structure

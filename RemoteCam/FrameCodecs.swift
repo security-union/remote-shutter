@@ -35,15 +35,24 @@ enum VP9Support {
     }
 }
 
-/// Pure negotiation decision for the peer (phone→phone-monitor) VP9 preview
-/// stream. Isolated and side-effect-free so the policy is unit-tested directly.
-enum VP9Negotiation {
-    /// The camera may encode/send VP9 preview frames only when the monitor
-    /// advertised VP9 decode support (in its `PeerBecameMonitor` capabilities)
-    /// AND this device's own VP9 encoder is available at runtime. Either false
-    /// keeps the stream on HEIC/JPEG stills, which every released peer decodes.
-    static func cameraShouldSendVP9(peerAdvertisedVP9: Bool, localVP9Available: Bool) -> Bool {
-        peerAdvertisedVP9 && localVP9Available
+/// Compatibility policy for the peer (phone→phone-monitor) VP9 preview stream.
+/// The camera streams VP9 (never stills) to a monitor, so a monitor that is too
+/// old to decode VP9 must be told to update rather than shown a broken preview.
+/// The gate is the peer's `bundleVersion`, carried on `PeerBecameCamera`/
+/// `PeerBecameMonitor` — no per-connection capability handshake. Pure and
+/// side-effect-free so the policy is a single unit-tested decision.
+enum VP9PreviewCompatibility {
+    /// CFBundleVersion of the first release that can decode the peer VP9 preview
+    /// stream (this build's CURRENT_PROJECT_VERSION when the feature landed). A
+    /// monitor below this renders VP9 as garbage, so the camera routes it to the
+    /// existing "app out of date" flow instead.
+    static let minimumPeerBundleVersion = 100
+
+    /// Whether a peer at `bundleVersion` can decode the VP9 preview stream.
+    /// `bundleVersion <= 0` (unknown/legacy peer) also returns false, so one
+    /// check covers both the legacy and the too-old cases.
+    static func peerCanDecodeVP9Preview(bundleVersion: Int) -> Bool {
+        bundleVersion >= minimumPeerBundleVersion
     }
 }
 

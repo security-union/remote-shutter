@@ -578,93 +578,64 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(monitorState, .monitor)
     }
 
-    // MARK: - VP9 preview negotiation
+    // MARK: - VP9 preview version gate
 
-    /// A VP9-capable monitor advertises decode support on PeerBecameMonitor; the
-    /// camera peer (also VP9-capable) enables VP9 streaming for the connection.
-    func testVP9CapableMonitorEnablesVP9OnCameraPeer() async {
+    /// Puts the camera-side session into `.camera` with a fake capture device.
+    private func enterCameraState() async -> LoopbackFakeCamera {
         await connectBothSessions()
-        await cameraCoordinator.setLocalVP9Available(true)
-        await monitorCoordinator.setLocalVP9Available(true)
-
         let fakeCamera = LoopbackFakeCamera()
         fakeCamera.coordinator = cameraCoordinator
         cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
         await drainBothSessions()
-        await becomeMonitor(mode: .Photo)   // sends PeerBecameMonitor advertising VP9
-
-        let enabled = await cameraCoordinator.peerSupportsVP9PreviewForTesting()
-        XCTAssertTrue(enabled, "camera must enable VP9 for a VP9-capable monitor")
-        // The advertisement really crossed the wire (not a local shortcut).
-        XCTAssertTrue(monitorTransport.sentMessages.contains {
-            ($0 as? RemoteCmd.PeerBecameMonitor)?.supportsVP9Preview == true
-        })
+        cameraTransport.sentMessages.removeAll()
+        return fakeCamera
     }
 
-    /// A legacy monitor (no VP9 decode) advertises false; the camera must keep
-    /// streaming stills — sending VP9 bytes would render as a broken still.
-    func testLegacyMonitorKeepsCameraOnStills() async {
-        await connectBothSessions()
-        await cameraCoordinator.setLocalVP9Available(true)
-        await monitorCoordinator.setLocalVP9Available(false)   // legacy-shaped monitor
+    /// A version-qualified monitor (bundleVersion >= threshold) is answered
+    /// normally: the camera stays in `.camera` and broadcasts capabilities, then
+    /// streams VP9 to it. No capability handshake, no incompatibility.
+    func testQualifiedMonitorIsAcceptedAndAnswered() async {
+        let threshold = VP9PreviewCompatibility.minimumPeerBundleVersion
+        _ = await enterCameraState()
 
-        let fakeCamera = LoopbackFakeCamera()
-        fakeCamera.coordinator = cameraCoordinator
-        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: threshold, shortVersion: "7.0", platform: "iPhone"))
         await drainBothSessions()
-        await becomeMonitor(mode: .Photo)
 
-        let enabled = await cameraCoordinator.peerSupportsVP9PreviewForTesting()
-        XCTAssertFalse(enabled, "camera must not send VP9 to a monitor that can't decode it")
-        XCTAssertTrue(monitorTransport.sentMessages.contains {
-            ($0 as? RemoteCmd.PeerBecameMonitor)?.supportsVP9Preview == false
-        })
-    }
-
-    /// Even a VP9-capable monitor gets stills if THIS camera can't encode VP9.
-    func testCameraWithoutVP9StreamsStillsToVP9Monitor() async {
-        await connectBothSessions()
-        await cameraCoordinator.setLocalVP9Available(false)   // camera can't encode
-        await monitorCoordinator.setLocalVP9Available(true)
-
-        let fakeCamera = LoopbackFakeCamera()
-        fakeCamera.coordinator = cameraCoordinator
-        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
-        await drainBothSessions()
-        await becomeMonitor(mode: .Photo)
-
-        let enabled = await cameraCoordinator.peerSupportsVP9PreviewForTesting()
-        XCTAssertFalse(enabled, "no VP9 without a local encoder, even to a VP9 monitor")
-    }
-
-    /// VP9 negotiation is per-connection, not per-state-entry: it must survive a
-    /// photo capture (which re-enters .camera and re-binds the FrameSender). A
-    /// regression guard — clearing it on re-bind would kill VP9 after one photo.
-    func testVP9SupportSurvivesPhotoCapture() async {
-        await connectBothSessions()
-        await cameraCoordinator.setLocalVP9Available(true)
-        await monitorCoordinator.setLocalVP9Available(true)
-
-        let fakeCamera = LoopbackFakeCamera()
-        fakeCamera.coordinator = cameraCoordinator
-        let cameraFrameSender = FrameSender(coordinator: cameraCoordinator)
-        cameraCoordinator.setFrameSender(cameraFrameSender)
-        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
-        await drainBothSessions()
-        await becomeMonitor(mode: .Photo)
-
-        XCTAssertTrue(cameraFrameSender.peerSupportsVP9.value, "VP9 enabled after negotiation")
-
-        // Take a photo — the camera walks .camera -> takingPic -> back to .camera.
-        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: false))
-        await drainBothSessions()
         let cameraState = await cameraCoordinator.currentStateName()
-        XCTAssertEqual(cameraState, .camera)
+        XCTAssertEqual(cameraState, .camera, "a qualified monitor keeps the camera streaming")
+        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.CameraCapabilitiesResp },
+                      "the camera answers a qualified monitor with capabilities")
+    }
 
-        XCTAssertTrue(cameraFrameSender.peerSupportsVP9.value,
-                      "VP9 must still be enabled after a photo re-enters .camera")
-        let stillNegotiated = await cameraCoordinator.peerSupportsVP9PreviewForTesting()
-        XCTAssertTrue(stillNegotiated)
+    /// A monitor too old to decode VP9 (0 < bundleVersion < threshold) is sent to
+    /// the update-required flow: the camera pops to scanning and never answers it
+    /// (no stills fallback, no capability negotiation).
+    func testOutOfDateMonitorIsToldToUpdate() async {
+        let old = VP9PreviewCompatibility.minimumPeerBundleVersion - 1
+        _ = await enterCameraState()
+
+        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: old, shortVersion: "6.9", platform: "iPhone"))
+        await drainBothSessions()
+
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .scanning, "an out-of-date monitor sends the camera to update/scanning")
+        XCTAssertFalse(cameraTransport.sentMessages.contains { $0 is RemoteCmd.CameraCapabilitiesResp },
+                       "the camera must not answer a monitor that can't decode its VP9 stream")
+    }
+
+    /// The legacy `bundleVersion <= 0` (unknown build) case behaves as before:
+    /// the same incompatibility flow, now via the single version check.
+    func testUnknownBuildMonitorStillTreatedAsIncompatible() async {
+        _ = await enterCameraState()
+
+        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: 0, shortVersion: "0", platform: "iPhone"))
+        await drainBothSessions()
+
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .scanning, "an unknown-build (<= 0) monitor is still incompatible")
     }
 
     // MARK: - VP9 keyframe recovery

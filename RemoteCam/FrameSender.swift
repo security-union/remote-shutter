@@ -47,11 +47,6 @@ final class FrameSender {
     /// queue. Updated inside `queue` on every window change.
     private let creditAvailableMirror = Locked<Bool>(true)
 
-    /// The connected monitor advertised VP9 decode support (negotiation).
-    /// Written by the coordinator when it decodes `PeerBecameMonitor`; read on
-    /// the capture queue by the frame streamer. Reset on each session re-bind.
-    let peerSupportsVP9 = Locked<Bool>(false)
-
     /// Set by the coordinator when the monitor requests a keyframe (decoder
     /// re-sync); read-and-cleared once by the frame streamer on the capture
     /// queue, which forces the next VP9 frame to be a keyframe.
@@ -67,12 +62,6 @@ final class FrameSender {
     /// Binds the streaming target. Re-binding (each time the camera state is
     /// re-entered) resets the credit window, matching the old re-become.
     func setSession(peer: MCPeerID, transport: any MultipeerServiceProtocol) {
-        // NOTE: this re-binds on every camera-state (re-)entry — e.g. after
-        // taking a photo — within the SAME connection, so it must NOT touch the
-        // VP9 negotiation. That is per-connection state (the monitor advertises
-        // it once, on PeerBecameMonitor) and is reset by the coordinator on
-        // popToScanning, not here; clearing it here would drop VP9 after the
-        // first photo and never recover.
         queue.async {
             if self.hasSession {
                 self.window.reset()

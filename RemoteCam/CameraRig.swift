@@ -44,7 +44,6 @@ final class CameraRig: @unchecked Sendable {
         orientationProvider: { [weak self] in self?.orientation ?? .portrait },
         isWatchRemoteMode: { [weak self] in self?.isWatchRemoteMode ?? false },
         frameSink: { [frameSender] frame in frameSender.send(frame) },
-        peerVP9Enabled: { [frameSender] in frameSender.peerSupportsVP9.value },
         frameCreditAvailable: { [frameSender] in frameSender.hasCredit() },
         takePeerKeyframeRequest: { [frameSender] in frameSender.takeKeyframeRequest() })
 
