@@ -177,6 +177,27 @@ public actor SessionCoordinator {
     /// actions as TakePicture (the FlatBuffers field default).
     private var peerAdvertisedCameraDevices = false
 
+    /// Camera side: the connected monitor advertised VP9 decode support AND this
+    /// device can encode VP9 — the gate for streaming VP9 preview frames.
+    /// Mirrored onto the FrameSender so the capture-queue streamer reads it.
+    private var peerSupportsVP9Preview = false
+
+    /// Monitor side: at least one VP9 preview frame has arrived. Proves the
+    /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`
+    /// (old decoders read that unknown action as TakePicture — same precedent as
+    /// SelectCameraDevice).
+    private var monitorReceivedVP9Frame = false
+
+    /// Whether this device's VP9 codec is available at runtime. Drives both the
+    /// monitor's advertised decode support and the camera's encode decision.
+    /// Overridable in tests to simulate a legacy (VP9-less) peer.
+    var localVP9Available = VP9Support.isAvailable
+    func setLocalVP9Available(_ available: Bool) { localVP9Available = available }
+
+    /// Test support.
+    func peerSupportsVP9PreviewForTesting() -> Bool { peerSupportsVP9Preview }
+    func monitorReceivedVP9FrameForTesting() -> Bool { monitorReceivedVP9Frame }
+
     /// Test support: the generation of the most recently armed timeout.
     func currentTimeoutGeneration() -> Int { timeoutGeneration }
 
@@ -377,6 +398,9 @@ public actor SessionCoordinator {
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
         peerAdvertisedCameraDevices = false
+        peerSupportsVP9Preview = false
+        monitorReceivedVP9Frame = false
+        frameSender?.peerSupportsVP9.value = false
         switch state {
         case .scanning:
             // Already there — re-entering would restart discovery and reset
@@ -518,7 +542,8 @@ public actor SessionCoordinator {
         case let become as UICmd.BecomeMonitor:
             monitor = become.presenter
             await transition(to: .monitor(mode: become.mode == .Photo ? .photo : .video))
-            await sendOrGoToScanning(RemoteCmd.PeerBecameMonitor.createWithDefaults())
+            await sendOrGoToScanning(RemoteCmd.PeerBecameMonitor.createWithDefaults(
+                supportsVP9Preview: localVP9Available))
 
         case let became as RemoteCmd.PeerBecameCamera:
             if became.bundleVersion <= 0 {
@@ -531,6 +556,9 @@ public actor SessionCoordinator {
             if became.bundleVersion <= 0 {
                 await showIncompatibilityMessage()
             }
+            // Record VP9 negotiation even before this device becomes the camera,
+            // so it's in place if the role is picked after the monitor announces.
+            recordPeerVP9Support(became)
 
         case is Disconnect:
             await popToScanning()
@@ -555,8 +583,17 @@ public actor SessionCoordinator {
         }
 
         switch msg {
-        case is RemoteCmd.PeerBecameMonitor, is RemoteCmd.RequestCameraCapabilities:
+        case let became as RemoteCmd.PeerBecameMonitor:
+            recordPeerVP9Support(became)
             await attemptToSendCapabilities(attempt: 0)
+
+        case is RemoteCmd.RequestCameraCapabilities:
+            await attemptToSendCapabilities(attempt: 0)
+
+        case is RemoteCmd.RequestKeyframe:
+            // The monitor's VP9 decoder desynced — force the next preview frame
+            // to be a keyframe. Straight to the streamer; no state change.
+            frameSender?.requestKeyframe()
 
         case is RemoteCmd.RequestFrame, is RemoteCmd.SendFrame:
             break // frame plumbing is FrameSender's job
@@ -736,6 +773,37 @@ public actor SessionCoordinator {
         }
     }
 
+    /// Camera side: decide whether to stream VP9 to this monitor and publish the
+    /// decision onto the FrameSender, which the capture-queue streamer reads. VP9
+    /// is enabled only when the monitor advertised decode support AND this device
+    /// can encode it — otherwise the stream stays on stills that every peer
+    /// understands (the negotiation gate, mirroring SelectCameraDevice).
+    private func recordPeerVP9Support(_ became: RemoteCmd.PeerBecameMonitor) {
+        peerSupportsVP9Preview = VP9Negotiation.cameraShouldSendVP9(
+            peerAdvertisedVP9: became.supportsVP9Preview,
+            localVP9Available: localVP9Available)
+        frameSender?.peerSupportsVP9.value = peerSupportsVP9Preview
+        StreamLog.encode.info("peer VP9 preview \(self.peerSupportsVP9Preview ? "enabled" : "disabled") "
+            + "(monitor advertised: \(became.supportsVP9Preview), local codec: \(self.localVP9Available))")
+    }
+
+    /// Monitor side: latch that a VP9 frame arrived, which proves the camera
+    /// peer speaks VP9 and unlocks `RemoteCmd.RequestKeyframe`.
+    private func noteMonitorFrame(_ frame: RemoteCmd.OnFrame) {
+        if frame.codec == .vp9 { monitorReceivedVP9Frame = true }
+    }
+
+    /// Monitor side: ask the camera for a keyframe, but only once it has proven
+    /// itself a VP9-speaking peer (else the unknown action decodes as
+    /// TakePicture on an old camera). Sent `.reliable` so recovery isn't lost.
+    private func requestKeyframeIfVP9() {
+        guard monitorReceivedVP9Frame else {
+            debugLog("RequestKeyframe dropped: peer has not sent a VP9 frame")
+            return
+        }
+        sendMessage(RemoteCmd.RequestKeyframe(sender: nil), mode: .reliable)
+    }
+
     private func inCameraTakingPic(_ msg: Message, sendMediaToPeer: Bool, generation: Int) async {
         switch msg {
         case let timeout as UICmd.StateTimeout:
@@ -807,6 +875,11 @@ public actor SessionCoordinator {
                 await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
                     lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error as NSError))
             }
+
+        case is RemoteCmd.RequestKeyframe:
+            // The preview stream keeps flowing while recording, so a desynced
+            // monitor decoder can ask for a keyframe here too.
+            frameSender?.requestKeyframe()
 
         case let ack as RemoteCmd.StartRecordingVideoAck:
             // The pipeline's success ack, carrying the recording start time for
@@ -1085,11 +1158,15 @@ public actor SessionCoordinator {
     private func inMonitor(_ msg: Message, mode: MonitorMode) async {
         switch msg {
         case let frame as RemoteCmd.OnFrame:
+            noteMonitorFrame(frame)
             monitor?.show(frame: frame)
             await requestFrame()
 
         case is UICmd.StreamStalled:
             await requestFrame()
+
+        case is UICmd.RequestVideoKeyframe:
+            requestKeyframeIfVP9()
 
         case is UICmd.UnbecomeMonitor:
             await transition(to: .connected)
@@ -1387,11 +1464,15 @@ public actor SessionCoordinator {
     private func inMonitorRecordingVideo(_ msg: Message) async {
         switch msg {
         case let frame as RemoteCmd.OnFrame:
+            noteMonitorFrame(frame)
             monitor?.show(frame: frame)
             await requestFrame()
 
         case is UICmd.StreamStalled:
             await requestFrame()
+
+        case is UICmd.RequestVideoKeyframe:
+            requestKeyframeIfVP9()
 
         case let ack as RemoteCmd.StartRecordingVideoAck:
             if let error = ack.error {

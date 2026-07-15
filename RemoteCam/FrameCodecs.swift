@@ -12,6 +12,40 @@
 import Foundation
 import CoreImage
 import CoreVideo
+import VideocallCodecs
+
+/// Whether the pure-Rust VP9 codec (VideocallCodecs) can actually run on this
+/// device. The framework ships arm64-only slices; on any architecture where the
+/// codec can't initialize this is false, both peers advertise no VP9 support,
+/// and the preview falls back to the HEIC/JPEG still path. Probed once by
+/// constructing a tiny encoder — capability advertisement must reflect what
+/// runs at runtime, not what happened to compile (CLAUDE.md Catalyst rule).
+enum VP9Support {
+    static let isAvailable: Bool = probe()
+
+    private static func probe() -> Bool {
+        do {
+            _ = try Vp9Encoder(width: 16, height: 16, fps: 30, bitrateKbps: 100,
+                               keyframeInterval: 30, minQuantizer: 40, maxQuantizer: 60, cpuUsed: 8)
+            return true
+        } catch {
+            StreamLog.encode.info("VP9 codec unavailable at runtime (\(error)) — preview falls back to stills")
+            return false
+        }
+    }
+}
+
+/// Pure negotiation decision for the peer (phone→phone-monitor) VP9 preview
+/// stream. Isolated and side-effect-free so the policy is unit-tested directly.
+enum VP9Negotiation {
+    /// The camera may encode/send VP9 preview frames only when the monitor
+    /// advertised VP9 decode support (in its `PeerBecameMonitor` capabilities)
+    /// AND this device's own VP9 encoder is available at runtime. Either false
+    /// keeps the stream on HEIC/JPEG stills, which every released peer decodes.
+    static func cameraShouldSendVP9(peerAdvertisedVP9: Bool, localVP9Available: Bool) -> Bool {
+        peerAdvertisedVP9 && localVP9Available
+    }
+}
 
 /// Outcome of one encode attempt. Stills only ever produce `.encoded` or
 /// `.failed`; a stateful video encoder (VP9) may also consume a frame without
@@ -38,6 +72,14 @@ struct EncodedFrame {
 protocol FrameEncoding: AnyObject {
     var codec: RemoteCmd.StreamCodec { get }
     func encode(pixelBuffer: CVPixelBuffer) -> FrameEncodeResult
+}
+
+/// A stateful video encoder whose delta frames depend on the previous frame
+/// (VP9). Adds keyframe control so a desynced receiver can be re-synced on
+/// demand. Capture-queue confined like `FrameEncoding`.
+protocol StreamVideoEncoding: FrameEncoding {
+    /// Force the next encoded frame to be a keyframe.
+    func forceKeyframe()
 }
 
 /// Encodes with the first working encoder in `chain`, permanently dropping

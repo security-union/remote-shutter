@@ -28,8 +28,9 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case syncmonitorsettings = 17
   case setaspectratio = 18
   case selectcameradevice = 19
+  case requestkeyframe = 20
 
-  public static var max: RemoteShutter_CommandAction { return .selectcameradevice }
+  public static var max: RemoteShutter_CommandAction { return .requestkeyframe }
   public static var min: RemoteShutter_CommandAction { return .takepicture }
 }
 
@@ -310,6 +311,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     case recordingMode = 30
     case aspectRatio = 32
     case deviceUniqueId = 34
+    case supportsVp9Preview = 36
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -333,7 +335,8 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public var aspectRatio: RemoteShutter_AspectRatioEnum { let o = _accessor.offset(VTOFFSET.aspectRatio.v); return o == 0 ? .unknown : RemoteShutter_AspectRatioEnum(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var deviceUniqueId: String? { let o = _accessor.offset(VTOFFSET.deviceUniqueId.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var deviceUniqueIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.deviceUniqueId.v) }
-  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 16) }
+  public var supportsVp9Preview: Bool { let o = _accessor.offset(VTOFFSET.supportsVp9Preview.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 17) }
   public static func add(sendToRemote: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: sendToRemote, def: false,
    at: VTOFFSET.sendToRemote.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
@@ -351,6 +354,8 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public static func add(recordingMode: RemoteShutter_RecordingModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: recordingMode.rawValue, def: 0, at: VTOFFSET.recordingMode.p) }
   public static func add(aspectRatio: RemoteShutter_AspectRatioEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: aspectRatio.rawValue, def: 0, at: VTOFFSET.aspectRatio.p) }
   public static func add(deviceUniqueId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: deviceUniqueId, at: VTOFFSET.deviceUniqueId.p) }
+  public static func add(supportsVp9Preview: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsVp9Preview, def: false,
+   at: VTOFFSET.supportsVp9Preview.p) }
   public static func endCommandParameters(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCommandParameters(
     _ fbb: inout FlatBufferBuilder,
@@ -369,7 +374,8 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     countdownValue: Int32 = 0,
     recordingMode: RemoteShutter_RecordingModeEnum = .unknown,
     aspectRatio: RemoteShutter_AspectRatioEnum = .unknown,
-    deviceUniqueIdOffset deviceUniqueId: Offset = Offset()
+    deviceUniqueIdOffset deviceUniqueId: Offset = Offset(),
+    supportsVp9Preview: Bool = false
   ) -> Offset {
     let __start = RemoteShutter_CommandParameters.startCommandParameters(&fbb)
     RemoteShutter_CommandParameters.add(sendToRemote: sendToRemote, &fbb)
@@ -388,6 +394,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     RemoteShutter_CommandParameters.add(recordingMode: recordingMode, &fbb)
     RemoteShutter_CommandParameters.add(aspectRatio: aspectRatio, &fbb)
     RemoteShutter_CommandParameters.add(deviceUniqueId: deviceUniqueId, &fbb)
+    RemoteShutter_CommandParameters.add(supportsVp9Preview: supportsVp9Preview, &fbb)
     return RemoteShutter_CommandParameters.endCommandParameters(&fbb, start: __start)
   }
 
@@ -409,6 +416,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.recordingMode.p, fieldName: "recordingMode", required: false, type: RemoteShutter_RecordingModeEnum.self)
     try _v.visit(field: VTOFFSET.aspectRatio.p, fieldName: "aspectRatio", required: false, type: RemoteShutter_AspectRatioEnum.self)
     try _v.visit(field: VTOFFSET.deviceUniqueId.p, fieldName: "deviceUniqueId", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.supportsVp9Preview.p, fieldName: "supportsVp9Preview", required: false, type: Bool.self)
     _v.finish()
   }
 }

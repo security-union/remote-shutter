@@ -28,9 +28,14 @@ enum CommandAction : byte {
     TimerCountdown = 16,
     SyncMonitorSettings = 17,
     SetAspectRatio = 18,
-    SelectCameraDevice = 19    // never sent to peers that did not advertise
+    SelectCameraDevice = 19,   // never sent to peers that did not advertise
                                // camera_devices — old decoders read unknown
                                // actions as TakePicture (the field default)
+    RequestKeyframe = 20       // monitor -> camera: force the next VP9 preview
+                               // frame to be a keyframe (decoder desync
+                               // recovery). Only sent to a peer that has
+                               // already delivered a VP9 frame — old decoders
+                               // read unknown actions as TakePicture.
 }
 
 enum CameraPosition : byte {
@@ -136,6 +141,11 @@ table CommandParameters {
     aspect_ratio: AspectRatioEnum;
     // Appended fields only below this line (FlatBuffers schema evolution).
     device_unique_id: string;        // payload for SelectCameraDevice
+    // A monitor advertises here (on PeerBecameMonitor) that it can decode the
+    // VP9 preview stream. Absent/false on legacy monitors, so the camera keeps
+    // sending HEIC/JPEG stills to them. The camera only enables VP9 encoding
+    // when this is true AND its own runtime VP9 codec is available.
+    supports_vp9_preview: bool;
 }
 
 // MARK: - Command Structure

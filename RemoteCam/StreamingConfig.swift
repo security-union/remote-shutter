@@ -12,18 +12,26 @@ import CoreGraphics
 
 struct StreamingConfig {
 
-    /// Codecs to try for the phone-monitor (peer) stream, in order. The
-    /// streamer permanently falls back to the next entry when an encoder
-    /// fails (e.g. HEIC on hardware without an HEVC encoder). `.vp9` is
-    /// skipped on this path until the peer monitor grows a VP9 decode path
-    /// (follow-up PR) — old peers would render VP9 bytes as a broken still.
-    var preferredCodecs: [RemoteCmd.StreamCodec] = [.vp9, .heic, .jpeg]
+    /// Still codecs to try for the phone-monitor (peer) stream, in order. The
+    /// streamer permanently falls back to the next entry when an encoder fails
+    /// (e.g. HEIC on hardware without an HEVC encoder). VP9 is NOT in this
+    /// chain: it is a stateful video stream managed separately (lazy,
+    /// credit-gated) and only enabled once the monitor advertises VP9 decode
+    /// support — an old peer would render VP9 bytes as a broken still.
+    var preferredCodecs: [RemoteCmd.StreamCodec] = [.heic, .jpeg]
 
     /// Long edge of the frame sent to the phone monitor. Replaces the old
     /// full-sensor-resolution JPEG at quality 0.1.
     var maxLongEdge: CGFloat = 960
     var heicQuality: CGFloat = 0.5
     var jpegQuality: CGFloat = 0.6
+
+    /// VP9 tuning for the phone-monitor (peer) preview: a bigger frame (960 px)
+    /// and a higher bitrate than the Watch's 320 px stream. The first frame of
+    /// every encoder session is a keyframe, and a forced keyframe every
+    /// `keyframeInterval` bounds decoder re-sync latency after any desync.
+    var peerVP9 = VP9Settings(bitrateKbps: 800, fps: 30, keyframeInterval: 30,
+                              minQuantizer: 32, maxQuantizer: 56, cpuUsed: 7)
 
     /// Send every Nth capture callback (30fps capture / 2 = 15fps offered).
     var frameDivisor: Int = 2
@@ -81,6 +89,11 @@ struct StreamingConfig {
     var stallTimeout: TimeInterval = 2.0
     /// How often the stall watchdog wakes up to check.
     var stallCheckInterval: TimeInterval = 1.0
+
+    /// Monitor-side VP9 recovery: rate-limits `RemoteCmd.RequestKeyframe` while
+    /// the decoder is desynced (undecodable frames), so a burst of bad frames
+    /// asks for at most one keyframe per interval instead of flooding the wire.
+    var keyframeRequestInterval: TimeInterval = 0.5
 
     static let `default` = StreamingConfig()
 }

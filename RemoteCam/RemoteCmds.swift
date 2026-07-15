@@ -181,6 +181,18 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Monitor -> camera: force the next VP9 preview frame to be a keyframe so a
+    /// desynced decoder (joined mid-stream, dropped a delta frame) can re-sync
+    /// without waiting for the camera's periodic keyframe. The monitor only
+    /// sends this after it has received at least one VP9 frame, which proves the
+    /// peer is a VP9-speaking build — old decoders read the unknown action as
+    /// TakePicture, so the gate mirrors the SelectCameraDevice precedent.
+    public class RequestKeyframe: Message, @unchecked Sendable {
+        public override init(sender: AnyObject?) {
+            super.init(sender: sender)
+        }
+    }
+
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
         public let peerId: MCPeerID
@@ -409,16 +421,24 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     public class PeerBecameMonitor: Message, @unchecked Sendable {
         let bundleVersion: Int, shortVersion: String, platform: String
+        /// This monitor advertises that it can decode the VP9 preview stream.
+        /// The camera peer only enables VP9 encoding when this is true (and its
+        /// own codec is available); false on legacy monitors keeps the camera
+        /// on the HEIC/JPEG still path. Absent on the wire decodes as false.
+        let supportsVP9Preview: Bool
 
-        class func createWithDefaults() -> PeerBecameMonitor {
+        class func createWithDefaults(supportsVP9Preview: Bool) -> PeerBecameMonitor {
             let (bundleVersion, shortVersion, platform) = getDeviceInfo()
-            return PeerBecameMonitor(bundleVersion: bundleVersion, shortVersion: shortVersion, platform: platform)
+            return PeerBecameMonitor(bundleVersion: bundleVersion, shortVersion: shortVersion,
+                                     platform: platform, supportsVP9Preview: supportsVP9Preview)
         }
 
-        public init(bundleVersion: Int, shortVersion: String, platform: String) {
+        public init(bundleVersion: Int, shortVersion: String, platform: String,
+                    supportsVP9Preview: Bool = false) {
             self.bundleVersion = bundleVersion
             self.shortVersion = shortVersion
             self.platform = platform
+            self.supportsVP9Preview = supportsVP9Preview
             super.init(sender: nil)
         }
     }
