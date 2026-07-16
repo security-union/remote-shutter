@@ -1,12 +1,16 @@
-// Amazon Associates tracking IDs. These are the intended IDs — they MUST be
-// updated to the real ones once the Associates account is approved, or the
-// clicks earn nothing (links still work for shoppers either way).
+// Live Amazon Associates tracking IDs, registered under the securityunion-20
+// account. The split lets app-driven clicks report separately from organic web
+// in Amazon's Tracking ID Summary Report; AmazonLink picks between them on
+// ?src=app. Both must exist in Associates Central — an unregistered tag still
+// links fine for shoppers but attributes nothing.
 export const AMAZON_TAG_WEB = 'remoteshutter-web-20';
 export const AMAZON_TAG_APP = 'remoteshutter-app-20';
 
 export interface GearItem {
   name: string;
-  price: string;
+  /** editorial price band — deliberately not a number: we have no
+   *  licensed live price source, and a stale one is worse than none */
+  tier: string;
   why: string;
   /** Amazon search query the buy button points at */
   query: string;
@@ -31,7 +35,7 @@ export const GEAR_SECTIONS: GearSection[] = [
     items: [
       {
         name: 'UBeesize TR50 50″ tripod',
-        price: '$23–30',
+        tier: 'Budget',
         why: 'The value workhorse: chest-height group shots anywhere, light enough to live in a backpack.',
         query: 'ubeesize tr50 phone tripod',
         image: 'tripod-full.jpg',
@@ -40,7 +44,7 @@ export const GEAR_SECTIONS: GearSection[] = [
       },
       {
         name: 'Joby GorillaPod Mobile',
-        price: '$25–35',
+        tier: 'Budget',
         why: "Wraps around railings, branches, and door frames — camera angles a straight tripod can't reach.",
         query: 'joby gorillapod mobile phone',
         image: 'tripod-flex.jpg',
@@ -48,7 +52,7 @@ export const GEAR_SECTIONS: GearSection[] = [
       },
       {
         name: 'Manfrotto PIXI + phone clamp',
-        price: '$30–40',
+        tier: 'Mid-range',
         why: 'The tabletop workhorse: dead-stable for video, product shots, and long exposures on any flat surface.',
         query: 'manfrotto pixi mini tripod phone clamp',
         image: 'tripod-mini.jpg',
@@ -56,7 +60,7 @@ export const GEAR_SECTIONS: GearSection[] = [
       },
       {
         name: 'Manfrotto Element MII Mobile',
-        price: '$120–160',
+        tier: 'Premium',
         why: 'The buy-once tripod: 63″ tall, 8 kg payload, Arca ball head — and Manfrotto’s smartphone clamp in the box.',
         query: 'manfrotto element mii mobile tripod',
         image: 'tripod-manfrotto.jpg',
@@ -71,8 +75,8 @@ export const GEAR_SECTIONS: GearSection[] = [
     items: [
       {
         name: 'Universal tripod phone clamp',
-        price: '$10–14',
-        why: 'Turns any standard tripod you already own into a Remote Shutter rig. The highest-value $12 in this list.',
+        tier: 'Budget',
+        why: 'Turns any standard tripod you already own into a Remote Shutter rig. The best value on this page.',
         query: 'phone tripod mount clamp cold shoe',
         image: 'mount-clamp.jpg',
         alt: 'Universal tripod phone clamp',
@@ -80,7 +84,7 @@ export const GEAR_SECTIONS: GearSection[] = [
       },
       {
         name: 'MagSafe tripod mount',
-        price: '$15–25',
+        tier: 'Budget',
         why: 'Snap the camera phone on and off between shots — no clamping, no fiddling while the group waits.',
         query: 'magsafe tripod mount',
         image: 'mount-magsafe.jpg',
@@ -88,7 +92,7 @@ export const GEAR_SECTIONS: GearSection[] = [
       },
       {
         name: 'Belkin MagSafe desk stand',
-        price: '$28–35',
+        tier: 'Mid-range',
         why: 'The desk-studio option: holds the phone at monitor height for recording setups driven from the Mac app.',
         query: 'belkin magsafe phone stand',
         image: 'stand-desk.jpg',
@@ -96,7 +100,7 @@ export const GEAR_SECTIONS: GearSection[] = [
       },
       {
         name: 'Suction cup phone mount',
-        price: '$12–20',
+        tier: 'Budget',
         why: 'Sticks to windows, mirrors, and tile — overhead and behind-glass angles no tripod will give you.',
         query: 'suction cup phone mount camera',
         image: 'mount-suction.jpg',
@@ -111,7 +115,7 @@ export const GEAR_SECTIONS: GearSection[] = [
     items: [
       {
         name: 'Xenvo Pro lens kit',
-        price: '$35–45',
+        tier: 'Budget',
         why: 'The proven first lens: wide + macro on a padded clip that works with any phone, no case required.',
         query: 'xenvo pro lens kit',
         image: 'lens-xenvo.jpg',
@@ -119,7 +123,7 @@ export const GEAR_SECTIONS: GearSection[] = [
       },
       {
         name: 'Sirui 1.33× anamorphic',
-        price: '$70–90',
+        tier: 'Mid-range',
         why: 'Cinematic widescreen on a budget — the affordable way into anamorphic before committing to Moment glass.',
         query: 'sirui anamorphic lens smartphone',
         image: 'lens-sirui.jpg',
@@ -127,7 +131,7 @@ export const GEAR_SECTIONS: GearSection[] = [
       },
       {
         name: 'Sandmarc Wide',
-        price: '$110–130',
+        tier: 'Premium',
         why: 'Magnesium-built wide that gets every face in the group shot without stepping back. Clip or case mount.',
         query: 'sandmarc wide lens iphone',
         image: 'lens-sandmarc.jpg',
@@ -136,7 +140,7 @@ export const GEAR_SECTIONS: GearSection[] = [
       },
       {
         name: 'Moment T-Series',
-        price: '$130–150',
+        tier: 'Premium',
         why: 'The benchmark: aircraft-aluminum glass that snaps onto a Moment case. For shooters going all-in.',
         query: 'moment t-series lens',
         image: 'lens-moment.jpg',

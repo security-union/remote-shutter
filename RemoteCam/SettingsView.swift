@@ -109,6 +109,13 @@ struct SettingsView: View {
                 }
             }
 
+            // Ungated: someone who navigated here to rate has already asked.
+            linkRow(
+                icon: "heart.fill",
+                title: NSLocalizedString("Rate on App Store", comment: ""),
+                urlString: AppStoreReviewURL.absoluteString
+            )
+
             linkRow(
                 icon: "envelope.fill",
                 title: NSLocalizedString("Contact Support", comment: ""),

@@ -76,17 +76,7 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
     // MARK: - Review
 
     var canShowReview: Bool {
-        let store = StoreManager.shared
-        guard store.hasAdRemovalFeature() || store.hasTorchFeature()
-                || store.hasVideoRecordingFeature() || store.hasProMode() else {
-            return false
-        }
-        let count = UserDefaults.standard.integer(forKey: reviewCounterKey)
-        guard let currentVersion = Bundle.main.object(forInfoDictionaryKey: kCFBundleVersionKey as String) as? String else {
-            return false
-        }
-        let lastVersion = UserDefaults.standard.string(forKey: lastVersionPromptedForReviewKey)
-        return count <= 4 && currentVersion != lastVersion
+        hasEarnedReviewAsk()
     }
 
     // MARK: - Private Helpers

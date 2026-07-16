@@ -1,5 +1,4 @@
 import UIKit
-import StoreKit
 import SwiftUI
 
 class WelcomeViewController: UIViewController {
@@ -70,23 +69,7 @@ class WelcomeViewController: UIViewController {
     // MARK: - Review
 
     private func reviewApp() {
-        var count = UserDefaults.standard.integer(forKey: reviewCounterKey)
-        count += 1
-        UserDefaults.standard.set(count, forKey: reviewCounterKey)
-
-        let infoDictionaryKey = kCFBundleVersionKey as String
-        guard let currentVersion = Bundle.main.object(forInfoDictionaryKey: infoDictionaryKey) as? String else { return }
-        let lastVersionPrompted = UserDefaults.standard.string(forKey: lastVersionPromptedForReviewKey)
-
-        if count <= 4 && currentVersion != lastVersionPrompted {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                guard self?.navigationController?.topViewController is WelcomeViewController else { return }
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-                    SKStoreReviewController.requestReview(in: windowScene)
-                }
-                UserDefaults.standard.set(currentVersion, forKey: lastVersionPromptedForReviewKey)
-            }
-        }
+        openAppStoreReview()
     }
 
 }

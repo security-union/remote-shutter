@@ -102,7 +102,7 @@ export default async function BlogPost({ params }: Props) {
       <Header />
       <main className={styles.main}>
         <nav className={styles.breadcrumb} aria-label="Breadcrumb">
-          <a href={BASE_PATH}>Home</a>
+          <a href={BASE_PATH || '/'}>Home</a>
           <span aria-hidden="true">/</span>
           <a href={`${BASE_PATH}/blog`}>Blog</a>
           <span aria-hidden="true">/</span>
