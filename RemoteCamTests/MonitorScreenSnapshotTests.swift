@@ -24,7 +24,6 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
             onGalleryTapped: {},
             onSettingsTapped: {},
             onZoomChange: { _ in },
-            onLensChange: { _ in },
             onVideoQualityChange: { _, _ in },
             onPhotoQualityChange: { _, _ in },
             onAspectRatioChange: { _ in })
@@ -37,7 +36,6 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
         model.availableLensTypes = [.ultraWide, .wideAngle, .telephoto]
         model.currentLensType = .wideAngle
         model.zoomStops = [1.0, 2.0, 5.0]
-        model.showZoomControls = true
         model.currentZoomFactor = 1.0
         return model
     }

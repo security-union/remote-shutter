@@ -41,9 +41,6 @@ extension MonitorViewController {
             onZoomChange: { [weak self] factor in
                 self?.handleZoomChange(factor)
             },
-            onLensChange: { [weak self] lensType in
-                self?.handleLensChange(lensType)
-            },
             onVideoQualityChange: { [weak self] resolution, frameRate in
                 self?.handleVideoQualityChange(resolution, frameRate)
             },
@@ -245,11 +242,6 @@ extension MonitorViewController {
         }
     }
     
-    private func handleLensChange(_ lensType: CameraLensType) {
-        currentLensType = lensType
-        session ! UICmd.SwitchLens(lensType: lensType)
-    }
-
     private func handleVideoQualityChange(_ resolution: VideoResolution, _ frameRate: VideoFrameRate) {
         session ! UICmd.SetVideoQuality(resolution: resolution, frameRate: frameRate)
     }
