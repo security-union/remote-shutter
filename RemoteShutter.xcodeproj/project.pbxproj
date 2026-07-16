@@ -35,6 +35,8 @@
 		0684A2E81BE7049800F0B238 /* beep.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E61BE7049800F0B238 /* beep.m4a */; };
 		0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E91BE704C600F0B238 /* fastBeep.aif */; };
 		068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59A2E3544AD00A49279 /* MonitorView.swift */; };
+		0A11B22C33D44E55F6070002 /* ZoomScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070001 /* ZoomScale.swift */; };
+		0A11B22C33D44E55F6070004 /* ZoomPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070003 /* ZoomPill.swift */; };
 		068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */; };
 		068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */; };
 		0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */; };
@@ -127,6 +129,7 @@
 		AB12CD34EF5601789ABC0DF8 /* MonitorPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DF7 /* MonitorPresenter.swift */; };
 		AB12CD34EF5601789ABC0DFA /* Messages.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DF9 /* Messages.swift */; };
 		AB12CD34EF5601789ABC0DFC /* SessionTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DFB /* SessionTestSupport.swift */; };
+		0A11B22C33D44E55F6070006 /* ZoomScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070005 /* ZoomScaleTests.swift */; };
 		AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		ABE88EBB0583BA42617B496C /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1E06F124E7E28CC7B25BDE83 /* Pods_RemoteShutter.framework */; };
 		AFE75F7F7AE0F1FBF334D385 /* FlatBufferSchemas_generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */; };
@@ -277,6 +280,8 @@
 		0684A2E61BE7049800F0B238 /* beep.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = beep.m4a; sourceTree = "<group>"; };
 		0684A2E91BE704C600F0B238 /* fastBeep.aif */ = {isa = PBXFileReference; lastKnownFileType = file; path = fastBeep.aif; sourceTree = "<group>"; };
 		068DF59A2E3544AD00A49279 /* MonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorView.swift; sourceTree = "<group>"; };
+		0A11B22C33D44E55F6070001 /* ZoomScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomScale.swift; sourceTree = "<group>"; };
+		0A11B22C33D44E55F6070003 /* ZoomPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomPill.swift; sourceTree = "<group>"; };
 		068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MonitorViewController+SwiftUI.swift"; sourceTree = "<group>"; };
 		068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorViewModel.swift; sourceTree = "<group>"; };
 		0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -369,6 +374,7 @@
 		AB12CD34EF5601789ABC0DF7 /* MonitorPresenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonitorPresenter.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DF9 /* Messages.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Messages.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DFB /* SessionTestSupport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SessionTestSupport.swift; sourceTree = "<group>"; };
+		0A11B22C33D44E55F6070005 /* ZoomScaleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZoomScaleTests.swift; sourceTree = "<group>"; };
 		B1C0DE0100000001 /* RolePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RolePickerView.swift; sourceTree = "<group>"; };
 		B1C0DE0200000001 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		B1C0DE0300000001 /* DeviceScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModel.swift; sourceTree = "<group>"; };
@@ -573,6 +579,7 @@
 				AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */,
 				C4F2A81D9E3B47CA8D5E1A01 /* DeviceScannerSnapshotTests.swift */,
 				AB12CD34EF5601789ABC0DFB /* SessionTestSupport.swift */,
+				0A11B22C33D44E55F6070005 /* ZoomScaleTests.swift */,
 				AB12CD34EF5601789ABC0DEB /* SnapshotTestSupport.swift */,
 				AB12CD34EF5601789ABC0DED /* MonitorScreenSnapshotTests.swift */,
 			);
@@ -584,6 +591,8 @@
 			children = (
 				06BB79AD2E372D420094E085 /* RecordingTimer.swift */,
 				068DF59A2E3544AD00A49279 /* MonitorView.swift */,
+				0A11B22C33D44E55F6070001 /* ZoomScale.swift */,
+				0A11B22C33D44E55F6070003 /* ZoomPill.swift */,
 				06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */,
 				06BB79BE2E3884FA0094E085 /* CameraViewModel.swift */,
 				06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */,
@@ -1088,6 +1097,8 @@
 				FADEC0DE0001000000000002 /* FrameCreditWindow.swift in Sources */,
 				CAFEBABE0007000000000002 /* WatchPreviewStreamer.swift in Sources */,
 				068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */,
+				0A11B22C33D44E55F6070002 /* ZoomScale.swift in Sources */,
+				0A11B22C33D44E55F6070004 /* ZoomPill.swift in Sources */,
 				068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */,
 				068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */,
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
@@ -1199,6 +1210,7 @@
 				AB12CD34EF5601789ABC0DEA /* CameraScreenSnapshotTests.swift in Sources */,
 				C4F2A81D9E3B47CA8D5E1A02 /* DeviceScannerSnapshotTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DFC /* SessionTestSupport.swift in Sources */,
+				0A11B22C33D44E55F6070006 /* ZoomScaleTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DEC /* SnapshotTestSupport.swift in Sources */,
 				AB12CD34EF5601789ABC0DEE /* MonitorScreenSnapshotTests.swift in Sources */,
 			);

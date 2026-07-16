@@ -105,15 +105,8 @@ struct MonitorView: View {
                 }
             }
             
-            // Zoom controls overlay - positioned at top for right-handed accessibility
-            if viewModel.showZoomControls {
-                VStack {
-                    zoomControlsOverlay
-                        .padding(.top, 50) // Below status bar
-                    Spacer()
-                }
-            }
-            
+            zoomControls
+
             // Video transfer progress overlay - positioned at center
             if viewModel.isVideoTransferring {
                 VideoTransferProgressView(
@@ -155,20 +148,7 @@ struct MonitorView: View {
                         zoomAtGestureStart = viewModel.currentZoomFactor
                     }
                     let start = zoomAtGestureStart!
-
-                    // Logarithmic zoom: newZoom = start * value^sensitivity
-                    // Operates in log2 space for uniform perceptual sensitivity
-                    let minZoom = viewModel.zoomStops.first ?? 1.0
-                    let maxZoom = viewModel.maxZoomFactor
-                    let sensitivity: CGFloat = 0.6
-
-                    let logStart = log2(start)
-                    let logDelta = log2(value) * sensitivity
-                    let logNew = logStart + logDelta
-                    let clamped = max(log2(minZoom), min(log2(maxZoom), logNew))
-                    let newZoom = pow(2, clamped)
-
-                    onZoomChange(newZoom)
+                    onZoomChange(viewModel.zoomScale.pinched(from: start, magnification: value))
                     viewModel.showZoomControlsTemporarily()
                 }
                 .onEnded { _ in
@@ -180,11 +160,39 @@ struct MonitorView: View {
     // MARK: - Recording Indicator
     // Note: Replaced with RecordingTimer component that includes duration
     
-    // MARK: - Zoom Controls Overlay
+    // MARK: - Zoom Controls
+
+    /// iPhone and iPad zoom by pinch, so they get a read-only HUD that auto-hides 0.5s
+    /// after the last gesture. A Mac has no pinch affordance for mouse users, and a
+    /// control that vanishes half a second after you release it can't be operated, so
+    /// Catalyst gets an interactive pill that stays put instead.
+    @ViewBuilder
+    private var zoomControls: some View {
+        #if targetEnvironment(macCatalyst)
+        VStack {
+            Spacer()
+            ZoomPill(scale: viewModel.zoomScale,
+                     currentZoomFactor: viewModel.currentZoomFactor,
+                     onZoomChange: onZoomChange)
+                .padding(.bottom, 24)
+        }
+        #else
+        if viewModel.showZoomControls {
+            VStack {
+                // Positioned at top for right-handed accessibility.
+                zoomControlsOverlay
+                    .padding(.top, 50) // Below status bar
+                Spacer()
+            }
+        }
+        #endif
+    }
+
+    #if !targetEnvironment(macCatalyst)
     private var zoomControlsOverlay: some View {
         VStack(spacing: 10) {
             // Current zoom level - display relative to wide-angle
-            Text("\(String(format: "%.1f", viewModel.currentZoomFactor / viewModel.wideAngleZoomFactor))×")
+            Text("\(String(format: "%.1f", viewModel.zoomScale.displayFactor(forHardware: viewModel.currentZoomFactor)))×")
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
                 .tracking(0.5)
@@ -232,8 +240,10 @@ struct MonitorView: View {
                         .shadow(color: AppTheme.accent.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
 
-                // End label
-                Text("\(String(format: "%.0f", viewModel.maxZoomFactor))×")
+                // End label. maxZoomFactor is a hardware factor, so it has to go through
+                // formatZoomStop like the start label — printed raw it brackets the bar in
+                // a different unit than the label at the other end.
+                Text(formatZoomStop(viewModel.maxZoomFactor))
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
             }
@@ -266,7 +276,8 @@ struct MonitorView: View {
         .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 4)
         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
-    
+    #endif
+
     // MARK: - Quality Controls
     private var qualityControls: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -494,16 +505,13 @@ struct MonitorView: View {
         }
     }
     
+    #if !targetEnvironment(macCatalyst)
     /// Formats a hardware zoom factor as a user-facing label relative to the wide-angle camera.
     /// e.g., hardware 1.0 with wideAngleFactor 2.0 → "0.5x", hardware 2.0 → "1x", hardware 6.0 → "3x"
     private func formatZoomStop(_ hardwareZoom: CGFloat) -> String {
-        let displayZoom = hardwareZoom / viewModel.wideAngleZoomFactor
-        let rounded = round(displayZoom * 10) / 10
-        if rounded == CGFloat(Int(rounded)) {
-            return "\(Int(rounded))x"
-        }
-        return String(format: "%.1fx", rounded)
+        viewModel.zoomScale.label(forHardware: hardwareZoom, glyph: "x")
     }
+    #endif
 
     // MARK: - Lens Controls
     private var lensControls: some View {

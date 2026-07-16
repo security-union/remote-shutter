@@ -55,6 +55,15 @@ class MonitorViewModel: ObservableObject {
     @Published var zoomStops: [CGFloat] = [1.0]
     @Published var wideAngleZoomFactor: CGFloat = 1.0 // Hardware zoom for "1x" reference
 
+    /// Zoom math for every control on this screen — pinch, the zoom HUD, and the Mac
+    /// zoom pill. Derived rather than stored so it can never disagree with the three
+    /// published values it is built from.
+    var zoomScale: ZoomScale {
+        ZoomScale(stops: zoomStops,
+                  maxZoomFactor: maxZoomFactor,
+                  wideAngleZoomFactor: wideAngleZoomFactor)
+    }
+
     // MARK: - Aspect Ratio Properties
     @Published var currentAspectRatio: AspectRatio = .sixteenNine
 

@@ -56,6 +56,14 @@ public class MonitorViewController: UIViewController {
     // MARK: - Zoom and Lens Properties
     var currentZoomFactor: CGFloat = 1.0
     public var maxZoomFactor: CGFloat = 10.0
+
+    /// Zoom sends are throttled to 20Hz with a trailing-edge flush. A continuous drag on
+    /// the Mac zoom pill emits a value per frame, which would flood the Multipeer channel;
+    /// a plain rate limit would silently drop the final position the user released on.
+    /// Internal rather than private: `handleZoomChange` lives in a different file's
+    /// extension, and `private` is file-scoped.
+    var zoomThrottle = ZoomSendThrottle()
+    var trailingZoomTimer: Timer?
     var availableLensTypes: [CameraLensType] = [.wideAngle]
     var currentLensType: CameraLensType = .wideAngle
 
