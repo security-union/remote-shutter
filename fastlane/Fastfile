@@ -63,7 +63,7 @@ platform :ios do
     )
   end
 
-  desc "Sync in-app purchase localizations on ASC from fastlane/iap_localizations.json"
+  desc "Sync in-app purchase & subscription localizations on ASC from fastlane/iap_localizations.json"
   lane :sync_iap do
     load_asc_api_key
     token = Spaceship::ConnectAPI::Token.create(
