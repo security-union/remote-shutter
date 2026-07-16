@@ -1,7 +1,7 @@
-Chegou o suporte ao Apple Watch!
+Uma câmera remota mais nítida e fluida.
 
-- NOVO: Controle sua câmera direto do seu Apple Watch — dispare o obturador no seu pulso
-- Perfeito para tripés, telescópios e equipamentos de câmera de longo alcance, quando você não consegue alcançar o celular
-- Status da conexão ao vivo no seu Watch, para você sempre saber que está conectado
-- Maior confiabilidade da conexão entre Watch, iPhone e iPad
-- Correções de bugs e melhorias de desempenho
+- Toque para focar: toque na visualização ao vivo para definir o foco e a exposição exatamente onde você quiser — incluído no Pro
+- Vídeo em tempo real: uma transmissão ao vivo e fluida substitui as fotos estáticas, deixando o enquadramento de cada cena sem esforço
+- Controle de zoom redesenhado: ajustes mais finos e suaves do outro lado da sala
+- Loja de Acessórios: explore tripés, suportes e acessórios escolhidos para o seu equipamento de câmera
+- Melhorias de estabilidade e desempenho em todo o app

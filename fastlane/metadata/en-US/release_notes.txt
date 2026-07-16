@@ -1,7 +1,7 @@
-Apple Watch support is here!
+A sharper, smoother remote camera.
 
-- NEW: Control your camera straight from your Apple Watch — trigger the shutter right from your wrist
-- Perfect for tripods, telescopes, and long-range camera rigs where you can't reach your phone
-- Live connection status on your Watch so you always know you're linked
-- Improved connection reliability between Watch, iPhone, and iPad
-- Bug fixes and performance improvements
+- Tap to Focus: tap the live preview to set focus and exposure exactly where you want it — included with Pro
+- Real-time video: a smooth live feed replaces still snapshots, so framing every shot is effortless
+- Redesigned zoom slider: finer, smoother control from across the room
+- Gear Store: browse tripods, mounts, and accessories picked for your camera setup
+- Reliability and performance improvements throughout

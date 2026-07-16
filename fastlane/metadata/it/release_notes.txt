@@ -1,7 +1,7 @@
-Il supporto per Apple Watch è arrivato!
+Una fotocamera remota più nitida e fluida.
 
-- NOVITÀ: Controlla la fotocamera direttamente dal tuo Apple Watch: scatta con un semplice tocco dal polso
-- Perfetto per treppiedi, telescopi e attrezzature fotografiche a lunga distanza, quando non riesci a raggiungere il telefono
-- Stato della connessione in tempo reale sul tuo Watch, così sai sempre di essere collegato
-- Maggiore affidabilità della connessione tra Watch, iPhone e iPad
-- Correzioni di bug e miglioramenti delle prestazioni
+- Tocca per mettere a fuoco: tocca l'anteprima in tempo reale per impostare messa a fuoco ed esposizione esattamente dove vuoi — incluso con Pro
+- Video in tempo reale: un flusso live e fluido sostituisce le foto fisse, così inquadrare ogni scatto è semplicissimo
+- Cursore dello zoom ridisegnato: un controllo più preciso e morbido dall'altra parte della stanza
+- Store Accessori: sfoglia treppiedi, supporti e accessori scelti per la tua attrezzatura fotografica
+- Miglioramenti di affidabilità e prestazioni in tutta l'app

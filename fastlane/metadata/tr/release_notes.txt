@@ -1,7 +1,7 @@
-Apple Watch desteği geldi!
+Daha net, daha akıcı bir uzaktan kamera.
 
-- YENİ: Kameranızı doğrudan Apple Watch'unuzdan kontrol edin — deklanşörü tam bileğinizden tetikleyin
-- Telefonunuza ulaşamadığınız tripod, teleskop ve uzun menzilli kamera düzenekleri için mükemmel
-- Watch'unuzda canlı bağlantı durumu, böylece bağlı olduğunuzu her zaman bilirsiniz
-- Watch, iPhone ve iPad arasında geliştirilmiş bağlantı güvenilirliği
-- Hata düzeltmeleri ve performans iyileştirmeleri
+- Dokunarak Odaklan: canlı önizlemede istediğiniz noktaya dokunarak odağı ve pozlamayı tam olarak ayarlayın — Pro ile birlikte gelir
+- Gerçek zamanlı video: tek tek fotoğraf karelerinin yerini akıcı canlı görüntü alır, böylece her kareyi çerçevelemek çok kolay
+- Yeniden tasarlanan yakınlaştırma çubuğu: odanın öbür ucundan bile daha ince, daha akıcı kontrol
+- Ekipman Mağazası: kamera düzeneğinize göre seçilmiş tripodlara, tutuculara ve aksesuarlara göz atın
+- Baştan sona güvenilirlik ve performans iyileştirmeleri
