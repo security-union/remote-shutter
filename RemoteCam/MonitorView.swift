@@ -155,16 +155,21 @@ struct MonitorView: View {
         )
         .onPreferenceChange(PreviewSizePreferenceKey.self) { previewSize = $0 }
         .overlay(focusReticleOverlay)
-        // Double tap toggles the camera and takes precedence; a genuine single
-        // tap falls through to tap-to-focus (with its location). Pinch-to-zoom
-        // runs simultaneously (two fingers vs one).
-        .gesture(
-            ExclusiveGesture(
-                TapGesture(count: 2).onEnded { onToggleCamera() },
-                DragGesture(minimumDistance: 0).onEnded { value in
-                    handleFocusTap(at: value.location)
+        // Double tap toggles the camera. Tap-to-focus runs SIMULTANEOUSLY (not
+        // exclusively) so the reticle is instant — an exclusive gesture would
+        // stall every focus tap for the double-tap disambiguation window. A
+        // double tap harmlessly focuses on the first tap, then toggles.
+        .onTapGesture(count: 2) {
+            onToggleCamera()
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onEnded { value in
+                    // Only a tap (near-zero travel) focuses — not a drag or pinch.
+                    if abs(value.translation.width) < 10, abs(value.translation.height) < 10 {
+                        handleFocusTap(at: value.location)
+                    }
                 }
-            )
         )
         .simultaneousGesture(
             MagnificationGesture()
@@ -208,7 +213,7 @@ struct MonitorView: View {
     private func showFocusReticle(at point: CGPoint) {
         let reticle = FocusReticle(point: point)
         focusReticle = reticle
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             if focusReticle?.id == reticle.id { focusReticle = nil }
         }
     }
@@ -686,7 +691,7 @@ private struct PreviewSizePreferenceKey: PreferenceKey {
 /// The animated focus square: a yellow reticle that pulses in and fades. Purely
 /// local tap feedback — the focus command travels separately.
 struct FocusReticleView: View {
-    @State private var scale: CGFloat = 1.3
+    @State private var scale: CGFloat = 1.25
     @State private var opacity: Double = 0
 
     var body: some View {
@@ -696,11 +701,11 @@ struct FocusReticleView: View {
             .scaleEffect(scale)
             .opacity(opacity)
             .onAppear {
-                withAnimation(.easeOut(duration: 0.25)) {
+                withAnimation(.easeOut(duration: 0.12)) {
                     scale = 1.0
                     opacity = 1
                 }
-                withAnimation(.easeIn(duration: 0.35).delay(0.5)) {
+                withAnimation(.easeIn(duration: 0.2).delay(0.35)) {
                     opacity = 0
                 }
             }
