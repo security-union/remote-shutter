@@ -38,19 +38,10 @@ struct CameraScreenView: View {
                                       previewMirrored = mirrored
                                   })
                     .ignoresSafeArea()
-            }
-
-            // Remote focus reticle — the same box/animation the monitor draws,
-            // positioned within the fitted video rect at the tapped point. x is
-            // flipped when the preview is mirrored (front camera) so the box
-            // lands on the same subject the monitor operator tapped.
-            if let indicator = viewModel.focusIndicator, videoRect.width > 0 {
-                let nx = previewMirrored ? (1 - indicator.normalized.x) : indicator.normalized.x
-                FocusReticleView()
-                    .id(indicator.id)
-                    .position(x: videoRect.minX + nx * videoRect.width,
-                              y: videoRect.minY + indicator.normalized.y * videoRect.height)
-                    .allowsHitTesting(false)
+                    // The reticle overlays the preview so it shares the preview
+                    // layer's full-screen coordinate space — `videoRect` is in
+                    // those coords, so positioning here has no safe-area offset.
+                    .overlay(focusReticleOverlay)
             }
 
             // Animated "recording" badge, top center — visible only in video mode.
@@ -90,6 +81,23 @@ struct CameraScreenView: View {
                 isRecording: viewModel.isRecordingTimerActive)
 
             CameraProgressOverlayView(viewModel: viewModel)
+        }
+    }
+
+    /// The remote focus reticle — the same box/animation the monitor draws,
+    /// positioned within the fitted video rect at the tapped point. x is flipped
+    /// when the preview is mirrored (front camera) so the box lands on the same
+    /// subject the monitor operator tapped. Drawn as a preview overlay so it
+    /// shares the preview layer's coordinate space (no safe-area offset).
+    @ViewBuilder
+    private var focusReticleOverlay: some View {
+        if let indicator = viewModel.focusIndicator, videoRect.width > 0 {
+            let nx = previewMirrored ? (1 - indicator.normalized.x) : indicator.normalized.x
+            FocusReticleView()
+                .id(indicator.id)
+                .position(x: videoRect.minX + nx * videoRect.width,
+                          y: videoRect.minY + indicator.normalized.y * videoRect.height)
+                .allowsHitTesting(false)
         }
     }
 
