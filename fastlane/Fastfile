@@ -140,9 +140,10 @@ platform :ios do
     upload_to_app_store(
       skip_metadata: false,
       skip_screenshots: false,
-      # Delete ALL screenshots on App Store Connect before uploading, so ASC
-      # exactly mirrors fastlane/screenshots/ (otherwise deliver only appends).
-      overwrite_screenshots: true,
+      # Upload only screenshots that changed (matched by checksum) and delete
+      # ones removed locally, so ASC mirrors fastlane/screenshots/ without
+      # re-uploading every image each release.
+      sync_screenshots: true,
       precheck_include_in_app_purchases: false,
       force: true,
       submit_for_review: false
@@ -199,11 +200,12 @@ platform :ios do
       platform: "osx",
       skip_metadata: false,
       skip_screenshots: false,
-      # Mac screenshots live in their own tree: deliver uploads EVERY file in
+      # Mac screenshots live in their own tree: deliver uploads files in
       # screenshots_path to the run's platform, and APP_DESKTOP display types
       # are invalid on the iOS version (run 29181223484) — and vice versa.
       screenshots_path: "./fastlane/screenshots_mac",
-      overwrite_screenshots: true,
+      # Only upload changed screenshots and remove ones deleted locally.
+      sync_screenshots: true,
       precheck_include_in_app_purchases: false,
       force: true,
       submit_for_review: false
