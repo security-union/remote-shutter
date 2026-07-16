@@ -10,6 +10,7 @@ struct RolePickerView: View {
     @ObservedObject private var watchManager = WatchSessionManager.shared
 
     @State private var appeared = false
+    @State private var hasEarnedAsk = false
 
     var body: some View {
         ZStack {
@@ -69,10 +70,26 @@ struct RolePickerView: View {
                 .offset(y: appeared ? 0 : 20)
 
                 Spacer()
+
+                if hasEarnedAsk {
+                    Button(action: openAppStoreReview) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "heart.fill")
+                                .font(.caption)
+                            Text(NSLocalizedString("Rate on App Store", comment: ""))
+                                .font(.subheadline)
+                        }
+                        .foregroundColor(AppTheme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 8)
+                    .opacity(appeared ? 1 : 0)
+                }
             }
             .padding(.horizontal, 16)
         }
         .onAppear {
+            hasEarnedAsk = hasEarnedReviewAsk()
             withAnimation(.easeOut(duration: 0.5).delay(0.1)) {
                 appeared = true
             }

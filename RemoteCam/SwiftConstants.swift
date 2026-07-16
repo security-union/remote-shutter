@@ -14,6 +14,10 @@ import UIKit
 public let tempFile = "remoteshutter_video.mov"
 
 let AppStoreURL = URL(string: "https://apps.apple.com/us/app/remote-shutter/id633274861")!
+// SKStoreReviewController is rate-limited by the system (~3/year) and can show
+// nothing at all, so it is only fit for the unsolicited prompt. A deliberate tap
+// goes here instead: the write-review deep link is never throttled.
+let AppStoreReviewURL = URL(string: "https://apps.apple.com/us/app/remote-shutter/id633274861?action=write-review")!
 let GearURL = URL(string: "https://remoteshutter.app/gear?src=app")!
 public let disableAdsPID = "05"
 public let enableVideoPID = "06"
@@ -22,7 +26,7 @@ public let enableVideoOnlyPID = "08"
 public let reviewCounterKey = "reviewCounter"
 public let lastVersionPromptedForReviewKey = "lastVersionPromptedForReview"
 public let mediaCaptureCounterKey = "mediaCaptureCounter"
-public let mediaCapturedBeforeRequestingReview = 10
+public let mediaCapturedBeforeRequestingReview = 5
 
 // MARK: - Shared Review Prompt Utility
 func privateShowReviewPromptIfAppropriate() {
@@ -54,12 +58,30 @@ func privateShowReviewPromptIfAppropriate() {
     }
 }
 
+// MARK: - Rate on App Store
+
+/// The single gate for every surface that offers the "Rate on App Store" heart,
+/// so they can't drift apart. Someone earns the ask by having actually captured
+/// something — purchasing isn't a proxy for it, and asking before the app has
+/// worked for them samples the wrong people. Surfaces the user navigates to
+/// deliberately (Settings) skip this: they already asked.
+func hasEarnedReviewAsk(captureCount: Int) -> Bool {
+    captureCount >= mediaCapturedBeforeRequestingReview
+}
+
+func hasEarnedReviewAsk() -> Bool {
+    hasEarnedReviewAsk(captureCount: UserDefaults.standard.integer(forKey: mediaCaptureCounterKey))
+}
+
+func openAppStoreReview() {
+    UIApplication.shared.open(AppStoreReviewURL)
+}
+
 public func showReviewPromptIfAppropriate() {
     var count = UserDefaults.standard.integer(forKey: mediaCaptureCounterKey)
     count += 1
     UserDefaults.standard.set(count, forKey: mediaCaptureCounterKey)
     
-    // Show review prompt after 10 captures
     if count >= mediaCapturedBeforeRequestingReview {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             privateShowReviewPromptIfAppropriate()

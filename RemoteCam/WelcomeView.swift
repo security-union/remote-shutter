@@ -26,6 +26,10 @@ struct WelcomeView: View {
                     if viewModel.hasAnyPurchase {
                         thankYouSection
                     }
+
+                    if viewModel.canShowReview {
+                        rateSection
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
@@ -205,24 +209,24 @@ struct WelcomeView: View {
     // MARK: - Thank You
 
     private var thankYouSection: some View {
-        VStack(spacing: 12) {
-            Text(NSLocalizedString("Thank you for your support!", comment: ""))
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+        Text(NSLocalizedString("Thank you for your support!", comment: ""))
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+    }
 
-            if viewModel.canShowReview {
-                Button {
-                    onReviewApp()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "heart.fill")
-                            .font(.caption)
-                        Text(NSLocalizedString("Rate on App Store", comment: ""))
-                            .font(.subheadline)
-                    }
-                    .foregroundColor(AppTheme.accent)
-                }
+    // MARK: - Rate
+
+    private var rateSection: some View {
+        Button {
+            onReviewApp()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "heart.fill")
+                    .font(.caption)
+                Text(NSLocalizedString("Rate on App Store", comment: ""))
+                    .font(.subheadline)
             }
+            .foregroundColor(AppTheme.accent)
         }
     }
 }
