@@ -8,6 +8,7 @@
 
 import Foundation
 import MultipeerConnectivity
+import UIKit
 
 /// Failed to push a frame to the peer — the session pops to scanning with a
 /// connection alert, exactly as any other failed send.
@@ -55,13 +56,40 @@ final class FrameSender {
     /// Send failures pop the session to scanning (via the inbox).
     weak var coordinator: SessionCoordinator?
 
-    init(coordinator: SessionCoordinator? = nil) {
+    private var foregroundObserver: NSObjectProtocol?
+
+    init(coordinator: SessionCoordinator? = nil, notificationCenter: NotificationCenter = .default) {
         self.coordinator = coordinator
+        // Returning from the background leaves the monitor's decoder holding
+        // reference frames from before the freeze, while this encoder carries on
+        // from its own state. Nothing errors — the deltas still decode — so the
+        // monitor never asks; it just renders against stale references. Arm a
+        // keyframe here so the first frame back is self-contained.
+        foregroundObserver = notificationCenter.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: nil
+        ) { [weak self] _ in
+            StreamLog.lifecycle.info("camera foregrounded — forcing a keyframe")
+            self?.requestKeyframe()
+        }
+    }
+
+    deinit {
+        if let foregroundObserver {
+            NotificationCenter.default.removeObserver(foregroundObserver)
+        }
     }
 
     /// Binds the streaming target. Re-binding (each time the camera state is
     /// re-entered) resets the credit window, matching the old re-become.
+    ///
+    /// Also arms a keyframe: this is the moment the stream starts flowing to a
+    /// peer, and it is re-entered after a photo or a video transfer. Whatever the
+    /// monitor's decoder holds from before is not a safe reference to build on,
+    /// so the first frame of a resumed stream is always self-contained.
     func setSession(peer: MCPeerID, transport: any MultipeerServiceProtocol) {
+        requestKeyframe()
         queue.async {
             if self.hasSession {
                 self.window.reset()

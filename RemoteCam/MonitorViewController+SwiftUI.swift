@@ -225,9 +225,24 @@ extension MonitorViewController {
         showSettings()
     }
     
+    /// Single entry point for user-driven zoom, from pinch or the Mac zoom pill.
+    /// Throttled to 20Hz with a trailing-edge flush so the value the user released on is
+    /// always delivered, mirroring how the Watch drives crown zoom.
     private func handleZoomChange(_ factor: CGFloat) {
         currentZoomFactor = factor
-        session ! UICmd.SetZoom(zoomFactor: factor)
+
+        switch zoomThrottle.update(value: Double(factor), now: Date()) {
+        case .sendNow:
+            session ! UICmd.SetZoom(zoomFactor: factor)
+        case .scheduleTrailing:
+            trailingZoomTimer?.invalidate()
+            trailingZoomTimer = Timer.scheduledTimer(withTimeInterval: zoomThrottle.interval,
+                                                     repeats: false) { [weak self] _ in
+                guard let self,
+                      let pending = self.zoomThrottle.fireTrailing(now: Date()) else { return }
+                self.session ! UICmd.SetZoom(zoomFactor: CGFloat(pending))
+            }
+        }
     }
     
     private func handleLensChange(_ lensType: CameraLensType) {

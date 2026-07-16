@@ -28,7 +28,19 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
     var progressCancellables = Set<AnyCancellable>()
 
     /// Messages sent from this side, recorded before serialization.
-    var sentMessages: [Message] = []
+    ///
+    /// Lock-backed rather than a plain array: `send(_:to:mode:)` is called from the
+    /// coordinator's actor context while the test body reads this from the test thread.
+    /// As a bare `[Message]` that was a data race, which Thread Sanitizer turned into a
+    /// crash (`sentMessages.modify`) on roughly half of all TSan runs of this suite.
+    ///
+    /// The public shape is unchanged — still a settable `[Message]` — so reads and the
+    /// `removeAll()` calls throughout these tests keep working untouched.
+    private let sentMessagesStorage = Locked<[Message]>([])
+    var sentMessages: [Message] {
+        get { sentMessagesStorage.value }
+        set { sentMessagesStorage.value = newValue }
+    }
 
     init(peerName: String) {
         localPeerID = MCPeerID(displayName: peerName)
@@ -52,7 +64,9 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
 
     func send(_ msg: Message, to peers: [MCPeerID],
               mode: MCSessionSendDataMode) -> Try<Message> {
-        sentMessages.append(msg)
+        // One lock acquisition: going through the computed property would read, append to
+        // a copy, then write back, losing a concurrent append.
+        sentMessagesStorage.mutate { $0.append(msg) }
 
         guard let data = serializeToFlatBuffer(msg) else {
             return Failure(error: NSError(

@@ -104,6 +104,14 @@ final class CameraRig: @unchecked Sendable {
 
     /// Bridges the non-UI engine/pipeline back to the actor system and the screen.
     private func wireCallbacks() {
+        // A device swap is a hard scene cut that the VP9 encoder cannot see, so it
+        // would keep predicting from the old camera's frames. Force the next
+        // preview frame to stand on its own.
+        engine.onDeviceSwapped = { [frameSender] in
+            StreamLog.encode.info("camera device swapped — forcing a keyframe")
+            frameSender.requestKeyframe()
+        }
+
         // Captures the session ref (not self) so an in-flight capture still
         // reaches the actor if the rig deallocates before the delegate fires.
         engine.onPicture = { [session] pic, error in

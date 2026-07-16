@@ -68,6 +68,11 @@ final class FrameStreamReceiver {
                 StreamLog.lifecycle.info("monitor foregrounded — re-requesting frame")
                 self.resetStallClock()
                 self.onStall?()
+                // A frame alone isn't enough: this decoder still holds references
+                // from before the freeze while the camera's encoder moved on.
+                // Deltas built on those decode without error and render as smears,
+                // so nothing would ever prompt a request — ask up front.
+                self.requestKeyframe(at: self.now())
             }
         }
     }
