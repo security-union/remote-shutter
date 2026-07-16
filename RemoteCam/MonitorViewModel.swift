@@ -51,13 +51,12 @@ class MonitorViewModel: ObservableObject {
     @Published var maxZoomFactor: CGFloat = 10.0
     @Published var availableLensTypes: [CameraLensType] = [.wideAngle]
     @Published var currentLensType: CameraLensType = .wideAngle
-    @Published var showZoomControls: Bool = false
     @Published var zoomStops: [CGFloat] = [1.0]
     @Published var wideAngleZoomFactor: CGFloat = 1.0 // Hardware zoom for "1x" reference
 
-    /// Zoom math for every control on this screen — pinch, the zoom HUD, and the Mac
-    /// zoom pill. Derived rather than stored so it can never disagree with the three
-    /// published values it is built from.
+    /// Zoom math for every control on this screen — pinch and the zoom pill. Derived
+    /// rather than stored so it can never disagree with the published values it is
+    /// built from.
     var zoomScale: ZoomScale {
         ZoomScale(stops: zoomStops,
                   maxZoomFactor: maxZoomFactor,
@@ -105,7 +104,6 @@ class MonitorViewModel: ObservableObject {
     @Published var videoTransferSpeed: Double = 0.0 // bytes per second
     
     // MARK: - Zoom Controls Watchdog Timer (DispatchSourceTimer for performance)
-    private var zoomControlsWatchdog: DispatchSourceTimer?
     
     // MARK: - Initializer
     init() {
@@ -323,23 +321,6 @@ class MonitorViewModel: ObservableObject {
         }
     }
 
-    func showZoomControlsTemporarily() {
-        // Show controls immediately (already on main thread from SwiftUI)
-        showZoomControls = true
-        
-        // Create timer only once, then reuse by resetting deadline
-        if zoomControlsWatchdog == nil {
-            zoomControlsWatchdog = DispatchSource.makeTimerSource(queue: .main)
-            zoomControlsWatchdog?.setEventHandler { [weak self] in
-                self?.showZoomControls = false
-            }
-            zoomControlsWatchdog?.resume()
-        }
-        
-        // Reset the timer deadline (much faster than recreating)
-        zoomControlsWatchdog?.schedule(deadline: .now() + 0.5)
-    }
-    
     // MARK: - Video Transfer Progress Methods
     func startVideoTransfer(totalBytes: Int64) {
         DispatchQueue.main.async {
@@ -389,9 +370,4 @@ class MonitorViewModel: ObservableObject {
         VideoTransferProgressView.formatTransferSpeed(videoTransferSpeed)
     }
     
-    deinit {
-        // Clean up timer on deinit
-        zoomControlsWatchdog?.cancel()
-        zoomControlsWatchdog = nil
-    }
-} 
+}

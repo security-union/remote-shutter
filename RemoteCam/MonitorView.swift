@@ -19,7 +19,6 @@ struct MonitorView: View {
     let onGalleryTapped: () -> Void
     let onSettingsTapped: () -> Void
     let onZoomChange: (CGFloat) -> Void
-    let onLensChange: (CameraLensType) -> Void
     let onVideoQualityChange: (VideoResolution, VideoFrameRate) -> Void
     let onPhotoQualityChange: (PhotoFormat, HDRMode) -> Void
     let onAspectRatioChange: (AspectRatio) -> Void
@@ -149,7 +148,6 @@ struct MonitorView: View {
                     }
                     let start = zoomAtGestureStart!
                     onZoomChange(viewModel.zoomScale.pinched(from: start, magnification: value))
-                    viewModel.showZoomControlsTemporarily()
                 }
                 .onEnded { _ in
                     zoomAtGestureStart = nil
@@ -160,15 +158,12 @@ struct MonitorView: View {
     // MARK: - Recording Indicator
     // Note: Replaced with RecordingTimer component that includes duration
     
-    // MARK: - Zoom Controls
+    // MARK: - Zoom & Lens Control
 
-    /// iPhone and iPad zoom by pinch, so they get a read-only HUD that auto-hides 0.5s
-    /// after the last gesture. A Mac has no pinch affordance for mouse users, and a
-    /// control that vanishes half a second after you release it can't be operated, so
-    /// Catalyst gets an interactive pill that stays put instead.
-    @ViewBuilder
+    /// One detented pill drives both zoom and lens selection on every platform — tap a
+    /// stop to jump lenses, drag or scroll to zoom between them. It floats at the bottom
+    /// over the preview; pinch-to-zoom still works underneath it.
     private var zoomControls: some View {
-        #if targetEnvironment(macCatalyst)
         VStack {
             Spacer()
             ZoomPill(scale: viewModel.zoomScale,
@@ -176,107 +171,7 @@ struct MonitorView: View {
                      onZoomChange: onZoomChange)
                 .padding(.bottom, 24)
         }
-        #else
-        if viewModel.showZoomControls {
-            VStack {
-                // Positioned at top for right-handed accessibility.
-                zoomControlsOverlay
-                    .padding(.top, 50) // Below status bar
-                Spacer()
-            }
-        }
-        #endif
     }
-
-    #if !targetEnvironment(macCatalyst)
-    private var zoomControlsOverlay: some View {
-        VStack(spacing: 10) {
-            // Current zoom level - display relative to wide-angle
-            Text("\(String(format: "%.1f", viewModel.zoomScale.displayFactor(forHardware: viewModel.currentZoomFactor)))×")
-                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
-                .tracking(0.5)
-            
-            // Progress bar with refined styling
-            HStack(spacing: 8) {
-                // Start label
-                Text(formatZoomStop(viewModel.zoomStops.first ?? 1.0))
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.8))
-
-                // Enhanced progress bar
-                ZStack(alignment: .leading) {
-                    let minZoom = viewModel.zoomStops.first ?? 1.0
-                    let range = viewModel.maxZoomFactor - minZoom
-                    let progress = range > 0 ? (viewModel.currentZoomFactor - minZoom) / range : 0
-
-                    // Background track with subtle gradient
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.15),
-                                    Color.white.opacity(0.25)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(width: 140, height: 8)
-
-                    // Progress fill
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(
-                            LinearGradient(
-                                colors: [AppTheme.accent, AppTheme.accentLight],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(
-                            width: CGFloat(140 * max(0, min(1, Double(progress)))),
-                            height: 8
-                        )
-                        .shadow(color: AppTheme.accent.opacity(0.3), radius: 2, x: 0, y: 1)
-                }
-
-                // End label. maxZoomFactor is a hardware factor, so it has to go through
-                // formatZoomStop like the start label — printed raw it brackets the bar in
-                // a different unit than the label at the other end.
-                Text(formatZoomStop(viewModel.maxZoomFactor))
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.8))
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(
-            // Premium glassmorphism card background
-            ZStack {
-                // Backdrop blur effect with proper clipping
-                Color.black.opacity(0.3)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                
-                // Subtle border highlight
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.4),
-                                Color.white.opacity(0.1)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
-            }
-        )
-        .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 4)
-        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-    }
-    #endif
 
     // MARK: - Quality Controls
     private var qualityControls: some View {
@@ -425,10 +320,6 @@ struct MonitorView: View {
                     timerControls
                 }
 
-                // Lens Controls
-                if viewModel.availableLensTypes.count > 1 {
-                    lensControls
-                }
 
                 // Aspect Ratio Controls
                 aspectRatioControls
@@ -505,40 +396,6 @@ struct MonitorView: View {
         }
     }
     
-    #if !targetEnvironment(macCatalyst)
-    /// Formats a hardware zoom factor as a user-facing label relative to the wide-angle camera.
-    /// e.g., hardware 1.0 with wideAngleFactor 2.0 → "0.5x", hardware 2.0 → "1x", hardware 6.0 → "3x"
-    private func formatZoomStop(_ hardwareZoom: CGFloat) -> String {
-        viewModel.zoomScale.label(forHardware: hardwareZoom, glyph: "x")
-    }
-    #endif
-
-    // MARK: - Lens Controls
-    private var lensControls: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(viewModel.availableLensTypes, id: \.self) { lensType in
-                    Button(action: {
-                        onLensChange(lensType)
-                    }) {
-                        Text(lensType.displayName)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(viewModel.currentLensType == lensType ? .black : .white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                viewModel.currentLensType == lensType ?
-                                AppTheme.accent : Color.gray.opacity(0.3)
-                            )
-                            .cornerRadius(6)
-                    }
-                    .disabled(!viewModel.isLensControlEnabled)
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-
     // MARK: - Aspect Ratio Controls
     private var aspectRatioControls: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -706,7 +563,6 @@ struct MonitorView_Previews: PreviewProvider {
             onGalleryTapped: {},
             onSettingsTapped: {},
             onZoomChange: { _ in },
-            onLensChange: { _ in },
             onVideoQualityChange: { _, _ in },
             onPhotoQualityChange: { _, _ in },
             onAspectRatioChange: { _ in }

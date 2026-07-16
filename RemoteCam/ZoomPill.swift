@@ -1,14 +1,12 @@
-#if targetEnvironment(macCatalyst)
 import SwiftUI
 
-/// Camera-style detented zoom control for the Mac monitor screen.
+/// Camera-style detented zoom and lens control for the monitor screen.
 ///
-/// `MagnificationGesture` only fires from a trackpad pinch, so a mouse-only Mac has no
-/// way to zoom at all. This is that affordance: collapsed it shows the lens stops with
-/// the active one highlighted; dragging expands it into a ruler that snaps to those
-/// stops; releasing collapses it again.
-///
-/// Mac-only by design — iPhone and iPad keep pinch plus the auto-hiding zoom HUD.
+/// Collapsed it shows the lens stops with the active one highlighted; tapping a stop
+/// jumps to that lens, dragging expands it into a ruler that snaps to those stops, and
+/// releasing collapses it again. This is the single lens/zoom affordance on every
+/// platform: on a mouse-only Mac it's the only way to zoom at all (`MagnificationGesture`
+/// fires only from a trackpad pinch), and on iPhone and iPad it sits alongside pinch.
 /// All zoom math is delegated to `ZoomScale`, which the pinch gesture shares.
 struct ZoomPill: View {
     let scale: ZoomScale
@@ -320,4 +318,3 @@ private extension View {
         }
     }
 }
-#endif
