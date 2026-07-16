@@ -56,6 +56,18 @@ struct RolePickerView: View {
                     .offset(y: appeared ? 0 : 20)
                 }
 
+                Button(action: openGearPage) {
+                    glassPanel(
+                        icon: "bag.fill",
+                        title: NSLocalizedString("Recommended Gear", comment: ""),
+                        subtitle: NSLocalizedString("Tripods, mounts & lenses", comment: ""),
+                        tint: AppTheme.accentLight
+                    )
+                }
+                .buttonStyle(.plain)
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 20)
+
                 Spacer()
             }
             .padding(.horizontal, 16)
