@@ -51,66 +51,21 @@
   padding-left: 0.75rem;
 }
 
-/* ---- rig diagram ---- */
-.rig {
-  width: 100%;
+/* ---- hero product shot ---- */
+.heroShot {
+  width: auto;
   height: auto;
-  display: block;
+  max-width: 100%;
+  max-height: 30rem;
+  justify-self: center;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
-.rigStroke {
-  stroke: var(--muted);
-  stroke-width: 2.5;
-  fill: none;
-  stroke-linecap: round;
-}
-
-.rigDevice {
-  composes: rigStroke;
-  stroke: var(--foreground);
-  fill: #0d0d0d;
-}
-
-.rigScreen {
-  fill: rgba(216, 165, 76, 0.22);
-  stroke: none;
-}
-
-.rigGold {
-  composes: rigStroke;
-  stroke: var(--accent);
-}
-
-.rigArc {
-  composes: rigStroke;
-  stroke: var(--secondary);
-  stroke-dasharray: 6 7;
-  animation: beam 1.6s linear infinite;
-}
-
-@keyframes beam {
-  to {
-    stroke-dashoffset: -13;
+@media (max-width: 720px) {
+  .heroShot {
+    max-height: 24rem;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rigArc {
-    animation: none;
-  }
-}
-
-.rigLabel {
-  font-family: inherit;
-  font-size: 11.5px;
-  letter-spacing: 0.1em;
-  fill: var(--muted);
-  text-transform: uppercase;
-}
-
-.rigLabelGold {
-  composes: rigLabel;
-  fill: var(--accent);
 }
 
 /* ---- catalog ---- */

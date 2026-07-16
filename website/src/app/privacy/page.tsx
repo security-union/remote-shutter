@@ -28,7 +28,7 @@ export default function Privacy() {
       <main className={styles.main}>
         <h1>Privacy Policy</h1>
 
-        <p>Last updated: March 2026</p>
+        <p>Last updated: July 2026</p>
 
         <h2>Overview</h2>
         <p>
@@ -54,16 +54,9 @@ export default function Privacy() {
 
         <h2>Third-Party Services</h2>
         <p>
-          The app uses Google AdMob for advertising. AdMob may collect device
-          identifiers and usage data in accordance with{' '}
-          <a
-            href="https://policies.google.com/privacy"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Google&apos;s Privacy Policy
-          </a>
-          . You can opt out of personalized ads through your device settings.
+          Remote Shutter contains no advertising, analytics, or third-party
+          tracking SDKs. Nothing in the app collects device identifiers or usage
+          data.
         </p>
 
         <h2>Contact</h2>

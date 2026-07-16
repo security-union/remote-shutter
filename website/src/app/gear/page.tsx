@@ -19,55 +19,6 @@ export const metadata: Metadata = {
 // violation a material breach. Reword nothing here.
 const DISCLOSURE = 'As an Amazon Associate I earn from qualifying purchases.';
 
-function RigDiagram() {
-  return (
-    <svg
-      className={styles.rig}
-      viewBox="0 0 420 300"
-      role="img"
-      aria-label="Diagram: a phone on a tripod acts as the camera, a second phone in hand is the remote, connected wirelessly."
-    >
-      {/* signal arcs */}
-      <path className={styles.rigArc} d="M 150 96 Q 210 46 270 96" />
-      <path
-        className={styles.rigArc}
-        d="M 158 122 Q 210 84 262 122"
-        style={{ animationDelay: '0.25s' }}
-      />
-
-      {/* camera phone (portrait) on tripod */}
-      <rect className={styles.rigDevice} x="96" y="112" width="52" height="92" rx="9" />
-      <rect className={styles.rigScreen} x="104" y="122" width="36" height="64" rx="3" />
-      <circle className={styles.rigGold} cx="122" cy="196" r="4" />
-      {/* tripod: gold = the part this page sells */}
-      <path className={styles.rigGold} d="M 122 204 L 122 224" />
-      <path className={styles.rigGold} d="M 122 224 L 88 274" />
-      <path className={styles.rigGold} d="M 122 224 L 156 274" />
-      <path className={styles.rigGold} d="M 122 224 L 122 278" />
-
-      {/* remote phone (portrait, held) */}
-      <rect className={styles.rigDevice} x="272" y="118" width="46" height="82" rx="8" />
-      <rect className={styles.rigScreen} x="279" y="127" width="32" height="56" rx="3" />
-      <circle className={styles.rigStroke} cx="295" cy="192" r="3.5" />
-      <path className={styles.rigStroke} d="M 318 176 q 14 2 14 16 q 0 14 -14 16" />
-
-      {/* labels */}
-      <text x="122" y="298" textAnchor="middle" className={styles.rigLabelGold}>
-        The gear
-      </text>
-      <text x="122" y="102" textAnchor="middle" className={styles.rigLabel}>
-        Camera
-      </text>
-      <text x="295" y="102" textAnchor="middle" className={styles.rigLabel}>
-        Remote
-      </text>
-      <text x="210" y="36" textAnchor="middle" className={styles.rigLabel}>
-        No internet needed
-      </text>
-    </svg>
-  );
-}
-
 export default function Gear() {
   return (
     <>
@@ -85,7 +36,14 @@ export default function Gear() {
             </p>
             <p className={styles.disclosure}>{DISCLOSURE}</p>
           </div>
-          <RigDiagram />
+          <Image
+            className={styles.heroShot}
+            src={`${BASE_PATH}/screenshots/2_APP_IPHONE_67_2.png`}
+            alt="Remote Shutter framing a group photo from a mounted phone"
+            width={1290}
+            height={2796}
+            priority
+          />
         </section>
 
         <div className={styles.catalog}>
