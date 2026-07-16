@@ -49,6 +49,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SwitchLens: return m.toFlatBuffer()
         case let m as RemoteCmd.SwitchLensResp: return m.toFlatBuffer()
@@ -300,6 +301,24 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let original = RemoteCmd.SetZoom(zoomFactor: 1.0)
         let decoded: RemoteCmd.SetZoom = roundTrip(original)
         XCTAssertEqual(decoded.zoomFactor, 1.0, accuracy: 0.001)
+    }
+
+    // MARK: - 11b. FocusAtPoint
+
+    func testFocusAtPoint_roundTrip() {
+        let original = RemoteCmd.FocusAtPoint(x: 0.25, y: 0.75)
+        let decoded: RemoteCmd.FocusAtPoint = roundTrip(original)
+        XCTAssertEqual(decoded.x, 0.25, accuracy: 0.0001)
+        XCTAssertEqual(decoded.y, 0.75, accuracy: 0.0001)
+    }
+
+    func testCameraCapabilities_supportsFocusPointRoundTrip() {
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsFocusPoint: true, error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertTrue(decoded.supportsFocusPoint)
     }
 
     // MARK: - 12. SetZoomResp

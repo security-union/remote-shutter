@@ -46,10 +46,13 @@ struct SettingsView: View {
 
     private var upgradesSection: some View {
         Section {
+            purchaseRow(item: viewModel.proSubscriptionYearly, icon: "crown.fill")
+            purchaseRow(item: viewModel.proSubscriptionMonthly, icon: "crown")
             purchaseRow(item: viewModel.proMode, icon: "star.fill")
             purchaseRow(item: viewModel.removeAds, icon: "eye.slash.fill")
             purchaseRow(item: viewModel.enableTorch, icon: "flashlight.on.fill")
             purchaseRow(item: viewModel.enableVideo, icon: "video.fill")
+            purchaseRow(item: viewModel.tapToFocus, icon: "camera.metering.spot")
 
             Button {
                 viewModel.restorePurchases()

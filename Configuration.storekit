@@ -73,6 +73,21 @@
       "productID" : "08",
       "referenceName" : "Enable Video Only",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "F0C05000",
+      "localizations" : [
+        {
+          "description" : "Tap the preview to set focus and exposure",
+          "displayName" : "Tap to Focus",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "09",
+      "referenceName" : "Tap to Focus",
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {
@@ -128,7 +143,65 @@
     ]
   },
   "subscriptionGroups" : [
+    {
+      "id" : "F0C05010",
+      "localizations" : [
 
+      ],
+      "name" : "Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "1.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "F0C05001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "All features, billed monthly",
+              "displayName" : "Pro Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "pro_monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Monthly",
+          "subscriptionGroupID" : "F0C05010",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "14.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "F0C05002",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "All features, billed yearly",
+              "displayName" : "Pro Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "pro_yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pro Yearly",
+          "subscriptionGroupID" : "F0C05010",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
   ],
   "version" : {
     "major" : 4,

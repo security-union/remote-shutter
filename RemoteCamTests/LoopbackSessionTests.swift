@@ -576,6 +576,48 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(monitorState, .monitor)
     }
 
+    // MARK: - Tap to focus
+
+    func testFocusAtPointHappyPathAcrossTheWire() async {
+        let fakeCamera = await connectCameraAndMonitor()
+
+        monitorCoordinator.tell(UICmd.FocusAtPoint(x: 0.25, y: 0.75))
+        await drainBothSessions()
+
+        XCTAssertEqual(fakeCamera.focusCalls.count, 1)
+        XCTAssertEqual(fakeCamera.focusCalls.first?.x ?? -1, 0.25, accuracy: 0.001)
+        XCTAssertEqual(fakeCamera.focusCalls.first?.y ?? -1, 0.75, accuracy: 0.001)
+        // Fire-and-forget: no response is sent, and it was never a TakePicture.
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+    }
+
+    /// Safety gate mirroring SelectCameraDevice: old peers decode the unknown
+    /// FocusAtPoint action as TakePicture, so the monitor must never send it to a
+    /// peer whose capabilities did not advertise focus-point support.
+    func testFocusAtPointIsNeverSentToLegacyPeer() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.advertisesFocusPoint = false   // peer predates tap-to-focus
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Photo)
+        monitorTransport.sentMessages.removeAll()
+
+        monitorCoordinator.tell(UICmd.FocusAtPoint(x: 0.4, y: 0.6))
+        await drainBothSessions()
+
+        XCTAssertFalse(monitorTransport.sentMessages.contains { $0 is RemoteCmd.FocusAtPoint },
+                       "FocusAtPoint must be gated on advertised supports_focus_point")
+        XCTAssertTrue(fakeCamera.focusCalls.isEmpty)
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty,
+                      "an ungated command would decode as TakePicture on an old peer")
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+    }
+
     func testSwitchLensHappyPathAcrossTheWire() async {
         let fakeCamera = await connectCameraAndMonitor()
 

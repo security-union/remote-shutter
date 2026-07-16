@@ -15,10 +15,13 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
         var isPurchased: Bool
     }
 
+    @Published var proSubscriptionMonthly = PurchaseItem(id: proMonthlyPID, title: NSLocalizedString("Pro (Monthly)", comment: ""), price: "", isPurchased: false)
+    @Published var proSubscriptionYearly = PurchaseItem(id: proYearlyPID, title: NSLocalizedString("Pro (Yearly)", comment: ""), price: "", isPurchased: false)
     @Published var proMode = PurchaseItem(id: enableVideoPID, title: NSLocalizedString("Pro: All Features", comment: ""), price: "", isPurchased: false)
     @Published var removeAds = PurchaseItem(id: disableAdsPID, title: NSLocalizedString("Remove Ads", comment: ""), price: "", isPurchased: false)
     @Published var enableTorch = PurchaseItem(id: enableTorchPID, title: NSLocalizedString("Enable Torch", comment: ""), price: "", isPurchased: false)
     @Published var enableVideo = PurchaseItem(id: enableVideoOnlyPID, title: NSLocalizedString("Enable Video", comment: ""), price: "", isPurchased: false)
+    @Published var tapToFocus = PurchaseItem(id: tapToFocusPID, title: NSLocalizedString("Tap to Focus", comment: ""), price: "", isPurchased: false)
 
     @Published var isRestoringPurchases = false
     @Published var isPurchasing = false
@@ -119,6 +122,18 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
                 enableVideo.title = product.displayName
                 enableVideo.price = product.displayPrice
                 enableVideo.isPurchased = store.hasVideoRecordingFeature()
+            case tapToFocusPID:
+                tapToFocus.title = product.displayName
+                tapToFocus.price = product.displayPrice
+                tapToFocus.isPurchased = store.hasTapToFocusFeature()
+            case proMonthlyPID:
+                proSubscriptionMonthly.title = product.displayName
+                proSubscriptionMonthly.price = product.displayPrice
+                proSubscriptionMonthly.isPurchased = store.hasProSubscription()
+            case proYearlyPID:
+                proSubscriptionYearly.title = product.displayName
+                proSubscriptionYearly.price = product.displayPrice
+                proSubscriptionYearly.isPurchased = store.hasProSubscription()
             default:
                 break
             }
@@ -127,10 +142,13 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
 
     func refreshPurchaseStates() {
         let store = StoreManager.shared
+        proSubscriptionMonthly.isPurchased = store.hasProSubscription()
+        proSubscriptionYearly.isPurchased = store.hasProSubscription()
         proMode.isPurchased = store.hasProMode()
         removeAds.isPurchased = store.hasAdRemovalFeature()
         enableTorch.isPurchased = store.hasTorchFeature()
         enableVideo.isPurchased = store.hasVideoRecordingFeature()
+        tapToFocus.isPurchased = store.hasTapToFocusFeature()
     }
 
 }

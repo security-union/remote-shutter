@@ -177,6 +177,15 @@ public actor SessionCoordinator {
     /// actions as TakePicture (the FlatBuffers field default).
     private var peerAdvertisedCameraDevices = false
 
+    /// Whether the connected camera peer advertised focus-point support in its
+    /// capabilities — the feature gate for `RemoteCmd.FocusAtPoint`. Never send
+    /// that command otherwise: old decoders read unknown command actions as
+    /// TakePicture (same precedent as SelectCameraDevice).
+    private var peerSupportsFocusPoint = false
+
+    /// Test support.
+    func peerSupportsFocusPointForTesting() -> Bool { peerSupportsFocusPoint }
+
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`
     /// (old decoders read that unknown action as TakePicture — same precedent as
@@ -386,6 +395,7 @@ public actor SessionCoordinator {
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
         peerAdvertisedCameraDevices = false
+        peerSupportsFocusPoint = false
         monitorReceivedVP9Frame = false
         switch state {
         case .scanning:
@@ -670,6 +680,11 @@ public actor SessionCoordinator {
                     zoomFactor: nil, currentLens: nil, zoomRange: nil, error: error as NSError))
             }
 
+        case let focus as RemoteCmd.FocusAtPoint:
+            // Fire-and-forget: the monitor already showed its reticle. A device
+            // without a focus point simply ignores it.
+            try? await ctrl.focusAtPoint(x: focus.x, y: focus.y)
+
         case let lens as RemoteCmd.SwitchLens:
             do {
                 let (lensType, available, zoom, range) = try await ctrl.switchLens(to: lens.lensType)
@@ -866,6 +881,10 @@ public actor SessionCoordinator {
                 await sendOrGoToScanning(RemoteCmd.SetZoomResp(
                     zoomFactor: nil, currentLens: nil, zoomRange: nil, error: error as NSError))
             }
+
+        case let focus as RemoteCmd.FocusAtPoint:
+            // Fire-and-forget; focusing is allowed while recording too.
+            try? await ctrl.focusAtPoint(x: focus.x, y: focus.y)
 
         case let lens as RemoteCmd.SwitchLens:
             do {
@@ -1241,10 +1260,20 @@ public actor SessionCoordinator {
 
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
             peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
+            peerSupportsFocusPoint = capabilities.supportsFocusPoint
             monitor?.updateCapabilities(capabilities)
 
         case let zoom as UICmd.SetZoom:
             sendMessage(RemoteCmd.SetZoom(zoomFactor: zoom.zoomFactor))
+
+        case let focus as UICmd.FocusAtPoint:
+            // Wire-safety gate: never send to a peer that would decode action 21
+            // as TakePicture. Silently dropped otherwise (reticle already shown).
+            guard peerSupportsFocusPoint else {
+                debugLog("FocusAtPoint dropped: peer did not advertise focus-point support")
+                break
+            }
+            sendMessage(RemoteCmd.FocusAtPoint(x: focus.x, y: focus.y))
 
         case let zoomResp as RemoteCmd.SetZoomResp:
             monitor?.updateZoom(zoomResp.zoomFactor, zoomRange: zoomResp.zoomRange, currentLens: zoomResp.currentLens)
@@ -1391,6 +1420,7 @@ public actor SessionCoordinator {
             // new camera (lens list, zoom range, quality).
             if let capabilities = toggleResp.cameraCapabilities {
                 peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
+                peerSupportsFocusPoint = capabilities.supportsFocusPoint
                 monitor?.updateCapabilities(capabilities)
                 await dismissCameraAlert()
             } else if let error = toggleResp.error {
@@ -1497,6 +1527,13 @@ public actor SessionCoordinator {
 
         case let zoom as UICmd.SetZoom:
             sendMessage(RemoteCmd.SetZoom(zoomFactor: zoom.zoomFactor))
+
+        case let focus as UICmd.FocusAtPoint:
+            guard peerSupportsFocusPoint else {
+                debugLog("FocusAtPoint dropped: peer did not advertise focus-point support")
+                break
+            }
+            sendMessage(RemoteCmd.FocusAtPoint(x: focus.x, y: focus.y))
 
         case let zoomResp as RemoteCmd.SetZoomResp:
             monitor?.updateZoom(zoomResp.zoomFactor, zoomRange: zoomResp.zoomRange, currentLens: zoomResp.currentLens)

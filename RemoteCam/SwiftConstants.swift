@@ -22,6 +22,11 @@ public let disableAdsPID = "05"
 public let enableVideoPID = "06"
 public let enableTorchPID = "07"
 public let enableVideoOnlyPID = "08"
+public let tapToFocusPID = "09"
+// Auto-renewable "Pro" subscription (group "Pro"). Unlocks every feature for
+// the subscription period — the recurring equivalent of the one-time 06 bundle.
+public let proMonthlyPID = "pro_monthly"
+public let proYearlyPID = "pro_yearly"
 public let reviewCounterKey = "reviewCounter"
 public let lastVersionPromptedForReviewKey = "lastVersionPromptedForReview"
 public let mediaCaptureCounterKey = "mediaCaptureCounter"

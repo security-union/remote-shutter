@@ -16,6 +16,8 @@ extension Notification.Name {
     static let proModeAcquired = Notification.Name("ProModeAquired")
     static let enableTorch = Notification.Name("EnableTorch")
     static let enableVideoOnly = Notification.Name("EnableVideoOnly")
+    static let tapToFocusAcquired = Notification.Name("TapToFocusAcquired")
+    static let proSubscriptionAcquired = Notification.Name("ProSubscriptionAcquired")
 }
 
 // MARK: - UserDefaults Keys
@@ -25,6 +27,12 @@ private enum PurchaseKey {
     static let proMode = "didBuyProMode"
     static let enableTorch = "didBuyEnableTorchFeature"
     static let enableVideoOnly = "didBuyEnableVideoOnlyFeature"
+    static let tapToFocus = "didBuyTapToFocusFeature"
+    // Unlike the one-time flags above, this is NOT append-only: refreshPurchaseState
+    // recomputes it from Transaction.currentEntitlements so a lapsed subscription
+    // is revoked. It is persisted only so the UI is correct at launch before the
+    // first async refresh completes.
+    static let proSubscription = "hasActiveProSubscription"
 }
 
 // MARK: - StoreManager
@@ -34,8 +42,12 @@ final class StoreManager: ObservableObject {
     static let shared = StoreManager()
 
     static let allProductIDs: Set<String> = [
-        disableAdsPID, enableVideoPID, enableTorchPID, enableVideoOnlyPID
+        disableAdsPID, enableVideoPID, enableTorchPID, enableVideoOnlyPID,
+        tapToFocusPID, proMonthlyPID, proYearlyPID
     ]
+
+    /// The auto-renewable subscription products (the "Pro" subscription group).
+    static let subscriptionProductIDs: Set<String> = [proMonthlyPID, proYearlyPID]
 
     // MARK: - Published State
 
@@ -44,19 +56,40 @@ final class StoreManager: ObservableObject {
     // MARK: - Feature Availability (synchronous, UserDefaults-backed)
 
     func hasAdRemovalFeature() -> Bool {
-        hasProMode() || UserDefaults.standard.bool(forKey: PurchaseKey.removeAds)
+        hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.removeAds)
     }
 
     func hasVideoRecordingFeature() -> Bool {
-        hasProMode() || UserDefaults.standard.bool(forKey: PurchaseKey.enableVideoOnly)
+        hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.enableVideoOnly)
     }
 
     func hasTorchFeature() -> Bool {
-        hasProMode() || UserDefaults.standard.bool(forKey: PurchaseKey.enableTorch)
+        hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.enableTorch)
     }
 
+    /// Owns the one-time "Pro: All Features" bundle (product 06). This is the raw
+    /// 06 flag only — use `hasFullAccess()` to also honor the subscription.
     func hasProMode() -> Bool {
         UserDefaults.standard.bool(forKey: PurchaseKey.proMode)
+    }
+
+    /// An active auto-renewable Pro subscription. Recomputed from
+    /// `Transaction.currentEntitlements` on every refresh, so it clears when the
+    /// subscription lapses.
+    func hasProSubscription() -> Bool {
+        UserDefaults.standard.bool(forKey: PurchaseKey.proSubscription)
+    }
+
+    /// Any bundle that unlocks every feature: the one-time Pro (06) or the Pro
+    /// subscription. The single gate every feature check ORs against.
+    func hasFullAccess() -> Bool {
+        hasProMode() || hasProSubscription()
+    }
+
+    /// Tap-to-focus entitlement. Unlocked by full access (Pro/subscription) or
+    /// its own IAP (09).
+    func hasTapToFocusFeature() -> Bool {
+        hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.tapToFocus)
     }
 
     // MARK: - Init
@@ -124,11 +157,18 @@ final class StoreManager: ObservableObject {
     }
 
     private func refreshPurchaseState() async {
+        // Subscription entitlement is derived fresh each pass so an expired
+        // subscription is revoked; one-time flags stay append-only in grantEntitlement.
+        var activeSubscription = false
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
                 grantEntitlement(for: transaction.productID)
+                if Self.subscriptionProductIDs.contains(transaction.productID) {
+                    activeSubscription = true
+                }
             }
         }
+        UserDefaults.standard.set(activeSubscription, forKey: PurchaseKey.proSubscription)
         postNotifications()
     }
 
@@ -152,6 +192,12 @@ final class StoreManager: ObservableObject {
             defaults.set(true, forKey: PurchaseKey.enableTorch)
         case enableVideoOnlyPID:
             defaults.set(true, forKey: PurchaseKey.enableVideoOnly)
+        case tapToFocusPID:
+            defaults.set(true, forKey: PurchaseKey.tapToFocus)
+        case proMonthlyPID, proYearlyPID:
+            // Live purchase/renewal is always active; refreshPurchaseState is the
+            // authority that later clears this if the subscription lapses.
+            defaults.set(true, forKey: PurchaseKey.proSubscription)
         default:
             break
         }
@@ -165,6 +211,8 @@ final class StoreManager: ObservableObject {
         if hasProMode() { post(.proModeAcquired) }
         if hasTorchFeature() { post(.enableTorch) }
         if hasVideoRecordingFeature() { post(.enableVideoOnly) }
+        if hasProSubscription() { post(.proSubscriptionAcquired) }
+        if hasTapToFocusFeature() { post(.tapToFocusAcquired) }
     }
 
     enum StoreError: Error {

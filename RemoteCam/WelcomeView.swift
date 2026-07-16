@@ -112,7 +112,7 @@ struct WelcomeView: View {
         } label: {
             VStack(spacing: 12) {
                 HStack {
-                    Image(systemName: "star.fill")
+                    Image(systemName: item.icon)
                         .font(.title2)
                         .foregroundColor(AppTheme.accent)
                     Text(item.title)
@@ -121,7 +121,7 @@ struct WelcomeView: View {
                     Spacer()
                 }
 
-                Text(NSLocalizedString("Unlock all features: video recording, torch control, and ad-free experience.", comment: ""))
+                Text(NSLocalizedString("Pro subscription — unlock every feature: video recording, torch control, tap to focus, and no ads.", comment: ""))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)

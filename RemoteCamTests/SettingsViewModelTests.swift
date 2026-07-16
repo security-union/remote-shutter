@@ -70,6 +70,9 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(vm.removeAds.isPurchased, store.hasAdRemovalFeature())
         XCTAssertEqual(vm.enableTorch.isPurchased, store.hasTorchFeature())
         XCTAssertEqual(vm.enableVideo.isPurchased, store.hasVideoRecordingFeature())
+        XCTAssertEqual(vm.tapToFocus.isPurchased, store.hasTapToFocusFeature())
+        XCTAssertEqual(vm.proSubscriptionMonthly.isPurchased, store.hasProSubscription())
+        XCTAssertEqual(vm.proSubscriptionYearly.isPurchased, store.hasProSubscription())
     }
 
     func testPurchaseItemIdsMatchProductConstants() {
@@ -78,6 +81,9 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(vm.removeAds.id, disableAdsPID)
         XCTAssertEqual(vm.enableTorch.id, enableTorchPID)
         XCTAssertEqual(vm.enableVideo.id, enableVideoOnlyPID)
+        XCTAssertEqual(vm.tapToFocus.id, tapToFocusPID)
+        XCTAssertEqual(vm.proSubscriptionMonthly.id, proMonthlyPID)
+        XCTAssertEqual(vm.proSubscriptionYearly.id, proYearlyPID)
     }
 
     // MARK: - Purchase Notification Handling

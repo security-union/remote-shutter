@@ -338,6 +338,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         let newFlashMode: AVCaptureDevice.FlashMode? = newDevice.hasFlash ? cameraSettings.flashMode : nil
         captureSession.commitConfiguration()
         applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
+        resetFocusExposureToAutoLocked()   // a stale focus point must not carry across a device change
         // Swapping away from a dead device must also revive a session that a
         // runtime error stopped — otherwise the new camera never delivers.
         if isExpectedToRun && !captureSession.isRunning {
@@ -930,6 +931,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             currentHDRMode: currentHDRMode,
             cameraDevices: deviceEntries,
             activeDeviceID: activeDeviceID,
+            supportsFocusPoint: currentDevice.isFocusPointOfInterestSupported
+                || currentDevice.isExposurePointOfInterestSupported,
             error: nil
         )
 
@@ -972,6 +975,77 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         default: return nil
         }
         #endif
+    }
+
+    // MARK: - Focus / Exposure Point
+
+    /// Sets the focus and exposure point of interest from a monitor tap. `point`
+    /// is normalized (0..1) in the upright display image (origin top-left). No-op
+    /// if the active device supports neither point of interest.
+    func setFocusExposurePoint(displayNormalized point: CGPoint) async throws {
+        try await onSessionQueueThrowing { try self.setFocusExposurePointLocked(displayNormalized: point) }
+    }
+
+    private func setFocusExposurePointLocked(displayNormalized point: CGPoint) throws {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard let device = self.videoDeviceInput?.device else {
+            throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
+        }
+
+        guard device.isFocusPointOfInterestSupported || device.isExposurePointOfInterestSupported else {
+            debugLog("🎯 DEBUG: focus/exposure POI unsupported on \(device.localizedName) — ignoring tap")
+            return
+        }
+
+        // The buffer the monitor tapped was rotated into this orientation before
+        // it left the camera; front preview is shown mirrored. Invert both.
+        let videoOrientation: AVCaptureVideoOrientation =
+            OrientationUtils.appliesInterfaceRotation
+            ? OrientationUtils.transform(o: self.orientation)
+            : .landscapeRight
+        let poi = FocusPointMapping.devicePoint(displayNormalized: point,
+                                                videoOrientation: videoOrientation,
+                                                mirrored: device.position == .front)
+
+        try device.lockForConfiguration()
+        defer { device.unlockForConfiguration() }
+
+        if device.isFocusPointOfInterestSupported {
+            device.focusPointOfInterest = poi
+            if device.isFocusModeSupported(.continuousAutoFocus) {
+                device.focusMode = .continuousAutoFocus
+            } else if device.isFocusModeSupported(.autoFocus) {
+                device.focusMode = .autoFocus
+            }
+        }
+        if device.isExposurePointOfInterestSupported {
+            device.exposurePointOfInterest = poi
+            if device.isExposureModeSupported(.continuousAutoExposure) {
+                device.exposureMode = .continuousAutoExposure
+            } else if device.isExposureModeSupported(.autoExpose) {
+                device.exposureMode = .autoExpose
+            }
+        }
+        debugLog("🎯 DEBUG: focus/exposure POI set to \(poi) (orientation \(videoOrientation.rawValue))")
+    }
+
+    /// Restores continuous auto focus/exposure at the center. Called when the
+    /// active camera changes so a stale point of interest does not persist.
+    func resetFocusExposureToAutoLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard let device = self.videoDeviceInput?.device,
+              device.isFocusPointOfInterestSupported || device.isExposurePointOfInterestSupported,
+              (try? device.lockForConfiguration()) != nil else { return }
+        defer { device.unlockForConfiguration() }
+        let center = CGPoint(x: 0.5, y: 0.5)
+        if device.isFocusPointOfInterestSupported {
+            device.focusPointOfInterest = center
+            if device.isFocusModeSupported(.continuousAutoFocus) { device.focusMode = .continuousAutoFocus }
+        }
+        if device.isExposurePointOfInterestSupported {
+            device.exposurePointOfInterest = center
+            if device.isExposureModeSupported(.continuousAutoExposure) { device.exposureMode = .continuousAutoExposure }
+        }
     }
 
     // MARK: - Enhanced Zoom Control Methods

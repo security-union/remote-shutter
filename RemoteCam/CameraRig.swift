@@ -459,6 +459,10 @@ extension CameraRig: CameraControlling {
         try await engine.setZoom(zoomFactor: zoomFactor)
     }
 
+    func focusAtPoint(x: Float, y: Float) async throws {
+        try await engine.setFocusExposurePoint(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y)))
+    }
+
     func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
         try await engine.switchLens(to: lensType)
     }

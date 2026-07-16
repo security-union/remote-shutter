@@ -8,13 +8,16 @@ final class StoreManagerTests: XCTestCase {
     private let proModeKey = "didBuyProMode"
     private let torchKey = "didBuyEnableTorchFeature"
     private let videoOnlyKey = "didBuyEnableVideoOnlyFeature"
+    private let tapToFocusKey = "didBuyTapToFocusFeature"
+    private let proSubscriptionKey = "hasActiveProSubscription"
 
     private var savedValues: [String: Bool] = [:]
 
     override func setUp() {
         super.setUp()
         // Save existing values so tests don't corrupt real state
-        let keys = [removeAdsKey, proModeKey, torchKey, videoOnlyKey]
+        let keys = [removeAdsKey, proModeKey, torchKey, videoOnlyKey,
+                    tapToFocusKey, proSubscriptionKey]
         for key in keys {
             savedValues[key] = UserDefaults.standard.bool(forKey: key)
             UserDefaults.standard.removeObject(forKey: key)
@@ -38,6 +41,9 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertFalse(store.hasAdRemovalFeature())
         XCTAssertFalse(store.hasTorchFeature())
         XCTAssertFalse(store.hasVideoRecordingFeature())
+        XCTAssertFalse(store.hasProSubscription())
+        XCTAssertFalse(store.hasFullAccess())
+        XCTAssertFalse(store.hasTapToFocusFeature())
     }
 
     // MARK: - Individual Feature Flags
@@ -64,9 +70,56 @@ final class StoreManagerTests: XCTestCase {
 
         let store = StoreManager.shared
         XCTAssertTrue(store.hasProMode())
+        XCTAssertTrue(store.hasFullAccess())
         XCTAssertTrue(store.hasAdRemovalFeature(), "Pro mode should include ad removal")
         XCTAssertTrue(store.hasTorchFeature(), "Pro mode should include torch")
         XCTAssertTrue(store.hasVideoRecordingFeature(), "Pro mode should include video recording")
+        XCTAssertTrue(store.hasTapToFocusFeature(), "Pro mode should include tap to focus")
+    }
+
+    // MARK: - Pro Subscription Grants All Features
+
+    func testProSubscriptionGrantsAllFeatures() {
+        UserDefaults.standard.set(true, forKey: proSubscriptionKey)
+
+        let store = StoreManager.shared
+        XCTAssertTrue(store.hasProSubscription())
+        XCTAssertTrue(store.hasFullAccess())
+        XCTAssertTrue(store.hasAdRemovalFeature(), "Subscription should include ad removal")
+        XCTAssertTrue(store.hasTorchFeature(), "Subscription should include torch")
+        XCTAssertTrue(store.hasVideoRecordingFeature(), "Subscription should include video recording")
+        XCTAssertTrue(store.hasTapToFocusFeature(), "Subscription should include tap to focus")
+        // The subscription is not the one-time Pro bundle.
+        XCTAssertFalse(store.hasProMode(), "Subscription must not be conflated with the one-time 06 bundle")
+    }
+
+    /// The subscription flag is revocable (unlike the append-only one-time
+    /// flags): clearing it — as refreshPurchaseState does when the subscription
+    /// is absent from currentEntitlements — removes access, while an
+    /// independently-owned one-time feature survives.
+    func testClearingSubscriptionRevokesAccessButKeepsOneTimePurchases() {
+        UserDefaults.standard.set(true, forKey: proSubscriptionKey)
+        UserDefaults.standard.set(true, forKey: torchKey)   // separately owned one-time IAP
+        let store = StoreManager.shared
+        XCTAssertTrue(store.hasVideoRecordingFeature())
+
+        UserDefaults.standard.set(false, forKey: proSubscriptionKey)   // lapsed
+
+        XCTAssertFalse(store.hasProSubscription())
+        XCTAssertFalse(store.hasFullAccess())
+        XCTAssertFalse(store.hasVideoRecordingFeature(), "video was only via the lapsed subscription")
+        XCTAssertTrue(store.hasTorchFeature(), "the separately-owned one-time torch survives")
+    }
+
+    // MARK: - Tap to Focus
+
+    func testTapToFocusUnlockedByOwnPurchase() {
+        UserDefaults.standard.set(true, forKey: tapToFocusKey)
+        let store = StoreManager.shared
+        XCTAssertTrue(store.hasTapToFocusFeature())
+        // The dedicated IAP unlocks only tap-to-focus, nothing else.
+        XCTAssertFalse(store.hasVideoRecordingFeature())
+        XCTAssertFalse(store.hasTorchFeature())
     }
 
     // MARK: - Individual Purchase Does Not Grant Other Features
@@ -93,15 +146,25 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertEqual(enableVideoPID, "06")
         XCTAssertEqual(enableTorchPID, "07")
         XCTAssertEqual(enableVideoOnlyPID, "08")
+        XCTAssertEqual(tapToFocusPID, "09")
+        XCTAssertEqual(proMonthlyPID, "pro_monthly")
+        XCTAssertEqual(proYearlyPID, "pro_yearly")
     }
 
-    func testAllProductIDsContainsAllFour() {
+    func testAllProductIDsContainsEveryProduct() {
         let ids = StoreManager.allProductIDs
-        XCTAssertEqual(ids.count, 4)
+        XCTAssertEqual(ids.count, 7)
         XCTAssertTrue(ids.contains(disableAdsPID))
         XCTAssertTrue(ids.contains(enableVideoPID))
         XCTAssertTrue(ids.contains(enableTorchPID))
         XCTAssertTrue(ids.contains(enableVideoOnlyPID))
+        XCTAssertTrue(ids.contains(tapToFocusPID))
+        XCTAssertTrue(ids.contains(proMonthlyPID))
+        XCTAssertTrue(ids.contains(proYearlyPID))
+    }
+
+    func testSubscriptionProductIDs() {
+        XCTAssertEqual(StoreManager.subscriptionProductIDs, [proMonthlyPID, proYearlyPID])
     }
 
     // MARK: - Notification Names

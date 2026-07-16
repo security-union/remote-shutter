@@ -11,7 +11,8 @@ extension PurchaseManaging {
 
     func observePurchaseNotifications() {
         let names: [Notification.Name] = [
-            .removeAds, .proModeAcquired, .enableTorch, .enableVideoOnly
+            .removeAds, .proModeAcquired, .enableTorch, .enableVideoOnly,
+            .tapToFocusAcquired, .proSubscriptionAcquired
         ]
         for name in names {
             let observer = NotificationCenter.default.addObserver(

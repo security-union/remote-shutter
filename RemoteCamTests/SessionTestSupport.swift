@@ -112,6 +112,7 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     var countdownTicks: [Int] = []
     var gatherCapabilitiesCalls = 0
     var zoomCalls: [CGFloat] = []
+    var focusCalls: [CGPoint] = []
     var lensSwitches: [CameraLensType] = []
     var torchToggles = 0
     var chimes: [Int] = []
@@ -135,6 +136,10 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
         if let errorToThrow { throw errorToThrow }
         zoomCalls.append(zoomFactor)
         return (zoomFactor, .wideAngle, RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 10))
+    }
+    func focusAtPoint(x: Float, y: Float) async throws {
+        if let errorToThrow { throw errorToThrow }
+        focusCalls.append(CGPoint(x: CGFloat(x), y: CGFloat(y)))
     }
     // swiftlint:disable:next large_tuple
     func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
@@ -209,6 +214,11 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     /// — the monitor must never send SelectCameraDevice to it.
     var advertisesCameraDevices = true
 
+    /// False simulates a peer whose capabilities omit focus-point support — the
+    /// monitor must never send FocusAtPoint to it (old peers decode it as
+    /// TakePicture).
+    var advertisesFocusPoint = true
+
     /// Devices that accept the input swap but never deliver a frame (a
     /// wedged virtual camera). While one is active, awaitFrameDelivery fails.
     var stalledDeviceIDs: Set<String> = []
@@ -236,6 +246,7 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
             cameraDevices: entries,
             activeDeviceID: advertisesCameraDevices ? activeDeviceID : nil,
+            supportsFocusPoint: advertisesFocusPoint,
             error: nil)
     }
 

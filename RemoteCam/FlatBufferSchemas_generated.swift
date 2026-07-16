@@ -29,8 +29,9 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case setaspectratio = 18
   case selectcameradevice = 19
   case requestkeyframe = 20
+  case focusatpoint = 21
 
-  public static var max: RemoteShutter_CommandAction { return .requestkeyframe }
+  public static var max: RemoteShutter_CommandAction { return .focusatpoint }
   public static var min: RemoteShutter_CommandAction { return .takepicture }
 }
 
@@ -311,6 +312,8 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     case recordingMode = 30
     case aspectRatio = 32
     case deviceUniqueId = 34
+    case focusPointX = 36
+    case focusPointY = 38
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -334,7 +337,9 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public var aspectRatio: RemoteShutter_AspectRatioEnum { let o = _accessor.offset(VTOFFSET.aspectRatio.v); return o == 0 ? .unknown : RemoteShutter_AspectRatioEnum(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var deviceUniqueId: String? { let o = _accessor.offset(VTOFFSET.deviceUniqueId.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var deviceUniqueIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.deviceUniqueId.v) }
-  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 16) }
+  public var focusPointX: Float32 { let o = _accessor.offset(VTOFFSET.focusPointX.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public var focusPointY: Float32 { let o = _accessor.offset(VTOFFSET.focusPointY.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 18) }
   public static func add(sendToRemote: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: sendToRemote, def: false,
    at: VTOFFSET.sendToRemote.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
@@ -352,6 +357,8 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public static func add(recordingMode: RemoteShutter_RecordingModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: recordingMode.rawValue, def: 0, at: VTOFFSET.recordingMode.p) }
   public static func add(aspectRatio: RemoteShutter_AspectRatioEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: aspectRatio.rawValue, def: 0, at: VTOFFSET.aspectRatio.p) }
   public static func add(deviceUniqueId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: deviceUniqueId, at: VTOFFSET.deviceUniqueId.p) }
+  public static func add(focusPointX: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: focusPointX, def: 0.0, at: VTOFFSET.focusPointX.p) }
+  public static func add(focusPointY: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: focusPointY, def: 0.0, at: VTOFFSET.focusPointY.p) }
   public static func endCommandParameters(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCommandParameters(
     _ fbb: inout FlatBufferBuilder,
@@ -370,7 +377,9 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     countdownValue: Int32 = 0,
     recordingMode: RemoteShutter_RecordingModeEnum = .unknown,
     aspectRatio: RemoteShutter_AspectRatioEnum = .unknown,
-    deviceUniqueIdOffset deviceUniqueId: Offset = Offset()
+    deviceUniqueIdOffset deviceUniqueId: Offset = Offset(),
+    focusPointX: Float32 = 0.0,
+    focusPointY: Float32 = 0.0
   ) -> Offset {
     let __start = RemoteShutter_CommandParameters.startCommandParameters(&fbb)
     RemoteShutter_CommandParameters.add(sendToRemote: sendToRemote, &fbb)
@@ -389,6 +398,8 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     RemoteShutter_CommandParameters.add(recordingMode: recordingMode, &fbb)
     RemoteShutter_CommandParameters.add(aspectRatio: aspectRatio, &fbb)
     RemoteShutter_CommandParameters.add(deviceUniqueId: deviceUniqueId, &fbb)
+    RemoteShutter_CommandParameters.add(focusPointX: focusPointX, &fbb)
+    RemoteShutter_CommandParameters.add(focusPointY: focusPointY, &fbb)
     return RemoteShutter_CommandParameters.endCommandParameters(&fbb, start: __start)
   }
 
@@ -410,6 +421,8 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.recordingMode.p, fieldName: "recordingMode", required: false, type: RemoteShutter_RecordingModeEnum.self)
     try _v.visit(field: VTOFFSET.aspectRatio.p, fieldName: "aspectRatio", required: false, type: RemoteShutter_AspectRatioEnum.self)
     try _v.visit(field: VTOFFSET.deviceUniqueId.p, fieldName: "deviceUniqueId", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.focusPointX.p, fieldName: "focusPointX", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.focusPointY.p, fieldName: "focusPointY", required: false, type: Float32.self)
     _v.finish()
   }
 }
@@ -968,6 +981,7 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     case backCamera = 6
     case cameraDevices = 8
     case activeDeviceId = 10
+    case supportsFocusPoint = 12
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -979,24 +993,29 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
   public func cameraDevices(at index: Int32) -> RemoteShutter_CameraDeviceInfo? { let o = _accessor.offset(VTOFFSET.cameraDevices.v); return o == 0 ? nil : RemoteShutter_CameraDeviceInfo(_accessor.bb, o: _accessor.indirect(_accessor.vector(at: o) + index * 4)) }
   public var activeDeviceId: String? { let o = _accessor.offset(VTOFFSET.activeDeviceId.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var activeDeviceIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.activeDeviceId.v) }
-  public static func startCameraCapabilities(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 4) }
+  public var supportsFocusPoint: Bool { let o = _accessor.offset(VTOFFSET.supportsFocusPoint.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public static func startCameraCapabilities(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 5) }
   public static func add(frontCamera: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: frontCamera, at: VTOFFSET.frontCamera.p) }
   public static func add(backCamera: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: backCamera, at: VTOFFSET.backCamera.p) }
   public static func addVectorOf(cameraDevices: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: cameraDevices, at: VTOFFSET.cameraDevices.p) }
   public static func add(activeDeviceId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: activeDeviceId, at: VTOFFSET.activeDeviceId.p) }
+  public static func add(supportsFocusPoint: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsFocusPoint, def: false,
+   at: VTOFFSET.supportsFocusPoint.p) }
   public static func endCameraCapabilities(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraCapabilities(
     _ fbb: inout FlatBufferBuilder,
     frontCameraOffset frontCamera: Offset = Offset(),
     backCameraOffset backCamera: Offset = Offset(),
     cameraDevicesVectorOffset cameraDevices: Offset = Offset(),
-    activeDeviceIdOffset activeDeviceId: Offset = Offset()
+    activeDeviceIdOffset activeDeviceId: Offset = Offset(),
+    supportsFocusPoint: Bool = false
   ) -> Offset {
     let __start = RemoteShutter_CameraCapabilities.startCameraCapabilities(&fbb)
     RemoteShutter_CameraCapabilities.add(frontCamera: frontCamera, &fbb)
     RemoteShutter_CameraCapabilities.add(backCamera: backCamera, &fbb)
     RemoteShutter_CameraCapabilities.addVectorOf(cameraDevices: cameraDevices, &fbb)
     RemoteShutter_CameraCapabilities.add(activeDeviceId: activeDeviceId, &fbb)
+    RemoteShutter_CameraCapabilities.add(supportsFocusPoint: supportsFocusPoint, &fbb)
     return RemoteShutter_CameraCapabilities.endCameraCapabilities(&fbb, start: __start)
   }
 
@@ -1006,6 +1025,7 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.backCamera.p, fieldName: "backCamera", required: false, type: ForwardOffset<RemoteShutter_CameraInfo>.self)
     try _v.visit(field: VTOFFSET.cameraDevices.p, fieldName: "cameraDevices", required: false, type: ForwardOffset<Vector<ForwardOffset<RemoteShutter_CameraDeviceInfo>, RemoteShutter_CameraDeviceInfo>>.self)
     try _v.visit(field: VTOFFSET.activeDeviceId.p, fieldName: "activeDeviceId", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.supportsFocusPoint.p, fieldName: "supportsFocusPoint", required: false, type: Bool.self)
     _v.finish()
   }
 }

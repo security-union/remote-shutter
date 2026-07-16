@@ -22,7 +22,16 @@ struct MonitorView: View {
     let onVideoQualityChange: (VideoResolution, VideoFrameRate) -> Void
     let onPhotoQualityChange: (PhotoFormat, HDRMode) -> Void
     let onAspectRatioChange: (AspectRatio) -> Void
-    
+    /// Tap-to-focus: the tap point normalized (0..1) in the displayed image,
+    /// origin top-left. Not called for taps that land in the letterbox bars.
+    let onFocusTap: (CGPoint) -> Void
+
+    /// The live focus reticle (view-space position + identity to re-trigger the
+    /// animation on each tap). Local UI only — no round-trip to the camera.
+    @State private var focusReticle: FocusReticle?
+    /// The preview area's measured size, for tap → normalized-image mapping.
+    @State private var previewSize: CGSize = .zero
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -139,11 +148,25 @@ struct MonitorView: View {
             }
 
         }
-        .onTapGesture(count: 2) {
-            // Double tap to toggle camera
-            onToggleCamera()
-        }
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(key: PreviewSizePreferenceKey.self, value: geo.size)
+            }
+        )
+        .onPreferenceChange(PreviewSizePreferenceKey.self) { previewSize = $0 }
+        .overlay(focusReticleOverlay)
+        // Double tap toggles the camera and takes precedence; a genuine single
+        // tap falls through to tap-to-focus (with its location). Pinch-to-zoom
+        // runs simultaneously (two fingers vs one).
         .gesture(
+            ExclusiveGesture(
+                TapGesture(count: 2).onEnded { onToggleCamera() },
+                DragGesture(minimumDistance: 0).onEnded { value in
+                    handleFocusTap(at: value.location)
+                }
+            )
+        )
+        .simultaneousGesture(
             MagnificationGesture()
                 .onChanged { value in
                     // Capture zoom at gesture start (first onChanged)
@@ -157,6 +180,37 @@ struct MonitorView: View {
                     zoomAtGestureStart = nil
                 }
         )
+    }
+
+    /// The focus reticle, drawn in the preview's coordinate space. Non-interactive
+    /// so it never eats a subsequent tap.
+    @ViewBuilder
+    private var focusReticleOverlay: some View {
+        if let reticle = focusReticle {
+            FocusReticleView()
+                .id(reticle.id)
+                .position(reticle.point)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// Maps a preview tap into a normalized image point and, if it landed on the
+    /// image (not the letterbox), shows the reticle and forwards it to the camera.
+    private func handleFocusTap(at location: CGPoint) {
+        guard let image = viewModel.frames.cameraImage,
+              let normalized = FocusPointMapping.normalizedImagePoint(
+                tap: location, viewSize: previewSize, imageSize: image.size)
+        else { return }
+        showFocusReticle(at: location)
+        onFocusTap(normalized)
+    }
+
+    private func showFocusReticle(at point: CGPoint) {
+        let reticle = FocusReticle(point: point)
+        focusReticle = reticle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+            if focusReticle?.id == reticle.id { focusReticle = nil }
+        }
     }
     
     // MARK: - Recording Indicator
@@ -569,7 +623,8 @@ struct MonitorView_Previews: PreviewProvider {
             onZoomChange: { _ in },
             onVideoQualityChange: { _, _ in },
             onPhotoQualityChange: { _, _ in },
-            onAspectRatioChange: { _ in }
+            onAspectRatioChange: { _ in },
+            onFocusTap: { _ in }
         )
         .preferredColorScheme(.dark)
     }
@@ -606,6 +661,49 @@ struct LiveFrameView: View {
                         .foregroundColor(.white.opacity(0.5))
                 )
         }
+    }
+}
+
+// MARK: - Tap to Focus
+
+/// One tap-to-focus reticle: its view-space position plus an identity so a new
+/// tap re-instantiates `FocusReticleView` and replays its animation.
+struct FocusReticle: Equatable {
+    let id = UUID()
+    let point: CGPoint
+}
+
+/// Measures the preview area's size so a tap can be mapped to a normalized image
+/// point. A preference key avoids mutating `@State` during layout.
+private struct PreviewSizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        let next = nextValue()
+        if next != .zero { value = next }
+    }
+}
+
+/// The animated focus square: a yellow reticle that pulses in and fades. Purely
+/// local tap feedback — the focus command travels separately.
+struct FocusReticleView: View {
+    @State private var scale: CGFloat = 1.3
+    @State private var opacity: Double = 0
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 6)
+            .stroke(Color.yellow, lineWidth: 1.5)
+            .frame(width: 78, height: 78)
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    scale = 1.0
+                    opacity = 1
+                }
+                withAnimation(.easeIn(duration: 0.35).delay(0.5)) {
+                    opacity = 0
+                }
+            }
     }
 }
 

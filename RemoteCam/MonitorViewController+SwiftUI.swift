@@ -49,6 +49,9 @@ extension MonitorViewController {
             },
             onAspectRatioChange: { [weak self] ratio in
                 self?.handleAspectRatioChange(ratio)
+            },
+            onFocusTap: { [weak self] point in
+                self?.handleFocusTap(point)
             }
         )
         
@@ -179,7 +182,18 @@ extension MonitorViewController {
             handleSettingsTapped()
         }
     }
-    
+
+    /// Tap-to-focus. Gated behind its own entitlement; a locked user is routed to
+    /// the paywall (mirrors torch). The coordinator additionally drops the command
+    /// if the camera peer never advertised focus support.
+    private func handleFocusTap(_ point: CGPoint) {
+        guard StoreManager.shared.hasTapToFocusFeature() else {
+            handleSettingsTapped()
+            return
+        }
+        session ! UICmd.FocusAtPoint(x: Float(point.x), y: Float(point.y))
+    }
+
     private func handleTimerChange(_ value: Int) {
         viewModel.timerSliderValue = Double(value)
         // UserDefaults persistence is now handled in the view model

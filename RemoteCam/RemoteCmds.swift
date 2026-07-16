@@ -232,6 +232,25 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    // MARK: - Focus Remote Commands
+
+    /// Monitor -> camera: set the focus/exposure point of interest. `x`/`y` are
+    /// normalized (0..1) in the monitor's upright-display image space, origin
+    /// top-left. Fire-and-forget: the camera no-ops if the active device does
+    /// not support a focus point. Only sent to peers that advertised
+    /// `CameraCapabilitiesResp.supportsFocusPoint` (old decoders read the
+    /// unknown action as `TakePicture`).
+    public class FocusAtPoint: Message, @unchecked Sendable {
+        public let x: Float
+        public let y: Float
+
+        public init(x: Float, y: Float) {
+            self.x = x
+            self.y = y
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Camera Capabilities Structure
 
     public struct CameraInfo: Codable, Equatable {
@@ -342,6 +361,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
         public let currentHDRMode: HDRMode
         public let cameraDevices: [CameraDeviceEntry]
         public let activeDeviceID: String?
+        /// True when this peer's build understands `RemoteCmd.FocusAtPoint`. The
+        /// monitor's tap-to-focus gate reads this so it never sends the command
+        /// to a peer that would decode it as `TakePicture`.
+        public let supportsFocusPoint: Bool
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
@@ -353,6 +376,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    currentHDRMode: HDRMode = .off,
                    cameraDevices: [CameraDeviceEntry] = [],
                    activeDeviceID: String? = nil,
+                   supportsFocusPoint: Bool = false,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
@@ -365,6 +389,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.currentHDRMode = currentHDRMode
             self.cameraDevices = cameraDevices
             self.activeDeviceID = activeDeviceID
+            self.supportsFocusPoint = supportsFocusPoint
             self.error = error
             super.init(sender: nil)
         }
