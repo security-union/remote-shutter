@@ -67,8 +67,11 @@ struct MonitorView: View {
             LiveFrameView(frames: viewModel.frames,
                           aspectRatio: viewModel.currentAspectRatio)
             
-            // Which camera is driving the preview — iOS and Mac peers both
-            // advertise their device list, so the name is always real.
+            // Which camera is driving the preview. Mac-only: choosing among several
+            // attached cameras is a Mac capability, so that's where the name earns its
+            // place. The iOS monitor sits inside a nav controller whose back button
+            // owns this corner — the label would render on top of it.
+            #if targetEnvironment(macCatalyst)
             if let active = viewModel.remoteCameraDevices.first(where: { $0.isActive }) {
                 VStack {
                     HStack {
@@ -87,6 +90,7 @@ struct MonitorView: View {
                 }
                 .allowsHitTesting(false)
             }
+            #endif
 
             // Recording indicator with duration timer
             if viewModel.isShowingRecordingDuration {
