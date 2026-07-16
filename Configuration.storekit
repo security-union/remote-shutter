@@ -30,18 +30,18 @@
       "type" : "NonConsumable"
     },
     {
-      "displayPrice" : "9.99",
+      "displayPrice" : "39.99",
       "familyShareable" : false,
       "internalID" : "2D9566A3",
       "localizations" : [
         {
-          "description" : "",
-          "displayName" : "Pro: All features",
+          "description" : "Every feature forever — one-time.",
+          "displayName" : "Pro (Lifetime)",
           "locale" : "en_US"
         }
       ],
       "productID" : "06",
-      "referenceName" : "Pro: All features",
+      "referenceName" : "Pro (Lifetime)",
       "type" : "NonConsumable"
     },
     {

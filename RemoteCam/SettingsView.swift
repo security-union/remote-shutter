@@ -44,11 +44,22 @@ struct SettingsView: View {
 
     // MARK: - Upgrades Section
 
+    @ViewBuilder
     private var upgradesSection: some View {
+        // "Everything" tier: the three Pro plans (Monthly, Yearly, Lifetime),
+        // each of which unlocks every feature including future ones.
         Section {
             purchaseRow(item: viewModel.proSubscriptionYearly, icon: "crown.fill")
             purchaseRow(item: viewModel.proSubscriptionMonthly, icon: "crown")
             purchaseRow(item: viewModel.proMode, icon: "star.fill")
+        } header: {
+            Text(NSLocalizedString("Pro — Unlock Everything", comment: ""))
+        } footer: {
+            Text(NSLocalizedString("Any Pro plan unlocks every feature, including future ones.", comment: ""))
+        }
+
+        // À la carte: individual features for a one-time purchase.
+        Section {
             purchaseRow(item: viewModel.removeAds, icon: "eye.slash.fill")
             purchaseRow(item: viewModel.enableTorch, icon: "flashlight.on.fill")
             purchaseRow(item: viewModel.enableVideo, icon: "video.fill")
@@ -70,7 +81,7 @@ struct SettingsView: View {
             }
             .disabled(viewModel.isRestoringPurchases)
         } header: {
-            Text(NSLocalizedString("Upgrades", comment: ""))
+            Text(NSLocalizedString("À la carte", comment: ""))
         }
     }
 
@@ -166,37 +177,45 @@ struct SettingsView: View {
 
     // MARK: - Reusable Rows
 
+    @ViewBuilder
     private func purchaseRow(
         item: SettingsViewModel.PurchaseItem,
         icon: String
     ) -> some View {
-        Button {
-            viewModel.purchase(item)
-        } label: {
-            HStack {
-                Image(systemName: item.isPurchased ? "checkmark.seal.fill" : icon)
-                    .foregroundColor(item.isPurchased ? AppTheme.success : AppTheme.accent)
-                    .frame(width: 28)
+        // Loaded but nameless = the product isn't on the store (e.g. not yet
+        // approved). Hide it rather than show an empty row.
+        if viewModel.productsLoaded && item.title.isEmpty {
+            EmptyView()
+        } else {
+            let ready = viewModel.productsLoaded
+            Button {
+                viewModel.purchase(item)
+            } label: {
+                HStack {
+                    Image(systemName: item.isPurchased ? "checkmark.seal.fill" : icon)
+                        .foregroundColor(item.isPurchased ? AppTheme.success : AppTheme.accent)
+                        .frame(width: 28)
 
-                Text(item.title)
-                    .foregroundColor(item.isPurchased ? .secondary : .primary)
+                    // Name comes from StoreKit; a placeholder sizes the skeleton.
+                    Text(ready ? item.title : "Placeholder name")
+                        .foregroundColor(item.isPurchased ? .secondary : .primary)
 
-                Spacer()
+                    Spacer()
 
-                if item.isPurchased {
-                    Text(NSLocalizedString("Purchased", comment: ""))
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.success)
-                } else if item.price.isEmpty {
-                    ProgressView()
-                } else {
-                    Text(item.price)
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.accent)
+                    if item.isPurchased {
+                        Text(NSLocalizedString("Purchased", comment: ""))
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.success)
+                    } else {
+                        Text(ready ? item.price : "$0.00")
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.accent)
+                    }
                 }
+                .redacted(reason: ready ? [] : .placeholder)
             }
+            .disabled(item.isPurchased || viewModel.isPurchasing || !ready)
         }
-        .disabled(item.isPurchased || viewModel.isPurchasing)
     }
 
     private func linkRow(icon: String, title: String, urlString: String) -> some View {

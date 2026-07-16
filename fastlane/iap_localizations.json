@@ -65,64 +65,64 @@
     },
     "06": {
       "en-US": {
-        "name": "Pro: All Features",
-        "description": "Video, torch control, and no ads."
+        "name": "Pro (Lifetime)",
+        "description": "Every feature forever — one-time."
       },
       "da": {
-        "name": "Pro: Alle funktioner",
-        "description": "Video, lommelygte og ingen reklamer."
+        "name": "Pro (livstid)",
+        "description": "Alle funktioner for altid, engangskøb."
       },
       "de-DE": {
-        "name": "Pro: Alle Funktionen",
-        "description": "Video, Licht-Steuerung, keine Werbung."
+        "name": "Pro (lebenslang)",
+        "description": "Alle Funktionen für immer, einmalig."
       },
       "es-MX": {
-        "name": "Pro: Todas las funciones",
-        "description": "Video, linterna y sin anuncios."
+        "name": "Pro (de por vida)",
+        "description": "Todas las funciones, pago único."
       },
       "fr-FR": {
-        "name": "Pro : toutes les fonctions",
-        "description": "Vidéo, torche et zéro publicité."
+        "name": "Pro (à vie)",
+        "description": "Toutes les fonctions à vie, une fois."
       },
       "it": {
-        "name": "Pro: tutte le funzioni",
-        "description": "Video, torcia e niente pubblicità."
+        "name": "Pro (a vita)",
+        "description": "Tutte le funzioni per sempre, una volta."
       },
       "ja": {
-        "name": "プロ: 全機能",
-        "description": "ビデオ、ライト操作、広告なし。"
+        "name": "プロ（永久）",
+        "description": "すべての機能を永久に、買い切り。"
       },
       "ko": {
-        "name": "프로: 전체 기능",
-        "description": "비디오, 손전등 제어, 광고 제거."
+        "name": "프로(평생)",
+        "description": "모든 기능 평생, 일회성 결제."
       },
       "pt-BR": {
-        "name": "Pro: todos os recursos",
-        "description": "Vídeo, lanterna e sem anúncios."
+        "name": "Pro (vitalício)",
+        "description": "Todos os recursos para sempre, único."
       },
       "zh-Hans": {
-        "name": "专业版：全部功能",
-        "description": "视频、手电筒控制，无广告。"
+        "name": "专业版（永久）",
+        "description": "永久解锁全部功能，一次性。"
       },
       "vi": {
-        "name": "Pro: Tất cả tính năng",
-        "description": "Video, đèn pin và không quảng cáo."
+        "name": "Pro (trọn đời)",
+        "description": "Mọi tính năng mãi mãi, trả một lần."
       },
       "hi": {
-        "name": "प्रो: सभी सुविधाएँ",
-        "description": "वीडियो, टॉर्च कंट्रोल और विज्ञापन-मुक्त।"
+        "name": "प्रो (लाइफटाइम)",
+        "description": "सभी सुविधाएँ हमेशा के लिए, एक बार।"
       },
       "ms": {
-        "name": "Pro: Semua Ciri",
-        "description": "Video, kawalan lampu suluh, tiada iklan."
+        "name": "Pro (Seumur Hidup)",
+        "description": "Semua ciri selamanya, bayar sekali."
       },
       "tr": {
-        "name": "Pro: Tüm Özellikler",
-        "description": "Video, el feneri kontrolü, reklamsız."
+        "name": "Pro (Ömür Boyu)",
+        "description": "Tüm özellikler kalıcı, tek seferlik."
       },
       "ru": {
-        "name": "Pro: все функции",
-        "description": "Видео, управление фонариком, без рекламы."
+        "name": "Pro (навсегда)",
+        "description": "Все функции навсегда, разовая оплата."
       }
     },
     "07": {

@@ -15,13 +15,19 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
         var isPurchased: Bool
     }
 
-    @Published var proSubscriptionMonthly = PurchaseItem(id: proMonthlyPID, title: NSLocalizedString("Pro (Monthly)", comment: ""), price: "", isPurchased: false)
-    @Published var proSubscriptionYearly = PurchaseItem(id: proYearlyPID, title: NSLocalizedString("Pro (Yearly)", comment: ""), price: "", isPurchased: false)
-    @Published var proMode = PurchaseItem(id: enableVideoPID, title: NSLocalizedString("Pro: All Features", comment: ""), price: "", isPurchased: false)
-    @Published var removeAds = PurchaseItem(id: disableAdsPID, title: NSLocalizedString("Remove Ads", comment: ""), price: "", isPurchased: false)
-    @Published var enableTorch = PurchaseItem(id: enableTorchPID, title: NSLocalizedString("Enable Torch", comment: ""), price: "", isPurchased: false)
-    @Published var enableVideo = PurchaseItem(id: enableVideoOnlyPID, title: NSLocalizedString("Enable Video", comment: ""), price: "", isPurchased: false)
-    @Published var tapToFocus = PurchaseItem(id: tapToFocusPID, title: NSLocalizedString("Tap to Focus", comment: ""), price: "", isPurchased: false)
+    // Titles/prices are intentionally empty — they come from StoreKit
+    // (product.displayName/displayPrice, localized by App Store Connect). The UI
+    // shows a skeleton until `productsLoaded`, so there are no app-side name strings.
+    @Published var proSubscriptionMonthly = PurchaseItem(id: proMonthlyPID, title: "", price: "", isPurchased: false)
+    @Published var proSubscriptionYearly = PurchaseItem(id: proYearlyPID, title: "", price: "", isPurchased: false)
+    @Published var proMode = PurchaseItem(id: enableVideoPID, title: "", price: "", isPurchased: false)
+    @Published var removeAds = PurchaseItem(id: disableAdsPID, title: "", price: "", isPurchased: false)
+    @Published var enableTorch = PurchaseItem(id: enableTorchPID, title: "", price: "", isPurchased: false)
+    @Published var enableVideo = PurchaseItem(id: enableVideoOnlyPID, title: "", price: "", isPurchased: false)
+    @Published var tapToFocus = PurchaseItem(id: tapToFocusPID, title: "", price: "", isPurchased: false)
+    /// True once the StoreKit product fetch has completed (success or not), so
+    /// the paywall can swap skeleton rows for real names/prices.
+    @Published var productsLoaded = false
 
     @Published var isRestoringPurchases = false
     @Published var isPurchasing = false
@@ -73,6 +79,7 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
         Task { @MainActor in
             await StoreManager.shared.loadProducts()
             updateItems(with: StoreManager.shared.products)
+            productsLoaded = true
         }
     }
 

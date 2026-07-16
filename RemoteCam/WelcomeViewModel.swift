@@ -16,6 +16,9 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
     // MARK: - Published State
 
     @Published var upgrades: [UpgradeItem] = []
+    /// True once the StoreKit product fetch has completed, so the paywall can
+    /// swap skeleton rows for the real StoreKit names/prices.
+    @Published var productsLoaded = false
     @Published var hasAnyPurchase = false
     @Published var hasAllFeatures = false
     @Published var isPurchasing = false
@@ -45,6 +48,7 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
         Task { @MainActor in
             await StoreManager.shared.loadProducts()
             updatePrices()
+            productsLoaded = true
         }
     }
 
@@ -82,22 +86,25 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
     // MARK: - Private Helpers
 
     private func buildUpgradeItems() {
+        // Titles/prices come from StoreKit (product.displayName/displayPrice) —
+        // left empty here; the UI skeletons until `productsLoaded`. Only the id,
+        // icon, tint and entitlement state are app-side.
         let store = StoreManager.shared
         upgrades = [
             // Featured card: the Pro subscription (best value, yearly).
-            UpgradeItem(id: proYearlyPID, title: NSLocalizedString("Pro (Yearly)", comment: ""), price: "",
+            UpgradeItem(id: proYearlyPID, title: "", price: "",
                         isPurchased: store.hasProSubscription(), icon: "crown.fill", tint: "purple"),
-            UpgradeItem(id: proMonthlyPID, title: NSLocalizedString("Pro (Monthly)", comment: ""), price: "",
+            UpgradeItem(id: proMonthlyPID, title: "", price: "",
                         isPurchased: store.hasProSubscription(), icon: "crown", tint: "purple"),
-            UpgradeItem(id: enableVideoPID, title: NSLocalizedString("Pro: All Features", comment: ""), price: "",
+            UpgradeItem(id: enableVideoPID, title: "", price: "",
                         isPurchased: store.hasProMode(), icon: "star.fill", tint: "purple"),
-            UpgradeItem(id: disableAdsPID, title: NSLocalizedString("Remove Ads", comment: ""), price: "",
+            UpgradeItem(id: disableAdsPID, title: "", price: "",
                         isPurchased: store.hasAdRemovalFeature(), icon: "eye.slash.fill", tint: "blue"),
-            UpgradeItem(id: enableTorchPID, title: NSLocalizedString("Enable Torch", comment: ""), price: "",
+            UpgradeItem(id: enableTorchPID, title: "", price: "",
                         isPurchased: store.hasTorchFeature(), icon: "flashlight.on.fill", tint: "orange"),
-            UpgradeItem(id: enableVideoOnlyPID, title: NSLocalizedString("Enable Video", comment: ""), price: "",
+            UpgradeItem(id: enableVideoOnlyPID, title: "", price: "",
                         isPurchased: store.hasVideoRecordingFeature(), icon: "video.fill", tint: "red"),
-            UpgradeItem(id: tapToFocusPID, title: NSLocalizedString("Tap to Focus", comment: ""), price: "",
+            UpgradeItem(id: tapToFocusPID, title: "", price: "",
                         isPurchased: store.hasTapToFocusFeature(), icon: "camera.metering.spot", tint: "green"),
         ]
         updateFeatureFlags()
