@@ -173,6 +173,215 @@ final class CaptureIntegrationTests: XCTestCase {
         }
     }
 
+    // MARK: - Recording
+
+    /// Counts audio sample buffers straight off the capture stack.
+    private final class AudioProbe: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
+        let samples = Locked(0)
+        func captureOutput(_ output: AVCaptureOutput,
+                           didOutput sampleBuffer: CMSampleBuffer,
+                           from connection: AVCaptureConnection) {
+            samples.mutate { $0 += 1 }
+        }
+    }
+
+    /// A missing mic TCC grant produces "no audio samples" for a reason that has
+    /// nothing to do with the recording bug. Skip loudly rather than fail, so a
+    /// permission problem can never be mistaken for the capture problem.
+    private static func skipUnlessMicAuthorized() async throws {
+        var status = AVCaptureDevice.authorizationStatus(for: .audio)
+        if status == .notDetermined {
+            status = await AVCaptureDevice.requestAccess(for: .audio) ? .authorized : .denied
+        }
+        guard status == .authorized else {
+            throw XCTSkip("""
+                no microphone permission for the test host (status \(status.rawValue)) — grant it \
+                under System Settings > Privacy & Security > Microphone. Until then this run says \
+                nothing about recording.
+                """)
+        }
+    }
+
+    /// `configureAudioForRecording` is the value `RecordingPipeline` trusts to decide
+    /// whether a recording can proceed. If it reports success without actually
+    /// attaching audio, the pipeline arms a recording that can never start: no audio
+    /// sample ⇒ `readyToRecordAudio` never flips ⇒ `isRecording` never flips ⇒ stop
+    /// silently no-ops and both devices hang. So its verdict must match reality.
+    func testAudioConfigurationVerdictMatchesReality() async throws {
+        try await startRealRig()
+        try await Self.skipUnlessMicAuthorized()
+        guard await waitForFrames(since: 0) != nil else {
+            return XCTFail("startup never delivered frames — \(await diagnostics())")
+        }
+
+        print("🎙 default audio device: \(AVCaptureDevice.default(for: .audio)?.localizedName ?? "NONE")")
+
+        let verdict = rig.engine.configureAudioForRecording(delegate: AudioProbe())
+
+        let session = rig.engine.captureSession
+        let input = session.inputs
+            .compactMap { $0 as? AVCaptureDeviceInput }
+            .first { $0.device.hasMediaType(.audio) }
+        let output = session.outputs.first { $0 is AVCaptureAudioDataOutput }
+
+        print("""
+            🎙 verdict=\(verdict) \
+            input=\(input?.device.localizedName ?? "NOT ATTACHED") \
+            output=\(output == nil ? "NOT ATTACHED" : "attached") \
+            connection=\(rig.engine.audioConnection == nil ? "nil" : "live")
+            """)
+
+        XCTAssertEqual(verdict, input != nil && output != nil, """
+            configureAudioForRecording returned \(verdict) but audio input attached=\(input != nil), \
+            output attached=\(output != nil). A false success is what strands the recording.
+            """)
+    }
+
+    /// Attaching audio isn't enough: the pipeline only becomes ready on a real audio
+    /// sample buffer (RecordingPipeline `readyToRecordAudio`). If the device attaches
+    /// but never delivers, the symptom is identical to a failed attach.
+    func testAudioSamplesActuallyArrive() async throws {
+        try await startRealRig()
+        try await Self.skipUnlessMicAuthorized()
+        guard await waitForFrames(since: 0) != nil else {
+            return XCTFail("startup never delivered frames — \(await diagnostics())")
+        }
+
+        let probe = AudioProbe()
+        guard rig.engine.configureAudioForRecording(delegate: probe) else {
+            throw XCTSkip("audio could not be configured at all — testAudioConfigurationVerdictMatchesReality has the detail")
+        }
+
+        let deadline = Date().addingTimeInterval(5)
+        while probe.samples.value == 0 && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+
+        print("🎙 audio sample buffers in 5s: \(probe.samples.value)")
+        XCTAssertGreaterThan(probe.samples.value, 0, """
+            no audio sample buffers within 5s. readyToRecordAudio can therefore never flip, so \
+            recording never starts and stopRecording silently does nothing — the hang.
+            """)
+    }
+
+    private func scratchWriter() throws -> AVAssetWriter {
+        let url = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("probe-\(UUID().uuidString).mov")
+        return try AVAssetWriter(outputURL: url, fileType: .mov)
+    }
+
+    /// Pinpoints WHICH asset-writer input can't be configured on this machine.
+    /// `setupAssetWriterVideoInput` and `setupAssetWriterAudioInput` both return false
+    /// silently when `canApply`/`canAdd` rejects their settings, and a false from
+    /// either leaves its ready flag off forever — which is precisely what strands the
+    /// recording and hangs both devices.
+    func testAssetWriterInputsConfigureOnThisHardware() async throws {
+        try await startRealRig()
+        try await Self.skipUnlessMicAuthorized()
+        guard await waitForFrames(since: 0) != nil else {
+            return XCTFail("startup never delivered frames — \(await diagnostics())")
+        }
+        // The real AVFoundation device, not the app's descriptor — we need its format.
+        guard let device = rig.engine.captureSession.inputs
+            .compactMap({ $0 as? AVCaptureDeviceInput })
+            .first(where: { $0.device.hasMediaType(.video) })?.device else {
+            return XCTFail("no video device input on the session — \(await diagnostics())")
+        }
+        print("🎬 video device: \(device.localizedName)")
+
+        // What the capture stack recommends, and whether forcing HEVC onto it survives.
+        let recommended = rig.engine.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
+        print("🎬 recommended video settings: \(recommended.map { String(describing: $0) } ?? "NIL")")
+
+        var withHEVC = recommended
+        withHEVC?[AVVideoCodecKey] = AVVideoCodecType.hevc
+        var withH264 = recommended
+        withH264?[AVVideoCodecKey] = AVVideoCodecType.h264
+
+        let probe = try scratchWriter()
+        print("""
+            🎬 canApply: recommended=\(probe.canApply(outputSettings: recommended, forMediaType: .video)) \
+            +hevc=\(probe.canApply(outputSettings: withHEVC, forMediaType: .video)) \
+            +h264=\(probe.canApply(outputSettings: withH264, forMediaType: .video))
+            """)
+
+        // Is HEVC itself unsupported here, or only HEVC *merged into* the recommended
+        // settings (whose compression properties are keyed to the recommended codec)?
+        let dims = CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
+        let bareHEVC: [String: Any] = [
+            AVVideoCodecKey: AVVideoCodecType.hevc,
+            AVVideoWidthKey: Int(dims.width),
+            AVVideoHeightKey: Int(dims.height)
+        ]
+        let recommendedForHEVC = rig.engine.videoDataOutput
+            .recommendedVideoSettings(forVideoCodecType: .hevc, assetWriterOutputFileType: .mov)
+        print("""
+            🎬 canApply: bare-hevc=\(probe.canApply(outputSettings: bareHEVC, forMediaType: .video)) \
+            hevc-recommended=\(recommendedForHEVC.map { probe.canApply(outputSettings: $0, forMediaType: .video) }.map(String.init) ?? "NIL-SETTINGS")
+            """)
+        print("🎬 recommendedVideoSettings(forVideoCodecType: .hevc) = \(recommendedForHEVC.map { String(describing: $0) } ?? "NIL")")
+
+        // The real code path, with this machine's real format description.
+        let videoOK = rig.pipeline.setupAssetWriterVideoInput(device.activeFormat.formatDescription,
+                                                              assetWriter: try scratchWriter())
+        print("🎬 setupAssetWriterVideoInput → \(videoOK)")
+
+        var audioOK: Bool?
+        if let audioFormat = AVCaptureDevice.default(for: .audio)?.activeFormat.formatDescription {
+            audioOK = rig.pipeline.setupAssetWriterAudioInput(audioFormat, assetWriter: try scratchWriter())
+            print("🎙 setupAssetWriterAudioInput → \(audioOK!)")
+        }
+
+        XCTAssertTrue(videoOK, """
+            the VIDEO asset-writer input could not be configured on this hardware, so \
+            readyToRecordVideo can never flip and recording can never start.
+            """)
+        XCTAssertNotEqual(audioOK, false, """
+            the AUDIO asset-writer input could not be configured on this hardware, so \
+            readyToRecordAudio can never flip and recording can never start.
+            """)
+    }
+
+    /// The product invariant, end to end on real hardware: a recording starts, and
+    /// stopping it resolves the protocol with a StopRecordingVideoResp — the message
+    /// the monitor blocks on in `.monitorWaitingForVideo`.
+    func testRecordingStartsAndStopEmitsAResponse() async throws {
+        try await startRealRig()
+        try await Self.skipUnlessMicAuthorized()
+        guard await waitForFrames(since: 0) != nil else {
+            return XCTFail("startup never delivered frames — \(await diagnostics())")
+        }
+
+        // Intercept the pipeline's outbound messages: this is exactly what the
+        // session coordinator (and so the monitor) waits for.
+        let responded = expectation(description: "StopRecordingVideoResp")
+        responded.assertForOverFulfill = false
+        var startAcked = false
+        rig.pipeline.sendMessage = { msg in
+            if msg is RemoteCmd.StartRecordingVideoAck { startAcked = true }
+            if msg is RemoteCmd.StopRecordingVideoResp { responded.fulfill() }
+        }
+
+        rig.startRecordingVideo()
+
+        let deadline = Date().addingTimeInterval(10)
+        while !rig.isRecording && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        let diag = await diagnostics()
+        XCTAssertTrue(rig.isRecording, """
+            recording never started within 10s (startAcked=\(startAcked)). \(diag)
+            """)
+
+        try? await Task.sleep(nanoseconds: 1_000_000_000)  // ~1s of footage
+
+        // false = don't ship the movie to a peer; the pipeline then answers directly
+        // instead of going through a resource transfer that needs a live peer.
+        rig.stopRecordingVideo(false)
+
+        await fulfillment(of: [responded], timeout: 15)
+    }
+
     func testToggleKeepsFramesFlowing() async throws {
         try await startRealRig()
         guard await waitForFrames(since: 0) != nil else {

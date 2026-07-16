@@ -230,8 +230,19 @@ class RecordingPipeline {
 
     func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
-        var videoSettings = self.engine.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
-        videoSettings?[AVVideoCodecKey] = AVVideoCodecType.hevc
+        // Ask for settings that are COHERENT with the codec we want, rather than taking
+        // the generic recommendation and overwriting AVVideoCodecKey. The recommendation
+        // carries compression properties keyed to the codec it chose: on a Mac it returns
+        // avc1 with H.264 profile levels, so patching HEVC over the top produced a
+        // dictionary `canApply` refused — the video input was never added,
+        // readyToRecordVideo never flipped, recording never started, and `stopRecording`
+        // then early-returned in silence while the monitor waited forever. (On iPhone the
+        // recommendation is already HEVC, so the overwrite was a no-op and it worked.)
+        // Fall back to the plain recommendation where HEVC isn't offered: a recording in
+        // the device's preferred codec beats no recording at all.
+        var videoSettings = self.engine.videoDataOutput.recommendedVideoSettings(
+            forVideoCodecType: .hevc, assetWriterOutputFileType: .mov)
+            ?? self.engine.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
 
         let dims = CMVideoFormatDescriptionGetDimensions(formatDescription)
         let sourceWidth = CGFloat(dims.width)
@@ -281,9 +292,11 @@ class RecordingPipeline {
             if assetWriter.canAdd(videoInput) {
                 assetWriter.add(videoInput)
             } else {
+                debugLog("❌ recording: asset writer refused the video input")
                 return false
             }
         } else {
+            debugLog("❌ recording: video settings rejected by canApply — \(String(describing: videoSettings))")
             return false
         }
         return true
