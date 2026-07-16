@@ -9,6 +9,7 @@
 
 import XCTest
 import MultipeerConnectivity
+import UIKit
 
 @testable import RemoteShutter
 
@@ -191,5 +192,35 @@ class FrameSenderTests: XCTestCase {
         frameSender.setSession(peer: peer, transport: fakeMP)
         frameSender.drain()
         XCTAssertEqual(frameSender.windowSnapshot().inFlight, 0)
+    }
+
+    // MARK: - Keyframe triggers
+
+    /// Binding a peer is the moment the stream starts flowing — and it is re-entered
+    /// after a photo or a video transfer. The monitor's decoder cannot safely predict
+    /// from whatever it held before, so the first frame back must stand alone.
+    func testSetSessionArmsAKeyframe() {
+        let sender = FrameSender()
+        XCTAssertFalse(sender.takeKeyframeRequest(), "nothing armed before binding")
+
+        sender.setSession(peer: peer, transport: fakeMP)
+        sender.drain()
+
+        XCTAssertTrue(sender.takeKeyframeRequest(), "binding a peer must arm a keyframe")
+        XCTAssertFalse(sender.takeKeyframeRequest(), "consumed exactly once")
+    }
+
+    /// Coming back from the background, this encoder carries on from its own state
+    /// while the monitor's decoder still holds pre-freeze references. The deltas
+    /// decode without error, so nothing else would ever prompt a keyframe.
+    func testForegroundingArmsAKeyframe() {
+        let center = NotificationCenter()
+        let sender = FrameSender(notificationCenter: center)
+        XCTAssertFalse(sender.takeKeyframeRequest(), "nothing armed at rest")
+
+        center.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+
+        XCTAssertTrue(sender.takeKeyframeRequest(), "foregrounding must arm a keyframe")
+        XCTAssertFalse(sender.takeKeyframeRequest(), "consumed exactly once")
     }
 }

@@ -1141,6 +1141,46 @@ class SessionCoordinatorTests: XCTestCase {
                        "straggler failures after the pop must not restart discovery again")
     }
 
+    // MARK: - Keyframe requests across camera states
+
+    /// The preview keeps streaming while a picture is taken, so the monitor can
+    /// desync there. The request used to fall through to handleRoot's unhandled
+    /// default and vanish.
+    func testKeyframeRequestHonoredWhileTakingPicture() async {
+        let sender = FrameSender()
+        harness.coordinator.setFrameSender(sender)
+        sender.drain()
+        _ = sender.takeKeyframeRequest()  // clear anything the seed armed
+
+        await harness.coordinator.seed(state: .cameraTakingPic(sendMediaToPeer: true, generation: 0),
+                                       lobby: harness.lobbyWrapper,
+                                       peer: harness.peer,
+                                       ctrl: FakeCameraControlling())
+        await harness.deliver(RemoteCmd.RequestKeyframe(sender: nil))
+
+        XCTAssertTrue(sender.takeKeyframeRequest(),
+                      "a keyframe request must not be dropped while taking a picture")
+    }
+
+    /// A video file transfer saturates the link while the preview keeps flowing,
+    /// making this the likeliest place to desync — and the one place the request
+    /// was silently discarded.
+    func testKeyframeRequestHonoredWhileTransmittingVideo() async {
+        let sender = FrameSender()
+        harness.coordinator.setFrameSender(sender)
+        sender.drain()
+        _ = sender.takeKeyframeRequest()
+
+        await harness.coordinator.seed(state: .cameraTransmittingVideo,
+                                       lobby: harness.lobbyWrapper,
+                                       peer: harness.peer,
+                                       ctrl: FakeCameraControlling())
+        await harness.deliver(RemoteCmd.RequestKeyframe(sender: nil))
+
+        XCTAssertTrue(sender.takeKeyframeRequest(),
+                      "a keyframe request must not be dropped while transmitting video")
+    }
+
     /// The pipeline refuses to record when audio can't be configured and
     /// reports MicrophoneAccessDenied. The recording state must answer the
     /// monitor with the stop ack + an error response, and return to camera.

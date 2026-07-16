@@ -112,6 +112,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// Fired whenever camera status (resolution/frame rate/format/HDR) changes so
     /// the VC can refresh its status overlay.
     var onStatusChanged: (() -> Void)?
+    /// The capture device was swapped underneath the running outputs — a flip, a
+    /// device pick, or a lens switch. The scene cuts completely, but the preview
+    /// encoder is not recreated unless the *scaled* dimensions happen to change
+    /// (they don't on a flip: both cameras land on the same long edge), so it
+    /// would otherwise encode a delta frame across the cut. Fires on `sessionQueue`.
+    var onDeviceSwapped: (() -> Void)?
 
     // MARK: - Setup
 
@@ -337,6 +343,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         if isExpectedToRun && !captureSession.isRunning {
             captureSession.startRunning()
         }
+        // Every device swap funnels through here — toggle, device pick and lens
+        // switch alike — so this is the one place that has to announce the cut.
+        onDeviceSwapped?()
 
         return CameraSelectionResult(
             device: CameraDeviceDescriptor(device: newDevice),

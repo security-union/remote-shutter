@@ -801,6 +801,12 @@ public actor SessionCoordinator {
 
     private func inCameraTakingPic(_ msg: Message, sendMediaToPeer: Bool, generation: Int) async {
         switch msg {
+        case is RemoteCmd.RequestKeyframe:
+            // The preview keeps streaming while a picture is taken, so a monitor
+            // can desync here — and without this case the request falls through to
+            // handleRoot's unhandled default and is dropped silently.
+            frameSender?.requestKeyframe()
+
         case let timeout as UICmd.StateTimeout:
             guard timeout.stateName == .cameraTakingPic && timeout.generation == generation else { break }
             await dismissCameraAlert()
@@ -913,6 +919,12 @@ public actor SessionCoordinator {
 
     private func inCameraTransmittingVideo(_ msg: Message) async {
         switch msg {
+        case is RemoteCmd.RequestKeyframe:
+            // A video file transfer saturates the link while the preview keeps
+            // streaming, so this is one of the likeliest places to desync — and
+            // the one place the request used to be dropped on the floor.
+            frameSender?.requestKeyframe()
+
         case let started as UICmd.VideoResourceTransferStarted:
             ctrl?.cameraViewModel.startVideoTransfer(totalBytes: started.totalBytes)
 

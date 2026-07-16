@@ -10,9 +10,16 @@
 //
 //  Per frame: downscale the 32BGRA capture buffer with vImage, convert to
 //  planar I420 (full-range ITU-R 601, mirrored by the Watch decoder), feed the
-//  Rust encoder. The Rust session is recreated whenever the scaled dimensions
-//  change (rotation, lens switch, camera flip) — a fresh session's first frame
-//  is a keyframe, so every geometry change re-syncs the stream for free.
+//  Rust encoder. The Rust session is recreated whenever the scaled *output*
+//  dimensions change, and a fresh session's first frame is a keyframe.
+//
+//  That is a narrower guarantee than it looks: a lens switch or camera flip
+//  usually scales to the same long edge, so the session is NOT recreated and the
+//  encoder happily predicts across a total scene cut. Such deltas decode without
+//  error, so the monitor never asks for a keyframe — it just renders smears.
+//  Discontinuities must therefore be announced explicitly (see
+//  `CaptureEngine.onDeviceSwapped` and `FrameSender.requestKeyframe`); only a
+//  genuine resolution change re-syncs on its own.
 //
 //  Confined to the capture queue like every FrameEncoding conformer; all
 //  buffers are reused across frames and never shared across threads.
