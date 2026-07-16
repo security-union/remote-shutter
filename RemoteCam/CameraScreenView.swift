@@ -21,6 +21,10 @@ struct CameraScreenView: View {
     /// The letterbox-fitted video rect (view coords), reported by the preview so
     /// the focus reticle lands on the image, not the black bars.
     @State private var videoRect: CGRect = .zero
+    /// Whether the preview is horizontally mirrored (front camera, by default).
+    /// The monitor's frame is never mirrored (the data output isn't), so the
+    /// reticle's x is flipped to match what the camera operator actually sees.
+    @State private var previewMirrored: Bool = false
 
     var body: some View {
         ZStack {
@@ -29,16 +33,22 @@ struct CameraScreenView: View {
             if let session = viewModel.previewSession {
                 CameraPreviewView(session: session,
                                   videoOrientation: viewModel.previewVideoOrientation,
-                                  onVideoRectChange: { videoRect = $0 })
+                                  onGeometryChange: { rect, mirrored in
+                                      videoRect = rect
+                                      previewMirrored = mirrored
+                                  })
                     .ignoresSafeArea()
             }
 
             // Remote focus reticle — the same box/animation the monitor draws,
-            // positioned within the fitted video rect at the tapped point.
+            // positioned within the fitted video rect at the tapped point. x is
+            // flipped when the preview is mirrored (front camera) so the box
+            // lands on the same subject the monitor operator tapped.
             if let indicator = viewModel.focusIndicator, videoRect.width > 0 {
+                let nx = previewMirrored ? (1 - indicator.normalized.x) : indicator.normalized.x
                 FocusReticleView()
                     .id(indicator.id)
-                    .position(x: videoRect.minX + indicator.normalized.x * videoRect.width,
+                    .position(x: videoRect.minX + nx * videoRect.width,
                               y: videoRect.minY + indicator.normalized.y * videoRect.height)
                     .allowsHitTesting(false)
             }
@@ -111,9 +121,10 @@ struct CameraScreenView: View {
 struct CameraPreviewView: UIViewRepresentable {
     let session: AVCaptureSession
     let videoOrientation: AVCaptureVideoOrientation
-    /// Reports the letterbox-fitted video rect (view coords) whenever it changes,
-    /// so overlays can position against the image rather than the black bars.
-    var onVideoRectChange: ((CGRect) -> Void)?
+    /// Reports the letterbox-fitted video rect (view coords) and whether the
+    /// preview is mirrored, whenever either changes, so overlays can position
+    /// against the image (not the black bars) and account for front-camera mirror.
+    var onGeometryChange: ((CGRect, Bool) -> Void)?
 
     final class PreviewHostView: UIView {
         override static var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
@@ -121,19 +132,25 @@ struct CameraPreviewView: UIViewRepresentable {
             // swiftlint:disable:next force_cast
             layer as! AVCaptureVideoPreviewLayer
         }
-        var onVideoRectChange: ((CGRect) -> Void)?
-        private var lastRect: CGRect = .zero
+        var onGeometryChange: ((CGRect, Bool) -> Void)?
+        private var last: (rect: CGRect, mirrored: Bool) = (.zero, false)
+
+        /// The rect the video image occupies under .resizeAspect (view coords)
+        /// plus the connection's mirror state. Deferred off the layout pass to
+        /// avoid mutating SwiftUI state mid-update. Called on layout and on
+        /// updateUIView (a camera swap can flip mirroring without a resize).
+        func reportGeometry() {
+            let rect = previewLayer.layerRectConverted(fromMetadataOutputRect: CGRect(x: 0, y: 0, width: 1, height: 1))
+            let mirrored = previewLayer.connection?.isVideoMirrored ?? false
+            guard rect.width > 0, rect.height > 0, (rect, mirrored) != last else { return }
+            last = (rect, mirrored)
+            let callback = onGeometryChange
+            DispatchQueue.main.async { callback?(rect, mirrored) }
+        }
 
         override func layoutSubviews() {
             super.layoutSubviews()
-            // The rect the video image actually occupies under .resizeAspect,
-            // in view coordinates. Deferred off the layout pass to avoid
-            // mutating SwiftUI state mid-update.
-            let rect = previewLayer.layerRectConverted(fromMetadataOutputRect: CGRect(x: 0, y: 0, width: 1, height: 1))
-            guard rect.width > 0, rect.height > 0, rect != lastRect else { return }
-            lastRect = rect
-            let callback = onVideoRectChange
-            DispatchQueue.main.async { callback?(rect) }
+            reportGeometry()
         }
     }
 
@@ -141,15 +158,16 @@ struct CameraPreviewView: UIViewRepresentable {
         let view = PreviewHostView()
         view.previewLayer.videoGravity = .resizeAspect
         view.previewLayer.session = session
-        view.onVideoRectChange = onVideoRectChange
+        view.onGeometryChange = onGeometryChange
         return view
     }
 
     func updateUIView(_ uiView: PreviewHostView, context: Context) {
-        uiView.onVideoRectChange = onVideoRectChange
+        uiView.onGeometryChange = onGeometryChange
         if uiView.previewLayer.session !== session {
             uiView.previewLayer.session = session
         }
+        defer { uiView.reportGeometry() }
         // Same policy as the capture connections (OrientationUtils): iOS
         // rotates the preview to the interface; Mac cameras render native.
         guard OrientationUtils.appliesInterfaceRotation,
