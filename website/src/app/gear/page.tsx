@@ -97,6 +97,10 @@ export default function Gear() {
             >
               <h2 id={section.id}>{section.title}</h2>
               <p className={styles.sectionSub}>{section.sub}</p>
+              {/* Repeated per section, not just in the hero: the FTC asks that a
+                  reader see the disclosure and the buy link at the same time, and
+                  the hero scrolls away long before the last card. */}
+              <p className={styles.disclosure}>{DISCLOSURE}</p>
               <div className={styles.cards}>
                 {section.items.map((item) => (
                   <article key={item.name} className={styles.card}>
