@@ -14,8 +14,10 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE_URL}/gear` },
 };
 
-const DISCLOSURE =
-  'As an Amazon Associate, Remote Shutter earns from qualifying purchases. Prices are typical street prices and may vary.';
+// Verbatim per the Associates Operating Agreement §5 — the only permitted
+// variants are ones previously allowed under that agreement, and §6 makes a §5
+// violation a material breach. Reword nothing here.
+const DISCLOSURE = 'As an Amazon Associate I earn from qualifying purchases.';
 
 function RigDiagram() {
   return (
@@ -108,7 +110,7 @@ export default function Gear() {
                       />
                     </div>
                     <h3>{item.name}</h3>
-                    <p className={styles.price}>{item.price}</p>
+                    <p className={styles.tier}>{item.tier}</p>
                     <p className={styles.why}>{item.why}</p>
                     <AmazonLink query={item.query} className={styles.buy}>
                       View on Amazon ↗

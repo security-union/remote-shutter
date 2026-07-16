@@ -175,10 +175,9 @@
   line-height: 1.3;
 }
 
-.price {
+.tier {
   color: var(--accent);
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
   font-size: 0.95rem;
 }
 
