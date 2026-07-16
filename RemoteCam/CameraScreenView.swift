@@ -18,6 +18,9 @@ struct CameraScreenView: View {
     @ObservedObject var viewModel: CameraViewModel
     /// Local device selection from the picker chrome (nil in previews/tests).
     var onSelectCameraDevice: ((String) -> Void)?
+    /// The letterbox-fitted video rect (view coords), reported by the preview so
+    /// the focus reticle lands on the image, not the black bars.
+    @State private var videoRect: CGRect = .zero
 
     var body: some View {
         ZStack {
@@ -25,8 +28,19 @@ struct CameraScreenView: View {
 
             if let session = viewModel.previewSession {
                 CameraPreviewView(session: session,
-                                  videoOrientation: viewModel.previewVideoOrientation)
+                                  videoOrientation: viewModel.previewVideoOrientation,
+                                  onVideoRectChange: { videoRect = $0 })
                     .ignoresSafeArea()
+            }
+
+            // Remote focus reticle — the same box/animation the monitor draws,
+            // positioned within the fitted video rect at the tapped point.
+            if let indicator = viewModel.focusIndicator, videoRect.width > 0 {
+                FocusReticleView()
+                    .id(indicator.id)
+                    .position(x: videoRect.minX + indicator.normalized.x * videoRect.width,
+                              y: videoRect.minY + indicator.normalized.y * videoRect.height)
+                    .allowsHitTesting(false)
             }
 
             // Animated "recording" badge, top center — visible only in video mode.
@@ -97,6 +111,9 @@ struct CameraScreenView: View {
 struct CameraPreviewView: UIViewRepresentable {
     let session: AVCaptureSession
     let videoOrientation: AVCaptureVideoOrientation
+    /// Reports the letterbox-fitted video rect (view coords) whenever it changes,
+    /// so overlays can position against the image rather than the black bars.
+    var onVideoRectChange: ((CGRect) -> Void)?
 
     final class PreviewHostView: UIView {
         override static var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
@@ -104,16 +121,32 @@ struct CameraPreviewView: UIViewRepresentable {
             // swiftlint:disable:next force_cast
             layer as! AVCaptureVideoPreviewLayer
         }
+        var onVideoRectChange: ((CGRect) -> Void)?
+        private var lastRect: CGRect = .zero
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            // The rect the video image actually occupies under .resizeAspect,
+            // in view coordinates. Deferred off the layout pass to avoid
+            // mutating SwiftUI state mid-update.
+            let rect = previewLayer.layerRectConverted(fromMetadataOutputRect: CGRect(x: 0, y: 0, width: 1, height: 1))
+            guard rect.width > 0, rect.height > 0, rect != lastRect else { return }
+            lastRect = rect
+            let callback = onVideoRectChange
+            DispatchQueue.main.async { callback?(rect) }
+        }
     }
 
     func makeUIView(context: Context) -> PreviewHostView {
         let view = PreviewHostView()
         view.previewLayer.videoGravity = .resizeAspect
         view.previewLayer.session = session
+        view.onVideoRectChange = onVideoRectChange
         return view
     }
 
     func updateUIView(_ uiView: PreviewHostView, context: Context) {
+        uiView.onVideoRectChange = onVideoRectChange
         if uiView.previewLayer.session !== session {
             uiView.previewLayer.session = session
         }

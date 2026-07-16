@@ -145,6 +145,29 @@ class CameraViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Remote Focus Indicator
+    /// Shown when a remote focus command arrives, so the person holding the
+    /// camera sees the tap register — the same reticle the monitor draws.
+    /// `normalized` is 0..1 in the upright display image (origin top-left).
+    @Published var focusIndicator: RemoteFocusIndicator?
+
+    struct RemoteFocusIndicator: Equatable {
+        let id = UUID()
+        let normalized: CGPoint
+    }
+
+    func showRemoteFocus(x: Float, y: Float) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let indicator = RemoteFocusIndicator(normalized: CGPoint(x: CGFloat(x), y: CGFloat(y)))
+            self.focusIndicator = indicator
+            // Match the monitor reticle's lifetime.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                if self?.focusIndicator?.id == indicator.id { self?.focusIndicator = nil }
+            }
+        }
+    }
+
     // MARK: - Toast
     @Published var showRemoteHint: Bool = false
     private var remoteHintWorkItem: DispatchWorkItem?

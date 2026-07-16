@@ -460,6 +460,10 @@ extension CameraRig: CameraControlling {
     }
 
     func focusAtPoint(x: Float, y: Float) async throws {
+        // Show the same reticle the monitor draws, so the person holding the
+        // camera sees the tap land — on every command, even where the device
+        // can't focus (the box is the confirmation).
+        cameraViewModel.showRemoteFocus(x: x, y: y)
         try await engine.setFocusExposurePoint(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y)))
     }
 
