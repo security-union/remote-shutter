@@ -84,21 +84,43 @@ struct CameraScreenView: View {
         }
     }
 
-    /// The remote focus reticle — the same box/animation the monitor draws,
-    /// positioned within the fitted video rect at the tapped point. x is flipped
-    /// when the preview is mirrored (front camera) so the box lands on the same
-    /// subject the monitor operator tapped. Drawn as a preview overlay so it
-    /// shares the preview layer's coordinate space (no safe-area offset).
+    /// The remote focus reticle — the same box/animation the monitor draws. The
+    /// tapped point is normalized in the displayed image; we recompute the fitted
+    /// (letterboxed) video rect inside a GeometryReader measuring THIS overlay's
+    /// own space, using only the video's aspect ratio (which is coordinate-space
+    /// invariant). That avoids any safe-area/coordinate offset between the preview
+    /// layer and SwiftUI. x is flipped when the preview is mirrored (front camera).
     @ViewBuilder
     private var focusReticleOverlay: some View {
-        if let indicator = viewModel.focusIndicator, videoRect.width > 0 {
-            let nx = previewMirrored ? (1 - indicator.normalized.x) : indicator.normalized.x
-            FocusReticleView()
-                .id(indicator.id)
-                .position(x: videoRect.minX + nx * videoRect.width,
-                          y: videoRect.minY + indicator.normalized.y * videoRect.height)
-                .allowsHitTesting(false)
+        if let indicator = viewModel.focusIndicator, videoRect.width > 0, videoRect.height > 0 {
+            let aspect = videoRect.width / videoRect.height
+            GeometryReader { geo in
+                let fitted = Self.fittedRect(aspect: aspect, in: geo.size)
+                let nx = previewMirrored ? (1 - indicator.normalized.x) : indicator.normalized.x
+                FocusReticleView()
+                    .id(indicator.id)
+                    .position(x: fitted.minX + nx * fitted.width,
+                              y: fitted.minY + indicator.normalized.y * fitted.height)
+            }
+            .allowsHitTesting(false)
         }
+    }
+
+    /// The rect an `aspect` (width/height) image occupies when aspect-fit into
+    /// `size` — matches the preview layer's `.resizeAspect` letterboxing.
+    static func fittedRect(aspect: CGFloat, in size: CGSize) -> CGRect {
+        guard size.width > 0, size.height > 0, aspect > 0 else { return .zero }
+        let viewAspect = size.width / size.height
+        let w: CGFloat
+        let h: CGFloat
+        if aspect > viewAspect {
+            w = size.width
+            h = size.width / aspect
+        } else {
+            h = size.height
+            w = size.height * aspect
+        }
+        return CGRect(x: (size.width - w) / 2, y: (size.height - h) / 2, width: w, height: h)
     }
 
     private var cameraDevicePicker: some View {

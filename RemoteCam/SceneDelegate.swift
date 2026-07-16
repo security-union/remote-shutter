@@ -14,9 +14,17 @@ import UIKit
 /// still hit the buttons.
 final class PassThroughNavigationBar: UINavigationBar {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let hit = super.hitTest(point, with: event)
-        // `self` == the bar background/empty area → pass the touch through.
-        return hit === self ? nil : hit
+        guard let hit = super.hitTest(point, with: event) else { return nil }
+        // Keep touches that land on an actual interactive control (the back /
+        // help bar-button items render as UIControls); pass everything else —
+        // the transparent background and empty area — through to the preview so
+        // tap-to-focus can reach the top of the frame.
+        var view: UIView? = hit
+        while let current = view, current !== self {
+            if current is UIControl { return hit }
+            view = current.superview
+        }
+        return nil
     }
 }
 
