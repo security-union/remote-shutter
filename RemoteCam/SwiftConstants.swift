@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import SafariServices
 import StoreKit
 import UIKit
 
@@ -90,23 +89,14 @@ public func showReviewPromptIfAppropriate() {
 }
 
 // MARK: - Recommended Gear Web Page
+
+// Deliberately the system browser rather than SFSafariViewController. The gear
+// page sends people on to Amazon, and since iOS 11 an SFSafariViewController
+// keeps its own cookie store, isolated from Safari — so an affiliate cookie set
+// inside one is stranded there the moment the shopper continues in the Amazon
+// app, and the referral goes uncredited. Handing off to Safari also lets
+// Amazon's universal links open its app directly, which is what Amazon asks
+// Associates to do.
 func openGearPage() {
-    #if targetEnvironment(macCatalyst)
-    // SFSafariViewController is unavailable on Mac Catalyst; open in the default browser.
     UIApplication.shared.open(GearURL)
-    #else
-    guard let windowScene = UIApplication.shared.connectedScenes
-        .compactMap({ $0 as? UIWindowScene })
-        .first(where: { $0.activationState == .foregroundActive }),
-        let rootViewController = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController
-        else { return }
-
-    var topViewController = rootViewController
-    while let presented = topViewController.presentedViewController {
-        topViewController = presented
-    }
-
-    let safari = SFSafariViewController(url: GearURL)
-    topViewController.present(safari, animated: true)
-    #endif
 }
