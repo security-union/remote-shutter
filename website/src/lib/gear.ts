@@ -1,6 +1,8 @@
-// Amazon Associates tracking IDs. These are the intended IDs — they MUST be
-// updated to the real ones once the Associates account is approved, or the
-// clicks earn nothing (links still work for shoppers either way).
+// Live Amazon Associates tracking IDs, registered under the securityunion-20
+// account. The split lets app-driven clicks report separately from organic web
+// in Amazon's Tracking ID Summary Report; AmazonLink picks between them on
+// ?src=app. Both must exist in Associates Central — an unregistered tag still
+// links fine for shoppers but attributes nothing.
 export const AMAZON_TAG_WEB = 'remoteshutter-web-20';
 export const AMAZON_TAG_APP = 'remoteshutter-app-20';
 

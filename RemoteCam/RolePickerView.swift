@@ -59,7 +59,7 @@ struct RolePickerView: View {
                 Button(action: openGearPage) {
                     glassPanel(
                         icon: "bag.fill",
-                        title: NSLocalizedString("Recommended Gear", comment: ""),
+                        title: NSLocalizedString("Works best on a tripod", comment: ""),
                         subtitle: NSLocalizedString("Tripods, mounts & lenses", comment: ""),
                         tint: AppTheme.accentLight
                     )
