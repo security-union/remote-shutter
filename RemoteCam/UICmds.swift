@@ -174,6 +174,24 @@ public class UICmd {
         }
     }
 
+    // MARK: - Focus Commands
+
+    /// Monitor-local: the preview tap point, normalized (0..1) in the upright
+    /// display image, origin top-left. Dispatched in-process to the coordinator,
+    /// which forwards it to the camera peer as `RemoteCmd.FocusAtPoint` (that is
+    /// the only representation serialized over the wire, as FlatBuffers). No
+    /// `NSCoding` here — UICmds never leave the device.
+    public class FocusAtPoint: Message, @unchecked Sendable {
+        public let x: Float
+        public let y: Float
+
+        public init(x: Float, y: Float) {
+            self.x = x
+            self.y = y
+            super.init(sender: nil)
+        }
+    }
+
     @objc(_TtCC10ActorsDemo5UICmd12SetZoomResp)public class SetZoomResp: Message, NSCoding, @unchecked Sendable {
         public let zoomFactor: CGFloat?
         public let currentLens: CameraLensType?

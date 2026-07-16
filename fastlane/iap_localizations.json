@@ -248,6 +248,192 @@
         "name": "Запись видео",
         "description": "Снимайте видео удалённой камерой."
       }
+    },
+    "09": {
+      "en-US": {
+        "name": "Tap to Focus",
+        "description": "Tap the preview to set focus & exposure."
+      },
+      "da": {
+        "name": "Tryk for fokus",
+        "description": "Tryk på forhåndsvisningen for fokus."
+      },
+      "de-DE": {
+        "name": "Tippen zum Fokussieren",
+        "description": "Tippen für Fokus und Belichtung."
+      },
+      "es-MX": {
+        "name": "Toca para enfocar",
+        "description": "Toca la vista previa para enfocar."
+      },
+      "fr-FR": {
+        "name": "Toucher pour la mise au point",
+        "description": "Touchez l'aperçu pour faire le point."
+      },
+      "it": {
+        "name": "Tocca per mettere a fuoco",
+        "description": "Tocca l'anteprima per la messa a fuoco."
+      },
+      "ja": {
+        "name": "タップでフォーカス",
+        "description": "プレビューをタップしてフォーカスと露出を設定。"
+      },
+      "ko": {
+        "name": "탭하여 초점",
+        "description": "미리보기를 탭해 초점과 노출을 설정."
+      },
+      "pt-BR": {
+        "name": "Toque para focar",
+        "description": "Toque na prévia para focar e expor."
+      },
+      "zh-Hans": {
+        "name": "点按对焦",
+        "description": "点按预览设置对焦和曝光。"
+      },
+      "vi": {
+        "name": "Chạm để lấy nét",
+        "description": "Chạm vào bản xem trước để lấy nét."
+      },
+      "hi": {
+        "name": "फ़ोकस के लिए टैप",
+        "description": "फोकस सेट करने के लिए प्रीव्यू टैप करें।"
+      },
+      "ms": {
+        "name": "Ketik untuk Fokus",
+        "description": "Ketik pratonton untuk tetapkan fokus."
+      },
+      "tr": {
+        "name": "Odaklamak için dokun",
+        "description": "Önizlemeye dokunup odak ayarlayın."
+      },
+      "ru": {
+        "name": "Тап для фокуса",
+        "description": "Коснитесь превью для фокуса."
+      }
+    },
+    "pro_monthly": {
+      "en-US": {
+        "name": "Pro (Monthly)",
+        "description": "Every feature, billed monthly."
+      },
+      "da": {
+        "name": "Pro (månedlig)",
+        "description": "Alle funktioner, månedligt."
+      },
+      "de-DE": {
+        "name": "Pro (monatlich)",
+        "description": "Alle Funktionen, monatlich."
+      },
+      "es-MX": {
+        "name": "Pro (mensual)",
+        "description": "Todas las funciones, cada mes."
+      },
+      "fr-FR": {
+        "name": "Pro (mensuel)",
+        "description": "Toutes les fonctions, chaque mois."
+      },
+      "it": {
+        "name": "Pro (mensile)",
+        "description": "Tutte le funzioni, ogni mese."
+      },
+      "ja": {
+        "name": "プロ（月額）",
+        "description": "すべての機能、毎月課金。"
+      },
+      "ko": {
+        "name": "프로(월간)",
+        "description": "모든 기능, 매월 청구."
+      },
+      "pt-BR": {
+        "name": "Pro (mensal)",
+        "description": "Todos os recursos, por mês."
+      },
+      "zh-Hans": {
+        "name": "专业版（月付）",
+        "description": "全部功能，按月付费。"
+      },
+      "vi": {
+        "name": "Pro (hàng tháng)",
+        "description": "Mọi tính năng, tính phí hàng tháng."
+      },
+      "hi": {
+        "name": "प्रो (मासिक)",
+        "description": "सभी सुविधाएँ, मासिक शुल्क।"
+      },
+      "ms": {
+        "name": "Pro (Bulanan)",
+        "description": "Semua ciri, dicaj bulanan."
+      },
+      "tr": {
+        "name": "Pro (Aylık)",
+        "description": "Tüm özellikler, aylık ödeme."
+      },
+      "ru": {
+        "name": "Pro (месяц)",
+        "description": "Все функции, ежемесячно."
+      }
+    },
+    "pro_yearly": {
+      "en-US": {
+        "name": "Pro (Yearly)",
+        "description": "Every feature, billed yearly."
+      },
+      "da": {
+        "name": "Pro (årlig)",
+        "description": "Alle funktioner, årligt."
+      },
+      "de-DE": {
+        "name": "Pro (jährlich)",
+        "description": "Alle Funktionen, jährlich."
+      },
+      "es-MX": {
+        "name": "Pro (anual)",
+        "description": "Todas las funciones, cada año."
+      },
+      "fr-FR": {
+        "name": "Pro (annuel)",
+        "description": "Toutes les fonctions, chaque année."
+      },
+      "it": {
+        "name": "Pro (annuale)",
+        "description": "Tutte le funzioni, ogni anno."
+      },
+      "ja": {
+        "name": "プロ（年額）",
+        "description": "すべての機能、毎年課金。"
+      },
+      "ko": {
+        "name": "프로(연간)",
+        "description": "모든 기능, 매년 청구."
+      },
+      "pt-BR": {
+        "name": "Pro (anual)",
+        "description": "Todos os recursos, por ano."
+      },
+      "zh-Hans": {
+        "name": "专业版（年付）",
+        "description": "全部功能，按年付费。"
+      },
+      "vi": {
+        "name": "Pro (hàng năm)",
+        "description": "Mọi tính năng, tính phí hàng năm."
+      },
+      "hi": {
+        "name": "प्रो (वार्षिक)",
+        "description": "सभी सुविधाएँ, वार्षिक शुल्क।"
+      },
+      "ms": {
+        "name": "Pro (Tahunan)",
+        "description": "Semua ciri, dicaj tahunan."
+      },
+      "tr": {
+        "name": "Pro (Yıllık)",
+        "description": "Tüm özellikler, yıllık ödeme."
+      },
+      "ru": {
+        "name": "Pro (год)",
+        "description": "Все функции, ежегодно."
+      }
     }
   }
 }

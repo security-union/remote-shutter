@@ -15,10 +15,19 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
         var isPurchased: Bool
     }
 
-    @Published var proMode = PurchaseItem(id: enableVideoPID, title: NSLocalizedString("Pro: All Features", comment: ""), price: "", isPurchased: false)
-    @Published var removeAds = PurchaseItem(id: disableAdsPID, title: NSLocalizedString("Remove Ads", comment: ""), price: "", isPurchased: false)
-    @Published var enableTorch = PurchaseItem(id: enableTorchPID, title: NSLocalizedString("Enable Torch", comment: ""), price: "", isPurchased: false)
-    @Published var enableVideo = PurchaseItem(id: enableVideoOnlyPID, title: NSLocalizedString("Enable Video", comment: ""), price: "", isPurchased: false)
+    // Titles/prices are intentionally empty — they come from StoreKit
+    // (product.displayName/displayPrice, localized by App Store Connect). The UI
+    // shows a skeleton until `productsLoaded`, so there are no app-side name strings.
+    @Published var proSubscriptionMonthly = PurchaseItem(id: proMonthlyPID, title: "", price: "", isPurchased: false)
+    @Published var proSubscriptionYearly = PurchaseItem(id: proYearlyPID, title: "", price: "", isPurchased: false)
+    @Published var proMode = PurchaseItem(id: enableVideoPID, title: "", price: "", isPurchased: false)
+    @Published var removeAds = PurchaseItem(id: disableAdsPID, title: "", price: "", isPurchased: false)
+    @Published var enableTorch = PurchaseItem(id: enableTorchPID, title: "", price: "", isPurchased: false)
+    @Published var enableVideo = PurchaseItem(id: enableVideoOnlyPID, title: "", price: "", isPurchased: false)
+    @Published var tapToFocus = PurchaseItem(id: tapToFocusPID, title: "", price: "", isPurchased: false)
+    /// True once the StoreKit product fetch has completed (success or not), so
+    /// the paywall can swap skeleton rows for real names/prices.
+    @Published var productsLoaded = false
 
     @Published var isRestoringPurchases = false
     @Published var isPurchasing = false
@@ -70,6 +79,7 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
         Task { @MainActor in
             await StoreManager.shared.loadProducts()
             updateItems(with: StoreManager.shared.products)
+            productsLoaded = true
         }
     }
 
@@ -106,7 +116,9 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
             case enableVideoPID:
                 proMode.title = product.displayName
                 proMode.price = product.displayPrice
-                proMode.isPurchased = store.hasProMode()
+                // Full access (one-time OR subscription) marks the one-time Pro
+                // as owned so a subscriber can't redundantly buy it on top.
+                proMode.isPurchased = store.hasFullAccess()
             case disableAdsPID:
                 removeAds.title = product.displayName
                 removeAds.price = product.displayPrice
@@ -119,6 +131,20 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
                 enableVideo.title = product.displayName
                 enableVideo.price = product.displayPrice
                 enableVideo.isPurchased = store.hasVideoRecordingFeature()
+            case tapToFocusPID:
+                tapToFocus.title = product.displayName
+                tapToFocus.price = product.displayPrice
+                tapToFocus.isPurchased = store.hasTapToFocusFeature()
+            case proMonthlyPID:
+                proSubscriptionMonthly.title = product.displayName
+                proSubscriptionMonthly.price = product.displayPrice
+                // Full access blocks re-subscribing (e.g. a one-time 06 owner);
+                // plan switches happen via the system Manage Subscriptions sheet.
+                proSubscriptionMonthly.isPurchased = store.hasFullAccess()
+            case proYearlyPID:
+                proSubscriptionYearly.title = product.displayName
+                proSubscriptionYearly.price = product.displayPrice
+                proSubscriptionYearly.isPurchased = store.hasFullAccess()
             default:
                 break
             }
@@ -127,10 +153,13 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
 
     func refreshPurchaseStates() {
         let store = StoreManager.shared
-        proMode.isPurchased = store.hasProMode()
+        proSubscriptionMonthly.isPurchased = store.hasFullAccess()
+        proSubscriptionYearly.isPurchased = store.hasFullAccess()
+        proMode.isPurchased = store.hasFullAccess()
         removeAds.isPurchased = store.hasAdRemovalFeature()
         enableTorch.isPurchased = store.hasTorchFeature()
         enableVideo.isPurchased = store.hasVideoRecordingFeature()
+        tapToFocus.isPurchased = store.hasTapToFocusFeature()
     }
 
 }

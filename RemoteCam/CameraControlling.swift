@@ -34,6 +34,10 @@ protocol CameraControlling: AnyObject, Sendable {
     func stopRecordingVideo(_ shouldSendVideo: Bool)
 
     func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange)
+    /// Sets the focus/exposure point of interest from a monitor tap. `x`/`y` are
+    /// normalized (0..1) in the upright display image, origin top-left.
+    /// Fire-and-forget: a no-op if the active device has no point of interest.
+    func focusAtPoint(x: Float, y: Float) async throws
     func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)
     func toggleFlash() async throws -> AVCaptureDevice.FlashMode
     func toggleTorch() async throws -> AVCaptureDevice.TorchMode

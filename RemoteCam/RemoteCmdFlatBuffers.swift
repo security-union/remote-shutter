@@ -31,6 +31,7 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
+    case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SwitchLens: return m.toFlatBuffer()
     case let m as RemoteCmd.SwitchLensResp: return m.toFlatBuffer()
@@ -412,7 +413,8 @@ private func encodeCapabilitiesEnvelope(
         frontCameraOffset: frontOffset,
         backCameraOffset: backOffset,
         cameraDevicesVectorOffset: devicesVector,
-        activeDeviceIdOffset: activeIDOffset)
+        activeDeviceIdOffset: activeIDOffset,
+        supportsFocusPoint: c.supportsFocusPoint)
 
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
@@ -572,6 +574,14 @@ extension RemoteCmd.SetZoom {
         var fbb = FlatBufferBuilder()
         let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, zoomFactor: Double(zoomFactor))
         return buildCommand(&fbb, action: .setzoom, parameters: params)
+    }
+}
+
+extension RemoteCmd.FocusAtPoint {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, focusPointX: x, focusPointY: y)
+        return buildCommand(&fbb, action: .focusatpoint, parameters: params)
     }
 }
 
@@ -1072,6 +1082,9 @@ extension RemoteCmd {
 
         case .selectcameradevice:
             return SelectCameraDevice(uniqueID: params?.deviceUniqueId ?? "")
+
+        case .focusatpoint:
+            return FocusAtPoint(x: params?.focusPointX ?? 0.5, y: params?.focusPointY ?? 0.5)
         }
     }
 
@@ -1219,6 +1232,7 @@ extension RemoteCmd {
             currentHDRMode: state.map { fromFBHDRMode($0.hdrMode) } ?? .off,
             cameraDevices: cameraDevices,
             activeDeviceID: activeDeviceID,
+            supportsFocusPoint: caps?.supportsFocusPoint ?? false,
             error: error
         )
     }

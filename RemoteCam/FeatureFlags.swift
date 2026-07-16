@@ -25,6 +25,12 @@ struct FeatureFlags {
     /// Enable Apple Watch companion app as standalone remote control
     static let ENABLE_WATCH_APP = true
 
+    /// Show the auto-renewable Pro subscription (Monthly/Yearly) in the paywall.
+    /// Off until the subscription is a validated experiment: the products exist
+    /// on App Store Connect but are not submitted for review, Pro stays a $9.99
+    /// one-time buy, and the entitlement code stays in place for when it flips on.
+    static let ENABLE_PRO_SUBSCRIPTION = false
+
     /// Show the local camera-device picker on the camera screen. On for Mac
     /// Catalyst only (a Mac has N cameras — built-in, Continuity, USB);
     /// iPhone keeps its flip button.

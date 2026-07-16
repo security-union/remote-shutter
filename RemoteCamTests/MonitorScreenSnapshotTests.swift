@@ -26,7 +26,8 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
             onZoomChange: { _ in },
             onVideoQualityChange: { _, _ in },
             onPhotoQualityChange: { _, _ in },
-            onAspectRatioChange: { _ in })
+            onAspectRatioChange: { _ in },
+            onFocusTap: { _ in })
     }
 
     /// A connected monitor with a live frame and the full lens/zoom surface.

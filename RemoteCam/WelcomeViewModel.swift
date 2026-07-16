@@ -16,6 +16,9 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
     // MARK: - Published State
 
     @Published var upgrades: [UpgradeItem] = []
+    /// True once the StoreKit product fetch has completed, so the paywall can
+    /// swap skeleton rows for the real StoreKit names/prices.
+    @Published var productsLoaded = false
     @Published var hasAnyPurchase = false
     @Published var hasAllFeatures = false
     @Published var isPurchasing = false
@@ -45,6 +48,7 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
         Task { @MainActor in
             await StoreManager.shared.loadProducts()
             updatePrices()
+            productsLoaded = true
         }
     }
 
@@ -82,17 +86,32 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
     // MARK: - Private Helpers
 
     private func buildUpgradeItems() {
+        // Titles/prices come from StoreKit (product.displayName/displayPrice) —
+        // left empty here; the UI skeletons until `productsLoaded`. Only the id,
+        // icon, tint and entitlement state are app-side.
         let store = StoreManager.shared
-        upgrades = [
-            UpgradeItem(id: enableVideoPID, title: NSLocalizedString("Pro: All Features", comment: ""), price: "",
+        var items: [UpgradeItem] = []
+        // Featured "everything" plans: the Pro subscription (behind a flag until
+        // it's a validated experiment), then the one-time Pro.
+        if FeatureFlags.ENABLE_PRO_SUBSCRIPTION {
+            items.append(UpgradeItem(id: proYearlyPID, title: "", price: "",
+                                     isPurchased: store.hasProSubscription(), icon: "crown.fill", tint: "purple"))
+            items.append(UpgradeItem(id: proMonthlyPID, title: "", price: "",
+                                     isPurchased: store.hasProSubscription(), icon: "crown", tint: "purple"))
+        }
+        items.append(contentsOf: [
+            UpgradeItem(id: enableVideoPID, title: "", price: "",
                         isPurchased: store.hasProMode(), icon: "star.fill", tint: "purple"),
-            UpgradeItem(id: disableAdsPID, title: NSLocalizedString("Remove Ads", comment: ""), price: "",
+            UpgradeItem(id: disableAdsPID, title: "", price: "",
                         isPurchased: store.hasAdRemovalFeature(), icon: "eye.slash.fill", tint: "blue"),
-            UpgradeItem(id: enableTorchPID, title: NSLocalizedString("Enable Torch", comment: ""), price: "",
+            UpgradeItem(id: enableTorchPID, title: "", price: "",
                         isPurchased: store.hasTorchFeature(), icon: "flashlight.on.fill", tint: "orange"),
-            UpgradeItem(id: enableVideoOnlyPID, title: NSLocalizedString("Enable Video", comment: ""), price: "",
+            UpgradeItem(id: enableVideoOnlyPID, title: "", price: "",
                         isPurchased: store.hasVideoRecordingFeature(), icon: "video.fill", tint: "red"),
-        ]
+            UpgradeItem(id: tapToFocusPID, title: "", price: "",
+                        isPurchased: store.hasTapToFocusFeature(), icon: "camera.metering.spot", tint: "green"),
+        ])
+        upgrades = items
         updateFeatureFlags()
     }
 
@@ -109,6 +128,8 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
         let store = StoreManager.shared
         for i in upgrades.indices {
             switch upgrades[i].id {
+            case proMonthlyPID, proYearlyPID:
+                upgrades[i].isPurchased = store.hasProSubscription()
             case enableVideoPID:
                 upgrades[i].isPurchased = store.hasProMode()
             case disableAdsPID:
@@ -117,6 +138,8 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
                 upgrades[i].isPurchased = store.hasTorchFeature()
             case enableVideoOnlyPID:
                 upgrades[i].isPurchased = store.hasVideoRecordingFeature()
+            case tapToFocusPID:
+                upgrades[i].isPurchased = store.hasTapToFocusFeature()
             default:
                 break
             }
@@ -126,9 +149,10 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
 
     private func updateFeatureFlags() {
         let store = StoreManager.shared
-        hasAllFeatures = store.hasProMode()
+        hasAllFeatures = store.hasFullAccess()
         hasAnyPurchase = store.hasAdRemovalFeature() || store.hasTorchFeature()
-            || store.hasVideoRecordingFeature() || store.hasProMode()
+            || store.hasVideoRecordingFeature() || store.hasFullAccess()
+            || store.hasTapToFocusFeature()
     }
 
 }

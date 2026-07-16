@@ -31,10 +31,14 @@ enum CommandAction : byte {
     SelectCameraDevice = 19,   // never sent to peers that did not advertise
                                // camera_devices — old decoders read unknown
                                // actions as TakePicture (the field default)
-    RequestKeyframe = 20       // monitor -> camera: force the next VP9 preview
+    RequestKeyframe = 20,      // monitor -> camera: force the next VP9 preview
                                // frame to be a keyframe (decoder desync
                                // recovery). Only sent to a peer that has
                                // already delivered a VP9 frame — old decoders
+                               // read unknown actions as TakePicture.
+    FocusAtPoint = 21          // monitor -> camera: set focus/exposure point of
+                               // interest (normalized). Only sent to a peer that
+                               // advertised supports_focus_point — old decoders
                                // read unknown actions as TakePicture.
 }
 
@@ -141,6 +145,8 @@ table CommandParameters {
     aspect_ratio: AspectRatioEnum;
     // Appended fields only below this line (FlatBuffers schema evolution).
     device_unique_id: string;        // payload for SelectCameraDevice
+    focus_point_x: float;            // payload for FocusAtPoint (normalized 0..1,
+    focus_point_y: float;            // upright-display space; origin top-left)
 }
 
 // MARK: - Command Structure
@@ -229,6 +235,9 @@ table CameraCapabilities {
     // not send SelectCameraDevice to such a peer.
     camera_devices: [CameraDeviceInfo];
     active_device_id: string;
+    // False/absent = peer predates tap-to-focus; a monitor must not send
+    // FocusAtPoint to such a peer (old decoders read it as TakePicture).
+    supports_focus_point: bool;
 }
 
 // MARK: - Response Structure

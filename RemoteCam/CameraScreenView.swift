@@ -18,6 +18,13 @@ struct CameraScreenView: View {
     @ObservedObject var viewModel: CameraViewModel
     /// Local device selection from the picker chrome (nil in previews/tests).
     var onSelectCameraDevice: ((String) -> Void)?
+    /// The letterbox-fitted video rect (view coords), reported by the preview so
+    /// the focus reticle lands on the image, not the black bars.
+    @State private var videoRect: CGRect = .zero
+    /// Whether the preview is horizontally mirrored (front camera, by default).
+    /// The monitor's frame is never mirrored (the data output isn't), so the
+    /// reticle's x is flipped to match what the camera operator actually sees.
+    @State private var previewMirrored: Bool = false
 
     var body: some View {
         ZStack {
@@ -25,8 +32,16 @@ struct CameraScreenView: View {
 
             if let session = viewModel.previewSession {
                 CameraPreviewView(session: session,
-                                  videoOrientation: viewModel.previewVideoOrientation)
+                                  videoOrientation: viewModel.previewVideoOrientation,
+                                  onGeometryChange: { rect, mirrored in
+                                      videoRect = rect
+                                      previewMirrored = mirrored
+                                  })
                     .ignoresSafeArea()
+                    // The reticle overlays the preview so it shares the preview
+                    // layer's full-screen coordinate space — `videoRect` is in
+                    // those coords, so positioning here has no safe-area offset.
+                    .overlay(focusReticleOverlay)
             }
 
             // Animated "recording" badge, top center — visible only in video mode.
@@ -69,6 +84,45 @@ struct CameraScreenView: View {
         }
     }
 
+    /// The remote focus reticle — the same box/animation the monitor draws. The
+    /// tapped point is normalized in the displayed image; we recompute the fitted
+    /// (letterboxed) video rect inside a GeometryReader measuring THIS overlay's
+    /// own space, using only the video's aspect ratio (which is coordinate-space
+    /// invariant). That avoids any safe-area/coordinate offset between the preview
+    /// layer and SwiftUI. x is flipped when the preview is mirrored (front camera).
+    @ViewBuilder
+    private var focusReticleOverlay: some View {
+        if let indicator = viewModel.focusIndicator, videoRect.width > 0, videoRect.height > 0 {
+            let aspect = videoRect.width / videoRect.height
+            GeometryReader { geo in
+                let fitted = Self.fittedRect(aspect: aspect, in: geo.size)
+                let nx = previewMirrored ? (1 - indicator.normalized.x) : indicator.normalized.x
+                FocusReticleView()
+                    .id(indicator.id)
+                    .position(x: fitted.minX + nx * fitted.width,
+                              y: fitted.minY + indicator.normalized.y * fitted.height)
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
+    /// The rect an `aspect` (width/height) image occupies when aspect-fit into
+    /// `size` — matches the preview layer's `.resizeAspect` letterboxing.
+    static func fittedRect(aspect: CGFloat, in size: CGSize) -> CGRect {
+        guard size.width > 0, size.height > 0, aspect > 0 else { return .zero }
+        let viewAspect = size.width / size.height
+        let w: CGFloat
+        let h: CGFloat
+        if aspect > viewAspect {
+            w = size.width
+            h = size.width / aspect
+        } else {
+            h = size.height
+            w = size.height * aspect
+        }
+        return CGRect(x: (size.width - w) / 2, y: (size.height - h) / 2, width: w, height: h)
+    }
+
     private var cameraDevicePicker: some View {
         Menu {
             ForEach(viewModel.availableCameraDevices, id: \.uniqueID) { device in
@@ -97,6 +151,10 @@ struct CameraScreenView: View {
 struct CameraPreviewView: UIViewRepresentable {
     let session: AVCaptureSession
     let videoOrientation: AVCaptureVideoOrientation
+    /// Reports the letterbox-fitted video rect (view coords) and whether the
+    /// preview is mirrored, whenever either changes, so overlays can position
+    /// against the image (not the black bars) and account for front-camera mirror.
+    var onGeometryChange: ((CGRect, Bool) -> Void)?
 
     final class PreviewHostView: UIView {
         override static var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
@@ -104,19 +162,42 @@ struct CameraPreviewView: UIViewRepresentable {
             // swiftlint:disable:next force_cast
             layer as! AVCaptureVideoPreviewLayer
         }
+        var onGeometryChange: ((CGRect, Bool) -> Void)?
+        private var last: (rect: CGRect, mirrored: Bool) = (.zero, false)
+
+        /// The rect the video image occupies under .resizeAspect (view coords)
+        /// plus the connection's mirror state. Deferred off the layout pass to
+        /// avoid mutating SwiftUI state mid-update. Called on layout and on
+        /// updateUIView (a camera swap can flip mirroring without a resize).
+        func reportGeometry() {
+            let rect = previewLayer.layerRectConverted(fromMetadataOutputRect: CGRect(x: 0, y: 0, width: 1, height: 1))
+            let mirrored = previewLayer.connection?.isVideoMirrored ?? false
+            guard rect.width > 0, rect.height > 0, (rect, mirrored) != last else { return }
+            last = (rect, mirrored)
+            let callback = onGeometryChange
+            DispatchQueue.main.async { callback?(rect, mirrored) }
+        }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            reportGeometry()
+        }
     }
 
     func makeUIView(context: Context) -> PreviewHostView {
         let view = PreviewHostView()
         view.previewLayer.videoGravity = .resizeAspect
         view.previewLayer.session = session
+        view.onGeometryChange = onGeometryChange
         return view
     }
 
     func updateUIView(_ uiView: PreviewHostView, context: Context) {
+        uiView.onGeometryChange = onGeometryChange
         if uiView.previewLayer.session !== session {
             uiView.previewLayer.session = session
         }
+        defer { uiView.reportGeometry() }
         // Same policy as the capture connections (OrientationUtils): iOS
         // rotates the preview to the interface; Mac cameras render native.
         guard OrientationUtils.appliesInterfaceRotation,
