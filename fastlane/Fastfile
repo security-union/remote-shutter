@@ -144,6 +144,9 @@ platform :ios do
       # ones removed locally, so ASC mirrors fastlane/screenshots/ without
       # re-uploading every image each release.
       sync_screenshots: true,
+      # To force a full re-upload instead (delete ALL on ASC first), comment out
+      # sync_screenshots above and uncomment this — the two are mutually exclusive:
+      # overwrite_screenshots: true,
       precheck_include_in_app_purchases: false,
       force: true,
       submit_for_review: false
@@ -206,6 +209,9 @@ platform :ios do
       screenshots_path: "./fastlane/screenshots_mac",
       # Only upload changed screenshots and remove ones deleted locally.
       sync_screenshots: true,
+      # Swap to a full re-upload (delete ALL first) by commenting out
+      # sync_screenshots above and uncommenting this — mutually exclusive:
+      # overwrite_screenshots: true,
       precheck_include_in_app_purchases: false,
       force: true,
       submit_for_review: false
