@@ -931,6 +931,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             currentHDRMode: currentHDRMode,
             cameraDevices: deviceEntries,
             activeDeviceID: activeDeviceID,
+            // Matches setFocusExposurePointLocked's apply predicate: a device that
+            // supports only exposure POI still benefits from a tap.
             supportsFocusPoint: currentDevice.isFocusPointOfInterestSupported
                 || currentDevice.isExposurePointOfInterestSupported,
             error: nil

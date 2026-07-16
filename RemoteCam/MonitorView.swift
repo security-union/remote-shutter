@@ -116,7 +116,40 @@ struct MonitorView: View {
                     Spacer()
                 }
             }
-            
+
+            // Preview gestures live on this layer, which sits BELOW the
+            // interactive zoom pill (added next) so a tap on the pill is never
+            // stolen as a focus tap. Double tap toggles the camera; a single tap
+            // focuses (runs simultaneously so the reticle is instant — an
+            // exclusive gesture would stall it for the double-tap window); pinch
+            // zooms. The translation guard keeps drags/pinches from focusing.
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2) {
+                    onToggleCamera()
+                }
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onEnded { value in
+                            if abs(value.translation.width) < 10, abs(value.translation.height) < 10 {
+                                handleFocusTap(at: value.location)
+                            }
+                        }
+                )
+                .simultaneousGesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            if zoomAtGestureStart == nil {
+                                zoomAtGestureStart = viewModel.currentZoomFactor
+                            }
+                            let start = zoomAtGestureStart!
+                            onZoomChange(viewModel.zoomScale.pinched(from: start, magnification: value))
+                        }
+                        .onEnded { _ in
+                            zoomAtGestureStart = nil
+                        }
+                )
+
             zoomControls
 
             // Video transfer progress overlay - positioned at center
@@ -155,36 +188,6 @@ struct MonitorView: View {
         )
         .onPreferenceChange(PreviewSizePreferenceKey.self) { previewSize = $0 }
         .overlay(focusReticleOverlay)
-        // Double tap toggles the camera. Tap-to-focus runs SIMULTANEOUSLY (not
-        // exclusively) so the reticle is instant — an exclusive gesture would
-        // stall every focus tap for the double-tap disambiguation window. A
-        // double tap harmlessly focuses on the first tap, then toggles.
-        .onTapGesture(count: 2) {
-            onToggleCamera()
-        }
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onEnded { value in
-                    // Only a tap (near-zero travel) focuses — not a drag or pinch.
-                    if abs(value.translation.width) < 10, abs(value.translation.height) < 10 {
-                        handleFocusTap(at: value.location)
-                    }
-                }
-        )
-        .simultaneousGesture(
-            MagnificationGesture()
-                .onChanged { value in
-                    // Capture zoom at gesture start (first onChanged)
-                    if zoomAtGestureStart == nil {
-                        zoomAtGestureStart = viewModel.currentZoomFactor
-                    }
-                    let start = zoomAtGestureStart!
-                    onZoomChange(viewModel.zoomScale.pinched(from: start, magnification: value))
-                }
-                .onEnded { _ in
-                    zoomAtGestureStart = nil
-                }
-        )
     }
 
     /// The focus reticle, drawn in the preview's coordinate space. Non-interactive

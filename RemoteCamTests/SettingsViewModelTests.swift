@@ -5,10 +5,27 @@ final class SettingsViewModelTests: XCTestCase {
 
     private let sendMediaKey = "sendMediaToRemote"
 
+    private let proSubscriptionKey = "hasActiveProSubscription"
+
     override func tearDown() {
         super.tearDown()
         // Clean up UserDefaults changes made during tests
         UserDefaults.standard.removeObject(forKey: sendMediaKey)
+        UserDefaults.standard.removeObject(forKey: proSubscriptionKey)
+    }
+
+    // MARK: - Double-charge protection
+
+    func testSubscriberCannotRedundantlyBuyOneTimePro() {
+        UserDefaults.standard.set(true, forKey: proSubscriptionKey)
+        let vm = SettingsViewModel()
+        vm.refreshPurchaseStates()
+        // A subscriber already has full access, so the one-time "Pro: All
+        // Features" and both subscription rows are marked owned (purchase blocked).
+        XCTAssertTrue(vm.proMode.isPurchased)
+        XCTAssertTrue(vm.proSubscriptionMonthly.isPurchased)
+        XCTAssertTrue(vm.proSubscriptionYearly.isPurchased)
+        XCTAssertTrue(vm.tapToFocus.isPurchased)
     }
 
     // MARK: - Send Media to Remote
@@ -66,13 +83,15 @@ final class SettingsViewModelTests: XCTestCase {
         let vm = SettingsViewModel()
         let store = StoreManager.shared
 
-        XCTAssertEqual(vm.proMode.isPurchased, store.hasProMode())
+        XCTAssertEqual(vm.proMode.isPurchased, store.hasFullAccess())
         XCTAssertEqual(vm.removeAds.isPurchased, store.hasAdRemovalFeature())
         XCTAssertEqual(vm.enableTorch.isPurchased, store.hasTorchFeature())
         XCTAssertEqual(vm.enableVideo.isPurchased, store.hasVideoRecordingFeature())
         XCTAssertEqual(vm.tapToFocus.isPurchased, store.hasTapToFocusFeature())
-        XCTAssertEqual(vm.proSubscriptionMonthly.isPurchased, store.hasProSubscription())
-        XCTAssertEqual(vm.proSubscriptionYearly.isPurchased, store.hasProSubscription())
+        // Full-access products block each other so a subscriber can't re-buy the
+        // one-time Pro (and vice-versa).
+        XCTAssertEqual(vm.proSubscriptionMonthly.isPurchased, store.hasFullAccess())
+        XCTAssertEqual(vm.proSubscriptionYearly.isPurchased, store.hasFullAccess())
     }
 
     func testPurchaseItemIdsMatchProductConstants() {

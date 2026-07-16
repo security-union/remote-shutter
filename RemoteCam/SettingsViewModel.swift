@@ -109,7 +109,9 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
             case enableVideoPID:
                 proMode.title = product.displayName
                 proMode.price = product.displayPrice
-                proMode.isPurchased = store.hasProMode()
+                // Full access (one-time OR subscription) marks the one-time Pro
+                // as owned so a subscriber can't redundantly buy it on top.
+                proMode.isPurchased = store.hasFullAccess()
             case disableAdsPID:
                 removeAds.title = product.displayName
                 removeAds.price = product.displayPrice
@@ -129,11 +131,13 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
             case proMonthlyPID:
                 proSubscriptionMonthly.title = product.displayName
                 proSubscriptionMonthly.price = product.displayPrice
-                proSubscriptionMonthly.isPurchased = store.hasProSubscription()
+                // Full access blocks re-subscribing (e.g. a one-time 06 owner);
+                // plan switches happen via the system Manage Subscriptions sheet.
+                proSubscriptionMonthly.isPurchased = store.hasFullAccess()
             case proYearlyPID:
                 proSubscriptionYearly.title = product.displayName
                 proSubscriptionYearly.price = product.displayPrice
-                proSubscriptionYearly.isPurchased = store.hasProSubscription()
+                proSubscriptionYearly.isPurchased = store.hasFullAccess()
             default:
                 break
             }
@@ -142,9 +146,9 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
 
     func refreshPurchaseStates() {
         let store = StoreManager.shared
-        proSubscriptionMonthly.isPurchased = store.hasProSubscription()
-        proSubscriptionYearly.isPurchased = store.hasProSubscription()
-        proMode.isPurchased = store.hasProMode()
+        proSubscriptionMonthly.isPurchased = store.hasFullAccess()
+        proSubscriptionYearly.isPurchased = store.hasFullAccess()
+        proMode.isPurchased = store.hasFullAccess()
         removeAds.isPurchased = store.hasAdRemovalFeature()
         enableTorch.isPurchased = store.hasTorchFeature()
         enableVideo.isPurchased = store.hasVideoRecordingFeature()
