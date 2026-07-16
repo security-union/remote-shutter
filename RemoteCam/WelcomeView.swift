@@ -150,7 +150,7 @@ struct WelcomeView: View {
                     Spacer()
                 }
 
-                Text(NSLocalizedString("Any Pro plan unlocks every feature: video recording, torch control, tap to focus, and no ads.", comment: ""))
+                Text(NSLocalizedString("Unlock every feature: video recording, torch control, tap to focus, and no ads.", comment: ""))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)

@@ -49,13 +49,15 @@ struct SettingsView: View {
         // "Everything" tier: the three Pro plans (Monthly, Yearly, Lifetime),
         // each of which unlocks every feature including future ones.
         Section {
-            purchaseRow(item: viewModel.proSubscriptionYearly, icon: "crown.fill")
-            purchaseRow(item: viewModel.proSubscriptionMonthly, icon: "crown")
+            if FeatureFlags.ENABLE_PRO_SUBSCRIPTION {
+                purchaseRow(item: viewModel.proSubscriptionYearly, icon: "crown.fill")
+                purchaseRow(item: viewModel.proSubscriptionMonthly, icon: "crown")
+            }
             purchaseRow(item: viewModel.proMode, icon: "star.fill")
         } header: {
             Text(NSLocalizedString("Pro — Unlock Everything", comment: ""))
         } footer: {
-            Text(NSLocalizedString("Any Pro plan unlocks every feature, including future ones.", comment: ""))
+            Text(NSLocalizedString("Pro unlocks every feature, including future ones.", comment: ""))
         }
 
         // À la carte: individual features for a one-time purchase.

@@ -90,12 +90,16 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
         // left empty here; the UI skeletons until `productsLoaded`. Only the id,
         // icon, tint and entitlement state are app-side.
         let store = StoreManager.shared
-        upgrades = [
-            // Featured card: the Pro subscription (best value, yearly).
-            UpgradeItem(id: proYearlyPID, title: "", price: "",
-                        isPurchased: store.hasProSubscription(), icon: "crown.fill", tint: "purple"),
-            UpgradeItem(id: proMonthlyPID, title: "", price: "",
-                        isPurchased: store.hasProSubscription(), icon: "crown", tint: "purple"),
+        var items: [UpgradeItem] = []
+        // Featured "everything" plans: the Pro subscription (behind a flag until
+        // it's a validated experiment), then the one-time Pro.
+        if FeatureFlags.ENABLE_PRO_SUBSCRIPTION {
+            items.append(UpgradeItem(id: proYearlyPID, title: "", price: "",
+                                     isPurchased: store.hasProSubscription(), icon: "crown.fill", tint: "purple"))
+            items.append(UpgradeItem(id: proMonthlyPID, title: "", price: "",
+                                     isPurchased: store.hasProSubscription(), icon: "crown", tint: "purple"))
+        }
+        items.append(contentsOf: [
             UpgradeItem(id: enableVideoPID, title: "", price: "",
                         isPurchased: store.hasProMode(), icon: "star.fill", tint: "purple"),
             UpgradeItem(id: disableAdsPID, title: "", price: "",
@@ -106,7 +110,8 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
                         isPurchased: store.hasVideoRecordingFeature(), icon: "video.fill", tint: "red"),
             UpgradeItem(id: tapToFocusPID, title: "", price: "",
                         isPurchased: store.hasTapToFocusFeature(), icon: "camera.metering.spot", tint: "green"),
-        ]
+        ])
+        upgrades = items
         updateFeatureFlags()
     }
 
