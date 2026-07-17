@@ -1,7 +1,7 @@
-La prise en charge de l'Apple Watch est arrivée !
+Un appareil photo à distance plus net et plus fluide.
 
-- NOUVEAU : contrôlez votre appareil photo directement depuis votre Apple Watch, déclenchez l'obturateur depuis votre poignet
-- Idéal pour les trépieds, les télescopes et les installations photo longue portée où votre téléphone est hors de portée
-- État de connexion en direct sur votre Watch pour toujours savoir si vous êtes connecté
-- Fiabilité de connexion améliorée entre la Watch, l'iPhone et l'iPad
-- Corrections de bugs et améliorations des performances
+- Toucher pour faire la mise au point : touchez l'aperçu en direct pour régler la mise au point et l'exposition exactement où vous le souhaitez — inclus avec Pro
+- Vidéo en temps réel : un flux en direct fluide remplace les photos fixes, pour cadrer chaque prise sans effort
+- Curseur de zoom repensé : un contrôle plus précis et plus doux depuis l'autre bout de la pièce
+- Boutique d'Accessoires : parcourez trépieds, supports et accessoires choisis pour votre configuration photo
+- Fiabilité et performances améliorées de bout en bout

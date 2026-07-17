@@ -1,7 +1,7 @@
-Understøttelse af Apple Watch er her!
+Et skarpere og mere jævnt fjernkamera.
 
-- NYT: Styr dit kamera direkte fra dit Apple Watch — udløs lukkeren lige fra håndleddet
-- Perfekt til stativer, teleskoper og kameraopstillinger på lang afstand, hvor du ikke kan nå din telefon
-- Live forbindelsesstatus på dit Watch, så du altid ved, at du er forbundet
-- Forbedret forbindelsesstabilitet mellem Watch, iPhone og iPad
-- Fejlrettelser og forbedret ydeevne
+- Tryk for fokus: Tryk på live-billedet for at sætte fokus og eksponering præcis, hvor du vil have det — inkluderet med Pro
+- Realtidsvideo: Et jævnt live-billede erstatter stillbilleder, så det er ubesværet at komponere hvert eneste billede
+- Nydesignet zoom-skyder: Finere og mere jævn styring fra den anden ende af rummet
+- Udstyrsbutik: Gennemse stativer, holdere og tilbehør udvalgt til din kameraopsætning
+- Forbedret pålidelighed og ydeevne hele vejen igennem
