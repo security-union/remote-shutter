@@ -3,6 +3,11 @@ require 'openssl'
 
 default_platform(:ios)
 
+# The release lanes use deliver's `sync_screenshots` (upload only changed/new
+# screenshots, delete removed ones). It's a beta feature that fastlane refuses to
+# run unless this env var opts in — set here so it applies wherever deliver runs.
+ENV["FASTLANE_ENABLE_BETA_DELIVER_SYNC_SCREENSHOTS"] = "1"
+
 # Fix PEM content that has had its newlines stripped.
 # OpenSSL requires newlines after the header, between body lines (every 64 chars),
 # and before the footer. Without them it produces a misleading "invalid curve name" error.
