@@ -45,21 +45,24 @@ final class FrameStreamingCoordinator: NSObject {
         maxInFlight: StreamingConfig.default.watchPreviewMaxInFlight,
         ackTimeout: StreamingConfig.default.watchPreviewAckTimeout)
     /// Streams preview frames to the phone monitor: paces, encodes, and hands
-    /// frames to the FrameSender actor. Uses VP9 (a stateful video stream, lazy
-    /// + credit-gated) whenever the codec is available at runtime — the monitor
-    /// is version-gated by the coordinator, so it can always decode VP9. Falls
-    /// back to HEIC/JPEG stills only when VP9 is unavailable at runtime (dev-only).
-    /// Runs on `videoDataOutputQueue`.
+    /// frames to the FrameSender actor. Uses a stateful video stream (lazy +
+    /// credit-gated): HEVC (VideoToolbox hardware) when this device can encode
+    /// it, else VP9 (software). Falls back to HEIC/JPEG stills only when no video
+    /// codec is available at runtime (dev-only). Runs on `videoDataOutputQueue`.
     private lazy var frameStreamer = FrameStreamer(
         creditAvailable: frameCreditAvailable,
         takeKeyframeRequest: takePeerKeyframeRequest,
-        makeVP9Encoder: {
-            // Runtime-gated: nil on any arch without the VP9 codec, so the
-            // stream falls back to stills there (dev-only; every shipping arm64
-            // config has VP9).
-            guard VP9Support.isAvailable else { return nil }
+        makeVideoEncoder: {
+            // Prefer hardware HEVC; fall back to software VP9; nil only on an
+            // arch with neither (dev-only), where the stream drops to stills.
             let config = StreamingConfig.default
-            return VP9FrameEncoder(maxLongEdge: config.maxLongEdge, settings: config.peerVP9)
+            if HEVCSupport.canEncode {
+                return HEVCFrameEncoder(maxLongEdge: config.maxLongEdge, settings: config.peerHEVC)
+            }
+            if VP9Support.isAvailable {
+                return VP9FrameEncoder(maxLongEdge: config.maxLongEdge, settings: config.peerVP9)
+            }
+            return nil
         },
         send: frameSink)
     /// Encoder chain for the Watch preview, built from

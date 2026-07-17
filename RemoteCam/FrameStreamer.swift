@@ -6,22 +6,22 @@
 //  sequence numbers, and hands the result to the FrameSender actor for
 //  ack-gated transport.
 //
-//  A new camera streams VP9 to every peer monitor (the monitor is version-gated
-//  by SessionCoordinator before any frame flows — an out-of-date monitor is sent
-//  to the update-required flow, not shown stills). Two codec strategies share
-//  one pacer:
-//   • VP9 (a stateful video stream) — the normal path. A dropped delta frame
-//     corrupts decode until a keyframe, so VP9 must NOT be encoded-then-dropped:
-//     it is encoded LAZILY, only when the credit window has room, and sent
-//     .reliable so the transport never drops it either. Skipping a frame before
-//     the encoder sees it keeps the stream continuous (the encoder just runs at
-//     a lower frame rate).
+//  A new camera streams a stateful video codec to every peer monitor. Two codec
+//  strategies share one pacer:
+//   • Video (HEVC preferred, VP9 fallback) — the normal path. A dropped delta
+//     frame corrupts decode until a keyframe, so a video frame must NOT be
+//     encoded-then-dropped: it is encoded LAZILY, only when the credit window has
+//     room, and sent .reliable so the transport never drops it either. Skipping a
+//     frame before the encoder sees it keeps the stream continuous (the encoder
+//     just runs at a lower frame rate). The concrete codec is chosen by the
+//     injected `makeVideoEncoder` factory (HEVC when the hardware encodes it,
+//     else VP9); the emitted frame carries the encoder's own `codec` tag.
 //   • Stills (HEIC with JPEG fallback) — a DEV-ONLY fallback for the case where
-//     the VP9 codec is unavailable at runtime (`makeVP9Encoder` returns nil,
-//     e.g. a broken/absent VideocallCodecs slice). Every shipping arm64 config
-//     has VP9, so this path does not run in production; it only keeps the
-//     preview alive on an odd build. Stills are independent frames, sent
-//     .unreliable; the FrameSender drops them under back-pressure.
+//     no video codec is available at runtime (`makeVideoEncoder` returns nil,
+//     e.g. a broken/absent VideoToolbox + VideocallCodecs). Every shipping config
+//     has at least one video codec, so this path does not run in production; it
+//     only keeps the preview alive on an odd build. Stills are independent
+//     frames, sent .unreliable; the FrameSender drops them under back-pressure.
 //
 //  Confined to the capture queue: `handle` must only be called from the
 //  AVCaptureVideoDataOutput callback queue (same contract as
@@ -52,37 +52,39 @@ final class FrameStreamer {
     /// Reads-and-clears a pending keyframe request from the monitor (decoder
     /// re-sync). Returns true at most once per request.
     private let takeKeyframeRequest: () -> Bool
-    /// Builds the VP9 encoder on first use; nil when VP9 is unavailable at
-    /// runtime (excluded arch) or in tests that don't exercise VP9.
-    private let makeVP9Encoder: () -> StreamVideoEncoding?
-    private var vp9Encoder: StreamVideoEncoding?
-    /// Latched when the VP9 encoder fails on this hardware: never retried, the
+    /// Builds the stateful video encoder (HEVC preferred, VP9 fallback) on first
+    /// use; nil when no video codec is available at runtime or in tests that
+    /// don't exercise video.
+    private let makeVideoEncoder: () -> StreamVideoEncoding?
+    private var videoEncoder: StreamVideoEncoding?
+    /// Latched when the video encoder fails on this hardware: never retried, the
     /// stream stays on stills for the rest of the connection.
-    private var vp9Failed = false
+    private var videoFailed = false
 
     /// - Parameters:
     ///   - encoders: injectable still chain for tests; nil builds it from
     ///     `config.preferredCodecs`.
-    ///   - makeVP9Encoder: builds the VP9 encoder on first use; its default
-    ///     (nil) disables VP9 (stills only), the behavior the still-path tests
-    ///     pin. Production passes a factory gated on `VP9Support.isAvailable`.
-    ///   - creditAvailable/takeKeyframeRequest: the VP9 back-pressure and
+    ///   - makeVideoEncoder: builds the stateful video encoder (HEVC preferred,
+    ///     VP9 fallback) on first use; its default (nil) disables video (stills
+    ///     only), the behavior the still-path tests pin. Production passes a
+    ///     factory gated on `HEVCSupport.canEncode` / `VP9Support.isAvailable`.
+    ///   - creditAvailable/takeKeyframeRequest: the video back-pressure and
     ///     keyframe seams.
     init(config: StreamingConfig = .default,
          encoders: [FrameEncoding]? = nil,
          creditAvailable: @escaping () -> Bool = { true },
          takeKeyframeRequest: @escaping () -> Bool = { false },
-         makeVP9Encoder: @escaping () -> StreamVideoEncoding? = { nil },
+         makeVideoEncoder: @escaping () -> StreamVideoEncoding? = { nil },
          send: @escaping Send) {
         self.config = config
         self.send = send
         self.encoders = encoders ?? Self.makeEncoders(config: config)
         self.creditAvailable = creditAvailable
         self.takeKeyframeRequest = takeKeyframeRequest
-        self.makeVP9Encoder = makeVP9Encoder
+        self.makeVideoEncoder = makeVideoEncoder
     }
 
-    /// The active still-codec head (used by tests). The VP9 stream, when
+    /// The active still-codec head (used by tests). The video stream, when
     /// enabled, is a separate path and not reflected here.
     var activeCodec: RemoteCmd.StreamCodec? { encoders.first?.codec }
 
@@ -95,44 +97,44 @@ final class FrameStreamer {
         frameCount += 1
         guard frameCount % config.frameDivisor == 0 else { return }
 
-        if useVP9 {
-            handleVP9(pixelBuffer: pixelBuffer, position: position, orientation: orientation, fps: fps)
+        if useVideo {
+            handleVideo(pixelBuffer: pixelBuffer, position: position, orientation: orientation, fps: fps)
         } else {
             handleStill(pixelBuffer: pixelBuffer, position: position, orientation: orientation, fps: fps)
         }
     }
 
-    /// Whether the VP9 stream is active for this frame: not permanently failed
-    /// and the encoder is constructible (VP9 available at runtime). Built lazily
-    /// on first use; nil means VP9 is unavailable and the dev-only still
-    /// fallback runs instead.
-    private var useVP9: Bool {
-        guard !vp9Failed else { return false }
-        if vp9Encoder == nil { vp9Encoder = makeVP9Encoder() }
-        return vp9Encoder != nil
+    /// Whether the stateful video stream is active for this frame: not
+    /// permanently failed and the encoder is constructible (a video codec is
+    /// available at runtime). Built lazily on first use; nil means no video codec
+    /// is available and the dev-only still fallback runs instead.
+    private var useVideo: Bool {
+        guard !videoFailed else { return false }
+        if videoEncoder == nil { videoEncoder = makeVideoEncoder() }
+        return videoEncoder != nil
     }
 
-    private func handleVP9(pixelBuffer: CVPixelBuffer,
-                           position: AVCaptureDevice.Position,
-                           orientation: UIInterfaceOrientation,
-                           fps: Int) {
-        guard let vp9 = vp9Encoder else { return }
+    private func handleVideo(pixelBuffer: CVPixelBuffer,
+                             position: AVCaptureDevice.Position,
+                             orientation: UIInterfaceOrientation,
+                             fps: Int) {
+        guard let video = videoEncoder else { return }
         // Lazy back-pressure: skip BEFORE feeding the encoder when the window is
         // full. Encoding then dropping would advance the encoder past a frame
         // the monitor never receives, corrupting every delta frame until the
         // next keyframe. Skipping keeps the encoded stream continuous.
         guard creditAvailable() else { return }
-        if takeKeyframeRequest() { vp9.forceKeyframe() }
+        if takeKeyframeRequest() { video.forceKeyframe() }
 
-        switch vp9.encode(pixelBuffer: pixelBuffer) {
+        switch video.encode(pixelBuffer: pixelBuffer) {
         case .encoded(let data):
-            emit(data: data, codec: .vp9, position: position, orientation: orientation, fps: fps)
+            emit(data: data, codec: video.codec, position: position, orientation: orientation, fps: fps)
         case .skipped:
             return // encoder buffered the frame: no wire frame, no credit consumed
         case .failed:
-            vp9Failed = true
-            vp9Encoder = nil
-            StreamLog.encode.error("peer VP9 encoder failed — falling back to stills for this connection")
+            videoFailed = true
+            videoEncoder = nil
+            StreamLog.encode.error("peer video encoder failed — falling back to stills for this connection")
             handleStill(pixelBuffer: pixelBuffer, position: position, orientation: orientation, fps: fps)
         }
     }

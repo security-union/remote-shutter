@@ -12,6 +12,7 @@
 import Foundation
 import CoreImage
 import CoreVideo
+import VideoToolbox
 import VideocallCodecs
 
 /// Whether the pure-Rust VP9 codec (VideocallCodecs) can actually run on this
@@ -32,6 +33,31 @@ enum VP9Support {
             StreamLog.encode.info("VP9 codec unavailable at runtime (\(error)) — preview falls back to stills")
             return false
         }
+    }
+}
+
+/// Whether this device can hardware-encode HEVC (VideoToolbox). HEVC decode is
+/// universal on iOS 15+/Catalyst, but hardware HEVC *encode* needs A10+ — an A9
+/// device (iPhone 6s/SE1) as camera can't create the session, so it advertises
+/// no HEVC and negotiates down to VP9. Probed once by constructing a tiny
+/// session; capability advertisement must reflect what runs at runtime, not what
+/// compiled (CLAUDE.md Catalyst rule), exactly like `VP9Support`.
+enum HEVCSupport {
+    static let canEncode: Bool = probe()
+
+    private static func probe() -> Bool {
+        var session: VTCompressionSession?
+        let status = VTCompressionSessionCreate(
+            allocator: kCFAllocatorDefault, width: 16, height: 16,
+            codecType: kCMVideoCodecType_HEVC, encoderSpecification: nil,
+            imageBufferAttributes: nil, compressedDataAllocator: nil,
+            outputCallback: nil, refcon: nil, compressionSessionOut: &session)
+        if let session { VTCompressionSessionInvalidate(session) }
+        guard status == noErr else {
+            StreamLog.encode.info("HEVC hardware encode unavailable at runtime (\(status)) — peer preview uses VP9")
+            return false
+        }
+        return true
     }
 }
 

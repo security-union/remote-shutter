@@ -16,6 +16,8 @@
 
 import UIKit
 import Accelerate
+import CoreImage
+import VideoToolbox
 import VideocallCodecs
 
 final class FrameStreamReceiver {
@@ -49,6 +51,9 @@ final class FrameStreamReceiver {
     private var lastKeyframeRequestAt: TimeInterval = 0
     /// Stateful VP9 decoder, confined to `decodeQueue` (single-threaded).
     private lazy var vp9Decoder = PeerVP9PreviewDecoder()
+    /// Stateful HEVC decoder (VideoToolbox), confined to `decodeQueue`. The
+    /// preferred peer codec; VP9 remains for peers that negotiated the fallback.
+    private lazy var hevcDecoder = PeerHEVCPreviewDecoder()
 
     init(config: StreamingConfig = .default,
          now: @escaping () -> TimeInterval = { Date().timeIntervalSinceReferenceDate },
@@ -113,8 +118,14 @@ final class FrameStreamReceiver {
         trackSequence(frame)
         trackStats(frame, at: time)
 
-        if frame.codec == .vp9 {
-            if let image = vp9Decoder.decode(frame.data) {
+        // Stateful video streams (HEVC preferred, VP9 fallback): an undecodable
+        // frame (joined mid-stream, transient loss) asks the camera for a
+        // keyframe so the decoder re-syncs.
+        if frame.codec == .hevc || frame.codec == .vp9 {
+            let image = frame.codec == .hevc
+                ? hevcDecoder.decode(frame.data)
+                : vp9Decoder.decode(frame.data)
+            if let image {
                 onImage?(image)
             } else {
                 requestKeyframe(at: time)
@@ -304,5 +315,192 @@ final class PeerVP9PreviewDecoder {
         }
         guard converted, let cgImage = context.makeImage() else { return nil }
         return UIImage(cgImage: cgImage)
+    }
+}
+
+/// Decodes the camera's HEVC preview stream with VideoToolbox
+/// (`VTDecompressionSession`). Mirrors `PeerVP9PreviewDecoder`'s contract exactly
+/// — stateful, drop-but-recover — so `FrameStreamReceiver` treats the two video
+/// codecs uniformly.
+///
+/// Each keyframe payload carries its VPS/SPS/PPS parameter sets inline (see
+/// `HEVCFrameContainer`), from which the session's `CMFormatDescription` is
+/// (re)built; inter frames carry only AVCC NAL units. A frame that arrives before
+/// any keyframe (monitor joined mid-stream), or a lost delta, returns nil and the
+/// caller asks the camera for a keyframe. A failure streak longer than one
+/// keyframe interval tears the session down to drain poisoned state.
+///
+/// Not thread-safe: confined to `FrameStreamReceiver.decodeQueue`.
+final class PeerHEVCPreviewDecoder {
+
+    private var session: VTDecompressionSession?
+    private var formatDescription: CMVideoFormatDescription?
+    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+    private var failureStreak = 0
+    private let maxFailureStreak: Int
+    private var announcedStreamLive = false
+
+    init(maxFailureStreak: Int = 30) {
+        self.maxFailureStreak = maxFailureStreak
+    }
+
+    deinit {
+        if let session { VTDecompressionSessionInvalidate(session) }
+    }
+
+    /// Decodes one HEVC frame on the caller's queue. Returns the rendered image,
+    /// or nil for a dropped/undecodable frame (the caller then requests a
+    /// keyframe).
+    func decode(_ data: Data) -> UIImage? {
+        guard let (parameterSets, frame) = HEVCFrameContainer.unpack(data) else {
+            return recordFailure("malformed HEVC container (\(data.count) bytes)")
+        }
+        if let parameterSets, !rebuildSession(from: parameterSets) {
+            return recordFailure("could not rebuild HEVC decoder from parameter sets")
+        }
+        guard let session, let formatDescription else {
+            return recordFailure("HEVC frame before first keyframe")
+        }
+        guard let sampleBuffer = makeSampleBuffer(frame: frame, format: formatDescription) else {
+            return recordFailure("could not wrap HEVC frame")
+        }
+
+        var image: UIImage?
+        let done = DispatchSemaphore(value: 0)
+        let status = VTDecompressionSessionDecodeFrame(
+            session, sampleBuffer: sampleBuffer, flags: [._1xRealTimePlayback], infoFlagsOut: nil
+        ) { [ciContext] decodeStatus, _, imageBuffer, _, _ in
+            defer { done.signal() }
+            guard decodeStatus == noErr, let imageBuffer else { return }
+            let ciImage = CIImage(cvPixelBuffer: imageBuffer)
+            if let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) {
+                image = UIImage(cgImage: cgImage)
+            }
+        }
+        guard status == noErr else { return recordFailure("VTDecompressionSessionDecodeFrame: \(status)") }
+        done.wait()
+
+        guard let image else { return recordFailure("HEVC decode produced no image") }
+        failureStreak = 0
+        if !announcedStreamLive {
+            announcedStreamLive = true
+            StreamLog.decode.info("HEVC preview stream live")
+        }
+        return image
+    }
+
+    private func recordFailure(_ reason: String) -> UIImage? {
+        failureStreak += 1
+        StreamLog.decode.debug("dropped undecodable HEVC frame (streak \(self.failureStreak)): \(reason)")
+        if failureStreak >= maxFailureStreak {
+            StreamLog.decode.info("HEVC failure streak exceeded keyframe interval — resetting decoder")
+            invalidate()
+        }
+        return nil
+    }
+
+    private func invalidate() {
+        if let session { VTDecompressionSessionInvalidate(session) }
+        session = nil
+        formatDescription = nil
+        failureStreak = 0
+        announcedStreamLive = false
+    }
+
+    /// Builds a fresh format description from the keyframe's parameter sets and,
+    /// if the running session can't accept it, a new decompression session.
+    private func rebuildSession(from parameterSets: Data) -> Bool {
+        let sets = parseParameterSets(parameterSets)
+        guard sets.count >= 3, let format = makeFormatDescription(sets) else { return false }
+
+        if let session, VTDecompressionSessionCanAcceptFormatDescription(session, formatDescription: format) {
+            formatDescription = format
+            return true
+        }
+        if let session { VTDecompressionSessionInvalidate(session) }
+        session = nil
+        formatDescription = format
+
+        let destAttributes: [CFString: Any] = [
+            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+        ]
+        var newSession: VTDecompressionSession?
+        let status = VTDecompressionSessionCreate(
+            allocator: kCFAllocatorDefault,
+            formatDescription: format,
+            decoderSpecification: nil,
+            imageBufferAttributes: destAttributes as CFDictionary,
+            outputCallback: nil,
+            decompressionSessionOut: &newSession)
+        guard status == noErr, let newSession else { return false }
+        VTSessionSetProperty(newSession, key: kVTDecompressionPropertyKey_RealTime, value: kCFBooleanTrue)
+        session = newSession
+        return true
+    }
+
+    /// Parses `[UInt32-LE count]([UInt32-LE len][bytes])…` — the mirror of
+    /// `HEVCFrameEncoder.extractParameterSets`. Alignment-safe.
+    private func parseParameterSets(_ data: Data) -> [Data] {
+        guard data.count >= 4 else { return [] }
+        var offset = 0
+        let count = Int(data.readUInt32LE(at: offset)); offset += 4
+        var sets: [Data] = []
+        for _ in 0..<count {
+            guard offset + 4 <= data.count else { return [] }
+            let size = Int(data.readUInt32LE(at: offset)); offset += 4
+            guard offset + size <= data.count else { return [] }
+            sets.append(data.subdata(in: offset..<(offset + size)))
+            offset += size
+        }
+        return sets
+    }
+
+    /// HEVC parameter sets are VPS(0), SPS(1), PPS(2) with a 4-byte NAL length
+    /// header (matching VideoToolbox's AVCC output).
+    private func makeFormatDescription(_ sets: [Data]) -> CMVideoFormatDescription? {
+        sets[0].withUnsafeBytes { vps in
+            sets[1].withUnsafeBytes { sps in
+                sets[2].withUnsafeBytes { pps in
+                    guard let vpsBase = vps.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                          let spsBase = sps.baseAddress?.assumingMemoryBound(to: UInt8.self),
+                          let ppsBase = pps.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return nil }
+                    var pointers = [vpsBase, spsBase, ppsBase]
+                    var sizes = [sets[0].count, sets[1].count, sets[2].count]
+                    var desc: CMVideoFormatDescription?
+                    let status = CMVideoFormatDescriptionCreateFromHEVCParameterSets(
+                        allocator: kCFAllocatorDefault,
+                        parameterSetCount: 3,
+                        parameterSetPointers: &pointers,
+                        parameterSetSizes: &sizes,
+                        nalUnitHeaderLength: 4,
+                        extensions: nil,
+                        formatDescriptionOut: &desc)
+                    return status == noErr ? desc : nil
+                }
+            }
+        }
+    }
+
+    private func makeSampleBuffer(frame: Data, format: CMFormatDescription) -> CMSampleBuffer? {
+        var blockBuffer: CMBlockBuffer?
+        var status = CMBlockBufferCreateWithMemoryBlock(
+            allocator: kCFAllocatorDefault, memoryBlock: nil, blockLength: frame.count,
+            blockAllocator: nil, customBlockSource: nil, offsetToData: 0, dataLength: frame.count,
+            flags: kCMBlockBufferAssureMemoryNowFlag, blockBufferOut: &blockBuffer)
+        guard status == kCMBlockBufferNoErr, let blockBuffer else { return nil }
+        let copied: Bool = frame.withUnsafeBytes { raw in
+            guard let base = raw.baseAddress else { return false }
+            return CMBlockBufferReplaceDataBytes(
+                with: base, blockBuffer: blockBuffer, offsetIntoDestination: 0,
+                dataLength: frame.count) == kCMBlockBufferNoErr
+        }
+        guard copied else { return nil }
+
+        var sampleBuffer: CMSampleBuffer?
+        status = CMSampleBufferCreateReady(
+            allocator: kCFAllocatorDefault, dataBuffer: blockBuffer, formatDescription: format,
+            sampleCount: 1, sampleTimingEntryCount: 0, sampleTimingArray: nil,
+            sampleSizeEntryCount: 0, sampleSizeArray: nil, sampleBufferOut: &sampleBuffer)
+        return status == noErr ? sampleBuffer : nil
     }
 }
