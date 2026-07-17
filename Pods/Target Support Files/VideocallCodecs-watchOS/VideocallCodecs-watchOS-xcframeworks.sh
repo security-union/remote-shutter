@@ -20,13 +20,13 @@ variant_for_slice()
   "VideocallCodecs.xcframework/ios-arm64")
     echo ""
     ;;
-  "VideocallCodecs.xcframework/ios-arm64-maccatalyst")
-    echo "maccatalyst"
-    ;;
   "VideocallCodecs.xcframework/ios-arm64-simulator")
     echo "simulator"
     ;;
-  "VideocallCodecs.xcframework/macos-arm64")
+  "VideocallCodecs.xcframework/ios-arm64_x86_64-maccatalyst")
+    echo "maccatalyst"
+    ;;
+  "VideocallCodecs.xcframework/macos-arm64_x86_64")
     echo ""
     ;;
   "VideocallCodecs.xcframework/watchos-arm64-simulator")
@@ -44,14 +44,14 @@ archs_for_slice()
   "VideocallCodecs.xcframework/ios-arm64")
     echo "arm64"
     ;;
-  "VideocallCodecs.xcframework/ios-arm64-maccatalyst")
-    echo "arm64"
-    ;;
   "VideocallCodecs.xcframework/ios-arm64-simulator")
     echo "arm64"
     ;;
-  "VideocallCodecs.xcframework/macos-arm64")
-    echo "arm64"
+  "VideocallCodecs.xcframework/ios-arm64_x86_64-maccatalyst")
+    echo "arm64 x86_64"
+    ;;
+  "VideocallCodecs.xcframework/macos-arm64_x86_64")
+    echo "arm64 x86_64"
     ;;
   "VideocallCodecs.xcframework/watchos-arm64-simulator")
     echo "arm64"

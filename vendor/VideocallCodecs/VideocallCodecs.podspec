@@ -27,15 +27,18 @@ Pod::Spec.new do |s|
   s.vendored_frameworks = 'VideocallCodecs.xcframework'
   s.source_files        = 'videocall_codecs.swift'
 
-  # Every slice in the xcframework is arm64-only (the Rust build produces no
-  # x86_64 simulator/macOS objects), so tell Xcode not to try linking that
-  # arch — a multi-arch simulator build otherwise fails in ld. Applied to the
-  # consuming app targets too (user_target_xcconfig): they link the framework
-  # and hit the same missing-arch wall.
+  # The simulator slices are arm64-only (the Rust build produces no x86_64
+  # simulator objects), so tell Xcode not to try linking that arch there — a
+  # multi-arch simulator build otherwise fails in ld. Applied to the consuming
+  # app targets too (user_target_xcconfig): they link the framework and hit the
+  # same missing-arch wall.
+  #
+  # macosx is NOT excluded: the Mac Catalyst and native macOS slices are fat
+  # (arm64 + x86_64), so an Intel Mac Catalyst build links cleanly. Dropping the
+  # x86_64 Catalyst arch is what triggered App Store rejection ITMS-90981.
   excluded = {
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'x86_64',
-    'EXCLUDED_ARCHS[sdk=watchsimulator*]'  => 'x86_64',
-    'EXCLUDED_ARCHS[sdk=macosx*]'          => 'x86_64'
+    'EXCLUDED_ARCHS[sdk=watchsimulator*]'  => 'x86_64'
   }
   s.pod_target_xcconfig  = { 'BUILD_LIBRARY_FOR_DISTRIBUTION' => 'YES' }.merge(excluded)
   s.user_target_xcconfig = excluded
