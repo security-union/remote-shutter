@@ -8,6 +8,10 @@ on:
         type: choice
         options: [both, ios, mac]
         default: both
+      overwrite_screenshots:
+        description: "Delete all App Store screenshots and re-upload (iOS lane). Uncheck to leave ASC screenshots untouched."
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -35,7 +39,7 @@ jobs:
       - name: Build and upload iOS to App Store
         if: ${{ inputs.platform != 'mac' }}
         timeout-minutes: 30
-        run: bundle exec fastlane release
+        run: bundle exec fastlane release overwrite_screenshots:${{ inputs.overwrite_screenshots }}
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
