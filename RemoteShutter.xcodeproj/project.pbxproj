@@ -170,6 +170,7 @@
 		CAFEBABE000D000000000002 /* HEICFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */; };
 		CAFEBABE000D000000000003 /* HEICFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */; };
 		CAFEBABE0010000000000002 /* VP9FrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */; };
+		CAFEBABE0099000000000002 /* HEVCFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */; };
 		CAFEBABE0011000000000002 /* WatchVP9PreviewDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0011000000000001 /* WatchVP9PreviewDecoder.swift */; };
 		CAFEBABE0012000000000002 /* VP9StreamingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0012000000000001 /* VP9StreamingTests.swift */; };
 		CAFEBABE000E000000000002 /* FrameStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000E000000000001 /* FrameStreamer.swift */; };
@@ -410,6 +411,7 @@
 		CAFEBABE000C000000000001 /* JPEGFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JPEGFrameEncoder.swift; sourceTree = "<group>"; };
 		CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEICFrameEncoder.swift; sourceTree = "<group>"; };
 		CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9FrameEncoder.swift; sourceTree = "<group>"; };
+		CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEVCFrameEncoder.swift; sourceTree = "<group>"; };
 		CAFEBABE0011000000000001 /* WatchVP9PreviewDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchVP9PreviewDecoder.swift; sourceTree = "<group>"; };
 		CAFEBABE0012000000000001 /* VP9StreamingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9StreamingTests.swift; sourceTree = "<group>"; };
 		CAFEBABE000E000000000001 /* FrameStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStreamer.swift; sourceTree = "<group>"; };
@@ -643,6 +645,7 @@
 				CAFEBABE000C000000000001 /* JPEGFrameEncoder.swift */,
 				CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */,
 				CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */,
+				CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */,
 				CAFEBABE000E000000000001 /* FrameStreamer.swift */,
 				CAFEBABE000F000000000001 /* FrameStreamReceiver.swift */,
 				06CDFB1D252E9CD200EA56FB /* UICmds.swift */,
@@ -1116,6 +1119,7 @@
 				CAFEBABE000C000000000002 /* JPEGFrameEncoder.swift in Sources */,
 				CAFEBABE000D000000000002 /* HEICFrameEncoder.swift in Sources */,
 				CAFEBABE0010000000000002 /* VP9FrameEncoder.swift in Sources */,
+				CAFEBABE0099000000000002 /* HEVCFrameEncoder.swift in Sources */,
 				CAFEBABE000E000000000002 /* FrameStreamer.swift in Sources */,
 				CAFEBABE000F000000000002 /* FrameStreamReceiver.swift in Sources */,
 				77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */,

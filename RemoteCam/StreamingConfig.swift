@@ -38,6 +38,22 @@ struct VP9Settings {
     var cpuUsed: UInt8
 }
 
+/// Tuning for the peer (phone→phone-monitor) HEVC preview stream, encoded with
+/// VideoToolbox hardware (`VTCompressionSession`, `kCMVideoCodecType_HEVC`). Like
+/// `VP9Settings`, every field is stated at the construction site so streams can
+/// be compared side by side in `StreamingConfig`. HEVC has no app-level quantizer
+/// window — the hardware rate controller holds `bitrateKbps` on its own.
+struct HEVCSettings {
+    /// Target average bitrate (`kVTCompressionPropertyKey_AverageBitRate`).
+    var bitrateKbps: UInt32
+    /// Expected frame rate hint (`kVTCompressionPropertyKey_ExpectedFrameRate`).
+    /// Actual delivery is paced by the transport's credit window, not this value.
+    var fps: UInt32
+    /// Forced keyframe every N frames (`kVTCompressionPropertyKey_MaxKeyFrameInterval`).
+    /// Bounds decoder re-sync latency after any desync, exactly as for VP9.
+    var keyframeInterval: UInt32
+}
+
 struct StreamingConfig {
 
     /// Still codecs to try for the phone-monitor (peer) stream, in order. This
@@ -55,20 +71,27 @@ struct StreamingConfig {
 
     /// Long edge of the frame sent to the phone monitor. Replaces the old
     /// full-sensor-resolution JPEG at quality 0.1.
-    var maxLongEdge: CGFloat = 960
+    var maxLongEdge: CGFloat = 1200
     var heicQuality: CGFloat = 0.5
     var jpegQuality: CGFloat = 0.6
 
     /// VP9 tuning for the phone-monitor (peer) preview at 960 px
-    /// (`maxLongEdge`). Values tuned on hardware: 300 kbps holds a smooth
     /// preview over MultipeerConnectivity without queue growth.
     var peerVP9 = VP9Settings(
-        bitrateKbps: 300,
+        bitrateKbps: 1000,
         fps: 30,
         keyframeInterval: 30,
-        minQuantizer: 40,
+        minQuantizer: 30,
         maxQuantizer: 56,
-        cpuUsed: 7)
+        cpuUsed: 6)
+
+    /// HEVC tuning for the phone-monitor (peer) preview: hardware VideoToolbox
+    /// encode, the preferred peer codec when both peers support it. VP9 (above)
+    /// is the software fallback for peers that can't hardware-encode HEVC.
+    var peerHEVC = HEVCSettings(
+        bitrateKbps: 1200,
+        fps: 30,
+        keyframeInterval: 30)
 
     /// Offer every Nth capture callback to the peer stream (1 = full capture
     /// rate; the credit window, not this divisor, is the real pacing).

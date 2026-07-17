@@ -171,7 +171,7 @@ final class FrameStreamerTests: XCTestCase {
             encoders: stillEncoders,
             creditAvailable: creditAvailable,
             takeKeyframeRequest: takeKeyframeRequest,
-            makeVP9Encoder: { vp9 }
+            makeVideoEncoder: { vp9 }
         ) { [weak self] frame in self?.sentFrames.append(frame) }
     }
 
@@ -386,5 +386,63 @@ final class FrameEncoderTests: XCTestCase {
         let data = try XCTUnwrap(encodedData(encoder.encode(pixelBuffer: makePixelBuffer(width: 64, height: 32))))
         let image = try XCTUnwrap(UIImage(data: data))
         XCTAssertEqual(max(image.size.width, image.size.height), 64)
+    }
+}
+
+// MARK: - HEVC peer preview codec
+
+final class HEVCStreamingTests: XCTestCase {
+
+    /// The self-describing wire container survives a pack/unpack round trip for
+    /// both keyframes (parameter sets present) and inter frames (none).
+    func testHEVCFrameContainerRoundTrip() throws {
+        let params = Data([1, 2, 3, 4, 5])
+        let frame = Data([9, 8, 7, 6])
+
+        let keyframe = try XCTUnwrap(HEVCFrameContainer.unpack(
+            HEVCFrameContainer.pack(parameterSets: params, frame: frame)))
+        XCTAssertEqual(keyframe.parameterSets, params)
+        XCTAssertEqual(keyframe.frame, frame)
+
+        let interFrame = try XCTUnwrap(HEVCFrameContainer.unpack(
+            HEVCFrameContainer.pack(parameterSets: nil, frame: frame)))
+        XCTAssertNil(interFrame.parameterSets, "inter frames carry no parameter sets")
+        XCTAssertEqual(interFrame.frame, frame)
+    }
+
+    /// A truncated header or a length that overruns the buffer is rejected rather
+    /// than read out of bounds (FlatBuffers `Data` may be unaligned).
+    func testHEVCFrameContainerRejectsMalformed() {
+        XCTAssertNil(HEVCFrameContainer.unpack(Data([0, 0])), "header shorter than 4 bytes")
+        XCTAssertNil(HEVCFrameContainer.unpack(Data([0xFF, 0xFF, 0xFF, 0xFF, 0])), "param length overruns buffer")
+    }
+
+    /// Alignment-safe UInt32 read at a non-zero (unaligned) offset — the exact
+    /// crash the little-endian helpers exist to prevent.
+    func testUInt32LEReadAtUnalignedOffset() {
+        var data = Data([0xAA])              // 1-byte pad → next read is unaligned
+        data.appendUInt32LE(0x0403_0201)
+        XCTAssertEqual(data.readUInt32LE(at: 1), 0x0403_0201)
+    }
+
+    /// End-to-end: the HEVC encoder's keyframe decodes back to an image at the
+    /// downscaled size. Hardware HEVC encode is A10+/host-dependent — and the iOS
+    /// simulator can create a session but emit nothing — so this skips whenever
+    /// the encode produces no frame, exactly as the sibling HEIC test does.
+    func testHEVCEncodeDecodeRoundTrip() throws {
+        let encoder = HEVCFrameEncoder(
+            maxLongEdge: 128,
+            settings: HEVCSettings(bitrateKbps: 300, fps: 30, keyframeInterval: 30))
+        let decoder = PeerHEVCPreviewDecoder()
+
+        // A fresh session's first frame is a keyframe carrying VPS/SPS/PPS.
+        let payload = encodedData(encoder.encode(pixelBuffer: makePixelBuffer(width: 256, height: 128)))
+        try XCTSkipIf(payload == nil, "HEVC hardware encode unavailable on this simulator/host")
+
+        let parts = try XCTUnwrap(HEVCFrameContainer.unpack(payload!))
+        XCTAssertNotNil(parts.parameterSets, "keyframe must carry parameter sets so the monitor can re-sync")
+
+        let image = try XCTUnwrap(decoder.decode(payload!), "keyframe should decode to an image")
+        XCTAssertLessThanOrEqual(max(image.size.width, image.size.height), 128)
     }
 }
