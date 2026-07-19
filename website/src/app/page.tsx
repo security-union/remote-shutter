@@ -48,11 +48,10 @@ export default function Home() {
             priority
           />
           <h1 className={styles.title}>
-            Turn Two iPhones Into a Remote Camera System
+            Turn two iPhones into a remote camera.
           </h1>
           <p className={styles.subtitle}>
-            Remote Shutter connects two Apple devices wirelessly — one becomes
-            the camera, the other your remote control with a live preview.
+            One is the camera. The other is the remote — with live preview.
           </p>
           <div className={styles.cta}>
             <a
@@ -76,101 +75,57 @@ export default function Home() {
         </section>
 
         <section className={styles.features} id="features">
-          <h2 className={styles.sectionTitle}>Features</h2>
           <div className={styles.featureGrid}>
             <div className={styles.feature}>
-              <h3>Live Preview</h3>
-              <p>
-                See exactly what the camera sees on your monitor device in real
-                time with low-latency streaming.
-              </p>
+              <h3>Live preview</h3>
+              <p>See what the camera sees</p>
             </div>
             <div className={styles.feature}>
-              <h3>Remote Photo Capture</h3>
-              <p>
-                Take photos remotely — perfect for group shots, wildlife
-                photography, or hard-to-reach angles.
-              </p>
+              <h3>Photos &amp; video</h3>
+              <p>Capture from the remote</p>
             </div>
             <div className={styles.feature}>
-              <h3>Remote Video Recording</h3>
-              <p>
-                Start and stop video recording from your monitor device with
-                full control over the process.
-              </p>
+              <h3>Full control</h3>
+              <p>Flash, lenses, front or back</p>
             </div>
             <div className={styles.feature}>
-              <h3>Peer-to-Peer Connection</h3>
-              <p>
-                No internet required. Devices connect directly via
-                peer-to-peer networking — works anywhere.
-              </p>
-            </div>
-            <div className={styles.feature}>
-              <h3>Flash &amp; Camera Control</h3>
-              <p>
-                Toggle flash, switch between front and rear cameras, and change
-                lenses — all from the remote.
-              </p>
-            </div>
-            <div className={styles.feature}>
-              <h3>No Account Needed</h3>
-              <p>
-                Just install on two devices and connect. No sign-ups, no cloud,
-                no fuss.
-              </p>
+              <h3>No network, no account</h3>
+              <p>Devices connect directly</p>
             </div>
           </div>
         </section>
 
         <section className={styles.howItWorks} id="how-it-works">
-          <h2 className={styles.sectionTitle}>How It Works</h2>
-          <div className={styles.steps}>
-            <div className={styles.step}>
+          <h2 className={styles.sectionTitle}>How it works</h2>
+          <ol className={styles.steps}>
+            <li>
               <span className={styles.stepNumber}>1</span>
-              <h3>Install on Two Devices</h3>
-              <p>Download Remote Shutter on both Apple devices.</p>
-            </div>
-            <div className={styles.step}>
+              Install on both devices
+            </li>
+            <li>
               <span className={styles.stepNumber}>2</span>
-              <h3>Connect</h3>
-              <p>
-                The devices discover each other automatically via peer-to-peer
-                networking.
-              </p>
-            </div>
-            <div className={styles.step}>
+              Connect
+            </li>
+            <li>
               <span className={styles.stepNumber}>3</span>
-              <h3>Choose Roles</h3>
-              <p>
-                Pick which device is the camera and which is the monitor/remote
-                control.
-              </p>
-            </div>
-            <div className={styles.step}>
+              Pick camera &amp; remote
+            </li>
+            <li>
               <span className={styles.stepNumber}>4</span>
-              <h3>Shoot</h3>
-              <p>
-                See the live preview and capture photos or videos remotely.
-              </p>
-            </div>
-          </div>
+              Shoot
+            </li>
+          </ol>
         </section>
 
-        <section className={styles.blog} id="gear">
-          <h2 className={styles.sectionTitle}>Gear</h2>
-          <p className={styles.blogIntro}>
-            Tripods, mounts, and lenses that pair with the app.{' '}
-            <Link href="/gear">See what we recommend</Link>
-          </p>
-        </section>
-
-        <section className={styles.blog} id="blog">
-          <h2 className={styles.sectionTitle}>Blog</h2>
-          <p className={styles.blogIntro}>
-            Tips, updates, and photography ideas.{' '}
-            <Link href="/blog">Read all posts</Link>
-          </p>
+        <section className={styles.more}>
+          <Link href="/gear" className={styles.moreCard}>
+            <h3>Field kit</h3>
+            <p>Tripods, mounts &amp; lenses we shoot with →</p>
+          </Link>
+          <Link href="/blog" className={styles.moreCard}>
+            <h3>Blog</h3>
+            <p>Tips &amp; updates →</p>
+          </Link>
         </section>
       </main>
       <Footer />

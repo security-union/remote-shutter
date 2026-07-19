@@ -6,18 +6,12 @@
 
 /* ---- hero ---- */
 .hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 2.5rem;
-  align-items: center;
-  padding: 4rem 0 3rem;
+  padding: 3.5rem 0 2.5rem;
 }
 
 @media (max-width: 720px) {
   .hero {
-    grid-template-columns: 1fr;
     padding-top: 2.5rem;
-    gap: 2rem;
   }
 }
 
@@ -53,19 +47,53 @@
 
 /* ---- hero product shot ---- */
 .heroShot {
-  width: auto;
+  width: 100%;
   height: auto;
-  max-width: 100%;
-  max-height: 30rem;
-  justify-self: center;
-  border-radius: 20px;
+  margin-top: 2rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
-@media (max-width: 720px) {
-  .heroShot {
-    max-height: 24rem;
-  }
+/* ---- section jump nav ---- */
+.sectionNav {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 9;
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  /* full-bleed to the main gutters so cards scrolling underneath don't
+     peek out beside the pinned bar */
+  margin: 0 -1.5rem;
+  padding: 0.65rem 1.5rem;
+  background: var(--background);
+  scrollbar-width: none;
+}
+
+.sectionNav::-webkit-scrollbar {
+  display: none;
+}
+
+.sectionNav a {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--foreground);
+  background: var(--card-bg);
+}
+
+.sectionNav a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sectionNav a:focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
 }
 
 /* ---- catalog ---- */
@@ -80,6 +108,8 @@
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+  /* land anchor jumps below the sticky header + chip bar */
+  scroll-margin-top: calc(var(--header-h) + 4.5rem);
 }
 
 .sectionSub {
@@ -88,12 +118,52 @@
   max-width: 40rem;
 }
 
+/* ---- per-section quick guide ---- */
+.quickGuide {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+}
+
+.quickGuide li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.82rem;
+  background: var(--card-bg);
+}
+
+.quickGuide li span {
+  color: var(--muted);
+}
+
+.quickGuide li a {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  /* On phones the chips are four rows of text stacked on top of cards
+     that show the same products with photos — the cards win. */
+  .quickGuide {
+    display: none;
+  }
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 1rem;
 }
 
+/* Whole card is one Amazon link (the Amazon-tile pattern): every pixel —
+   photo, title, copy — is clickable, and the "button" is just a styled span. */
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -103,6 +173,23 @@
   flex-direction: column;
   gap: 0.65rem;
   position: relative;
+  color: var(--foreground);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.card:hover {
+  color: var(--foreground);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 3px;
+}
+
+.pickCard {
+  border-color: var(--accent);
 }
 
 .photo {
@@ -131,12 +218,14 @@
 }
 
 .tier {
+  display: block;
   color: var(--accent);
   font-weight: 600;
   font-size: 0.95rem;
 }
 
 .why {
+  display: block;
   color: var(--muted);
   font-size: 0.9rem;
   flex: 1;
@@ -158,24 +247,111 @@
 }
 
 .buy {
-  align-self: flex-start;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  padding: 0.45rem 0.9rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--accent);
-  transition: background 0.15s, color 0.15s;
-}
-
-.buy:hover {
+  align-self: stretch;
+  text-align: center;
   background: var(--accent);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: #000;
+  transition: background 0.15s;
 }
 
-.buy:focus-visible {
+.card:hover .buy {
+  background: var(--accent-hover);
+}
+
+/* ---- complete rig ---- */
+.rig {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.75rem;
+  background: radial-gradient(
+      120% 160% at 100% 0%,
+      rgba(216, 165, 76, 0.08),
+      transparent 55%
+    ),
+    var(--card-bg);
+  scroll-margin-top: calc(var(--header-h) + 4.5rem);
+}
+
+.rig h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.rigItems {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.rigItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  background: var(--background);
+  color: var(--foreground);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.rigItem:hover {
+  color: var(--foreground);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.rigItem:focus-visible {
   outline: 2px solid var(--accent-hover);
   outline-offset: 3px;
+}
+
+.rigRole {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.rigPhoto {
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background: #f6f3ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.rigPhoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: multiply;
+}
+
+.rigItem h3 {
+  font-size: 0.98rem;
+  font-weight: 650;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.rigBuy {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.rigItem:hover .rigBuy {
+  color: var(--accent-hover);
 }
 
 /* ---- works-with strip ---- */
@@ -218,11 +394,4 @@
   color: var(--muted);
   font-size: 0.88rem;
   margin-top: 0.2rem;
-}
-
-/* ---- footer disclosure ---- */
-.footNote {
-  padding: 0 0 2rem;
-  font-size: 0.78rem;
-  color: var(--muted);
 }

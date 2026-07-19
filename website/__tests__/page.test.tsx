@@ -32,7 +32,7 @@ describe('Home page', () => {
   it('renders the hero title', () => {
     render(<Home />);
     expect(
-      screen.getByText('Turn Two iPhones Into a Remote Camera System')
+      screen.getByText('Turn two iPhones into a remote camera.')
     ).toBeInTheDocument();
   });
 
@@ -46,19 +46,31 @@ describe('Home page', () => {
     );
   });
 
-  it('renders feature cards', () => {
+  it('renders feature tiles', () => {
     render(<Home />);
-    expect(screen.getByText('Live Preview')).toBeInTheDocument();
-    expect(screen.getByText('Remote Photo Capture')).toBeInTheDocument();
-    expect(screen.getByText('Remote Video Recording')).toBeInTheDocument();
-    expect(screen.getByText('Peer-to-Peer Connection')).toBeInTheDocument();
+    expect(screen.getByText('Live preview')).toBeInTheDocument();
+    expect(screen.getByText('Photos & video')).toBeInTheDocument();
+    expect(screen.getByText('Full control')).toBeInTheDocument();
+    expect(screen.getByText('No network, no account')).toBeInTheDocument();
   });
 
   it('renders how-it-works steps', () => {
     render(<Home />);
-    expect(screen.getByText('Install on Two Devices')).toBeInTheDocument();
+    expect(screen.getByText('Install on both devices')).toBeInTheDocument();
     expect(screen.getByText('Connect')).toBeInTheDocument();
-    expect(screen.getByText('Choose Roles')).toBeInTheDocument();
+    expect(screen.getByText('Pick camera & remote')).toBeInTheDocument();
     expect(screen.getByText('Shoot')).toBeInTheDocument();
+  });
+
+  it('links to the gear and blog pages', () => {
+    render(<Home />);
+    expect(screen.getByText('Field kit').closest('a')).toHaveAttribute(
+      'href',
+      '/gear'
+    );
+    // "Blog" also appears in the header nav — assert on all of them
+    for (const el of screen.getAllByText('Blog')) {
+      expect(el.closest('a')).toHaveAttribute('href', '/blog');
+    }
   });
 });
