@@ -9,7 +9,9 @@
 .nav {
   max-width: 960px;
   margin: 0 auto;
-  padding: 1rem 1.5rem;
+  padding: 0 1.5rem;
+  /* fixed height so sticky sub-navs (gear section chips) can pin below it */
+  height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -23,13 +25,118 @@
 
 .links {
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 1rem;
   font-size: 0.95rem;
+}
+
+.links a {
+  padding: 0.5rem 0.25rem;
+}
+
+/* ---- hamburger button (shown ≤640px) ---- */
+.menuButton {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  margin-right: -10px; /* bars align with the content edge, hit area doesn't */
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.menuButton span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--foreground);
+}
+
+/* ---- slide-in drawer ---- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 21;
+  width: min(75vw, 300px);
+  background: var(--background);
+  border-left: 1px solid var(--border);
+  padding: 0.5rem 1.25rem 1.5rem;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerOpen {
+  transform: translateX(0);
+}
+
+.drawerHead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: var(--header-h);
+}
+
+.closeButton {
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  background: none;
+  border: none;
+  color: var(--foreground);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  color: var(--accent);
+}
+
+.drawerLinks {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerLinks a {
+  color: var(--foreground);
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 0.9rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.drawerLinks a:hover {
+  color: var(--accent);
 }
 
 @media (max-width: 640px) {
   .links {
-    gap: 1rem;
-    font-size: 0.85rem;
+    display: none;
+  }
+
+  .menuButton {
+    display: flex;
+  }
+}
+
+@media (min-width: 641px) {
+  .overlay,
+  .drawer {
+    display: none;
   }
 }
