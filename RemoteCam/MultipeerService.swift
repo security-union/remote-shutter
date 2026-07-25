@@ -55,21 +55,18 @@ class MultipeerService: NSObject, MCSessionDelegate,
     var progressCancellables = Set<AnyCancellable>()
 
     // `session` is swapped on rebuild from both the coordinator's context
-    // (monitor inviting) and MC's delegate queue (camera accepting), so
-    // access goes through a lock to stay TSan-clean.
-    private let sessionLock = NSLock()
-    private var _session: MCSession!
-    var session: MCSession! {
-        sessionLock.lock(); defer { sessionLock.unlock() }
-        return _session
-    }
+    // (monitor inviting) and MC's delegate queue (camera accepting), while
+    // senders read it from their own queues — hence the Locked box.
+    private let sessionBox: Locked<MCSession>
+    var session: MCSession! { sessionBox.value }
 
     var connectedPeers: [MCPeerID] { session?.connectedPeers ?? [] }
 
     init(peerID: MCPeerID) {
         self.peerID = peerID
+        sessionBox = Locked(Self.makeSession(peerID: peerID))
         super.init()
-        _session = makeSession()
+        sessionBox.value.delegate = self
         advertiser = MCNearbyServiceAdvertiser(
             peer: peerID, discoveryInfo: nil, serviceType: service)
         advertiser.delegate = self
@@ -77,23 +74,26 @@ class MultipeerService: NSObject, MCSessionDelegate,
         browser.delegate = self
     }
 
-    private func makeSession() -> MCSession {
-        let session = MCSession(peer: peerID, securityIdentity: nil,
-                                encryptionPreference: .required)
-        session.delegate = self
-        return session
+    private static func makeSession(peerID: MCPeerID) -> MCSession {
+        MCSession(peer: peerID, securityIdentity: nil,
+                  encryptionPreference: .required)
     }
 
     /// Apple never documents a torn-down MCSession as reusable, and reused
     /// sessions are the classic cause of invites that wedge in `.connecting`.
     /// Every connection attempt therefore starts from a virgin session: the
-    /// monitor rebuilds before inviting, the camera before accepting.
+    /// monitor rebuilds before inviting, the camera before accepting. The
+    /// idle check and the swap must be one critical section, or two threads
+    /// could both see "idle" and rebuild twice.
     private func rebuildSessionIfIdle() {
-        sessionLock.lock(); defer { sessionLock.unlock() }
-        guard _session.connectedPeers.isEmpty else { return }
-        _session.delegate = nil
-        _session.disconnect()
-        _session = makeSession()
+        sessionBox.mutate { session in
+            guard session.connectedPeers.isEmpty else { return }
+            session.delegate = nil
+            session.disconnect()
+            let fresh = Self.makeSession(peerID: peerID)
+            fresh.delegate = self
+            session = fresh
+        }
     }
 
     func startAdvertisingAndBrowsing() {
