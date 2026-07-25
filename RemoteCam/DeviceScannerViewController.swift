@@ -12,7 +12,11 @@ import MultipeerConnectivity
 import Network
 import dnssd
 
-let service: String = "RemoteCam"
+// Bonjour service types must be 1–15 chars of lowercase ASCII letters,
+// digits and hyphens (MCNearbyServiceAdvertiser docs). DNS-SD compares
+// labels case-insensitively, so this stays discoverable by older builds
+// that used "RemoteCam". Must match NSBonjourServices in Info.plist.
+let service: String = "remotecam"
 let userDefaultsPeerId = "peerID"
 let userDefaultsSpeedRunScanning = "speedrunscanning"
 let userDefaultsLocalNetworkPrimerShown = "localNetworkPrimerShown"
@@ -151,6 +155,9 @@ public class DeviceScannerViewController: UIViewController {
                 self.remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
                 self.scannerViewModel.connectingToPeer()
             },
+            onCancelConnect: { [weak self] in
+                self?.remoteCamSession ! UICmd.CancelConnect(sender: nil)
+            },
             onShareApp: { [weak self] in
                 self?.shareAppLink()
             },
@@ -203,7 +210,7 @@ public class DeviceScannerViewController: UIViewController {
         parameters.includePeerToPeer = true
 
         let browserDescriptor = NWBrowser.Descriptor.bonjourWithTXTRecord(
-            type: "_remotecam._tcp",
+            type: "_\(service)._tcp",
             domain: "local."
         )
 

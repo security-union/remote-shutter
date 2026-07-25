@@ -212,3 +212,8 @@
 "WifiBannerTitle" = "ATTIVA IL WI-FI SU ENTRAMBI I DISPOSITIVI — OBBLIGATORIO";
 "WifiBannerBody" = "Nessuna rete necessaria — i dispositivi si collegano direttamente.";
 "WifiEscalationTip" = "Ricerca in corso… Controlla che il Wi-Fi sia attivo su questo dispositivo e sull'altro. Spento dal Centro di Controllo conta come spento: usa Impostazioni > Wi-Fi.";
+
+/* Peer connect attempt (retry + cancel) */
+"ConnectingHint" = "Questa operazione può richiedere fino a 20 secondi se i dispositivi non sono sulla stessa rete Wi-Fi.";
+"ConnectionFailedStatus" = "CONNESSIONE NON RIUSCITA — AVVICINA I DISPOSITIVI E RIPROVA";
+"connect_cancel" = "Annulla";

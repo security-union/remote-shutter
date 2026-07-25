@@ -212,3 +212,8 @@
 "WifiBannerTitle" = "SLÅ WI-FI TIL PÅ BEGGE ENHEDER — PÅKRÆVET";
 "WifiBannerBody" = "Intet netværk nødvendigt — enhederne forbinder direkte.";
 "WifiEscalationTip" = "Søger stadig… Tjek at Wi-Fi er slået til — på denne enhed og den anden. Slukket i Kontrolcenter tæller stadig som slukket: brug Indstillinger > Wi-Fi.";
+
+/* Peer connect attempt (retry + cancel) */
+"ConnectingHint" = "Dette kan tage op til 20 sekunder, hvis enhederne ikke er på samme Wi-Fi-netværk.";
+"ConnectionFailedStatus" = "KUNNE IKKE FORBINDE — FLYT ENHEDERNE TÆTTERE SAMMEN OG PRØV IGEN";
+"connect_cancel" = "Annuller";

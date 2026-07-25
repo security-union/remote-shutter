@@ -32,6 +32,8 @@
 	<string>Allow camera to connect to the remote shutter</string>
 	<key>NSBonjourServices</key>
 	<array>
+		<string>_remotecam._tcp</string>
+		<string>_remotecam._udp</string>
 		<string>_RemoteCam._tcp</string>
 		<string>_RemoteCam._udp</string>
 	</array>

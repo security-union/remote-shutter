@@ -333,3 +333,8 @@
 "WifiBannerTitle" = "HIDUPKAN WI-FI PADA KEDUA-DUA PERANTI — WAJIB";
 "WifiBannerBody" = "Tiada rangkaian diperlukan — peranti menyambung terus.";
 "WifiEscalationTip" = "Masih mencari… Pastikan Wi-Fi dihidupkan — pada peranti ini dan peranti satu lagi. Mematikannya dalam Pusat Kawalan masih dikira mati: gunakan Tetapan > Wi-Fi.";
+
+/* Peer connect attempt (retry + cancel) */
+"ConnectingHint" = "Ini boleh mengambil masa sehingga 20 saat jika peranti tidak berada pada rangkaian Wi-Fi yang sama.";
+"ConnectionFailedStatus" = "TIDAK DAPAT MENYAMBUNG — DEKATKAN PERANTI DAN CUBA LAGI";
+"connect_cancel" = "Batal";

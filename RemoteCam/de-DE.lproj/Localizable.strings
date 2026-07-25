@@ -333,3 +333,8 @@
 "WifiBannerTitle" = "WLAN AUF BEIDEN GERÄTEN EINSCHALTEN — ERFORDERLICH";
 "WifiBannerBody" = "Kein Netzwerk nötig — die Geräte verbinden sich direkt.";
 "WifiEscalationTip" = "Suche läuft… Prüfe, ob WLAN eingeschaltet ist — auf diesem und dem anderen Gerät. Im Kontrollzentrum deaktiviert zählt als aus: nutze Einstellungen > WLAN.";
+
+/* Peer connect attempt (retry + cancel) */
+"ConnectingHint" = "Dies kann bis zu 20 Sekunden dauern, wenn die Geräte nicht im selben WLAN sind.";
+"ConnectionFailedStatus" = "VERBINDUNG FEHLGESCHLAGEN — GERÄTE NÄHER ZUSAMMENBRINGEN UND ERNEUT VERSUCHEN";
+"connect_cancel" = "Abbrechen";

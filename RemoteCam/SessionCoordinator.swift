@@ -286,7 +286,20 @@ public actor SessionCoordinator {
         }
     }
 
+    // MARK: Connect retry
+
+    /// In-flight invite bookkeeping. MC reports a declined or timed-out
+    /// invitation only as the peer flipping to `.notConnected`, so the
+    /// scanning state tracks whom it invited to tell that apart from a stray
+    /// disconnect. One automatic retry rides the AWDL link the first attempt
+    /// already warmed up — off-network, link bring-up alone can eat most of
+    /// the first invite's timeout.
+    private var pendingConnect: (peer: MCPeerID, attempt: Int)?
+    private let inviteTimeout: TimeInterval = 20
+    private let maxConnectAttempts = 2
+
     private func startScanning(lobby: ScannerLobby) {
+        pendingConnect = nil
         if multipeerService == nil {
             let service = MultipeerService(peerID: lobby.peerID)
             service.delegate = self
@@ -483,16 +496,45 @@ public actor SessionCoordinator {
         guard let liveLobby = lobby?.value else { return } // dead lobby: drop
 
         switch msg {
-        case is UICmd.BecomeCamera, is UICmd.BecomeMonitor, is UICmd.StartScanning, is DisconnectPeer:
+        case is UICmd.BecomeCamera, is UICmd.BecomeMonitor, is UICmd.StartScanning:
             startScanning(lobby: liveLobby)
 
         case let connect as ConnectToDevice:
-            multipeerService?.invitePeer(connect.peer, timeout: 5)
+            pendingConnect = (connect.peer, 1)
+            multipeerService?.invitePeer(connect.peer, timeout: inviteTimeout)
             OperationQueue.main.addOperation {
                 liveLobby.scannerViewModel.connectingToPeer()
             }
 
+        case let disconnected as DisconnectPeer:
+            guard let pending = pendingConnect, pending.peer == disconnected.peer else {
+                startScanning(lobby: liveLobby)
+                break
+            }
+            if pending.attempt < maxConnectAttempts {
+                pendingConnect = (pending.peer, pending.attempt + 1)
+                multipeerService?.invitePeer(pending.peer, timeout: inviteTimeout)
+            } else {
+                pendingConnect = nil
+                OperationQueue.main.addOperation {
+                    liveLobby.scannerViewModel.connectionFailed()
+                }
+            }
+
+        case is UICmd.CancelConnect:
+            pendingConnect = nil
+            // Tearing the session down is the only way to abort an in-flight
+            // invite; the next invite starts from a fresh session anyway.
+            multipeerService?.disconnect()
+            OperationQueue.main.addOperation {
+                liveLobby.scannerViewModel.connectCancelled()
+            }
+
+        case is Disconnect:
+            pendingConnect = nil
+
         case let connected as OnConnectToDevice:
+            pendingConnect = nil
             peer = connected.peer
             OperationQueue.main.addOperation {
                 liveLobby.scannerViewModel.connectedToPeer()
@@ -2056,6 +2098,11 @@ extension SessionCoordinator: MultipeerServiceDelegate {
 
     public nonisolated func browserDidFail(_ error: Error) {
         print("Browser failed to start browsing: \(error.localizedDescription)")
+        tell(UICmd.BrowserFailed(error: error))
+    }
+
+    public nonisolated func advertiserDidFail(_ error: Error) {
+        // Same user-facing failure as a dead browser: discovery isn't running.
         tell(UICmd.BrowserFailed(error: error))
     }
 

@@ -9,6 +9,7 @@ struct DeviceScannerView: View {
     let onStartScanning: () -> Void
     let onStopScanning: () -> Void
     let onSelectPeer: (MCPeerID) -> Void
+    let onCancelConnect: () -> Void
     let onShareApp: () -> Void
     let onOpenSettings: () -> Void
     let onHelp: () -> Void
@@ -321,13 +322,13 @@ struct DeviceScannerView: View {
 
     private var statusBadge: some View {
         HStack(spacing: 8) {
-            if viewModel.isScanning {
-                ProgressView()
-                    .scaleEffect(0.7)
-            } else if viewModel.hasScanningError {
+            if viewModel.hasScanningError || viewModel.hasConnectionError {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundColor(.orange)
+            } else if viewModel.isScanning {
+                ProgressView()
+                    .scaleEffect(0.7)
             } else {
                 Circle()
                     .fill(Color.gray)
@@ -336,7 +337,8 @@ struct DeviceScannerView: View {
             Text(viewModel.statusMessage)
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(viewModel.hasScanningError ? .orange : .secondary)
+                .foregroundColor(viewModel.hasScanningError || viewModel.hasConnectionError
+                                 ? .orange : .secondary)
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 14)
@@ -512,8 +514,24 @@ struct DeviceScannerView: View {
                 Text(NSLocalizedString("Connecting...", comment: ""))
                     .font(.headline)
                     .foregroundColor(.white)
+                Text(NSLocalizedString("ConnectingHint", comment: "Shown under the connecting spinner"))
+                    .font(.footnote)
+                    .foregroundColor(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(action: onCancelConnect) {
+                    Text(NSLocalizedString("connect_cancel", comment: "Cancel the connection attempt"))
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 24)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(Capsule())
+                }
             }
             .padding(32)
+            .frame(maxWidth: 320)
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
@@ -540,6 +558,7 @@ struct DeviceScannerView_Previews: PreviewProvider {
                 onStartScanning: {},
                 onStopScanning: {},
                 onSelectPeer: { _ in },
+                onCancelConnect: {},
                 onShareApp: {},
                 onOpenSettings: {},
                 onHelp: {}

@@ -21,6 +21,7 @@ protocol MultipeerServiceDelegate: AnyObject {
     func browserDidFindPeer(_ peer: MCPeerID)
     func browserDidLosePeer(_ peer: MCPeerID)
     func browserDidFail(_ error: Error)
+    func advertiserDidFail(_ error: Error)
 }
 
 protocol MultipeerServiceProtocol: AnyObject {
@@ -48,22 +49,51 @@ class MultipeerService: NSObject, MCSessionDelegate,
     MultipeerServiceProtocol {
 
     weak var delegate: MultipeerServiceDelegate?
-    private(set) var session: MCSession!
+    private let peerID: MCPeerID
     private var advertiser: MCNearbyServiceAdvertiser!
     private var browser: MCNearbyServiceBrowser!
     var progressCancellables = Set<AnyCancellable>()
 
+    // `session` is swapped on rebuild from both the coordinator's context
+    // (monitor inviting) and MC's delegate queue (camera accepting), so
+    // access goes through a lock to stay TSan-clean.
+    private let sessionLock = NSLock()
+    private var _session: MCSession!
+    var session: MCSession! {
+        sessionLock.lock(); defer { sessionLock.unlock() }
+        return _session
+    }
+
     var connectedPeers: [MCPeerID] { session?.connectedPeers ?? [] }
 
     init(peerID: MCPeerID) {
+        self.peerID = peerID
         super.init()
-        session = MCSession(peer: peerID)
-        session.delegate = self
+        _session = makeSession()
         advertiser = MCNearbyServiceAdvertiser(
             peer: peerID, discoveryInfo: nil, serviceType: service)
         advertiser.delegate = self
         browser = MCNearbyServiceBrowser(peer: peerID, serviceType: service)
         browser.delegate = self
+    }
+
+    private func makeSession() -> MCSession {
+        let session = MCSession(peer: peerID, securityIdentity: nil,
+                                encryptionPreference: .required)
+        session.delegate = self
+        return session
+    }
+
+    /// Apple never documents a torn-down MCSession as reusable, and reused
+    /// sessions are the classic cause of invites that wedge in `.connecting`.
+    /// Every connection attempt therefore starts from a virgin session: the
+    /// monitor rebuilds before inviting, the camera before accepting.
+    private func rebuildSessionIfIdle() {
+        sessionLock.lock(); defer { sessionLock.unlock() }
+        guard _session.connectedPeers.isEmpty else { return }
+        _session.delegate = nil
+        _session.disconnect()
+        _session = makeSession()
     }
 
     func startAdvertisingAndBrowsing() {
@@ -76,7 +106,7 @@ class MultipeerService: NSObject, MCSessionDelegate,
         if let info = discoveryInfo {
             advertiser.stopAdvertisingPeer()
             advertiser = MCNearbyServiceAdvertiser(
-                peer: session.myPeerID, discoveryInfo: info, serviceType: service)
+                peer: peerID, discoveryInfo: info, serviceType: service)
             advertiser.delegate = self
         }
         advertiser.startAdvertisingPeer()
@@ -103,6 +133,7 @@ class MultipeerService: NSObject, MCSessionDelegate,
     }
 
     func invitePeer(_ peer: MCPeerID, timeout: TimeInterval = 10) {
+        rebuildSessionIfIdle()
         browser.invitePeer(peer, to: session, withContext: nil, timeout: timeout)
     }
 
@@ -135,12 +166,14 @@ class MultipeerService: NSObject, MCSessionDelegate,
                     didReceiveInvitationFromPeer peerID: MCPeerID,
                     withContext context: Data?,
                     invitationHandler: @escaping (Bool, MCSession?) -> Void) {
+        rebuildSessionIfIdle()
         invitationHandler(true, session)
     }
 
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
                     didNotStartAdvertisingPeer error: Error) {
         print("Advertiser failed to start: \(error.localizedDescription)")
+        delegate?.advertiserDidFail(error)
     }
 
     // MARK: - MCNearbyServiceBrowserDelegate
@@ -172,8 +205,7 @@ class MultipeerService: NSObject, MCSessionDelegate,
             print("Not Connected: \(peerID.displayName)")
             delegate?.peerDidDisconnect(peerID)
         @unknown default:
-            print("unknown default")
-            fatalError()
+            print("Unhandled session state \(state.rawValue) for \(peerID.displayName)")
         }
     }
 
@@ -205,11 +237,5 @@ class MultipeerService: NSObject, MCSessionDelegate,
     public func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String,
                         fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {
         delegate?.didFinishReceivingResource(name: resourceName, at: localURL, error: error)
-    }
-
-    @nonobjc public func session(session: MCSession, didReceiveCertificate certificate: [AnyObject]?,
-                                  fromPeer peerID: MCPeerID,
-                                  certificateHandler: @escaping (Bool) -> Void) {
-        certificateHandler(true)
     }
 }
