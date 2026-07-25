@@ -228,3 +228,8 @@
 "WifiBannerTitle" = "ACTIVA EL WI-FI EN AMBOS DISPOSITIVOS — OBLIGATORIO";
 "WifiBannerBody" = "No se necesita red — los dispositivos se conectan directamente.";
 "WifiEscalationTip" = "Seguimos buscando… Verifica que el Wi-Fi esté activado en este dispositivo y en el otro. Apagarlo desde el Centro de Control cuenta como apagado: usa Ajustes > Wi-Fi.";
+
+/* Peer connect attempt (retry + cancel) */
+"ConnectingHint" = "Esto puede tardar hasta 20 segundos cuando los dispositivos no están en la misma red Wi-Fi.";
+"ConnectionFailedStatus" = "NO SE PUDO CONECTAR — ACERCA LOS DISPOSITIVOS E INTENTA DE NUEVO";
+"connect_cancel" = "Cancelar";

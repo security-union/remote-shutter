@@ -92,7 +92,7 @@ Threading: the coordinator serializes via its actor inbox; `CaptureEngine` state
 
 ### P2P Communication
 
-Uses Apple's **MultipeerConnectivity** framework (service type: `"RemoteCam"`), encapsulated in `MultipeerService` (`MultipeerServiceProtocol` is the test seam). Messages are serialized as FlatBuffers and sent via `MCSession.send()`. Video files use `MCSession.sendResource()` for large transfers with progress tracking.
+Uses Apple's **MultipeerConnectivity** framework (service type: `"remotecam"` — Bonjour types must be lowercase; must match `NSBonjourServices` in Info.plist), encapsulated in `MultipeerService` (`MultipeerServiceProtocol` is the test seam). Messages are serialized as FlatBuffers and sent via `MCSession.send()`. Video files use `MCSession.sendResource()` for large transfers with progress tracking.
 
 ### Dependencies (CocoaPods)
 

@@ -87,6 +87,10 @@ public class UICmd {
     public class StartScanning: Message, @unchecked Sendable {
     }
 
+    /// The user dismissed the connecting overlay while an invite was in flight.
+    public class CancelConnect: Message, @unchecked Sendable {
+    }
+
     public class UnbecomeCamera: Message, @unchecked Sendable {
     }
 

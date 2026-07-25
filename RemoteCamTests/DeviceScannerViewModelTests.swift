@@ -423,4 +423,38 @@ final class DeviceScannerViewModelTests: XCTestCase {
         vm.stoppedScanning()
         XCTAssertFalse(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(60)))
     }
+
+    // MARK: - Connection failure
+
+    func testConnectionFailedDropsOverlayAndShowsError() {
+        let vm = DeviceScannerViewModel()
+        vm.connectingToPeer()
+        vm.connectionFailed()
+
+        XCTAssertFalse(vm.isConnecting)
+        XCTAssertTrue(vm.hasConnectionError)
+        XCTAssertEqual(vm.statusMessage,
+                       NSLocalizedString("ConnectionFailedStatus", comment: ""))
+    }
+
+    func testConnectionErrorClearedByNextAttemptAndByRescan() {
+        let vm = DeviceScannerViewModel()
+        vm.connectionFailed()
+        vm.connectingToPeer()
+        XCTAssertFalse(vm.hasConnectionError)
+        XCTAssertTrue(vm.isConnecting)
+
+        vm.connectionFailed()
+        vm.startedScanning()
+        XCTAssertFalse(vm.hasConnectionError)
+    }
+
+    func testConnectCancelledDropsOverlayWithoutError() {
+        let vm = DeviceScannerViewModel()
+        vm.connectingToPeer()
+        vm.connectCancelled()
+
+        XCTAssertFalse(vm.isConnecting)
+        XCTAssertFalse(vm.hasConnectionError)
+    }
 }

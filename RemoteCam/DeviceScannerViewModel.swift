@@ -10,6 +10,7 @@ final class DeviceScannerViewModel: ObservableObject {
     @Published var hasLocalNetworkAccess: Bool = true
     @Published var hasScanningError: Bool = false
     @Published var isConnecting: Bool = false
+    @Published var hasConnectionError: Bool = false
 
     /// When the current scan began. Not @Published: the view samples it on a
     /// TimelineView clock, so publishing would only cause redundant redraws.
@@ -31,7 +32,9 @@ final class DeviceScannerViewModel: ObservableObject {
     // MARK: - Computed
 
     var statusMessage: String {
-        if hasScanningError {
+        if hasConnectionError {
+            return NSLocalizedString("ConnectionFailedStatus", comment: "Shown after a connection attempt (with retry) fails")
+        } else if hasScanningError {
             return NSLocalizedString("SCANNING ERROR - CHECK NETWORK SETTINGS", comment: "")
         } else if isScanning {
             return role == .camera
@@ -66,12 +69,14 @@ final class DeviceScannerViewModel: ObservableObject {
         isScanning = true
         hasScanningError = false
         isConnecting = false
+        hasConnectionError = false
         scanStartedAt = Date()
     }
 
     func stoppedScanning() {
         isScanning = false
         isConnecting = false
+        hasConnectionError = false
         scanStartedAt = nil
     }
 
@@ -115,9 +120,19 @@ final class DeviceScannerViewModel: ObservableObject {
 
     func connectingToPeer() {
         isConnecting = true
+        hasConnectionError = false
     }
 
     func connectedToPeer() {
+        isConnecting = false
+    }
+
+    func connectionFailed() {
+        isConnecting = false
+        hasConnectionError = true
+    }
+
+    func connectCancelled() {
         isConnecting = false
     }
 }

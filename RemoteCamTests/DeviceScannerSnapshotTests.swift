@@ -21,6 +21,7 @@ final class DeviceScannerSnapshotTests: SnapshotTestCase {
             onStartScanning: {},
             onStopScanning: {},
             onSelectPeer: { _ in },
+            onCancelConnect: {},
             onShareApp: {},
             onOpenSettings: {},
             onHelp: {}
@@ -58,6 +59,7 @@ final class DeviceScannerSnapshotTests: SnapshotTestCase {
             onStartScanning: {},
             onStopScanning: {},
             onSelectPeer: { _ in },
+            onCancelConnect: {},
             onShareApp: {},
             onOpenSettings: {},
             onHelp: {}

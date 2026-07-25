@@ -333,3 +333,8 @@
 "WifiBannerTitle" = "ATIVE O WI-FI NOS DOIS APARELHOS — OBRIGATÓRIO";
 "WifiBannerBody" = "Nenhuma rede é necessária — os aparelhos se conectam diretamente.";
 "WifiEscalationTip" = "Ainda procurando… Verifique se o Wi-Fi está ligado neste aparelho e no outro. Desligar pela Central de Controle também conta como desligado: use Ajustes > Wi-Fi.";
+
+/* Peer connect attempt (retry + cancel) */
+"ConnectingHint" = "Isso pode levar até 20 segundos quando os dispositivos não estão na mesma rede Wi-Fi.";
+"ConnectionFailedStatus" = "NÃO FOI POSSÍVEL CONECTAR — APROXIME OS DISPOSITIVOS E TENTE NOVAMENTE";
+"connect_cancel" = "Cancelar";

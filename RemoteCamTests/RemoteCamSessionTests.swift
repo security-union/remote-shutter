@@ -110,6 +110,67 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(name, .idle)
     }
 
+    // MARK: - Scanning state: connect retry
+
+    private func seedScanning() async {
+        await harness.coordinator.seed(state: .scanning, lobby: harness.lobbyWrapper)
+    }
+
+    func testConnectInvitesWithLongTimeout() async {
+        await seedScanning()
+        await harness.deliver(ConnectToDevice(peer: harness.peer, sender: nil))
+
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1)
+        XCTAssertEqual(harness.fakeMP.invitedPeers[0].peer, harness.peer)
+        XCTAssertEqual(harness.fakeMP.invitedPeers[0].timeout, 20)
+        XCTAssertTrue(harness.lobby.scannerViewModel.isConnecting)
+    }
+
+    func testFailedInviteRetriesOnceThenSurfacesError() async {
+        await seedScanning()
+        await harness.deliver(ConnectToDevice(peer: harness.peer, sender: nil))
+
+        // First failure: silent automatic retry, overlay stays up.
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 2)
+        XCTAssertTrue(harness.lobby.scannerViewModel.isConnecting)
+        XCTAssertFalse(harness.lobby.scannerViewModel.hasConnectionError)
+
+        // Second failure: give up, tell the user.
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 2)
+        XCTAssertFalse(harness.lobby.scannerViewModel.isConnecting)
+        XCTAssertTrue(harness.lobby.scannerViewModel.hasConnectionError)
+    }
+
+    func testSuccessfulConnectClearsPendingSoLaterDropDoesNotReinvite() async {
+        await seedScanning()
+        await harness.deliver(ConnectToDevice(peer: harness.peer, sender: nil))
+        await harness.deliver(OnConnectToDevice(peer: harness.peer, sender: nil))
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .connected)
+
+        // The eventual real disconnect must not trigger a stale retry invite.
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1)
+    }
+
+    func testCancelConnectTearsDownAndIgnoresLateFailure() async {
+        await seedScanning()
+        await harness.deliver(ConnectToDevice(peer: harness.peer, sender: nil))
+        await harness.deliver(UICmd.CancelConnect(sender: nil))
+
+        XCTAssertTrue(harness.fakeMP.disconnectCalled)
+        XCTAssertFalse(harness.lobby.scannerViewModel.isConnecting)
+
+        // The aborted invite's .notConnected must not re-invite or show an error.
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1)
+        XCTAssertFalse(harness.lobby.scannerViewModel.hasConnectionError)
+    }
+
     // MARK: - Connected state
 
     func testConnectedStateDisconnect() async {

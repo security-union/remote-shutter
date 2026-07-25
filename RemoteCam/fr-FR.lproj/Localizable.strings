@@ -228,3 +228,8 @@
 "WifiBannerTitle" = "ACTIVEZ LE WI-FI SUR LES DEUX APPAREILS — OBLIGATOIRE";
 "WifiBannerBody" = "Aucun réseau requis — les appareils se connectent directement.";
 "WifiEscalationTip" = "Recherche en cours… Vérifiez que le Wi-Fi est activé sur cet appareil et sur l'autre. Désactivé dans le centre de contrôle compte comme éteint : utilisez Réglages > Wi-Fi.";
+
+/* Peer connect attempt (retry + cancel) */
+"ConnectingHint" = "Cela peut prendre jusqu'à 20 secondes si les appareils ne sont pas sur le même réseau Wi-Fi.";
+"ConnectionFailedStatus" = "CONNEXION IMPOSSIBLE — RAPPROCHEZ LES APPAREILS ET RÉESSAYEZ";
+"connect_cancel" = "Annuler";
