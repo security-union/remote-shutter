@@ -7,7 +7,8 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 import UIKit
 
 /// Failed to push a frame to the peer — the session pops to scanning with a
@@ -39,7 +40,7 @@ final class FrameSender {
     /// Invalidates watchdog timeouts from completed/superseded waits.
     private var ackGeneration = 0
 
-    private var peer: MCPeerID?
+    private var peer: PeerID?
     private var transport: (any MultipeerServiceProtocol)?
     private var hasSession = false
 
@@ -88,7 +89,7 @@ final class FrameSender {
     /// peer, and it is re-entered after a photo or a video transfer. Whatever the
     /// monitor's decoder holds from before is not a safe reference to build on,
     /// so the first frame of a resumed stream is always self-contained.
-    func setSession(peer: MCPeerID, transport: any MultipeerServiceProtocol) {
+    func setSession(peer: PeerID, transport: any MultipeerServiceProtocol) {
         requestKeyframe()
         queue.async {
             if self.hasSession {
@@ -140,7 +141,7 @@ final class FrameSender {
             //    building up, and a lost-ack watchdog frees it if acks stop.
             // MC's datagram channel negotiates for ~10s after "Connected"; that
             // is solved by warming the channel at peer connect.
-            let mode: MCSessionSendDataMode = isVideo ? .reliable : .unreliable
+            let mode: MultipeerSession.SendDataMode = isVideo ? .reliable : .unreliable
             if transport.send(frame, to: [peer], mode: mode).isFailure() {
                 self.coordinator?.tell(FrameSendFailed())
                 return

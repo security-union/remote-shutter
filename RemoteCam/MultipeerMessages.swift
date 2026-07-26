@@ -7,7 +7,8 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 import AVFoundation
 
 enum DeviceRole {
@@ -20,27 +21,27 @@ public class Disconnect: Message, @unchecked Sendable {
 }
 
 public class ConnectToDevice: Message, @unchecked Sendable {
-    public let peer: MCPeerID
+    public let peer: PeerID
 
-    public init(peer: MCPeerID, sender: AnyObject?) {
+    public init(peer: PeerID, sender: AnyObject?) {
         self.peer = peer
         super.init(sender: sender)
     }
 }
 
 public class DisconnectPeer: Message, @unchecked Sendable {
-    public let peer: MCPeerID?
+    public let peer: PeerID?
 
-    public init(peer: MCPeerID?, sender: AnyObject?) {
+    public init(peer: PeerID?, sender: AnyObject?) {
         self.peer = peer
         super.init(sender: sender)
     }
 }
 
 public class OnConnectToDevice: Message, @unchecked Sendable {
-    public let peer: MCPeerID
+    public let peer: PeerID
 
-    public init(peer: MCPeerID, sender: AnyObject?) {
+    public init(peer: PeerID, sender: AnyObject?) {
         self.peer = peer
         super.init(sender: sender)
     }

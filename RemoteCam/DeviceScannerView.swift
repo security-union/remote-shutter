@@ -1,5 +1,6 @@
 import SwiftUI
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 
 private let qrCodeImage: UIImage? = generateQRCode(remoteShutterUrl)
 
@@ -8,7 +9,7 @@ struct DeviceScannerView: View {
 
     let onStartScanning: () -> Void
     let onStopScanning: () -> Void
-    let onSelectPeer: (MCPeerID) -> Void
+    let onSelectPeer: (PeerID) -> Void
     let onCancelConnect: () -> Void
     let onShareApp: () -> Void
     let onOpenSettings: () -> Void

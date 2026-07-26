@@ -7,7 +7,8 @@
 
 import Foundation
 import XCTest
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 import AVFoundation
 import Combine
 
@@ -17,17 +18,17 @@ import Combine
 
 class FakeMultipeerService: MultipeerServiceProtocol {
     weak var delegate: MultipeerServiceDelegate?
-    var session: MCSession!
-    var connectedPeers: [MCPeerID] = []
+    var session: MultipeerSession!
+    var connectedPeers: [PeerID] = []
     var progressCancellables = Set<AnyCancellable>()
 
     // Recording
-    var sentMessages: [(msg: Message, peers: [MCPeerID], mode: MCSessionSendDataMode)] = []
+    var sentMessages: [(msg: Message, peers: [PeerID], mode: MultipeerSession.SendDataMode)] = []
     var stopSessionCalled = false
     var disconnectCalled = false
     var startAdvertisingAndBrowsingCalled = false
     var stopAdvertisingAndBrowsingCalled = false
-    var invitedPeers: [(peer: MCPeerID, timeout: TimeInterval)] = []
+    var invitedPeers: [(peer: PeerID, timeout: TimeInterval)] = []
     var sendResult: Try<Message> = Failure(error: NSError(domain: "test", code: 0))
 
     func startAdvertisingAndBrowsing() { startAdvertisingAndBrowsingCalled = true }
@@ -36,16 +37,16 @@ class FakeMultipeerService: MultipeerServiceProtocol {
     func stopAdvertisingAndBrowsing() { stopAdvertisingAndBrowsingCalled = true }
     func disconnect() { disconnectCalled = true }
     func stopSession() { stopSessionCalled = true }
-    func invitePeer(_ peer: MCPeerID, timeout: TimeInterval) {
+    func invitePeer(_ peer: PeerID, timeout: TimeInterval) {
         invitedPeers.append((peer, timeout))
     }
-    func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message> {
+    func send(_ msg: Message, to peers: [PeerID],
+              mode: MultipeerSession.SendDataMode) -> Try<Message> {
         sentMessages.append((msg, peers, mode))
         return sendResult
     }
     func sendResource(at url: URL, withName name: String,
-                      toPeer peer: MCPeerID,
+                      toPeer peer: PeerID,
                       completion: @escaping (Error?) -> Void) -> Progress? { return nil }
 }
 
@@ -81,7 +82,7 @@ class FakeAlertPresenter: AlertPresenting, @unchecked Sendable {
 
 /// Plain fake for the session's lobby seam — no UIKit involved.
 class FakeScannerLobby: ScannerLobby, @unchecked Sendable {
-    let peerID = MCPeerID(displayName: "FakeLobby")
+    let peerID = PeerID(displayName: "FakeLobby")
     var role: DeviceRole = .monitor
     let scannerViewModel = DeviceScannerViewModel()
 
@@ -290,7 +291,7 @@ struct CoordinatorHarness {
     let alerts: FakeAlertPresenter
     let lobby: FakeScannerLobby
     let lobbyWrapper: WeakScannerLobby
-    let peer: MCPeerID
+    let peer: PeerID
 
     /// Enqueue-and-drain: delivers through the same FIFO inbox production uses.
     func deliver(_ msg: Message) async {
@@ -310,7 +311,7 @@ func makeCoordinatorHarness() async -> CoordinatorHarness {
     let fakeMP = FakeMultipeerService()
     let alerts = FakeAlertPresenter()
     let lobby = FakeScannerLobby()
-    let peer = MCPeerID(displayName: "TestPeer")
+    let peer = PeerID(displayName: "TestPeer")
 
     fakeMP.connectedPeers = [peer]
     fakeMP.sendResult = Success(Message())

@@ -88,11 +88,14 @@
 		4259A755DF0013E098FD3CCC /* ScannerLobby.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35D7D050D0AB3D3E4F07879D /* ScannerLobby.swift */; };
 		448ED35E2633C93396E1AC66 /* WatchSharedTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E655FAEBED183EB237F41DEA /* WatchSharedTypes.swift */; };
 		47568AFE6BD007664267E717 /* CountdownTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 305D87D0EED76E6031FC1E07 /* CountdownTimerTests.swift */; };
+		49FB88266866AB8A5BEF10A6 /* FlatBuffers in Frameworks */ = {isa = PBXBuildFile; productRef = 7E24B4EE724E54FA25C7EA3E /* FlatBuffers */; };
 		531BD3C020987337266B50EC /* ControllerWiringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C3D2AB20DA09223CE0EF3D /* ControllerWiringTests.swift */; };
 		5647F1F78AAC80CEE4E20340 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0E951625230646938980B1 /* WelcomeView.swift */; };
 		67073A97D24E58ABE94F9EEE /* Pods_RemoteShutterWatch.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FCB0F6BA2086BF9BB4242D66 /* Pods_RemoteShutterWatch.framework */; };
+		6A6CABFCEF39FA1EA8934047 /* MPCCompat in Frameworks */ = {isa = PBXBuildFile; productRef = 6525F6CE651CB5D9401943FD /* MPCCompat */; };
 		6AFBFC4B9D8E918C026E1A8D /* CameraCountdownTorch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */; };
 		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
+		7D02D87D84E8B4BD8D8F321B /* PeerMesh in Frameworks */ = {isa = PBXBuildFile; productRef = 6B8522FCDD8E4B1F29B307A3 /* PeerMesh */; };
 		7EEA33327E4D84592E5583F4 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2CBCE8B82BF3D236B662AC6 /* Pods_RemoteShutterTests.framework */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		874ECE4F11DE0C041937D86C /* WatchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8080E0FDE21CFE4B92AEAB /* WatchSettingsView.swift */; };
@@ -146,6 +149,7 @@
 		B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */; };
 		B2AB4B5C5BB274C6AB180189 /* UIViewController+SwiftUIHosting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D6F0EE27D62251BDB065B7 /* UIViewController+SwiftUIHosting.swift */; };
 		BD14D83BAC55CC029934B0ED /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 043B715A46C4498C9A2B6911 /* Foundation.framework */; };
+		C11AEDEA9241C3038E6F8449 /* MPCCompat in Frameworks */ = {isa = PBXBuildFile; productRef = 38FEE0965522E228CDAC09E0 /* MPCCompat */; };
 		C4F2A81D9E3B47CA8D5E1A02 /* DeviceScannerSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F2A81D9E3B47CA8D5E1A01 /* DeviceScannerSnapshotTests.swift */; };
 		CADE5E1EC000000000000002 /* CameraDeviceDescriptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000001 /* CameraDeviceDescriptor.swift */; };
 		CADE5E1EC000000000000004 /* CameraDeviceSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000003 /* CameraDeviceSelectionTests.swift */; };
@@ -188,6 +192,7 @@
 		E1660E880D768347CB5B3297 /* CaptureEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A342ACE91A767718D76C4C60 /* CaptureEngineTests.swift */; };
 		E2292969B1882D3FCB671CB3 /* WatchConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC9A830256BC7B3762B17FEF /* WatchConnectionView.swift */; };
 		E602233EB8B13D1B2BB12016 /* WelcomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FB0F878CA54F1AC0BC42EB /* WelcomeViewModel.swift */; };
+		F051B0DF21EEC10044CA8696 /* PeerMesh in Frameworks */ = {isa = PBXBuildFile; productRef = 19AC030F1784AB87FA73A139 /* PeerMesh */; };
 		F13CE9024ECE628456367787 /* WatchRemoteCameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4A366A5AE5F4A3714F28F2 /* WatchRemoteCameraController.swift */; };
 		F6DAD1852A77AE011FAF35B1 /* WatchSharedTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E655FAEBED183EB237F41DEA /* WatchSharedTypes.swift */; };
 		FADEC0DE0001000000000002 /* FrameCreditWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0001000000000001 /* FrameCreditWindow.swift */; };
@@ -439,6 +444,8 @@
 				A0C6EAACDA1985B1DD5E8EC0 /* WatchConnectivity.framework in Frameworks */,
 				ABE88EBB0583BA42617B496C /* Pods_RemoteShutter.framework in Frameworks */,
 				28DAF89E6644742C1F1E47E6 /* FlatBuffers in Frameworks */,
+				6A6CABFCEF39FA1EA8934047 /* MPCCompat in Frameworks */,
+				7D02D87D84E8B4BD8D8F321B /* PeerMesh in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -447,6 +454,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				7EEA33327E4D84592E5583F4 /* Pods_RemoteShutterTests.framework in Frameworks */,
+				C11AEDEA9241C3038E6F8449 /* MPCCompat in Frameworks */,
+				F051B0DF21EEC10044CA8696 /* PeerMesh in Frameworks */,
+				49FB88266866AB8A5BEF10A6 /* FlatBuffers in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -822,6 +832,8 @@
 			name = RemoteShutter;
 			packageProductDependencies = (
 				8C0454249B071E09F8788E2E /* FlatBuffers */,
+				6525F6CE651CB5D9401943FD /* MPCCompat */,
+				6B8522FCDD8E4B1F29B307A3 /* PeerMesh */,
 			);
 			productName = RemoteCam;
 			productReference = 85F118E5250ACBE100B73E48 /* RemoteShutter.app */;
@@ -842,6 +854,11 @@
 				069284311BE5BF5C00AF4678 /* PBXTargetDependency */,
 			);
 			name = RemoteShutterTests;
+			packageProductDependencies = (
+				38FEE0965522E228CDAC09E0 /* MPCCompat */,
+				19AC030F1784AB87FA73A139 /* PeerMesh */,
+				7E24B4EE724E54FA25C7EA3E /* FlatBuffers */,
+			);
 			productName = RemoteCamTests;
 			productReference = 85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -941,6 +958,7 @@
 			mainGroup = 06E1D4E91BB7699700E07321;
 			packageReferences = (
 				C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */,
+				72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "multipeer-connectivity" */,
 			);
 			productRefGroup = 06E1D4E91BB7699700E07321;
 			projectDirPath = "";
@@ -1009,10 +1027,12 @@
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-RemoteShutterWatch/Pods-RemoteShutterWatch-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/VideocallCodecs-watchOS/VideocallCodecs.framework",
+				"${BUILT_PRODUCTS_DIR}/FlatBuffers/FlatBuffers.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/VideocallCodecs.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FlatBuffers.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -1765,6 +1785,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "multipeer-connectivity" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../multipeer-connectivity";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -1777,6 +1804,31 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		19AC030F1784AB87FA73A139 /* PeerMesh */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "multipeer-connectivity" */;
+			productName = PeerMesh;
+		};
+		38FEE0965522E228CDAC09E0 /* MPCCompat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "multipeer-connectivity" */;
+			productName = MPCCompat;
+		};
+		6525F6CE651CB5D9401943FD /* MPCCompat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "multipeer-connectivity" */;
+			productName = MPCCompat;
+		};
+		6B8522FCDD8E4B1F29B307A3 /* PeerMesh */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "multipeer-connectivity" */;
+			productName = PeerMesh;
+		};
+		7E24B4EE724E54FA25C7EA3E /* FlatBuffers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */;
+			productName = FlatBuffers;
+		};
 		8C0454249B071E09F8788E2E /* FlatBuffers */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */;

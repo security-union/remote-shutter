@@ -11,7 +11,8 @@
 // swiftlint:disable file_length type_body_length
 
 import XCTest
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 
 @testable import RemoteShutter
 
@@ -98,7 +99,7 @@ class SessionCoordinatorTests: XCTestCase {
         harness.fakeMP.sentMessages.removeAll()
     }
 
-    private func sent<T>(_ type: T.Type) -> [(msg: Message, peers: [MCPeerID], mode: MCSessionSendDataMode)] {
+    private func sent<T>(_ type: T.Type) -> [(msg: Message, peers: [PeerID], mode: MultipeerSession.SendDataMode)] {
         harness.fakeMP.sentMessages.filter { $0.msg is T }
     }
 

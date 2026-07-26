@@ -7,7 +7,8 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 import UIKit
 import AVFoundation
 
@@ -195,7 +196,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
-        public let peerId: MCPeerID
+        public let peerId: PeerID
         public let fps: NSInteger
         public let camPosition: AVCaptureDevice.Position
         public let camOrientation: UIInterfaceOrientation
@@ -204,7 +205,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
         init(data: Data,
              sender: AnyObject?,
-             peerId: MCPeerID,
+             peerId: PeerID,
              fps: NSInteger,
              camPosition: AVCaptureDevice.Position,
              camOrientation: UIInterfaceOrientation,

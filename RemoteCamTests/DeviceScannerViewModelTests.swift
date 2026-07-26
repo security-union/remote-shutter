@@ -1,5 +1,6 @@
 import XCTest
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 @testable import RemoteShutter
 
 final class DeviceScannerViewModelTests: XCTestCase {
@@ -27,7 +28,7 @@ final class DeviceScannerViewModelTests: XCTestCase {
 
     func testAddPeer() {
         let vm = DeviceScannerViewModel()
-        let peer = MCPeerID(displayName: "TestDevice")
+        let peer = PeerID(displayName: "TestDevice")
 
         vm.addPeer(peer)
 
@@ -38,7 +39,7 @@ final class DeviceScannerViewModelTests: XCTestCase {
 
     func testAddDuplicatePeerIgnored() {
         let vm = DeviceScannerViewModel()
-        let peer = MCPeerID(displayName: "TestDevice")
+        let peer = PeerID(displayName: "TestDevice")
 
         vm.addPeer(peer)
         vm.addPeer(peer)
@@ -49,7 +50,7 @@ final class DeviceScannerViewModelTests: XCTestCase {
     func testAddPeerSetsSpeedRunScanning() {
         UserDefaults.standard.removeObject(forKey: speedRunKey)
         let vm = DeviceScannerViewModel()
-        let peer = MCPeerID(displayName: "TestDevice")
+        let peer = PeerID(displayName: "TestDevice")
 
         vm.addPeer(peer)
 
@@ -58,8 +59,8 @@ final class DeviceScannerViewModelTests: XCTestCase {
 
     func testRemovePeer() {
         let vm = DeviceScannerViewModel()
-        let peer1 = MCPeerID(displayName: "Device1")
-        let peer2 = MCPeerID(displayName: "Device2")
+        let peer1 = PeerID(displayName: "Device1")
+        let peer2 = PeerID(displayName: "Device2")
 
         vm.addPeer(peer1)
         vm.addPeer(peer2)
@@ -71,7 +72,7 @@ final class DeviceScannerViewModelTests: XCTestCase {
 
     func testRemoveNonExistentPeerNoOp() {
         let vm = DeviceScannerViewModel()
-        let peer = MCPeerID(displayName: "Ghost")
+        let peer = PeerID(displayName: "Ghost")
 
         vm.removePeer(peer)
 
@@ -80,8 +81,8 @@ final class DeviceScannerViewModelTests: XCTestCase {
 
     func testClearPeers() {
         let vm = DeviceScannerViewModel()
-        vm.addPeer(MCPeerID(displayName: "A"))
-        vm.addPeer(MCPeerID(displayName: "B"))
+        vm.addPeer(PeerID(displayName: "A"))
+        vm.addPeer(PeerID(displayName: "B"))
 
         vm.clearPeers()
 
@@ -93,7 +94,7 @@ final class DeviceScannerViewModelTests: XCTestCase {
 
     func testStartedScanning() {
         let vm = DeviceScannerViewModel()
-        vm.addPeer(MCPeerID(displayName: "OldPeer"))
+        vm.addPeer(PeerID(displayName: "OldPeer"))
 
         vm.startedScanning()
 
@@ -238,7 +239,7 @@ final class DeviceScannerViewModelTests: XCTestCase {
         XCTAssertFalse(vm.hasPeers)
 
         // Discover peer
-        let peer = MCPeerID(displayName: "FriendPhone")
+        let peer = PeerID(displayName: "FriendPhone")
         vm.addPeer(peer)
         XCTAssertTrue(vm.hasPeers)
 
@@ -281,27 +282,27 @@ final class DeviceScannerViewModelTests: XCTestCase {
         XCTAssertNotNil(image, "generateQRCode should handle empty string")
     }
 
-    // MARK: - MCPeerID Identity Tests
+    // MARK: - PeerID Identity Tests
 
     func testAddPeerWithSameDisplayNameDifferentInstances() {
         let vm = DeviceScannerViewModel()
-        let peer1 = MCPeerID(displayName: "SameName")
-        let peer2 = MCPeerID(displayName: "SameName")
+        let peer1 = PeerID(displayName: "SameName")
+        let peer2 = PeerID(displayName: "SameName")
 
         vm.addPeer(peer1)
         vm.addPeer(peer2)
 
-        // MCPeerID uses object identity, not display name equality.
-        // Two different MCPeerID instances with the same name are NOT equal.
+        // PeerID uses object identity, not display name equality.
+        // Two different PeerID instances with the same name are NOT equal.
         // This means the duplicate check in addPeer won't catch them.
         XCTAssertEqual(vm.connectedPeers.count, 2,
-            "Different MCPeerID instances with same displayName should both be added since MCPeerID uses object identity")
+            "Different PeerID instances with same displayName should both be added since PeerID uses object identity")
     }
 
     func testRemovePeerByIdentityNotDisplayName() {
         let vm = DeviceScannerViewModel()
-        let peer1 = MCPeerID(displayName: "SameName")
-        let peer2 = MCPeerID(displayName: "SameName")
+        let peer1 = PeerID(displayName: "SameName")
+        let peer2 = PeerID(displayName: "SameName")
 
         vm.addPeer(peer1)
         vm.addPeer(peer2)
@@ -316,7 +317,7 @@ final class DeviceScannerViewModelTests: XCTestCase {
 
     func testAddPeerTriggersPublishedUpdate() {
         let vm = DeviceScannerViewModel()
-        let peer = MCPeerID(displayName: "PubTest")
+        let peer = PeerID(displayName: "PubTest")
         let expectation = XCTestExpectation(description: "connectedPeers should publish change")
 
         let cancellable = vm.$connectedPeers
@@ -412,7 +413,7 @@ final class DeviceScannerViewModelTests: XCTestCase {
         XCTAssertFalse(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(5)))
         XCTAssertTrue(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(20)))
 
-        vm.addPeer(MCPeerID(displayName: "TestDevice"))
+        vm.addPeer(PeerID(displayName: "TestDevice"))
         XCTAssertFalse(vm.shouldShowWifiEscalation(now: start.addingTimeInterval(20)))
     }
 

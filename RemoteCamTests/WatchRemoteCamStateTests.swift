@@ -11,7 +11,8 @@
 import XCTest
 import UIKit
 import AVFoundation
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 
 @testable import RemoteShutter
 

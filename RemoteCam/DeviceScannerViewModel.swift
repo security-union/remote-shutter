@@ -1,11 +1,12 @@
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 
 final class DeviceScannerViewModel: ObservableObject {
 
     // MARK: - Published State
 
-    @Published var connectedPeers: [MCPeerID] = []
+    @Published var connectedPeers: [PeerID] = []
     @Published var isScanning: Bool = false
     @Published var hasLocalNetworkAccess: Bool = true
     @Published var hasScanningError: Bool = false
@@ -49,14 +50,14 @@ final class DeviceScannerViewModel: ObservableObject {
 
     // MARK: - Peer Management
 
-    func addPeer(_ peer: MCPeerID) {
+    func addPeer(_ peer: PeerID) {
         if !connectedPeers.contains(peer) {
             connectedPeers.append(peer)
         }
         speedRunScanning = true
     }
 
-    func removePeer(_ peer: MCPeerID) {
+    func removePeer(_ peer: PeerID) {
         connectedPeers.removeAll { $0 == peer }
     }
 

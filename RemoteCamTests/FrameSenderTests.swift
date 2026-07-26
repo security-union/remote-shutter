@@ -8,7 +8,8 @@
 //
 
 import XCTest
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 import UIKit
 
 @testable import RemoteShutter
@@ -16,14 +17,14 @@ import UIKit
 class FrameSenderTests: XCTestCase {
 
     private var frameSender: FrameSender!
-    private var peer: MCPeerID!
+    private var peer: PeerID!
     private var fakeMP: FakeMultipeerService!
 
     override func setUp() {
         super.setUp()
         frameSender = FrameSender()
 
-        peer = MCPeerID(displayName: "TestPeer")
+        peer = PeerID(displayName: "TestPeer")
         fakeMP = FakeMultipeerService()
         fakeMP.connectedPeers = [peer]
         fakeMP.sendResult = Success(Message())

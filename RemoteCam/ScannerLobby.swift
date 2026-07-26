@@ -6,7 +6,8 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 
 /// Everything `RemoteCamSession` needs from the device-scanner screen.
 ///
@@ -18,7 +19,7 @@ import MultipeerConnectivity
 /// hops; the production conformer is a main-actor view controller.
 protocol ScannerLobby: AnyObject, Sendable {
 
-    var peerID: MCPeerID { get }
+    var peerID: PeerID { get }
     var role: DeviceRole { get }
     var scannerViewModel: DeviceScannerViewModel { get }
 

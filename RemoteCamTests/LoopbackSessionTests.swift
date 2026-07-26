@@ -10,7 +10,8 @@
 //
 
 import XCTest
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 import AVFoundation
 import Combine
 
@@ -22,8 +23,8 @@ import Combine
 /// `MultipeerService`'s wire serialization and inbound dispatch exactly.
 class LoopbackMultipeerService: MultipeerServiceProtocol {
     weak var delegate: MultipeerServiceDelegate?
-    var session: MCSession!
-    let localPeerID: MCPeerID
+    var session: MultipeerSession!
+    let localPeerID: PeerID
     weak var remote: LoopbackMultipeerService?
     var progressCancellables = Set<AnyCancellable>()
 
@@ -43,10 +44,10 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
     }
 
     init(peerName: String) {
-        localPeerID = MCPeerID(displayName: peerName)
+        localPeerID = PeerID(displayName: peerName)
     }
 
-    var connectedPeers: [MCPeerID] {
+    var connectedPeers: [PeerID] {
         guard let remote else { return [] }
         return [remote.localPeerID]
     }
@@ -57,13 +58,13 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
     func stopAdvertisingAndBrowsing() {}
     func disconnect() {}
     func stopSession() {}
-    func invitePeer(_ peer: MCPeerID, timeout: TimeInterval) {}
+    func invitePeer(_ peer: PeerID, timeout: TimeInterval) {}
     func sendResource(at url: URL, withName name: String,
-                      toPeer peer: MCPeerID,
+                      toPeer peer: PeerID,
                       completion: @escaping (Error?) -> Void) -> Progress? { nil }
 
-    func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message> {
+    func send(_ msg: Message, to peers: [PeerID],
+              mode: MultipeerSession.SendDataMode) -> Try<Message> {
         // One lock acquisition: going through the computed property would read, append to
         // a copy, then write back, losing a concurrent append.
         sentMessagesStorage.mutate { $0.append(msg) }
@@ -95,7 +96,7 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
         return Success(msg)
     }
 
-    /// Severs the link and delivers the disconnect the way MCSessionDelegate would.
+    /// Severs the link and delivers the disconnect the way MultipeerSessionDelegate would.
     func simulateRemoteDisconnected() {
         guard let peer = remote?.localPeerID else { return }
         remote = nil

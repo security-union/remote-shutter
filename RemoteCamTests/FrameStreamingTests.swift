@@ -10,7 +10,8 @@
 
 import XCTest
 import CoreVideo
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 
 @testable import RemoteShutter
 
@@ -74,7 +75,7 @@ private func makeOnFrame(data: Data = Data([1]),
     RemoteCmd.OnFrame(
         data: data,
         sender: nil,
-        peerId: MCPeerID(displayName: "peer"),
+        peerId: PeerID(displayName: "peer"),
         fps: 30,
         camPosition: .back,
         camOrientation: .portrait,

@@ -8,12 +8,13 @@
 
 import UIKit
 import SwiftUI
-import MultipeerConnectivity
+import MPCCompat
+import PeerMesh
 import Network
 import dnssd
 
 // Bonjour service types must be 1–15 chars of lowercase ASCII letters,
-// digits and hyphens (MCNearbyServiceAdvertiser docs). DNS-SD compares
+// digits and hyphens (NearbyServiceAdvertiser docs). DNS-SD compares
 // labels case-insensitively, so this stays discoverable by older builds
 // that used "RemoteCam". Must match NSBonjourServices in Info.plist.
 let service: String = "remotecam"
@@ -61,7 +62,7 @@ public class DeviceScannerViewController: UIViewController {
 
     // MARK: - Peer ID
 
-    var peerID: MCPeerID = MCPeerID(displayName: "null")
+    var peerID: PeerID = PeerID(displayName: "null")
 
     private lazy var _peerIDInitialized: Bool = {
         initializePeerID()
@@ -71,21 +72,16 @@ public class DeviceScannerViewController: UIViewController {
     private func initializePeerID() {
         let currentDeviceName = UIDevice.current.name
 
+        // PeerID is Codable (PeerMesh), not NSCoding like MCPeerID was; the
+        // cache moved from NSKeyedArchiver to JSON. Stale MCPeerID archives
+        // fail to decode and are simply regenerated.
         if let data = UserDefaults.standard.data(forKey: userDefaultsPeerId),
-           let cachedPeerID = try? NSKeyedUnarchiver.unarchivedObject(ofClass: MCPeerID.self, from: data) {
-            if cachedPeerID.displayName == currentDeviceName {
-                self.peerID = cachedPeerID
-            } else {
-                let newPeerID = MCPeerID(displayName: currentDeviceName)
-                let newData = try? NSKeyedArchiver.archivedData(
-                      withRootObject: newPeerID, requiringSecureCoding: false)
-                UserDefaults.standard.set(newData, forKey: userDefaultsPeerId)
-                self.peerID = newPeerID
-            }
+           let cachedPeerID = try? JSONDecoder().decode(PeerID.self, from: data),
+           cachedPeerID.displayName == currentDeviceName {
+            self.peerID = cachedPeerID
         } else {
-            let peerID = MCPeerID(displayName: currentDeviceName)
-            let data = try? NSKeyedArchiver.archivedData(
-                  withRootObject: peerID, requiringSecureCoding: false)
+            let peerID = PeerID(displayName: currentDeviceName)
+            let data = try? JSONEncoder().encode(peerID)
             UserDefaults.standard.set(data, forKey: userDefaultsPeerId)
             self.peerID = peerID
         }
