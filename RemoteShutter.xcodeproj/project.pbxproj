@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		00A49421EF2070AD7E7D4BB5 /* LoopbackSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333D17BC86CE5F7AA48593A9 /* LoopbackSessionTests.swift */; };
+		FEEDFACE0000000000000001 /* PeerMeshLoopbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000002 /* PeerMeshLoopbackTests.swift */; };
 		060866BE2522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		060866BF2522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
 		060866C02522519B001B59FC /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 060866BD2522519B001B59FC /* Configuration.storekit */; };
@@ -334,6 +335,7 @@
 		2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		305D87D0EED76E6031FC1E07 /* CountdownTimerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CountdownTimerTests.swift; sourceTree = "<group>"; };
 		333D17BC86CE5F7AA48593A9 /* LoopbackSessionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoopbackSessionTests.swift; sourceTree = "<group>"; };
+		FEEDFACE0000000000000002 /* PeerMeshLoopbackTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PeerMeshLoopbackTests.swift; sourceTree = "<group>"; };
 		35D7D050D0AB3D3E4F07879D /* ScannerLobby.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScannerLobby.swift; sourceTree = "<group>"; };
 		36D2A99A351652C2D0C29B95 /* RemoteShutterWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RemoteShutterWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		381BB7BCEF561D22B0F194A6 /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
@@ -588,6 +590,7 @@
 				AA00020000000003 /* StoreManagerTests.swift */,
 				305D87D0EED76E6031FC1E07 /* CountdownTimerTests.swift */,
 				333D17BC86CE5F7AA48593A9 /* LoopbackSessionTests.swift */,
+				FEEDFACE0000000000000002 /* PeerMeshLoopbackTests.swift */,
 				47C3D2AB20DA09223CE0EF3D /* ControllerWiringTests.swift */,
 				58B23042ABDA0FD46696039B /* MonitorPresenterTests.swift */,
 				A342ACE91A767718D76C4C60 /* CaptureEngineTests.swift */,
@@ -1234,6 +1237,7 @@
 				AA00020000000004 /* StoreManagerTests.swift in Sources */,
 				47568AFE6BD007664267E717 /* CountdownTimerTests.swift in Sources */,
 				00A49421EF2070AD7E7D4BB5 /* LoopbackSessionTests.swift in Sources */,
+				FEEDFACE0000000000000001 /* PeerMeshLoopbackTests.swift in Sources */,
 				531BD3C020987337266B50EC /* ControllerWiringTests.swift in Sources */,
 				8FC594E5A315D918BE429895 /* MonitorPresenterTests.swift in Sources */,
 				E1660E880D768347CB5B3297 /* CaptureEngineTests.swift in Sources */,
