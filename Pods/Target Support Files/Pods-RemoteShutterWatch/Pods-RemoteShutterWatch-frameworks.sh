@@ -176,11 +176,9 @@ code_sign_if_enabled() {
 }
 
 if [[ "$CONFIGURATION" == "Debug" ]]; then
-  install_framework "${BUILT_PRODUCTS_DIR}/FlatBuffers-watchOS/FlatBuffers.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/VideocallCodecs-watchOS/VideocallCodecs.framework"
 fi
 if [[ "$CONFIGURATION" == "Release" ]]; then
-  install_framework "${BUILT_PRODUCTS_DIR}/FlatBuffers-watchOS/FlatBuffers.framework"
   install_framework "${BUILT_PRODUCTS_DIR}/VideocallCodecs-watchOS/VideocallCodecs.framework"
 fi
 if [ "${COCOAPODS_PARALLEL_CODE_SIGN}" == "true" ]; then

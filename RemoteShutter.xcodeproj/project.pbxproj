@@ -32,12 +32,9 @@
 		067327692E2E0293003E5F94 /* RemoteShutterHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067327682E2E0293003E5F94 /* RemoteShutterHelpView.swift */; };
 		067BEFCC2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */; };
 		0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */; };
-		FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */; };
 		0684A2E81BE7049800F0B238 /* beep.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E61BE7049800F0B238 /* beep.m4a */; };
 		0684A2EB1BE704C600F0B238 /* fastBeep.aif in Resources */ = {isa = PBXBuildFile; fileRef = 0684A2E91BE704C600F0B238 /* fastBeep.aif */; };
 		068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59A2E3544AD00A49279 /* MonitorView.swift */; };
-		0A11B22C33D44E55F6070002 /* ZoomScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070001 /* ZoomScale.swift */; };
-		0A11B22C33D44E55F6070004 /* ZoomPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070003 /* ZoomPill.swift */; };
 		068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */; };
 		068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */; };
 		0692841F1BE5BF5B00AF4678 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */; };
@@ -76,7 +73,11 @@
 		06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
 		06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
+		0A11B22C33D44E55F6070002 /* ZoomScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070001 /* ZoomScale.swift */; };
+		0A11B22C33D44E55F6070004 /* ZoomPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070003 /* ZoomPill.swift */; };
+		0A11B22C33D44E55F6070006 /* ZoomScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070005 /* ZoomScaleTests.swift */; };
 		1ECFC14E17A9A47D5951E80B /* WatchSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148A312CF1B445C71094EF0E /* WatchSessionManager.swift */; };
+		28DAF89E6644742C1F1E47E6 /* FlatBuffers in Frameworks */ = {isa = PBXBuildFile; productRef = 8C0454249B071E09F8788E2E /* FlatBuffers */; };
 		2D869319DCFDFEFF351153A4 /* WatchSessionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6BF3CD6986238A77C3A216 /* WatchSessionDelegate.swift */; };
 		2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */; };
 		2F485D44C59F540DB49140DD /* MonitorDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C65DE1A8EACAAA012BE9F840 /* MonitorDisplay.swift */; };
@@ -100,6 +101,7 @@
 		8F558AB2F4887617AF3E8FCD /* RemoteShutterWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatchApp.swift */; };
 		8FC594E5A315D918BE429895 /* MonitorPresenterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58B23042ABDA0FD46696039B /* MonitorPresenterTests.swift */; };
 		9667E6BB6F62D30AB6928304 /* CaptureEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */; };
+		974F23EBEA036746F559951A /* FlatBuffers in Frameworks */ = {isa = PBXBuildFile; productRef = 90C09E02C29D103918D5D107 /* FlatBuffers */; };
 		99F50887F138FD71CF957A08 /* CameraControlling.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A0B888B31311AE2BB5EB70 /* CameraControlling.swift */; };
 		A0C6EAACDA1985B1DD5E8EC0 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50951447985E618A5F3818CD /* WatchConnectivity.framework */; };
 		A31965B5A3A1F59F96002E63 /* RemoteShutterWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 36D2A99A351652C2D0C29B95 /* RemoteShutterWatch.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -130,7 +132,6 @@
 		AB12CD34EF5601789ABC0DF8 /* MonitorPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DF7 /* MonitorPresenter.swift */; };
 		AB12CD34EF5601789ABC0DFA /* Messages.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DF9 /* Messages.swift */; };
 		AB12CD34EF5601789ABC0DFC /* SessionTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DFB /* SessionTestSupport.swift */; };
-		0A11B22C33D44E55F6070006 /* ZoomScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070005 /* ZoomScaleTests.swift */; };
 		AB31E7ED97070E2109B89652 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		ABE88EBB0583BA42617B496C /* Pods_RemoteShutter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1E06F124E7E28CC7B25BDE83 /* Pods_RemoteShutter.framework */; };
 		AFE75F7F7AE0F1FBF334D385 /* FlatBufferSchemas_generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */; };
@@ -150,7 +151,6 @@
 		CADE5E1EC000000000000004 /* CameraDeviceSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000003 /* CameraDeviceSelectionTests.swift */; };
 		CADE5E1EC000000000000006 /* CaptureIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CADE5E1EC000000000000005 /* CaptureIntegrationTests.swift */; };
 		CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0001000000000001 /* CropRectTests.swift */; };
-		CAFEBABE00F0000000000002 /* FocusPointMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */; };
 		CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */; };
 		CAFEBABE0003000000000002 /* WatchSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0003000000000001 /* WatchSerializationTests.swift */; };
 		CAFEBABE0004000000000002 /* WatchRemoteCamStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0004000000000001 /* WatchRemoteCamStateTests.swift */; };
@@ -169,14 +169,15 @@
 		CAFEBABE000C000000000003 /* JPEGFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000C000000000001 /* JPEGFrameEncoder.swift */; };
 		CAFEBABE000D000000000002 /* HEICFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */; };
 		CAFEBABE000D000000000003 /* HEICFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */; };
-		CAFEBABE0010000000000002 /* VP9FrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */; };
-		CAFEBABE0099000000000002 /* HEVCFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */; };
-		CAFEBABE0011000000000002 /* WatchVP9PreviewDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0011000000000001 /* WatchVP9PreviewDecoder.swift */; };
-		CAFEBABE0012000000000002 /* VP9StreamingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0012000000000001 /* VP9StreamingTests.swift */; };
 		CAFEBABE000E000000000002 /* FrameStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000E000000000001 /* FrameStreamer.swift */; };
 		CAFEBABE000E000000000003 /* FrameStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000E000000000001 /* FrameStreamer.swift */; };
 		CAFEBABE000F000000000002 /* FrameStreamReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000F000000000001 /* FrameStreamReceiver.swift */; };
 		CAFEBABE000F000000000003 /* FrameStreamReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000F000000000001 /* FrameStreamReceiver.swift */; };
+		CAFEBABE0010000000000002 /* VP9FrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */; };
+		CAFEBABE0011000000000002 /* WatchVP9PreviewDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0011000000000001 /* WatchVP9PreviewDecoder.swift */; };
+		CAFEBABE0012000000000002 /* VP9StreamingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0012000000000001 /* VP9StreamingTests.swift */; };
+		CAFEBABE0099000000000002 /* HEVCFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */; };
+		CAFEBABE00F0000000000002 /* FocusPointMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */; };
 		CB5F78DFB9D567955BC863AF /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99FC5340BB98B2BD307FFA1A /* SoundManager.swift */; };
 		D2B94CD08C14086E035FBAA4 /* WatchCameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6816F7F01F22AF52E28D6518 /* WatchCameraViewModel.swift */; };
 		D808C297E991CF09EE2FC00C /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 381BB7BCEF561D22B0F194A6 /* WatchConnectivity.framework */; };
@@ -191,6 +192,7 @@
 		F6DAD1852A77AE011FAF35B1 /* WatchSharedTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E655FAEBED183EB237F41DEA /* WatchSharedTypes.swift */; };
 		FADEC0DE0001000000000002 /* FrameCreditWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0001000000000001 /* FrameCreditWindow.swift */; };
 		FADEC0DE0001000000000003 /* FrameCreditWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0001000000000001 /* FrameCreditWindow.swift */; };
+		FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -280,12 +282,9 @@
 		067327682E2E0293003E5F94 /* RemoteShutterHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteShutterHelpView.swift; sourceTree = "<group>"; };
 		067BEFCB2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNetworkPermissionView.swift; sourceTree = "<group>"; };
 		0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OrientationUtils.swift; sourceTree = "<group>"; };
-		FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FocusPointMapping.swift; sourceTree = "<group>"; };
 		0684A2E61BE7049800F0B238 /* beep.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = beep.m4a; sourceTree = "<group>"; };
 		0684A2E91BE704C600F0B238 /* fastBeep.aif */ = {isa = PBXFileReference; lastKnownFileType = file; path = fastBeep.aif; sourceTree = "<group>"; };
 		068DF59A2E3544AD00A49279 /* MonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorView.swift; sourceTree = "<group>"; };
-		0A11B22C33D44E55F6070001 /* ZoomScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomScale.swift; sourceTree = "<group>"; };
-		0A11B22C33D44E55F6070003 /* ZoomPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomPill.swift; sourceTree = "<group>"; };
 		068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MonitorViewController+SwiftUI.swift"; sourceTree = "<group>"; };
 		068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorViewModel.swift; sourceTree = "<group>"; };
 		0692841E1BE5BF5B00AF4678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -315,6 +314,9 @@
 		06E9653D2535754800E5A8B3 /* Data+MD5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+MD5.swift"; sourceTree = "<group>"; };
 		06EEA7DB1BBB87EE005787AE /* Starscream.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Starscream.framework; path = "Pods/../build/Debug-iphoneos/Starscream.framework"; sourceTree = "<group>"; };
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
+		0A11B22C33D44E55F6070001 /* ZoomScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomScale.swift; sourceTree = "<group>"; };
+		0A11B22C33D44E55F6070003 /* ZoomPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomPill.swift; sourceTree = "<group>"; };
+		0A11B22C33D44E55F6070005 /* ZoomScaleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZoomScaleTests.swift; sourceTree = "<group>"; };
 		0ACB2DA94752BB4E9C4CE461 /* CountdownTimer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CountdownTimer.swift; sourceTree = "<group>"; };
 		0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureEngine.swift; sourceTree = "<group>"; };
 		148A312CF1B445C71094EF0E /* WatchSessionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCam/WatchSessionManager.swift; sourceTree = SOURCE_ROOT; };
@@ -378,7 +380,6 @@
 		AB12CD34EF5601789ABC0DF7 /* MonitorPresenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MonitorPresenter.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DF9 /* Messages.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Messages.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DFB /* SessionTestSupport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SessionTestSupport.swift; sourceTree = "<group>"; };
-		0A11B22C33D44E55F6070005 /* ZoomScaleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZoomScaleTests.swift; sourceTree = "<group>"; };
 		B1C0DE0100000001 /* RolePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RolePickerView.swift; sourceTree = "<group>"; };
 		B1C0DE0200000001 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		B1C0DE0300000001 /* DeviceScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModel.swift; sourceTree = "<group>"; };
@@ -397,7 +398,6 @@
 		CADE5E1EC000000000000003 /* CameraDeviceSelectionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraDeviceSelectionTests.swift; sourceTree = "<group>"; };
 		CADE5E1EC000000000000005 /* CaptureIntegrationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureIntegrationTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0001000000000001 /* CropRectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropRectTests.swift; sourceTree = "<group>"; };
-		CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusPointMappingTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchCaptureCountdownTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0003000000000001 /* WatchSerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSerializationTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0004000000000001 /* WatchRemoteCamStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRemoteCamStateTests.swift; sourceTree = "<group>"; };
@@ -410,12 +410,13 @@
 		CAFEBABE000B000000000001 /* FrameCodecs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameCodecs.swift; sourceTree = "<group>"; };
 		CAFEBABE000C000000000001 /* JPEGFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JPEGFrameEncoder.swift; sourceTree = "<group>"; };
 		CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEICFrameEncoder.swift; sourceTree = "<group>"; };
-		CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9FrameEncoder.swift; sourceTree = "<group>"; };
-		CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEVCFrameEncoder.swift; sourceTree = "<group>"; };
-		CAFEBABE0011000000000001 /* WatchVP9PreviewDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchVP9PreviewDecoder.swift; sourceTree = "<group>"; };
-		CAFEBABE0012000000000001 /* VP9StreamingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9StreamingTests.swift; sourceTree = "<group>"; };
 		CAFEBABE000E000000000001 /* FrameStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStreamer.swift; sourceTree = "<group>"; };
 		CAFEBABE000F000000000001 /* FrameStreamReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStreamReceiver.swift; sourceTree = "<group>"; };
+		CAFEBABE0010000000000001 /* VP9FrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9FrameEncoder.swift; sourceTree = "<group>"; };
+		CAFEBABE0011000000000001 /* WatchVP9PreviewDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchVP9PreviewDecoder.swift; sourceTree = "<group>"; };
+		CAFEBABE0012000000000001 /* VP9StreamingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9StreamingTests.swift; sourceTree = "<group>"; };
+		CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEVCFrameEncoder.swift; sourceTree = "<group>"; };
+		CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusPointMappingTests.swift; sourceTree = "<group>"; };
 		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
 		D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/RemoteShutterWatchApp.swift; sourceTree = SOURCE_ROOT; };
 		D9C44C88664AD8685AFA3CDF /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
@@ -425,6 +426,7 @@
 		F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
 		F9F37D4A9FA8416A43EFEFF1 /* WatchControlView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/WatchControlView.swift; sourceTree = SOURCE_ROOT; };
 		FADEC0DE0001000000000001 /* FrameCreditWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameCreditWindow.swift; sourceTree = "<group>"; };
+		FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FocusPointMapping.swift; sourceTree = "<group>"; };
 		FCB0F6BA2086BF9BB4242D66 /* Pods_RemoteShutterWatch.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterWatch.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -436,6 +438,7 @@
 				065DE66C253A43BA0022193C /* AppTrackingTransparency.framework in Frameworks */,
 				A0C6EAACDA1985B1DD5E8EC0 /* WatchConnectivity.framework in Frameworks */,
 				ABE88EBB0583BA42617B496C /* Pods_RemoteShutter.framework in Frameworks */,
+				28DAF89E6644742C1F1E47E6 /* FlatBuffers in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -461,6 +464,7 @@
 				BD14D83BAC55CC029934B0ED /* Foundation.framework in Frameworks */,
 				D808C297E991CF09EE2FC00C /* WatchConnectivity.framework in Frameworks */,
 				67073A97D24E58ABE94F9EEE /* Pods_RemoteShutterWatch.framework in Frameworks */,
+				974F23EBEA036746F559951A /* FlatBuffers in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -816,6 +820,9 @@
 				F9BE2447CA8A8A4E4BC91CD6 /* PBXTargetDependency */,
 			);
 			name = RemoteShutter;
+			packageProductDependencies = (
+				8C0454249B071E09F8788E2E /* FlatBuffers */,
+			);
 			productName = RemoteCam;
 			productReference = 85F118E5250ACBE100B73E48 /* RemoteShutter.app */;
 			productType = "com.apple.product-type.application";
@@ -872,6 +879,9 @@
 			dependencies = (
 			);
 			name = RemoteShutterWatch;
+			packageProductDependencies = (
+				90C09E02C29D103918D5D107 /* FlatBuffers */,
+			);
 			productName = RemoteShutterWatch;
 			productReference = 36D2A99A351652C2D0C29B95 /* RemoteShutterWatch.app */;
 			productType = "com.apple.product-type.application";
@@ -929,6 +939,9 @@
 				tr,
 			);
 			mainGroup = 06E1D4E91BB7699700E07321;
+			packageReferences = (
+				C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */,
+			);
 			productRefGroup = 06E1D4E91BB7699700E07321;
 			projectDirPath = "";
 			projectRoot = "";
@@ -995,12 +1008,10 @@
 			);
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-RemoteShutterWatch/Pods-RemoteShutterWatch-frameworks.sh",
-				"${BUILT_PRODUCTS_DIR}/FlatBuffers-watchOS/FlatBuffers.framework",
 				"${BUILT_PRODUCTS_DIR}/VideocallCodecs-watchOS/VideocallCodecs.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FlatBuffers.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/VideocallCodecs.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1059,12 +1070,10 @@
 			);
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter-frameworks.sh",
-				"${BUILT_PRODUCTS_DIR}/FlatBuffers-iOS/FlatBuffers.framework",
 				"${BUILT_PRODUCTS_DIR}/VideocallCodecs-iOS/VideocallCodecs.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FlatBuffers.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/VideocallCodecs.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1755,6 +1764,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/flatbuffers.git";
+			requirement = {
+				kind = exactVersion;
+				version = 25.2.10;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8C0454249B071E09F8788E2E /* FlatBuffers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */;
+			productName = FlatBuffers;
+		};
+		90C09E02C29D103918D5D107 /* FlatBuffers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */;
+			productName = FlatBuffers;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 06E1D4EA1BB7699700E07321 /* Project object */;
 }

@@ -1,10 +1,8 @@
 PODS:
-  - FlatBuffers (25.2.10)
   - SwiftLint (0.41.0)
   - VideocallCodecs (0.1.0)
 
 DEPENDENCIES:
-  - FlatBuffers (from `LocalPodspecs/FlatBuffers.podspec.json`)
   - SwiftLint (~> 0.41.0)
   - VideocallCodecs (from `Vendor/VideocallCodecs`)
 
@@ -13,21 +11,13 @@ SPEC REPOS:
     - SwiftLint
 
 EXTERNAL SOURCES:
-  FlatBuffers:
-    :podspec: LocalPodspecs/FlatBuffers.podspec.json
   VideocallCodecs:
     :path: Vendor/VideocallCodecs
 
-CHECKOUT OPTIONS:
-  FlatBuffers:
-    :git: https://github.com/google/flatbuffers.git
-    :tag: v25.2.10
-
 SPEC CHECKSUMS:
-  FlatBuffers: ea82f0a02f6de2e7b83bf1714bef546cf582254d
   SwiftLint: c585ebd615d9520d7fbdbe151f527977b0534f1e
   VideocallCodecs: ba4d698778acce1a12e3b25e4bec16b93b818917
 
-PODFILE CHECKSUM: 286313513d5f113cc14b3f2e923d761c8665921d
+PODFILE CHECKSUM: 52af31e12a2683d601eaac64f1bd9c36daa386a3
 
 COCOAPODS: 1.16.2

@@ -8,7 +8,7 @@ use_frameworks!
 
 target 'RemoteShutter' do
     pod 'SwiftLint', '~> 0.41.0'
-    pod 'FlatBuffers', :podspec => 'LocalPodspecs/FlatBuffers.podspec.json'
+    # FlatBuffers comes from SwiftPM (google/flatbuffers, exact 25.2.10).
     pod 'VideocallCodecs', :path => 'Vendor/VideocallCodecs'
 
     target 'RemoteShutterTests' do
@@ -18,7 +18,7 @@ end
 
 target 'RemoteShutterWatch' do
     platform :watchos, '10.0'
-    pod 'FlatBuffers', :podspec => 'LocalPodspecs/FlatBuffers.podspec.json'
+    # FlatBuffers comes from SwiftPM (google/flatbuffers, exact 25.2.10).
     pod 'VideocallCodecs', :path => 'Vendor/VideocallCodecs'
 end
 
