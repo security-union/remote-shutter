@@ -78,14 +78,28 @@ final class PeerMeshLoopbackTests: XCTestCase {
     /// reach connected; the monitor sends a `RemoteCmd.SetZoom` through the real
     /// FlatBuffers path and the camera side receives and decodes it.
     func testRealServicesExchangeRemoteCmdOverQUIC() throws {
+        // Same-machine self-dials fail with peer-to-peer Wi-Fi enabled (a
+        // documented Network.framework behavior, not an app concern) — opt out
+        // for the in-process pair. Must be set before any service starts.
+        setenv("PEERMESH_NO_P2P", "1", 1)
+        setenv("QUIC_DEBUG", "1", 1)
+
         // The default compat transport is QUIC, which needs a local TLS identity.
-        // A bare simulator test process may lack the keychain route to form one;
-        // skip cleanly when it does (mirrors PeerMesh's own QUIC-suite gating).
         let probe = PeerIdentity(name: "peermesh-loopback-tls-probe")
+        let tlsDiagnostic = QUICTransport.tlsIdentityDiagnostic(for: probe)
+        #if targetEnvironment(macCatalyst)
+        // Catalyst host has the keychain-access-groups entitlement: identity
+        // MUST form here. A failure is a real regression, never an
+        // environment excuse — this exact gap shipped a broken Mac build once.
+        XCTAssertEqual(tlsDiagnostic, "OK",
+                       "TLS identity must form in the entitled Catalyst host")
+        #else
+        // A bare simulator test process may lack a keychain route; skip cleanly.
         try XCTSkipUnless(
-            QUICTransport.isTLSIdentityAvailable(for: probe),
-            "QUIC TLS identity unavailable: \(QUICTransport.tlsIdentityDiagnostic(for: probe)); "
+            tlsDiagnostic == "OK",
+            "QUIC TLS identity unavailable: \(tlsDiagnostic); "
                 + "skipping real-transport loopback.")
+        #endif
 
         let cameraPeerID = PeerID(displayName: "PeerMeshLoopbackCamera")
         let monitorPeerID = PeerID(displayName: "PeerMeshLoopbackMonitor")

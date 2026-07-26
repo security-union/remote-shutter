@@ -133,7 +133,7 @@ class MultipeerService: NSObject, MultipeerSessionDelegate,
         session?.delegate = nil
     }
 
-    func invitePeer(_ peer: PeerID, timeout: TimeInterval = 10) {
+    func invitePeer(_ peer: PeerID, timeout: TimeInterval = 30) {
         rebuildSessionIfIdle()
         browser.invitePeer(peer, to: session, withContext: nil, timeout: timeout)
     }
