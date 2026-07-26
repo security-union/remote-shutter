@@ -84,7 +84,7 @@ final class PeerMeshLoopbackTests: XCTestCase {
         let probe = PeerIdentity(name: "peermesh-loopback-tls-probe")
         try XCTSkipUnless(
             QUICTransport.isTLSIdentityAvailable(for: probe),
-            "QUIC TLS identity unavailable in this test process (simulator/keychain); "
+            "QUIC TLS identity unavailable: \(QUICTransport.tlsIdentityDiagnostic(for: probe)); "
                 + "skipping real-transport loopback.")
 
         let cameraPeerID = PeerID(displayName: "PeerMeshLoopbackCamera")
