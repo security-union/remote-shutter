@@ -9,7 +9,7 @@ struct DeviceScannerView: View {
 
     let onStartScanning: () -> Void
     let onStopScanning: () -> Void
-    let onSelectPeer: (PeerID) -> Void
+    let onSelectPeer: (MCPeerID) -> Void
     let onCancelConnect: () -> Void
     let onShareApp: () -> Void
     let onOpenSettings: () -> Void

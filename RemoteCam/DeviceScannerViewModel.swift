@@ -6,7 +6,7 @@ final class DeviceScannerViewModel: ObservableObject {
 
     // MARK: - Published State
 
-    @Published var connectedPeers: [PeerID] = []
+    @Published var connectedPeers: [MCPeerID] = []
     @Published var isScanning: Bool = false
     @Published var hasLocalNetworkAccess: Bool = true
     @Published var hasScanningError: Bool = false
@@ -50,14 +50,14 @@ final class DeviceScannerViewModel: ObservableObject {
 
     // MARK: - Peer Management
 
-    func addPeer(_ peer: PeerID) {
+    func addPeer(_ peer: MCPeerID) {
         if !connectedPeers.contains(peer) {
             connectedPeers.append(peer)
         }
         speedRunScanning = true
     }
 
-    func removePeer(_ peer: PeerID) {
+    func removePeer(_ peer: MCPeerID) {
         connectedPeers.removeAll { $0 == peer }
     }
 

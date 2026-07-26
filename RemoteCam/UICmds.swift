@@ -445,10 +445,10 @@ public class UICmd {
     
     @objc(_TtCC10ActorsDemo5UICmd17SendVideoResource)public class SendVideoResource: Message, NSCoding, @unchecked Sendable {
         public let videoURL: URL
-        public let peers: [PeerID]
+        public let peers: [MCPeerID]
         public let shouldSendToPeer: Bool
         
-        public init(videoURL: URL, peers: [PeerID], shouldSendToPeer: Bool, sender: AnyObject?) {
+        public init(videoURL: URL, peers: [MCPeerID], shouldSendToPeer: Bool, sender: AnyObject?) {
             self.videoURL = videoURL
             self.peers = peers
             self.shouldSendToPeer = shouldSendToPeer
@@ -463,7 +463,7 @@ public class UICmd {
         
         public required init?(coder aDecoder: NSCoder) {
             self.videoURL = aDecoder.decodeObject(forKey: "videoURL") as! URL
-            self.peers = aDecoder.decodeObject(forKey: "peers") as! [PeerID]
+            self.peers = aDecoder.decodeObject(forKey: "peers") as! [MCPeerID]
             self.shouldSendToPeer = aDecoder.decodeBool(forKey: "shouldSendToPeer")
             super.init(sender: nil)
         }
@@ -559,18 +559,18 @@ public class UICmd {
     // MARK: - Browser Events
 
     public class BrowserFoundPeer: Message, @unchecked Sendable {
-        public let peer: PeerID
+        public let peer: MCPeerID
 
-        public init(peer: PeerID) {
+        public init(peer: MCPeerID) {
             self.peer = peer
             super.init(sender: nil)
         }
     }
 
     public class BrowserLostPeer: Message, @unchecked Sendable {
-        public let peer: PeerID
+        public let peer: MCPeerID
 
-        public init(peer: PeerID) {
+        public init(peer: MCPeerID) {
             self.peer = peer
             super.init(sender: nil)
         }

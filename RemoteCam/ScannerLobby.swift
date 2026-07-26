@@ -19,7 +19,7 @@ import PeerMesh
 /// hops; the production conformer is a main-actor view controller.
 protocol ScannerLobby: AnyObject, Sendable {
 
-    var peerID: PeerID { get }
+    var peerID: MCPeerID { get }
     var role: DeviceRole { get }
     var scannerViewModel: DeviceScannerViewModel { get }
 

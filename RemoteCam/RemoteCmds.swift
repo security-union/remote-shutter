@@ -196,7 +196,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
-        public let peerId: PeerID
+        public let peerId: MCPeerID
         public let fps: NSInteger
         public let camPosition: AVCaptureDevice.Position
         public let camOrientation: UIInterfaceOrientation
@@ -205,7 +205,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
         init(data: Data,
              sender: AnyObject?,
-             peerId: PeerID,
+             peerId: MCPeerID,
              fps: NSInteger,
              camPosition: AVCaptureDevice.Position,
              camOrientation: UIInterfaceOrientation,

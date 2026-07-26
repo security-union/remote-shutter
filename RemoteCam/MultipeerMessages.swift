@@ -21,27 +21,27 @@ public class Disconnect: Message, @unchecked Sendable {
 }
 
 public class ConnectToDevice: Message, @unchecked Sendable {
-    public let peer: PeerID
+    public let peer: MCPeerID
 
-    public init(peer: PeerID, sender: AnyObject?) {
+    public init(peer: MCPeerID, sender: AnyObject?) {
         self.peer = peer
         super.init(sender: sender)
     }
 }
 
 public class DisconnectPeer: Message, @unchecked Sendable {
-    public let peer: PeerID?
+    public let peer: MCPeerID?
 
-    public init(peer: PeerID?, sender: AnyObject?) {
+    public init(peer: MCPeerID?, sender: AnyObject?) {
         self.peer = peer
         super.init(sender: sender)
     }
 }
 
 public class OnConnectToDevice: Message, @unchecked Sendable {
-    public let peer: PeerID
+    public let peer: MCPeerID
 
-    public init(peer: PeerID, sender: AnyObject?) {
+    public init(peer: MCPeerID, sender: AnyObject?) {
         self.peer = peer
         super.init(sender: sender)
     }

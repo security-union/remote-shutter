@@ -75,7 +75,7 @@ private func makeOnFrame(data: Data = Data([1]),
     RemoteCmd.OnFrame(
         data: data,
         sender: nil,
-        peerId: PeerID(displayName: "peer"),
+        peerId: MCPeerID(displayName: "peer"),
         fps: 30,
         camPosition: .back,
         camOrientation: .portrait,

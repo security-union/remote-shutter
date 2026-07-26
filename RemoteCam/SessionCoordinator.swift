@@ -168,7 +168,7 @@ public actor SessionCoordinator {
     private(set) var state: SessionState = .waitingForLobby
 
     private var lobby: WeakScannerLobby?
-    private var peer: PeerID?
+    private var peer: MCPeerID?
     private var ctrl: CameraControlling?
     private var monitor: MonitorPresenter?
 
@@ -207,7 +207,7 @@ public actor SessionCoordinator {
     /// Test support: place the machine directly into a state with context.
     func seed(state: SessionState,
               lobby: WeakScannerLobby? = nil,
-              peer: PeerID? = nil,
+              peer: MCPeerID? = nil,
               ctrl: CameraControlling? = nil,
               monitor: MonitorPresenter? = nil) {
         self.state = state
@@ -253,7 +253,7 @@ public actor SessionCoordinator {
     var frameSender: FrameSender? { frameSenderShared.value }
     nonisolated func setFrameSender(_ sender: FrameSender?) { frameSenderShared.value = sender }
 
-    var connectedPeers: [PeerID] { multipeerService?.connectedPeers ?? [] }
+    var connectedPeers: [MCPeerID] { multipeerService?.connectedPeers ?? [] }
 
     private func unableToProcessError(_ msg: Message) async -> NSError {
         let deviceName = await MainActor.run { UIDevice.current.name }
@@ -262,7 +262,7 @@ public actor SessionCoordinator {
     }
 
     @discardableResult
-    func sendMessage(_ msg: Message, mode: MultipeerSession.SendDataMode = .reliable) -> Bool {
+    func sendMessage(_ msg: Message, mode: MCSessionSendDataMode = .reliable) -> Bool {
         guard let multipeerService else {
             // Watch Remote mode never starts a multipeer session.
             return false
@@ -272,7 +272,7 @@ public actor SessionCoordinator {
 
     /// Send, or pop to scanning with a connection-error alert on failure —
     /// the old `sendCommandOrGoToScanning`.
-    func sendOrGoToScanning(_ msg: Message, mode: MultipeerSession.SendDataMode = .reliable) async {
+    func sendOrGoToScanning(_ msg: Message, mode: MCSessionSendDataMode = .reliable) async {
         guard multipeerService != nil else {
             // Watch Remote mode: there is no peer and no scanning state to fall back to.
             debugLog("sendOrGoToScanning: no multipeer session, dropping \(type(of: msg))")
@@ -295,7 +295,7 @@ public actor SessionCoordinator {
     /// disconnect. One automatic retry rides the AWDL link the first attempt
     /// already warmed up — off-network, link bring-up alone can eat most of
     /// the first invite's timeout.
-    private var pendingConnect: (peer: PeerID, attempt: Int)?
+    private var pendingConnect: (peer: MCPeerID, attempt: Int)?
     private let inviteTimeout: TimeInterval = 20
     private let maxConnectAttempts = 2
 
@@ -2054,7 +2054,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
         frameSenderShared.value?.receiveAck(request)
     }
 
-    public nonisolated func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: PeerID) {
+    public nonisolated func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID) {
         tell(RemoteCmd.OnFrame(data: frame.data,
             sender: nil,
             peerId: peer,
@@ -2065,7 +2065,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
             sequenceNumber: frame.sequenceNumber))
     }
 
-    public nonisolated func peerDidConnect(_ peer: PeerID) {
+    public nonisolated func peerDidConnect(_ peer: MCPeerID) {
         // Warm MultipeerConnectivity's unreliable datagram channel: it
         // negotiates lazily on first use (~10s) and silently drops sends
         // until ready ("giving up for participant" in the MC logs). One
@@ -2079,7 +2079,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
         tell(OnConnectToDevice(peer: peer, sender: nil))
     }
 
-    public nonisolated func peerDidDisconnect(_ peer: PeerID) {
+    public nonisolated func peerDidDisconnect(_ peer: MCPeerID) {
         tell(DisconnectPeer(peer: peer, sender: nil))
     }
 
@@ -2089,11 +2089,11 @@ extension SessionCoordinator: MultipeerServiceDelegate {
         tell(IncompatibilityDetected())
     }
 
-    public nonisolated func browserDidFindPeer(_ peer: PeerID) {
+    public nonisolated func browserDidFindPeer(_ peer: MCPeerID) {
         tell(UICmd.BrowserFoundPeer(peer: peer))
     }
 
-    public nonisolated func browserDidLosePeer(_ peer: PeerID) {
+    public nonisolated func browserDidLosePeer(_ peer: MCPeerID) {
         tell(UICmd.BrowserLostPeer(peer: peer))
     }
 

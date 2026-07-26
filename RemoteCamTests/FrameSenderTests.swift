@@ -17,14 +17,14 @@ import UIKit
 class FrameSenderTests: XCTestCase {
 
     private var frameSender: FrameSender!
-    private var peer: PeerID!
+    private var peer: MCPeerID!
     private var fakeMP: FakeMultipeerService!
 
     override func setUp() {
         super.setUp()
         frameSender = FrameSender()
 
-        peer = PeerID(displayName: "TestPeer")
+        peer = MCPeerID(displayName: "TestPeer")
         fakeMP = FakeMultipeerService()
         fakeMP.connectedPeers = [peer]
         fakeMP.sendResult = Success(Message())
