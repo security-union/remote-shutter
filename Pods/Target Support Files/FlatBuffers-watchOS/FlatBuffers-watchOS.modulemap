@@ -1,6 +1,0 @@
-framework module FlatBuffers {
-  umbrella header "FlatBuffers-watchOS-umbrella.h"
-
-  export *
-  module * { export * }
-}
