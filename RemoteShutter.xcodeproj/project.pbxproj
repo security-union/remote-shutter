@@ -454,9 +454,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				7EEA33327E4D84592E5583F4 /* Pods_RemoteShutterTests.framework in Frameworks */,
-				C11AEDEA9241C3038E6F8449 /* MPCCompat in Frameworks */,
-				F051B0DF21EEC10044CA8696 /* PeerMesh in Frameworks */,
-				49FB88266866AB8A5BEF10A6 /* FlatBuffers in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -854,11 +851,6 @@
 				069284311BE5BF5C00AF4678 /* PBXTargetDependency */,
 			);
 			name = RemoteShutterTests;
-			packageProductDependencies = (
-				38FEE0965522E228CDAC09E0 /* MPCCompat */,
-				19AC030F1784AB87FA73A139 /* PeerMesh */,
-				7E24B4EE724E54FA25C7EA3E /* FlatBuffers */,
-			);
 			productName = RemoteCamTests;
 			productReference = 85F11912250ACDAD00B73E48 /* RemoteShutterTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
