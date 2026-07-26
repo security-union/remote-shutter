@@ -14,7 +14,7 @@ import UIKit
 
 // MARK: - FlatBuffer serialization for MultipeerService
 
-/// Serializes any RemoteCmd message to FlatBuffers Data for sending over MultipeerConnectivity.
+/// Serializes any RemoteCmd message to FlatBuffers Data for sending to the remote peer.
 /// Used by MultipeerService.send() as the single encode entry point.
 func serializeToFlatBuffer(_ msg: Message) -> Data? {
     switch msg {

@@ -76,7 +76,7 @@ struct StreamingConfig {
     var jpegQuality: CGFloat = 0.6
 
     /// VP9 tuning for the phone-monitor (peer) preview at 960 px
-    /// preview over MultipeerConnectivity without queue growth.
+    /// preview over the peer connection without queue growth.
     var peerVP9 = VP9Settings(
         bitrateKbps: 1000,
         fps: 30,

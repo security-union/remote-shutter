@@ -2066,7 +2066,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
     }
 
     public nonisolated func peerDidConnect(_ peer: MCPeerID) {
-        // Warm MultipeerConnectivity's unreliable datagram channel: it
+        // Warm the transport's unreliable datagram channel: it
         // negotiates lazily on first use (~10s) and silently drops sends
         // until ready ("giving up for participant" in the MC logs). One
         // no-op ping here starts that clock at connect, so negotiation

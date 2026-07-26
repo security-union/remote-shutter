@@ -28,7 +28,7 @@ final class FrameStreamingCoordinator: NSObject {
     /// Reads the VC's orientation. Called on the capture queue — the same
     /// cross-thread property read this code did before the extraction.
     private let orientationProvider: () -> UIInterfaceOrientation
-    /// True when the Apple Watch is the remote (no MultipeerConnectivity peer).
+    /// True when the Apple Watch is the remote (no connected remote peer).
     private let isWatchRemoteMode: () -> Bool
     /// The credit window has room — the lazy back-pressure gate for VP9.
     private let frameCreditAvailable: () -> Bool
@@ -141,7 +141,7 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
     func sendFrameToMonitor(_ captureOutput: AVCaptureOutput,
                             didOutput sampleBuffer: CMSampleBuffer,
                             from connection: AVCaptureConnection) {
-        // Watch Remote mode has no MultipeerConnectivity peer — the iPhone is the camera
+        // Watch Remote mode has no connected remote peer — the iPhone is the camera
         // and the only consumer is the Apple Watch. The streamer applies ack back-pressure
         // and only invokes the encode when it's actually ready to send.
         if isWatchRemoteMode() {
