@@ -1,17 +1,17 @@
 //
-//  PeerMeshLoopbackTests.swift
+//  StormoLoopbackTests.swift
 //  RemoteShutterTests
 //
 //  End-to-end loopback test that stands up the app's REAL MultipeerService
 //  twice in-process — a camera-side service that advertises and a monitor-side
 //  service that browses, each with a distinct PeerID — and drives them through
 //  the compat layer's default transport path (QUICTransport). It proves the
-//  app's own service layer works against PeerMesh end to end: discovery,
+//  app's own service layer works against Stormo end to end: discovery,
 //  invitation, connection, and a RemoteCmd round trip over the real FlatBuffers
 //  wire path.
 //
 //  Unlike LoopbackSessionTests (which uses an in-process fake transport), this
-//  exercises the genuine PeerMesh transport. The compat layer exposes no public
+//  exercises the genuine Stormo transport. The compat layer exposes no public
 //  seam to inject InMemoryTransport, so this runs over real QUIC. On a bare
 //  simulator test process a TLS identity may be unavailable (no keychain
 //  entitlement) and Bonjour discovery may not form; in those cases the test
@@ -20,12 +20,12 @@
 
 import XCTest
 import MPCCompat
-import PeerMesh
+import Stormo
 import Combine
 
 @testable import RemoteShutter
 
-final class PeerMeshLoopbackTests: XCTestCase {
+final class StormoLoopbackTests: XCTestCase {
 
     /// Records the MultipeerService delegate callbacks this test waits on.
     /// Callbacks arrive on the compat layer's serial delegate queue, so the
@@ -81,11 +81,11 @@ final class PeerMeshLoopbackTests: XCTestCase {
         // Same-machine self-dials fail with peer-to-peer Wi-Fi enabled (a
         // documented Network.framework behavior, not an app concern) — opt out
         // for the in-process pair. Must be set before any service starts.
-        setenv("PEERMESH_NO_P2P", "1", 1)
+        setenv("STORMO_NO_P2P", "1", 1)
         setenv("QUIC_DEBUG", "1", 1)
 
         // The default compat transport is QUIC, which needs a local TLS identity.
-        let probe = PeerIdentity(name: "peermesh-loopback-tls-probe")
+        let probe = PeerIdentity(name: "stormo-loopback-tls-probe")
         let tlsDiagnostic = QUICTransport.tlsIdentityDiagnostic(for: probe)
         #if targetEnvironment(macCatalyst)
         // Catalyst host has the keychain-access-groups entitlement: identity
@@ -101,8 +101,8 @@ final class PeerMeshLoopbackTests: XCTestCase {
                 + "skipping real-transport loopback.")
         #endif
 
-        let cameraPeerID = PeerID(displayName: "PeerMeshLoopbackCamera")
-        let monitorPeerID = PeerID(displayName: "PeerMeshLoopbackMonitor")
+        let cameraPeerID = PeerID(displayName: "StormoLoopbackCamera")
+        let monitorPeerID = PeerID(displayName: "StormoLoopbackMonitor")
 
         let camera = MultipeerService(peerID: cameraPeerID)
         let monitor = MultipeerService(peerID: monitorPeerID)
@@ -148,7 +148,7 @@ final class PeerMeshLoopbackTests: XCTestCase {
         // A receives and decodes it.
         let delivery = XCTWaiter().wait(for: [cameraProbe.messageReceived], timeout: 10)
         XCTAssertEqual(delivery, .completed,
-                       "the camera side must receive the RemoteCmd over PeerMesh")
+                       "the camera side must receive the RemoteCmd over Stormo")
 
         let zoom = cameraProbe.receivedMessages.compactMap { $0 as? RemoteCmd.SetZoom }.first
         XCTAssertNotNil(zoom, "the received message must decode as RemoteCmd.SetZoom")

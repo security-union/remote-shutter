@@ -1,6 +1,6 @@
 import SwiftUI
 import MPCCompat
-import PeerMesh
+import Stormo
 
 private let qrCodeImage: UIImage? = generateQRCode(remoteShutterUrl)
 

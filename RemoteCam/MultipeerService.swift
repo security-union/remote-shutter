@@ -7,7 +7,7 @@
 
 import Foundation
 import MPCCompat
-import PeerMesh
+import Stormo
 import Combine
 
 protocol MultipeerServiceDelegate: AnyObject {

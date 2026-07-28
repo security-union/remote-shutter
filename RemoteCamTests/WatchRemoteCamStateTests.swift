@@ -12,7 +12,7 @@ import XCTest
 import UIKit
 import AVFoundation
 import MPCCompat
-import PeerMesh
+import Stormo
 
 @testable import RemoteShutter
 

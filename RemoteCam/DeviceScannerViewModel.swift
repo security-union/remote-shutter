@@ -1,6 +1,6 @@
 import Foundation
 import MPCCompat
-import PeerMesh
+import Stormo
 
 final class DeviceScannerViewModel: ObservableObject {
 

@@ -7,7 +7,7 @@
 
 import Foundation
 import MPCCompat
-import PeerMesh
+import Stormo
 
 /// Everything `RemoteCamSession` needs from the device-scanner screen.
 ///

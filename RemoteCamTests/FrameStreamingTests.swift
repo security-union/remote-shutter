@@ -11,7 +11,7 @@
 import XCTest
 import CoreVideo
 import MPCCompat
-import PeerMesh
+import Stormo
 
 @testable import RemoteShutter
 

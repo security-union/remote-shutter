@@ -9,7 +9,7 @@
 import UIKit
 import SwiftUI
 import MPCCompat
-import PeerMesh
+import Stormo
 import Network
 import dnssd
 
@@ -72,7 +72,7 @@ public class DeviceScannerViewController: UIViewController {
     private func initializePeerID() {
         let currentDeviceName = UIDevice.current.name
 
-        // The PeerMesh-backed MCPeerID is Codable, not NSCoding like the real
+        // The Stormo-backed MCPeerID is Codable, not NSCoding like the real
         // MCPeerID was; the cache moved from NSKeyedArchiver to JSON. Stale
         // MPC-era archives fail to decode and are simply regenerated.
         if let data = UserDefaults.standard.data(forKey: userDefaultsPeerId),

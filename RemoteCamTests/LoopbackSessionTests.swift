@@ -11,7 +11,7 @@
 
 import XCTest
 import MPCCompat
-import PeerMesh
+import Stormo
 import AVFoundation
 import Combine
 

@@ -8,7 +8,7 @@
 
 import Foundation
 import MPCCompat
-import PeerMesh
+import Stormo
 import UIKit
 
 /// Failed to push a frame to the peer — the session pops to scanning with a

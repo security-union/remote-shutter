@@ -3,17 +3,17 @@
 //  RemoteShutter
 //
 //  Thin-diff migration shim: the app keeps MultipeerConnectivity's type names
-//  while the implementations come from PeerMesh's MPCCompat. This file is the
+//  while the implementations come from Stormo's MPCCompat. This file is the
 //  entire mapping — app code is otherwise unchanged from the MPC era, except
 //  imports and the peer-ID cache (PeerID is Codable, not NSCoding).
 //
-//  PeerMesh deliberately does not publish MC-prefixed names; the aliases are
+//  Stormo deliberately does not publish MC-prefixed names; the aliases are
 //  app-local. Behavioral deltas vs real MPC are documented on MultipeerSession
 //  in MPCCompat (always-encrypted, no 8-peer cap, key-derived peer IDs).
 //
 
 import MPCCompat
-import PeerMesh
+import Stormo
 
 public typealias MCPeerID = PeerID
 public typealias MCSession = MultipeerSession
