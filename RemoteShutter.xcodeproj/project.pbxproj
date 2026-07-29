@@ -953,7 +953,7 @@
 			mainGroup = 06E1D4E91BB7699700E07321;
 			packageReferences = (
 				C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */,
-				72565EF424F9D7BBFAF363C0 /* XCRemoteSwiftPackageReference "Stormo" */,
+				72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "../multipeer-connectivity" */,
 			);
 			productRefGroup = 06E1D4E91BB7699700E07321;
 			projectDirPath = "";
@@ -1782,15 +1782,18 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		72565EF424F9D7BBFAF363C0 /* XCRemoteSwiftPackageReference "Stormo" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/security-union/Stormo.git";
-			requirement = {
-				kind = exactVersion;
-				version = 2.0.0;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		/* TEMP local-integration override: Stormo normally comes from the GitHub
+		   package — repositoryURL "https://github.com/security-union/Stormo.git",
+		   kind exactVersion, version 2.0.0 (XCRemoteSwiftPackageReference, same
+		   UUID). Restore that block and drop this one before merging. */
+		72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "../multipeer-connectivity" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../multipeer-connectivity";
 		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
 		C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/flatbuffers.git";
@@ -1804,12 +1807,12 @@
 /* Begin XCSwiftPackageProductDependency section */
 		6525F6CE651CB5D9401943FD /* MPCCompat */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 72565EF424F9D7BBFAF363C0 /* XCRemoteSwiftPackageReference "Stormo" */;
+			package = 72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "../multipeer-connectivity" */;
 			productName = MPCCompat;
 		};
 		6B8522FCDD8E4B1F29B307A3 /* Stormo */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 72565EF424F9D7BBFAF363C0 /* XCRemoteSwiftPackageReference "Stormo" */;
+			package = 72565EF424F9D7BBFAF363C0 /* XCLocalSwiftPackageReference "../multipeer-connectivity" */;
 			productName = Stormo;
 		};
 		8C0454249B071E09F8788E2E /* FlatBuffers */ = {
