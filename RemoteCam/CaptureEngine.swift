@@ -956,8 +956,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 isSuspended: device.isSuspended,
                 info: deviceInfoLocked(for: device))
         }
-        debugLog("📷 capabilities: advertising \(entries.count) device(s): "
-                 + "\(entries.map { "\($0.localizedName)\($0.isSuspended ? " (suspended)" : "")" })")
         return (entries, activeID)
     }
 
