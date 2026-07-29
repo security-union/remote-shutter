@@ -1282,7 +1282,7 @@ class SessionReconnectTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         harness = await makeCoordinatorHarness()
-        peerLink = await PeerLinkStatus()
+        peerLink = PeerLinkStatus()
         await harness.coordinator.setPeerLinkStatus(peerLink)
         await harness.coordinator.setReconnectRetryDelay(0.05)
         await harness.coordinator.seed(

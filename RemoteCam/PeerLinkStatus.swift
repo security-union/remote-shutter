@@ -32,7 +32,11 @@ final class PeerLinkStatus: ObservableObject {
 
     /// Shared instance: the screens observe it, the coordinator writes it.
     /// Tests use their own instance through the coordinator's setter.
-    static let shared = PeerLinkStatus()
+    /// `nonisolated` so non-main contexts (the session actor) can hold a
+    /// reference; the instance's state stays main-actor-isolated.
+    nonisolated static let shared = PeerLinkStatus()
+
+    nonisolated init() {}
 
     @Published private(set) var link: Link = .linked
 
