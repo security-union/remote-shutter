@@ -588,6 +588,11 @@ public class UICmd {
         }
     }
 
+    /// Inbound traffic arrived from the peer — proof the link is alive,
+    /// whatever it announced earlier.
+    public class PeerTrafficObserved: Message, @unchecked Sendable {
+    }
+
     /// The user cancelled the peer-backgrounded reconnect dialog.
     public class CancelReconnect: Message, @unchecked Sendable {
     }

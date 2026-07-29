@@ -1175,6 +1175,13 @@ public actor SessionCoordinator {
         case let resumed as UICmd.PeerResumed:
             endReconnect(ifPeer: resumed.peer)
 
+        case is UICmd.PeerTrafficObserved:
+            // Traffic IS the link. A suspend notice only predicts a drop; if
+            // packets keep arriving (short background, link that never died,
+            // or a lost Resume), the peer is plainly here — believe the wire,
+            // not the announcement.
+            endReconnect(ifPeer: nil)
+
         case is UICmd.CancelReconnect:
             await cancelReconnect()
 
@@ -2157,6 +2164,7 @@ public actor SessionCoordinator {
 extension SessionCoordinator: MultipeerServiceDelegate {
 
     public nonisolated func didReceiveMessage(_ message: Message) {
+        tell(UICmd.PeerTrafficObserved())
         tell(message)
     }
 
@@ -2164,9 +2172,11 @@ extension SessionCoordinator: MultipeerServiceDelegate {
         // Straight to the frame streamer — pacing must not queue behind
         // state-machine work.
         frameSenderShared.value?.receiveAck(request)
+        tell(UICmd.PeerTrafficObserved())
     }
 
     public nonisolated func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID) {
+        tell(UICmd.PeerTrafficObserved())
         tell(RemoteCmd.OnFrame(data: frame.data,
             sender: nil,
             peerId: peer,

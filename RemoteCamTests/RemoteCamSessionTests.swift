@@ -1392,6 +1392,20 @@ class SessionReconnectTests: XCTestCase {
         XCTAssertEqual(state, .scanning)
     }
 
+    /// The device bug: the peer announced suspension but its link never
+    /// actually died (frames kept flowing at 30fps), so no reconnect event
+    /// could ever arrive and the overlay was stuck forever. Traffic is
+    /// evidence; evidence outranks the announcement.
+    func testInboundTrafficClearsTheOverlay() async {
+        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+        let waiting = await isReconnecting()
+        XCTAssertTrue(waiting)
+
+        await harness.deliver(UICmd.PeerTrafficObserved())
+        let cleared = await isReconnecting()
+        XCTAssertFalse(cleared, "packets arriving ⇒ the peer is here")
+    }
+
     func testSuspendFromUnknownPeerIsIgnored() async {
         let stranger = MCPeerID(displayName: "Stranger")
         await harness.deliver(UICmd.PeerSuspended(peer: stranger))
