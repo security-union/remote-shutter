@@ -1,5 +1,5 @@
 {
-  "originHash" : "7ca0fbb612865a1a77dccae969355a49ce941815eaf4e77dd20b10d68313d0a5",
+  "originHash" : "8ac6e7aeb7118b6dfe37978600d9d7d821e9d8698e9b9b103929275a68787efb",
   "pins" : [
     {
       "identity" : "flatbuffers",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "1c514626e83c20fffa8557e75641848e1e15cd5e",
         "version" : "25.2.10"
+      }
+    },
+    {
+      "identity" : "stormo",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/security-union/Stormo.git",
+      "state" : {
+        "revision" : "76093d9bb143f5d98dacced3e559a1c24dacefdc",
+        "version" : "2.0.2"
       }
     },
     {

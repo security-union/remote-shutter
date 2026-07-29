@@ -74,7 +74,7 @@
          <EnvironmentVariable
             key = "QUIC_DEBUG"
             value = "1"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </EnvironmentVariable>
       </EnvironmentVariables>
       <StoreKitConfigurationFileReference
