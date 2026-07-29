@@ -338,3 +338,8 @@
 "ConnectingHint" = "Dies kann bis zu 20 Sekunden dauern, wenn die Geräte nicht im selben WLAN sind.";
 "ConnectionFailedStatus" = "VERBINDUNG FEHLGESCHLAGEN — GERÄTE NÄHER ZUSAMMENBRINGEN UND ERNEUT VERSUCHEN";
 "connect_cancel" = "Abbrechen";
+
+/* Peer-backgrounded reconnect overlay */
+"Cancel" = "Abbrechen";
+"PeerDisconnectedReconnecting" = "%@ wurde getrennt — Verbindung wird wiederhergestellt…";
+"PeerReconnectHint" = "Remote Shutter muss auf dem anderen Gerät weiterhin geöffnet sein.";

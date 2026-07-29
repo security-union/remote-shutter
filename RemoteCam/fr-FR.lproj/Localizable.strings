@@ -233,3 +233,7 @@
 "ConnectingHint" = "Cela peut prendre jusqu'à 20 secondes si les appareils ne sont pas sur le même réseau Wi-Fi.";
 "ConnectionFailedStatus" = "CONNEXION IMPOSSIBLE — RAPPROCHEZ LES APPAREILS ET RÉESSAYEZ";
 "connect_cancel" = "Annuler";
+
+/* Peer-backgrounded reconnect overlay */
+"PeerDisconnectedReconnecting" = "%@ s'est déconnecté — reconnexion…";
+"PeerReconnectHint" = "Vérifiez que Remote Shutter est toujours ouvert sur cet appareil.";

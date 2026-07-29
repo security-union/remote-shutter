@@ -217,3 +217,8 @@
 "ConnectingHint" = "Dette kan tage op til 20 sekunder, hvis enhederne ikke er på samme Wi-Fi-netværk.";
 "ConnectionFailedStatus" = "KUNNE IKKE FORBINDE — FLYT ENHEDERNE TÆTTERE SAMMEN OG PRØV IGEN";
 "connect_cancel" = "Annuller";
+
+/* Peer-backgrounded reconnect overlay */
+"Cancel" = "Annuller";
+"PeerDisconnectedReconnecting" = "%@ blev afbrudt — genopretter forbindelsen…";
+"PeerReconnectHint" = "Sørg for, at Remote Shutter stadig er åben på den anden enhed.";

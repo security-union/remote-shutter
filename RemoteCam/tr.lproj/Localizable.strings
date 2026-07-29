@@ -338,3 +338,8 @@
 "ConnectingHint" = "Cihazlar aynı Wi-Fi ağında değilse bu işlem 20 saniye kadar sürebilir.";
 "ConnectionFailedStatus" = "BAĞLANILAMADI — CİHAZLARI YAKLAŞTIRIP TEKRAR DENEYİN";
 "connect_cancel" = "İptal";
+
+/* Peer-backgrounded reconnect overlay */
+"Cancel" = "İptal";
+"PeerDisconnectedReconnecting" = "%@ bağlantısı kesildi — yeniden bağlanılıyor…";
+"PeerReconnectHint" = "Remote Shutter'ın o cihazda hâlâ açık olduğundan emin olun.";

@@ -338,3 +338,8 @@
 "ConnectingHint" = "デバイスが同じWi-Fiネットワークにない場合、最大20秒かかることがあります。";
 "ConnectionFailedStatus" = "接続できませんでした — デバイスを近づけてもう一度お試しください";
 "connect_cancel" = "キャンセル";
+
+/* Peer-backgrounded reconnect overlay */
+"Cancel" = "キャンセル";
+"PeerDisconnectedReconnecting" = "%@との接続が切断されました — 再接続中…";
+"PeerReconnectHint" = "そのデバイスでRemote Shutterが起動したままになっていることを確認してください。";

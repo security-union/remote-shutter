@@ -75,13 +75,22 @@ struct PeerLinkOverlay: View {
 
                     Text(String(
                         format: NSLocalizedString(
-                            "PeerBackgroundedReconnecting",
-                            value: "%@ is in the background — reconnecting…",
-                            comment: "Shown while waiting for a backgrounded peer to return"),
+                            "PeerDisconnectedReconnecting",
+                            value: "%@ disconnected — reconnecting…",
+                            comment: "Shown while waiting for a lost peer to return"),
                         peerName))
                         .font(.headline)
                         .multilineTextAlignment(.center)
                         .foregroundColor(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(NSLocalizedString(
+                        "PeerReconnectHint",
+                        value: "Make sure Remote Shutter is still open on that device.",
+                        comment: "Hint under the reconnecting message"))
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.white.opacity(0.7))
                         .fixedSize(horizontal: false, vertical: true)
 
                     Button(NSLocalizedString("Cancel", comment: "")) {
