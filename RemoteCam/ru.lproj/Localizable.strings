@@ -338,3 +338,8 @@
 "ConnectingHint" = "Это может занять до 20 секунд, если устройства не в одной сети Wi-Fi.";
 "ConnectionFailedStatus" = "НЕ УДАЛОСЬ ПОДКЛЮЧИТЬСЯ — ПОДНЕСИТЕ УСТРОЙСТВА БЛИЖЕ И ПОВТОРИТЕ ПОПЫТКУ";
 "connect_cancel" = "Отменить";
+
+/* Peer-backgrounded reconnect overlay */
+"Cancel" = "Отмена";
+"PeerDisconnectedReconnecting" = "Соединение с %@ потеряно — повторное подключение…";
+"PeerReconnectHint" = "Убедитесь, что приложение Remote Shutter по-прежнему открыто на другом устройстве.";

@@ -338,3 +338,8 @@
 "ConnectingHint" = "如果设备不在同一 Wi-Fi 网络中，连接可能需要最多 20 秒。";
 "ConnectionFailedStatus" = "无法连接 — 请将设备靠近后重试";
 "connect_cancel" = "取消";
+
+/* Peer-backgrounded reconnect overlay */
+"Cancel" = "取消";
+"PeerDisconnectedReconnecting" = "%@ 已断开连接 — 正在重新连接…";
+"PeerReconnectHint" = "请确保该设备上的 Remote Shutter 仍在运行。";

@@ -338,3 +338,8 @@
 "ConnectingHint" = "Quá trình này có thể mất tới 20 giây nếu các thiết bị không cùng mạng Wi-Fi.";
 "ConnectionFailedStatus" = "KHÔNG THỂ KẾT NỐI — ĐƯA CÁC THIẾT BỊ LẠI GẦN NHAU VÀ THỬ LẠI";
 "connect_cancel" = "Hủy";
+
+/* Peer-backgrounded reconnect overlay */
+"Cancel" = "Hủy";
+"PeerDisconnectedReconnecting" = "%@ đã ngắt kết nối — đang kết nối lại…";
+"PeerReconnectHint" = "Hãy đảm bảo Remote Shutter vẫn đang mở trên thiết bị đó.";

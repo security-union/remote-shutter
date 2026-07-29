@@ -338,3 +338,8 @@
 "ConnectingHint" = "यदि डिवाइस एक ही Wi-Fi नेटवर्क पर नहीं हैं, तो इसमें 20 सेकंड तक लग सकते हैं।";
 "ConnectionFailedStatus" = "कनेक्ट नहीं हो सका — डिवाइस को पास लाकर फिर से प्रयास करें";
 "connect_cancel" = "रद्द करें";
+
+/* Peer-backgrounded reconnect overlay */
+"Cancel" = "रद्द करें";
+"PeerDisconnectedReconnecting" = "%@ डिस्कनेक्ट हो गया — फिर से कनेक्ट किया जा रहा है…";
+"PeerReconnectHint" = "सुनिश्चित करें कि उस डिवाइस पर Remote Shutter अभी भी खुला है।";

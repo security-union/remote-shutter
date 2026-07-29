@@ -338,3 +338,8 @@
 "ConnectingHint" = "Ini boleh mengambil masa sehingga 20 saat jika peranti tidak berada pada rangkaian Wi-Fi yang sama.";
 "ConnectionFailedStatus" = "TIDAK DAPAT MENYAMBUNG — DEKATKAN PERANTI DAN CUBA LAGI";
 "connect_cancel" = "Batal";
+
+/* Peer-backgrounded reconnect overlay */
+"Cancel" = "Batal";
+"PeerDisconnectedReconnecting" = "%@ terputus — menyambung semula…";
+"PeerReconnectHint" = "Pastikan Remote Shutter masih terbuka pada peranti itu.";
