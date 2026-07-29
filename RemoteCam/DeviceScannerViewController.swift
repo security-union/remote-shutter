@@ -105,6 +105,11 @@ public class DeviceScannerViewController: UIViewController {
         remoteCamSession.setFrameSender(frameSender)
         self.remoteCamSession ! SetScannerLobby(lobby: self)
         scannerViewModel.role = role
+        // The reconnect overlay's only action, routed like every other UI
+        // command; the overlay itself is pure state (PeerLinkStatus).
+        PeerLinkStatus.shared.onCancel = { [weak self] in
+            self?.remoteCamSession ! UICmd.CancelReconnect()
+        }
         setupSwiftUIView()
     }
 

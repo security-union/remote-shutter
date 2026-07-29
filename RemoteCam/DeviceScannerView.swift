@@ -15,6 +15,9 @@ struct DeviceScannerView: View {
     let onOpenSettings: () -> Void
     let onHelp: () -> Void
 
+    /// Peer-link state; the reconnect overlay is a function of it.
+    @ObservedObject var peerLink: PeerLinkStatus = .shared
+
     var body: some View {
         ZStack {
             AppTheme.backgroundGradient
@@ -30,6 +33,8 @@ struct DeviceScannerView: View {
             if viewModel.isConnecting {
                 connectingOverlay
             }
+
+            PeerLinkOverlay(status: peerLink)
         }
     }
 

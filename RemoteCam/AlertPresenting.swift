@@ -28,9 +28,4 @@ protocol AlertPresenting: AnyObject, Sendable {
     func dismissAlert(_ handle: AlertHandle)
     /// Show standalone error alert with OK button.
     func showError(title: String)
-    /// Show a persistent alert with a single cancel button (the
-    /// peer-backgrounded reconnect dialog). Dismissed programmatically on
-    /// reconnect, or by the user via `onCancel`.
-    func showCancelableAlert(title: String, cancelTitle: String,
-                             onCancel: @escaping @Sendable () -> Void) -> AlertHandle
 }

@@ -231,6 +231,7 @@ public actor SessionCoordinator {
 
     func setAlertPresenter(_ presenter: AlertPresenting) { alertPresenter = presenter }
     func setReconnectRetryDelay(_ delay: TimeInterval) { reconnectRetryDelay = delay }
+    func setPeerLinkStatus(_ status: PeerLinkStatus) { peerLinkStatus = status }
     func setWatchStatePusher(_ pusher: WatchStatePushing) { watchStatePusher = pusher }
     func setIsPhoneBackgrounded(_ provider: @escaping () -> Bool) { isPhoneBackgrounded = provider }
     func setPhotoLibrarySaver(_ saver: @escaping (Data) -> Void) { photoLibrarySaver = saver }
@@ -300,10 +301,11 @@ public actor SessionCoordinator {
 
     // MARK: Peer-backgrounded reconnect (C-5)
 
-    /// Set while the session peer announced suspension. The dialog stays up
-    /// across the silent in-grace reconnect AND the post-grace scanning
-    /// retry loop; it clears only on reconnect or the dialog's Cancel.
-    private var reconnecting: (peer: MCPeerID, alert: AlertHandle)?
+    /// The peer we are waiting on, if any. Single source of truth: the
+    /// overlay is rendered from `peerLinkStatus`, which only `setReconnecting`
+    /// writes, so the UI cannot disagree with the machine.
+    private var reconnecting: MCPeerID?
+    private var peerLinkStatus: PeerLinkStatus = .shared
     private var reconnectRetryTask: Task<Void, Never>?
     /// Fixed retry cadence (no backoff by design); injectable for tests.
     private var reconnectRetryDelay: TimeInterval = 1
@@ -336,8 +338,8 @@ public actor SessionCoordinator {
 
         // Landed here mid-reconnect (grace expired, connection died): keep
         // the dialog up and start the fixed-cadence retry loop.
-        if let current = reconnecting {
-            armReconnectRetry(current.peer)
+        if let waitingOn = reconnecting {
+            armReconnectRetry(waitingOn)
         }
     }
 
@@ -526,10 +528,10 @@ public actor SessionCoordinator {
             }
 
         case let disconnected as DisconnectPeer:
-            if let current = reconnecting, current.peer == disconnected.peer {
+            if let waitingOn = reconnecting, waitingOn == disconnected.peer {
                 // Peer-backgrounded retry: fixed cadence, no attempt cap —
                 // ends only on reconnect or the dialog's Cancel.
-                armReconnectRetry(current.peer)
+                armReconnectRetry(waitingOn)
                 break
             }
             guard let pending = pendingConnect, pending.peer == disconnected.peer else {
@@ -547,12 +549,12 @@ public actor SessionCoordinator {
             }
 
         case let retry as UICmd.RetryReconnect:
-            guard let current = reconnecting, current.peer == retry.peer else { break }
+            guard let waitingOn = reconnecting, waitingOn == retry.peer else { break }
             // Only the monitor invites; the camera's retry is advertising and
             // auto-accepting, which scanning already does.
             if liveLobby.role == .monitor {
-                pendingConnect = (current.peer, 1)
-                multipeerService?.invitePeer(current.peer, timeout: reconnectInviteTimeout)
+                pendingConnect = (waitingOn, 1)
+                multipeerService?.invitePeer(waitingOn, timeout: reconnectInviteTimeout)
             }
 
         case is UICmd.CancelConnect:
@@ -1098,45 +1100,45 @@ public actor SessionCoordinator {
 
     // MARK: - Peer-backgrounded reconnect flow (C-5)
 
-    /// The session peer announced suspension: put up the one reconnect
-    /// dialog. Within the grace the transport reconnects by itself (the app
-    /// sees `PeerResumed`); past it, `DisconnectPeer` drops us to scanning
-    /// where the retry loop takes over. Cancel is the only user exit.
-    private func beginReconnect(with suspendedPeer: MCPeerID) async {
-        guard reconnecting == nil, suspendedPeer == peer else { return }
-        let presenter = alertPresenter
-        let title = NSLocalizedString(
-            "PeerBackgroundedReconnecting",
-            value: "Remote device is in the background — reconnecting…",
-            comment: "Dialog shown while waiting for a backgrounded peer to return")
-        let cancel = NSLocalizedString("Cancel", comment: "")
-        let handle = await withCheckedContinuation { continuation in
-            OperationQueue.main.addOperation { [weak self] in
-                continuation.resume(returning: presenter.showCancelableAlert(
-                    title: title, cancelTitle: cancel,
-                    onCancel: { self?.tell(UICmd.CancelReconnect()) }))
+    /// The only writer of the waiting state: model and published UI move
+    /// together, so a live link and a visible overlay cannot coexist.
+    private func setReconnecting(_ waitingOn: MCPeerID?) {
+        reconnecting = waitingOn
+        if waitingOn == nil {
+            reconnectRetryTask?.cancel()
+            reconnectRetryTask = nil
+        }
+        let status = peerLinkStatus
+        let name = waitingOn?.displayName
+        Task { @MainActor in
+            if let name {
+                status.setReconnecting(peerName: name)
+            } else {
+                status.setLinked()
             }
         }
-        reconnecting = (suspendedPeer, handle)
     }
 
-    /// Reconnected (resume within grace, or a scanning-loop invite landed):
-    /// drop the dialog and the retry loop. `nil` matches any peer.
+    /// The session peer announced suspension: start waiting. Within the grace
+    /// the transport reconnects by itself (the app sees `PeerResumed`); past
+    /// it, `DisconnectPeer` drops us to scanning where the retry loop takes
+    /// over. Cancel is the only user exit.
+    private func beginReconnect(with suspendedPeer: MCPeerID) {
+        guard reconnecting == nil, suspendedPeer == peer else { return }
+        setReconnecting(suspendedPeer)
+    }
+
+    /// Reconnected (resume within grace, or a scanning-loop invite landed).
+    /// `nil` matches any peer.
     private func endReconnect(ifPeer resumedPeer: MCPeerID?) {
         guard let current = reconnecting,
-              resumedPeer == nil || current.peer == resumedPeer else { return }
-        reconnecting = nil
-        reconnectRetryTask?.cancel()
-        reconnectRetryTask = nil
-        let presenter = alertPresenter
-        OperationQueue.main.addOperation {
-            presenter.dismissAlert(current.alert)
-        }
+              resumedPeer == nil || current == resumedPeer else { return }
+        setReconnecting(nil)
     }
 
     private func cancelReconnect() async {
         guard reconnecting != nil else { return }
-        endReconnect(ifPeer: nil)
+        setReconnecting(nil)
         pendingConnect = nil
         if case .scanning = state {
             if let liveLobby = lobby?.value {
@@ -1168,7 +1170,7 @@ public actor SessionCoordinator {
     private func handleRoot(_ msg: Message) async {
         switch msg {
         case let suspended as UICmd.PeerSuspended:
-            await beginReconnect(with: suspended.peer)
+            beginReconnect(with: suspended.peer)
 
         case let resumed as UICmd.PeerResumed:
             endReconnect(ifPeer: resumed.peer)

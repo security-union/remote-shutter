@@ -194,6 +194,7 @@
 		F13CE9024ECE628456367787 /* RemoteCam/WatchRemoteCameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4A366A5AE5F4A3714F28F2 /* RemoteCam/WatchRemoteCameraController.swift */; };
 		F6DAD1852A77AE011FAF35B1 /* Shared/WatchSharedTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E655FAEBED183EB237F41DEA /* Shared/WatchSharedTypes.swift */; };
 		FADEC0DE0001000000000002 /* FrameCreditWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0001000000000001 /* FrameCreditWindow.swift */; };
+		FADEC0DE0002000000000002 /* PeerLinkStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0002000000000001 /* PeerLinkStatus.swift */; };
 		FADEC0DE0001000000000003 /* FrameCreditWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0001000000000001 /* FrameCreditWindow.swift */; };
 		FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */; };
 		FEEDFACE0000000000000001 /* StormoLoopbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000002 /* StormoLoopbackTests.swift */; };
@@ -431,6 +432,7 @@
 		F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
 		F9F37D4A9FA8416A43EFEFF1 /* RemoteShutterWatch/WatchControlView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/WatchControlView.swift; sourceTree = SOURCE_ROOT; };
 		FADEC0DE0001000000000001 /* FrameCreditWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameCreditWindow.swift; sourceTree = "<group>"; };
+		FADEC0DE0002000000000001 /* PeerLinkStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerLinkStatus.swift; sourceTree = "<group>"; };
 		FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FocusPointMapping.swift; sourceTree = "<group>"; };
 		FCB0F6BA2086BF9BB4242D66 /* Pods_RemoteShutterWatch.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterWatch.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FEEDFACE0000000000000002 /* StormoLoopbackTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StormoLoopbackTests.swift; sourceTree = "<group>"; };
@@ -529,6 +531,7 @@
 			children = (
 				0631D180256DFC960006CAF3 /* FrameSender.swift */,
 				FADEC0DE0001000000000001 /* FrameCreditWindow.swift */,
+				FADEC0DE0002000000000001 /* PeerLinkStatus.swift */,
 				CAFEBABE0007000000000001 /* WatchPreviewStreamer.swift */,
 			);
 			name = CameraStates;
@@ -1128,6 +1131,7 @@
 				066959612575F00200E8B579 /* WelcomeViewController.swift in Sources */,
 				0631D181256DFC960006CAF3 /* FrameSender.swift in Sources */,
 				FADEC0DE0001000000000002 /* FrameCreditWindow.swift in Sources */,
+				FADEC0DE0002000000000002 /* PeerLinkStatus.swift in Sources */,
 				CAFEBABE0007000000000002 /* WatchPreviewStreamer.swift in Sources */,
 				068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */,
 				0A11B22C33D44E55F6070002 /* ZoomScale.swift in Sources */,

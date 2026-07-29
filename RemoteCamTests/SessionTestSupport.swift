@@ -61,18 +61,9 @@ class FakeAlertHandle: AlertHandle, @unchecked Sendable {
 class FakeAlertPresenter: AlertPresenting, @unchecked Sendable {
     var shownAlerts: [FakeAlertHandle] = []
     var shownErrors: [String] = []
-    var cancelableAlerts: [(handle: FakeAlertHandle, onCancel: @Sendable () -> Void)] = []
-
     func showAlert(title: String) -> AlertHandle {
         let handle = FakeAlertHandle(title: title)
         shownAlerts.append(handle)
-        return handle
-    }
-
-    func showCancelableAlert(title: String, cancelTitle: String,
-                             onCancel: @escaping @Sendable () -> Void) -> AlertHandle {
-        let handle = FakeAlertHandle(title: title)
-        cancelableAlerts.append((handle, onCancel))
         return handle
     }
     func updateAlert(_ handle: AlertHandle, title: String) {

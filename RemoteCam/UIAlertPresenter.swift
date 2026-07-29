@@ -70,11 +70,4 @@ class UIAlertPresenter: AlertPresenting, @unchecked Sendable {
         Self.presentErrorDeduped(title: title)
     }
 
-    func showCancelableAlert(title: String, cancelTitle: String,
-                             onCancel: @escaping @Sendable () -> Void) -> AlertHandle {
-        let alert = UIAlertController(title: title, message: nil, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: cancelTitle, style: .cancel) { _ in onCancel() })
-        alert.show(true)
-        return UIAlertHandle(alert)
-    }
 }

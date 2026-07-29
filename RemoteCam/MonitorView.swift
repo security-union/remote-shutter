@@ -6,6 +6,8 @@ import Combine
 struct MonitorView: View {
     @ObservedObject var viewModel: MonitorViewModel
     @State private var zoomAtGestureStart: CGFloat?
+    /// Peer-link state; the reconnect overlay is a function of it.
+    @ObservedObject var peerLink: PeerLinkStatus = .shared
 
 
     // Callbacks to MonitorViewController for Actor integration
@@ -46,6 +48,8 @@ struct MonitorView: View {
                     controlsSection
                         .background(Color.black.opacity(0.8))
                 }
+
+                PeerLinkOverlay(status: peerLink)
             }
         }
         .ignoresSafeArea(edges: Self.topBleedEdges)

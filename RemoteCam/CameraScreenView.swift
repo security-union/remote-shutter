@@ -25,6 +25,8 @@ struct CameraScreenView: View {
     /// The monitor's frame is never mirrored (the data output isn't), so the
     /// reticle's x is flipped to match what the camera operator actually sees.
     @State private var previewMirrored: Bool = false
+    /// Peer-link state; the reconnect overlay is a function of it.
+    @ObservedObject var peerLink: PeerLinkStatus = .shared
 
     var body: some View {
         ZStack {
@@ -81,6 +83,8 @@ struct CameraScreenView: View {
                 isRecording: viewModel.isRecordingTimerActive)
 
             CameraProgressOverlayView(viewModel: viewModel)
+
+            PeerLinkOverlay(status: peerLink)
         }
     }
 
