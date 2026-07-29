@@ -8,38 +8,36 @@ namespace RemoteShutter;
 
 // MARK: - Enums
 
+// Renumbered in the transport-change release so Unknown = 0 (project
+// convention for all enums): an action this build does not know decodes as
+// Unknown and is ignored, instead of silently becoming TakePicture — which is
+// what the 0 slot used to mean. Wire-incompatible with pre-Stormo builds by
+// design; they cannot connect at all.
 enum CommandAction : byte {
-    TakePicture = 0,
-    ToggleTorch = 1,
-    ToggleFlash = 2,
-    ToggleCamera = 3,
-    SetZoom = 4,
-    SwitchLens = 5,
-    StartRecording = 6,
-    StopRecording = 7,
-    RequestCapabilities = 8,
-    SetTorchMode = 9,
-    SetFlashMode = 10,
-    RequestFrame = 11,
-    PeerBecameCamera = 12,
-    PeerBecameMonitor = 13,
-    SetVideoQuality = 14,
-    SetPhotoQuality = 15,
-    TimerCountdown = 16,
-    SyncMonitorSettings = 17,
-    SetAspectRatio = 18,
-    SelectCameraDevice = 19,   // never sent to peers that did not advertise
-                               // camera_devices — old decoders read unknown
-                               // actions as TakePicture (the field default)
-    RequestKeyframe = 20,      // monitor -> camera: force the next VP9 preview
-                               // frame to be a keyframe (decoder desync
-                               // recovery). Only sent to a peer that has
-                               // already delivered a VP9 frame — old decoders
-                               // read unknown actions as TakePicture.
-    FocusAtPoint = 21          // monitor -> camera: set focus/exposure point of
-                               // interest (normalized). Only sent to a peer that
-                               // advertised supports_focus_point — old decoders
-                               // read unknown actions as TakePicture.
+    Unknown = 0,
+    TakePicture = 1,
+    ToggleTorch = 2,
+    ToggleFlash = 3,
+    ToggleCamera = 4,
+    SetZoom = 5,
+    SwitchLens = 6,
+    StartRecording = 7,
+    StopRecording = 8,
+    RequestCapabilities = 9,
+    SetTorchMode = 10,
+    SetFlashMode = 11,
+    RequestFrame = 12,
+    PeerBecameCamera = 13,
+    PeerBecameMonitor = 14,
+    SetVideoQuality = 15,
+    SetPhotoQuality = 16,
+    TimerCountdown = 17,
+    SyncMonitorSettings = 18,
+    SetAspectRatio = 19,
+    SelectCameraDevice = 20,   // only sent to peers advertising camera_devices
+    RequestKeyframe = 21,      // monitor -> camera: force a VP9 keyframe
+    FocusAtPoint = 22,         // monitor -> camera: focus/exposure point
+    EndSession = 23            // either side: "I am leaving on purpose"
 }
 
 enum CameraPosition : byte {
@@ -236,7 +234,7 @@ table CameraCapabilities {
     camera_devices: [CameraDeviceInfo];
     active_device_id: string;
     // False/absent = peer predates tap-to-focus; a monitor must not send
-    // FocusAtPoint to such a peer (old decoders read it as TakePicture).
+    // FocusAtPoint to such a peer.
     supports_focus_point: bool;
 }
 

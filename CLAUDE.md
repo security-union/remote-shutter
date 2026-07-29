@@ -105,7 +105,7 @@ The session uses Swift's native `actor` for concurrency (see `Docs/ARCHITECTURE.
 
 The Mac build is the same app target. Rules that matter when touching platform-y code:
 - Camera identity is `uniqueID`-based (`CameraDeviceDescriptor`, `CameraControlling.selectCameraDevice`); Mac cameras report `.unspecified` position, which serializes as `Back + has_unspecified_position` on the wire.
-- A monitor may only send `RemoteCmd.SelectCameraDevice` to a peer whose capabilities carried a non-empty `camera_devices` list — old decoders read unknown command actions as `TakePicture`. The gate lives in `SessionCoordinator` and is pinned by a loopback test.
+- A monitor may only send `RemoteCmd.SelectCameraDevice` to a peer whose capabilities carried a non-empty `camera_devices` list. The gate lives in `SessionCoordinator` and is pinned by a loopback test. (`CommandAction.Unknown = 0`, so an action a peer doesn't know is ignored, not misread — the gate is about not sending meaningless commands.)
 - WatchConnectivity does not exist on Catalyst: `WatchSessionManager` has a stub branch; keep new Watch code behind it.
 - Macs don't rotate: `getOrientation()` returns `.landscapeRight` on Catalyst; don't add rotation handling outside the `#if !targetEnvironment(macCatalyst)` paths.
 - Platform shims (sleep, System Settings deep links) use `#if targetEnvironment(macCatalyst)` — extend those branches rather than adding UIKit-only calls.

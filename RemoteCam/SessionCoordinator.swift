@@ -174,23 +174,18 @@ public actor SessionCoordinator {
 
     /// Whether the connected camera peer advertised a camera-device list in
     /// its capabilities — the feature gate for `RemoteCmd.SelectCameraDevice`.
-    /// Never send that command otherwise: old decoders read unknown command
-    /// actions as TakePicture (the FlatBuffers field default).
+    /// Selecting a device on a peer that has none is meaningless, so don't.
     private var peerAdvertisedCameraDevices = false
 
     /// Whether the connected camera peer advertised focus-point support in its
-    /// capabilities — the feature gate for `RemoteCmd.FocusAtPoint`. Never send
-    /// that command otherwise: old decoders read unknown command actions as
-    /// TakePicture (same precedent as SelectCameraDevice).
+    /// capabilities — the feature gate for `RemoteCmd.FocusAtPoint`.
     private var peerSupportsFocusPoint = false
 
     /// Test support.
     func peerSupportsFocusPointForTesting() -> Bool { peerSupportsFocusPoint }
 
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
-    /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`
-    /// (old decoders read that unknown action as TakePicture — same precedent as
-    /// SelectCameraDevice).
+    /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
 
     /// Test support.
@@ -305,6 +300,9 @@ public actor SessionCoordinator {
     /// overlay is rendered from `peerLinkStatus`, which only `setReconnecting`
     /// writes, so the UI cannot disagree with the machine.
     private var reconnecting: MCPeerID?
+    /// The peer announced a deliberate exit, so the disconnect that follows is
+    /// expected: no overlay, no retry loop. Cleared once consumed.
+    private var peerEndedSession = false
     private var peerLinkStatus: PeerLinkStatus = .shared
     private var reconnectRetryTask: Task<Void, Never>?
     /// Fixed retry cadence (no backoff by design); injectable for tests.
@@ -450,12 +448,22 @@ public actor SessionCoordinator {
     // MARK: Message dispatch
 
     func handle(_ msg: Message) async {
+        // A deliberate exit is announced before we tear anything down, from
+        // whichever state the user triggered it in — otherwise the peer would
+        // spend the next minutes inviting a session nobody is coming back to.
+        if msg is Disconnect {
+            await announceEndOfSession()
+        }
         // The link ending is the only signal that matters: whatever state we
         // are in, losing the session peer starts the wait. The per-state
         // handlers below still do the popping; this just makes the UI say so.
         if let lost = msg as? DisconnectPeer, let lost = lost.peer, lost == peer,
            reconnecting == nil, connectedPeers.isEmpty {
-            beginReconnect(with: lost)
+            if peerEndedSession {
+                peerEndedSession = false
+            } else {
+                beginReconnect(with: lost)
+            }
         }
         switch state {
         case .waitingForLobby:
@@ -1118,6 +1126,15 @@ public actor SessionCoordinator {
 
     // MARK: - Peer-backgrounded reconnect flow (C-5)
 
+    /// Tell the peer we are leaving on purpose, so it stops reconnecting.
+    /// Best-effort and briefly awaited: the send is queued on the connection
+    /// we are about to close, so give it a moment to reach the wire.
+    private func announceEndOfSession() async {
+        guard peer != nil, !connectedPeers.isEmpty else { return }
+        _ = sendMessage(RemoteCmd.EndSession())
+        try? await Task.sleep(nanoseconds: 150_000_000)
+    }
+
     /// The only writer of the waiting state: model and published UI move
     /// together, so a live link and a visible overlay cannot coexist.
     private func setReconnecting(_ waitingOn: MCPeerID?) {
@@ -1186,6 +1203,12 @@ public actor SessionCoordinator {
 
     private func handleRoot(_ msg: Message) async {
         switch msg {
+        case is RemoteCmd.EndSession:
+            // The peer is leaving on purpose. Its disconnect is expected —
+            // chasing it with invites would be rude and pointless.
+            peerEndedSession = true
+            endReconnect(ifPeer: nil)
+
         case is UICmd.PeerTrafficObserved:
             // Traffic IS the link. A suspend notice only predicts a drop; if
             // packets keep arriving (short background, link that never died,

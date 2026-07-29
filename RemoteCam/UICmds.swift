@@ -640,8 +640,7 @@ public class UICmd {
     /// Raised by the monitor's frame receiver when the VP9 preview decoder
     /// desyncs (an undecodable frame, or a sequence gap on the stateful stream).
     /// The monitor state forwards it as `RemoteCmd.RequestKeyframe` — but only to
-    /// a peer that has already delivered a VP9 frame, since old peers decode the
-    /// unknown action as TakePicture.
+    /// a peer that has already delivered a VP9 frame.
     public class RequestVideoKeyframe: Message, @unchecked Sendable {
         public init() {
             super.init(sender: nil)

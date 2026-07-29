@@ -180,7 +180,10 @@ class SessionCoordinatorTests: XCTestCase {
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
-        XCTAssertTrue(harness.fakeMP.sentMessages.isEmpty)
+        // The exit is announced so the peer stops reconnecting — and that is
+        // the ONLY thing a deliberate disconnect puts on the wire.
+        XCTAssertEqual(harness.fakeMP.sentMessages.count, 1)
+        XCTAssertTrue(harness.fakeMP.sentMessages.first?.msg is RemoteCmd.EndSession)
     }
 
     func testConnectedStateBecomeMonitorPhoto() async {
@@ -1416,6 +1419,51 @@ class SessionReconnectTests: XCTestCase {
         await harness.deliver(UICmd.PeerTrafficObserved())
         let cleared = await isReconnecting()
         XCTAssertFalse(cleared, "packets arriving ⇒ the peer is here")
+    }
+
+    /// A peer that says goodbye is not chased: no overlay, no invites.
+    func testAnnouncedExitSuppressesTheRetryLoop() async {
+        harness.lobby.role = .monitor
+        await harness.deliver(RemoteCmd.EndSession())
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        let waiting = await isReconnecting()
+        XCTAssertFalse(waiting, "an announced exit is expected, not a loss")
+
+        await awaitRetryTick()
+        XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty, "nobody chases a peer that left")
+
+        // The next, UNannounced loss still starts a wait.
+        await harness.deliver(OnConnectToDevice(peer: harness.peer, sender: nil))
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        let waitingAgain = await isReconnecting()
+        XCTAssertTrue(waitingAgain, "the suppression is one-shot")
+    }
+
+    /// Leaving on purpose tells the peer, so it does not reconnect.
+    func testDeliberateDisconnectAnnouncesTheExit() async {
+        await harness.deliver(Disconnect(sender: nil))
+
+        let announced = harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.EndSession }
+        XCTAssertTrue(announced, "the peer must be told before we tear down")
+    }
+
+    /// The back button's real path: the monitor screen pops, the scanner's
+    /// viewDidAppear sends Disconnect, and the camera must hear about it from
+    /// whatever state the user was in.
+    func testBackButtonFromMonitorAnnouncesTheExit() async {
+        let presenter = MonitorPresenter()
+        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
+        harness.fakeMP.sentMessages.removeAll()
+
+        await harness.deliver(Disconnect(sender: nil))
+
+        let announced = harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.EndSession }
+        XCTAssertTrue(announced, "leaving the monitor screen must tell the camera")
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .scanning)
     }
 
     func testLosingAnUnknownPeerIsIgnored() async {
