@@ -89,7 +89,10 @@ class MultipeerService: NSObject, MCSessionDelegate,
         // per attempt by rebuildSessionIfIdle).
         lifecycleObservers.append(NotificationCenter.default.addObserver(
             forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil
-        ) { [weak self] _ in self?.session?.announceSuspension() })
+        // 2 s: a killed app is indistinguishable from a backgrounded one, so
+        // this is how long a dead peer holds the other side's UI. Past it the
+        // peer drops to scanning and the reconnect loop takes over.
+        ) { [weak self] _ in self?.session?.announceSuspension(gracePeriod: 2) })
         lifecycleObservers.append(NotificationCenter.default.addObserver(
             forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil
         ) { [weak self] _ in self?.session?.resumeFromSuspension() })
