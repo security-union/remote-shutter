@@ -24,13 +24,6 @@ protocol MultipeerServiceDelegate: AnyObject {
     func browserDidLosePeer(_ peer: MCPeerID)
     func browserDidFail(_ error: Error)
     func advertiserDidFail(_ error: Error)
-    func peerDidSuspend(_ peer: MCPeerID)
-    func peerDidResume(_ peer: MCPeerID)
-}
-
-extension MultipeerServiceDelegate {
-    func peerDidSuspend(_ peer: MCPeerID) {}
-    func peerDidResume(_ peer: MCPeerID) {}
 }
 
 protocol MultipeerServiceProtocol: AnyObject {
@@ -71,8 +64,6 @@ class MultipeerService: NSObject, MCSessionDelegate,
 
     var connectedPeers: [MCPeerID] { session?.connectedPeers ?? [] }
 
-    private var lifecycleObservers: [NSObjectProtocol] = []
-
     init(peerID: MCPeerID) {
         self.peerID = peerID
         sessionBox = Locked(Self.makeSession(peerID: peerID))
@@ -83,23 +74,6 @@ class MultipeerService: NSObject, MCSessionDelegate,
         advertiser.delegate = self
         browser = MCNearbyServiceBrowser(peer: peerID, serviceType: service)
         browser.delegate = self
-
-        // C-5: say goodbye before the freeze so peers hold membership through
-        // it, and re-dial on wake. Targets the CURRENT session (it is swapped
-        // per attempt by rebuildSessionIfIdle).
-        lifecycleObservers.append(NotificationCenter.default.addObserver(
-            forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil
-        // 2 s: a killed app is indistinguishable from a backgrounded one, so
-        // this is how long a dead peer holds the other side's UI. Past it the
-        // peer drops to scanning and the reconnect loop takes over.
-        ) { [weak self] _ in self?.session?.announceSuspension(gracePeriod: 2) })
-        lifecycleObservers.append(NotificationCenter.default.addObserver(
-            forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil
-        ) { [weak self] _ in self?.session?.resumeFromSuspension() })
-    }
-
-    deinit {
-        lifecycleObservers.forEach { NotificationCenter.default.removeObserver($0) }
     }
 
     private static func makeSession(peerID: MCPeerID) -> MCSession {
@@ -211,14 +185,6 @@ class MultipeerService: NSObject, MCSessionDelegate,
     }
 
     // MARK: - MCSessionDelegate
-
-    public func session(_ session: MCSession, peerDidSuspend peerID: MCPeerID) {
-        delegate?.peerDidSuspend(peerID)
-    }
-
-    public func session(_ session: MCSession, peerDidResume peerID: MCPeerID) {
-        delegate?.peerDidResume(peerID)
-    }
 
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         switch state {

@@ -450,6 +450,13 @@ public actor SessionCoordinator {
     // MARK: Message dispatch
 
     func handle(_ msg: Message) async {
+        // The link ending is the only signal that matters: whatever state we
+        // are in, losing the session peer starts the wait. The per-state
+        // handlers below still do the popping; this just makes the UI say so.
+        if let lost = msg as? DisconnectPeer, let lost = lost.peer, lost == peer,
+           reconnecting == nil, connectedPeers.isEmpty {
+            beginReconnect(with: lost)
+        }
         switch state {
         case .waitingForLobby:
             await inWaitingForLobby(msg)
@@ -1130,16 +1137,15 @@ public actor SessionCoordinator {
         }
     }
 
-    /// The session peer announced suspension: start waiting. Within the grace
-    /// the transport reconnects by itself (the app sees `PeerResumed`); past
-    /// it, `DisconnectPeer` drops us to scanning where the retry loop takes
-    /// over. Cancel is the only user exit.
-    private func beginReconnect(with suspendedPeer: MCPeerID) {
-        guard reconnecting == nil, suspendedPeer == peer else { return }
-        setReconnecting(suspendedPeer)
+    /// The session peer's connection ended: start waiting. The machine drops
+    /// to scanning as always, and the retry loop re-invites until it returns
+    /// or the user cancels.
+    private func beginReconnect(with lostPeer: MCPeerID) {
+        guard reconnecting == nil, lostPeer == peer else { return }
+        setReconnecting(lostPeer)
     }
 
-    /// Reconnected (resume within grace, or a scanning-loop invite landed).
+    /// Reconnected (a retry invite landed, or traffic proved the link).
     /// `nil` matches any peer.
     private func endReconnect(ifPeer resumedPeer: MCPeerID?) {
         guard let current = reconnecting,
@@ -1180,12 +1186,6 @@ public actor SessionCoordinator {
 
     private func handleRoot(_ msg: Message) async {
         switch msg {
-        case let suspended as UICmd.PeerSuspended:
-            beginReconnect(with: suspended.peer)
-
-        case let resumed as UICmd.PeerResumed:
-            endReconnect(ifPeer: resumed.peer)
-
         case is UICmd.PeerTrafficObserved:
             // Traffic IS the link. A suspend notice only predicts a drop; if
             // packets keep arriving (short background, link that never died,
@@ -2214,14 +2214,6 @@ extension SessionCoordinator: MultipeerServiceDelegate {
 
     public nonisolated func peerDidDisconnect(_ peer: MCPeerID) {
         tell(DisconnectPeer(peer: peer, sender: nil))
-    }
-
-    public nonisolated func peerDidSuspend(_ peer: MCPeerID) {
-        tell(UICmd.PeerSuspended(peer: peer))
-    }
-
-    public nonisolated func peerDidResume(_ peer: MCPeerID) {
-        tell(UICmd.PeerResumed(peer: peer))
     }
 
     public nonisolated func didDetectIncompatibility() {

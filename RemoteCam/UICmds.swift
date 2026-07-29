@@ -567,29 +567,7 @@ public class UICmd {
         }
     }
 
-    /// The session peer announced suspension (backgrounded, C-5): it is
-    /// still connected, its link is about to die for a known reason.
-    public class PeerSuspended: Message, @unchecked Sendable {
-        public let peer: MCPeerID
-
-        public init(peer: MCPeerID) {
-            self.peer = peer
-            super.init(sender: nil)
-        }
-    }
-
-    /// A suspended peer reconnected within its grace window.
-    public class PeerResumed: Message, @unchecked Sendable {
-        public let peer: MCPeerID
-
-        public init(peer: MCPeerID) {
-            self.peer = peer
-            super.init(sender: nil)
-        }
-    }
-
-    /// Inbound traffic arrived from the peer — proof the link is alive,
-    /// whatever it announced earlier.
+    /// Inbound traffic arrived from the peer — proof the link is alive.
     public class PeerTrafficObserved: Message, @unchecked Sendable {
     }
 

@@ -1267,10 +1267,10 @@ class SessionCoordinatorTests: XCTestCase {
 
 // MARK: - Peer-backgrounded reconnect flow (C-5)
 
-/// The suspend → dialog → retry-until-cancel loop: `PeerSuspended` puts up
-/// the one cancelable dialog; an in-grace `PeerResumed` dismisses it
-/// silently; a post-grace `DisconnectPeer` drops to scanning where the
-/// fixed-cadence retry re-invites (monitor role) until reconnect or Cancel.
+/// Losing the peer puts up one cancelable overlay and starts a fixed-cadence
+/// retry (monitor role re-invites; the camera advertises and waits), ending
+/// only on reconnect or Cancel. The connection ending is the sole trigger —
+/// there is no announcement to trust.
 class SessionReconnectTests: XCTestCase {
 
     private var harness: CoordinatorHarness!
@@ -1301,28 +1301,18 @@ class SessionReconnectTests: XCTestCase {
         await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
     }
 
-    func testPeerSuspendedShowsCancelableDialog() async {
-        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+    func testLosingThePeerShowsTheOverlay() async {
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let waiting = await isReconnecting()
         XCTAssertTrue(waiting, "the overlay renders while we wait")
         let state = await harness.stateName()
-        XCTAssertEqual(state, .connected, "suspension alone must not change state")
-    }
-
-    func testPeerResumedWithinGraceDismissesDialogSilently() async {
-        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
-        await harness.deliver(UICmd.PeerResumed(peer: harness.peer))
-
-        let waiting = await isReconnecting()
-        XCTAssertFalse(waiting, "a live link cannot coexist with the overlay")
-        let state = await harness.stateName()
-        XCTAssertEqual(state, .connected, "an in-grace resume is invisible to the machine")
+        XCTAssertEqual(state, .scanning, "the machine drops to scanning as always")
     }
 
     func testSuspendedDisconnectDropsToScanningAndMonitorRetries() async {
         harness.lobby.role = .monitor
-        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
@@ -1356,7 +1346,6 @@ class SessionReconnectTests: XCTestCase {
     /// so the pair churned "Connecting…/Not Connected" forever.
     func testRetryDoesNotRestartAnAttemptInFlight() async {
         harness.lobby.role = .monitor
-        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
@@ -1378,7 +1367,6 @@ class SessionReconnectTests: XCTestCase {
 
     func testCameraRoleWaitsWithoutInviting() async {
         harness.lobby.role = .camera
-        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
         await awaitRetryTick()
@@ -1393,7 +1381,6 @@ class SessionReconnectTests: XCTestCase {
 
     func testCancelStopsTheRetryLoop() async {
         harness.lobby.role = .monitor
-        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
         await awaitRetryTick()
@@ -1408,22 +1395,21 @@ class SessionReconnectTests: XCTestCase {
                        "no further invites after Cancel")
     }
 
-    func testCancelWhileStillConnectedTearsDown() async {
-        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+    func testCancelStopsWaitingAndStaysInScanning() async {
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
         await harness.deliver(UICmd.CancelReconnect())
 
-        XCTAssertTrue(harness.fakeMP.disconnectCalled,
-                      "cancelling under grace leaves the session deliberately")
+        let waiting = await isReconnecting()
+        XCTAssertFalse(waiting)
         let state = await harness.stateName()
         XCTAssertEqual(state, .scanning)
     }
 
-    /// The device bug: the peer announced suspension but its link never
-    /// actually died (frames kept flowing at 30fps), so no reconnect event
-    /// could ever arrive and the overlay was stuck forever. Traffic is
-    /// evidence; evidence outranks the announcement.
+    /// Traffic is proof the peer is here, whatever else we believe.
     func testInboundTrafficClearsTheOverlay() async {
-        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
         let waiting = await isReconnecting()
         XCTAssertTrue(waiting)
 
@@ -1432,10 +1418,11 @@ class SessionReconnectTests: XCTestCase {
         XCTAssertFalse(cleared, "packets arriving ⇒ the peer is here")
     }
 
-    func testSuspendFromUnknownPeerIsIgnored() async {
+    func testLosingAnUnknownPeerIsIgnored() async {
         let stranger = MCPeerID(displayName: "Stranger")
-        await harness.deliver(UICmd.PeerSuspended(peer: stranger))
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: stranger, sender: nil))
         let waiting = await isReconnecting()
-        XCTAssertFalse(waiting)
+        XCTAssertFalse(waiting, "only the session peer starts a wait")
     }
 }
