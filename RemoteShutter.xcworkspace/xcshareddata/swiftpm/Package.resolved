@@ -1,5 +1,5 @@
 {
-  "originHash" : "b41f7bacd5cbe528076317523e0e2980dc80df0054c4032dccc49565cf44bc7b",
+  "originHash" : "8ac6e7aeb7118b6dfe37978600d9d7d821e9d8698e9b9b103929275a68787efb",
   "pins" : [
     {
       "identity" : "flatbuffers",
@@ -8,6 +8,42 @@
       "state" : {
         "revision" : "1c514626e83c20fffa8557e75641848e1e15cd5e",
         "version" : "25.2.10"
+      }
+    },
+    {
+      "identity" : "stormo",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/security-union/Stormo.git",
+      "state" : {
+        "revision" : "76093d9bb143f5d98dacced3e559a1c24dacefdc",
+        "version" : "2.0.2"
+      }
+    },
+    {
+      "identity" : "swift-asn1",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-asn1.git",
+      "state" : {
+        "revision" : "a9a5efd40eaf558a2bcd48d64b1d1646be686008",
+        "version" : "1.7.1"
+      }
+    },
+    {
+      "identity" : "swift-certificates",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-certificates.git",
+      "state" : {
+        "revision" : "449dbbecd0f31e82b510ada227ca152caa8b5e98",
+        "version" : "1.19.4"
+      }
+    },
+    {
+      "identity" : "swift-crypto",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-crypto.git",
+      "state" : {
+        "revision" : "47d3869a7291f085c1fb9fb1e6d3b97a793f45c6",
+        "version" : "4.5.1"
       }
     }
   ],

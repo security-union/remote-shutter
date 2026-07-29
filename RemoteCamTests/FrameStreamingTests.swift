@@ -10,7 +10,8 @@
 
 import XCTest
 import CoreVideo
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 
 @testable import RemoteShutter
 

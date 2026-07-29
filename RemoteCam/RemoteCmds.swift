@@ -7,7 +7,8 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 import UIKit
 import AVFoundation
 
@@ -247,6 +248,16 @@ public class RemoteCmd: Message, @unchecked Sendable {
         public init(x: Float, y: Float) {
             self.x = x
             self.y = y
+            super.init(sender: nil)
+        }
+    }
+
+    /// "I am leaving on purpose." Sent by whichever side ends the session
+    /// deliberately, so the peer stops reconnecting instead of chasing a
+    /// session nobody is coming back to. Fire-and-forget: an unplanned
+    /// disconnect simply never carries it, and the peer retries as usual.
+    public class EndSession: Message, @unchecked Sendable {
+        public init() {
             super.init(sender: nil)
         }
     }
@@ -537,7 +548,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     /// Switch the camera peer to the device with this uniqueID. Only valid
     /// against peers whose capabilities carried a non-empty `cameraDevices`
-    /// list — old decoders read unknown actions as TakePicture.
+    /// list.
     public class SelectCameraDevice: Message, @unchecked Sendable {
         public let uniqueID: String
 

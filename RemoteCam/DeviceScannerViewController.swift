@@ -8,7 +8,8 @@
 
 import UIKit
 import SwiftUI
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 import Network
 import dnssd
 
@@ -71,21 +72,16 @@ public class DeviceScannerViewController: UIViewController {
     private func initializePeerID() {
         let currentDeviceName = UIDevice.current.name
 
+        // The Stormo-backed MCPeerID is Codable, not NSCoding like the real
+        // MCPeerID was; the cache moved from NSKeyedArchiver to JSON. Stale
+        // MPC-era archives fail to decode and are simply regenerated.
         if let data = UserDefaults.standard.data(forKey: userDefaultsPeerId),
-           let cachedPeerID = try? NSKeyedUnarchiver.unarchivedObject(ofClass: MCPeerID.self, from: data) {
-            if cachedPeerID.displayName == currentDeviceName {
-                self.peerID = cachedPeerID
-            } else {
-                let newPeerID = MCPeerID(displayName: currentDeviceName)
-                let newData = try? NSKeyedArchiver.archivedData(
-                      withRootObject: newPeerID, requiringSecureCoding: false)
-                UserDefaults.standard.set(newData, forKey: userDefaultsPeerId)
-                self.peerID = newPeerID
-            }
+           let cachedPeerID = try? JSONDecoder().decode(MCPeerID.self, from: data),
+           cachedPeerID.displayName == currentDeviceName {
+            self.peerID = cachedPeerID
         } else {
             let peerID = MCPeerID(displayName: currentDeviceName)
-            let data = try? NSKeyedArchiver.archivedData(
-                  withRootObject: peerID, requiringSecureCoding: false)
+            let data = try? JSONEncoder().encode(peerID)
             UserDefaults.standard.set(data, forKey: userDefaultsPeerId)
             self.peerID = peerID
         }
@@ -109,6 +105,11 @@ public class DeviceScannerViewController: UIViewController {
         remoteCamSession.setFrameSender(frameSender)
         self.remoteCamSession ! SetScannerLobby(lobby: self)
         scannerViewModel.role = role
+        // The reconnect overlay's only action, routed like every other UI
+        // command; the overlay itself is pure state (PeerLinkStatus).
+        PeerLinkStatus.shared.onCancel = { [weak self] in
+            self?.remoteCamSession ! UICmd.CancelReconnect()
+        }
         setupSwiftUIView()
     }
 

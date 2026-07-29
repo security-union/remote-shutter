@@ -69,4 +69,5 @@ class UIAlertPresenter: AlertPresenting, @unchecked Sendable {
     func showError(title: String) {
         Self.presentErrorDeduped(title: title)
     }
+
 }

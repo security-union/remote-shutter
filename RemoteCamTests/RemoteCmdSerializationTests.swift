@@ -1114,3 +1114,31 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertFalse(info.supportsHDR)
     }
 }
+
+// MARK: - Unknown actions
+
+extension RemoteCmdSerializationTests {
+
+    /// `CommandAction.Unknown = 0` is the whole point of the renumbering: a
+    /// command from a future build decodes as nothing at all. It used to
+    /// decode as TakePicture — the zero slot — so an action a peer didn't
+    /// understand fired the shutter.
+    func testUnknownActionDecodesToNothing() {
+        var fbb = FlatBufferBuilder()
+        // An action number no build assigns yet.
+        let cmd = RemoteShutter_CameraCommand.createCameraCommand(
+            &fbb, action: RemoteShutter_CommandAction(rawValue: 99) ?? .unknown)
+        let msg = RemoteShutter_P2PMessage.createP2PMessage(
+            &fbb, type: .cameracommand, commandOffset: cmd)
+        fbb.finish(offset: msg, fileId: "RCAM")
+
+        let decoded = RemoteCmd.fromFlatBuffer(fbb.sizedByteArray.withUnsafeBufferPointer { Data($0) })
+        XCTAssertNil(decoded, "an action we do not know must be ignored, not guessed")
+    }
+
+    func testEndSessionRoundTrips() {
+        let data = serializeToFlatBuffer(RemoteCmd.EndSession())
+        XCTAssertNotNil(data)
+        XCTAssertTrue(RemoteCmd.fromFlatBuffer(data!) is RemoteCmd.EndSession)
+    }
+}

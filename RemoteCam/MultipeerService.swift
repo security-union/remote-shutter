@@ -6,8 +6,10 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 import Combine
+import UIKit
 
 protocol MultipeerServiceDelegate: AnyObject {
     func didReceiveMessage(_ message: Message)
@@ -79,22 +81,6 @@ class MultipeerService: NSObject, MCSessionDelegate,
                   encryptionPreference: .required)
     }
 
-    /// Apple never documents a torn-down MCSession as reusable, and reused
-    /// sessions are the classic cause of invites that wedge in `.connecting`.
-    /// Every connection attempt therefore starts from a virgin session: the
-    /// monitor rebuilds before inviting, the camera before accepting. The
-    /// idle check and the swap must be one critical section, or two threads
-    /// could both see "idle" and rebuild twice.
-    private func rebuildSessionIfIdle() {
-        sessionBox.mutate { session in
-            guard session.connectedPeers.isEmpty else { return }
-            session.delegate = nil
-            session.disconnect()
-            let fresh = Self.makeSession(peerID: peerID)
-            fresh.delegate = self
-            session = fresh
-        }
-    }
 
     func startAdvertisingAndBrowsing() {
         advertiser.startAdvertisingPeer()
@@ -132,8 +118,13 @@ class MultipeerService: NSObject, MCSessionDelegate,
         session?.delegate = nil
     }
 
-    func invitePeer(_ peer: MCPeerID, timeout: TimeInterval = 10) {
-        rebuildSessionIfIdle()
+    /// No session rebuild here. Under the QUIC transport the session object is
+    /// a facade over one long-lived peer session, so "starting fresh" does not
+    /// reset a transport — it disconnects, which closes every open connection,
+    /// including one that just completed its handshake. (Under real MC a
+    /// virgin MCSession per attempt was the cure for invites wedged in
+    /// `.connecting`; here it was the cause.)
+    func invitePeer(_ peer: MCPeerID, timeout: TimeInterval = 30) {
         browser.invitePeer(peer, to: session, withContext: nil, timeout: timeout)
     }
 
@@ -166,7 +157,8 @@ class MultipeerService: NSObject, MCSessionDelegate,
                     didReceiveInvitationFromPeer peerID: MCPeerID,
                     withContext context: Data?,
                     invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        rebuildSessionIfIdle()
+        // Accept on the connection the invitation arrived on — rebuilding the
+        // session here would close it.
         invitationHandler(true, session)
     }
 

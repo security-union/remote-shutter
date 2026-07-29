@@ -5,7 +5,7 @@
 //  Default still encoder: HEIC rides the same hardware HEVC block the video
 //  pipeline uses and is roughly half the bytes of JPEG at equal quality, which
 //  directly doubles the deliverable frame rate on bandwidth-bound links
-//  (MultipeerConnectivity and especially WCSession to the Watch). Decodes
+//  (the peer connection and especially WCSession to the Watch). Decodes
 //  natively via ImageIO/UIImage(data:) on iOS and watchOS alike.
 //
 //  encode() returns nil on hardware without an HEVC encoder (pre-A10 devices)

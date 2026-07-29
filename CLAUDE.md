@@ -72,7 +72,7 @@ timeouts; long-lived states (recording, modes) deliberately have none.
 
 Two message hierarchies (both subclassing the app's `Message` base in
 Messages.swift) handle communication:
-- **`RemoteCmd`** (RemoteCmds.swift) — Messages sent over MultipeerConnectivity between devices, serialized as **FlatBuffers** (`RemoteCmdFlatBuffers.swift` + schemas in `FlatBufferSchemas.fbs`).
+- **`RemoteCmd`** (RemoteCmds.swift) — Messages sent between devices over the peer session, serialized as **FlatBuffers** (`RemoteCmdFlatBuffers.swift` + schemas in `FlatBufferSchemas.fbs`).
 - **`UICmd`** (UICmds.swift) — Local messages from screens into the session coordinator within a single device.
 
 When adding new remote commands, add a table to `FlatBufferSchemas.fbs`, regenerate `FlatBufferSchemas_generated.swift` with `flatc`, and wire the encode/decode paths in `RemoteCmdFlatBuffers.swift`. All FlatBuffer enums must have `Unknown = 0` as the default.
@@ -92,7 +92,7 @@ Threading: the coordinator serializes via its actor inbox; `CaptureEngine` state
 
 ### P2P Communication
 
-Uses Apple's **MultipeerConnectivity** framework (service type: `"remotecam"` — Bonjour types must be lowercase; must match `NSBonjourServices` in Info.plist), encapsulated in `MultipeerService` (`MultipeerServiceProtocol` is the test seam). Messages are serialized as FlatBuffers and sent via `MCSession.send()`. Video files use `MCSession.sendResource()` for large transfers with progress tracking.
+Uses **Stormo** (github.com/security-union/Stormo — QUIC over Network.framework, pinned exact 2.0.0) via its MPCCompat drop-in API; app code keeps the legacy MC type names through app-local typealiases in `MultipeerCompatAliases.swift`. Service type `"remotecam"` (bare MPC style; MPCCompat translates it to `_remotecam._udp` — must match `NSBonjourServices` in Info.plist). Encapsulated in `MultipeerService` (`MultipeerServiceProtocol` is the test seam); messages are FlatBuffers via `MCSession.send()`, video files via `MCSession.sendResource()` with progress. Requires the Keychain Sharing entitlement (TLS identity lives in the data-protection keychain; advertising fails at startup without it on Catalyst). `QUIC_DEBUG=1` in the scheme makes the transport narrate to the console; both devices must run Stormo builds (no wire interop with MPC-era versions). See Stormo's CLAUDE.md for transport failure modes.
 
 ### Dependencies (CocoaPods)
 
@@ -105,11 +105,11 @@ The session uses Swift's native `actor` for concurrency (see `Docs/ARCHITECTURE.
 
 The Mac build is the same app target. Rules that matter when touching platform-y code:
 - Camera identity is `uniqueID`-based (`CameraDeviceDescriptor`, `CameraControlling.selectCameraDevice`); Mac cameras report `.unspecified` position, which serializes as `Back + has_unspecified_position` on the wire.
-- A monitor may only send `RemoteCmd.SelectCameraDevice` to a peer whose capabilities carried a non-empty `camera_devices` list — old decoders read unknown command actions as `TakePicture`. The gate lives in `SessionCoordinator` and is pinned by a loopback test.
+- A monitor may only send `RemoteCmd.SelectCameraDevice` to a peer whose capabilities carried a non-empty `camera_devices` list. The gate lives in `SessionCoordinator` and is pinned by a loopback test. (`CommandAction.Unknown = 0`, so an action a peer doesn't know is ignored, not misread — the gate is about not sending meaningless commands.)
 - WatchConnectivity does not exist on Catalyst: `WatchSessionManager` has a stub branch; keep new Watch code behind it.
 - Macs don't rotate: `getOrientation()` returns `.landscapeRight` on Catalyst; don't add rotation handling outside the `#if !targetEnvironment(macCatalyst)` paths.
 - Platform shims (sleep, System Settings deep links) use `#if targetEnvironment(macCatalyst)` — extend those branches rather than adding UIKit-only calls.
-- Preview frames are ALWAYS sent `.unreliable` (never `.reliable` — live preview drops, never queues); MC's datagram channel is warmed with a no-op ping at peer connect. Frame durations must be clamped into the `AVFrameRateRange`'s own CMTimes (`CaptureEngine.resolveFrameRate`), never rebuilt as `CMTimeMake(1, fps)`.
+- Preview frames are ALWAYS sent `.unreliable` (never `.reliable` — live preview drops, never queues); the transport's datagram channel is warmed with a no-op ping at peer connect. Frame durations must be clamped into the `AVFrameRateRange`'s own CMTimes (`CaptureEngine.resolveFrameRate`), never rebuilt as `CMTimeMake(1, fps)`.
 - Hardware integration tests (real cameras, skip on simulator/CI): `xcodebuild test … -destination 'platform=macOS,variant=Mac Catalyst' -only-testing:RemoteShutterTests/CaptureIntegrationTests`.
 
 ### Feature Flags

@@ -6,7 +6,8 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 
 /// Everything `RemoteCamSession` needs from the device-scanner screen.
 ///

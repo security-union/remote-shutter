@@ -1,5 +1,6 @@
 import SwiftUI
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 
 private let qrCodeImage: UIImage? = generateQRCode(remoteShutterUrl)
 
@@ -13,6 +14,9 @@ struct DeviceScannerView: View {
     let onShareApp: () -> Void
     let onOpenSettings: () -> Void
     let onHelp: () -> Void
+
+    /// Peer-link state; the reconnect overlay is a function of it.
+    @ObservedObject var peerLink: PeerLinkStatus = .shared
 
     var body: some View {
         ZStack {
@@ -29,6 +33,8 @@ struct DeviceScannerView: View {
             if viewModel.isConnecting {
                 connectingOverlay
             }
+
+            PeerLinkOverlay(status: peerLink)
         }
     }
 

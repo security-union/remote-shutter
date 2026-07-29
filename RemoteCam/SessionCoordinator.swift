@@ -10,7 +10,8 @@
 // protocol's width, previously spread across seven Theater state files.
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 import Combine
 import UIKit
 import Photos
@@ -173,23 +174,18 @@ public actor SessionCoordinator {
 
     /// Whether the connected camera peer advertised a camera-device list in
     /// its capabilities — the feature gate for `RemoteCmd.SelectCameraDevice`.
-    /// Never send that command otherwise: old decoders read unknown command
-    /// actions as TakePicture (the FlatBuffers field default).
+    /// Selecting a device on a peer that has none is meaningless, so don't.
     private var peerAdvertisedCameraDevices = false
 
     /// Whether the connected camera peer advertised focus-point support in its
-    /// capabilities — the feature gate for `RemoteCmd.FocusAtPoint`. Never send
-    /// that command otherwise: old decoders read unknown command actions as
-    /// TakePicture (same precedent as SelectCameraDevice).
+    /// capabilities — the feature gate for `RemoteCmd.FocusAtPoint`.
     private var peerSupportsFocusPoint = false
 
     /// Test support.
     func peerSupportsFocusPointForTesting() -> Bool { peerSupportsFocusPoint }
 
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
-    /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`
-    /// (old decoders read that unknown action as TakePicture — same precedent as
-    /// SelectCameraDevice).
+    /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
 
     /// Test support.
@@ -229,6 +225,8 @@ public actor SessionCoordinator {
     var watchCountdownRemaining: Int32 = 0
 
     func setAlertPresenter(_ presenter: AlertPresenting) { alertPresenter = presenter }
+    func setReconnectRetryDelay(_ delay: TimeInterval) { reconnectRetryDelay = delay }
+    func setPeerLinkStatus(_ status: PeerLinkStatus) { peerLinkStatus = status }
     func setWatchStatePusher(_ pusher: WatchStatePushing) { watchStatePusher = pusher }
     func setIsPhoneBackgrounded(_ provider: @escaping () -> Bool) { isPhoneBackgrounded = provider }
     func setPhotoLibrarySaver(_ saver: @escaping (Data) -> Void) { photoLibrarySaver = saver }
@@ -295,6 +293,23 @@ public actor SessionCoordinator {
     /// already warmed up — off-network, link bring-up alone can eat most of
     /// the first invite's timeout.
     private var pendingConnect: (peer: MCPeerID, attempt: Int)?
+
+    // MARK: Peer-backgrounded reconnect (C-5)
+
+    /// The peer we are waiting on, if any. Single source of truth: the
+    /// overlay is rendered from `peerLinkStatus`, which only `setReconnecting`
+    /// writes, so the UI cannot disagree with the machine.
+    private var reconnecting: MCPeerID?
+    /// The peer announced a deliberate exit, so the disconnect that follows is
+    /// expected: no overlay, no retry loop. Cleared once consumed.
+    private var peerEndedSession = false
+    private var peerLinkStatus: PeerLinkStatus = .shared
+    private var reconnectRetryTask: Task<Void, Never>?
+    /// Fixed retry cadence (no backoff by design); injectable for tests.
+    private var reconnectRetryDelay: TimeInterval = 1
+    /// A QUIC dial + TLS + PeerHello needs seconds; ticking faster than
+    /// this would restart handshakes instead of completing them.
+    private let reconnectInviteTimeout: TimeInterval = 10
     private let inviteTimeout: TimeInterval = 20
     private let maxConnectAttempts = 2
 
@@ -319,6 +334,12 @@ public actor SessionCoordinator {
         OperationQueue.main.addOperation {
             lobby.returnToLobby()
             lobby.scannerViewModel.startedScanning()
+        }
+
+        // Landed here mid-reconnect (grace expired, connection died): keep
+        // the dialog up and start the fixed-cadence retry loop.
+        if let waitingOn = reconnecting {
+            armReconnectRetry(waitingOn)
         }
     }
 
@@ -427,6 +448,23 @@ public actor SessionCoordinator {
     // MARK: Message dispatch
 
     func handle(_ msg: Message) async {
+        // A deliberate exit is announced before we tear anything down, from
+        // whichever state the user triggered it in — otherwise the peer would
+        // spend the next minutes inviting a session nobody is coming back to.
+        if msg is Disconnect {
+            await announceEndOfSession()
+        }
+        // The link ending is the only signal that matters: whatever state we
+        // are in, losing the session peer starts the wait. The per-state
+        // handlers below still do the popping; this just makes the UI say so.
+        if let lost = msg as? DisconnectPeer, let lost = lost.peer, lost == peer,
+           reconnecting == nil, connectedPeers.isEmpty {
+            if peerEndedSession {
+                peerEndedSession = false
+            } else {
+                beginReconnect(with: lost)
+            }
+        }
         switch state {
         case .waitingForLobby:
             await inWaitingForLobby(msg)
@@ -507,6 +545,14 @@ public actor SessionCoordinator {
             }
 
         case let disconnected as DisconnectPeer:
+            if let waitingOn = reconnecting, waitingOn == disconnected.peer {
+                // Peer-backgrounded retry: fixed cadence, no attempt cap —
+                // ends only on reconnect or Cancel. This attempt is over, so
+                // the next tick is free to start a fresh one.
+                pendingConnect = nil
+                armReconnectRetry(waitingOn)
+                break
+            }
             guard let pending = pendingConnect, pending.peer == disconnected.peer else {
                 startScanning(lobby: liveLobby)
                 break
@@ -520,6 +566,22 @@ public actor SessionCoordinator {
                     liveLobby.scannerViewModel.connectionFailed()
                 }
             }
+
+        case let retry as UICmd.RetryReconnect:
+            guard let waitingOn = reconnecting, waitingOn == retry.peer else { break }
+            // Only the monitor invites; the camera's retry is advertising and
+            // auto-accepting, which scanning already does.
+            guard liveLobby.role == .monitor else { break }
+            // Never restart an attempt that is still running: invitePeer
+            // rebuilds the session, which tears down the in-flight QUIC
+            // handshake. A dial needs seconds; the tick is 1 s. Skip and
+            // let this attempt finish — its failure re-arms the loop.
+            guard pendingConnect == nil else {
+                armReconnectRetry(waitingOn)
+                break
+            }
+            pendingConnect = (waitingOn, 1)
+            multipeerService?.invitePeer(waitingOn, timeout: reconnectInviteTimeout)
 
         case is UICmd.CancelConnect:
             pendingConnect = nil
@@ -535,6 +597,7 @@ public actor SessionCoordinator {
 
         case let connected as OnConnectToDevice:
             pendingConnect = nil
+            endReconnect(ifPeer: connected.peer)
             peer = connected.peer
             OperationQueue.main.addOperation {
                 liveLobby.scannerViewModel.connectedToPeer()
@@ -1061,10 +1124,101 @@ public actor SessionCoordinator {
         }
     }
 
+    // MARK: - Peer-backgrounded reconnect flow (C-5)
+
+    /// Tell the peer we are leaving on purpose, so it stops reconnecting.
+    /// Best-effort and briefly awaited: the send is queued on the connection
+    /// we are about to close, so give it a moment to reach the wire.
+    private func announceEndOfSession() async {
+        guard peer != nil, !connectedPeers.isEmpty else { return }
+        _ = sendMessage(RemoteCmd.EndSession())
+        try? await Task.sleep(nanoseconds: 150_000_000)
+    }
+
+    /// The only writer of the waiting state: model and published UI move
+    /// together, so a live link and a visible overlay cannot coexist.
+    private func setReconnecting(_ waitingOn: MCPeerID?) {
+        reconnecting = waitingOn
+        if waitingOn == nil {
+            reconnectRetryTask?.cancel()
+            reconnectRetryTask = nil
+        }
+        let status = peerLinkStatus
+        let name = waitingOn?.displayName
+        Task { @MainActor in
+            if let name {
+                status.setReconnecting(peerName: name)
+            } else {
+                status.setLinked()
+            }
+        }
+    }
+
+    /// The session peer's connection ended: start waiting. The machine drops
+    /// to scanning as always, and the retry loop re-invites until it returns
+    /// or the user cancels.
+    private func beginReconnect(with lostPeer: MCPeerID) {
+        guard reconnecting == nil, lostPeer == peer else { return }
+        setReconnecting(lostPeer)
+    }
+
+    /// Reconnected (a retry invite landed, or traffic proved the link).
+    /// `nil` matches any peer.
+    private func endReconnect(ifPeer resumedPeer: MCPeerID?) {
+        guard let current = reconnecting,
+              resumedPeer == nil || current == resumedPeer else { return }
+        setReconnecting(nil)
+    }
+
+    private func cancelReconnect() async {
+        guard reconnecting != nil else { return }
+        setReconnecting(nil)
+        pendingConnect = nil
+        if case .scanning = state {
+            if let liveLobby = lobby?.value {
+                OperationQueue.main.addOperation {
+                    liveLobby.scannerViewModel.connectCancelled()
+                }
+            }
+        } else {
+            // Still connected under grace: the user chose to leave now.
+            multipeerService?.disconnect()
+            await popToScanning()
+        }
+    }
+
+    /// One fixed-cadence tick; each tick re-arms from the scanning handlers,
+    /// so the loop dies with `reconnecting`.
+    private func armReconnectRetry(_ peer: MCPeerID) {
+        reconnectRetryTask?.cancel()
+        let delay = reconnectRetryDelay
+        reconnectRetryTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            self?.tell(UICmd.RetryReconnect(peer: peer))
+        }
+    }
+
     // MARK: - Root (any state whose handler delegates here)
 
     private func handleRoot(_ msg: Message) async {
         switch msg {
+        case is RemoteCmd.EndSession:
+            // The peer is leaving on purpose. Its disconnect is expected —
+            // chasing it with invites would be rude and pointless.
+            peerEndedSession = true
+            endReconnect(ifPeer: nil)
+
+        case is UICmd.PeerTrafficObserved:
+            // Traffic IS the link. A suspend notice only predicts a drop; if
+            // packets keep arriving (short background, link that never died,
+            // or a lost Resume), the peer is plainly here — believe the wire,
+            // not the announcement.
+            endReconnect(ifPeer: nil)
+
+        case is UICmd.CancelReconnect:
+            await cancelReconnect()
+
         case let become as UICmd.BecomeWatchCamera:
             ctrl = become.ctrl
             await transition(to: .watchCamera)
@@ -2044,6 +2198,7 @@ public actor SessionCoordinator {
 extension SessionCoordinator: MultipeerServiceDelegate {
 
     public nonisolated func didReceiveMessage(_ message: Message) {
+        tell(UICmd.PeerTrafficObserved())
         tell(message)
     }
 
@@ -2051,9 +2206,11 @@ extension SessionCoordinator: MultipeerServiceDelegate {
         // Straight to the frame streamer — pacing must not queue behind
         // state-machine work.
         frameSenderShared.value?.receiveAck(request)
+        tell(UICmd.PeerTrafficObserved())
     }
 
     public nonisolated func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID) {
+        tell(UICmd.PeerTrafficObserved())
         tell(RemoteCmd.OnFrame(data: frame.data,
             sender: nil,
             peerId: peer,
@@ -2065,7 +2222,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
     }
 
     public nonisolated func peerDidConnect(_ peer: MCPeerID) {
-        // Warm MultipeerConnectivity's unreliable datagram channel: it
+        // Warm the transport's unreliable datagram channel: it
         // negotiates lazily on first use (~10s) and silently drops sends
         // until ready ("giving up for participant" in the MC logs). One
         // no-op ping here starts that clock at connect, so negotiation

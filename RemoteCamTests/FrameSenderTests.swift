@@ -8,7 +8,8 @@
 //
 
 import XCTest
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 import UIKit
 
 @testable import RemoteShutter

@@ -66,7 +66,7 @@ final class CameraRig: @unchecked Sendable {
     let frameSender: FrameSender
 
     /// When true, this camera is controlled by an Apple Watch via WCSession.
-    /// Suppresses MultipeerConnectivity-related actor messages (BecomeCamera/UnbecomeCamera).
+    /// Suppresses peer-session actor messages (BecomeCamera/UnbecomeCamera).
     var isWatchRemoteMode = false
 
     /// One view model drives the whole SwiftUI screen: preview session,

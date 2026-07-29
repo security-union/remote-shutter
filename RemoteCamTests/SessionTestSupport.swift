@@ -7,7 +7,8 @@
 
 import Foundation
 import XCTest
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 import AVFoundation
 import Combine
 
@@ -60,7 +61,6 @@ class FakeAlertHandle: AlertHandle, @unchecked Sendable {
 class FakeAlertPresenter: AlertPresenting, @unchecked Sendable {
     var shownAlerts: [FakeAlertHandle] = []
     var shownErrors: [String] = []
-
     func showAlert(title: String) -> AlertHandle {
         let handle = FakeAlertHandle(title: title)
         shownAlerts.append(handle)

@@ -14,7 +14,7 @@ import UIKit
 
 // MARK: - FlatBuffer serialization for MultipeerService
 
-/// Serializes any RemoteCmd message to FlatBuffers Data for sending over MultipeerConnectivity.
+/// Serializes any RemoteCmd message to FlatBuffers Data for sending to the remote peer.
 /// Used by MultipeerService.send() as the single encode entry point.
 func serializeToFlatBuffer(_ msg: Message) -> Data? {
     switch msg {
@@ -32,6 +32,7 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
+    case let m as RemoteCmd.EndSession: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SwitchLens: return m.toFlatBuffer()
     case let m as RemoteCmd.SwitchLensResp: return m.toFlatBuffer()
@@ -585,6 +586,13 @@ extension RemoteCmd.FocusAtPoint {
     }
 }
 
+extension RemoteCmd.EndSession {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        return buildCommand(&fbb, action: .endsession, parameters: Offset())
+    }
+}
+
 extension RemoteCmd.SetZoomResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1006,6 +1014,13 @@ extension RemoteCmd {
         let params = cmd.parameters
 
         switch cmd.action {
+        case .unknown:
+            // An action this build does not know: ignore-and-log. Before the
+            // enum was renumbered this slot was TakePicture, so an unknown
+            // command fired the shutter.
+            print("RemoteCmd: ignoring unknown command action")
+            return nil
+
         case .startrecording:
             return StartRecordingVideo(sender: nil)
 
@@ -1085,6 +1100,9 @@ extension RemoteCmd {
 
         case .focusatpoint:
             return FocusAtPoint(x: params?.focusPointX ?? 0.5, y: params?.focusPointY ?? 0.5)
+
+        case .endsession:
+            return EndSession()
         }
     }
 

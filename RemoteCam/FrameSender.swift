@@ -7,7 +7,8 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 import UIKit
 
 /// Failed to push a frame to the peer — the session pops to scanning with a

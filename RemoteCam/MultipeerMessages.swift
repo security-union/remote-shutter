@@ -7,7 +7,8 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 import AVFoundation
 
 enum DeviceRole {

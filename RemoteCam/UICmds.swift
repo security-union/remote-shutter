@@ -7,7 +7,8 @@
 //
 
 import Foundation
-import MultipeerConnectivity
+import MPCCompat
+import Stormo
 import UIKit
 import AVFoundation
 
@@ -566,6 +567,24 @@ public class UICmd {
         }
     }
 
+    /// Inbound traffic arrived from the peer — proof the link is alive.
+    public class PeerTrafficObserved: Message, @unchecked Sendable {
+    }
+
+    /// The user cancelled the peer-backgrounded reconnect dialog.
+    public class CancelReconnect: Message, @unchecked Sendable {
+    }
+
+    /// Fixed-cadence tick of the reconnect retry loop (scanning state only).
+    public class RetryReconnect: Message, @unchecked Sendable {
+        public let peer: MCPeerID
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
+
     public class BrowserLostPeer: Message, @unchecked Sendable {
         public let peer: MCPeerID
 
@@ -621,8 +640,7 @@ public class UICmd {
     /// Raised by the monitor's frame receiver when the VP9 preview decoder
     /// desyncs (an undecodable frame, or a sequence gap on the stateful stream).
     /// The monitor state forwards it as `RemoteCmd.RequestKeyframe` — but only to
-    /// a peer that has already delivered a VP9 frame, since old peers decode the
-    /// unknown action as TakePicture.
+    /// a peer that has already delivered a VP9 frame.
     public class RequestVideoKeyframe: Message, @unchecked Sendable {
         public init() {
             super.init(sender: nil)

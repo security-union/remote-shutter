@@ -8,31 +8,33 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
   public var value: Int8 { return self.rawValue }
-  case takepicture = 0
-  case toggletorch = 1
-  case toggleflash = 2
-  case togglecamera = 3
-  case setzoom = 4
-  case switchlens = 5
-  case startrecording = 6
-  case stoprecording = 7
-  case requestcapabilities = 8
-  case settorchmode = 9
-  case setflashmode = 10
-  case requestframe = 11
-  case peerbecamecamera = 12
-  case peerbecamemonitor = 13
-  case setvideoquality = 14
-  case setphotoquality = 15
-  case timercountdown = 16
-  case syncmonitorsettings = 17
-  case setaspectratio = 18
-  case selectcameradevice = 19
-  case requestkeyframe = 20
-  case focusatpoint = 21
+  case unknown = 0
+  case takepicture = 1
+  case toggletorch = 2
+  case toggleflash = 3
+  case togglecamera = 4
+  case setzoom = 5
+  case switchlens = 6
+  case startrecording = 7
+  case stoprecording = 8
+  case requestcapabilities = 9
+  case settorchmode = 10
+  case setflashmode = 11
+  case requestframe = 12
+  case peerbecamecamera = 13
+  case peerbecamemonitor = 14
+  case setvideoquality = 15
+  case setphotoquality = 16
+  case timercountdown = 17
+  case syncmonitorsettings = 18
+  case setaspectratio = 19
+  case selectcameradevice = 20
+  case requestkeyframe = 21
+  case focusatpoint = 22
+  case endsession = 23
 
-  public static var max: RemoteShutter_CommandAction { return .focusatpoint }
-  public static var min: RemoteShutter_CommandAction { return .takepicture }
+  public static var max: RemoteShutter_CommandAction { return .endsession }
+  public static var min: RemoteShutter_CommandAction { return .unknown }
 }
 
 
@@ -445,7 +447,7 @@ public struct RemoteShutter_CameraCommand: FlatBufferObject, Verifiable {
     var p: VOffset { self.rawValue }
   }
 
-  public var action: RemoteShutter_CommandAction { let o = _accessor.offset(VTOFFSET.action.v); return o == 0 ? .takepicture : RemoteShutter_CommandAction(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .takepicture }
+  public var action: RemoteShutter_CommandAction { let o = _accessor.offset(VTOFFSET.action.v); return o == 0 ? .unknown : RemoteShutter_CommandAction(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var parameters: RemoteShutter_CommandParameters? { let o = _accessor.offset(VTOFFSET.parameters.v); return o == 0 ? nil : RemoteShutter_CommandParameters(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
   public static func startCameraCommand(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 2) }
   public static func add(action: RemoteShutter_CommandAction, _ fbb: inout FlatBufferBuilder) { fbb.add(element: action.rawValue, def: 0, at: VTOFFSET.action.p) }
@@ -453,7 +455,7 @@ public struct RemoteShutter_CameraCommand: FlatBufferObject, Verifiable {
   public static func endCameraCommand(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraCommand(
     _ fbb: inout FlatBufferBuilder,
-    action: RemoteShutter_CommandAction = .takepicture,
+    action: RemoteShutter_CommandAction = .unknown,
     parametersOffset parameters: Offset = Offset()
   ) -> Offset {
     let __start = RemoteShutter_CameraCommand.startCameraCommand(&fbb)
@@ -1056,7 +1058,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     var p: VOffset { self.rawValue }
   }
 
-  public var action: RemoteShutter_CommandAction { let o = _accessor.offset(VTOFFSET.action.v); return o == 0 ? .takepicture : RemoteShutter_CommandAction(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .takepicture }
+  public var action: RemoteShutter_CommandAction { let o = _accessor.offset(VTOFFSET.action.v); return o == 0 ? .unknown : RemoteShutter_CommandAction(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var success: Bool { let o = _accessor.offset(VTOFFSET.success.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
   public var error: String? { let o = _accessor.offset(VTOFFSET.error.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var errorSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.error.v) }
@@ -1087,7 +1089,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public static func endCameraStateResponse(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraStateResponse(
     _ fbb: inout FlatBufferBuilder,
-    action: RemoteShutter_CommandAction = .takepicture,
+    action: RemoteShutter_CommandAction = .unknown,
     success: Bool = false,
     errorOffset error: Offset = Offset(),
     currentStateOffset currentState: Offset = Offset(),
