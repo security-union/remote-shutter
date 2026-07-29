@@ -309,7 +309,9 @@ public actor SessionCoordinator {
     private var reconnectRetryTask: Task<Void, Never>?
     /// Fixed retry cadence (no backoff by design); injectable for tests.
     private var reconnectRetryDelay: TimeInterval = 1
-    private let reconnectInviteTimeout: TimeInterval = 5
+    /// A QUIC dial + TLS + PeerHello needs seconds; ticking faster than
+    /// this would restart handshakes instead of completing them.
+    private let reconnectInviteTimeout: TimeInterval = 10
     private let inviteTimeout: TimeInterval = 20
     private let maxConnectAttempts = 2
 
@@ -530,7 +532,9 @@ public actor SessionCoordinator {
         case let disconnected as DisconnectPeer:
             if let waitingOn = reconnecting, waitingOn == disconnected.peer {
                 // Peer-backgrounded retry: fixed cadence, no attempt cap —
-                // ends only on reconnect or the dialog's Cancel.
+                // ends only on reconnect or Cancel. This attempt is over, so
+                // the next tick is free to start a fresh one.
+                pendingConnect = nil
                 armReconnectRetry(waitingOn)
                 break
             }
@@ -552,10 +556,17 @@ public actor SessionCoordinator {
             guard let waitingOn = reconnecting, waitingOn == retry.peer else { break }
             // Only the monitor invites; the camera's retry is advertising and
             // auto-accepting, which scanning already does.
-            if liveLobby.role == .monitor {
-                pendingConnect = (waitingOn, 1)
-                multipeerService?.invitePeer(waitingOn, timeout: reconnectInviteTimeout)
+            guard liveLobby.role == .monitor else { break }
+            // Never restart an attempt that is still running: invitePeer
+            // rebuilds the session, which tears down the in-flight QUIC
+            // handshake. A dial needs seconds; the tick is 1 s. Skip and
+            // let this attempt finish — its failure re-arms the loop.
+            guard pendingConnect == nil else {
+                armReconnectRetry(waitingOn)
+                break
             }
+            pendingConnect = (waitingOn, 1)
+            multipeerService?.invitePeer(waitingOn, timeout: reconnectInviteTimeout)
 
         case is UICmd.CancelConnect:
             pendingConnect = nil

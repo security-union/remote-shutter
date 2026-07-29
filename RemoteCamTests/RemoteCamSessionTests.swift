@@ -1350,6 +1350,32 @@ class SessionReconnectTests: XCTestCase {
         XCTAssertEqual(finalState, .connected)
     }
 
+    /// Device bug: the 1 s tick called invitePeer every second, and
+    /// invitePeer rebuilds the session — tearing down the QUIC handshake
+    /// that was still completing. The dial never got its couple of seconds,
+    /// so the pair churned "Connecting…/Not Connected" forever.
+    func testRetryDoesNotRestartAnAttemptInFlight() async {
+        harness.lobby.role = .monitor
+        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        await awaitRetryTick()
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1, "one attempt starts")
+
+        // Ticks while that attempt is still running must not re-invite.
+        await awaitRetryTick()
+        await awaitRetryTick()
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1,
+                       "an in-flight handshake is left alone")
+
+        // Only its failure frees the next attempt.
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        await awaitRetryTick()
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 2,
+                       "the loop continues once the attempt is over")
+    }
+
     func testCameraRoleWaitsWithoutInviting() async {
         harness.lobby.role = .camera
         await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
