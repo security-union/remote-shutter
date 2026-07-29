@@ -1264,3 +1264,125 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertNotNil(resp?.error, "…carrying the error")
     }
 }
+
+// MARK: - Peer-backgrounded reconnect flow (C-5)
+
+/// The suspend → dialog → retry-until-cancel loop: `PeerSuspended` puts up
+/// the one cancelable dialog; an in-grace `PeerResumed` dismisses it
+/// silently; a post-grace `DisconnectPeer` drops to scanning where the
+/// fixed-cadence retry re-invites (monitor role) until reconnect or Cancel.
+class SessionReconnectTests: XCTestCase {
+
+    private var harness: CoordinatorHarness!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        harness = await makeCoordinatorHarness()
+        await harness.coordinator.setReconnectRetryDelay(0.05)
+        await harness.coordinator.seed(
+            state: .connected, lobby: harness.lobbyWrapper, peer: harness.peer)
+    }
+
+    /// Sleep past one retry tick, then drain the inbox and main queue.
+    private func awaitRetryTick() async {
+        try? await Task.sleep(nanoseconds: 120_000_000)
+        await harness.coordinator.waitForIdle()
+        await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
+    }
+
+    func testPeerSuspendedShowsCancelableDialog() async {
+        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+
+        XCTAssertEqual(harness.alerts.cancelableAlerts.count, 1)
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .connected, "suspension alone must not change state")
+    }
+
+    func testPeerResumedWithinGraceDismissesDialogSilently() async {
+        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+        await harness.deliver(UICmd.PeerResumed(peer: harness.peer))
+
+        XCTAssertTrue(harness.alerts.cancelableAlerts[0].handle.dismissed)
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .connected, "an in-grace resume is invisible to the machine")
+    }
+
+    func testSuspendedDisconnectDropsToScanningAndMonitorRetries() async {
+        harness.lobby.role = .monitor
+        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .scanning)
+        XCTAssertFalse(harness.alerts.cancelableAlerts[0].handle.dismissed,
+                       "the dialog survives the drop to scanning")
+
+        await awaitRetryTick()
+        XCTAssertEqual(harness.fakeMP.invitedPeers.first?.peer, harness.peer,
+                       "the retry loop re-invites the suspended peer")
+
+        // A failed attempt surfaces as DisconnectPeer — the loop re-arms.
+        let invitesSoFar = harness.fakeMP.invitedPeers.count
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        await awaitRetryTick()
+        XCTAssertGreaterThan(harness.fakeMP.invitedPeers.count, invitesSoFar,
+                             "retries continue with no attempt cap")
+
+        // Reconnection ends the loop and dismisses the dialog.
+        await harness.deliver(OnConnectToDevice(peer: harness.peer, sender: nil))
+        XCTAssertTrue(harness.alerts.cancelableAlerts[0].handle.dismissed)
+        let finalState = await harness.stateName()
+        XCTAssertEqual(finalState, .connected)
+    }
+
+    func testCameraRoleWaitsWithoutInviting() async {
+        harness.lobby.role = .camera
+        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        await awaitRetryTick()
+
+        XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
+                      "only the monitor invites; the camera advertises and waits")
+        XCTAssertTrue(harness.fakeMP.startAdvertisingAndBrowsingCalled,
+                      "scanning re-entry restarted the radios")
+        XCTAssertFalse(harness.alerts.cancelableAlerts[0].handle.dismissed)
+    }
+
+    func testCancelStopsTheRetryLoop() async {
+        harness.lobby.role = .monitor
+        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        await awaitRetryTick()
+
+        harness.alerts.cancelableAlerts[0].onCancel()
+        await harness.coordinator.waitForIdle()
+        await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
+        XCTAssertTrue(harness.alerts.cancelableAlerts[0].handle.dismissed)
+
+        let invitesAtCancel = harness.fakeMP.invitedPeers.count
+        await awaitRetryTick()
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, invitesAtCancel,
+                       "no further invites after Cancel")
+    }
+
+    func testCancelWhileStillConnectedTearsDown() async {
+        await harness.deliver(UICmd.PeerSuspended(peer: harness.peer))
+        harness.alerts.cancelableAlerts[0].onCancel()
+        await harness.coordinator.waitForIdle()
+        await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
+
+        XCTAssertTrue(harness.fakeMP.disconnectCalled,
+                      "cancelling under grace leaves the session deliberately")
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .scanning)
+    }
+
+    func testSuspendFromUnknownPeerIsIgnored() async {
+        let stranger = MCPeerID(displayName: "Stranger")
+        await harness.deliver(UICmd.PeerSuspended(peer: stranger))
+        XCTAssertTrue(harness.alerts.cancelableAlerts.isEmpty)
+    }
+}

@@ -459,3 +459,18 @@ final class DeviceScannerViewModelTests: XCTestCase {
         XCTAssertFalse(vm.hasConnectionError)
     }
 }
+
+extension DeviceScannerViewModelTests {
+    /// A re-found peer (same key hash, upgraded display name — the transport's
+    /// TXT enrichment replacing the AWDL placeholder) must update the stored
+    /// row in place, never be dropped as a duplicate.
+    func testAddPeerUpdatesDisplayNameInPlace() {
+        let vm = DeviceScannerViewModel()
+        let hash = Data([0x12, 0x20]) + Data(repeating: 0xAB, count: 32)
+        vm.addPeer(PeerID(keyHash: hash, displayName: "Qm3f9a2c…"))
+        vm.addPeer(PeerID(keyHash: hash, displayName: "Dario's iPhone"))
+
+        XCTAssertEqual(vm.connectedPeers.count, 1)
+        XCTAssertEqual(vm.connectedPeers[0].displayName, "Dario's iPhone")
+    }
+}

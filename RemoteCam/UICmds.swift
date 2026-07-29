@@ -567,6 +567,41 @@ public class UICmd {
         }
     }
 
+    /// The session peer announced suspension (backgrounded, C-5): it is
+    /// still connected, its link is about to die for a known reason.
+    public class PeerSuspended: Message, @unchecked Sendable {
+        public let peer: MCPeerID
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
+
+    /// A suspended peer reconnected within its grace window.
+    public class PeerResumed: Message, @unchecked Sendable {
+        public let peer: MCPeerID
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
+
+    /// The user cancelled the peer-backgrounded reconnect dialog.
+    public class CancelReconnect: Message, @unchecked Sendable {
+    }
+
+    /// Fixed-cadence tick of the reconnect retry loop (scanning state only).
+    public class RetryReconnect: Message, @unchecked Sendable {
+        public let peer: MCPeerID
+
+        public init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
+
     public class BrowserLostPeer: Message, @unchecked Sendable {
         public let peer: MCPeerID
 

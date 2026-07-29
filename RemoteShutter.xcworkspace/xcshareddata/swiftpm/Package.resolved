@@ -1,5 +1,5 @@
 {
-  "originHash" : "8ac6e7aeb7118b6dfe37978600d9d7d821e9d8698e9b9b103929275a68787efb",
+  "originHash" : "7ca0fbb612865a1a77dccae969355a49ce941815eaf4e77dd20b10d68313d0a5",
   "pins" : [
     {
       "identity" : "flatbuffers",
@@ -8,15 +8,6 @@
       "state" : {
         "revision" : "1c514626e83c20fffa8557e75641848e1e15cd5e",
         "version" : "25.2.10"
-      }
-    },
-    {
-      "identity" : "stormo",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/security-union/Stormo.git",
-      "state" : {
-        "revision" : "5316a0852b2d0c461ed540a933b0cafd666db216",
-        "version" : "2.0.0"
       }
     },
     {
@@ -33,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-certificates.git",
       "state" : {
-        "revision" : "89fbc3714264cce8db8e4ec51b64e01c3e28c6c5",
-        "version" : "1.19.3"
+        "revision" : "449dbbecd0f31e82b510ada227ca152caa8b5e98",
+        "version" : "1.19.4"
       }
     },
     {

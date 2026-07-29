@@ -51,7 +51,13 @@ final class DeviceScannerViewModel: ObservableObject {
     // MARK: - Peer Management
 
     func addPeer(_ peer: MCPeerID) {
-        if !connectedPeers.contains(peer) {
+        // A re-found peer compares equal (identity is key-hash-only) but may
+        // carry an upgraded display name — the transport re-delivers when TXT
+        // enrichment replaces the AWDL placeholder. Update in place; dropping
+        // would freeze the hash-prefix name in the UI.
+        if let index = connectedPeers.firstIndex(of: peer) {
+            connectedPeers[index] = peer
+        } else {
             connectedPeers.append(peer)
         }
         speedRunScanning = true
