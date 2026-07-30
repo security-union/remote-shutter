@@ -350,3 +350,12 @@
 "Cancel" = "Cancel";
 "PeerDisconnectedReconnecting" = "%@ disconnected — reconnecting…";
 "PeerReconnectHint" = "Make sure Remote Shutter is still open on that device.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "The other device needs an update";
+"IncompatiblePeerBody" = "That device is running an older version of Remote Shutter. Update it to connect.";
+"IncompatibleSelfTitle" = "Update Remote Shutter";
+"IncompatibleSelfBody" = "This device is running an older version than the other one. Update to connect.";
+"IncompatibleBothTitle" = "App is out of date";
+"IncompatibleBothBody" = "Please update Remote Shutter on both devices.";
+"IncompatibleUpdateButton" = "Update";

@@ -229,3 +229,12 @@
 "Cancel" = "Annuller";
 "PeerDisconnectedReconnecting" = "%@ blev afbrudt — genopretter forbindelsen…";
 "PeerReconnectHint" = "Sørg for, at Remote Shutter stadig er åben på den anden enhed.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "Den anden enhed skal opdateres";
+"IncompatiblePeerBody" = "Den enhed kører en ældre version af Remote Shutter. Opdater den for at forbinde.";
+"IncompatibleSelfTitle" = "Opdater Remote Shutter";
+"IncompatibleSelfBody" = "Denne enhed kører en ældre version end den anden. Opdater for at forbinde.";
+"IncompatibleBothTitle" = "Appen er ikke opdateret";
+"IncompatibleBothBody" = "Opdater Remote Shutter på begge enheder.";
+"IncompatibleUpdateButton" = "Opdater";

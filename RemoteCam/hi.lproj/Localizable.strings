@@ -350,3 +350,12 @@
 "Cancel" = "रद्द करें";
 "PeerDisconnectedReconnecting" = "%@ डिस्कनेक्ट हो गया — फिर से कनेक्ट किया जा रहा है…";
 "PeerReconnectHint" = "सुनिश्चित करें कि उस डिवाइस पर Remote Shutter अभी भी खुला है।";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "दूसरे डिवाइस को अपडेट करना होगा";
+"IncompatiblePeerBody" = "उस डिवाइस पर Remote Shutter का पुराना वर्शन है। अपडेट करने पर कनेक्ट हो जाएगा।";
+"IncompatibleSelfTitle" = "Remote Shutter अपडेट करें";
+"IncompatibleSelfBody" = "इस डिवाइस पर दूसरे से पुराना वर्शन है। अपडेट करने पर कनेक्ट हो जाएगा।";
+"IncompatibleBothTitle" = "ऐप पुराना है";
+"IncompatibleBothBody" = "दोनों डिवाइस पर Remote Shutter अपडेट करें।";
+"IncompatibleUpdateButton" = "अपडेट करें";

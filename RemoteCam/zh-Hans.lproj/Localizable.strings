@@ -350,3 +350,12 @@
 "Cancel" = "取消";
 "PeerDisconnectedReconnecting" = "%@ 已断开连接 — 正在重新连接…";
 "PeerReconnectHint" = "请确保该设备上的 Remote Shutter 仍在运行。";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "对方设备需要更新";
+"IncompatiblePeerBody" = "对方设备上的 Remote Shutter 版本较旧，更新后即可连接。";
+"IncompatibleSelfTitle" = "请更新 Remote Shutter";
+"IncompatibleSelfBody" = "本设备的 Remote Shutter 版本比对方旧，更新后即可连接。";
+"IncompatibleBothTitle" = "应用不是最新版本";
+"IncompatibleBothBody" = "请在两台设备上都更新 Remote Shutter。";
+"IncompatibleUpdateButton" = "更新";

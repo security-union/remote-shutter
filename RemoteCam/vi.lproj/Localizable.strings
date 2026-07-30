@@ -350,3 +350,12 @@
 "Cancel" = "Hủy";
 "PeerDisconnectedReconnecting" = "%@ đã ngắt kết nối — đang kết nối lại…";
 "PeerReconnectHint" = "Hãy đảm bảo Remote Shutter vẫn đang mở trên thiết bị đó.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "Thiết bị kia cần cập nhật";
+"IncompatiblePeerBody" = "Thiết bị đó đang dùng bản Remote Shutter cũ hơn. Hãy cập nhật để kết nối.";
+"IncompatibleSelfTitle" = "Hãy cập nhật Remote Shutter";
+"IncompatibleSelfBody" = "Thiết bị này đang dùng bản cũ hơn thiết bị kia. Hãy cập nhật để kết nối.";
+"IncompatibleBothTitle" = "Ứng dụng chưa được cập nhật";
+"IncompatibleBothBody" = "Hãy cập nhật Remote Shutter trên cả hai thiết bị.";
+"IncompatibleUpdateButton" = "Cập nhật";

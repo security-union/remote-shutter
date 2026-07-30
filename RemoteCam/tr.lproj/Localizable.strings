@@ -350,3 +350,12 @@
 "Cancel" = "İptal";
 "PeerDisconnectedReconnecting" = "%@ bağlantısı kesildi — yeniden bağlanılıyor…";
 "PeerReconnectHint" = "Remote Shutter'ın o cihazda hâlâ açık olduğundan emin olun.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "Diğer cihaz güncellenmeli";
+"IncompatiblePeerBody" = "O cihazda Remote Shutter'ın eski bir sürümü var. Güncelleyince bağlanabilir.";
+"IncompatibleSelfTitle" = "Remote Shutter'ı güncelleyin";
+"IncompatibleSelfBody" = "Bu cihazdaki sürüm diğerinden eski. Güncelleyince bağlanabilir.";
+"IncompatibleBothTitle" = "Uygulama güncel değil";
+"IncompatibleBothBody" = "Remote Shutter'ı iki cihazda da güncelleyin.";
+"IncompatibleUpdateButton" = "Güncelle";

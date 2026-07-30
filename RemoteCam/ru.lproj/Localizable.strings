@@ -350,3 +350,12 @@
 "Cancel" = "Отмена";
 "PeerDisconnectedReconnecting" = "Соединение с %@ потеряно — повторное подключение…";
 "PeerReconnectHint" = "Убедитесь, что приложение Remote Shutter по-прежнему открыто на другом устройстве.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "Другое устройство нужно обновить";
+"IncompatiblePeerBody" = "На том устройстве установлена более старая версия Remote Shutter. Обновите её, чтобы подключиться.";
+"IncompatibleSelfTitle" = "Обновите Remote Shutter";
+"IncompatibleSelfBody" = "На этом устройстве версия старее, чем на другом. Обновите приложение, чтобы подключиться.";
+"IncompatibleBothTitle" = "Приложение устарело";
+"IncompatibleBothBody" = "Обновите Remote Shutter на обоих устройствах.";
+"IncompatibleUpdateButton" = "Обновить";

@@ -244,3 +244,12 @@
 /* Peer-backgrounded reconnect overlay */
 "PeerDisconnectedReconnecting" = "%@ se desconectó — reconectando…";
 "PeerReconnectHint" = "Asegúrate de que Remote Shutter siga abierto en ese dispositivo.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "El otro dispositivo necesita actualizarse";
+"IncompatiblePeerBody" = "Ese dispositivo tiene una versión anterior de Remote Shutter. Actualízalo para conectar.";
+"IncompatibleSelfTitle" = "Actualiza Remote Shutter";
+"IncompatibleSelfBody" = "Este dispositivo tiene una versión anterior a la del otro. Actualiza para conectar.";
+"IncompatibleBothTitle" = "La app está desactualizada";
+"IncompatibleBothBody" = "Actualiza Remote Shutter en ambos dispositivos.";
+"IncompatibleUpdateButton" = "Actualizar";

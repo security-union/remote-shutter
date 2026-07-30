@@ -350,3 +350,12 @@
 "Cancel" = "Batal";
 "PeerDisconnectedReconnecting" = "%@ terputus — menyambung semula…";
 "PeerReconnectHint" = "Pastikan Remote Shutter masih terbuka pada peranti itu.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "Peranti satu lagi perlu dikemas kini";
+"IncompatiblePeerBody" = "Peranti itu menggunakan versi Remote Shutter yang lebih lama. Kemas kini untuk menyambung.";
+"IncompatibleSelfTitle" = "Kemas kini Remote Shutter";
+"IncompatibleSelfBody" = "Peranti ini menggunakan versi lebih lama daripada peranti satu lagi. Kemas kini untuk menyambung.";
+"IncompatibleBothTitle" = "Apl bukan versi terkini";
+"IncompatibleBothBody" = "Sila kemas kini Remote Shutter pada kedua-dua peranti.";
+"IncompatibleUpdateButton" = "Kemas kini";

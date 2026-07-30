@@ -646,19 +646,13 @@ public actor SessionCoordinator {
             await sendOrGoToScanning(RemoteCmd.PeerBecameMonitor.createWithDefaults())
 
         case let became as RemoteCmd.PeerBecameCamera:
-            if became.bundleVersion <= 0 {
-                await showIncompatibilityMessage()
-            }
-            // NOTE: a monitor never version-gates the camera — an old camera
-            // streams HEIC/JPEG stills, which this monitor still decodes. Only
-            // the `<= 0` incompatibility (unknown build) is reported, as before.
-            // (Auto-role-follow forwarding was wired to an actor that was never
-            // registered; the dead send is not reproduced.)
+            await enforcePeerAppVersion(became.shortVersion)
 
         case let became as RemoteCmd.PeerBecameMonitor:
-            // This device is the camera-to-be; a monitor too old to decode VP9
-            // must update rather than see a broken preview. One check covers
-            // both the legacy (`<= 0`) and too-old cases.
+            // Two gates, coarse first: a peer on another major can't hold a
+            // session at all, and only then is "can it decode the preview"
+            // worth asking.
+            guard await enforcePeerAppVersion(became.shortVersion) else { break }
             await enforceMonitorVP9Compatibility(became)
 
         case is Disconnect:
@@ -685,9 +679,11 @@ public actor SessionCoordinator {
 
         switch msg {
         case let became as RemoteCmd.PeerBecameMonitor:
-            // Version-gate the monitor before answering: a monitor too old to
-            // decode VP9 is sent to the update-required flow (this pops out of
-            // the camera state), so we don't stream it an undecodable preview.
+            // Version-gate the monitor before answering: a peer on another major
+            // can't hold a session, and a monitor too old to decode VP9 is sent
+            // to the update-required flow (both pop out of the camera state), so
+            // we don't stream it an undecodable preview.
+            guard await enforcePeerAppVersion(became.shortVersion) else { break }
             guard await enforceMonitorVP9Compatibility(became) else { break }
             await attemptToSendCapabilities(attempt: 0)
 
@@ -880,6 +876,29 @@ public actor SessionCoordinator {
                 self?.tell(RetryCapabilities(attempt: next))
             }
         }
+    }
+
+    /// Single point of app-version policy. Both role announcements carry the
+    /// peer's `shortVersion`, so the verdict is available the moment roles are
+    /// known: nothing is asked of the peer, so a peer too old to answer cannot
+    /// stall the check. Returns true when the session may continue, false when
+    /// it popped to scanning with the update prompt.
+    @discardableResult
+    private func enforcePeerAppVersion(_ remoteShortVersion: String?) async -> Bool {
+        // No local version to compare against means we cannot judge; never
+        // blame the peer for this device's own malformed Info.plist.
+        guard let local = PeerAppCompatibility.localVersion else { return true }
+
+        let verdict = PeerAppCompatibility.decide(local: local,
+                                                 remoteShortVersion: remoteShortVersion)
+        guard verdict != .compatible else { return true }
+
+        debugLog("""
+            peer app version \(remoteShortVersion ?? "none") vs local \(local): \
+            \(verdict), requesting update
+            """)
+        await showIncompatibilityMessage(verdict)
+        return false
     }
 
     /// Camera side: a new camera always streams VP9, so a monitor too old to
@@ -2089,16 +2108,46 @@ public actor SessionCoordinator {
 
     // MARK: - Incompatibility
 
-    private func showIncompatibilityMessage() async {
+    /// Ends the session and prompts for an update. The wording follows the
+    /// verdict so the user learns *which* device is behind; callers that only
+    /// know "something is too old" take the default.
+    private func showIncompatibilityMessage(
+        _ verdict: PeerAppCompatibility.Verdict = .unknownPeerVersion
+    ) async {
         await popToScanning()
+        let (title, body) = Self.incompatibilityCopy(for: verdict)
         OperationQueue.main.addOperation {
-            let alert = UIAlertController(
-                title: "App is out of date",
-                message: "Please update Remote Shutter on both devices.")
-            alert.addAction(UIAlertAction(title: "Update", style: .default) { _ in
+            let alert = UIAlertController(title: title, message: body)
+            alert.addAction(UIAlertAction(
+                title: NSLocalizedString("IncompatibleUpdateButton",
+                                         comment: "Button opening the App Store listing"),
+                style: .default
+            ) { _ in
                 UIApplication.shared.open(AppStoreURL, options: [:], completionHandler: nil)
             })
             alert.show(true)
+        }
+    }
+
+    private static func incompatibilityCopy(
+        for verdict: PeerAppCompatibility.Verdict
+    ) -> (title: String, body: String) {
+        switch verdict {
+        case .peerNeedsUpdate:
+            return (NSLocalizedString("IncompatiblePeerTitle",
+                                      comment: "Alert title: the other device is out of date"),
+                    NSLocalizedString("IncompatiblePeerBody",
+                                      comment: "Alert body: ask the other device to update"))
+        case .selfNeedsUpdate:
+            return (NSLocalizedString("IncompatibleSelfTitle",
+                                      comment: "Alert title: this device is out of date"),
+                    NSLocalizedString("IncompatibleSelfBody",
+                                      comment: "Alert body: update this device"))
+        case .compatible, .unknownPeerVersion:
+            return (NSLocalizedString("IncompatibleBothTitle",
+                                      comment: "Alert title: version mismatch, side unknown"),
+                    NSLocalizedString("IncompatibleBothBody",
+                                      comment: "Alert body: update both devices"))
         }
     }
 

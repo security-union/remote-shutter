@@ -350,3 +350,12 @@
 "Cancel" = "キャンセル";
 "PeerDisconnectedReconnecting" = "%@との接続が切断されました — 再接続中…";
 "PeerReconnectHint" = "そのデバイスでRemote Shutterが起動したままになっていることを確認してください。";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "相手のデバイスを更新してください";
+"IncompatiblePeerBody" = "相手のデバイスのRemote Shutterが古いバージョンです。更新すると接続できます。";
+"IncompatibleSelfTitle" = "Remote Shutterを更新してください";
+"IncompatibleSelfBody" = "このデバイスのRemote Shutterが相手より古いバージョンです。更新すると接続できます。";
+"IncompatibleBothTitle" = "アプリが最新ではありません";
+"IncompatibleBothBody" = "両方のデバイスでRemote Shutterを更新してください。";
+"IncompatibleUpdateButton" = "更新";

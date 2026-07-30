@@ -648,6 +648,13 @@ class LoopbackSessionTests: XCTestCase {
         return fakeCamera
     }
 
+    /// A peer version on this build's own major, so `PeerAppCompatibility` stays
+    /// out of the way and the VP9 tests below keep testing the VP9 gate rather
+    /// than accidentally tripping the app-version gate.
+    private var sameMajorVersion: String {
+        "\(PeerAppCompatibility.localVersion?.major ?? 0).0.0"
+    }
+
     /// A version-qualified monitor (bundleVersion >= threshold) is answered
     /// normally: the camera stays in `.camera` and broadcasts capabilities, then
     /// streams VP9 to it. No capability handshake, no incompatibility.
@@ -656,7 +663,7 @@ class LoopbackSessionTests: XCTestCase {
         _ = await enterCameraState()
 
         cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: threshold, shortVersion: "7.0", platform: "iPhone"))
+            bundleVersion: threshold, shortVersion: sameMajorVersion, platform: "iPhone"))
         await drainBothSessions()
 
         let cameraState = await cameraCoordinator.currentStateName()
@@ -673,7 +680,7 @@ class LoopbackSessionTests: XCTestCase {
         _ = await enterCameraState()
 
         cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: old, shortVersion: "6.9", platform: "iPhone"))
+            bundleVersion: old, shortVersion: sameMajorVersion, platform: "iPhone"))
         await drainBothSessions()
 
         let cameraState = await cameraCoordinator.currentStateName()
@@ -682,17 +689,60 @@ class LoopbackSessionTests: XCTestCase {
                        "the camera must not answer a monitor that can't decode its VP9 stream")
     }
 
-    /// The legacy `bundleVersion <= 0` (unknown build) case behaves as before:
-    /// the same incompatibility flow, now via the single version check.
+    /// An unknown build (`bundleVersion <= 0`) is incompatible even when its app
+    /// version is on this major: the VP9 gate still rejects it.
     func testUnknownBuildMonitorStillTreatedAsIncompatible() async {
         _ = await enterCameraState()
 
         cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: 0, shortVersion: "0", platform: "iPhone"))
+            bundleVersion: 0, shortVersion: sameMajorVersion, platform: "iPhone"))
         await drainBothSessions()
 
         let cameraState = await cameraCoordinator.currentStateName()
         XCTAssertEqual(cameraState, .scanning, "an unknown-build (<= 0) monitor is still incompatible")
+    }
+
+    // MARK: - App-version gate (semver major)
+
+    /// A monitor on a different app major is refused before any feature gate
+    /// runs: the camera pops to scanning and never answers with capabilities,
+    /// even though its build number is new enough for VP9.
+    func testMonitorOnDifferentAppMajorIsRefused() async {
+        guard let local = PeerAppCompatibility.localVersion else {
+            return XCTFail("the test host must carry a parseable CFBundleShortVersionString")
+        }
+        _ = await enterCameraState()
+
+        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: VP9PreviewCompatibility.minimumPeerBundleVersion,
+            shortVersion: "\(local.major + 1).0.0",
+            platform: "iPhone"))
+        await drainBothSessions()
+
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .scanning, "a peer on another app major cannot hold a session")
+        XCTAssertFalse(cameraTransport.sentMessages.contains { $0 is RemoteCmd.CameraCapabilitiesResp },
+                       "the camera must not negotiate with a peer on another major")
+    }
+
+    /// Minor and patch differences are not breaking: a monitor on the same major
+    /// but a higher minor is answered normally.
+    func testMonitorOnHigherMinorIsAccepted() async {
+        guard let local = PeerAppCompatibility.localVersion else {
+            return XCTFail("the test host must carry a parseable CFBundleShortVersionString")
+        }
+        _ = await enterCameraState()
+
+        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: VP9PreviewCompatibility.minimumPeerBundleVersion,
+            shortVersion: "\(local.major).\(local.minor + 7).3",
+            platform: "iPhone"))
+        await drainBothSessions()
+
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .camera, "a newer minor on the same major stays compatible")
+        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.CameraCapabilitiesResp },
+                      "the camera answers a same-major monitor with capabilities")
     }
 
     // MARK: - VP9 keyframe recovery

@@ -350,3 +350,12 @@
 "Cancel" = "Cancelar";
 "PeerDisconnectedReconnecting" = "%@ se desconectou — reconectando…";
 "PeerReconnectHint" = "Verifique se o Remote Shutter ainda está aberto no outro dispositivo.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "O outro aparelho precisa de atualização";
+"IncompatiblePeerBody" = "Aquele aparelho está com uma versão anterior do Remote Shutter. Atualize para conectar.";
+"IncompatibleSelfTitle" = "Atualize o Remote Shutter";
+"IncompatibleSelfBody" = "Este aparelho está com uma versão anterior à do outro. Atualize para conectar.";
+"IncompatibleBothTitle" = "O app está desatualizado";
+"IncompatibleBothBody" = "Atualize o Remote Shutter nos dois aparelhos.";
+"IncompatibleUpdateButton" = "Atualizar";
