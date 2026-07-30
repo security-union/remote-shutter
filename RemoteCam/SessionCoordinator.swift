@@ -1154,6 +1154,28 @@ public actor SessionCoordinator {
         try? await Task.sleep(nanoseconds: 150_000_000)
     }
 
+    /// Leave the session for good, in the one order that works: announce,
+    /// forget, drop.
+    ///
+    /// Announcing goes first, while the link is still up — the peer reads
+    /// `EndSession` as a deliberate exit and stops chasing us. Forgetting the
+    /// peer is the other half, and the one a peer cannot do for us: without it
+    /// the loss that follows our own teardown reads as a drop, and *we* start
+    /// the retry loop. The link is then closed explicitly rather than left to
+    /// `popToScanning`, which is a no-op when we are already scanning.
+    ///
+    /// Skip either half on the incompatibility path and the two devices storm:
+    /// reconnect, re-announce roles, fail the same gate, drop, once a second
+    /// for as long as they are in range.
+    private func leaveSession() async {
+        await announceEndOfSession()
+        setReconnecting(nil)
+        pendingConnect = nil
+        peer = nil
+        multipeerService?.disconnect()
+        await popToScanning()
+    }
+
     /// The only writer of the waiting state: model and published UI move
     /// together, so a live link and a visible overlay cannot coexist.
     private func setReconnecting(_ waitingOn: MCPeerID?) {
@@ -1200,9 +1222,9 @@ public actor SessionCoordinator {
                 }
             }
         } else {
-            // Still connected under grace: the user chose to leave now.
-            multipeerService?.disconnect()
-            await popToScanning()
+            // Still connected under grace: the user chose to leave now, and
+            // the peer is owed the same goodbye any deliberate exit sends.
+            await leaveSession()
         }
     }
 
@@ -2108,13 +2130,15 @@ public actor SessionCoordinator {
 
     // MARK: - Incompatibility
 
-    /// Ends the session and prompts for an update. The wording follows the
-    /// verdict so the user learns *which* device is behind; callers that only
-    /// know "something is too old" take the default.
+    /// Ends the session and prompts for an update. The exit is a deliberate
+    /// one — a peer we refuse must be told, or it reconnects into the same
+    /// refusal a second later. The wording follows the verdict so the user
+    /// learns *which* device is behind; callers that only know "something is
+    /// too old" take the default.
     private func showIncompatibilityMessage(
         _ verdict: PeerAppCompatibility.Verdict = .unknownPeerVersion
     ) async {
-        await popToScanning()
+        await leaveSession()
         let (title, body) = Self.incompatibilityCopy(for: verdict)
         OperationQueue.main.addOperation {
             let alert = UIAlertController(title: title, message: body)

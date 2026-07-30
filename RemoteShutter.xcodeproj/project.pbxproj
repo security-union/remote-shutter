@@ -145,8 +145,8 @@
 		B1C0DE0300000003 /* DeviceScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000001 /* DeviceScannerViewModel.swift */; };
 		B1C0DE0300000005 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
 		B1C0DE0300000006 /* DeviceScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0300000004 /* DeviceScannerView.swift */; };
-		B1C0DE0900000002 /* PeerCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0900000001 /* PeerCompatibilityTests.swift */; };
 		B1C0DE0400000002 /* DeviceScannerViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */; };
+		B1C0DE0900000002 /* PeerCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C0DE0900000001 /* PeerCompatibilityTests.swift */; };
 		B2AB4B5C5BB274C6AB180189 /* UIViewController+SwiftUIHosting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D6F0EE27D62251BDB065B7 /* UIViewController+SwiftUIHosting.swift */; };
 		BD14D83BAC55CC029934B0ED /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 043B715A46C4498C9A2B6911 /* Foundation.framework */; };
 		C4F2A81D9E3B47CA8D5E1A02 /* DeviceScannerSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F2A81D9E3B47CA8D5E1A01 /* DeviceScannerSnapshotTests.swift */; };
@@ -166,7 +166,6 @@
 		CAFEBABE0009000000000003 /* StreamLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0009000000000001 /* StreamLog.swift */; };
 		CAFEBABE000A000000000002 /* StreamingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000A000000000001 /* StreamingConfig.swift */; };
 		CAFEBABE000A000000000003 /* StreamingConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000A000000000001 /* StreamingConfig.swift */; };
-		CAFEBABE0100000000000002 /* PeerCompatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0100000000000001 /* PeerCompatibility.swift */; };
 		CAFEBABE000B000000000002 /* FrameCodecs.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000B000000000001 /* FrameCodecs.swift */; };
 		CAFEBABE000B000000000003 /* FrameCodecs.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000B000000000001 /* FrameCodecs.swift */; };
 		CAFEBABE000C000000000002 /* JPEGFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE000C000000000001 /* JPEGFrameEncoder.swift */; };
@@ -182,6 +181,7 @@
 		CAFEBABE0012000000000002 /* VP9StreamingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0012000000000001 /* VP9StreamingTests.swift */; };
 		CAFEBABE0099000000000002 /* HEVCFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */; };
 		CAFEBABE00F0000000000002 /* FocusPointMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */; };
+		CAFEBABE0100000000000002 /* PeerCompatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0100000000000001 /* PeerCompatibility.swift */; };
 		CB5F78DFB9D567955BC863AF /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99FC5340BB98B2BD307FFA1A /* SoundManager.swift */; };
 		D14174575AF4813B523869A4 /* MultipeerCompatAliases.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3BD30A73B8F4FBEBF12B15 /* MultipeerCompatAliases.swift */; };
 		D2B94CD08C14086E035FBAA4 /* RemoteShutterWatch/WatchCameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6816F7F01F22AF52E28D6518 /* RemoteShutterWatch/WatchCameraViewModel.swift */; };
@@ -196,8 +196,8 @@
 		F13CE9024ECE628456367787 /* RemoteCam/WatchRemoteCameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4A366A5AE5F4A3714F28F2 /* RemoteCam/WatchRemoteCameraController.swift */; };
 		F6DAD1852A77AE011FAF35B1 /* Shared/WatchSharedTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E655FAEBED183EB237F41DEA /* Shared/WatchSharedTypes.swift */; };
 		FADEC0DE0001000000000002 /* FrameCreditWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0001000000000001 /* FrameCreditWindow.swift */; };
-		FADEC0DE0002000000000002 /* PeerLinkStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0002000000000001 /* PeerLinkStatus.swift */; };
 		FADEC0DE0001000000000003 /* FrameCreditWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0001000000000001 /* FrameCreditWindow.swift */; };
+		FADEC0DE0002000000000002 /* PeerLinkStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0002000000000001 /* PeerLinkStatus.swift */; };
 		FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */; };
 		FEEDFACE0000000000000001 /* StormoLoopbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000002 /* StormoLoopbackTests.swift */; };
 /* End PBXBuildFile section */
@@ -391,8 +391,8 @@
 		B1C0DE0200000001 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		B1C0DE0300000001 /* DeviceScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModel.swift; sourceTree = "<group>"; };
 		B1C0DE0300000004 /* DeviceScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerView.swift; sourceTree = "<group>"; };
-		B1C0DE0900000001 /* PeerCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerCompatibilityTests.swift; sourceTree = "<group>"; };
 		B1C0DE0400000001 /* DeviceScannerViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScannerViewModelTests.swift; sourceTree = "<group>"; };
+		B1C0DE0900000001 /* PeerCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerCompatibilityTests.swift; sourceTree = "<group>"; };
 		B2CBCE8B82BF3D236B662AC6 /* Pods_RemoteShutterTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		BBD41C9CED4693FBF0D87441 /* Pods-RemoteShutter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.debug.xcconfig"; sourceTree = "<group>"; };
 		C4F2A81D9E3B47CA8D5E1A01 /* DeviceScannerSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceScannerSnapshotTests.swift; sourceTree = "<group>"; };
@@ -415,7 +415,6 @@
 		CAFEBABE0008000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CAFEBABE0009000000000001 /* StreamLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamLog.swift; sourceTree = "<group>"; };
 		CAFEBABE000A000000000001 /* StreamingConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingConfig.swift; sourceTree = "<group>"; };
-		CAFEBABE0100000000000001 /* PeerCompatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerCompatibility.swift; sourceTree = "<group>"; };
 		CAFEBABE000B000000000001 /* FrameCodecs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameCodecs.swift; sourceTree = "<group>"; };
 		CAFEBABE000C000000000001 /* JPEGFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JPEGFrameEncoder.swift; sourceTree = "<group>"; };
 		CAFEBABE000D000000000001 /* HEICFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEICFrameEncoder.swift; sourceTree = "<group>"; };
@@ -426,6 +425,7 @@
 		CAFEBABE0012000000000001 /* VP9StreamingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VP9StreamingTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEVCFrameEncoder.swift; sourceTree = "<group>"; };
 		CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusPointMappingTests.swift; sourceTree = "<group>"; };
+		CAFEBABE0100000000000001 /* PeerCompatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerCompatibility.swift; sourceTree = "<group>"; };
 		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
 		D92E4A9C10FB90A6F07DB857 /* RemoteShutterWatch/RemoteShutterWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/RemoteShutterWatchApp.swift; sourceTree = SOURCE_ROOT; };
 		D9C44C88664AD8685AFA3CDF /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
@@ -1397,7 +1397,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 9.0.3;
+				MARKETING_VERSION = 9.0.4;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1438,7 +1438,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				MARKETING_VERSION = 9.0.3;
+				MARKETING_VERSION = 9.0.4;
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.blackfireapps.remotecamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -1466,6 +1466,38 @@ class SessionReconnectTests: XCTestCase {
         XCTAssertEqual(state, .scanning)
     }
 
+    /// An incompatible peer is left the way a deliberate exit leaves one: it is
+    /// told, and this device stops waiting for it. Skip either half and the two
+    /// devices reconnect, re-announce roles, fail the same gate and drop again
+    /// once a second for as long as they are in range.
+    func testIncompatiblePeerIsLeftWithoutStartingARetryLoop() async {
+        guard let local = PeerAppCompatibility.localVersion else {
+            return XCTFail("the test host must carry a parseable CFBundleShortVersionString")
+        }
+        harness.lobby.role = .monitor
+
+        await harness.deliver(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: VP9PreviewCompatibility.minimumPeerBundleVersion,
+            shortVersion: "\(local.major + 1).0.0",
+            platform: "iPhone"))
+
+        XCTAssertTrue(harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.EndSession },
+                      "the peer must be told, or it keeps re-inviting a session it cannot hold")
+        XCTAssertTrue(harness.fakeMP.disconnectCalled, "the link is dropped, not left open")
+
+        // Our own teardown comes back as a peer loss; it must not read as one.
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        let waiting = await isReconnecting()
+        XCTAssertFalse(waiting, "we left on purpose ⇒ no overlay")
+        await awaitRetryTick()
+        XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
+                      "and no invites back to a peer we cannot talk to")
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .scanning)
+    }
+
     func testLosingAnUnknownPeerIsIgnored() async {
         let stranger = MCPeerID(displayName: "Stranger")
         harness.fakeMP.connectedPeers = []

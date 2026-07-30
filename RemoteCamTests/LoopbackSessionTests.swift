@@ -725,6 +725,38 @@ class LoopbackSessionTests: XCTestCase {
                        "the camera must not negotiate with a peer on another major")
     }
 
+    /// Refusing a peer is a goodbye on the wire, not a silent drop: `EndSession`
+    /// crosses the real encode/decode path, so the peer reads the disconnect
+    /// that follows as expected and never starts the retry loop that would
+    /// reconnect it into the same refusal a second later.
+    func testRefusedPeerIsSentAProperDisconnect() async {
+        guard let local = PeerAppCompatibility.localVersion else {
+            return XCTFail("the test host must carry a parseable CFBundleShortVersionString")
+        }
+        let monitorLink = PeerLinkStatus()
+        await monitorCoordinator.setPeerLinkStatus(monitorLink)
+        _ = await enterCameraState()
+
+        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
+            bundleVersion: VP9PreviewCompatibility.minimumPeerBundleVersion,
+            shortVersion: "\(local.major + 1).0.0",
+            platform: "iPhone"))
+        await drainBothSessions()
+
+        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.EndSession },
+                      "the camera announces the exit while the link is still up")
+
+        // The link ends the way the transport reports it.
+        monitorTransport.simulateRemoteDisconnected()
+        await drainBothSessions()
+
+        let waiting = await MainActor.run {
+            if case .reconnecting = monitorLink.link { return true }
+            return false
+        }
+        XCTAssertFalse(waiting, "a peer that said goodbye is not chased")
+    }
+
     /// Minor and patch differences are not breaking: a monitor on the same major
     /// but a higher minor is answered normally.
     func testMonitorOnHigherMinorIsAccepted() async {
