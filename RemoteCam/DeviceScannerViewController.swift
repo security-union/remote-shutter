@@ -95,7 +95,7 @@ public class DeviceScannerViewController: UIViewController {
 
     /// Injectable so the foreground re-arm can be driven in tests.
     var notificationCenter: NotificationCenter = .default
-    private var foregroundObserver: NSObjectProtocol?
+    private var foregroundTask: Task<Void, Never>?
 
     // MARK: - Network Browser
 
@@ -124,12 +124,13 @@ public class DeviceScannerViewController: UIViewController {
     /// plain observer because `AppActivityMonitor.onChange` is a single closure
     /// already owned by `WatchSessionManager`.
     private func observeForeground() {
-        foregroundObserver = notificationCenter.addObserver(
-            forName: UIApplication.didBecomeActiveNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.remoteCamSession ! UICmd.AppForegrounded()
+        let notifications = notificationCenter.notifications(
+            named: UIApplication.didBecomeActiveNotification)
+        foregroundTask = Task { [weak self] in
+            for await _ in notifications {
+                guard let self else { return }
+                self.remoteCamSession ! UICmd.AppForegrounded()
+            }
         }
     }
 
@@ -152,7 +153,7 @@ public class DeviceScannerViewController: UIViewController {
 
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        remoteCamSession ! Disconnect()
+        remoteCamSession ! UICmd.ScannerDidAppear()
 
         if scannerViewModel.speedRunScanning {
             checkLocalNetworkAccessAndStartScanning()
@@ -286,7 +287,7 @@ public class DeviceScannerViewController: UIViewController {
     @objc func stopScanningDevices() {
         scannerViewModel.stoppedScanning()
         scannerViewModel.clearPeers()
-        remoteCamSession ! Disconnect()
+        remoteCamSession ! UICmd.StopScanning()
     }
 
     func showLocalNetworkAccessDeniedAlert() {
@@ -360,7 +361,7 @@ public class DeviceScannerViewController: UIViewController {
 
     deinit {
         print("deinit DeviceScanners")
-        if let foregroundObserver { notificationCenter.removeObserver(foregroundObserver) }
+        foregroundTask?.cancel()
         networkBrowser?.cancel()
         remoteCamSession.stop()
     }

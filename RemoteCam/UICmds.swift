@@ -92,6 +92,18 @@ public class UICmd {
     public class StartScanning: Message, @unchecked Sendable {
     }
 
+    /// The scanner screen is on display. Reported as the fact it is, because
+    /// two things cause it: the user navigating out of a session, and the
+    /// machine popping back here itself. Only the states that hold a session
+    /// act on it, and those can only be the first.
+    public class ScannerDidAppear: Message, @unchecked Sendable {
+    }
+
+    /// The user stopped looking for peers, which also abandons a peer we were
+    /// waiting for — you cannot wait for one while not looking.
+    public class StopScanning: Message, @unchecked Sendable {
+    }
+
     /// The user dismissed the connecting overlay while an invite was in flight.
     public class CancelConnect: Message, @unchecked Sendable {
     }

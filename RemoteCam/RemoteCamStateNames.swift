@@ -10,6 +10,7 @@ import Foundation
 
 enum RemoteCamState: String {
     case scanning
+    case reconnecting
     case idle
     case connected
     case camera

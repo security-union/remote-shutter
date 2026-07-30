@@ -298,7 +298,7 @@ class LoopbackSessionTests: XCTestCase {
 
     // MARK: - Peer disconnect
 
-    func testPeerDisconnectPopsMonitorToScanning() async {
+    func testPeerDisconnectStartsTheMonitorWaiting() async {
         await connectBothSessions()
         await becomeMonitor(mode: .Photo)
 
@@ -306,7 +306,8 @@ class LoopbackSessionTests: XCTestCase {
         await drainBothSessions()
 
         let monitorState = await monitorCoordinator.currentStateName()
-        XCTAssertEqual(monitorState, .scanning)
+        XCTAssertEqual(monitorState, .reconnecting,
+                       "an unannounced drop is a peer to wait for, not a session to forget")
     }
 
     // MARK: - Happy-path photo capture with a camera peer
