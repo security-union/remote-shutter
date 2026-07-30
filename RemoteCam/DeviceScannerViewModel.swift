@@ -1,6 +1,47 @@
 import Foundation
 import MPCCompat
 import Stormo
+import Network
+import dnssd
+
+/// Classifies the pre-scan local-network probe: one browse whose only job is
+/// to learn whether the user denied Local Network permission, so the app can
+/// route them to Settings instead of scanning into silence.
+///
+/// The only state that may read as denial is the OS's own denial code,
+/// `kDNSServiceErr_PolicyDenied`. Every other outcome — including outright
+/// browse failure — proceeds: a probe can fail because there is no Wi-Fi
+/// network, and off-network is a configuration this app supports (peer-to-peer
+/// Wi-Fi needs no router). Scanning itself is the real test, and the transport
+/// reports its own failures through its own path.
+enum LocalNetworkProbe {
+
+    enum Verdict: Equatable {
+        /// `kDNSServiceErr_PolicyDenied`: the user said no. Only Settings fixes it.
+        case denied
+        /// Permission is not the problem — start scanning.
+        case proceed
+        /// No evidence yet; let the probe keep listening.
+        case keepWaiting
+    }
+
+    static func verdict(for state: NWBrowser.State) -> Verdict {
+        switch state {
+        case .waiting(let error), .failed(let error):
+            if case .dns(let dnsError) = error,
+               Int(dnsError) == Int(kDNSServiceErr_PolicyDenied) {
+                return .denied
+            }
+            return .proceed
+        case .ready:
+            return .proceed
+        case .setup, .cancelled:
+            return .keepWaiting
+        @unknown default:
+            return .keepWaiting
+        }
+    }
+}
 
 final class DeviceScannerViewModel: ObservableObject {
 
