@@ -93,6 +93,10 @@ public class DeviceScannerViewController: UIViewController {
     let remoteCamSession = SessionCoordinator()
     private(set) lazy var frameSender = FrameSender(coordinator: remoteCamSession)
 
+    /// Injectable so the foreground re-arm can be driven in tests.
+    var notificationCenter: NotificationCenter = .default
+    private var foregroundObserver: NSObjectProtocol?
+
     // MARK: - Network Browser
 
     var networkBrowser: NWBrowser?
@@ -110,7 +114,23 @@ public class DeviceScannerViewController: UIViewController {
         PeerLinkStatus.shared.onCancel = { [weak self] in
             self?.remoteCamSession ! UICmd.CancelReconnect()
         }
+        observeForeground()
         setupSwiftUIView()
+    }
+
+    /// Suspension kills the peer session within seconds and the transport's
+    /// notice lands on a frozen app, so returning to the foreground is the one
+    /// moment we know we are running: the session re-checks itself here. A
+    /// plain observer because `AppActivityMonitor.onChange` is a single closure
+    /// already owned by `WatchSessionManager`.
+    private func observeForeground() {
+        foregroundObserver = notificationCenter.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.remoteCamSession ! UICmd.AppForegrounded()
+        }
     }
 
     public override func viewWillAppear(_ animated: Bool) {
@@ -340,6 +360,7 @@ public class DeviceScannerViewController: UIViewController {
 
     deinit {
         print("deinit DeviceScanners")
+        if let foregroundObserver { notificationCenter.removeObserver(foregroundObserver) }
         networkBrowser?.cancel()
         remoteCamSession.stop()
     }

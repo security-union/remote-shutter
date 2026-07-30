@@ -168,7 +168,6 @@ public actor SessionCoordinator {
     private(set) var state: SessionState = .waitingForLobby
 
     private var lobby: WeakScannerLobby?
-    private var peer: MCPeerID?
     private var ctrl: CameraControlling?
     private var monitor: MonitorPresenter?
 
@@ -207,10 +206,13 @@ public actor SessionCoordinator {
               monitor: MonitorPresenter? = nil) {
         self.state = state
         if let lobby { self.lobby = lobby }
-        if let peer { self.peer = peer }
+        if let peer { self.link = .linked(peer) }
         if let ctrl { self.ctrl = ctrl }
         if let monitor { self.monitor = monitor }
     }
+
+    /// Test support: the current standing with the session peer.
+    func currentLink() -> PeerLink { link }
 
     // MARK: Seams (injectable for tests)
 
@@ -284,37 +286,102 @@ public actor SessionCoordinator {
         }
     }
 
-    // MARK: Connect retry
+    // MARK: The peer link
 
-    /// In-flight invite bookkeeping. MC reports a declined or timed-out
-    /// invitation only as the peer flipping to `.notConnected`, so the
-    /// scanning state tracks whom it invited to tell that apart from a stray
-    /// disconnect. One automatic retry rides the AWDL link the first attempt
-    /// already warmed up — off-network, link bring-up alone can eat most of
-    /// the first invite's timeout.
-    private var pendingConnect: (peer: MCPeerID, attempt: Int)?
+    /// Our standing with the one peer this session is about. Every question the
+    /// machine asks — is there a peer, is an invitation in flight, are we
+    /// waiting for one to come back — reads this single value, so the answers
+    /// cannot contradict one another.
+    enum PeerLink {
+        /// No peer, and none wanted. Cancel and deliberate exits land here,
+        /// which is what makes them final: there is nobody left to return to.
+        case none
+        /// An invitation is in flight. A declined or timed-out invitation
+        /// arrives only as the peer going `.notConnected`, so `attempt` is what
+        /// tells that apart from a stray drop; the second try rides the link
+        /// the first one warmed up.
+        case inviting(MCPeerID, attempt: Int)
+        /// The session is up.
+        case linked(MCPeerID)
+        /// The link dropped and we want it back: overlay up, browser rebuilt on
+        /// a tick, invitation sent when the peer is found again. No attempt
+        /// cap — it ends when the peer returns or the user cancels. `dialing`
+        /// guards an invitation in flight, which must not be interrupted:
+        /// `invitePeer` rebuilds the session and drops a handshake mid-dial.
+        case waiting(MCPeerID, dialing: Bool)
 
-    // MARK: Peer-backgrounded reconnect (C-5)
+        /// The peer this session is about, whatever our standing with it.
+        var peer: MCPeerID? {
+            switch self {
+            case .none: return nil
+            case .inviting(let peer, _), .linked(let peer), .waiting(let peer, _): return peer
+            }
+        }
 
-    /// The peer we are waiting on, if any. Single source of truth: the
-    /// overlay is rendered from `peerLinkStatus`, which only `setReconnecting`
-    /// writes, so the UI cannot disagree with the machine.
-    private var reconnecting: MCPeerID?
-    /// The peer announced a deliberate exit, so the disconnect that follows is
-    /// expected: no overlay, no retry loop. Cleared once consumed.
-    private var peerEndedSession = false
+        /// The peer we are waiting on, if we are waiting.
+        var awaited: MCPeerID? {
+            if case .waiting(let peer, _) = self { return peer }
+            return nil
+        }
+
+        /// The peer we are waiting on and not already dialing.
+        var awaitedAndIdle: MCPeerID? {
+            if case .waiting(let peer, let dialing) = self, !dialing { return peer }
+            return nil
+        }
+
+        /// The invitation in flight, if there is one.
+        var invited: (peer: MCPeerID, attempt: Int)? {
+            if case .inviting(let peer, let attempt) = self { return (peer, attempt) }
+            return nil
+        }
+    }
+
+    /// Sole owner of the peer relationship. The overlay and the wait's tick are
+    /// derived here, so neither can outlive the wait.
+    private var link: PeerLink = .none {
+        didSet {
+            guard link.awaited != oldValue.awaited else { return }
+            if link.awaited == nil {
+                reconnectRetryTask?.cancel()
+                reconnectRetryTask = nil
+            }
+            publishLinkStatus()
+        }
+    }
+
+    /// The peer this session is about, whatever our standing with it.
+    private var peer: MCPeerID? { link.peer }
+
     private var peerLinkStatus: PeerLinkStatus = .shared
     private var reconnectRetryTask: Task<Void, Never>?
-    /// Fixed retry cadence (no backoff by design); injectable for tests.
-    private var reconnectRetryDelay: TimeInterval = 1
+    /// Fixed cadence for the wait's tick (no backoff by design); injectable for
+    /// tests. Each tick rebuilds the browser rather than dialing, so it is
+    /// paced to how long discovery needs to surface a peer, not to how fast we
+    /// can retry.
+    private var reconnectRetryDelay: TimeInterval = 3
     /// A QUIC dial + TLS + PeerHello needs seconds; ticking faster than
     /// this would restart handshakes instead of completing them.
     private let reconnectInviteTimeout: TimeInterval = 10
     private let inviteTimeout: TimeInterval = 20
     private let maxConnectAttempts = 2
 
+    /// Rebuild the radios this role needs, and nothing else. Both come back
+    /// from scratch underneath — a fresh listener per call, the browser stopped
+    /// then started — which is what recovers discovery that died while the
+    /// process was suspended. No `disconnect()`, which would drop an invitation
+    /// in flight, and no lobby reset, so this is safe while already scanning.
+    private func restartDiscovery(lobby: ScannerLobby) {
+        switch lobby.role {
+        case .camera:
+            multipeerService?.startAdvertisingOnly(discoveryInfo: ["role": "camera"])
+        case .monitor:
+            multipeerService?.startBrowsingOnly()
+        }
+    }
+
     private func startScanning(lobby: ScannerLobby) {
-        pendingConnect = nil
+        if case .inviting = link { link = .none }
         if multipeerService == nil {
             let service = MultipeerService(peerID: lobby.peerID)
             service.delegate = self
@@ -324,22 +391,39 @@ public actor SessionCoordinator {
             multipeerService?.disconnect()
         }
 
-        switch lobby.role {
-        case .camera:
-            multipeerService?.startAdvertisingOnly(discoveryInfo: ["role": "camera"])
-        case .monitor:
-            multipeerService?.startBrowsingOnly()
-        }
+        restartDiscovery(lobby: lobby)
 
         OperationQueue.main.addOperation {
             lobby.returnToLobby()
             lobby.scannerViewModel.startedScanning()
         }
 
-        // Landed here mid-reconnect (grace expired, connection died): keep
-        // the dialog up and start the fixed-cadence retry loop.
-        if let waitingOn = reconnecting {
+        // Landed here mid-reconnect (the connection died): keep the dialog up
+        // and start the wait's tick.
+        if let waitingOn = link.awaited {
             armReconnectRetry(waitingOn)
+        }
+    }
+
+    /// Re-check the session on return to the foreground.
+    ///
+    /// A suspended app loses its QUIC session within seconds (transport idle
+    /// timeout) and the notice lands on a frozen process, so the link is the
+    /// authority here rather than what the machine believes: with nothing
+    /// connected, the radios are stale and a role state has no peer behind it.
+    /// Leaving that state re-arms advertising, which a camera cannot do while
+    /// it still thinks it has a session.
+    private func rearmAfterForeground() async {
+        guard multipeerService != nil, connectedPeers.isEmpty else { return }
+        switch state {
+        case .waitingForLobby, .lobby, .watchCamera, .watchCameraTakingPic,
+             .watchCameraStartingVideo, .watchCameraRecordingVideo:
+            // No peer session to re-arm.
+            break
+        case .scanning:
+            if let liveLobby = lobby?.value { restartDiscovery(lobby: liveLobby) }
+        default:
+            await popToScanning()
         }
     }
 
@@ -457,13 +541,11 @@ public actor SessionCoordinator {
         // The link ending is the only signal that matters: whatever state we
         // are in, losing the session peer starts the wait. The per-state
         // handlers below still do the popping; this just makes the UI say so.
+        // A peer that said goodbye is already forgotten (`.none`), so its
+        // disconnect matches nothing here and starts no wait.
         if let lost = msg as? DisconnectPeer, let lost = lost.peer, lost == peer,
-           reconnecting == nil, connectedPeers.isEmpty {
-            if peerEndedSession {
-                peerEndedSession = false
-            } else {
-                beginReconnect(with: lost)
-            }
+           link.awaited == nil, connectedPeers.isEmpty {
+            beginReconnect(with: lost)
         }
         switch state {
         case .waitingForLobby:
@@ -538,53 +620,50 @@ public actor SessionCoordinator {
             startScanning(lobby: liveLobby)
 
         case let connect as ConnectToDevice:
-            pendingConnect = (connect.peer, 1)
+            link = .inviting(connect.peer, attempt: 1)
             multipeerService?.invitePeer(connect.peer, timeout: inviteTimeout)
             OperationQueue.main.addOperation {
                 liveLobby.scannerViewModel.connectingToPeer()
             }
 
         case let disconnected as DisconnectPeer:
-            if let waitingOn = reconnecting, waitingOn == disconnected.peer {
-                // Peer-backgrounded retry: fixed cadence, no attempt cap —
-                // ends only on reconnect or Cancel. This attempt is over, so
-                // the next tick is free to start a fresh one.
-                pendingConnect = nil
+            if let waitingOn = link.awaited, waitingOn == disconnected.peer {
+                // That dial is over (or there was none). Tick again, which
+                // restarts discovery so the next one has a live endpoint.
+                link = .waiting(waitingOn, dialing: false)
                 armReconnectRetry(waitingOn)
                 break
             }
-            guard let pending = pendingConnect, pending.peer == disconnected.peer else {
+            guard let invited = link.invited, invited.peer == disconnected.peer else {
                 startScanning(lobby: liveLobby)
                 break
             }
-            if pending.attempt < maxConnectAttempts {
-                pendingConnect = (pending.peer, pending.attempt + 1)
-                multipeerService?.invitePeer(pending.peer, timeout: inviteTimeout)
+            if invited.attempt < maxConnectAttempts {
+                link = .inviting(invited.peer, attempt: invited.attempt + 1)
+                multipeerService?.invitePeer(invited.peer, timeout: inviteTimeout)
             } else {
-                pendingConnect = nil
+                link = .none
                 OperationQueue.main.addOperation {
                     liveLobby.scannerViewModel.connectionFailed()
                 }
             }
 
         case let retry as UICmd.RetryReconnect:
-            guard let waitingOn = reconnecting, waitingOn == retry.peer else { break }
-            // Only the monitor invites; the camera's retry is advertising and
-            // auto-accepting, which scanning already does.
-            guard liveLobby.role == .monitor else { break }
-            // Never restart an attempt that is still running: invitePeer
-            // rebuilds the session, which tears down the in-flight QUIC
-            // handshake. A dial needs seconds; the tick is 1 s. Skip and
-            // let this attempt finish — its failure re-arms the loop.
-            guard pendingConnect == nil else {
-                armReconnectRetry(waitingOn)
-                break
+            guard let waitingOn = link.awaited, waitingOn == retry.peer else { break }
+            // Rebuild the browser: the endpoint we hold died with the link, so
+            // dialing it can never connect. A fresh browse re-reports the peer,
+            // and `BrowserFoundPeer` below sends the invitation.
+            //
+            // Monitor only — rebuilding the camera's listener publishes a new
+            // one and cancels the old, cutting off any inbound handshake. The
+            // camera re-arms on the way into scanning and on foreground.
+            if liveLobby.role == .monitor, link.awaitedAndIdle != nil {
+                restartDiscovery(lobby: liveLobby)
             }
-            pendingConnect = (waitingOn, 1)
-            multipeerService?.invitePeer(waitingOn, timeout: reconnectInviteTimeout)
+            armReconnectRetry(waitingOn)
 
         case is UICmd.CancelConnect:
-            pendingConnect = nil
+            link = .none
             // Tearing the session down is the only way to abort an in-flight
             // invite; the next invite starts from a fresh session anyway.
             multipeerService?.disconnect()
@@ -593,12 +672,10 @@ public actor SessionCoordinator {
             }
 
         case is Disconnect:
-            pendingConnect = nil
+            link = .none
 
         case let connected as OnConnectToDevice:
-            pendingConnect = nil
-            endReconnect(ifPeer: connected.peer)
-            peer = connected.peer
+            link = .linked(connected.peer)
             OperationQueue.main.addOperation {
                 liveLobby.scannerViewModel.connectedToPeer()
             }
@@ -610,6 +687,14 @@ public actor SessionCoordinator {
         case let found as UICmd.BrowserFoundPeer:
             OperationQueue.main.addOperation {
                 liveLobby.scannerViewModel.addPeer(found.peer)
+            }
+            // Finding the peer we are waiting on is the moment its endpoint is
+            // real again — invite it now. Only the monitor invites; the camera
+            // waits to be invited, which advertising already arranges.
+            if let waitingOn = link.awaitedAndIdle, waitingOn == found.peer,
+               liveLobby.role == .monitor {
+                link = .waiting(waitingOn, dialing: true)
+                multipeerService?.invitePeer(waitingOn, timeout: reconnectInviteTimeout)
             }
 
         case let lost as UICmd.BrowserLostPeer:
@@ -1131,38 +1216,26 @@ public actor SessionCoordinator {
         try? await Task.sleep(nanoseconds: 150_000_000)
     }
 
-    /// Leave the session for good, in the one order that works: announce,
-    /// forget, drop.
+    /// Leave the session for good: announce, forget, drop.
     ///
-    /// Announcing goes first, while the link is still up — the peer reads
-    /// `EndSession` as a deliberate exit and stops chasing us. Forgetting the
-    /// peer is the other half, and the one a peer cannot do for us: without it
-    /// the loss that follows our own teardown reads as a drop, and *we* start
-    /// the retry loop. The link is then closed explicitly rather than left to
-    /// `popToScanning`, which is a no-op when we are already scanning.
-    ///
-    /// Skip either half on the incompatibility path and the two devices storm:
-    /// reconnect, re-announce roles, fail the same gate, drop, once a second
-    /// for as long as they are in range.
+    /// The order is load-bearing. Announcing needs the link still up, and
+    /// `EndSession` is what stops the peer chasing us. Forgetting the peer is
+    /// the half only this side can do — remembered, the loss that follows our
+    /// own teardown reads as a drop and starts a wait. The close is explicit
+    /// because `popToScanning` does nothing when we are already scanning.
     private func leaveSession() async {
         await announceEndOfSession()
-        setReconnecting(nil)
-        pendingConnect = nil
-        peer = nil
+        link = .none
         multipeerService?.disconnect()
         await popToScanning()
     }
 
-    /// The only writer of the waiting state: model and published UI move
-    /// together, so a live link and a visible overlay cannot coexist.
-    private func setReconnecting(_ waitingOn: MCPeerID?) {
-        reconnecting = waitingOn
-        if waitingOn == nil {
-            reconnectRetryTask?.cancel()
-            reconnectRetryTask = nil
-        }
+    /// Renders `link` into the published overlay state. Called only from the
+    /// `link` observer, so the UI is a function of the value rather than a
+    /// second copy of it.
+    private func publishLinkStatus() {
         let status = peerLinkStatus
-        let name = waitingOn?.displayName
+        let name = link.awaited?.displayName
         Task { @MainActor in
             if let name {
                 status.setReconnecting(peerName: name)
@@ -1173,26 +1246,20 @@ public actor SessionCoordinator {
     }
 
     /// The session peer's connection ended: start waiting. The machine drops
-    /// to scanning as always, and the retry loop re-invites until it returns
+    /// to scanning as always, and the wait re-discovers until the peer returns
     /// or the user cancels.
     private func beginReconnect(with lostPeer: MCPeerID) {
-        guard reconnecting == nil, lostPeer == peer else { return }
-        setReconnecting(lostPeer)
-    }
-
-    /// Reconnected (a retry invite landed, or traffic proved the link).
-    /// `nil` matches any peer.
-    private func endReconnect(ifPeer resumedPeer: MCPeerID?) {
-        guard let current = reconnecting,
-              resumedPeer == nil || current == resumedPeer else { return }
-        setReconnecting(nil)
+        guard link.awaited == nil, lostPeer == peer else { return }
+        link = .waiting(lostPeer, dialing: false)
     }
 
     private func cancelReconnect() async {
-        guard reconnecting != nil else { return }
-        setReconnecting(nil)
-        pendingConnect = nil
+        guard link.awaited != nil else { return }
         if case .scanning = state {
+            // Forgetting the peer is what makes this final: the invitation in
+            // flight fails in a moment, and a remembered peer would read that
+            // failure as a fresh loss.
+            link = .none
             if let liveLobby = lobby?.value {
                 OperationQueue.main.addOperation {
                     liveLobby.scannerViewModel.connectCancelled()
@@ -1205,8 +1272,10 @@ public actor SessionCoordinator {
         }
     }
 
-    /// One fixed-cadence tick; each tick re-arms from the scanning handlers,
-    /// so the loop dies with `reconnecting`.
+    /// One tick of the wait. Each tick restarts discovery rather than dialing:
+    /// the endpoint we hold was learned before the link died, and after the
+    /// interface goes down it addresses nothing. A fresh browse re-reports the
+    /// peer, and `BrowserFoundPeer` is what issues the invitation.
     private func armReconnectRetry(_ peer: MCPeerID) {
         reconnectRetryTask?.cancel()
         let delay = reconnectRetryDelay
@@ -1222,17 +1291,21 @@ public actor SessionCoordinator {
     private func handleRoot(_ msg: Message) async {
         switch msg {
         case is RemoteCmd.EndSession:
-            // The peer is leaving on purpose. Its disconnect is expected —
-            // chasing it with invites would be rude and pointless.
-            peerEndedSession = true
-            endReconnect(ifPeer: nil)
+            // The peer is leaving on purpose, so the goodbye is the end of the
+            // session: leave now. The disconnect that follows matches no peer
+            // and starts no wait.
+            link = .none
+            await popToScanning()
+
+        case is UICmd.AppForegrounded:
+            await rearmAfterForeground()
 
         case is UICmd.PeerTrafficObserved:
             // Traffic IS the link. A suspend notice only predicts a drop; if
             // packets keep arriving (short background, link that never died,
             // or a lost Resume), the peer is plainly here — believe the wire,
             // not the announcement.
-            endReconnect(ifPeer: nil)
+            if let awaited = link.awaited { link = .linked(awaited) }
 
         case is UICmd.CancelReconnect:
             await cancelReconnect()

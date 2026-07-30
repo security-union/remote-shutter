@@ -411,6 +411,12 @@ public class UICmd {
     public class PeerTrafficObserved: Message, @unchecked Sendable {
     }
 
+    /// The app came back to the foreground. Suspension kills the peer session
+    /// within seconds and the notice lands on a frozen process, so this is the
+    /// session's cue to distrust what it believes and re-arm the radios.
+    public class AppForegrounded: Message, @unchecked Sendable {
+    }
+
     /// The user cancelled the peer-backgrounded reconnect dialog.
     public class CancelReconnect: Message, @unchecked Sendable {
     }

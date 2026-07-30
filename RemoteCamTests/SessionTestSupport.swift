@@ -26,16 +26,17 @@ class FakeMultipeerService: MultipeerServiceProtocol {
     var sentMessages: [(msg: Message, peers: [MCPeerID], mode: MCSessionSendDataMode)] = []
     var stopSessionCalled = false
     var disconnectCalled = false
-    /// Set by either radio: a role starts exactly one of them, and the tests
-    /// that read this only ask whether discovery restarted at all.
-    var startedDiscovery = false
+    /// How many times a radio was (re)started. A count rather than a flag: what
+    /// tests need to see is that discovery was rebuilt, which a latch set by the
+    /// first start cannot show.
+    var discoveryStarts = 0
     var stopAdvertisingAndBrowsingCalled = false
     var invitedPeers: [(peer: MCPeerID, timeout: TimeInterval)] = []
     /// What `send` reports back; false unless a test opts into a working link.
     var sendResult = false
 
-    func startAdvertisingOnly(discoveryInfo: [String: String]?) { startedDiscovery = true }
-    func startBrowsingOnly() { startedDiscovery = true }
+    func startAdvertisingOnly(discoveryInfo: [String: String]?) { discoveryStarts += 1 }
+    func startBrowsingOnly() { discoveryStarts += 1 }
     func stopAdvertisingAndBrowsing() { stopAdvertisingAndBrowsingCalled = true }
     func disconnect() { disconnectCalled = true }
     func stopSession() { stopSessionCalled = true }
