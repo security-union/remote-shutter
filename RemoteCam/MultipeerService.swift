@@ -32,7 +32,6 @@ protocol MultipeerServiceProtocol: AnyObject {
     var connectedPeers: [MCPeerID] { get }
     var progressCancellables: Set<AnyCancellable> { get set }
 
-    func startAdvertisingAndBrowsing()
     func startAdvertisingOnly(discoveryInfo: [String: String]?)
     func startBrowsingOnly()
     func stopAdvertisingAndBrowsing()
@@ -56,36 +55,25 @@ class MultipeerService: NSObject, MCSessionDelegate,
     private var browser: MCNearbyServiceBrowser!
     var progressCancellables = Set<AnyCancellable>()
 
-    // `session` is swapped on rebuild from both the coordinator's context
-    // (monitor inviting) and MC's delegate queue (camera accepting), while
-    // senders read it from their own queues — hence the Locked box.
-    private let sessionBox: Locked<MCSession>
-    var session: MCSession! { sessionBox.value }
+    /// One session for the life of the service. Under the QUIC transport it is
+    /// a facade over a long-lived peer session that survives disconnects, so
+    /// there is nothing to rebuild and nothing to swap — see `invitePeer`.
+    private let liveSession: MCSession
+    var session: MCSession! { liveSession }
 
     var connectedPeers: [MCPeerID] { session?.connectedPeers ?? [] }
 
     init(peerID: MCPeerID) {
         self.peerID = peerID
-        sessionBox = Locked(Self.makeSession(peerID: peerID))
+        liveSession = MCSession(peer: peerID, securityIdentity: nil,
+                                encryptionPreference: .required)
         super.init()
-        sessionBox.value.delegate = self
+        liveSession.delegate = self
         advertiser = MCNearbyServiceAdvertiser(
             peer: peerID, discoveryInfo: nil, serviceType: service)
         advertiser.delegate = self
         browser = MCNearbyServiceBrowser(peer: peerID, serviceType: service)
         browser.delegate = self
-    }
-
-    private static func makeSession(peerID: MCPeerID) -> MCSession {
-        MCSession(peer: peerID, securityIdentity: nil,
-                  encryptionPreference: .required)
-    }
-
-
-    func startAdvertisingAndBrowsing() {
-        advertiser.startAdvertisingPeer()
-        browser.stopBrowsingForPeers()
-        browser.startBrowsingForPeers()
     }
 
     func startAdvertisingOnly(discoveryInfo: [String: String]? = nil) {

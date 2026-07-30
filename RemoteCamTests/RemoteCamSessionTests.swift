@@ -1376,7 +1376,7 @@ class SessionReconnectTests: XCTestCase {
 
         XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
                       "only the monitor invites; the camera advertises and waits")
-        XCTAssertTrue(harness.fakeMP.startAdvertisingAndBrowsingCalled,
+        XCTAssertTrue(harness.fakeMP.startedDiscovery,
                       "scanning re-entry restarted the radios")
         let stillWaiting = await isReconnecting()
         XCTAssertTrue(stillWaiting)
@@ -1477,9 +1477,7 @@ class SessionReconnectTests: XCTestCase {
         harness.lobby.role = .monitor
 
         await harness.deliver(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: VP9PreviewCompatibility.minimumPeerBundleVersion,
-            shortVersion: "\(local.major + 1).0.0",
-            platform: "iPhone"))
+            bundleVersion: 110, shortVersion: "\(local.major + 1).0.0", platform: "iPhone"))
 
         XCTAssertTrue(harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.EndSession },
                       "the peer must be told, or it keeps re-inviting a session it cannot hold")

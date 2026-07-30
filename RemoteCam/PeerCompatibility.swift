@@ -57,15 +57,19 @@ struct SemanticVersion: Equatable, Comparable, CustomStringConvertible, Sendable
 /// one announces in its `PeerBecameCamera`/`PeerBecameMonitor` handshake.
 ///
 /// The rule is semver on the **app** version: a differing major means the two
-/// devices cannot talk; minor and patch differences are always fine. Individual
-/// features that only newer builds understand stay gated separately (see
-/// `VP9PreviewCompatibility`) — this policy answers "can we talk at all", not
-/// "which features do we share".
+/// devices cannot talk; minor and patch differences are always fine.
 ///
-/// Consequence to keep in mind when bumping the marketing version: because the
-/// gate reads `CFBundleShortVersionString`, **raising the major refuses pairing
-/// with every device on the previous major.** Ship a major bump only when that
-/// is what you mean.
+/// This is the only pairing gate, and per-feature build-number thresholds do
+/// not belong beside it: what a peer understands is a property of its major, so
+/// a threshold picked when some feature shipped sits below every peer that can
+/// still pair, and answers no question this policy has not answered first.
+///
+/// Two consequences to keep in mind when bumping the marketing version. Because
+/// the gate reads `CFBundleShortVersionString`, **raising the major refuses
+/// pairing with every device on the previous major** — ship a major bump only
+/// when that is what you mean. And conversely, a wire, codec or protocol change
+/// that older builds cannot follow **must** come with one, because nothing else
+/// will keep those builds away from it.
 enum PeerAppCompatibility {
 
     enum Verdict: Equatable {

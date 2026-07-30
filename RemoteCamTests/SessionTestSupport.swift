@@ -26,14 +26,15 @@ class FakeMultipeerService: MultipeerServiceProtocol {
     var sentMessages: [(msg: Message, peers: [MCPeerID], mode: MCSessionSendDataMode)] = []
     var stopSessionCalled = false
     var disconnectCalled = false
-    var startAdvertisingAndBrowsingCalled = false
+    /// Set by either radio: a role starts exactly one of them, and the tests
+    /// that read this only ask whether discovery restarted at all.
+    var startedDiscovery = false
     var stopAdvertisingAndBrowsingCalled = false
     var invitedPeers: [(peer: MCPeerID, timeout: TimeInterval)] = []
     var sendResult: Try<Message> = Failure(error: NSError(domain: "test", code: 0))
 
-    func startAdvertisingAndBrowsing() { startAdvertisingAndBrowsingCalled = true }
-    func startAdvertisingOnly(discoveryInfo: [String: String]?) { startAdvertisingAndBrowsingCalled = true }
-    func startBrowsingOnly() { startAdvertisingAndBrowsingCalled = true }
+    func startAdvertisingOnly(discoveryInfo: [String: String]?) { startedDiscovery = true }
+    func startBrowsingOnly() { startedDiscovery = true }
     func stopAdvertisingAndBrowsing() { stopAdvertisingAndBrowsingCalled = true }
     func disconnect() { disconnectCalled = true }
     func stopSession() { stopSessionCalled = true }

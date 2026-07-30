@@ -645,15 +645,8 @@ public actor SessionCoordinator {
             await transition(to: .monitor(mode: become.mode == .Photo ? .photo : .video))
             await sendOrGoToScanning(RemoteCmd.PeerBecameMonitor.createWithDefaults())
 
-        case let became as RemoteCmd.PeerBecameCamera:
-            await enforcePeerAppVersion(became.shortVersion)
-
-        case let became as RemoteCmd.PeerBecameMonitor:
-            // Two gates, coarse first: a peer on another major can't hold a
-            // session at all, and only then is "can it decode the preview"
-            // worth asking.
-            guard await enforcePeerAppVersion(became.shortVersion) else { break }
-            await enforceMonitorVP9Compatibility(became)
+        case let became as RemoteCmd.RoleAnnouncement:
+            await enforcePeerAppVersion(became)
 
         case is Disconnect:
             await popToScanning()
@@ -680,11 +673,10 @@ public actor SessionCoordinator {
         switch msg {
         case let became as RemoteCmd.PeerBecameMonitor:
             // Version-gate the monitor before answering: a peer on another major
-            // can't hold a session, and a monitor too old to decode VP9 is sent
-            // to the update-required flow (both pop out of the camera state), so
-            // we don't stream it an undecodable preview.
-            guard await enforcePeerAppVersion(became.shortVersion) else { break }
-            guard await enforceMonitorVP9Compatibility(became) else { break }
+            // can neither hold a session nor decode this camera's VP9 preview,
+            // and the refusal leaves the camera state, so nothing is streamed to
+            // it and no capabilities are negotiated.
+            guard await enforcePeerAppVersion(became) else { break }
             await attemptToSendCapabilities(attempt: 0)
 
         case is RemoteCmd.RequestCameraCapabilities:
@@ -878,47 +870,32 @@ public actor SessionCoordinator {
         }
     }
 
-    /// Single point of app-version policy. Both role announcements carry the
-    /// peer's `shortVersion`, so the verdict is available the moment roles are
-    /// known: nothing is asked of the peer, so a peer too old to answer cannot
-    /// stall the check. Returns true when the session may continue, false when
-    /// it popped to scanning with the update prompt.
+    /// The whole of "can we hold a session with this peer", asked the moment
+    /// roles are announced. Both announcements carry the peer's `shortVersion`,
+    /// so nothing is asked of the peer — a peer too old to answer cannot stall
+    /// the check. Returns true when the session may continue, false when it
+    /// left with the update prompt.
+    ///
+    /// One gate, not two: what a peer can decode follows from the app major it
+    /// is on, so the version policy already answers every feature question a
+    /// second gate could ask. A codec or protocol change that older builds
+    /// cannot follow is a major bump — see `PeerAppCompatibility`.
     @discardableResult
-    private func enforcePeerAppVersion(_ remoteShortVersion: String?) async -> Bool {
+    private func enforcePeerAppVersion(_ became: RemoteCmd.RoleAnnouncement) async -> Bool {
         // No local version to compare against means we cannot judge; never
         // blame the peer for this device's own malformed Info.plist.
         guard let local = PeerAppCompatibility.localVersion else { return true }
 
         let verdict = PeerAppCompatibility.decide(local: local,
-                                                 remoteShortVersion: remoteShortVersion)
+                                                 remoteShortVersion: became.shortVersion)
         guard verdict != .compatible else { return true }
 
         debugLog("""
-            peer app version \(remoteShortVersion ?? "none") vs local \(local): \
-            \(verdict), requesting update
+            peer \(became.platform) on \(became.shortVersion) (build \(became.bundleVersion)) \
+            vs local \(local): \(verdict), requesting update
             """)
         await showIncompatibilityMessage(verdict)
         return false
-    }
-
-    /// Camera side: a new camera always streams VP9, so a monitor too old to
-    /// decode it must be told to update rather than shown a broken preview.
-    /// Routes an out-of-date (or unknown-build, `<= 0`) monitor to the existing
-    /// incompatibility flow — a single, version-in/verdict-out policy
-    /// (`VP9PreviewCompatibility.peerCanDecodeVP9Preview`). Returns true when the
-    /// monitor is compatible and the caller should continue, false when it
-    /// popped to scanning. No per-connection capability handshake.
-    @discardableResult
-    private func enforceMonitorVP9Compatibility(_ became: RemoteCmd.PeerBecameMonitor) async -> Bool {
-        guard VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: became.bundleVersion) else {
-            StreamLog.encode.info("""
-                monitor bundleVersion \(became.bundleVersion) < \
-                \(VP9PreviewCompatibility.minimumPeerBundleVersion) — too old for VP9 preview, requesting update
-                """)
-            await showIncompatibilityMessage()
-            return false
-        }
-        return true
     }
 
     /// Monitor side: latch that a VP9 frame arrived, which proves the camera
