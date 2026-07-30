@@ -26,14 +26,17 @@ class FakeMultipeerService: MultipeerServiceProtocol {
     var sentMessages: [(msg: Message, peers: [MCPeerID], mode: MCSessionSendDataMode)] = []
     var stopSessionCalled = false
     var disconnectCalled = false
-    var startAdvertisingAndBrowsingCalled = false
+    /// How many times a radio was (re)started. A count rather than a flag: what
+    /// tests need to see is that discovery was rebuilt, which a latch set by the
+    /// first start cannot show.
+    var discoveryStarts = 0
     var stopAdvertisingAndBrowsingCalled = false
     var invitedPeers: [(peer: MCPeerID, timeout: TimeInterval)] = []
-    var sendResult: Try<Message> = Failure(error: NSError(domain: "test", code: 0))
+    /// What `send` reports back; false unless a test opts into a working link.
+    var sendResult = false
 
-    func startAdvertisingAndBrowsing() { startAdvertisingAndBrowsingCalled = true }
-    func startAdvertisingOnly(discoveryInfo: [String: String]?) { startAdvertisingAndBrowsingCalled = true }
-    func startBrowsingOnly() { startAdvertisingAndBrowsingCalled = true }
+    func startAdvertisingOnly(discoveryInfo: [String: String]?) { discoveryStarts += 1 }
+    func startBrowsingOnly() { discoveryStarts += 1 }
     func stopAdvertisingAndBrowsing() { stopAdvertisingAndBrowsingCalled = true }
     func disconnect() { disconnectCalled = true }
     func stopSession() { stopSessionCalled = true }
@@ -41,7 +44,7 @@ class FakeMultipeerService: MultipeerServiceProtocol {
         invitedPeers.append((peer, timeout))
     }
     func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message> {
+              mode: MCSessionSendDataMode) -> Bool {
         sentMessages.append((msg, peers, mode))
         return sendResult
     }
@@ -313,7 +316,7 @@ func makeCoordinatorHarness() async -> CoordinatorHarness {
     let peer = MCPeerID(displayName: "TestPeer")
 
     fakeMP.connectedPeers = [peer]
-    fakeMP.sendResult = Success(Message())
+    fakeMP.sendResult = true
 
     await coordinator.setMultipeerService(fakeMP)
     await coordinator.setAlertPresenter(alerts)

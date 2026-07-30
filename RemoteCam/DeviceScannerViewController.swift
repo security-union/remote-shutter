@@ -93,6 +93,10 @@ public class DeviceScannerViewController: UIViewController {
     let remoteCamSession = SessionCoordinator()
     private(set) lazy var frameSender = FrameSender(coordinator: remoteCamSession)
 
+    /// Injectable so the foreground re-arm can be driven in tests.
+    var notificationCenter: NotificationCenter = .default
+    private var foregroundTask: Task<Void, Never>?
+
     // MARK: - Network Browser
 
     var networkBrowser: NWBrowser?
@@ -110,7 +114,24 @@ public class DeviceScannerViewController: UIViewController {
         PeerLinkStatus.shared.onCancel = { [weak self] in
             self?.remoteCamSession ! UICmd.CancelReconnect()
         }
+        observeForeground()
         setupSwiftUIView()
+    }
+
+    /// Suspension kills the peer session within seconds and the transport's
+    /// notice lands on a frozen app, so returning to the foreground is the one
+    /// moment we know we are running: the session re-checks itself here. A
+    /// plain observer because `AppActivityMonitor.onChange` is a single closure
+    /// already owned by `WatchSessionManager`.
+    private func observeForeground() {
+        let notifications = notificationCenter.notifications(
+            named: UIApplication.didBecomeActiveNotification)
+        foregroundTask = Task { [weak self] in
+            for await _ in notifications {
+                guard let self else { return }
+                self.remoteCamSession ! UICmd.AppForegrounded()
+            }
+        }
     }
 
     public override func viewWillAppear(_ animated: Bool) {
@@ -132,7 +153,7 @@ public class DeviceScannerViewController: UIViewController {
 
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        remoteCamSession ! Disconnect()
+        remoteCamSession ! UICmd.ScannerDidAppear()
 
         if scannerViewModel.speedRunScanning {
             checkLocalNetworkAccessAndStartScanning()
@@ -206,6 +227,10 @@ public class DeviceScannerViewController: UIViewController {
         present(hostingController, animated: true)
     }
 
+    /// Probes for Local Network permission, then starts scanning. The verdict
+    /// comes from `LocalNetworkProbe`: only the OS's own denial code blocks;
+    /// anything else — including a probe that fails or times out because there
+    /// is no Wi-Fi network — proceeds, since scanning is the real test.
     func checkLocalNetworkAccessAndStartScanning() {
         let parameters = NWParameters()
         parameters.includePeerToPeer = true
@@ -215,39 +240,37 @@ public class DeviceScannerViewController: UIViewController {
             domain: "local."
         )
 
-        networkBrowser = NWBrowser(for: browserDescriptor, using: parameters)
+        let browser = NWBrowser(for: browserDescriptor, using: parameters)
+        networkBrowser = browser
 
-        networkBrowser?.stateUpdateHandler = { [weak self] state in
-            DispatchQueue.main.async {
-                switch state {
-                case .waiting(let error):
-                    print("Network browser waiting with error: \(error)")
-                    if case .dns(let dnsError) = error {
-                        let dnsCode = Int(dnsError)
-                        if dnsCode == Int(kDNSServiceErr_PolicyDenied) {
-                            self?.scannerViewModel.networkAccessDenied()
-                            self?.showLocalNetworkAccessDeniedAlert()
-                            return
-                        }
-                    }
-                    self?.scannerViewModel.networkAccessGranted()
-                    self?.startActualScanning()
-                case .ready:
-                    self?.scannerViewModel.networkAccessGranted()
-                    self?.startActualScanning()
-                case .failed:
-                    self?.scannerViewModel.networkAccessDenied()
-                    self?.showLocalNetworkAccessDeniedAlert()
-                default:
-                    break
-                }
+        // The probe answers once; later state changes (waiting → ready, or the
+        // cancel below) must not re-present the alert or restart scanning.
+        var resolved = false
+        let resolve: (LocalNetworkProbe.Verdict) -> Void = { [weak self] verdict in
+            guard !resolved, verdict != .keepWaiting else { return }
+            resolved = true
+            switch verdict {
+            case .denied:
+                self?.scannerViewModel.networkAccessDenied()
+                self?.showLocalNetworkAccessDeniedAlert()
+            case .proceed, .keepWaiting:
+                self?.scannerViewModel.networkAccessGranted()
+                self?.startActualScanning()
             }
         }
 
-        networkBrowser?.start(queue: .main)
+        browser.stateUpdateHandler = { state in
+            DispatchQueue.main.async {
+                resolve(LocalNetworkProbe.verdict(for: state))
+            }
+        }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            self.networkBrowser?.cancel()
+        browser.start(queue: .main)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.networkBrowser?.cancel()
+            // No evidence of denial within the window is not denial.
+            if !resolved { resolve(.proceed) }
         }
     }
 
@@ -266,7 +289,7 @@ public class DeviceScannerViewController: UIViewController {
     @objc func stopScanningDevices() {
         scannerViewModel.stoppedScanning()
         scannerViewModel.clearPeers()
-        remoteCamSession ! Disconnect()
+        remoteCamSession ! UICmd.StopScanning()
     }
 
     func showLocalNetworkAccessDeniedAlert() {
@@ -340,6 +363,7 @@ public class DeviceScannerViewController: UIViewController {
 
     deinit {
         print("deinit DeviceScanners")
+        foregroundTask?.cancel()
         networkBrowser?.cancel()
         remoteCamSession.stop()
     }

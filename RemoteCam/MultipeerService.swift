@@ -32,15 +32,18 @@ protocol MultipeerServiceProtocol: AnyObject {
     var connectedPeers: [MCPeerID] { get }
     var progressCancellables: Set<AnyCancellable> { get set }
 
-    func startAdvertisingAndBrowsing()
     func startAdvertisingOnly(discoveryInfo: [String: String]?)
     func startBrowsingOnly()
     func stopAdvertisingAndBrowsing()
     func disconnect()
     func stopSession()
     func invitePeer(_ peer: MCPeerID, timeout: TimeInterval)
+    /// Encodes and sends. True when the bytes reached the transport; the
+    /// failure detail is logged at the failure, since no caller does more than
+    /// branch on it.
+    @discardableResult
     func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message>
+              mode: MCSessionSendDataMode) -> Bool
     func sendResource(at url: URL, withName name: String,
                       toPeer peer: MCPeerID,
                       completion: @escaping (Error?) -> Void) -> Progress?
@@ -56,36 +59,25 @@ class MultipeerService: NSObject, MCSessionDelegate,
     private var browser: MCNearbyServiceBrowser!
     var progressCancellables = Set<AnyCancellable>()
 
-    // `session` is swapped on rebuild from both the coordinator's context
-    // (monitor inviting) and MC's delegate queue (camera accepting), while
-    // senders read it from their own queues — hence the Locked box.
-    private let sessionBox: Locked<MCSession>
-    var session: MCSession! { sessionBox.value }
+    /// One session for the life of the service. Under the QUIC transport it is
+    /// a facade over a long-lived peer session that survives disconnects, so
+    /// there is nothing to rebuild and nothing to swap — see `invitePeer`.
+    private let liveSession: MCSession
+    var session: MCSession! { liveSession }
 
     var connectedPeers: [MCPeerID] { session?.connectedPeers ?? [] }
 
     init(peerID: MCPeerID) {
         self.peerID = peerID
-        sessionBox = Locked(Self.makeSession(peerID: peerID))
+        liveSession = MCSession(peer: peerID, securityIdentity: nil,
+                                encryptionPreference: .required)
         super.init()
-        sessionBox.value.delegate = self
+        liveSession.delegate = self
         advertiser = MCNearbyServiceAdvertiser(
             peer: peerID, discoveryInfo: nil, serviceType: service)
         advertiser.delegate = self
         browser = MCNearbyServiceBrowser(peer: peerID, serviceType: service)
         browser.delegate = self
-    }
-
-    private static func makeSession(peerID: MCPeerID) -> MCSession {
-        MCSession(peer: peerID, securityIdentity: nil,
-                  encryptionPreference: .required)
-    }
-
-
-    func startAdvertisingAndBrowsing() {
-        advertiser.startAdvertisingPeer()
-        browser.stopBrowsingForPeers()
-        browser.startBrowsingForPeers()
     }
 
     func startAdvertisingOnly(discoveryInfo: [String: String]? = nil) {
@@ -128,19 +120,19 @@ class MultipeerService: NSObject, MCSessionDelegate,
         browser.invitePeer(peer, to: session, withContext: nil, timeout: timeout)
     }
 
+    @discardableResult
     func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message> {
+              mode: MCSessionSendDataMode) -> Bool {
+        guard let serializedMessage = serializeToFlatBuffer(msg) else {
+            print("send: no wire encoding for \(type(of: msg))")
+            return false
+        }
         do {
-            guard let serializedMessage = serializeToFlatBuffer(msg) else {
-                let error = NSError(domain: "MultipeerService", code: -1,
-                                    userInfo: [NSLocalizedDescriptionKey: "Unknown message type: \(type(of: msg))"])
-                return Failure(error: error)
-            }
             try session.send(serializedMessage, toPeers: peers, with: mode)
-            return Success(msg)
-        } catch let error as NSError {
-            print("sendMessage error \(error)")
-            return Failure(error: error)
+            return true
+        } catch {
+            print("send \(type(of: msg)) failed: \(error)")
+            return false
         }
     }
 

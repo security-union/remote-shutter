@@ -52,7 +52,6 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
         return [remote.localPeerID]
     }
 
-    func startAdvertisingAndBrowsing() {}
     func startAdvertisingOnly(discoveryInfo: [String: String]?) {}
     func startBrowsingOnly() {}
     func stopAdvertisingAndBrowsing() {}
@@ -64,24 +63,16 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
                       completion: @escaping (Error?) -> Void) -> Progress? { nil }
 
     func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message> {
+              mode: MCSessionSendDataMode) -> Bool {
         // One lock acquisition: going through the computed property would read, append to
         // a copy, then write back, losing a concurrent append.
         sentMessagesStorage.mutate { $0.append(msg) }
 
-        guard let data = serializeToFlatBuffer(msg) else {
-            return Failure(error: NSError(
-                domain: "Loopback", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Unknown message type: \(type(of: msg))"]))
-        }
-        guard let remote, let remoteDelegate = remote.delegate else {
-            return Failure(error: NSError(
-                domain: "Loopback", code: -2,
-                userInfo: [NSLocalizedDescriptionKey: "No connected peer"]))
-        }
+        guard let data = serializeToFlatBuffer(msg) else { return false }
+        guard let remote, let remoteDelegate = remote.delegate else { return false }
         guard let decoded = RemoteCmd.fromFlatBuffer(data) else {
             remoteDelegate.didDetectIncompatibility()
-            return Success(msg)
+            return true
         }
 
         // Mirror MultipeerService.session(_:didReceive:fromPeer:) routing.
@@ -93,7 +84,7 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
         default:
             remoteDelegate.didReceiveMessage(decoded)
         }
-        return Success(msg)
+        return true
     }
 
     /// Severs the link and delivers the disconnect the way MCSessionDelegate would.
@@ -307,7 +298,7 @@ class LoopbackSessionTests: XCTestCase {
 
     // MARK: - Peer disconnect
 
-    func testPeerDisconnectPopsMonitorToScanning() async {
+    func testPeerDisconnectStartsTheMonitorWaiting() async {
         await connectBothSessions()
         await becomeMonitor(mode: .Photo)
 
@@ -315,7 +306,8 @@ class LoopbackSessionTests: XCTestCase {
         await drainBothSessions()
 
         let monitorState = await monitorCoordinator.currentStateName()
-        XCTAssertEqual(monitorState, .scanning)
+        XCTAssertEqual(monitorState, .reconnecting,
+                       "an unannounced drop is a peer to wait for, not a session to forget")
     }
 
     // MARK: - Happy-path photo capture with a camera peer
@@ -648,75 +640,62 @@ class LoopbackSessionTests: XCTestCase {
         return fakeCamera
     }
 
-    /// A peer version on this build's own major, so `PeerAppCompatibility` stays
-    /// out of the way and the VP9 tests below keep testing the VP9 gate rather
-    /// than accidentally tripping the app-version gate.
+    // MARK: - App-version gate (semver major)
+
+    /// A peer version on this build's own major, so the pairing gate stays out
+    /// of the way of whatever else a test is exercising.
     private var sameMajorVersion: String {
         "\(PeerAppCompatibility.localVersion?.major ?? 0).0.0"
     }
 
-    /// A version-qualified monitor (bundleVersion >= threshold) is answered
-    /// normally: the camera stays in `.camera` and broadcasts capabilities, then
-    /// streams VP9 to it. No capability handshake, no incompatibility.
-    func testQualifiedMonitorIsAcceptedAndAnswered() async {
-        let threshold = VP9PreviewCompatibility.minimumPeerBundleVersion
+    /// A monitor announcing itself. `bundleVersion` and `platform` are
+    /// diagnostics — no gate reads them — so the tests vary only the version
+    /// the single gate does read.
+    private func monitorAnnouncing(_ shortVersion: String,
+                                   build: Int = 110) -> RemoteCmd.PeerBecameMonitor {
+        RemoteCmd.PeerBecameMonitor(
+            bundleVersion: build, shortVersion: shortVersion, platform: "iPhone")
+    }
+
+    /// A monitor on this major is answered normally: the camera stays in
+    /// `.camera` and broadcasts capabilities, then streams VP9 to it. No
+    /// capability handshake, no incompatibility.
+    func testSameMajorMonitorIsAcceptedAndAnswered() async {
         _ = await enterCameraState()
 
-        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: threshold, shortVersion: sameMajorVersion, platform: "iPhone"))
+        cameraCoordinator.tell(monitorAnnouncing(sameMajorVersion))
         await drainBothSessions()
 
         let cameraState = await cameraCoordinator.currentStateName()
-        XCTAssertEqual(cameraState, .camera, "a qualified monitor keeps the camera streaming")
+        XCTAssertEqual(cameraState, .camera, "a same-major monitor keeps the camera streaming")
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.CameraCapabilitiesResp },
-                      "the camera answers a qualified monitor with capabilities")
+                      "the camera answers a same-major monitor with capabilities")
     }
 
-    /// A monitor too old to decode VP9 (0 < bundleVersion < threshold) is sent to
-    /// the update-required flow: the camera pops to scanning and never answers it
-    /// (no stills fallback, no capability negotiation).
-    func testOutOfDateMonitorIsToldToUpdate() async {
-        let old = VP9PreviewCompatibility.minimumPeerBundleVersion - 1
+    /// The major is the whole gate: a build number cannot refuse a peer the
+    /// version policy accepted, not even the `0` an absent `CFBundleVersion`
+    /// decodes to. Pinned so a build threshold cannot quietly reappear as a
+    /// second policy.
+    func testBuildNumberDoesNotGateAPeerOnThisMajor() async {
         _ = await enterCameraState()
 
-        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: old, shortVersion: sameMajorVersion, platform: "iPhone"))
+        cameraCoordinator.tell(monitorAnnouncing(sameMajorVersion, build: 0))
         await drainBothSessions()
 
         let cameraState = await cameraCoordinator.currentStateName()
-        XCTAssertEqual(cameraState, .scanning, "an out-of-date monitor sends the camera to update/scanning")
-        XCTAssertFalse(cameraTransport.sentMessages.contains { $0 is RemoteCmd.CameraCapabilitiesResp },
-                       "the camera must not answer a monitor that can't decode its VP9 stream")
+        XCTAssertEqual(cameraState, .camera, "an unknown build number is not a refusal")
+        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.CameraCapabilitiesResp })
     }
 
-    /// An unknown build (`bundleVersion <= 0`) is incompatible even when its app
-    /// version is on this major: the VP9 gate still rejects it.
-    func testUnknownBuildMonitorStillTreatedAsIncompatible() async {
-        _ = await enterCameraState()
-
-        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: 0, shortVersion: sameMajorVersion, platform: "iPhone"))
-        await drainBothSessions()
-
-        let cameraState = await cameraCoordinator.currentStateName()
-        XCTAssertEqual(cameraState, .scanning, "an unknown-build (<= 0) monitor is still incompatible")
-    }
-
-    // MARK: - App-version gate (semver major)
-
-    /// A monitor on a different app major is refused before any feature gate
-    /// runs: the camera pops to scanning and never answers with capabilities,
-    /// even though its build number is new enough for VP9.
+    /// A monitor on a different app major is refused: the camera leaves for
+    /// scanning and never answers with capabilities, whatever its build number.
     func testMonitorOnDifferentAppMajorIsRefused() async {
         guard let local = PeerAppCompatibility.localVersion else {
             return XCTFail("the test host must carry a parseable CFBundleShortVersionString")
         }
         _ = await enterCameraState()
 
-        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: VP9PreviewCompatibility.minimumPeerBundleVersion,
-            shortVersion: "\(local.major + 1).0.0",
-            platform: "iPhone"))
+        cameraCoordinator.tell(monitorAnnouncing("\(local.major + 1).0.0"))
         await drainBothSessions()
 
         let cameraState = await cameraCoordinator.currentStateName()
@@ -737,10 +716,7 @@ class LoopbackSessionTests: XCTestCase {
         await monitorCoordinator.setPeerLinkStatus(monitorLink)
         _ = await enterCameraState()
 
-        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: VP9PreviewCompatibility.minimumPeerBundleVersion,
-            shortVersion: "\(local.major + 1).0.0",
-            platform: "iPhone"))
+        cameraCoordinator.tell(monitorAnnouncing("\(local.major + 1).0.0"))
         await drainBothSessions()
 
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.EndSession },
@@ -765,10 +741,7 @@ class LoopbackSessionTests: XCTestCase {
         }
         _ = await enterCameraState()
 
-        cameraCoordinator.tell(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: VP9PreviewCompatibility.minimumPeerBundleVersion,
-            shortVersion: "\(local.major).\(local.minor + 7).3",
-            platform: "iPhone"))
+        cameraCoordinator.tell(monitorAnnouncing("\(local.major).\(local.minor + 7).3"))
         await drainBothSessions()
 
         let cameraState = await cameraCoordinator.currentStateName()

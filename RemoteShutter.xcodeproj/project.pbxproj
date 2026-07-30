@@ -81,7 +81,6 @@
 		2D869319DCFDFEFF351153A4 /* RemoteShutterWatch/WatchSessionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6BF3CD6986238A77C3A216 /* RemoteShutterWatch/WatchSessionDelegate.swift */; };
 		2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC2B012FFC1D370B0818D3C /* FlatBufferSchemas_generated.swift */; };
 		2F485D44C59F540DB49140DD /* MonitorDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C65DE1A8EACAAA012BE9F840 /* MonitorDisplay.swift */; };
-		30425A0C926DE812ECA4528E /* Try.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1681D37E731D371A697244F7 /* Try.swift */; };
 		30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */; };
 		33F5D268690A3D022A6A54BA /* RemoteShutterWatch/WatchControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F37D4A9FA8416A43EFEFF1 /* RemoteShutterWatch/WatchControlView.swift */; };
 		3DBD14F1A5F01D3D9C2DB30D /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */; };
@@ -327,7 +326,6 @@
 		0ACB2DA94752BB4E9C4CE461 /* CountdownTimer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CountdownTimer.swift; sourceTree = "<group>"; };
 		0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureEngine.swift; sourceTree = "<group>"; };
 		148A312CF1B445C71094EF0E /* RemoteCam/WatchSessionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCam/WatchSessionManager.swift; sourceTree = SOURCE_ROOT; };
-		1681D37E731D371A697244F7 /* Try.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Try.swift; sourceTree = "<group>"; };
 		1B28B6F9DA6B3E3677C5C532 /* RemoteCmdFlatBuffers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteCmdFlatBuffers.swift; sourceTree = "<group>"; };
 		1E06F124E7E28CC7B25BDE83 /* Pods_RemoteShutter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		217F0C5AC498A27023FF5BD0 /* Pods-RemoteShutterWatch.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutterWatch.debug.xcconfig"; path = "Target Support Files/Pods-RemoteShutterWatch/Pods-RemoteShutterWatch.debug.xcconfig"; sourceTree = "<group>"; };
@@ -643,7 +641,6 @@
 				AB12CD34EF5601789ABC0DF5 /* SessionCoordinator.swift */,
 				AB12CD34EF5601789ABC0DF7 /* MonitorPresenter.swift */,
 				AB12CD34EF5601789ABC0DF9 /* Messages.swift */,
-				1681D37E731D371A697244F7 /* Try.swift */,
 				069284431BE5C0E600AF4678 /* MonitorViewController.swift */,
 				0609A4DA251BFED80090DEB7 /* Photos.swift */,
 				0673275E2E2DF163003E5F94 /* CameraPermissionsView.swift */,
@@ -1202,7 +1199,6 @@
 				AB12CD34EF5601789ABC0DF8 /* MonitorPresenter.swift in Sources */,
 				AB12CD34EF5601789ABC0DFA /* Messages.swift in Sources */,
 				066427751BE924DD003EDD41 /* EnumExtensions.swift in Sources */,
-				30425A0C926DE812ECA4528E /* Try.swift in Sources */,
 				2DE7F88E7D099CB01954A4CD /* FlatBufferSchemas_generated.swift in Sources */,
 				30592B547D1C32386D1541C4 /* RemoteCmdFlatBuffers.swift in Sources */,
 				8D834E942E3DF65BDAE055C5 /* SettingsView.swift in Sources */,

@@ -176,7 +176,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testConnectedStateDisconnect() async {
         await seedConnected()
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
@@ -212,20 +212,20 @@ class SessionCoordinatorTests: XCTestCase {
         wrapper?.value = nil
         wrapper = nil
 
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
     }
 
-    func testConnectedStateDisconnectPeerPopsToScanning() async {
+    func testConnectedStateDisconnectPeerStartsReconnecting() async {
         await seedConnected()
 
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
+        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
     }
 
     func testConnectedStateBecomeMonitorSendsPeerBecameMonitor() async {
@@ -270,7 +270,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorPhotoModeDisconnectPopsToScanning() async {
         await enterMonitor(.Photo)
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
@@ -353,14 +353,14 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1)
     }
 
-    func testMonitorPhotoModeDisconnectPeerPopsToScanning() async {
+    func testMonitorPhotoModeDisconnectPeerStartsReconnecting() async {
         await enterMonitor(.Photo)
 
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
+        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
     }
 
     func testMonitorPhotoModeSetAspectRatioSendsCommand() async throws {
@@ -394,7 +394,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorVideoModeDisconnectPopsToScanning() async {
         await enterMonitor(.Video)
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
@@ -469,14 +469,14 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1)
     }
 
-    func testMonitorVideoModeDisconnectPeerPopsToScanning() async {
+    func testMonitorVideoModeDisconnectPeerStartsReconnecting() async {
         await enterMonitor(.Video)
 
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
+        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
     }
 
     func testMonitorVideoModeStartRecordingVideoSentToPeer() async {
@@ -563,7 +563,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorTakingPictureDisconnectPopsToScanning() async {
         await enterMonitorTakingPicture()
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
@@ -626,20 +626,20 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorRecordingVideoDisconnectPopsToScanning() async {
         await enterMonitorRecordingVideo()
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
     }
 
-    func testMonitorRecordingVideoDisconnectPeerPopsToScanning() async {
+    func testMonitorRecordingVideoDisconnectPeerStartsReconnecting() async {
         await enterMonitorRecordingVideo()
 
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
+        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
     }
 
     func testMonitorRecordingVideoUnbecomeMonitorPopsToConnected() async {
@@ -672,20 +672,20 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorWaitingForVideoDisconnectPopsToScanning() async {
         await enterMonitorWaitingForVideo()
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
     }
 
-    func testMonitorWaitingForVideoDisconnectPeerPopsToScanning() async {
+    func testMonitorWaitingForVideoDisconnectPeerStartsReconnecting() async {
         await enterMonitorWaitingForVideo()
 
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
+        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
     }
 
     func testMonitorWaitingForVideoUnbecomeMonitorPopsToConnected() async {
@@ -736,20 +736,20 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorTogglingFlashDisconnectPopsToScanning() async {
         await enterMonitorTogglingFlash()
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
     }
 
-    func testMonitorTogglingFlashDisconnectPeerPopsToScanning() async {
+    func testMonitorTogglingFlashDisconnectPeerStartsReconnecting() async {
         await enterMonitorTogglingFlash()
 
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
+        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
     }
 
     func testMonitorTogglingFlashUnbecomeMonitorPopsToConnected() async {
@@ -804,20 +804,20 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorTogglingCameraDisconnectPopsToScanning() async {
         await enterMonitorTogglingCamera()
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
     }
 
-    func testMonitorTogglingCameraDisconnectPeerPopsToScanning() async {
+    func testMonitorTogglingCameraDisconnectPeerStartsReconnecting() async {
         await enterMonitorTogglingCamera()
 
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
+        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
     }
 
     func testMonitorTogglingCameraUnbecomeMonitorPopsToConnected() async {
@@ -870,19 +870,19 @@ class SessionCoordinatorTests: XCTestCase {
                        "State should unbecome even when both lensType and error are nil")
     }
 
-    func testMonitorSwitchingLensDisconnectPeerPopsToScanning() async {
+    func testMonitorSwitchingLensDisconnectPeerStartsReconnecting() async {
         await enterMonitorSwitchingLens()
 
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
+        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
     }
 
     func testMonitorSwitchingLensDisconnectPopsToScanning() async {
         await enterMonitorSwitchingLens()
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
@@ -1054,7 +1054,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorPhotoModeToggleFlashSendFailurePopsToScanning() async {
         await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.ToggleFlash())
 
@@ -1064,7 +1064,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorPhotoModeToggleCameraSendFailurePopsToScanning() async {
         await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.ToggleCamera())
 
@@ -1074,7 +1074,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorPhotoModeSwitchLensSendFailurePopsToScanning() async {
         await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.SwitchLens(lensType: .telephoto))
 
@@ -1084,7 +1084,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorVideoModeStartRecordingSendFailurePopsToScanning() async {
         await enterMonitor(.Video)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
 
@@ -1102,7 +1102,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorPhotoModeTakePictureSendFailurePopsToScanning() async {
         await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
 
@@ -1113,7 +1113,7 @@ class SessionCoordinatorTests: XCTestCase {
     func testSendFailureTriggersPopToScanning() async {
         await seedConnected()
         harness.fakeMP.sentMessages.removeAll()
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         // OnEnter's RequestFrame send fails → pop to scanning.
         await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
@@ -1130,7 +1130,7 @@ class SessionCoordinatorTests: XCTestCase {
         var name = await harness.stateName()
         XCTAssertEqual(name, .cameraTakingPic)
 
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
         let generation = await harness.coordinator.currentTimeoutGeneration()
         await harness.deliver(UICmd.StateTimeout(stateName: .cameraTakingPic, generation: generation))
 
@@ -1195,7 +1195,7 @@ class SessionCoordinatorTests: XCTestCase {
 
         // The peer is gone: every send fails. Each straggler command reaches
         // the root handler, synthesizes an error response, and fails to send it.
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "peer gone", code: 0))
+        harness.fakeMP.sendResult = false
         for _ in 0..<5 {
             await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
         }
@@ -1311,29 +1311,48 @@ class SessionReconnectTests: XCTestCase {
         let waiting = await isReconnecting()
         XCTAssertTrue(waiting, "the overlay renders while we wait")
         let state = await harness.stateName()
-        XCTAssertEqual(state, .scanning, "the machine drops to scanning as always")
+        XCTAssertEqual(state, .reconnecting, "losing the peer IS a state, not a flag")
     }
 
-    func testSuspendedDisconnectDropsToScanningAndMonitorRetries() async {
+    /// The one behavior this state exists for: the machine's own pop back to
+    /// the scanner makes the scanner announce itself, and that announcement
+    /// must not end the wait it is a side effect of.
+    func testScannerAppearingDuringAWaitChangesNothing() async {
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        await harness.deliver(UICmd.ScannerDidAppear())
+
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .reconnecting, "the machine caused this arrival; it ends nothing")
+        let waiting = await isReconnecting()
+        XCTAssertTrue(waiting, "the overlay survives the scanner's announcement")
+    }
+
+    /// The wait rebuilds discovery and invites on re-discovery. Dialing the
+    /// endpoint we already hold is useless: it was learned before the link
+    /// died, and after the interface goes down it addresses nothing.
+    func testWaitRestartsDiscoveryAndInvitesOnRediscovery() async {
         harness.lobby.role = .monitor
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
 
         let state = await harness.stateName()
-        XCTAssertEqual(state, .scanning)
+        XCTAssertEqual(state, .reconnecting)
         let stillWaiting = await isReconnecting()
-        XCTAssertTrue(stillWaiting, "the overlay survives the drop to scanning")
+        XCTAssertTrue(stillWaiting, "the overlay is up while we wait")
 
+        let startsAfterDrop = harness.fakeMP.discoveryStarts
         await awaitRetryTick()
+        XCTAssertGreaterThan(harness.fakeMP.discoveryStarts, startsAfterDrop,
+                             "each tick rebuilds the radios")
+        XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
+                      "nothing is dialed until the peer is actually found again")
+
+        // Re-discovery is the moment the endpoint is real again.
+        await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
         XCTAssertEqual(harness.fakeMP.invitedPeers.first?.peer, harness.peer,
-                       "the retry loop re-invites the suspended peer")
-
-        // A failed attempt surfaces as DisconnectPeer — the loop re-arms.
-        let invitesSoFar = harness.fakeMP.invitedPeers.count
-        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-        await awaitRetryTick()
-        XCTAssertGreaterThan(harness.fakeMP.invitedPeers.count, invitesSoFar,
-                             "retries continue with no attempt cap")
+                       "finding the awaited peer invites it")
 
         // Reconnection ends the loop and dismisses the dialog.
         await harness.deliver(OnConnectToDevice(peer: harness.peer, sender: nil))
@@ -1343,41 +1362,40 @@ class SessionReconnectTests: XCTestCase {
         XCTAssertEqual(finalState, .connected)
     }
 
-    /// Device bug: the 1 s tick called invitePeer every second, and
-    /// invitePeer rebuilds the session — tearing down the QUIC handshake
-    /// that was still completing. The dial never got its couple of seconds,
-    /// so the pair churned "Connecting…/Not Connected" forever.
-    func testRetryDoesNotRestartAnAttemptInFlight() async {
+    /// `invitePeer` rebuilds the session, which drops a QUIC handshake still
+    /// completing. A dial needs seconds, so nothing — a tick, or the browser
+    /// re-reporting the peer — may interrupt one.
+    func testWaitDoesNotRestartAnAttemptInFlight() async {
         harness.lobby.role = .monitor
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-
-        await awaitRetryTick()
+        await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
         XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1, "one attempt starts")
 
-        // Ticks while that attempt is still running must not re-invite.
         await awaitRetryTick()
-        await awaitRetryTick()
+        await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
         XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1,
                        "an in-flight handshake is left alone")
 
         // Only its failure frees the next attempt.
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-        await awaitRetryTick()
+        await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
         XCTAssertEqual(harness.fakeMP.invitedPeers.count, 2,
-                       "the loop continues once the attempt is over")
+                       "the wait continues once the attempt is over")
     }
 
     func testCameraRoleWaitsWithoutInviting() async {
         harness.lobby.role = .camera
         harness.fakeMP.connectedPeers = []
+        let startsBefore = harness.fakeMP.discoveryStarts
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
         await awaitRetryTick()
+        await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
 
         XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
                       "only the monitor invites; the camera advertises and waits")
-        XCTAssertTrue(harness.fakeMP.startAdvertisingAndBrowsingCalled,
-                      "scanning re-entry restarted the radios")
+        XCTAssertGreaterThan(harness.fakeMP.discoveryStarts, startsBefore,
+                             "the camera's half of the wait is advertising again")
         let stillWaiting = await isReconnecting()
         XCTAssertTrue(stillWaiting)
     }
@@ -1396,6 +1414,27 @@ class SessionReconnectTests: XCTestCase {
         await awaitRetryTick()
         XCTAssertEqual(harness.fakeMP.invitedPeers.count, invitesAtCancel,
                        "no further invites after Cancel")
+    }
+
+    /// Cancelling forgets the peer, so the invitation still in flight can fail
+    /// without that failure being read as a fresh loss.
+    func testCancelSurvivesTheInviteThatWasInFlight() async {
+        harness.lobby.role = .monitor
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1, "an invite is in flight")
+
+        await harness.deliver(UICmd.CancelReconnect())
+        // That in-flight invite now fails, the way every failure arrives.
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        let waiting = await isReconnecting()
+        XCTAssertFalse(waiting, "a cancelled wait stays cancelled")
+        await awaitRetryTick()
+        await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1,
+                       "and the peer is not chased again")
     }
 
     func testCancelStopsWaitingAndStaysInScanning() async {
@@ -1419,6 +1458,9 @@ class SessionReconnectTests: XCTestCase {
         await harness.deliver(UICmd.PeerTrafficObserved())
         let cleared = await isReconnecting()
         XCTAssertFalse(cleared, "packets arriving ⇒ the peer is here")
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .connected,
+                       "traffic resumes the session through the same door a fresh connection uses")
     }
 
     /// A peer that says goodbye is not chased: no overlay, no invites.
@@ -1444,7 +1486,7 @@ class SessionReconnectTests: XCTestCase {
 
     /// Leaving on purpose tells the peer, so it does not reconnect.
     func testDeliberateDisconnectAnnouncesTheExit() async {
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let announced = harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.EndSession }
         XCTAssertTrue(announced, "the peer must be told before we tear down")
@@ -1458,7 +1500,7 @@ class SessionReconnectTests: XCTestCase {
         await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
         harness.fakeMP.sentMessages.removeAll()
 
-        await harness.deliver(Disconnect(sender: nil))
+        await harness.deliver(UICmd.ScannerDidAppear())
 
         let announced = harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.EndSession }
         XCTAssertTrue(announced, "leaving the monitor screen must tell the camera")
@@ -1477,9 +1519,7 @@ class SessionReconnectTests: XCTestCase {
         harness.lobby.role = .monitor
 
         await harness.deliver(RemoteCmd.PeerBecameMonitor(
-            bundleVersion: VP9PreviewCompatibility.minimumPeerBundleVersion,
-            shortVersion: "\(local.major + 1).0.0",
-            platform: "iPhone"))
+            bundleVersion: 110, shortVersion: "\(local.major + 1).0.0", platform: "iPhone"))
 
         XCTAssertTrue(harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.EndSession },
                       "the peer must be told, or it keeps re-inviting a session it cannot hold")
@@ -1504,5 +1544,56 @@ class SessionReconnectTests: XCTestCase {
         await harness.deliver(DisconnectPeer(peer: stranger, sender: nil))
         let waiting = await isReconnecting()
         XCTAssertFalse(waiting, "only the session peer starts a wait")
+    }
+
+    // MARK: - Foreground re-arm
+
+    /// Suspension kills the peer session within seconds, and the notice is
+    /// delivered to a frozen process — it may never arrive. A camera that never
+    /// learns it lost a session never advertises again, so no remote can find
+    /// it. Returning to the foreground with nothing connected is the cue to
+    /// leave the role state, which re-arms advertising on the way out.
+    func testForegroundLeavesACameraStateWithNoLiveLink() async {
+        await harness.coordinator.seed(
+            state: .camera, lobby: harness.lobbyWrapper, peer: harness.peer,
+            ctrl: FakeCameraControlling())
+        harness.lobby.role = .camera
+        harness.fakeMP.connectedPeers = []
+        let startsBefore = harness.fakeMP.discoveryStarts
+
+        await harness.deliver(UICmd.AppForegrounded())
+
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .scanning, "a camera state with no link is a lie")
+        XCTAssertGreaterThan(harness.fakeMP.discoveryStarts, startsBefore,
+                             "leaving it re-arms advertising")
+    }
+
+    /// Already scanning: rebuild the radios in place. They may have died while
+    /// the process was frozen, and re-entering the state would reset the lobby.
+    func testForegroundRestartsDiscoveryWhileScanning() async {
+        await harness.coordinator.seed(state: .scanning, lobby: harness.lobbyWrapper)
+        harness.fakeMP.connectedPeers = []
+        let startsBefore = harness.fakeMP.discoveryStarts
+
+        await harness.deliver(UICmd.AppForegrounded())
+
+        XCTAssertGreaterThan(harness.fakeMP.discoveryStarts, startsBefore,
+                             "stale radios are rebuilt")
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .scanning)
+    }
+
+    /// A short background can end with the link still up. Nothing to fix, and
+    /// re-arming would tear down a working session.
+    func testForegroundWithALiveLinkChangesNothing() async {
+        let startsBefore = harness.fakeMP.discoveryStarts
+
+        await harness.deliver(UICmd.AppForegrounded())
+
+        XCTAssertEqual(harness.fakeMP.discoveryStarts, startsBefore)
+        XCTAssertFalse(harness.fakeMP.disconnectCalled)
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .connected)
     }
 }

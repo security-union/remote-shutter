@@ -439,8 +439,18 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public class PeerBecameCamera: Message, @unchecked Sendable {
-        let bundleVersion: Int, shortVersion: String, platform: String
+    /// What the two role announcements have in common: who the peer says it is.
+    /// `shortVersion` is the pairing gate (see `PeerAppCompatibility`); the other
+    /// two are diagnostics, carried so a refusal in the field can be read back
+    /// from a log rather than guessed at.
+    public protocol RoleAnnouncement {
+        var bundleVersion: Int { get }
+        var shortVersion: String { get }
+        var platform: String { get }
+    }
+
+    public class PeerBecameCamera: Message, RoleAnnouncement, @unchecked Sendable {
+        public let bundleVersion: Int, shortVersion: String, platform: String
 
         class func createWithDefaults() -> PeerBecameCamera {
             let (bundleVersion, shortVersion, platform) = getDeviceInfo()
@@ -455,8 +465,8 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public class PeerBecameMonitor: Message, @unchecked Sendable {
-        let bundleVersion: Int, shortVersion: String, platform: String
+    public class PeerBecameMonitor: Message, RoleAnnouncement, @unchecked Sendable {
+        public let bundleVersion: Int, shortVersion: String, platform: String
 
         class func createWithDefaults() -> PeerBecameMonitor {
             let (bundleVersion, shortVersion, platform) = getDeviceInfo()

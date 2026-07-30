@@ -143,7 +143,7 @@ final class StormoLoopbackTests: XCTestCase {
         XCTAssertFalse(peers.isEmpty, "monitor must have a connected peer to send to")
         let sendResult = monitor.send(
             RemoteCmd.SetZoom(zoomFactor: 3.5), to: peers, mode: .reliable)
-        XCTAssertTrue(sendResult.isSuccess(), "send over an established route must not throw")
+        XCTAssertTrue(sendResult, "send over an established route must not throw")
 
         // A receives and decodes it.
         let delivery = XCTWaiter().wait(for: [cameraProbe.messageReceived], timeout: 10)

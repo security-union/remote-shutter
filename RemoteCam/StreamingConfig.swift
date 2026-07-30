@@ -64,9 +64,9 @@ struct StreamingConfig {
     /// this chain because a VP9 frame is a delta against decoder state, not a
     /// standalone picture — no still can substitute for it, and mixing codecs
     /// mid-stream corrupts the decode. Whether to stream VP9 at all is a
-    /// per-session mode decision made elsewhere (runtime encoder availability
-    /// + the peer bundleVersion gate in VP9PreviewCompatibility); this chain
-    /// is what runs when that mode is off.
+    /// per-session mode decision made elsewhere (runtime encoder availability —
+    /// every peer that can pair is on this app major, so every peer decodes
+    /// VP9); this chain is what runs when that mode is off.
     var preferredCodecs: [RemoteCmd.StreamCodec] = [.heic, .jpeg]
 
     /// Long edge of the frame sent to the phone monitor. Replaces the old

@@ -177,21 +177,6 @@ final class VP9StreamingTests: XCTestCase {
         XCTAssertEqual(fromFBStreamCodec(.unknown), .jpeg, "legacy senders default to JPEG")
     }
 
-    // MARK: - Version-gate decision
-
-    func testPeerCanDecodeVP9PreviewIsBundleVersionGated() {
-        let threshold = VP9PreviewCompatibility.minimumPeerBundleVersion
-        XCTAssertTrue(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: threshold),
-                      "the first VP9 release qualifies at exactly the threshold")
-        XCTAssertTrue(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: threshold + 5),
-                      "newer peers qualify")
-        XCTAssertFalse(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: threshold - 1),
-                       "a peer one build below the threshold cannot decode VP9")
-        XCTAssertFalse(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: 0),
-                       "unknown/legacy build (<= 0) also cannot decode VP9 — one check covers both")
-        XCTAssertFalse(VP9PreviewCompatibility.peerCanDecodeVP9Preview(bundleVersion: -1))
-    }
-
     func testForceKeyframeMakesNextFrameASelfContainedKeyframe() throws {
         let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .test)
         let key = makeSolidPixelBuffer(width: 128, height: 64, blue: 90, green: 90, red: 90)

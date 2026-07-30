@@ -1,6 +1,8 @@
 import XCTest
 import MPCCompat
 import Stormo
+import Network
+import dnssd
 @testable import RemoteShutter
 
 final class DeviceScannerViewModelTests: XCTestCase {
@@ -472,5 +474,44 @@ extension DeviceScannerViewModelTests {
 
         XCTAssertEqual(vm.connectedPeers.count, 1)
         XCTAssertEqual(vm.connectedPeers[0].displayName, "Dario's iPhone")
+    }
+}
+
+/// The pre-scan probe may block the user on exactly one signal: the OS's own
+/// permission denial. Everything a network can do wrong — no Wi-Fi, no route,
+/// a browse that fails outright — proceeds, because off-network is a supported
+/// configuration and scanning is the real test.
+final class LocalNetworkProbeTests: XCTestCase {
+
+    func testPolicyDeniedIsTheOnlyDenial() {
+        let policyDenied = NWError.dns(DNSServiceErrorType(kDNSServiceErr_PolicyDenied))
+        XCTAssertEqual(LocalNetworkProbe.verdict(for: .waiting(policyDenied)), .denied)
+        XCTAssertEqual(LocalNetworkProbe.verdict(for: .failed(policyDenied)), .denied,
+                       "denial counts however the browser surfaces it")
+    }
+
+    func testOffNetworkFailuresProceed() {
+        // The report from the field: no Wi-Fi ⇒ the probe fails ⇒ the app
+        // claimed the user had denied permission. A failed browse is not a
+        // permission verdict.
+        XCTAssertEqual(LocalNetworkProbe.verdict(for: .failed(.posix(.ENETDOWN))), .proceed)
+        XCTAssertEqual(LocalNetworkProbe.verdict(for: .failed(.posix(.ENETUNREACH))), .proceed)
+        XCTAssertEqual(
+            LocalNetworkProbe.verdict(for: .failed(.dns(DNSServiceErrorType(kDNSServiceErr_NoRouter)))),
+            .proceed)
+    }
+
+    func testWaitingWithoutDenialProceeds() {
+        XCTAssertEqual(LocalNetworkProbe.verdict(for: .waiting(.posix(.ENETDOWN))), .proceed,
+                       "a browser waiting for an interface has not been refused")
+    }
+
+    func testReadyProceeds() {
+        XCTAssertEqual(LocalNetworkProbe.verdict(for: .ready), .proceed)
+    }
+
+    func testStatesWithNoEvidenceKeepWaiting() {
+        XCTAssertEqual(LocalNetworkProbe.verdict(for: .setup), .keepWaiting)
+        XCTAssertEqual(LocalNetworkProbe.verdict(for: .cancelled), .keepWaiting)
     }
 }

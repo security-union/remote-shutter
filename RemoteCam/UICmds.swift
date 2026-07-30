@@ -29,6 +29,10 @@ public struct ZoomRange: Codable {
     }
 }
 
+/// Commands that travel within one device: a screen to the session coordinator,
+/// or the coordinator to itself. They are never serialized — anything that has
+/// to reach the peer crosses as a `RemoteCmd`, in FlatBuffers — so a UICmd is
+/// a plain in-process value with no wire representation to keep in step.
 public class UICmd {
 
     /// Sent by a transient state to itself after a delay to prevent getting stuck
@@ -88,6 +92,18 @@ public class UICmd {
     public class StartScanning: Message, @unchecked Sendable {
     }
 
+    /// The scanner screen is on display. Reported as the fact it is, because
+    /// two things cause it: the user navigating out of a session, and the
+    /// machine popping back here itself. Only the states that hold a session
+    /// act on it, and those can only be the first.
+    public class ScannerDidAppear: Message, @unchecked Sendable {
+    }
+
+    /// The user stopped looking for peers, which also abandons a peer we were
+    /// waiting for — you cannot wait for one while not looking.
+    public class StopScanning: Message, @unchecked Sendable {
+    }
+
     /// The user dismissed the connecting overlay while an invite was in flight.
     public class CancelConnect: Message, @unchecked Sendable {
     }
@@ -118,7 +134,7 @@ public class UICmd {
         }
     }
 
-    public     class TakePicture: Message, @unchecked Sendable {
+    public class TakePicture: Message, @unchecked Sendable {
         let sendMediaToRemote: Bool
 
         public init(sender: AnyObject?, sendMediaToRemote: Bool) {
@@ -161,20 +177,11 @@ public class UICmd {
     }
 
     // MARK: - Zoom Commands
-    @objc(_TtCC10ActorsDemo5UICmd8SetZoom)public class SetZoom: Message, NSCoding, @unchecked Sendable {
+    public class SetZoom: Message, @unchecked Sendable {
         public let zoomFactor: CGFloat
         
         public init(zoomFactor: CGFloat) {
             self.zoomFactor = zoomFactor
-            super.init(sender: nil)
-        }
-
-        public func encode(with aCoder: NSCoder) {
-            aCoder.encode(Float(zoomFactor), forKey: "zoomFactor")
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            self.zoomFactor = CGFloat(aDecoder.decodeFloat(forKey: "zoomFactor"))
             super.init(sender: nil)
         }
     }
@@ -183,9 +190,7 @@ public class UICmd {
 
     /// Monitor-local: the preview tap point, normalized (0..1) in the upright
     /// display image, origin top-left. Dispatched in-process to the coordinator,
-    /// which forwards it to the camera peer as `RemoteCmd.FocusAtPoint` (that is
-    /// the only representation serialized over the wire, as FlatBuffers). No
-    /// `NSCoding` here — UICmds never leave the device.
+    /// which forwards it to the camera peer as `RemoteCmd.FocusAtPoint`.
     public class FocusAtPoint: Message, @unchecked Sendable {
         public let x: Float
         public let y: Float
@@ -197,7 +202,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd12SetZoomResp)public class SetZoomResp: Message, NSCoding, @unchecked Sendable {
+    public class SetZoomResp: Message, @unchecked Sendable {
         public let zoomFactor: CGFloat?
         public let currentLens: CameraLensType?
         public let zoomRange: ZoomRange?
@@ -210,61 +215,19 @@ public class UICmd {
             self.error = error
             super.init(sender: nil)
         }
-
-        public func encode(with aCoder: NSCoder) {
-            if let zoom = self.zoomFactor {
-                aCoder.encode(Float(zoom), forKey: "zoomFactor")
-            }
-            if let lens = self.currentLens {
-                aCoder.encode(lens.rawValue, forKey: "currentLens")
-            }
-            if let range = self.zoomRange, let rangeData = try? JSONEncoder().encode(range) {
-                aCoder.encode(rangeData, forKey: "zoomRange")
-            }
-            if let e = self.error {
-                aCoder.encode(e, forKey: "error")
-            }
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            let zoomValue = aDecoder.decodeFloat(forKey: "zoomFactor")
-            self.zoomFactor = zoomValue > 0 ? CGFloat(zoomValue) : nil
-            
-            let lensRaw = aDecoder.decodeInteger(forKey: "currentLens")
-            self.currentLens = lensRaw > 0 ? CameraLensType(rawValue: lensRaw) : nil
-            
-            if let rangeData = aDecoder.decodeObject(forKey: "zoomRange") as? Data {
-                self.zoomRange = try? JSONDecoder().decode(ZoomRange.self, from: rangeData)
-            } else {
-                self.zoomRange = nil
-            }
-            
-            self.error = aDecoder.decodeObject(forKey: "error") as? Error
-            super.init(sender: nil)
-        }
     }
 
     // MARK: - Lens Switching Commands
-    @objc(_TtCC10ActorsDemo5UICmd10SwitchLens)public class SwitchLens: Message, NSCoding, @unchecked Sendable {
+    public class SwitchLens: Message, @unchecked Sendable {
         public let lensType: CameraLensType
         
         public init(lensType: CameraLensType) {
             self.lensType = lensType
             super.init(sender: nil)
         }
-
-        public func encode(with aCoder: NSCoder) {
-            aCoder.encode(lensType.rawValue, forKey: "lensType")
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            let rawValue = aDecoder.decodeInteger(forKey: "lensType")
-            self.lensType = CameraLensType(rawValue: rawValue) ?? .wideAngle
-            super.init(sender: nil)
-        }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd14SwitchLensResp)public class SwitchLensResp: Message, NSCoding, @unchecked Sendable {
+    public class SwitchLensResp: Message, @unchecked Sendable {
         public let lensType: CameraLensType?
         public let availableLenses: [CameraLensType]?
         public let currentZoom: CGFloat?
@@ -280,76 +243,23 @@ public class UICmd {
             self.error = error
             super.init(sender: nil)
         }
-
-        public func encode(with aCoder: NSCoder) {
-            if let lens = self.lensType {
-                aCoder.encode(lens.rawValue, forKey: "lensType")
-            }
-            if let lenses = self.availableLenses {
-                aCoder.encode(lenses.map { $0.rawValue }, forKey: "availableLenses")
-            }
-            if let zoom = self.currentZoom {
-                aCoder.encode(Float(zoom), forKey: "currentZoom")
-            }
-            if let range = self.zoomRange, let rangeData = try? JSONEncoder().encode(range) {
-                aCoder.encode(rangeData, forKey: "zoomRange")
-            }
-            if let e = self.error {
-                aCoder.encode(e, forKey: "error")
-            }
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            let lensRawValue = aDecoder.decodeInteger(forKey: "lensType")
-            self.lensType = lensRawValue > 0 ? CameraLensType(rawValue: lensRawValue) : nil
-            
-            if let lensRawValues = aDecoder.decodeObject(forKey: "availableLenses") as? [Int] {
-                self.availableLenses = lensRawValues.compactMap { CameraLensType(rawValue: $0) }
-            } else {
-                self.availableLenses = nil
-            }
-            
-            let zoomValue = aDecoder.decodeFloat(forKey: "currentZoom")
-            self.currentZoom = zoomValue > 0 ? CGFloat(zoomValue) : nil
-            
-            if let rangeData = aDecoder.decodeObject(forKey: "zoomRange") as? Data {
-                self.zoomRange = try? JSONDecoder().decode(ZoomRange.self, from: rangeData)
-            } else {
-                self.zoomRange = nil
-            }
-            
-            self.error = aDecoder.decodeObject(forKey: "error") as? Error
-            super.init(sender: nil)
-        }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd11ToggleFlash)public class ToggleFlash: Message, NSCoding, @unchecked Sendable {
-        public func encode(with aCoder: NSCoder) {
-        }
+    public class ToggleFlash: Message, @unchecked Sendable {
 
         public init() {
             super.init(sender: nil)
         }
-
-        public required init?(coder aDecoder: NSCoder) {
-            super.init(sender: nil)
-        }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd11ToggleTorch)public class ToggleTorch: Message, NSCoding, @unchecked Sendable {
-        public func encode(with aCoder: NSCoder) {
-        }
+    public class ToggleTorch: Message, @unchecked Sendable {
 
         public init() {
             super.init(sender: nil)
         }
-
-        public required init?(coder aDecoder: NSCoder) {
-            super.init(sender: nil)
-        }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd15ToggleFlashResp)public class ToggleFlashResp: Message, NSCoding, @unchecked Sendable {
+    public class ToggleFlashResp: Message, @unchecked Sendable {
 
         public let error: Error?
         public let flashMode: AVCaptureDevice.FlashMode?
@@ -359,40 +269,17 @@ public class UICmd {
             self.error = error
             super.init(sender: nil)
         }
-
-        public func encode(with aCoder: NSCoder) {
-            if let f = self.flashMode {
-                aCoder.encode(f.rawValue, forKey: "flashMode")
-            }
-
-            if let e = self.error {
-                aCoder.encode(e, forKey: "error")
-            }
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            self.flashMode = AVCaptureDevice.FlashMode(rawValue: aDecoder.decodeInteger(forKey: "flashMode"))!
-            self.error = aDecoder.decodeObject(forKey: "error") as? Error
-            super.init(sender: nil)
-        }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd12ToggleCamera)public class ToggleCamera: Message, NSCoding, @unchecked Sendable {
+    public class ToggleCamera: Message, @unchecked Sendable {
 
         public init() {
             super.init(sender: nil)
         }
 
-        public func encode(with aCoder: NSCoder) {
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            super.init(sender: nil)
-        }
-
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd16ToggleCameraResp)public class ToggleCameraResp: Message, NSCoding, @unchecked Sendable {
+    public class ToggleCameraResp: Message, @unchecked Sendable {
 
         public let error: Error?
         public let flashMode: AVCaptureDevice.FlashMode?
@@ -404,28 +291,6 @@ public class UICmd {
             self.flashMode = flashMode
             self.camPosition = camPosition
             self.error = error
-            super.init(sender: nil)
-        }
-
-        public func encode(with aCoder: NSCoder) {
-            if let flashMode = self.flashMode {
-                aCoder.encode(flashMode.rawValue, forKey: "flashMode")
-            }
-
-            if let camPosition = self.camPosition {
-                aCoder.encode(camPosition.rawValue, forKey: "camPosition")
-            }
-
-            if let e = self.error {
-                aCoder.encode(e, forKey: "error")
-            }
-        }
-
-        public required init?(coder aDecoder: NSCoder) {
-            self.flashMode = AVCaptureDevice.FlashMode(rawValue: aDecoder.decodeInteger(forKey: "flashMode"))
-            self.camPosition = AVCaptureDevice.Position(rawValue: aDecoder.decodeInteger(forKey: "camPosition"))
-            self.error = aDecoder.decodeObject(forKey: "error") as? Error
-
             super.init(sender: nil)
         }
     }
@@ -443,7 +308,7 @@ public class UICmd {
 
     // MARK: - Video Resource Transfer Messages
     
-    @objc(_TtCC10ActorsDemo5UICmd17SendVideoResource)public class SendVideoResource: Message, NSCoding, @unchecked Sendable {
+    public class SendVideoResource: Message, @unchecked Sendable {
         public let videoURL: URL
         public let peers: [MCPeerID]
         public let shouldSendToPeer: Bool
@@ -454,22 +319,9 @@ public class UICmd {
             self.shouldSendToPeer = shouldSendToPeer
             super.init(sender: sender)
         }
-        
-        public func encode(with aCoder: NSCoder) {
-            aCoder.encode(videoURL, forKey: "videoURL")
-            aCoder.encode(peers, forKey: "peers")
-            aCoder.encode(shouldSendToPeer, forKey: "shouldSendToPeer")
-        }
-        
-        public required init?(coder aDecoder: NSCoder) {
-            self.videoURL = aDecoder.decodeObject(forKey: "videoURL") as! URL
-            self.peers = aDecoder.decodeObject(forKey: "peers") as! [MCPeerID]
-            self.shouldSendToPeer = aDecoder.decodeBool(forKey: "shouldSendToPeer")
-            super.init(sender: nil)
-        }
     }
     
-    @objc(_TtCC10ActorsDemo5UICmd26VideoResourceTransferStarted)public class VideoResourceTransferStarted: Message, @unchecked Sendable {
+    public class VideoResourceTransferStarted: Message, @unchecked Sendable {
         public let totalBytes: Int64
         public let resourceName: String
         
@@ -480,7 +332,7 @@ public class UICmd {
         }
     }
     
-    @objc(_TtCC10ActorsDemo5UICmd27VideoResourceTransferProgress)public class VideoResourceTransferProgress: Message, @unchecked Sendable {
+    public class VideoResourceTransferProgress: Message, @unchecked Sendable {
         public let completedBytes: Int64
         public let totalBytes: Int64
         public let progress: Double
@@ -497,7 +349,7 @@ public class UICmd {
         }
     }
     
-    @objc(_TtCC10ActorsDemo5UICmd28VideoResourceTransferCompleted)public class VideoResourceTransferCompleted: Message, @unchecked Sendable {
+    public class VideoResourceTransferCompleted: Message, @unchecked Sendable {
         public let resourceName: String
         public let success: Bool
         
@@ -571,6 +423,12 @@ public class UICmd {
     public class PeerTrafficObserved: Message, @unchecked Sendable {
     }
 
+    /// The app came back to the foreground. Suspension kills the peer session
+    /// within seconds and the notice lands on a frozen process, so this is the
+    /// session's cue to distrust what it believes and re-arm the radios.
+    public class AppForegrounded: Message, @unchecked Sendable {
+    }
+
     /// The user cancelled the peer-backgrounded reconnect dialog.
     public class CancelReconnect: Message, @unchecked Sendable {
     }
@@ -603,7 +461,7 @@ public class UICmd {
         }
     }
 
-    @objc(_TtCC10ActorsDemo5UICmd25VideoResourceTransferFailed)public class VideoResourceTransferFailed: Message, @unchecked Sendable {
+    public class VideoResourceTransferFailed: Message, @unchecked Sendable {
         public let error: Error
         public let resourceName: String
 

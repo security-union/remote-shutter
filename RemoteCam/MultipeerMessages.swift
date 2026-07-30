@@ -16,10 +16,6 @@ enum DeviceRole {
     case monitor
 }
 
-public class Disconnect: Message, @unchecked Sendable {
-
-}
-
 public class ConnectToDevice: Message, @unchecked Sendable {
     public let peer: MCPeerID
 
