@@ -27,7 +27,7 @@ class FrameSenderTests: XCTestCase {
         peer = MCPeerID(displayName: "TestPeer")
         fakeMP = FakeMultipeerService()
         fakeMP.connectedPeers = [peer]
-        fakeMP.sendResult = Success(Message())
+        fakeMP.sendResult = true
 
         frameSender.setSession(peer: peer, transport: fakeMP)
         frameSender.drain()

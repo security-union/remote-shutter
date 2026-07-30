@@ -38,8 +38,12 @@ protocol MultipeerServiceProtocol: AnyObject {
     func disconnect()
     func stopSession()
     func invitePeer(_ peer: MCPeerID, timeout: TimeInterval)
+    /// Encodes and sends. True when the bytes reached the transport; the
+    /// failure detail is logged at the failure, since no caller does more than
+    /// branch on it.
+    @discardableResult
     func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message>
+              mode: MCSessionSendDataMode) -> Bool
     func sendResource(at url: URL, withName name: String,
                       toPeer peer: MCPeerID,
                       completion: @escaping (Error?) -> Void) -> Progress?
@@ -116,19 +120,19 @@ class MultipeerService: NSObject, MCSessionDelegate,
         browser.invitePeer(peer, to: session, withContext: nil, timeout: timeout)
     }
 
+    @discardableResult
     func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message> {
+              mode: MCSessionSendDataMode) -> Bool {
+        guard let serializedMessage = serializeToFlatBuffer(msg) else {
+            print("send: no wire encoding for \(type(of: msg))")
+            return false
+        }
         do {
-            guard let serializedMessage = serializeToFlatBuffer(msg) else {
-                let error = NSError(domain: "MultipeerService", code: -1,
-                                    userInfo: [NSLocalizedDescriptionKey: "Unknown message type: \(type(of: msg))"])
-                return Failure(error: error)
-            }
             try session.send(serializedMessage, toPeers: peers, with: mode)
-            return Success(msg)
-        } catch let error as NSError {
-            print("sendMessage error \(error)")
-            return Failure(error: error)
+            return true
+        } catch {
+            print("send \(type(of: msg)) failed: \(error)")
+            return false
         }
     }
 

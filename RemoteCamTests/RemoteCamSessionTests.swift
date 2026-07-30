@@ -1054,7 +1054,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorPhotoModeToggleFlashSendFailurePopsToScanning() async {
         await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.ToggleFlash())
 
@@ -1064,7 +1064,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorPhotoModeToggleCameraSendFailurePopsToScanning() async {
         await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.ToggleCamera())
 
@@ -1074,7 +1074,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorPhotoModeSwitchLensSendFailurePopsToScanning() async {
         await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.SwitchLens(lensType: .telephoto))
 
@@ -1084,7 +1084,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorVideoModeStartRecordingSendFailurePopsToScanning() async {
         await enterMonitor(.Video)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
 
@@ -1102,7 +1102,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorPhotoModeTakePictureSendFailurePopsToScanning() async {
         await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
 
@@ -1113,7 +1113,7 @@ class SessionCoordinatorTests: XCTestCase {
     func testSendFailureTriggersPopToScanning() async {
         await seedConnected()
         harness.fakeMP.sentMessages.removeAll()
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
 
         // OnEnter's RequestFrame send fails → pop to scanning.
         await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
@@ -1130,7 +1130,7 @@ class SessionCoordinatorTests: XCTestCase {
         var name = await harness.stateName()
         XCTAssertEqual(name, .cameraTakingPic)
 
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "test", code: 1))
+        harness.fakeMP.sendResult = false
         let generation = await harness.coordinator.currentTimeoutGeneration()
         await harness.deliver(UICmd.StateTimeout(stateName: .cameraTakingPic, generation: generation))
 
@@ -1195,7 +1195,7 @@ class SessionCoordinatorTests: XCTestCase {
 
         // The peer is gone: every send fails. Each straggler command reaches
         // the root handler, synthesizes an error response, and fails to send it.
-        harness.fakeMP.sendResult = Failure(error: NSError(domain: "peer gone", code: 0))
+        harness.fakeMP.sendResult = false
         for _ in 0..<5 {
             await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
         }

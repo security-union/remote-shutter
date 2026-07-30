@@ -264,7 +264,7 @@ public actor SessionCoordinator {
             // Watch Remote mode never starts a multipeer session.
             return false
         }
-        return !multipeerService.send(msg, to: connectedPeers, mode: mode).isFailure()
+        return multipeerService.send(msg, to: connectedPeers, mode: mode)
     }
 
     /// Send, or pop to scanning with a connection-error alert on failure —

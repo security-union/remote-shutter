@@ -63,24 +63,16 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
                       completion: @escaping (Error?) -> Void) -> Progress? { nil }
 
     func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message> {
+              mode: MCSessionSendDataMode) -> Bool {
         // One lock acquisition: going through the computed property would read, append to
         // a copy, then write back, losing a concurrent append.
         sentMessagesStorage.mutate { $0.append(msg) }
 
-        guard let data = serializeToFlatBuffer(msg) else {
-            return Failure(error: NSError(
-                domain: "Loopback", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Unknown message type: \(type(of: msg))"]))
-        }
-        guard let remote, let remoteDelegate = remote.delegate else {
-            return Failure(error: NSError(
-                domain: "Loopback", code: -2,
-                userInfo: [NSLocalizedDescriptionKey: "No connected peer"]))
-        }
+        guard let data = serializeToFlatBuffer(msg) else { return false }
+        guard let remote, let remoteDelegate = remote.delegate else { return false }
         guard let decoded = RemoteCmd.fromFlatBuffer(data) else {
             remoteDelegate.didDetectIncompatibility()
-            return Success(msg)
+            return true
         }
 
         // Mirror MultipeerService.session(_:didReceive:fromPeer:) routing.
@@ -92,7 +84,7 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
         default:
             remoteDelegate.didReceiveMessage(decoded)
         }
-        return Success(msg)
+        return true
     }
 
     /// Severs the link and delivers the disconnect the way MCSessionDelegate would.

@@ -142,7 +142,7 @@ final class FrameSender {
             // MC's datagram channel negotiates for ~10s after "Connected"; that
             // is solved by warming the channel at peer connect.
             let mode: MCSessionSendDataMode = isVideo ? .reliable : .unreliable
-            if transport.send(frame, to: [peer], mode: mode).isFailure() {
+            guard transport.send(frame, to: [peer], mode: mode) else {
                 self.coordinator?.tell(FrameSendFailed())
                 return
             }

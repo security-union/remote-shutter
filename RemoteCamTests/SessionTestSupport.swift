@@ -31,7 +31,8 @@ class FakeMultipeerService: MultipeerServiceProtocol {
     var startedDiscovery = false
     var stopAdvertisingAndBrowsingCalled = false
     var invitedPeers: [(peer: MCPeerID, timeout: TimeInterval)] = []
-    var sendResult: Try<Message> = Failure(error: NSError(domain: "test", code: 0))
+    /// What `send` reports back; false unless a test opts into a working link.
+    var sendResult = false
 
     func startAdvertisingOnly(discoveryInfo: [String: String]?) { startedDiscovery = true }
     func startBrowsingOnly() { startedDiscovery = true }
@@ -42,7 +43,7 @@ class FakeMultipeerService: MultipeerServiceProtocol {
         invitedPeers.append((peer, timeout))
     }
     func send(_ msg: Message, to peers: [MCPeerID],
-              mode: MCSessionSendDataMode) -> Try<Message> {
+              mode: MCSessionSendDataMode) -> Bool {
         sentMessages.append((msg, peers, mode))
         return sendResult
     }
@@ -314,7 +315,7 @@ func makeCoordinatorHarness() async -> CoordinatorHarness {
     let peer = MCPeerID(displayName: "TestPeer")
 
     fakeMP.connectedPeers = [peer]
-    fakeMP.sendResult = Success(Message())
+    fakeMP.sendResult = true
 
     await coordinator.setMultipeerService(fakeMP)
     await coordinator.setAlertPresenter(alerts)
