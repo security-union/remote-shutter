@@ -334,6 +334,13 @@
 "WifiBannerBody" = "无需连接网络——设备之间直接连接。";
 "WifiEscalationTip" = "仍在搜索… 请确认这台设备和另一台设备的Wi-Fi都已开启。在控制中心关闭也算关闭：请前往 设置 > Wi-Fi 开启。";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "全新";
+"TransportBannerTitle" = "重大升级：Stormo 引擎";
+"TransportBannerBody" = "配对更快，预览更稳。";
+"TransportBannerChipReconnect" = "自动重连";
+"TransportBannerAction" = "请在两台设备上都将 Remote Shutter 更新到最新版本。旧版本无法配对。";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "如果设备不在同一 Wi-Fi 网络中，连接可能需要最多 20 秒。";
 "ConnectionFailedStatus" = "无法连接 — 请将设备靠近后重试";
@@ -343,3 +350,12 @@
 "Cancel" = "取消";
 "PeerDisconnectedReconnecting" = "%@ 已断开连接 — 正在重新连接…";
 "PeerReconnectHint" = "请确保该设备上的 Remote Shutter 仍在运行。";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "对方设备需要更新";
+"IncompatiblePeerBody" = "对方设备上的 Remote Shutter 版本较旧，更新后即可连接。";
+"IncompatibleSelfTitle" = "请更新 Remote Shutter";
+"IncompatibleSelfBody" = "本设备的 Remote Shutter 版本比对方旧，更新后即可连接。";
+"IncompatibleBothTitle" = "应用不是最新版本";
+"IncompatibleBothBody" = "请在两台设备上都更新 Remote Shutter。";
+"IncompatibleUpdateButton" = "更新";

@@ -334,6 +334,13 @@
 "WifiBannerBody" = "किसी नेटवर्क की ज़रूरत नहीं — डिवाइस सीधे कनेक्ट होते हैं।";
 "WifiEscalationTip" = "अभी भी खोज रहे हैं… जाँचें कि Wi-Fi चालू है — इस डिवाइस पर और दूसरे पर भी। Control Center से बंद करना भी बंद ही गिना जाता है: सेटिंग्स > Wi-Fi का उपयोग करें।";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "नया";
+"TransportBannerTitle" = "बड़ा अपग्रेड: Stormo इंजन";
+"TransportBannerBody" = "तेज़ पेयरिंग और ज़्यादा स्थिर प्रीव्यू।";
+"TransportBannerChipReconnect" = "ऑटो-रीकनेक्ट";
+"TransportBannerAction" = "दोनों डिवाइस पर Remote Shutter को नए वर्शन में अपडेट करें। पुराने वर्शन कनेक्ट नहीं हो सकते।";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "यदि डिवाइस एक ही Wi-Fi नेटवर्क पर नहीं हैं, तो इसमें 20 सेकंड तक लग सकते हैं।";
 "ConnectionFailedStatus" = "कनेक्ट नहीं हो सका — डिवाइस को पास लाकर फिर से प्रयास करें";
@@ -343,3 +350,12 @@
 "Cancel" = "रद्द करें";
 "PeerDisconnectedReconnecting" = "%@ डिस्कनेक्ट हो गया — फिर से कनेक्ट किया जा रहा है…";
 "PeerReconnectHint" = "सुनिश्चित करें कि उस डिवाइस पर Remote Shutter अभी भी खुला है।";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "दूसरे डिवाइस को अपडेट करना होगा";
+"IncompatiblePeerBody" = "उस डिवाइस पर Remote Shutter का पुराना वर्शन है। अपडेट करने पर कनेक्ट हो जाएगा।";
+"IncompatibleSelfTitle" = "Remote Shutter अपडेट करें";
+"IncompatibleSelfBody" = "इस डिवाइस पर दूसरे से पुराना वर्शन है। अपडेट करने पर कनेक्ट हो जाएगा।";
+"IncompatibleBothTitle" = "ऐप पुराना है";
+"IncompatibleBothBody" = "दोनों डिवाइस पर Remote Shutter अपडेट करें।";
+"IncompatibleUpdateButton" = "अपडेट करें";

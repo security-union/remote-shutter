@@ -334,6 +334,13 @@
 "WifiBannerBody" = "Không cần mạng — các thiết bị kết nối trực tiếp.";
 "WifiEscalationTip" = "Vẫn đang tìm… Kiểm tra Wi-Fi đã bật — trên thiết bị này và thiết bị kia. Tắt trong Trung tâm điều khiển vẫn bị tính là tắt: hãy dùng Cài đặt > Wi-Fi.";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "MỚI";
+"TransportBannerTitle" = "NÂNG CẤP LỚN: ĐỘNG CƠ STORMO";
+"TransportBannerBody" = "Ghép nối nhanh hơn và xem trước ổn định hơn.";
+"TransportBannerChipReconnect" = "Tự kết nối lại";
+"TransportBannerAction" = "Hãy cập nhật Remote Shutter lên bản mới nhất trên cả hai thiết bị. Các bản cũ không thể ghép nối.";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Quá trình này có thể mất tới 20 giây nếu các thiết bị không cùng mạng Wi-Fi.";
 "ConnectionFailedStatus" = "KHÔNG THỂ KẾT NỐI — ĐƯA CÁC THIẾT BỊ LẠI GẦN NHAU VÀ THỬ LẠI";
@@ -343,3 +350,12 @@
 "Cancel" = "Hủy";
 "PeerDisconnectedReconnecting" = "%@ đã ngắt kết nối — đang kết nối lại…";
 "PeerReconnectHint" = "Hãy đảm bảo Remote Shutter vẫn đang mở trên thiết bị đó.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "Thiết bị kia cần cập nhật";
+"IncompatiblePeerBody" = "Thiết bị đó đang dùng bản Remote Shutter cũ hơn. Hãy cập nhật để kết nối.";
+"IncompatibleSelfTitle" = "Hãy cập nhật Remote Shutter";
+"IncompatibleSelfBody" = "Thiết bị này đang dùng bản cũ hơn thiết bị kia. Hãy cập nhật để kết nối.";
+"IncompatibleBothTitle" = "Ứng dụng chưa được cập nhật";
+"IncompatibleBothBody" = "Hãy cập nhật Remote Shutter trên cả hai thiết bị.";
+"IncompatibleUpdateButton" = "Cập nhật";

@@ -229,6 +229,13 @@
 "WifiBannerBody" = "Aucun réseau requis — les appareils se connectent directement.";
 "WifiEscalationTip" = "Recherche en cours… Vérifiez que le Wi-Fi est activé sur cet appareil et sur l'autre. Désactivé dans le centre de contrôle compte comme éteint : utilisez Réglages > Wi-Fi.";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "NOUVEAU";
+"TransportBannerTitle" = "MISE À NIVEAU MAJEURE : MOTEUR STORMO";
+"TransportBannerBody" = "Appairage plus rapide et aperçu plus stable.";
+"TransportBannerChipReconnect" = "Reconnexion auto";
+"TransportBannerAction" = "Mettez Remote Shutter à jour sur les deux appareils pour en profiter. Les anciennes versions ne peuvent pas s'appairer.";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Cela peut prendre jusqu'à 20 secondes si les appareils ne sont pas sur le même réseau Wi-Fi.";
 "ConnectionFailedStatus" = "CONNEXION IMPOSSIBLE — RAPPROCHEZ LES APPAREILS ET RÉESSAYEZ";
@@ -237,3 +244,12 @@
 /* Peer-backgrounded reconnect overlay */
 "PeerDisconnectedReconnecting" = "%@ s'est déconnecté — reconnexion…";
 "PeerReconnectHint" = "Vérifiez que Remote Shutter est toujours ouvert sur cet appareil.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "L'autre appareil doit être mis à jour";
+"IncompatiblePeerBody" = "Cet appareil utilise une version plus ancienne de Remote Shutter. Mettez-le à jour pour vous connecter.";
+"IncompatibleSelfTitle" = "Mettez Remote Shutter à jour";
+"IncompatibleSelfBody" = "Cet appareil utilise une version plus ancienne que l'autre. Mettez-le à jour pour vous connecter.";
+"IncompatibleBothTitle" = "L'app n'est pas à jour";
+"IncompatibleBothBody" = "Mettez Remote Shutter à jour sur les deux appareils.";
+"IncompatibleUpdateButton" = "Mettre à jour";

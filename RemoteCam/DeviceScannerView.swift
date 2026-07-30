@@ -94,9 +94,7 @@ struct DeviceScannerView: View {
     private var cameraWaitingState: some View {
         ScrollView {
             VStack(spacing: 20) {
-                wifiBanner
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
+                connectivityBanners
 
                 // Camera icon
                 ZStack {
@@ -158,9 +156,7 @@ struct DeviceScannerView: View {
     private var emptyState: some View {
         ScrollView {
             VStack(spacing: 20) {
-                wifiBanner
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
+                connectivityBanners
 
                 // Remote icon
                 ZStack {
@@ -252,7 +248,18 @@ struct DeviceScannerView: View {
         .padding(.bottom, 20)
     }
 
-    // MARK: - Wi-Fi Guidance
+    // MARK: - Guidance Banners
+
+    /// The two pairing prerequisites, stacked tight so they read as one block:
+    /// Wi-Fi on, and every device on the current version.
+    private var connectivityBanners: some View {
+        VStack(spacing: 10) {
+            wifiBanner
+            transportBanner
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+    }
 
     private var wifiBanner: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -283,6 +290,128 @@ struct DeviceScannerView: View {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(AppTheme.accent.opacity(0.4), lineWidth: 1)
         )
+    }
+
+    /// Release notice for the Stormo transport swap: the upgrade only lands when
+    /// both devices run the current version, so it sits on both scanning screens
+    /// right under the Wi-Fi banner. Framed as the win it is, with the
+    /// requirement attached.
+    private var transportBanner: some View {
+        HStack(alignment: .top, spacing: 12) {
+            transportLogo
+
+            VStack(alignment: .leading, spacing: 5) {
+                // Badge pinned to the trailing edge so a wrapping title can't
+                // strand it mid-paragraph.
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(NSLocalizedString("TransportBannerTitle",
+                                           comment: "Stormo transport upgrade banner title"))
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    Spacer(minLength: 4)
+
+                    Text(NSLocalizedString("TransportBannerBadge",
+                                           comment: "Short 'new' tag on the transport upgrade banner"))
+                        .font(.caption2)
+                        .fontWeight(.heavy)
+                        .foregroundColor(AppTheme.secondary)
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)
+                        .background(AppTheme.secondarySubtle)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(AppTheme.secondary.opacity(0.45), lineWidth: 0.5)
+                        )
+                }
+
+                Text(NSLocalizedString("TransportBannerBody",
+                                       comment: "Stormo transport upgrade banner body"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                transportSpecs
+                    .padding(.top, 1)
+
+                Text(NSLocalizedString("TransportBannerAction",
+                                       comment: "Call to action: update every device"))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(AppTheme.secondary)
+            }
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(AppTheme.secondary.opacity(0.4), lineWidth: 1)
+        )
+        .shadow(color: AppTheme.secondary.opacity(0.12), radius: 8, y: 3)
+    }
+
+    /// Spec chips — the part that reads as engineering rather than marketing.
+    /// `QUIC` and `TLS 1.3` are a protocol name and a version: never localized,
+    /// so they stay recognizable in every storefront.
+    private var transportSpecs: some View {
+        HStack(spacing: 6) {
+            specChip(icon: "bolt.fill", label: "QUIC")
+            specChip(icon: "lock.fill", label: "TLS 1.3")
+            specChip(icon: "arrow.triangle.2.circlepath",
+                     label: NSLocalizedString("TransportBannerChipReconnect",
+                                              comment: "Spec chip: the link recovers by itself"))
+        }
+    }
+
+    private func specChip(icon: String, label: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .bold))
+            Text(label)
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .foregroundColor(AppTheme.secondary)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(AppTheme.secondarySubtle)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(AppTheme.secondary.opacity(0.3), lineWidth: 0.5)
+        )
+    }
+
+    /// Reserved 40×40 slot for the transport wordmark. Drop artwork into
+    /// `StormoLogo` in Media.xcassets and it replaces the placeholder glyph
+    /// without touching the layout.
+    private var transportLogo: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(AppTheme.secondarySubtle)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(AppTheme.secondary.opacity(0.3), lineWidth: 0.5)
+
+            if let logo = UIImage(named: "StormoLogo") {
+                Image(uiImage: logo)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .padding(6)
+            } else {
+                Image(systemName: "bolt.horizontal.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(AppTheme.secondary)
+            }
+        }
+        .frame(width: 40, height: 40)
     }
 
     /// Status badge plus the time-based "check Wi-Fi" tip. TimelineView

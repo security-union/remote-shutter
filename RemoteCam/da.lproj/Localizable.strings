@@ -213,6 +213,13 @@
 "WifiBannerBody" = "Intet netværk nødvendigt — enhederne forbinder direkte.";
 "WifiEscalationTip" = "Søger stadig… Tjek at Wi-Fi er slået til — på denne enhed og den anden. Slukket i Kontrolcenter tæller stadig som slukket: brug Indstillinger > Wi-Fi.";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "NYT";
+"TransportBannerTitle" = "STOR OPGRADERING: STORMO-MOTOR";
+"TransportBannerBody" = "Hurtigere parring og mere stabil visning.";
+"TransportBannerChipReconnect" = "Auto-genforbind";
+"TransportBannerAction" = "Opdater Remote Shutter på begge enheder for at få det. Ældre versioner kan ikke parres.";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Dette kan tage op til 20 sekunder, hvis enhederne ikke er på samme Wi-Fi-netværk.";
 "ConnectionFailedStatus" = "KUNNE IKKE FORBINDE — FLYT ENHEDERNE TÆTTERE SAMMEN OG PRØV IGEN";
@@ -222,3 +229,12 @@
 "Cancel" = "Annuller";
 "PeerDisconnectedReconnecting" = "%@ blev afbrudt — genopretter forbindelsen…";
 "PeerReconnectHint" = "Sørg for, at Remote Shutter stadig er åben på den anden enhed.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "Den anden enhed skal opdateres";
+"IncompatiblePeerBody" = "Den enhed kører en ældre version af Remote Shutter. Opdater den for at forbinde.";
+"IncompatibleSelfTitle" = "Opdater Remote Shutter";
+"IncompatibleSelfBody" = "Denne enhed kører en ældre version end den anden. Opdater for at forbinde.";
+"IncompatibleBothTitle" = "Appen er ikke opdateret";
+"IncompatibleBothBody" = "Opdater Remote Shutter på begge enheder.";
+"IncompatibleUpdateButton" = "Opdater";

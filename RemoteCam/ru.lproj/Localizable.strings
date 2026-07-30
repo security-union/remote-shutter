@@ -334,6 +334,13 @@
 "WifiBannerBody" = "Сеть не нужна — устройства подключаются напрямую.";
 "WifiEscalationTip" = "Всё ещё идёт поиск… Проверьте, что Wi-Fi включён — и на этом устройстве, и на другом. Отключение в Пункте управления всё равно считается выключением: используйте «Настройки» > «Wi-Fi».";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "НОВОЕ";
+"TransportBannerTitle" = "КРУПНОЕ ОБНОВЛЕНИЕ: ДВИЖОК STORMO";
+"TransportBannerBody" = "Быстрее подключение и стабильнее просмотр.";
+"TransportBannerChipReconnect" = "Автоподключение";
+"TransportBannerAction" = "Обновите Remote Shutter на обоих устройствах. Старые версии не могут подключаться друг к другу.";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Это может занять до 20 секунд, если устройства не в одной сети Wi-Fi.";
 "ConnectionFailedStatus" = "НЕ УДАЛОСЬ ПОДКЛЮЧИТЬСЯ — ПОДНЕСИТЕ УСТРОЙСТВА БЛИЖЕ И ПОВТОРИТЕ ПОПЫТКУ";
@@ -343,3 +350,12 @@
 "Cancel" = "Отмена";
 "PeerDisconnectedReconnecting" = "Соединение с %@ потеряно — повторное подключение…";
 "PeerReconnectHint" = "Убедитесь, что приложение Remote Shutter по-прежнему открыто на другом устройстве.";
+
+/* Version mismatch: which device has to update */
+"IncompatiblePeerTitle" = "Другое устройство нужно обновить";
+"IncompatiblePeerBody" = "На том устройстве установлена более старая версия Remote Shutter. Обновите её, чтобы подключиться.";
+"IncompatibleSelfTitle" = "Обновите Remote Shutter";
+"IncompatibleSelfBody" = "На этом устройстве версия старее, чем на другом. Обновите приложение, чтобы подключиться.";
+"IncompatibleBothTitle" = "Приложение устарело";
+"IncompatibleBothBody" = "Обновите Remote Shutter на обоих устройствах.";
+"IncompatibleUpdateButton" = "Обновить";
