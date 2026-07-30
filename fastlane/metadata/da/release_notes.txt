@@ -1,6 +1,13 @@
-Et skarpere og mere jævnt fjernkamera.
+En stor opgradering af selve forbindelsen: den nye Stormo-motor.
 
-- Tryk for fokus: Tryk på live-billedet for at sætte fokus og eksponering præcis, hvor du vil have det — inkluderet med Pro
+- Stormo P2P-motor på QUIC: Forbindelsen mellem enhederne er bygget om på QUIC, transporten bag HTTP/3
+- Selvhelende forbindelse: Parring sker hurtigere, live-visningen holder stabilt, og udfald retter sig selv
+- Krypteret med TLS 1.3 og stadig direkte mellem enhederne, uden router og uden netværk
+- Opdater Remote Shutter på begge enheder. Ældre versioner kan ikke parres med denne
+
+Tilføjet for nylig:
+
+- Tryk for fokus: Tryk på live-billedet for at sætte fokus og eksponering præcis, hvor du vil have det, inkluderet med Pro
 - Realtidsvideo: Et jævnt live-billede erstatter stillbilleder, så det er ubesværet at komponere hvert eneste billede
 - Nydesignet zoom-skyder: Finere og mere jævn styring fra den anden ende af rummet
 - Udstyrsbutik: Gennemse stativer, holdere og tilbehør udvalgt til din kameraopsætning

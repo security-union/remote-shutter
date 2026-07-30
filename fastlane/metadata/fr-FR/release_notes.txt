@@ -1,6 +1,13 @@
-Un appareil photo à distance plus net et plus fluide.
+Une mise à niveau majeure de la connexion elle-même : le nouveau moteur Stormo.
 
-- Toucher pour faire la mise au point : touchez l'aperçu en direct pour régler la mise au point et l'exposition exactement où vous le souhaitez — inclus avec Pro
+- Moteur P2P Stormo en QUIC : la liaison entre appareils est reconstruite sur QUIC, le transport derrière HTTP/3
+- Connexion qui se répare d'elle-même : l'appairage est plus rapide, l'aperçu en direct reste stable et les coupures se rétablissent seules
+- Chiffrée en TLS 1.3 et toujours directe d'appareil à appareil : sans routeur ni réseau
+- Mettez Remote Shutter à jour sur les deux appareils : les anciennes versions ne peuvent pas s'appairer avec celle-ci
+
+Ajouté récemment :
+
+- Toucher pour faire la mise au point : touchez l'aperçu en direct pour régler la mise au point et l'exposition exactement où vous le souhaitez, inclus avec Pro
 - Vidéo en temps réel : un flux en direct fluide remplace les photos fixes, pour cadrer chaque prise sans effort
 - Curseur de zoom repensé : un contrôle plus précis et plus doux depuis l'autre bout de la pièce
 - Boutique d'Accessoires : parcourez trépieds, supports et accessoires choisis pour votre configuration photo

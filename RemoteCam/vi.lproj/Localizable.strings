@@ -334,6 +334,13 @@
 "WifiBannerBody" = "Không cần mạng — các thiết bị kết nối trực tiếp.";
 "WifiEscalationTip" = "Vẫn đang tìm… Kiểm tra Wi-Fi đã bật — trên thiết bị này và thiết bị kia. Tắt trong Trung tâm điều khiển vẫn bị tính là tắt: hãy dùng Cài đặt > Wi-Fi.";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "MỚI";
+"TransportBannerTitle" = "NÂNG CẤP LỚN: ĐỘNG CƠ STORMO";
+"TransportBannerBody" = "Ghép nối nhanh hơn và xem trước ổn định hơn.";
+"TransportBannerChipReconnect" = "Tự kết nối lại";
+"TransportBannerAction" = "Hãy cập nhật Remote Shutter lên bản mới nhất trên cả hai thiết bị. Các bản cũ không thể ghép nối.";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Quá trình này có thể mất tới 20 giây nếu các thiết bị không cùng mạng Wi-Fi.";
 "ConnectionFailedStatus" = "KHÔNG THỂ KẾT NỐI — ĐƯA CÁC THIẾT BỊ LẠI GẦN NHAU VÀ THỬ LẠI";

@@ -334,6 +334,13 @@
 "WifiBannerBody" = "Ağ gerekmez — cihazlar doğrudan birbirine bağlanır.";
 "WifiEscalationTip" = "Hâlâ aranıyor… Wi-Fi'nin açık olduğundan emin olun — hem bu cihazda hem de diğerinde. Kontrol Merkezi'nden kapatmak da kapalı sayılır: Ayarlar > Wi-Fi'yi kullanın.";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "YENİ";
+"TransportBannerTitle" = "BÜYÜK GÜNCELLEME: STORMO MOTORU";
+"TransportBannerBody" = "Daha hızlı eşleşme ve daha kararlı önizleme.";
+"TransportBannerChipReconnect" = "Oto. bağlanma";
+"TransportBannerAction" = "Remote Shutter'ı iki cihazda da güncelleyin. Eski sürümler eşleşemez.";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Cihazlar aynı Wi-Fi ağında değilse bu işlem 20 saniye kadar sürebilir.";
 "ConnectionFailedStatus" = "BAĞLANILAMADI — CİHAZLARI YAKLAŞTIRIP TEKRAR DENEYİN";

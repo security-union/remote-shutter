@@ -229,6 +229,13 @@
 "WifiBannerBody" = "Aucun réseau requis — les appareils se connectent directement.";
 "WifiEscalationTip" = "Recherche en cours… Vérifiez que le Wi-Fi est activé sur cet appareil et sur l'autre. Désactivé dans le centre de contrôle compte comme éteint : utilisez Réglages > Wi-Fi.";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "NOUVEAU";
+"TransportBannerTitle" = "MISE À NIVEAU MAJEURE : MOTEUR STORMO";
+"TransportBannerBody" = "Appairage plus rapide et aperçu plus stable.";
+"TransportBannerChipReconnect" = "Reconnexion auto";
+"TransportBannerAction" = "Mettez Remote Shutter à jour sur les deux appareils pour en profiter. Les anciennes versions ne peuvent pas s'appairer.";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Cela peut prendre jusqu'à 20 secondes si les appareils ne sont pas sur le même réseau Wi-Fi.";
 "ConnectionFailedStatus" = "CONNEXION IMPOSSIBLE — RAPPROCHEZ LES APPAREILS ET RÉESSAYEZ";

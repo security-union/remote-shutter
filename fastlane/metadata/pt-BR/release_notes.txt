@@ -1,6 +1,13 @@
-Uma câmera remota mais nítida e fluida.
+Uma grande atualização na própria conexão: o novo motor Stormo.
 
-- Toque para focar: toque na visualização ao vivo para definir o foco e a exposição exatamente onde você quiser — incluído no Pro
+- Motor P2P Stormo com QUIC: a conexão entre os aparelhos foi reconstruída sobre QUIC, o transporte por trás do HTTP/3
+- Conexão que se recupera sozinha: o pareamento é mais rápido, a prévia ao vivo fica estável e as quedas se recuperam sozinhas
+- Criptografada com TLS 1.3 e sempre direta entre aparelhos: sem roteador nem rede
+- Atualize o Remote Shutter nos dois aparelhos: versões antigas não conseguem parear com esta
+
+Adicionado recentemente:
+
+- Toque para focar: toque na visualização ao vivo para definir o foco e a exposição exatamente onde você quiser, incluído no Pro
 - Vídeo em tempo real: uma transmissão ao vivo e fluida substitui as fotos estáticas, deixando o enquadramento de cada cena sem esforço
 - Controle de zoom redesenhado: ajustes mais finos e suaves do outro lado da sala
 - Loja de Acessórios: explore tripés, suportes e acessórios escolhidos para o seu equipamento de câmera

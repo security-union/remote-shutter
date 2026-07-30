@@ -334,6 +334,13 @@
 "WifiBannerBody" = "No network needed — the devices connect directly.";
 "WifiEscalationTip" = "Still searching… Check Wi-Fi is on — on this device and the other one. Turning it off in Control Center still counts as off: use Settings > Wi-Fi.";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "NEW";
+"TransportBannerTitle" = "MAJOR UPGRADE: STORMO ENGINE";
+"TransportBannerBody" = "Quicker pairing and steadier preview.";
+"TransportBannerChipReconnect" = "Auto-reconnect";
+"TransportBannerAction" = "Update Remote Shutter on both devices to unlock it. Older versions can't pair.";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "This can take up to 20 seconds when the devices aren't on the same Wi-Fi network.";
 "ConnectionFailedStatus" = "COULDN'T CONNECT — MOVE THE DEVICES CLOSER AND TRY AGAIN";

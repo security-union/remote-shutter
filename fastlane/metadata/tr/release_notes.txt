@@ -1,6 +1,13 @@
-Daha net, daha akıcı bir uzaktan kamera.
+Bu kez bağlantının kendisi büyük bir güncelleme aldı: yeni Stormo motoru.
 
-- Dokunarak Odaklan: canlı önizlemede istediğiniz noktaya dokunarak odağı ve pozlamayı tam olarak ayarlayın — Pro ile birlikte gelir
+- Stormo QUIC P2P motoru: Cihazlar arası bağlantı, HTTP/3'ün ardındaki taşıma protokolü QUIC üzerine yeniden kuruldu
+- Kendini onaran bağlantı: Eşleşme daha hızlı, canlı önizleme daha kararlı ve kopmalar kendi kendine düzeliyor
+- TLS 1.3 ile şifreli ve hâlâ doğrudan cihazdan cihaza, modem de ağ da gerekmez
+- Lütfen Remote Shutter'ı iki cihazda da güncelleyin. Eski sürümler bu sürümle eşleşemez
+
+Son eklenenler:
+
+- Dokunarak Odaklan: canlı önizlemede istediğiniz noktaya dokunarak odağı ve pozlamayı tam olarak ayarlayın (Pro ile birlikte gelir)
 - Gerçek zamanlı video: tek tek fotoğraf karelerinin yerini akıcı canlı görüntü alır, böylece her kareyi çerçevelemek çok kolay
 - Yeniden tasarlanan yakınlaştırma çubuğu: odanın öbür ucundan bile daha ince, daha akıcı kontrol
 - Ekipman Mağazası: kamera düzeneğinize göre seçilmiş tripodlara, tutuculara ve aksesuarlara göz atın

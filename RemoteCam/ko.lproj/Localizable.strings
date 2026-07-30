@@ -334,6 +334,13 @@
 "WifiBannerBody" = "네트워크는 필요 없습니다. 기기끼리 직접 연결됩니다.";
 "WifiEscalationTip" = "계속 검색 중… 이 기기와 상대 기기 모두 Wi-Fi가 켜져 있는지 확인하세요. 제어 센터에서 끈 것도 꺼진 상태입니다. 설정 > Wi-Fi에서 켜세요.";
 
+/* Stormo transport upgrade banner (scanner screen) */
+"TransportBannerBadge" = "NEW";
+"TransportBannerTitle" = "대규모 업그레이드: Stormo 엔진";
+"TransportBannerBody" = "더 빠른 페어링, 더 안정적인 프리뷰.";
+"TransportBannerChipReconnect" = "자동 재연결";
+"TransportBannerAction" = "두 기기 모두 Remote Shutter를 최신 버전으로 업데이트하세요. 이전 버전끼리는 연결할 수 없습니다.";
+
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "기기가 같은 Wi-Fi 네트워크에 없으면 최대 20초가 걸릴 수 있습니다.";
 "ConnectionFailedStatus" = "연결하지 못했습니다 — 기기를 더 가까이 두고 다시 시도하세요";

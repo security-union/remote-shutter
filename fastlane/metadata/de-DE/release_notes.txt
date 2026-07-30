@@ -1,6 +1,13 @@
-Eine schärfere, geschmeidigere Fernkamera.
+Ein großes Update für die Verbindung selbst: die neue Stormo-Engine.
 
-- Tippen zum Fokussieren: Tippen Sie auf die Live-Vorschau, um Fokus und Belichtung genau dort zu setzen, wo Sie sie haben möchten – in Pro enthalten
+- Stormo P2P-Engine mit QUIC: Die Verbindung zwischen den Geräten basiert jetzt auf QUIC, dem Transport hinter HTTP/3
+- Selbstheilende Verbindung: Die Kopplung gelingt schneller, die Live-Vorschau bleibt stabil und Aussetzer beheben sich selbst
+- Mit TLS 1.3 verschlüsselt und weiterhin direkt von Gerät zu Gerät, ohne Router und ohne Netzwerk
+- Bitte aktualisieren Sie Remote Shutter auf beiden Geräten. Ältere Versionen können sich mit dieser Version nicht koppeln
+
+Kürzlich hinzugefügt:
+
+- Tippen zum Fokussieren: Tippen Sie auf die Live-Vorschau, um Fokus und Belichtung genau dort zu setzen, wo Sie sie haben möchten, in Pro enthalten
 - Echtzeit-Video: Ein flüssiger Live-Feed ersetzt Standbilder, sodass jede Aufnahme mühelos im Bild sitzt
 - Neu gestalteter Zoom-Regler: Feinere, geschmeidigere Steuerung quer durch den Raum
 - Zubehör-Shop: Entdecken Sie Stative, Halterungen und Zubehör, abgestimmt auf Ihr Kamera-Setup
