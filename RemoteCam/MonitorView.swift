@@ -27,6 +27,8 @@ struct MonitorView: View {
     /// Tap-to-focus: the tap point normalized (0..1) in the displayed image,
     /// origin top-left. Not called for taps that land in the letterbox bars.
     let onFocusTap: (CGPoint) -> Void
+    /// Toggles the connected camera's local-preview mode (on ⇄ standby).
+    let onToggleCameraStandby: () -> Void
 
     /// The live focus reticle (view-space position + identity to re-trigger the
     /// animation on each tap). Local UI only — no round-trip to the camera.
@@ -589,6 +591,9 @@ struct MonitorView: View {
 
             Spacer()
 
+            // Camera standby toggle: icon reflects the camera's reported mode.
+            cameraStandbyButton
+
             // Settings Button
             Button(action: onSettingsTapped) {
                 Image(systemName: "gearshape")
@@ -597,6 +602,21 @@ struct MonitorView: View {
             }
             .disabled(!viewModel.isSettingsEnabled)
         }
+    }
+
+    /// Puts the peer camera into / out of standby. The glyph doubles as the
+    /// reflection of what the camera is doing (filled = standby).
+    private var cameraStandbyButton: some View {
+        let isStandby = viewModel.cameraPreviewMode == .standby
+        return Button(action: onToggleCameraStandby) {
+            Image(systemName: isStandby ? "moon.zzz.fill" : "moon.zzz")
+                .font(.system(size: 20))
+                .foregroundColor(isStandby ? .yellow : .white)
+        }
+        .padding(.trailing, 20)
+        .accessibilityLabel(Text(isStandby
+            ? NSLocalizedString("Turn on camera preview", comment: "monitor standby")
+            : NSLocalizedString("Turn off camera preview", comment: "monitor standby")))
     }
     
     private var flashButton: some View {
@@ -636,7 +656,8 @@ struct MonitorView_Previews: PreviewProvider {
             onVideoQualityChange: { _, _ in },
             onPhotoQualityChange: { _, _ in },
             onAspectRatioChange: { _ in },
-            onFocusTap: { _ in }
+            onFocusTap: { _ in },
+            onToggleCameraStandby: {}
         )
         .preferredColorScheme(.dark)
     }

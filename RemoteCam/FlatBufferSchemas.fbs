@@ -37,7 +37,19 @@ enum CommandAction : byte {
     SelectCameraDevice = 20,   // only sent to peers advertising camera_devices
     RequestKeyframe = 21,      // monitor -> camera: force a VP9 keyframe
     FocusAtPoint = 22,         // monitor -> camera: focus/exposure point
-    EndSession = 23            // either side: "I am leaving on purpose"
+    EndSession = 23,           // either side: "I am leaving on purpose"
+    SetCameraPreviewMode = 24  // monitor -> camera: local preview on/standby;
+                               // only sent to peers advertising supports_preview_mode
+}
+
+// Whether the camera device drives its own on-screen live preview. On is the
+// shipping default and preserves existing behavior; Standby stops LOCAL preview
+// compositing only — the capture session and the frames streamed to the monitor
+// are unaffected. Unknown = legacy peer / no signal — treat as On.
+enum CameraPreviewModeEnum : byte {
+    Unknown = 0,
+    On = 1,
+    Standby = 2
 }
 
 enum CameraPosition : byte {
@@ -145,6 +157,7 @@ table CommandParameters {
     device_unique_id: string;        // payload for SelectCameraDevice
     focus_point_x: float;            // payload for FocusAtPoint (normalized 0..1,
     focus_point_y: float;            // upright-display space; origin top-left)
+    camera_preview_mode: CameraPreviewModeEnum;  // payload for SetCameraPreviewMode
 }
 
 // MARK: - Command Structure
@@ -223,6 +236,10 @@ table CameraState {
     aspect_ratio: AspectRatioEnum;
     // Appended fields only below this line (FlatBuffers schema evolution).
     active_device_id: string;
+    // The camera device's current local-preview mode, reported to the monitor
+    // so the operator can see whether the camera is showing a live preview or
+    // sitting in standby. Absent/Unknown => legacy peer; treat as On.
+    preview_mode: CameraPreviewModeEnum;
 }
 
 table CameraCapabilities {
@@ -236,6 +253,10 @@ table CameraCapabilities {
     // False/absent = peer predates tap-to-focus; a monitor must not send
     // FocusAtPoint to such a peer.
     supports_focus_point: bool;
+    // False/absent = peer predates camera preview-mode control; a monitor must
+    // not send SetCameraPreviewMode to such a peer (old decoders read the
+    // unknown action as its enum default).
+    supports_preview_mode: bool;
 }
 
 // MARK: - Response Structure

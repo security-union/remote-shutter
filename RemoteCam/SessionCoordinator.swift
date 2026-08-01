@@ -203,6 +203,13 @@ public actor SessionCoordinator {
     /// Test support.
     func peerSupportsFocusPointForTesting() -> Bool { peerSupportsFocusPoint }
 
+    /// Whether the connected camera peer advertised preview-mode support in its
+    /// capabilities — the feature gate for `RemoteCmd.SetCameraPreviewMode`.
+    private var peerSupportsPreviewMode = false
+
+    /// Test support.
+    func peerSupportsPreviewModeForTesting() -> Bool { peerSupportsPreviewMode }
+
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
@@ -523,6 +530,7 @@ public actor SessionCoordinator {
     func popToScanning() async {
         peerAdvertisedCameraDevices = false
         peerSupportsFocusPoint = false
+        peerSupportsPreviewMode = false
         monitorReceivedVP9Frame = false
         switch state {
         case .scanning:
@@ -788,6 +796,8 @@ public actor SessionCoordinator {
         switch msg {
         case let become as UICmd.BecomeCamera:
             ctrl = become.ctrl
+            // The standby screen shows who is driving the camera.
+            become.ctrl.cameraViewModel.setConnectedPeerName(peer?.displayName)
             await transition(to: .camera)
             await sendOrGoToScanning(RemoteCmd.PeerBecameCamera.createWithDefaults())
 
@@ -1413,6 +1423,20 @@ public actor SessionCoordinator {
             // Forward capabilities to the connected monitor.
             await sendOrGoToScanning(capabilities)
 
+        case let cmd as RemoteCmd.SetCameraPreviewMode:
+            // Camera side: a monitor asked us to change the local preview mode.
+            await applyCameraPreviewMode(cmd.mode)
+
+        case let ui as UICmd.SetCameraPreviewMode:
+            // Camera side: a local toggle from this device's own chrome. (On a
+            // monitor this is handled by the monitor states before reaching here;
+            // `ctrl` is nil there, so `applyCameraPreviewMode` no-ops safely.)
+            await applyCameraPreviewMode(ui.mode)
+
+        case let resp as RemoteCmd.CameraPreviewModeResp:
+            // Monitor side: the camera reported its current preview mode.
+            monitor?.updatePreviewMode(resp.mode)
+
         case let retry as RetryCapabilities:
             await attemptToSendCapabilities(attempt: retry.attempt)
 
@@ -1448,6 +1472,16 @@ public actor SessionCoordinator {
         default:
             debugLog("SessionCoordinator: message not handled \(type(of: msg)) in state \(state.name)")
         }
+    }
+
+    /// Camera side: apply + persist the local preview mode and report it back to
+    /// the monitor. A no-op off the camera (no `ctrl`). The report is
+    /// best-effort (`sendMessage`, not `sendOrGoToScanning`): a local toggle
+    /// while briefly unlinked must never tear the session down.
+    private func applyCameraPreviewMode(_ mode: CameraPreviewMode) async {
+        guard let ctrl else { return }
+        await ctrl.setPreviewMode(mode)
+        sendMessage(RemoteCmd.CameraPreviewModeResp(mode: mode))
     }
 
     // MARK: - Video resource transfer (camera side)
@@ -1615,7 +1649,9 @@ public actor SessionCoordinator {
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
             peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
             peerSupportsFocusPoint = capabilities.supportsFocusPoint
+            peerSupportsPreviewMode = capabilities.supportsPreviewMode
             monitor?.updateCapabilities(capabilities)
+            monitor?.updatePreviewMode(capabilities.previewMode)
 
         case let zoom as UICmd.SetZoom:
             sendMessage(RemoteCmd.SetZoom(zoomFactor: zoom.zoomFactor))
@@ -1628,6 +1664,15 @@ public actor SessionCoordinator {
                 break
             }
             sendMessage(RemoteCmd.FocusAtPoint(x: focus.x, y: focus.y))
+
+        case let preview as UICmd.SetCameraPreviewMode:
+            // Wire-safety gate mirroring FocusAtPoint: never send action 24 to a
+            // peer that predates it (it would misread the unknown action).
+            guard peerSupportsPreviewMode else {
+                debugLog("SetCameraPreviewMode dropped: peer did not advertise preview-mode support")
+                break
+            }
+            sendMessage(RemoteCmd.SetCameraPreviewMode(mode: preview.mode))
 
         case let zoomResp as RemoteCmd.SetZoomResp:
             monitor?.updateZoom(zoomResp.zoomFactor, zoomRange: zoomResp.zoomRange, currentLens: zoomResp.currentLens)
@@ -1775,7 +1820,9 @@ public actor SessionCoordinator {
             if let capabilities = toggleResp.cameraCapabilities {
                 peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
                 peerSupportsFocusPoint = capabilities.supportsFocusPoint
+                peerSupportsPreviewMode = capabilities.supportsPreviewMode
                 monitor?.updateCapabilities(capabilities)
+                monitor?.updatePreviewMode(capabilities.previewMode)
                 await dismissCameraAlert()
             } else if let error = toggleResp.error {
                 await dismissCameraAlert()
@@ -1888,6 +1935,13 @@ public actor SessionCoordinator {
                 break
             }
             sendMessage(RemoteCmd.FocusAtPoint(x: focus.x, y: focus.y))
+
+        case let preview as UICmd.SetCameraPreviewMode:
+            guard peerSupportsPreviewMode else {
+                debugLog("SetCameraPreviewMode dropped: peer did not advertise preview-mode support")
+                break
+            }
+            sendMessage(RemoteCmd.SetCameraPreviewMode(mode: preview.mode))
 
         case let zoomResp as RemoteCmd.SetZoomResp:
             monitor?.updateZoom(zoomResp.zoomFactor, zoomRange: zoomResp.zoomRange, currentLens: zoomResp.currentLens)

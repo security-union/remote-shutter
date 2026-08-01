@@ -935,6 +935,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // supports only exposure POI still benefits from a tap.
             supportsFocusPoint: currentDevice.isFocusPointOfInterestSupported
                 || currentDevice.isExposurePointOfInterestSupported,
+            // This build understands SetCameraPreviewMode; advertise the current
+            // persisted mode so the monitor reflects it from the first exchange.
+            supportsPreviewMode: true,
+            previewMode: CameraPreviewModeStore().load(),
             error: nil
         )
 

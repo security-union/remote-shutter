@@ -70,6 +70,12 @@ class MonitorViewModel: ObservableObject {
     @Published var remoteCameraDevices: [RemoteCmd.CameraDeviceEntry] = []
     @Published var activeRemoteDeviceID: String?
 
+    // MARK: - Camera Preview Mode (the peer camera's local preview: on / standby)
+    /// The connected camera's current local-preview mode, reflected so the
+    /// operator can see whether the camera is showing a live preview or sitting
+    /// in standby. The standby button icon is a function of this.
+    @Published var cameraPreviewMode: CameraPreviewMode = .on
+
     /// Which switch control the monitor shows for the peer's cameras.
     enum CameraSwitchControl {
         /// One camera — nothing to switch to.

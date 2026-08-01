@@ -69,6 +69,14 @@ protocol CameraControlling: AnyObject, Sendable {
     func getZoomStops() async -> [CGFloat]
     func getWideAngleZoomFactor() async -> CGFloat
 
+    /// Applies and persists the local-preview mode (on / standby). Standby
+    /// stops only the camera's own on-screen preview compositing — the capture
+    /// session and the frames streamed to the monitor are untouched. Persisted
+    /// on the camera device, so it survives relaunch.
+    func setPreviewMode(_ mode: CameraPreviewMode) async
+    /// The persisted local-preview mode.
+    func currentPreviewMode() async -> CameraPreviewMode
+
     /// Drives the on-phone countdown overlay/chime for timer captures.
     /// value > 0: tick; 0: fired; < 0: cancelled.
     func updateTimerCountdown(value: Int)

@@ -170,6 +170,12 @@ public final class MonitorPresenter {
         onMain { $0.viewModel.updateAspectRatio(ratio) }
     }
 
+    /// Reflects the camera device's current local-preview mode so the operator
+    /// can see whether the camera is showing a live preview or in standby.
+    func updatePreviewMode(_ mode: CameraPreviewMode) {
+        onMain { $0.viewModel.cameraPreviewMode = mode }
+    }
+
     // MARK: - Video transfer progress
 
     func videoTransferStarted(totalBytes: Int64) {
