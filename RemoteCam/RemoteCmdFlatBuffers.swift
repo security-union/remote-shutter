@@ -32,6 +32,8 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
+    case let m as RemoteCmd.CameraPreviewModeResp: return m.toFlatBuffer()
     case let m as RemoteCmd.EndSession: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SwitchLens: return m.toFlatBuffer()
@@ -415,7 +417,8 @@ private func encodeCapabilitiesEnvelope(
         backCameraOffset: backOffset,
         cameraDevicesVectorOffset: devicesVector,
         activeDeviceIdOffset: activeIDOffset,
-        supportsFocusPoint: c.supportsFocusPoint)
+        supportsFocusPoint: c.supportsFocusPoint,
+        supportsPreviewMode: c.supportsPreviewMode)
 
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
@@ -426,7 +429,8 @@ private func encodeCapabilitiesEnvelope(
         videoFrameRate: toFBFrameRate(c.currentVideoFrameRate),
         photoFormat: toFBPhotoFormat(c.currentPhotoFormat),
         hdrMode: toFBHDRMode(c.currentHDRMode),
-        activeDeviceIdOffset: activeIDOffset)
+        activeDeviceIdOffset: activeIDOffset,
+        previewMode: toFBPreviewMode(c.previewMode))
 
     return (capsOffset, stateOffset)
 }
@@ -590,6 +594,29 @@ extension RemoteCmd.EndSession {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         return buildCommand(&fbb, action: .endsession, parameters: Offset())
+    }
+}
+
+extension RemoteCmd.SetCameraPreviewMode {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb, cameraPreviewMode: toFBPreviewMode(mode))
+        return buildCommand(&fbb, action: .setcamerapreviewmode, parameters: params)
+    }
+}
+
+extension RemoteCmd.CameraPreviewModeResp {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let state = RemoteShutter_CameraState.createCameraState(
+            &fbb, previewMode: toFBPreviewMode(mode))
+        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &fbb,
+            action: .setcamerapreviewmode,
+            success: true,
+            currentStateOffset: state)
+        return buildResponse(&fbb, action: .setcamerapreviewmode, response: resp)
     }
 }
 
@@ -934,6 +961,23 @@ private func fromFBAspectRatio(_ r: RemoteShutter_AspectRatioEnum) -> AspectRati
     }
 }
 
+// MARK: - CameraPreviewMode enum conversions
+
+func toFBPreviewMode(_ mode: CameraPreviewMode) -> RemoteShutter_CameraPreviewModeEnum {
+    switch mode {
+    case .on: return .on
+    case .standby: return .standby
+    }
+}
+
+/// Absent/Unknown => legacy peer or no signal; treat as On (the default).
+func fromFBPreviewMode(_ mode: RemoteShutter_CameraPreviewModeEnum) -> CameraPreviewMode {
+    switch mode {
+    case .standby: return .standby
+    case .on, .unknown: return .on
+    }
+}
+
 // MARK: - SetAspectRatio toFlatBuffer()
 
 extension RemoteCmd.SetAspectRatio {
@@ -1101,6 +1145,9 @@ extension RemoteCmd {
         case .focusatpoint:
             return FocusAtPoint(x: params?.focusPointX ?? 0.5, y: params?.focusPointY ?? 0.5)
 
+        case .setcamerapreviewmode:
+            return SetCameraPreviewMode(mode: fromFBPreviewMode(params?.cameraPreviewMode ?? .unknown))
+
         case .endsession:
             return EndSession()
         }
@@ -1207,6 +1254,10 @@ extension RemoteCmd {
             let ratio: AspectRatio? = state.map { fromFBAspectRatio($0.aspectRatio) }
             return SetAspectRatioResp(aspectRatio: ratio, error: nsError)
 
+        case .setcamerapreviewmode:
+            let mode = resp.currentState.map { fromFBPreviewMode($0.previewMode) } ?? .on
+            return CameraPreviewModeResp(mode: mode)
+
         default:
             return nil
         }
@@ -1251,6 +1302,8 @@ extension RemoteCmd {
             cameraDevices: cameraDevices,
             activeDeviceID: activeDeviceID,
             supportsFocusPoint: caps?.supportsFocusPoint ?? false,
+            supportsPreviewMode: caps?.supportsPreviewMode ?? false,
+            previewMode: state.map { fromFBPreviewMode($0.previewMode) } ?? .on,
             error: error
         )
     }

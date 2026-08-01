@@ -29,7 +29,8 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
             onVideoQualityChange: { _, _ in },
             onPhotoQualityChange: { _, _ in },
             onAspectRatioChange: { _ in },
-            onFocusTap: { _ in })
+            onFocusTap: { _ in },
+            onToggleCameraStandby: {})
     }
 
     /// A connected monitor with a live frame and the full lens/zoom surface.

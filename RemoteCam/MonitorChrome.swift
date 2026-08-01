@@ -67,6 +67,10 @@ enum MonitorTrayItem: Equatable {
     case frameRate
     case format
     case hdr
+    /// Puts the peer camera's *local* preview to sleep. The camera keeps
+    /// capturing and keeps streaming here — this only stops it compositing a
+    /// preview nobody is looking at while it sits on a tripod.
+    case cameraStandby
     case settings
     case help
 }
@@ -82,6 +86,7 @@ enum MonitorTray {
     static func items(for state: MonitorUIState,
                       supportsHEIF: Bool,
                       supportsHDR: Bool,
+                      supportsCameraStandby: Bool = false,
                       resolutionCount: Int,
                       frameRateCount: Int) -> [MonitorTrayItem] {
         var items: [MonitorTrayItem] = []
@@ -102,6 +107,10 @@ enum MonitorTray {
         case .shortsMode:
             break
         }
+
+        // Capability-gated like the rest: a camera that predates the feature
+        // would silently ignore the command, so it must not be offered one.
+        if supportsCameraStandby { items.append(.cameraStandby) }
 
         items.append(.settings)
         items.append(.help)

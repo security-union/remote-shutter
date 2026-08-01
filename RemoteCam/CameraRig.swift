@@ -96,10 +96,31 @@ final class CameraRig: @unchecked Sendable {
     /// Microphone permission denied while starting a recording. Main thread.
     var onMicrophoneDenied: (() -> Void)?
 
+    /// Persisted local-preview preference (on / standby). One store, written by
+    /// both the local toggle and the remote command.
+    private let previewModeStore = CameraPreviewModeStore()
+
     init(session: SessionCoordinator, frameSender: FrameSender) {
         self.session = session
         self.frameSender = frameSender
+        // Seed the screen with the persisted preference so a relaunch honors the
+        // last choice (default: preview on).
+        cameraViewModel.previewMode = previewModeStore.load()
         wireCallbacks()
+    }
+
+    // MARK: - Preview mode (CameraControlling)
+
+    /// Applies + persists the local-preview mode. Only touches the on-screen
+    /// preview (via the view model); the capture session and the monitor frame
+    /// stream are deliberately untouched.
+    func setPreviewMode(_ mode: CameraPreviewMode) async {
+        previewModeStore.save(mode)
+        cameraViewModel.setPreviewMode(mode)
+    }
+
+    func currentPreviewMode() async -> CameraPreviewMode {
+        previewModeStore.load()
     }
 
     /// Bridges the non-UI engine/pipeline back to the actor system and the screen.

@@ -18,6 +18,9 @@ struct CameraScreenView: View {
     @ObservedObject var viewModel: CameraViewModel
     /// Local device selection from the picker chrome (nil in previews/tests).
     var onSelectCameraDevice: ((String) -> Void)?
+    /// Sets the local preview mode (standby button / tap-to-restore). Routed
+    /// through the session so the change persists and the monitor is told.
+    var onSetPreviewMode: ((CameraPreviewMode) -> Void)?
     /// The letterbox-fitted video rect (view coords), reported by the preview so
     /// the focus reticle lands on the image, not the black bars.
     @State private var videoRect: CGRect = .zero
@@ -29,6 +32,23 @@ struct CameraScreenView: View {
     @ObservedObject var peerLink: PeerLinkStatus = .shared
 
     var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            if viewModel.previewMode == .standby {
+                // Standby: the capture session and the monitor frame stream keep
+                // running; only this local display is replaced with a minimal
+                // status screen to save battery/heat on a long tripod shoot.
+                CameraStandbyView(viewModel: viewModel,
+                                  onRestore: { onSetPreviewMode?(.on) })
+            } else {
+                liveContent
+            }
+        }
+    }
+
+    /// The full-screen live preview and its chrome — shown when preview is on.
+    private var liveContent: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
@@ -84,8 +104,33 @@ struct CameraScreenView: View {
 
             CameraProgressOverlayView(viewModel: viewModel)
 
+            // Standby toggle, top trailing (the device picker owns top leading).
+            VStack {
+                HStack {
+                    Spacer()
+                    standbyButton
+                }
+                Spacer()
+            }
+            .padding(.top, 17)
+            .padding(.trailing, 16)
+
             PeerLinkOverlay(status: peerLink)
         }
+    }
+
+    /// Puts the camera into standby (stops the local preview only). Frames keep
+    /// streaming to the monitor.
+    private var standbyButton: some View {
+        Button(action: { onSetPreviewMode?(.standby) }) {
+            Image(systemName: "moon.zzz.fill")
+                .font(.system(size: 20))
+                .foregroundColor(.white)
+                .frame(width: 44, height: 44)
+                .background(Color.black.opacity(0.4))
+                .clipShape(Circle())
+        }
+        .accessibilityLabel(Text(NSLocalizedString("Turn off preview", comment: "camera standby")))
     }
 
     /// The remote focus reticle — the same box/animation the monitor draws. The
@@ -143,6 +188,78 @@ struct CameraScreenView: View {
                 .frame(width: 44, height: 44)
                 .background(Color.black.opacity(0.4))
                 .clipShape(Circle())
+        }
+    }
+}
+
+// MARK: - Standby screen
+
+/// The minimal status screen shown on the camera device while preview is in
+/// standby. It deliberately draws almost nothing — the whole point is to stop
+/// compositing the ~30fps preview to save battery and heat. The capture session
+/// and the frames streamed to the monitor keep running; only this display is
+/// idle. Tapping anywhere restores the live preview.
+struct CameraStandbyView: View {
+    @ObservedObject var viewModel: CameraViewModel
+    let onRestore: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                Image(systemName: "moon.zzz.fill")
+                    .font(.system(size: 44))
+                    .foregroundColor(.white.opacity(0.55))
+
+                Text(NSLocalizedString("Preview off", comment: "camera standby title"))
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.white)
+
+                // Recording indicator + elapsed time (only while recording).
+                if viewModel.isRecordingTimerActive {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 10, height: 10)
+                        CameraRecordingTimerView(
+                            recordingStartTime: viewModel.recordingStartTime,
+                            isRecording: viewModel.isRecordingTimerActive)
+                    }
+                }
+
+                // Current mode + quality, so the operator knows what's armed.
+                Text("\(modeLabel) · \(viewModel.qualityInfo)")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.7))
+
+                // Who is driving the camera.
+                if let peer = viewModel.connectedPeerName, !peer.isEmpty {
+                    Text(String(format: NSLocalizedString("Controlled by %@", comment: "standby peer name"), peer))
+                        .font(.footnote)
+                        .foregroundColor(.white.opacity(0.5))
+                }
+
+                Text(NSLocalizedString("Tap to restore preview", comment: "camera standby hint"))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(.white.opacity(0.85))
+                    .padding(.top, 8)
+            }
+            .multilineTextAlignment(.center)
+            .padding(28)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { onRestore() }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(Text(NSLocalizedString("Restore preview", comment: "camera standby restore")))
+    }
+
+    private var modeLabel: String {
+        switch viewModel.currentMode {
+        case .Photo: return NSLocalizedString("Photo", comment: "capture mode")
+        case .Video: return NSLocalizedString("Video", comment: "capture mode")
+        case .Shorts: return NSLocalizedString("Shorts", comment: "capture mode")
         }
     }
 }

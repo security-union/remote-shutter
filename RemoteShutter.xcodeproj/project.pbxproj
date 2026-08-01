@@ -62,6 +62,7 @@
 		06BB79BC2E3884F00094E085 /* CameraProgressOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */; };
 		06BB79BD2E3884F00094E085 /* CameraProgressOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */; };
 		06BB79BF2E3884FA0094E085 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79BE2E3884FA0094E085 /* CameraViewModel.swift */; };
+		CAFEBABE0013000000000002 /* CameraPreviewMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0013000000000001 /* CameraPreviewMode.swift */; };
 		06BB79C12E38852B0094E085 /* VideoTransferProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */; };
 		06BB79C42E389D6D0094E085 /* VideoTransferProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */; };
 		06CDFB17252E9A7900EA56FB /* RemoteCmds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */; };
@@ -314,6 +315,7 @@
 		06BB79B72E374D410094E085 /* FeatureFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlags.swift; sourceTree = "<group>"; };
 		06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraProgressOverlayView.swift; sourceTree = "<group>"; };
 		06BB79BE2E3884FA0094E085 /* CameraViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModel.swift; sourceTree = "<group>"; };
+		CAFEBABE0013000000000001 /* CameraPreviewMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewMode.swift; sourceTree = "<group>"; };
 		06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTransferProgressView.swift; sourceTree = "<group>"; };
 		06CDFB16252E9A7900EA56FB /* RemoteCmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCmds.swift; sourceTree = "<group>"; };
 		06CDFB1D252E9CD200EA56FB /* UICmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICmds.swift; sourceTree = "<group>"; };
@@ -627,6 +629,7 @@
 				0A11B22C33D44E55F6070003 /* ZoomPill.swift */,
 				06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */,
 				06BB79BE2E3884FA0094E085 /* CameraViewModel.swift */,
+				CAFEBABE0013000000000001 /* CameraPreviewMode.swift */,
 				06BB79C02E38852B0094E085 /* VideoTransferProgressView.swift */,
 				068DF59B2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift */,
 				068DF59C2E3544AD00A49279 /* MonitorViewModel.swift */,
@@ -1180,6 +1183,7 @@
 				06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
 				06BB79AE2E372D420094E085 /* RecordingTimer.swift in Sources */,
 				06BB79BF2E3884FA0094E085 /* CameraViewModel.swift in Sources */,
+				CAFEBABE0013000000000002 /* CameraPreviewMode.swift in Sources */,
 				067BEFCC2E2CD1A200F54B4E /* LocalNetworkPermissionView.swift in Sources */,
 				0634594A25886387009F9BE0 /* DeviceScannerViewController.swift in Sources */,
 				B1C0DE0300000006 /* DeviceScannerView.swift in Sources */,

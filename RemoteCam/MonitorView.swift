@@ -35,6 +35,8 @@ struct MonitorView: View {
     /// Tap-to-focus: the tap point normalized (0..1) in the displayed image,
     /// origin top-left. Not called for taps that land in the letterbox bars.
     let onFocusTap: (CGPoint) -> Void
+    /// Toggles the connected camera's local-preview mode (on ⇄ standby).
+    let onToggleCameraStandby: () -> Void
 
     /// The live focus reticle (view-space position + identity to re-trigger the
     /// animation on each tap). Local UI only — no round-trip to the camera.
@@ -404,6 +406,7 @@ struct MonitorView: View {
                 items: MonitorTray.items(for: viewModel.uiState,
                                          supportsHEIF: viewModel.supportsHEIF,
                                          supportsHDR: viewModel.supportsHDR,
+                                         supportsCameraStandby: viewModel.supportsCameraStandby,
                                          resolutionCount: viewModel.supportedResolutions.count,
                                          frameRateCount: availableFrameRates.count),
                 timerValue: Int(viewModel.timerSliderValue),
@@ -412,6 +415,7 @@ struct MonitorView: View {
                 frameRate: viewModel.currentVideoFrameRate,
                 photoFormat: viewModel.currentPhotoFormat,
                 hdrMode: viewModel.currentHDRMode,
+                cameraPreviewMode: viewModel.cameraPreviewMode,
                 isQualityEnabled: viewModel.isQualityControlEnabled,
                 isTimerEnabled: viewModel.isTimerSliderEnabled,
                 isSettingsEnabled: viewModel.isSettingsEnabled,
@@ -452,6 +456,11 @@ struct MonitorView: View {
         case .hdr:
             onPhotoQualityChange(viewModel.currentPhotoFormat,
                                  viewModel.currentHDRMode == .on ? .off : .on)
+
+        case .cameraStandby:
+            // Stays open: the tile's glyph is the reflection of what the camera
+            // is doing, so you want to watch it settle rather than lose it.
+            onToggleCameraStandby()
 
         case .settings:
             toggleTray()
@@ -697,6 +706,10 @@ struct MonitorTrayPanel: View {
     let frameRate: VideoFrameRate
     let photoFormat: PhotoFormat
     let hdrMode: HDRMode
+    /// The camera's reported local-preview mode. The standby tile is a
+    /// reflection of the peer's actual state, not of a local intent, so it
+    /// only lights up once the camera has confirmed.
+    var cameraPreviewMode: CameraPreviewMode = .on
     let isQualityEnabled: Bool
     let isTimerEnabled: Bool
     let isSettingsEnabled: Bool
@@ -748,6 +761,7 @@ struct MonitorTrayPanel: View {
         switch item {
         case .timer: return timerValue > 0
         case .hdr: return hdrMode == .on
+        case .cameraStandby: return cameraPreviewMode == .standby
         default: return false
         }
     }
@@ -756,6 +770,9 @@ struct MonitorTrayPanel: View {
         switch item {
         case .timer: return isTimerEnabled
         case .aspect, .resolution, .frameRate, .format, .hdr: return isQualityEnabled
+        // Not a capture setting — it stays usable mid-recording, when quality
+        // controls are locked.
+        case .cameraStandby: return true
         case .settings: return isSettingsEnabled
         case .help: return true
         }
@@ -813,6 +830,7 @@ struct MonitorTrayTile: View {
         case .frameRate: return "speedometer"
         case .format: return "doc"
         case .hdr: return "camera.filters"
+        case .cameraStandby: return isActive ? "moon.zzz.fill" : "moon.zzz"
         case .settings: return "gearshape.fill"
         case .help: return "questionmark"
         }
@@ -826,6 +844,7 @@ struct MonitorTrayTile: View {
         case .frameRate: return NSLocalizedString("FPS", comment: "tray tile")
         case .format: return NSLocalizedString("FORMAT", comment: "tray tile")
         case .hdr: return NSLocalizedString("HDR", comment: "tray tile")
+        case .cameraStandby: return NSLocalizedString("STANDBY", comment: "tray tile")
         case .settings: return NSLocalizedString("SETTINGS", comment: "tray tile")
         case .help: return NSLocalizedString("HELP", comment: "tray tile")
         }
@@ -1102,7 +1121,8 @@ struct MonitorView_Previews: PreviewProvider {
             onVideoQualityChange: { _, _ in },
             onPhotoQualityChange: { _, _ in },
             onAspectRatioChange: { _ in },
-            onFocusTap: { _ in }
+            onFocusTap: { _ in },
+            onToggleCameraStandby: {}
         )
         .preferredColorScheme(.dark)
     }

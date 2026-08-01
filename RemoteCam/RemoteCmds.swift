@@ -262,6 +262,36 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    // MARK: - Camera Preview Mode Remote Commands
+
+    /// Monitor -> camera: set the camera device's local-preview mode (on /
+    /// standby). Standby stops the camera's own on-screen preview only — the
+    /// capture session and the frames streamed back to the monitor are
+    /// unaffected. Only sent to peers that advertised
+    /// `CameraCapabilitiesResp.supportsPreviewMode` (old decoders read the
+    /// unknown action as its enum default).
+    public class SetCameraPreviewMode: Message, @unchecked Sendable {
+        public let mode: CameraPreviewMode
+
+        public init(mode: CameraPreviewMode) {
+            self.mode = mode
+            super.init(sender: nil)
+        }
+    }
+
+    /// Camera -> monitor: the camera's current local-preview mode, sent as the
+    /// ack to `SetCameraPreviewMode` and whenever the camera changes the mode
+    /// on its own (a local toggle), so the monitor can reflect what the camera
+    /// is doing.
+    public class CameraPreviewModeResp: Message, @unchecked Sendable {
+        public let mode: CameraPreviewMode
+
+        public init(mode: CameraPreviewMode) {
+            self.mode = mode
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Camera Capabilities Structure
 
     public struct CameraInfo: Codable, Equatable {
@@ -376,6 +406,13 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// monitor's tap-to-focus gate reads this so it never sends the command
         /// to a peer that would decode it as `TakePicture`.
         public let supportsFocusPoint: Bool
+        /// True when this peer's build understands
+        /// `RemoteCmd.SetCameraPreviewMode`. The monitor's standby gate reads
+        /// this so it never sends the command to a peer that would misread it.
+        public let supportsPreviewMode: Bool
+        /// The camera's current local-preview mode, so the monitor can reflect
+        /// it from the first capabilities exchange.
+        public let previewMode: CameraPreviewMode
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
@@ -388,6 +425,8 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    cameraDevices: [CameraDeviceEntry] = [],
                    activeDeviceID: String? = nil,
                    supportsFocusPoint: Bool = false,
+                   supportsPreviewMode: Bool = false,
+                   previewMode: CameraPreviewMode = .on,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
@@ -401,6 +440,8 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.cameraDevices = cameraDevices
             self.activeDeviceID = activeDeviceID
             self.supportsFocusPoint = supportsFocusPoint
+            self.supportsPreviewMode = supportsPreviewMode
+            self.previewMode = previewMode
             self.error = error
             super.init(sender: nil)
         }

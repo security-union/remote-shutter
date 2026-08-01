@@ -58,9 +58,12 @@ extension MonitorViewController {
             },
             onFocusTap: { [weak self] point in
                 self?.handleFocusTap(point)
+            },
+            onToggleCameraStandby: { [weak self] in
+                self?.handleToggleCameraStandby()
             }
         )
-        
+
         self.swiftUIHostingController = embedSwiftUIView(monitorView)
     }
     
@@ -198,6 +201,14 @@ extension MonitorViewController {
             return
         }
         session ! UICmd.FocusAtPoint(x: Float(point.x), y: Float(point.y))
+    }
+
+    /// Toggles the peer camera's local-preview mode. The coordinator gates the
+    /// send on the peer having advertised support, so a camera that predates the
+    /// feature simply ignores the tap.
+    private func handleToggleCameraStandby() {
+        let target: CameraPreviewMode = viewModel.cameraPreviewMode == .standby ? .on : .standby
+        session ! UICmd.SetCameraPreviewMode(mode: target)
     }
 
     private func handleTimerChange(_ value: Int) {

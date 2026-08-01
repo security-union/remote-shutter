@@ -1278,6 +1278,61 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertNotNil(resp, "the monitor must receive a stop response")
         XCTAssertNotNil(resp?.error, "…carrying the error")
     }
+
+    // MARK: - Camera preview mode (standby)
+
+    /// The persisted preference defaults to preview-on — the shipping behavior.
+    /// Opt-in feature: an unset store must never report standby.
+    func testCameraPreviewModeDefaultsToOn() {
+        let suite = UserDefaults(suiteName: "preview-mode-default-\(UUID().uuidString)")!
+        let store = CameraPreviewModeStore(defaults: suite)
+        XCTAssertEqual(store.load(), .on)
+        XCTAssertEqual(CameraPreviewMode.default, .on)
+    }
+
+    /// The preference round-trips through UserDefaults (survives relaunch).
+    func testCameraPreviewModePersistsRoundTrip() {
+        let suite = UserDefaults(suiteName: "preview-mode-roundtrip-\(UUID().uuidString)")!
+
+        CameraPreviewModeStore(defaults: suite).save(.standby)
+        // A fresh store over the same suite = a relaunch.
+        XCTAssertEqual(CameraPreviewModeStore(defaults: suite).load(), .standby)
+
+        CameraPreviewModeStore(defaults: suite).save(.on)
+        XCTAssertEqual(CameraPreviewModeStore(defaults: suite).load(), .on)
+    }
+
+    /// Camera side: a remote SetCameraPreviewMode applies the mode on the rig and
+    /// reports it back to the monitor.
+    func testCameraAppliesRemoteSetPreviewMode() async {
+        await enterCamera()
+
+        await harness.deliver(RemoteCmd.SetCameraPreviewMode(mode: .standby))
+
+        XCTAssertEqual(camera.previewModeCalls, [.standby])
+        let sent = harness.fakeMP.sentMessages.map(\.msg)
+        let resps = sent.compactMap { $0 as? RemoteCmd.CameraPreviewModeResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertEqual(resps.first?.mode, .standby)
+        // Display-only: never mistaken for a capture.
+        XCTAssertTrue(camera.takePictureCalls.isEmpty)
+    }
+
+    /// Camera side: a LOCAL toggle (the camera's own chrome) applies + persists
+    /// the mode and reports it to the monitor, same as the remote path.
+    func testCameraAppliesLocalSetPreviewMode() async {
+        await enterCamera()
+
+        await harness.deliver(UICmd.SetCameraPreviewMode(mode: .standby))
+
+        XCTAssertEqual(camera.previewModeCalls, [.standby])
+        let sent = harness.fakeMP.sentMessages.map(\.msg)
+        let resps = sent.compactMap { $0 as? RemoteCmd.CameraPreviewModeResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertEqual(resps.first?.mode, .standby)
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .camera)
+    }
 }
 
 // MARK: - Peer-backgrounded reconnect flow (C-5)

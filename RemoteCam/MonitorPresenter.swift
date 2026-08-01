@@ -124,6 +124,11 @@ public final class MonitorPresenter {
                 capabilities.cameraDevices,
                 activeID: capabilities.activeDeviceID)
 
+            // Set before the cameraInfo guard below: preview-mode support is a
+            // property of the peer, not of whichever camera it has selected, so
+            // a peer that reports no current camera must not lose the flag.
+            display.viewModel.supportsCameraStandby = capabilities.supportsPreviewMode
+
             guard let cameraInfo = capabilities.getCurrentCameraInfo() else { return }
             // Update lens controls in view model
             display.updateLensTypesInViewModel(
@@ -177,6 +182,12 @@ public final class MonitorPresenter {
     func updateAspectRatio(_ ratio: AspectRatio?) {
         guard let ratio else { return }
         onMain { $0.viewModel.updateAspectRatio(ratio) }
+    }
+
+    /// Reflects the camera device's current local-preview mode so the operator
+    /// can see whether the camera is showing a live preview or in standby.
+    func updatePreviewMode(_ mode: CameraPreviewMode) {
+        onMain { $0.viewModel.cameraPreviewMode = mode }
     }
 
     // MARK: - Video transfer progress

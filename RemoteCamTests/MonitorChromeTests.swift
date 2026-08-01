@@ -77,11 +77,13 @@ final class MonitorChromeTests: XCTestCase {
     private func items(_ state: MonitorUIState,
                        supportsHEIF: Bool = false,
                        supportsHDR: Bool = false,
+                       supportsCameraStandby: Bool = false,
                        resolutionCount: Int = 1,
                        frameRateCount: Int = 1) -> [MonitorTrayItem] {
         MonitorTray.items(for: state,
                           supportsHEIF: supportsHEIF,
                           supportsHDR: supportsHDR,
+                          supportsCameraStandby: supportsCameraStandby,
                           resolutionCount: resolutionCount,
                           frameRateCount: frameRateCount)
     }
@@ -119,6 +121,32 @@ final class MonitorChromeTests: XCTestCase {
     /// Shorts runs to a fixed duration, so a self-timer has nothing to delay.
     func testShortsModeHasNoTimer() {
         XCTAssertEqual(items(.shortsMode), [.aspect, .settings, .help])
+    }
+
+    // MARK: - Camera standby
+
+    /// A camera that never advertised `supports_preview_mode` would silently
+    /// ignore the command, so it must not be offered the control at all — the
+    /// same rule the device picker and focus point follow.
+    func testStandbyTileIsHiddenWhenPeerDoesNotSupportIt() {
+        for state in [MonitorUIState.photoMode, .videoMode, .videoRecording, .shortsMode] {
+            XCTAssertFalse(items(state).contains(.cameraStandby),
+                           "\(state) offered standby to a peer that can't do it")
+        }
+    }
+
+    func testStandbyTileAppearsForEveryModeWhenSupported() {
+        for state in [MonitorUIState.photoMode, .videoMode, .videoRecording, .shortsMode] {
+            XCTAssertTrue(items(state, supportsCameraStandby: true).contains(.cameraStandby),
+                          "\(state) is missing the standby tile")
+        }
+    }
+
+    /// Standby sits with Settings and Help at the end rather than among the
+    /// capture settings — it controls the other device, not this shot.
+    func testStandbyTileSitsBeforeSettings() {
+        let tiles = items(.photoMode, supportsCameraStandby: true)
+        XCTAssertEqual(tiles, [.timer, .aspect, .cameraStandby, .settings, .help])
     }
 
     /// Settings and Help are the tray's floor — they are how the viewfinder

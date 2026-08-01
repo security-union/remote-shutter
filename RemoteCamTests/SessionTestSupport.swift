@@ -222,6 +222,25 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     /// TakePicture).
     var advertisesFocusPoint = true
 
+    /// False simulates a peer whose capabilities omit preview-mode support — the
+    /// monitor must never send SetCameraPreviewMode to it.
+    var advertisesPreviewMode = true
+
+    /// Records every applied preview mode. Lock-backed: `setPreviewMode` is
+    /// called from the coordinator's actor context while the test body reads
+    /// this from the test thread (a bare array races under TSan).
+    private let previewModeCallsStorage = Locked<[CameraPreviewMode]>([])
+    var previewModeCalls: [CameraPreviewMode] { previewModeCallsStorage.value }
+    /// The persisted mode this fake reports (advertised in capabilities and
+    /// returned by `currentPreviewMode`). Written on the actor, read on the actor.
+    var storedPreviewMode: CameraPreviewMode = .on
+
+    func setPreviewMode(_ mode: CameraPreviewMode) async {
+        storedPreviewMode = mode
+        previewModeCallsStorage.mutate { $0.append(mode) }
+    }
+    func currentPreviewMode() async -> CameraPreviewMode { storedPreviewMode }
+
     /// Devices that accept the input swap but never deliver a frame (a
     /// wedged virtual camera). While one is active, awaitFrameDelivery fails.
     var stalledDeviceIDs: Set<String> = []
@@ -250,6 +269,8 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             cameraDevices: entries,
             activeDeviceID: advertisesCameraDevices ? activeDeviceID : nil,
             supportsFocusPoint: advertisesFocusPoint,
+            supportsPreviewMode: advertisesPreviewMode,
+            previewMode: storedPreviewMode,
             error: nil)
     }
 

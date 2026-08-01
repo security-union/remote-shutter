@@ -77,6 +77,12 @@ class MonitorViewModel: ObservableObject {
     @Published var remoteCameraDevices: [RemoteCmd.CameraDeviceEntry] = []
     @Published var activeRemoteDeviceID: String?
 
+    // MARK: - Camera Preview Mode (the peer camera's local preview: on / standby)
+    /// The connected camera's current local-preview mode, reflected so the
+    /// operator can see whether the camera is showing a live preview or sitting
+    /// in standby. The standby button icon is a function of this.
+    @Published var cameraPreviewMode: CameraPreviewMode = .on
+
     /// Which switch control the monitor shows for the peer's cameras.
     enum CameraSwitchControl {
         /// One camera — nothing to switch to.
@@ -296,6 +302,10 @@ class MonitorViewModel: ObservableObject {
     @Published var currentHDRMode: HDRMode = .off
     @Published var supportsHEIF: Bool = false
     @Published var supportsHDR: Bool = false
+    /// Whether the peer advertised the `supports_preview_mode` capability. Gates
+    /// the standby tray tile — an older camera ignores the command, so offering
+    /// a control that does nothing would be worse than hiding it.
+    @Published var supportsCameraStandby: Bool = false
 
     // MARK: - Video Quality Update Methods
     func updateVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) {

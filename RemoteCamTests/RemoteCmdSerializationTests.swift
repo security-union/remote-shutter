@@ -50,6 +50,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
+        case let m as RemoteCmd.CameraPreviewModeResp: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SwitchLens: return m.toFlatBuffer()
         case let m as RemoteCmd.SwitchLensResp: return m.toFlatBuffer()
@@ -1140,5 +1142,44 @@ extension RemoteCmdSerializationTests {
         let data = serializeToFlatBuffer(RemoteCmd.EndSession())
         XCTAssertNotNil(data)
         XCTAssertTrue(RemoteCmd.fromFlatBuffer(data!) is RemoteCmd.EndSession)
+    }
+
+    // MARK: - Camera preview mode
+
+    func testSetCameraPreviewMode_roundTrip() {
+        for mode: CameraPreviewMode in [.on, .standby] {
+            let result = roundTrip(RemoteCmd.SetCameraPreviewMode(mode: mode))
+            XCTAssertEqual(result.mode, mode)
+        }
+    }
+
+    func testCameraPreviewModeResp_roundTrip() {
+        for mode: CameraPreviewMode in [.on, .standby] {
+            let result = roundTrip(RemoteCmd.CameraPreviewModeResp(mode: mode))
+            XCTAssertEqual(result.mode, mode)
+        }
+    }
+
+    /// Capabilities carry both the support flag and the current mode so the
+    /// monitor learns them from the first exchange.
+    func testCapabilitiesCarryPreviewModeSupportAndMode() {
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsPreviewMode: true, previewMode: .standby, error: nil)
+        let result = roundTrip(caps)
+        XCTAssertTrue(result.supportsPreviewMode)
+        XCTAssertEqual(result.previewMode, .standby)
+    }
+
+    /// A peer that predates the feature decodes as unsupported / preview-on.
+    func testCapabilitiesDefaultPreviewModeIsOnAndUnsupported() {
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            error: nil)
+        let result = roundTrip(caps)
+        XCTAssertFalse(result.supportsPreviewMode)
+        XCTAssertEqual(result.previewMode, .on)
     }
 }
