@@ -753,7 +753,8 @@ struct MonitorTrayPanel: View {
         case .resolution: return resolution.displayName
         case .frameRate: return frameRate.displayName
         case .format: return photoFormat.displayName
-        case .hdr, .settings, .help: return nil
+        // Glyph-only tiles: their state is carried by the symbol, not a label.
+        case .hdr, .cameraStandby, .settings, .help: return nil
         }
     }
 
