@@ -303,6 +303,10 @@ struct CoordinatorHarness {
         await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
     }
 
+    func currentState() async -> SessionState {
+        await coordinator.currentState()
+    }
+
     func stateName() async -> RemoteCamState {
         await coordinator.currentStateName()
     }

@@ -38,6 +38,12 @@ extension MonitorViewController {
             onSettingsTapped: { [weak self] in
                 self?.handleSettingsTapped()
             },
+            onHelpTapped: { [weak self] in
+                self?.presentHelpSheet()
+            },
+            onBackTapped: { [weak self] in
+                self?.navigationController?.popViewController(animated: true)
+            },
             onZoomChange: { [weak self] factor in
                 self?.handleZoomChange(factor)
             },

@@ -540,14 +540,26 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(name, .monitorTakingPicture)
     }
 
-    func testMonitorTakingPictureTakePicAckUpdatesTitle() async {
+    /// The ack advances the capture to `.receiving` — the moment the shot is
+    /// taken and the subject can stop holding the pose — without raising a
+    /// modal. The monitor's in-flight feedback is derived from this phase and
+    /// drawn on the shutter; a modal here covered the live preview.
+    func testMonitorTakingPictureTakePicAckAdvancesToReceivingWithoutAlert() async {
         await enterMonitor(.Photo)
         await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        // Keep the alert handle from the real transition.
+        let requesting = await harness.currentState()
+        XCTAssertEqual(MonitorActivity.forState(requesting), .capturing)
+
+        let armed = await harness.coordinator.currentTimeoutGeneration()
         await harness.deliver(RemoteCmd.TakePicAck(sender: nil))
 
-        let updatedHandles = harness.alerts.shownAlerts.filter { $0.currentTitle == "Receiving picture" }
-        XCTAssertEqual(updatedHandles.count, 1)
+        let receiving = await harness.currentState()
+        let generationAfterAck = await harness.coordinator.currentTimeoutGeneration()
+        XCTAssertEqual(MonitorActivity.forState(receiving), .receivingCapture)
+        XCTAssertEqual(generationAfterAck, armed,
+                       "the ack swaps the phase in place — it must not re-arm the watchdog")
+        XCTAssertTrue(harness.alerts.shownAlerts.isEmpty,
+                      "the monitor must not raise a modal over the preview for a capture")
     }
 
     func testMonitorTakingPictureTakePicRespErrorShowsErrorAlert() async {

@@ -35,6 +35,14 @@ enum LensSwitchReturn: Equatable {
 /// Theater machine as a compiler-checked case. Transient states carry their
 /// timeout generation; states whose "stack parent" varies carry where they
 /// return to.
+/// How far a monitor-initiated photo has got. The camera acks the shutter
+/// before the picture itself arrives, and the gap is long enough to matter:
+/// `.receiving` is the moment the subject can stop holding the pose.
+enum CapturePhase: Equatable {
+    case requesting
+    case receiving
+}
+
 enum SessionState: Equatable {
     case waitingForLobby
     case lobby
@@ -54,7 +62,7 @@ enum SessionState: Equatable {
 
     // Monitor family
     case monitor(mode: MonitorMode)
-    case monitorTakingPicture(generation: Int)
+    case monitorTakingPicture(generation: Int, phase: CapturePhase)
     case monitorTogglingFlash(generation: Int)
     case monitorTogglingCamera(mode: MonitorMode, generation: Int)
     case monitorSwitchingLens(returnTo: LensSwitchReturn, generation: Int)
@@ -216,6 +224,12 @@ public actor SessionCoordinator {
     /// Test support: the old state-name vocabulary.
     func currentStateName() -> RemoteCamState {
         state.name
+    }
+
+    /// Test support: the full state, for assertions the name vocabulary cannot
+    /// express — a capture's `CapturePhase`, for one.
+    func currentState() -> SessionState {
+        state
     }
 
     /// Test support: place the machine directly into a state with context.
@@ -446,6 +460,9 @@ public actor SessionCoordinator {
         }
         state = newState
         publishWaitingOverlay()
+        // One write, at the one place state changes: an in-flight indicator
+        // cannot outlive the command it describes.
+        monitor?.setActivity(MonitorActivity.forState(newState))
         await didEnter(newState)
     }
 
@@ -562,7 +579,7 @@ public actor SessionCoordinator {
             await inCameraTransmittingVideo(msg)
         case .monitor(let mode):
             await inMonitor(msg, mode: mode)
-        case .monitorTakingPicture(let generation):
+        case .monitorTakingPicture(let generation, _):
             await inMonitorTakingPicture(msg, generation: generation)
         case .monitorTogglingFlash(let generation):
             await inMonitorToggling(msg, kind: .flash, mode: .photo, generation: generation)
@@ -1235,7 +1252,12 @@ public actor SessionCoordinator {
         }
     }
 
-    // MARK: - Progress alerts (camera "Taking picture" and monitor transients)
+    // MARK: - Progress alerts (camera "Taking picture" only)
+    //
+    // The monitor no longer raises these. Its in-flight feedback is
+    // `MonitorActivity`, derived from the state at `transition(to:)` and drawn
+    // on the control the user pressed — a modal here covered the live preview
+    // at exactly the moment the user was framing with it.
 
     private var alertHandle: AlertHandle?
 
@@ -1245,14 +1267,6 @@ public actor SessionCoordinator {
             OperationQueue.main.addOperation {
                 continuation.resume(returning: presenter.showAlert(title: title))
             }
-        }
-    }
-
-    private func updateCameraAlert(_ title: String) {
-        guard let handle = alertHandle else { return }
-        let presenter = alertPresenter
-        OperationQueue.main.addOperation {
-            presenter.updateAlert(handle, title: title)
         }
     }
 
@@ -1556,7 +1570,6 @@ public actor SessionCoordinator {
 
         case is UICmd.ToggleCamera:
             if sendMessage(RemoteCmd.ToggleCamera()) {
-                await showCameraAlert("Requesting camera toggle")
                 let generation = scheduleTimeout(.monitorTogglingCamera)
                 await transition(to: .monitorTogglingCamera(mode: mode, generation: generation))
             } else {
@@ -1569,7 +1582,6 @@ public actor SessionCoordinator {
                 break
             }
             if sendMessage(RemoteCmd.SelectCameraDevice(uniqueID: select.uniqueID)) {
-                await showCameraAlert(NSLocalizedString("Switching camera", comment: ""))
                 let generation = scheduleTimeout(.monitorTogglingCamera)
                 await transition(to: .monitorTogglingCamera(mode: mode, generation: generation))
             } else {
@@ -1578,7 +1590,6 @@ public actor SessionCoordinator {
 
         case is UICmd.ToggleFlash where mode == .photo:
             if sendMessage(RemoteCmd.ToggleFlash()) {
-                await showCameraAlert("Requesting flash toggle")
                 let generation = scheduleTimeout(.monitorTogglingFlash)
                 await transition(to: .monitorTogglingFlash(generation: generation))
             } else {
@@ -1598,9 +1609,8 @@ public actor SessionCoordinator {
             switch mode {
             case .photo:
                 if sendMessage(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: take.sendMediaToRemote)) {
-                    await showCameraAlert(NSLocalizedString("Requesting picture", comment: ""))
                     let generation = scheduleTimeout(.monitorTakingPicture)
-                    await transition(to: .monitorTakingPicture(generation: generation))
+                    await transition(to: .monitorTakingPicture(generation: generation, phase: .requesting))
                 } else {
                     await popToScanning()
                 }
@@ -1637,7 +1647,6 @@ public actor SessionCoordinator {
 
         case let lens as UICmd.SwitchLens:
             if sendMessage(RemoteCmd.SwitchLens(lensType: lens.lensType)) {
-                await showCameraAlert("Switching lens")
                 let generation = scheduleTimeout(.monitorSwitchingLens)
                 await transition(to: .monitorSwitchingLens(returnTo: .mode(mode), generation: generation))
             } else {
@@ -1693,11 +1702,12 @@ public actor SessionCoordinator {
         switch msg {
         case let timeout as UICmd.StateTimeout:
             guard timeout.stateName == .monitorTakingPicture && timeout.generation == generation else { break }
-            await dismissCameraAlert()
             await transition(to: .monitor(mode: .photo))
 
         case is RemoteCmd.TakePicAck:
-            updateCameraAlert(NSLocalizedString("Receiving picture", comment: ""))
+            // Same generation, so the armed 10s watchdog stays valid — this is
+            // an in-place phase swap, not a new request.
+            await transition(to: .monitorTakingPicture(generation: generation, phase: .receiving))
             // Quirk preserved from the old machine: the ack is echoed back to
             // the peers (the camera drops it via its root default).
             await sendOrGoToScanning(msg)
@@ -1708,31 +1718,25 @@ public actor SessionCoordinator {
         case let resp as RemoteCmd.TakePicResp:
             if let pic = resp.pic {
                 savePictureOnMonitor(pic)
-                await dismissCameraAlert()
             } else if let error = resp.error {
-                await dismissCameraAlert()
                 showErrorAlert(error._domain)
             }
             await transition(to: .monitor(mode: .photo))
 
         case is UICmd.UnbecomeMonitor:
-            await dismissCameraAlert()
             await transition(to: .connected)
 
         case let disconnected as DisconnectPeer:
-            await dismissCameraAlert()
             if let lost = disconnected.peer, lost.displayName == peer?.displayName, connectedPeers.isEmpty {
                 await loseSessionPeer(lost)
             }
 
         case is UICmd.ScannerDidAppear:
-            await dismissCameraAlert()
             await leaveSession()
 
         default:
             // The old state dismissed the alert and dropped unhandled messages
             // (deliberately NOT the root handler — no error-resp synthesis here).
-            await dismissCameraAlert()
             debugLog("monitorTakingPicture: ignoring \(type(of: msg))")
         }
     }
@@ -1745,7 +1749,6 @@ public actor SessionCoordinator {
         switch msg {
         case let timeout as UICmd.StateTimeout:
             guard timeout.stateName == ownName && timeout.generation == generation else { break }
-            await dismissCameraAlert()
             await transition(to: .monitor(mode: mode))
 
         case is UICmd.ToggleFlash where kind == .flash:
@@ -1758,12 +1761,9 @@ public actor SessionCoordinator {
         case let flashResp as RemoteCmd.ToggleFlashResp where kind == .flash:
             if flashResp.flashMode != nil {
                 monitor?.updateFlashMode(flashResp.flashMode)
-                await dismissCameraAlert()
             } else if let error = flashResp.error {
-                await dismissCameraAlert()
                 showErrorAlert(error._domain)
             } else {
-                await dismissCameraAlert()
             }
             await transition(to: .monitor(mode: mode))
 
@@ -1776,27 +1776,21 @@ public actor SessionCoordinator {
                 peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
                 peerSupportsFocusPoint = capabilities.supportsFocusPoint
                 monitor?.updateCapabilities(capabilities)
-                await dismissCameraAlert()
             } else if let error = toggleResp.error {
-                await dismissCameraAlert()
                 showErrorAlert(error._domain)
             } else {
-                await dismissCameraAlert()
             }
             await transition(to: .monitor(mode: mode))
 
         case let disconnected as DisconnectPeer:
-            await dismissCameraAlert()
             if let lost = disconnected.peer, lost.displayName == peer?.displayName, connectedPeers.isEmpty {
                 await loseSessionPeer(lost)
             }
 
         case is UICmd.ScannerDidAppear:
-            await dismissCameraAlert()
             await leaveSession()
 
         case is UICmd.UnbecomeMonitor:
-            await dismissCameraAlert()
             await transition(to: .connected)
 
         default:
@@ -1815,7 +1809,6 @@ public actor SessionCoordinator {
         switch msg {
         case let timeout as UICmd.StateTimeout:
             guard timeout.stateName == .monitorSwitchingLens && timeout.generation == generation else { break }
-            await dismissCameraAlert()
             await transition(to: returnState())
 
         case is UICmd.SwitchLens:
@@ -1827,27 +1820,21 @@ public actor SessionCoordinator {
                                     availableLenses: lensResp.availableLenses,
                                     currentZoom: lensResp.currentZoom,
                                     zoomRange: lensResp.zoomRange)
-                await dismissCameraAlert()
             } else if let error = lensResp.error {
-                await dismissCameraAlert()
                 showErrorAlert(error._domain)
             } else {
-                await dismissCameraAlert()
             }
             await transition(to: returnState())
 
         case let disconnected as DisconnectPeer:
-            await dismissCameraAlert()
             if let lost = disconnected.peer, lost.displayName == peer?.displayName, connectedPeers.isEmpty {
                 await loseSessionPeer(lost)
             }
 
         case is UICmd.ScannerDidAppear:
-            await dismissCameraAlert()
             await leaveSession()
 
         case is UICmd.UnbecomeMonitor:
-            await dismissCameraAlert()
             await transition(to: .connected)
 
         default:
@@ -1894,7 +1881,6 @@ public actor SessionCoordinator {
 
         case let lens as UICmd.SwitchLens:
             if sendMessage(RemoteCmd.SwitchLens(lensType: lens.lensType)) {
-                await showCameraAlert("Switching lens")
                 let generation = scheduleTimeout(.monitorSwitchingLens)
                 await transition(to: .monitorSwitchingLens(returnTo: .recording, generation: generation))
             }

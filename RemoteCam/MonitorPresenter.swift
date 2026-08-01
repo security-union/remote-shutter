@@ -56,6 +56,15 @@ public final class MonitorPresenter {
         onMain { $0.swiftUIConfigureShortsMode() }
     }
 
+    /// What the monitor is waiting on the camera for, or `nil` when nothing is.
+    ///
+    /// Written from the session's single transition point, so the indicator is
+    /// a function of the state rather than a side effect that has to be
+    /// balanced — the reason the old modal spinner could sit over the preview.
+    func setActivity(_ activity: MonitorActivity?) {
+        onMain { $0.viewModel.activity = activity }
+    }
+
     func syncRecordingStartTime(_ startTime: Date?) {
         onMain { $0.viewModel.recordingStartTime = startTime }
     }

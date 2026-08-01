@@ -29,6 +29,13 @@ class MonitorViewModel: ObservableObject {
     /// Live frames — deliberately NOT @Published here; see FrameDisplayModel.
     let frames = FrameDisplayModel()
     @Published var flashStatus: String = ""
+    /// What the monitor is waiting on the camera for, or `nil` when nothing is
+    /// in flight. Rendered in place (on the shutter, on the switch glyph)
+    /// instead of by a modal that would cover the preview.
+    @Published var activity: MonitorActivity?
+    /// The frame stream has gone quiet: what is on screen is a stale picture.
+    /// Set by the stall watchdog, cleared by the next frame that arrives.
+    @Published var isPreviewStale: Bool = false
     @Published var isFlashEnabled: Bool = false
     @Published var isTorchEnabled: Bool = false
     @Published var buttonPrompt: String = ""
