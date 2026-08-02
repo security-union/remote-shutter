@@ -111,9 +111,13 @@ public class MonitorViewController: UIViewController {
         syncInterfaceOrientation()
     }
 
-    /// Retained: a `UIBarButtonItem(customView:)` does not own its hosting
-    /// controller, and without a strong reference the SwiftUI view stops
-    /// updating as soon as it is released.
+    /// Retained, but deliberately NOT added as a child view controller.
+    /// `UIBarButtonItem(customView:)` puts the *view* inside the navigation
+    /// bar, whose owning controller is the UINavigationController — parenting
+    /// the hosting controller here as well makes UIKit see a child whose view
+    /// lives under a different controller, and it raises
+    /// UIViewControllerHierarchyInconsistency. The strong reference is what
+    /// keeps the SwiftUI view alive and updating.
     private var navControlsHost: UIHostingController<MonitorNavControls>?
 
     /// Puts the flash · torch · tray capsule in the bar rather than in the
@@ -132,9 +136,9 @@ public class MonitorViewController: UIViewController {
             })
         let host = UIHostingController(rootView: controls)
         host.view.backgroundColor = .clear
-        host.view.sizeToFit()
-        addChild(host)
-        host.didMove(toParent: self)
+        // Let Auto Layout ask SwiftUI for the size: the capsule is narrower in
+        // video mode, where the flash glyph drops out.
+        host.view.translatesAutoresizingMaskIntoConstraints = false
         navControlsHost = host
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: host.view)
     }
