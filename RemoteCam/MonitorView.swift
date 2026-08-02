@@ -256,9 +256,12 @@ struct MonitorView: View {
 
             HStack(spacing: 0) {
                 if Self.showsFloatingBackButton {
+                    // 44pt with a 22pt chevron: the nav bar's own back button is
+                    // a 44pt target and its glyph reads at about this weight, so
+                    // leaving the viewfinder feels like the same control.
                     GlassCircleButton(systemImage: "chevron.backward",
-                                      size: 36,
-                                      glyphSize: 16,
+                                      size: 44,
+                                      glyphSize: 22,
                                       isEnabled: viewModel.isBackEnabled,
                                       action: onBackTapped)
                 }
