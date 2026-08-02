@@ -91,10 +91,16 @@ struct MonitorView: View {
         #endif
     }
 
-    /// The nav bar stays present (transparent) so the swipe-back gesture
-    /// survives, which means Back is the system's own button and a floating
-    /// chevron would duplicate it.
-    private static let showsFloatingBackButton = false
+    /// On iOS the transparent nav bar carries Back, so a chevron here would
+    /// duplicate it. Catalyst does not render that bar at all — without this
+    /// the Mac has no way off the screen.
+    private static var showsFloatingBackButton: Bool {
+        #if targetEnvironment(macCatalyst)
+        true
+        #else
+        false
+        #endif
+    }
 
     /// A Mac window neither rotates nor is held, so the side rail buys nothing
     /// there and the bottom bar is the convention.

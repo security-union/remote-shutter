@@ -93,12 +93,19 @@ public class MonitorViewController: UIViewController {
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // The bar stays *present* but is made fully transparent, so the preview
+        // iOS: the bar stays *present* but fully transparent, so the preview
         // still runs edge to edge behind it. Hiding it instead costs the
         // interactive swipe-back gesture, which UIKit disables along with the
         // bar; keeping it means Back and the swipe are both the system's own.
+        //
+        // Catalyst does not render this bar, and a Mac has no swipe to protect,
+        // so there it stays hidden and MonitorView draws its own chevron.
+        #if targetEnvironment(macCatalyst)
+        self.navigationController?.setNavigationBarHidden(true, animated: animated)
+        #else
         self.navigationController?.setNavigationBarHidden(false, animated: animated)
         makeNavigationBarTransparent()
+        #endif
         navigationItem.title = nil
         syncInterfaceOrientation()
     }
