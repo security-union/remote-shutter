@@ -324,7 +324,6 @@ struct MonitorView: View {
                                         size: 44,
                                         glyphSize: 20,
                                         isEnabled: viewModel.isGalleryEnabled,
-                                        usesSolidFill: true,
                                         action: onGalleryTapped)
         let shutter = ShutterButton(uiState: viewModel.uiState,
                                     isRecording: viewModel.isRecording,
@@ -560,13 +559,7 @@ struct GlassCircleButton: View {
     let glyphSize: CGFloat
     var isActive: Bool = false
     let isEnabled: Bool
-    /// Opaque fill instead of the usual material. Only the gallery button sets
-    /// this — it is the one instance that does not respond to clicks on macOS,
-    /// and this isolates the fill as the single variable under test.
-    var usesSolidFill: Bool = false
     let action: () -> Void
-
-    static let solidFill = Color(white: 0.18)
 
     var body: some View {
         Button(action: action) {
@@ -574,13 +567,9 @@ struct GlassCircleButton: View {
                 .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundColor(tint)
                 .frame(width: size, height: size)
-                .background(Circle().fill(background))
+                .background(Circle().fill(.ultraThinMaterial))
         }
         .disabled(!isEnabled)
-    }
-
-    private var background: AnyShapeStyle {
-        usesSolidFill ? AnyShapeStyle(Self.solidFill) : AnyShapeStyle(.ultraThinMaterial)
     }
 
     private var tint: Color {
@@ -1018,10 +1007,8 @@ struct CameraSwitchControlView: View, Equatable {
 
     private var switchIcon: some View {
         ZStack {
-            // Opaque, matching the gallery button: the fill is the variable
-            // under test.
             Circle()
-                .fill(GlassCircleButton.solidFill)
+                .fill(.ultraThinMaterial)
                 .frame(width: 44, height: 44)
             Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
                 .font(.system(size: 19, weight: .semibold))
