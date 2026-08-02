@@ -110,6 +110,45 @@ English callout text (CAMERA, REMOTE, …) to the localized pill text.
   whatever `AVCaptureDevice.localizedName` returns, so a capture made against a
   USB webcam has to have that chip blanked.
 
+## Changing a scene
+
+Every image `manifest.js` renders traces back to a recorded recipe in
+`generate.mjs`, so a scene can be changed rather than reverse-engineered:
+
+```bash
+node generate.mjs derive            # list every recipe + coverage check
+node generate.mjs derive slot3_preview.jpg --as try.jpg   # remake, don't clobber
+```
+
+Three kinds of recipe:
+
+- **`PROMPTS`** — the base scenes. `CHOSEN` records which candidate the manifest
+  kept, since `node generate.mjs <id> N` writes `<id>_c1..cN`.
+- **`DERIVED`** — the "what the camera sees" previews and the edits that fixed a
+  scene's staging (a phone rotated to portrait, a feeder moved outside a window).
+- **crops** — exact boxes, recovered by matching each committed crop against its
+  parent.
+
+`node generate.mjs derive` with no argument also checks that every manifest
+reference has a recipe, and exits non-zero if one doesn't. Add a scene, add its
+recipe — otherwise the gap stays invisible until someone tries to change it.
+
+**The `DERIVED` prompts are reconstructions.** The originals were typed as argv
+strings and never recorded; these were rebuilt by reading the committed images.
+They produce an equivalent asset, not the same pixels — the model is not
+deterministic. Always `--as` and compare before overwriting.
+
+Worked example — swapping the cardinal for another animal:
+
+1. Edit the `slot3_ots`, `slot3_ipad` and `mac3_direct` prompts in `PROMPTS`.
+2. `node generate.mjs slot3_ots 3`, pick a candidate, update `CHOSEN`.
+3. Re-run the staging edits that sit on top (`slot3_ots_c1p`, `mac3_direct_e1`).
+4. Re-measure the quads — the phone lands somewhere new. `tools.py detect`, then
+   ALWAYS `tools.py overlay` to check.
+5. Re-run the previews (`slot3_preview`, `mac3_preview`, `mac3_preview_port`)
+   so the remote screens show the same animal the in-scene camera is pointed at.
+6. `./ship-locales.sh`.
+
 ## Adding a new screenshot (the Claude workflow)
 
 This pipeline was built with Claude Code and is easiest to extend the same way.
@@ -127,13 +166,15 @@ Example prompts that work well:
 What Claude does under the hood (or do it manually):
 
 1. **Generate the scene** — add a prompt to `generate.mjs` (`PROMPTS`), run
-   `node generate.mjs <sceneId> 2`. Scenes must show device screens *black/off*,
-   subjects in the upper two thirds, no logos (reject candidates with Apple logos).
-   Requires a Google AI Studio key in `AI_STUDIO`.
+   `node generate.mjs <sceneId> 2`, then record the candidate you keep in
+   `CHOSEN`. Scenes must show device screens *black/off*, subjects in the upper
+   two thirds, no logos (reject candidates with Apple logos). Requires a Google
+   AI Studio key in `AI_STUDIO`.
 2. **Derive the preview** — what the camera device sees, seeded from the scene
-   itself for consistency: `node generate.mjs edit "<scene>,<crop>" out.jpg "<prompt>"`.
-   Crop the subject with `python3 tools.py crop` and pass it as the second
-   reference so pose/orientation match exactly.
+   itself for consistency. Add a `DERIVED` entry and run
+   `node generate.mjs derive <out.jpg>`; use `edit` only while you are still
+   iterating on the wording. Crop the subject with `python3 tools.py crop` and
+   pass it as a second reference so pose/orientation match exactly.
 3. **Find the screen quads** — `python3 tools.py detect <scene> X0 Y0 X1 Y1`,
    then ALWAYS verify with `python3 tools.py overlay <scene> TLx TLy ... --out q.png`.
    AI-image device edges bow slightly: trust locally-measured corners over global
