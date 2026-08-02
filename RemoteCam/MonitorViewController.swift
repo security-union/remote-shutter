@@ -135,7 +135,10 @@ public class MonitorViewController: UIViewController {
                 }
             })
         let host = UIHostingController(rootView: controls)
+        // Both: a hosting controller's view is opaque by default, which would
+        // put a solid rectangle behind the capsule in the bar.
         host.view.backgroundColor = .clear
+        host.view.isOpaque = false
         // Let Auto Layout ask SwiftUI for the size: the capsule is narrower in
         // video mode, where the flash glyph drops out.
         host.view.translatesAutoresizingMaskIntoConstraints = false
@@ -151,10 +154,23 @@ public class MonitorViewController: UIViewController {
         let transparent = UINavigationBarAppearance()
         transparent.configureWithTransparentBackground()
         transparent.backgroundColor = .clear
+        transparent.backgroundEffect = nil
         transparent.shadowColor = .clear
         bar.standardAppearance = transparent
         bar.scrollEdgeAppearance = transparent
         bar.compactAppearance = transparent
+        // The one used in landscape on iPhone. Left unset it falls back to the
+        // default opaque background, so the bar goes solid when you rotate.
+        if #available(iOS 15.0, *) {
+            bar.compactScrollEdgeAppearance = transparent
+        }
+        bar.isTranslucent = true
+        bar.setBackgroundImage(UIImage(), for: .default)
+        bar.shadowImage = UIImage()
+
+        // Chevron only: the destination is a viewfinder, and "Disconnect" as a
+        // back title read as a button rather than as where you came from.
+        navigationItem.backButtonDisplayMode = .minimal
         // The viewfinder is dark in every state, so the back chevron and its
         // title are always white rather than following the tint.
         bar.tintColor = .white
@@ -188,6 +204,14 @@ public class MonitorViewController: UIViewController {
             bar.standardAppearance = saved.standard
             bar.scrollEdgeAppearance = saved.scrollEdge
             bar.compactAppearance = nil
+            if #available(iOS 15.0, *) {
+                bar.compactScrollEdgeAppearance = nil
+            }
+            // Undo the legacy overrides too, or the next screen inherits a
+            // transparent bar.
+            bar.setBackgroundImage(nil, for: .default)
+            bar.shadowImage = nil
+            bar.isTranslucent = true
             bar.tintColor = saved.tint
             savedBarAppearance = nil
         }
