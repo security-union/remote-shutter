@@ -71,6 +71,11 @@ struct MonitorView: View {
                 PeerLinkOverlay(status: peerLink)
             }
         }
+        // Every control here draws its own shape. Catalyst's default button
+        // style paints a bordered box behind them, which showed as rectangles
+        // around the shutter, gallery and flip. Set once at the root so no
+        // control has to remember.
+        .buttonStyle(.plain)
         .onPreferenceChange(PreviewSizePreferenceKey.self) { previewSize = $0 }
         .statusBarHidden()
     }
@@ -86,16 +91,10 @@ struct MonitorView: View {
         #endif
     }
 
-    /// The Mac's window toolbar already owns Back; a floating chevron would
-    /// duplicate it. Every other platform hides the nav bar for the viewfinder
-    /// and needs its own way out.
-    private static var showsFloatingBackButton: Bool {
-        #if targetEnvironment(macCatalyst)
-        false
-        #else
-        true
-        #endif
-    }
+    /// The viewfinder hides the nav bar on every platform, and the Mac window
+    /// has no toolbar Back of its own, so the floating chevron is the only way
+    /// out everywhere.
+    private static let showsFloatingBackButton = true
 
     /// A Mac window neither rotates nor is held, so the side rail buys nothing
     /// there and the bottom bar is the convention.
