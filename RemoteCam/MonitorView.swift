@@ -52,7 +52,8 @@ struct MonitorView: View {
 
                 chrome(dock: MonitorChromeLayout.dock(
                     viewSize: geometry.size,
-                    interfaceOrientation: viewModel.interfaceOrientation))
+                    interfaceOrientation: viewModel.interfaceOrientation,
+                    input: Self.chromeInput))
 
                 if isTrayOpen {
                     trayLayer
@@ -93,6 +94,16 @@ struct MonitorView: View {
         false
         #else
         true
+        #endif
+    }
+
+    /// A Mac window neither rotates nor is held, so the side rail buys nothing
+    /// there and the bottom bar is the convention.
+    private static var chromeInput: MonitorChromeInput {
+        #if targetEnvironment(macCatalyst)
+        .pointer
+        #else
+        .touch
         #endif
     }
 
@@ -289,6 +300,8 @@ struct MonitorView: View {
         HStack(alignment: .bottom, spacing: 16) {
             if onLeading { actionCluster(axis: .vertical) }
 
+            // Takes the slack so the action cluster lands on the edge rather
+            // than floating in the middle of a wide window.
             VStack(spacing: 10) {
                 Spacer(minLength: 0)
                 activeCameraCaption
@@ -299,6 +312,7 @@ struct MonitorView: View {
                     modeSelector
                 }
             }
+            .frame(maxWidth: .infinity)
 
             if !onLeading { actionCluster(axis: .vertical) }
         }

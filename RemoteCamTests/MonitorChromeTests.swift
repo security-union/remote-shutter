@@ -16,8 +16,19 @@ final class MonitorChromeTests: XCTestCase {
     // MARK: - Dock
 
     private func dock(_ size: CGSize,
-                      _ orientation: UIInterfaceOrientation = .portrait) -> MonitorChromeDock {
-        MonitorChromeLayout.dock(viewSize: size, interfaceOrientation: orientation)
+                      _ orientation: UIInterfaceOrientation = .portrait,
+                      _ input: MonitorChromeInput = .touch) -> MonitorChromeDock {
+        MonitorChromeLayout.dock(viewSize: size,
+                                 interfaceOrientation: orientation,
+                                 input: input)
+    }
+
+    /// The rail exists so rotation doesn't move the shutter under a thumb. A
+    /// pointer-driven window has neither, and Catalyst reports .landscapeRight
+    /// permanently — without this it would rail forever.
+    func testPointerDrivenWindowAlwaysDocksBottom() {
+        XCTAssertEqual(dock(CGSize(width: 1440, height: 900), .landscapeRight, .pointer), .bottom)
+        XCTAssertEqual(dock(CGSize(width: 1440, height: 900), .landscapeLeft, .pointer), .bottom)
     }
 
     func testPortraitPhoneDocksBottom() {

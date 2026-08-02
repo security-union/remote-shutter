@@ -18,6 +18,14 @@ enum MonitorChromeDock: Equatable {
     case trailing
 }
 
+/// How the screen is driven. The rail exists so a rotating device doesn't move
+/// the shutter out from under a thumb; a pointer-driven window neither rotates
+/// nor has a thumb, so it keeps the conventional bottom bar.
+enum MonitorChromeInput: Equatable {
+    case touch
+    case pointer
+}
+
 /// Layout policy. Shape decides whether to dock on a rail — a size-class rule
 /// would bottom-dock iPhone landscape, which is compact width. Orientation
 /// decides which rail: the cluster stays on the home-indicator edge so the
@@ -25,7 +33,9 @@ enum MonitorChromeDock: Equatable {
 enum MonitorChromeLayout {
 
     static func dock(viewSize: CGSize,
-                     interfaceOrientation: UIInterfaceOrientation) -> MonitorChromeDock {
+                     interfaceOrientation: UIInterfaceOrientation,
+                     input: MonitorChromeInput = .touch) -> MonitorChromeDock {
+        guard input == .touch else { return .bottom }
         guard viewSize.width > viewSize.height else { return .bottom }
         // Interface orientation is the inverse of device orientation.
         return interfaceOrientation == .landscapeLeft ? .leading : .trailing
