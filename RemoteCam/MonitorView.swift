@@ -561,20 +561,17 @@ struct GlassCircleButton: View {
     let isEnabled: Bool
     let action: () -> Void
 
+    /// Opaque on purpose. Shared with the camera-switch glyph so the two match.
+    static let fill = Color(white: 0.18)
+
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundColor(tint)
                 .frame(width: size, height: size)
-                // A material fill does not hit-test; a colour fill does, even at
-                // an opacity you cannot see. Without this the target is only
-                // where the glyph draws.
-                .background(
-                    Circle()
-                        .fill(Color.white.opacity(0.02))
-                        .background(Circle().fill(.ultraThinMaterial))
-                )
+                // Fully opaque, no material: a material fill does not hit-test.
+                .background(Circle().fill(Self.fill))
                 .contentShape(Circle())
         }
         // Outside the Button too: the inner shape only covers the label, and the
@@ -1025,10 +1022,9 @@ struct CameraSwitchControlView: View, Equatable {
 
     private var switchIcon: some View {
         ZStack {
-            // See GlassCircleButton: the material fill alone does not hit-test.
+            // Opaque, matching GlassCircleButton: material does not hit-test.
             Circle()
-                .fill(Color.white.opacity(0.02))
-                .background(Circle().fill(.ultraThinMaterial))
+                .fill(GlassCircleButton.fill)
                 .frame(width: 44, height: 44)
             Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
                 .font(.system(size: 19, weight: .semibold))
