@@ -403,6 +403,7 @@ struct MonitorView: View {
                 .background(
                     Capsule().fill(isActive ? Color.white.opacity(0.16) : Color.clear)
                 )
+                .contentShape(Capsule())
         }
     }
 
@@ -566,6 +567,7 @@ struct GlassCircleButton: View {
                 .foregroundColor(tint)
                 .frame(width: size, height: size)
                 .background(Circle().fill(.ultraThinMaterial))
+                .contentShape(Circle())
         }
         .disabled(!isEnabled)
     }
@@ -629,6 +631,7 @@ struct ControlCapsule: View, Equatable {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(isEnabled ? (isActive ? AppTheme.accent : .white) : .white.opacity(0.35))
                 .frame(width: 38, height: 34)
+                .contentShape(Rectangle())
         }
         .disabled(!isEnabled)
     }
@@ -685,6 +688,8 @@ struct ShutterButton: View, Equatable {
                     ShutterActivityRing()
                 }
             }
+            .frame(width: Self.diameter, height: Self.diameter)
+            .contentShape(Circle())
         }
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.5)
@@ -834,6 +839,7 @@ struct MonitorTrayTile: View {
                     .tracking(0.5)
                     .foregroundColor(isEnabled ? .white.opacity(0.6) : .white.opacity(0.3))
             }
+            .contentShape(Rectangle())
         }
         .disabled(!isEnabled)
     }
@@ -1011,6 +1017,7 @@ struct CameraSwitchControlView: View, Equatable {
                 .animation(.easeInOut(duration: 0.35), value: isSwitching)
         }
         .frame(width: 44, height: 44)
+        .contentShape(Circle())
     }
 }
 
