@@ -566,7 +566,14 @@ struct GlassCircleButton: View {
                 .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundColor(tint)
                 .frame(width: size, height: size)
-                .background(Circle().fill(.ultraThinMaterial))
+                // A material fill does not hit-test; a colour fill does, even at
+                // an opacity you cannot see. Without this the target is only
+                // where the glyph draws.
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.001))
+                        .background(Circle().fill(.ultraThinMaterial))
+                )
                 .contentShape(Circle())
         }
         // Outside the Button too: the inner shape only covers the label, and the
@@ -1017,8 +1024,10 @@ struct CameraSwitchControlView: View, Equatable {
 
     private var switchIcon: some View {
         ZStack {
+            // See GlassCircleButton: the material fill alone does not hit-test.
             Circle()
-                .fill(.ultraThinMaterial)
+                .fill(Color.white.opacity(0.001))
+                .background(Circle().fill(.ultraThinMaterial))
                 .frame(width: 44, height: 44)
             Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
                 .font(.system(size: 19, weight: .semibold))
