@@ -286,6 +286,10 @@ struct MonitorView: View {
     }
 
     /// Portrait and other tall shapes: everything stacks across the bottom.
+    ///
+    /// Full width on purpose. A stack sizes to its widest child, and children
+    /// wider than that draw outside its bounds but stop receiving clicks there
+    /// — which left a centred live band and killed the outer buttons.
     private var bottomCluster: some View {
         VStack(spacing: 14) {
             ZoomPill(scale: viewModel.zoomScale,
@@ -294,6 +298,7 @@ struct MonitorView: View {
             actionCluster(axis: .horizontal)
             modeSelector
         }
+        .frame(maxWidth: .infinity)
     }
 
     /// Wide shapes: the action cluster rides the rail on the home-indicator side
@@ -341,26 +346,21 @@ struct MonitorView: View {
             onSelectCameraDevice: onSelectCameraDevice)
             .equatable()
 
-        // TEMPORARY DIAGNOSTIC — shutter and gallery are swapped.
-        // Back (top bar, material) works; gallery and switcher (outer items
-        // here, material) do not; shutter (centre, opaque) does. That leaves
-        // either the component or the position as the cause.
-        //   position  -> shutter breaks on the edge, gallery works in the centre
-        //   component -> gallery stays broken in the centre, shutter still works
-        // Revert this block either way once we know.
         return Group {
             if axis == .horizontal {
                 HStack(spacing: 40) {
-                    shutter
                     gallery
+                    shutter
                     switcher
                 }
+                .frame(maxWidth: .infinity)
             } else {
                 VStack(spacing: 24) {
-                    shutter
                     gallery
+                    shutter
                     switcher
                 }
+                .frame(maxHeight: .infinity)
             }
         }
     }
