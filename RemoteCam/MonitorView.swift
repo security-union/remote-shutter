@@ -267,6 +267,10 @@ struct MonitorView: View {
                                                          isPreviewStale: viewModel.isPreviewStale))
                     .equatable()
                     .padding(.leading, 8)
+                // Belongs with the other status, not floating over the middle
+                // of the picture the user is framing.
+                activeCameraCaption
+                    .padding(.leading, 8)
                 Spacer(minLength: 0)
                 ControlCapsule(showsFlash: viewModel.uiState == .photoMode,
                                isFlashEnabled: viewModel.isFlashEnabled,
@@ -285,7 +289,6 @@ struct MonitorView: View {
     /// Portrait and other tall shapes: everything stacks across the bottom.
     private var bottomCluster: some View {
         VStack(spacing: 14) {
-            activeCameraCaption
             ZoomPill(scale: viewModel.zoomScale,
                      currentZoomFactor: viewModel.currentZoomFactor,
                      onZoomChange: onZoomChange)
@@ -298,23 +301,21 @@ struct MonitorView: View {
     /// so it doesn't move when the device turns; zoom and mode stay low.
     private func sideCluster(onLeading: Bool) -> some View {
         HStack(alignment: .bottom, spacing: 16) {
+            if !onLeading { Spacer(minLength: 0) }
             if onLeading { actionCluster(axis: .vertical) }
 
-            // Takes the slack so the action cluster lands on the edge rather
-            // than floating in the middle of a wide window.
+            // Sits inboard of the rail, not adrift in the middle: one control
+            // zone on the docked edge instead of three scattered groups.
             VStack(spacing: 10) {
                 Spacer(minLength: 0)
-                activeCameraCaption
-                HStack(spacing: 16) {
-                    ZoomPill(scale: viewModel.zoomScale,
-                             currentZoomFactor: viewModel.currentZoomFactor,
-                             onZoomChange: onZoomChange)
-                    modeSelector
-                }
+                ZoomPill(scale: viewModel.zoomScale,
+                         currentZoomFactor: viewModel.currentZoomFactor,
+                         onZoomChange: onZoomChange)
+                modeSelector
             }
-            .frame(maxWidth: .infinity)
 
             if !onLeading { actionCluster(axis: .vertical) }
+            if onLeading { Spacer(minLength: 0) }
         }
     }
 
