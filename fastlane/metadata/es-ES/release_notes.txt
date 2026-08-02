@@ -1,14 +1,17 @@
-Una gran mejora en la conexión misma: el nuevo motor Stormo.
+El control remoto se rediseñó alrededor del visor: primero la imagen, los controles fuera de su camino.
 
-- Motor P2P Stormo con QUIC: el enlace entre dispositivos se reconstruyó sobre QUIC, el transporte detrás de HTTP/3
-- Conexión que se recupera sola: el emparejamiento es más rápido, la vista en vivo se mantiene estable y las caídas se recuperan solas
-- Cifrada con TLS 1.3 y siempre directa entre dispositivos: sin router ni red
-- Actualiza Remote Shutter en ambos dispositivos: las versiones anteriores no pueden emparejarse con esta
+- Vista en vivo a pantalla completa: la toma ahora llena la pantalla con los controles flotando encima, en lugar de una imagen pequeña apretada sobre un panel de botones
+- Modo horizontal: gira el control remoto de lado y la imagen se apodera de casi toda la pantalla
+- Diseño más ordenado: el temporizador, la proporción y la calidad se movieron a una bandeja a un toque de distancia, y cada mosaico muestra su ajuste actual de un vistazo
+- Estado de conexión claro: un indicador discreto confirma que la imagen está en vivo y avisa en cuanto la transmisión se detiene
+- Nada tapa tu toma: el progreso de la captura ahora aparece en el botón del obturador y no en una ventana sobre el encuadre que estás componiendo
+- Cámara en reposo: el dispositivo que hace de cámara puede apagar su propia pantalla en sesiones largas mientras sigue transmitiendo y capturando
 
 Agregado recientemente:
 
+- Motor P2P Stormo con QUIC: el enlace entre dispositivos se reconstruyó sobre QUIC, el transporte detrás de HTTP/3, cifrado con TLS 1.3 y siempre directo entre dispositivos, sin router ni red
+- Actualiza Remote Shutter en ambos dispositivos: las versiones anteriores no pueden emparejarse con esta
 - Toca para enfocar: toca la vista previa en vivo para fijar el enfoque y la exposición justo donde quieras, incluido con Pro
 - Video en tiempo real: una transmisión en vivo y fluida reemplaza las fotos fijas, para encuadrar cada toma sin esfuerzo
-- Control de zoom rediseñado: ajustes más finos y suaves desde el otro lado de la habitación
 - Tienda de Accesorios: explora tripiés, soportes y accesorios elegidos para tu equipo de cámara
 - Mejoras de estabilidad y rendimiento en toda la app

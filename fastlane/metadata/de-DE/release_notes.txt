@@ -1,14 +1,17 @@
-Ein großes Update für die Verbindung selbst: die neue Stormo-Engine.
+Die Fernbedienung ist rund um den Sucher neu gestaltet: das Bild zuerst, die Bedienelemente aus dem Weg.
 
-- Stormo P2P-Engine mit QUIC: Die Verbindung zwischen den Geräten basiert jetzt auf QUIC, dem Transport hinter HTTP/3
-- Selbstheilende Verbindung: Die Kopplung gelingt schneller, die Live-Vorschau bleibt stabil und Aussetzer beheben sich selbst
-- Mit TLS 1.3 verschlüsselt und weiterhin direkt von Gerät zu Gerät, ohne Router und ohne Netzwerk
-- Bitte aktualisieren Sie Remote Shutter auf beiden Geräten. Ältere Versionen können sich mit dieser Version nicht koppeln
+- Live-Vorschau im Vollbild: Die Aufnahme füllt jetzt den Bildschirm, die Bedienelemente schweben darüber, statt eines kleinen Bildes über einer Leiste voller Tasten
+- Querformat: Drehen Sie die Fernbedienung zur Seite, und das Bild übernimmt fast den gesamten Bildschirm
+- Aufgeräumtes Layout: Selbstauslöser, Seitenverhältnis und Qualität sind in ein Fach umgezogen, nur einen Tipp entfernt, und jede Kachel zeigt ihre aktuelle Einstellung
+- Klarer Verbindungsstatus: Eine dezente Anzeige bestätigt, dass das Bild live ist, und meldet sich, sobald der Stream stockt
+- Nichts verdeckt Ihre Aufnahme: Der Fortschritt erscheint jetzt auf dem Auslöser statt in einem Dialog über dem Bild, das Sie gerade gestalten
+- Kamera-Standby: Das Kameragerät kann seinen eigenen Bildschirm bei langen Aufnahmen ruhen lassen und überträgt und fotografiert dabei weiter
 
 Kürzlich hinzugefügt:
 
+- Stormo P2P-Engine mit QUIC: Die Verbindung zwischen den Geräten basiert auf QUIC, dem Transport hinter HTTP/3, mit TLS 1.3 verschlüsselt und weiterhin direkt von Gerät zu Gerät, ohne Router und ohne Netzwerk
+- Bitte aktualisieren Sie Remote Shutter auf beiden Geräten. Ältere Versionen können sich mit dieser Version nicht koppeln
 - Tippen zum Fokussieren: Tippen Sie auf die Live-Vorschau, um Fokus und Belichtung genau dort zu setzen, wo Sie sie haben möchten, in Pro enthalten
 - Echtzeit-Video: Ein flüssiger Live-Feed ersetzt Standbilder, sodass jede Aufnahme mühelos im Bild sitzt
-- Neu gestalteter Zoom-Regler: Feinere, geschmeidigere Steuerung quer durch den Raum
 - Zubehör-Shop: Entdecken Sie Stative, Halterungen und Zubehör, abgestimmt auf Ihr Kamera-Setup
 - Durchgehend verbesserte Zuverlässigkeit und Leistung

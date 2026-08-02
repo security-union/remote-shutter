@@ -1,14 +1,17 @@
-Bản nâng cấp lớn cho chính kết nối: động cơ Stormo mới.
+Điều khiển được thiết kế lại quanh khung ngắm: hình ảnh trước, các nút điều khiển tránh đường.
 
-- Động cơ P2P Stormo trên QUIC: kết nối giữa các thiết bị được xây lại trên QUIC, giao thức truyền tải đằng sau HTTP/3
-- Kết nối tự phục hồi: ghép nối nhanh hơn, xem trực tiếp ổn định hơn, và mất kết nối tự khôi phục
-- Mã hóa TLS 1.3 và vẫn kết nối trực tiếp giữa hai thiết bị, không cần router và không cần mạng
-- Hãy cập nhật Remote Shutter trên cả hai thiết bị. Các bản cũ không thể ghép nối với bản này
+- Xem trực tiếp toàn màn hình: khuôn hình giờ lấp đầy màn hình với các nút nổi lên trên, thay vì một khung hình nhỏ bị kẹp phía trên bảng nút
+- Hỗ trợ nằm ngang: xoay ngang điều khiển và hình ảnh chiếm gần trọn màn hình
+- Bố cục gọn gàng hơn: hẹn giờ, tỉ lệ khung hình và chất lượng chuyển vào một khay chỉ cách một lần chạm, mỗi ô hiển thị ngay thiết lập hiện tại
+- Trạng thái kết nối rõ ràng: một chỉ báo kín đáo xác nhận hình ảnh đang trực tiếp, và báo ngay khi luồng bị đứng
+- Không gì che khuôn hình: tiến trình chụp giờ hiện trên nút chụp thay vì một cửa sổ đè lên khuôn hình bạn đang dàn dựng
+- Máy ảnh chờ: thiết bị đóng vai máy ảnh có thể cho màn hình của nó nghỉ trong buổi chụp dài mà vẫn tiếp tục truyền hình ảnh và chụp
 
 Mới thêm gần đây:
 
-- Chạm để lấy nét: chạm vào bản xem trực tiếp để đặt lấy nét và phơi sáng đúng nơi bạn muốn (đi kèm với Pro)
-- Video thời gian thực: luồng trực tiếp mượt mà thay cho ảnh chụp tĩnh, giúp căn khung mọi khuôn hình thật dễ dàng
-- Thanh trượt thu phóng được thiết kế lại: điều khiển tinh tế và mượt mà hơn từ khắp căn phòng
-- Cửa hàng Phụ kiện: khám phá chân máy, giá đỡ và phụ kiện được chọn riêng cho bộ máy ảnh của bạn
-- Cải thiện độ tin cậy và hiệu suất trên toàn bộ ứng dụng
+- Động cơ P2P Stormo trên QUIC: kết nối giữa các thiết bị được xây lại trên QUIC, giao thức truyền tải đằng sau HTTP/3, mã hóa bằng TLS 1.3 và vẫn nối thẳng giữa hai thiết bị, không cần bộ định tuyến hay mạng
+- Vui lòng cập nhật Remote Shutter trên cả hai thiết bị. Phiên bản cũ không ghép nối được với phiên bản này
+- Chạm để lấy nét: chạm vào khung xem trực tiếp để đặt lấy nét và phơi sáng đúng nơi bạn muốn, có sẵn trong Pro
+- Video thời gian thực: luồng trực tiếp mượt mà thay cho ảnh tĩnh, để dàn khung mọi cảnh thật nhẹ nhàng
+- Cửa hàng Phụ kiện: khám phá chân máy, ngàm gắn và phụ kiện được chọn cho bộ máy của bạn
+- Cải thiện độ ổn định và hiệu năng trên toàn ứng dụng

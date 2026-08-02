@@ -1,14 +1,17 @@
-Peningkatan besar pada sambungan itu sendiri: enjin Stormo yang baharu.
+Alat kawalan jauh direka semula mengelilingi pembidik: gambar dahulu, kawalan ke tepi.
 
-- Enjin P2P Stormo atas QUIC: sambungan antara peranti dibina semula atas QUIC, pengangkutan di sebalik HTTP/3
-- Sambungan yang pulih sendiri: pemasangan lebih pantas, pratonton langsung kekal stabil, dan gangguan pulih sendiri
-- Disulitkan dengan TLS 1.3 dan masih terus antara peranti, tanpa penghala atau rangkaian
+- Pratonton langsung skrin penuh: gambar kini memenuhi skrin dengan kawalan terapung di atasnya, bukan lagi gambar kecil yang tersepit di atas panel butang
+- Sokongan landskap: pusingkan alat kawalan ke sisi dan gambar mengambil hampir seluruh skrin
+- Susun atur lebih kemas: pemasa kendiri, nisbah bidang dan kualiti berpindah ke dalam dulang sejauh satu ketikan, dan setiap jubin menunjukkan tetapan semasanya sepintas lalu
+- Status sambungan yang jelas: penunjuk yang tidak menonjol mengesahkan gambar itu langsung, dan memberitahu sebaik sahaja strim tersekat
+- Tiada apa menutup gambar anda: kemajuan tangkapan kini muncul pada butang pengatup, bukan tetingkap timbul di atas gambar yang sedang anda susun
+- Kamera tunggu sedia: peranti kamera boleh merehatkan skrinnya sendiri semasa penggambaran panjang sambil terus menstrim dan menangkap
+
+Ditambah baru-baru ini:
+
+- Enjin P2P Stormo atas QUIC: sambungan antara peranti dibina semula atas QUIC, pengangkutan di sebalik HTTP/3, disulitkan dengan TLS 1.3 dan tetap terus antara peranti, tanpa penghala dan tanpa rangkaian
 - Sila kemas kini Remote Shutter pada kedua-dua peranti. Versi lama tidak boleh berpasangan dengan versi ini
-
-Baharu ditambah:
-
-- Ketik untuk Fokus: ketik pratonton langsung untuk menetapkan fokus dan pendedahan tepat di tempat yang anda mahu, disertakan dengan Pro
-- Video masa nyata: suapan langsung yang lancar menggantikan gambar pegun, menjadikan setiap rangka syot mudah dilakukan
-- Peluncur zum yang direka bentuk semula: kawalan lebih halus dan lancar dari seberang bilik
-- Kedai Kelengkapan: layari tripod, dudukan dan aksesori yang dipilih khas untuk persediaan kamera anda
-- Penambahbaikan kebolehpercayaan dan prestasi menyeluruh
+- Ketik untuk fokus: ketik pratonton langsung untuk menetapkan fokus dan pendedahan tepat di tempat yang anda mahu, disertakan dengan Pro
+- Video masa nyata: suapan langsung yang lancar menggantikan gambar pegun, jadi mengatur setiap gambar jadi mudah
+- Kedai Peralatan: telusuri tripod, pelekap dan aksesori yang dipilih untuk persediaan kamera anda
+- Penambahbaikan kebolehpercayaan dan prestasi di seluruh aplikasi
