@@ -87,6 +87,11 @@ class MonitorViewModel: ObservableObject {
     /// answer that — both landscapes are the same shape.
     @Published var interfaceOrientation: UIInterfaceOrientation = .portrait
 
+    /// Whether the capture tray is showing. On the view model rather than as
+    /// private view state because on iOS the button that opens it lives in the
+    /// navigation bar, outside `MonitorView`.
+    @Published var isTrayOpen: Bool = false
+
     /// Which switch control the monitor shows for the peer's cameras.
     enum CameraSwitchControl {
         /// One camera — nothing to switch to.

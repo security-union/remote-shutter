@@ -105,9 +105,38 @@ public class MonitorViewController: UIViewController {
         #else
         self.navigationController?.setNavigationBarHidden(false, animated: animated)
         makeNavigationBarTransparent()
+        installNavigationBarControls()
         #endif
         navigationItem.title = nil
         syncInterfaceOrientation()
+    }
+
+    /// Retained: a `UIBarButtonItem(customView:)` does not own its hosting
+    /// controller, and without a strong reference the SwiftUI view stops
+    /// updating as soon as it is released.
+    private var navControlsHost: UIHostingController<MonitorNavControls>?
+
+    /// Puts the flash · torch · tray capsule in the bar rather than in the
+    /// chrome, so the strip the bar already occupies isn't spent twice.
+    private func installNavigationBarControls() {
+        guard navControlsHost == nil else { return }
+        let controls = MonitorNavControls(
+            viewModel: viewModel,
+            onToggleFlash: { [weak self] in self?.handleToggleFlash() },
+            onToggleTorch: { [weak self] in self?.handleToggleTorch() },
+            onToggleTray: { [weak self] in
+                guard let self else { return }
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                    self.viewModel.isTrayOpen.toggle()
+                }
+            })
+        let host = UIHostingController(rootView: controls)
+        host.view.backgroundColor = .clear
+        host.view.sizeToFit()
+        addChild(host)
+        host.didMove(toParent: self)
+        navControlsHost = host
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: host.view)
     }
 
     private func makeNavigationBarTransparent() {

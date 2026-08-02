@@ -180,11 +180,13 @@ extension MonitorViewController {
         session ! UICmd.ToggleCamera()
     }
     
-    private func handleToggleFlash() {
+    // Internal rather than private: the nav-bar capsule is built in
+    // MonitorViewController.swift, and `private` is file-scoped.
+    func handleToggleFlash() {
         session ! UICmd.ToggleFlash()
     }
-    
-    private func handleToggleTorch() {
+
+    func handleToggleTorch() {
         if StoreManager.shared.hasTorchFeature() {
             session ! UICmd.ToggleTorch()
         } else {
