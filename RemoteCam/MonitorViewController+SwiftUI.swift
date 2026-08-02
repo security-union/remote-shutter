@@ -312,29 +312,32 @@ extension MonitorViewController {
 // MARK: - SwiftUI Configuration Methods
 extension MonitorViewController {
     
+    // Nav-bar visibility is deliberately absent from every method below. It is a
+    // property of this screen, not of the capture mode: the viewfinder is
+    // full-bleed in all of them, so `viewWillAppear` hides the bar once and
+    // `viewWillDisappear` hands it back. These handlers used to each set it —
+    // three showed it, one hid it — which re-showed the bar right after
+    // `viewWillAppear` hid it and put a second Back button over the preview.
+
     func swiftUIConfigurePhotoMode() {
         viewModel.configurePhotoMode()
         viewModel.currentMode = .Photo
-        navigationController?.setNavigationBarHidden(false, animated: true)
         sendSyncMonitorSettings()
     }
 
     func swiftUIConfigureVideoMode() {
         viewModel.configureVideoMode()
         viewModel.currentMode = .Video
-        navigationController?.setNavigationBarHidden(false, animated: true)
         sendSyncMonitorSettings()
     }
 
     func swiftUIConfigureVideoRecording() {
         viewModel.configureVideoRecording()
-        navigationController?.setNavigationBarHidden(true, animated: true)
     }
 
     func swiftUIConfigureShortsMode() {
         viewModel.configureShortsMode()
         viewModel.currentMode = .Shorts
-        navigationController?.setNavigationBarHidden(false, animated: true)
         sendSyncMonitorSettings()
     }
     
