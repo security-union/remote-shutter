@@ -26,6 +26,14 @@ class SnapshotTestCase: XCTestCase {
         super.tearDown()
     }
 
+    /// Re-sizes the host window. For screens whose layout is a function of the
+    /// view's shape rather than of a size class — the monitor docks its action
+    /// cluster on `width > height` — portrait and landscape are genuinely
+    /// different renders and both need covering.
+    func setWindowSize(_ size: CGSize) {
+        window.frame = CGRect(origin: .zero, size: size)
+    }
+
     /// True when the last renderScreen call fell back to ImageRenderer
     /// (headless CI). ScrollView-rooted screens produce no content on that
     /// path — tests for such screens should skip pixel assertions when set.

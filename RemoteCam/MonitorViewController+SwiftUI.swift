@@ -38,6 +38,12 @@ extension MonitorViewController {
             onSettingsTapped: { [weak self] in
                 self?.handleSettingsTapped()
             },
+            onHelpTapped: { [weak self] in
+                self?.presentHelpSheet()
+            },
+            onBackTapped: { [weak self] in
+                self?.navigationController?.popViewController(animated: true)
+            },
             onZoomChange: { [weak self] factor in
                 self?.handleZoomChange(factor)
             },
@@ -52,9 +58,12 @@ extension MonitorViewController {
             },
             onFocusTap: { [weak self] point in
                 self?.handleFocusTap(point)
+            },
+            onToggleCameraStandby: { [weak self] in
+                self?.handleToggleCameraStandby()
             }
         )
-        
+
         self.swiftUIHostingController = embedSwiftUIView(monitorView)
     }
     
@@ -194,6 +203,14 @@ extension MonitorViewController {
         session ! UICmd.FocusAtPoint(x: Float(point.x), y: Float(point.y))
     }
 
+    /// Toggles the peer camera's local-preview mode. The coordinator gates the
+    /// send on the peer having advertised support, so a camera that predates the
+    /// feature simply ignores the tap.
+    private func handleToggleCameraStandby() {
+        let target: CameraPreviewMode = viewModel.cameraPreviewMode == .standby ? .on : .standby
+        session ! UICmd.SetCameraPreviewMode(mode: target)
+    }
+
     private func handleTimerChange(_ value: Int) {
         viewModel.timerSliderValue = Double(value)
         // UserDefaults persistence is now handled in the view model
@@ -295,29 +312,28 @@ extension MonitorViewController {
 // MARK: - SwiftUI Configuration Methods
 extension MonitorViewController {
     
+    // Nav-bar visibility is a property of this screen, not of the capture mode:
+    // viewWillAppear hides it, viewWillDisappear hands it back. Don't set it here.
+
     func swiftUIConfigurePhotoMode() {
         viewModel.configurePhotoMode()
         viewModel.currentMode = .Photo
-        navigationController?.setNavigationBarHidden(false, animated: true)
         sendSyncMonitorSettings()
     }
 
     func swiftUIConfigureVideoMode() {
         viewModel.configureVideoMode()
         viewModel.currentMode = .Video
-        navigationController?.setNavigationBarHidden(false, animated: true)
         sendSyncMonitorSettings()
     }
 
     func swiftUIConfigureVideoRecording() {
         viewModel.configureVideoRecording()
-        navigationController?.setNavigationBarHidden(true, animated: true)
     }
 
     func swiftUIConfigureShortsMode() {
         viewModel.configureShortsMode()
         viewModel.currentMode = .Shorts
-        navigationController?.setNavigationBarHidden(false, animated: true)
         sendSyncMonitorSettings()
     }
     

@@ -70,37 +70,58 @@ public class MonitorViewController: UIViewController {
     var buttonPrompt: String = ""
 
     // MARK: - Orientation Control
+
+    /// The monitor follows the hand that holds it.
+    ///
+    /// The camera device rotates freely, so a tripod-mounted camera is usually
+    /// landscape — and a portrait-locked monitor letterboxed that 16:9 frame
+    /// into a 393pt-wide column, leaving the picture at 26% of the screen.
+    /// Turning the remote to match puts it at ~82%. Nothing about capture is
+    /// coupled to this: frames arrive already rotated by the camera.
     override public var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return .portrait
+        return .allButUpsideDown
     }
-    
+
     override public var shouldAutorotate: Bool {
-        return false
+        return true
     }
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.navigationController?.setNavigationBarHidden(false, animated: animated)
-
+        // The viewfinder is full-bleed: Back is a floating chevron in the
+        // chrome and Help is a tray tile, so the nav bar has nothing left to
+        // carry. On Catalyst the window toolbar still owns Back — the SwiftUI
+        // side suppresses its own chevron there.
+        self.navigationController?.setNavigationBarHidden(true, animated: animated)
         navigationItem.title = nil
-        navigationController?.navigationBar.prefersLargeTitles = false
-
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithTransparentBackground()
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-        navigationController?.navigationBar.tintColor = .white
-
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "questionmark.circle"),
-            style: .plain,
-            target: self,
-            action: #selector(showHelpModal)
-        )
+        syncInterfaceOrientation()
     }
 
-    @objc private func showHelpModal() {
-        presentHelpSheet()
+    override public func viewWillTransition(to size: CGSize,
+                                            with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: { _ in
+            self.syncInterfaceOrientation()
+        })
+    }
+
+    /// Both landscapes are the same shape, so the view can't infer which rail
+    /// keeps the shutter on the device's home-indicator edge.
+    private func syncInterfaceOrientation() {
+        let orientation = view.window?.windowScene?.interfaceOrientation
+            ?? UIApplication.shared.connectedScenes
+                .compactMap { ($0 as? UIWindowScene)?.interfaceOrientation }
+                .first
+            ?? .portrait
+        if viewModel.interfaceOrientation != orientation {
+            viewModel.interfaceOrientation = orientation
+        }
+    }
+
+    override public func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // Hand the bar back to whatever screen comes next.
+        self.navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 
     override public func viewDidLoad() {
@@ -112,10 +133,18 @@ public class MonitorViewController: UIViewController {
 
         frameStreamReceiver.onImage = { [weak self] image in
             OperationQueue.main.addOperation {
+                // A frame arrived: whatever the watchdog thought, the stream is
+                // live again.
+                self?.viewModel.isPreviewStale = false
                 self?.updateCameraImageInViewModel(image)
             }
         }
         frameStreamReceiver.onStall = { [weak self] in
+            // Say so on screen. Re-requesting a frame silently left the user
+            // looking at a frozen picture with no way to tell it was frozen.
+            OperationQueue.main.addOperation {
+                self?.viewModel.isPreviewStale = true
+            }
             if let session = self?.session {
                 session ! UICmd.StreamStalled()
             }

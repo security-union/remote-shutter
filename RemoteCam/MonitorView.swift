@@ -3,14 +3,20 @@ import UIKit
 import Combine
 
 // MARK: - Monitor View
+
+/// The remote control's viewfinder.
+///
+/// The preview is the screen: everything else floats over it on translucent
+/// surfaces, and the set-once controls (timer, aspect, quality) live behind the
+/// tray button rather than occupying permanent rows. The action cluster docks to
+/// whichever edge the screen's *shape* makes cheap — see `MonitorChromeLayout`.
 struct MonitorView: View {
     @ObservedObject var viewModel: MonitorViewModel
     @State private var zoomAtGestureStart: CGFloat?
     /// Peer-link state; the reconnect overlay is a function of it.
     @ObservedObject var peerLink: PeerLinkStatus = .shared
 
-
-    // Callbacks to MonitorViewController for Actor integration
+    // Callbacks to MonitorViewController for session integration
     let onTakePicture: () -> Void
     let onToggleCamera: () -> Void
     let onSelectCameraDevice: (String) -> Void
@@ -20,6 +26,8 @@ struct MonitorView: View {
     let onModeChange: (RecordingMode) -> Void
     let onGalleryTapped: () -> Void
     let onSettingsTapped: () -> Void
+    let onHelpTapped: () -> Void
+    let onBackTapped: () -> Void
     let onZoomChange: (CGFloat) -> Void
     let onVideoQualityChange: (VideoResolution, VideoFrameRate) -> Void
     let onPhotoQualityChange: (PhotoFormat, HDRMode) -> Void
@@ -27,106 +35,100 @@ struct MonitorView: View {
     /// Tap-to-focus: the tap point normalized (0..1) in the displayed image,
     /// origin top-left. Not called for taps that land in the letterbox bars.
     let onFocusTap: (CGPoint) -> Void
+    /// Toggles the connected camera's local-preview mode (on ⇄ standby).
+    let onToggleCameraStandby: () -> Void
 
     /// The live focus reticle (view-space position + identity to re-trigger the
     /// animation on each tap). Local UI only — no round-trip to the camera.
     @State private var focusReticle: FocusReticle?
     /// The preview area's measured size, for tap → normalized-image mapping.
     @State private var previewSize: CGSize = .zero
+    @State private var isTrayOpen = false
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Color.black.ignoresSafeArea()
+                previewLayer
 
-                VStack(spacing: 0) {
-                    // MARK: - Camera Preview
-                    cameraPreviewSection
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                chrome(dock: MonitorChromeLayout.dock(
+                    viewSize: geometry.size,
+                    interfaceOrientation: viewModel.interfaceOrientation,
+                    input: Self.chromeInput))
 
-                    // MARK: - Controls Section
-                    controlsSection
-                        .background(Color.black.opacity(0.8))
+                if isTrayOpen {
+                    trayLayer
+                }
+
+                if viewModel.isVideoTransferring {
+                    VideoTransferProgressView(
+                        progress: viewModel.videoTransferProgress,
+                        transferSizeText: viewModel.videoTransferSizeText,
+                        transferSpeedText: viewModel.videoTransferSpeedText,
+                        isVisible: viewModel.isVideoTransferring
+                    )
                 }
 
                 PeerLinkOverlay(status: peerLink)
             }
         }
-        .ignoresSafeArea(edges: Self.topBleedEdges)
+        // Catalyst's default style paints a bordered box behind controls that
+        // already draw their own shape. Not .plain — that also drops the
+        // style's hit region, leaving material fills unclickable.
+        .buttonStyle(.borderless)
+        .onPreferenceChange(PreviewSizePreferenceKey.self) { previewSize = $0 }
         .statusBarHidden()
     }
 
-    /// iPhone/iPad draw the preview full-bleed under the notch/status bar.
-    /// The Mac's toolbar (Back button, window title) is opaque chrome — the
-    /// screen must never draw under it, or the active-camera label and timer
-    /// land on top of the Back button.
-    private static var topBleedEdges: Edge.Set {
+    /// iPhone/iPad draw the preview full-bleed under the notch and the home
+    /// indicator. The Mac's toolbar (Back button, window title) is opaque
+    /// chrome — the preview must never draw under it.
+    private static var previewBleedEdges: Edge.Set {
         #if targetEnvironment(macCatalyst)
         []
         #else
-        .top
+        .all
         #endif
     }
-    
-    // MARK: - Camera Preview Section
-    private var cameraPreviewSection: some View {
+
+    /// The viewfinder hides the nav bar on every platform, and the Mac window
+    /// has no toolbar Back of its own, so the floating chevron is the only way
+    /// out everywhere.
+    private static let showsFloatingBackButton = true
+
+    /// A Mac window neither rotates nor is held, so the side rail buys nothing
+    /// there and the bottom bar is the convention.
+    private static var chromeInput: MonitorChromeInput {
+        #if targetEnvironment(macCatalyst)
+        .pointer
+        #else
+        .touch
+        #endif
+    }
+
+    // MARK: - Preview layer
+
+    /// The image and everything that shares its coordinate space. Measured as
+    /// one unit so a tap maps to the same rect the frame is drawn in.
+    private var previewLayer: some View {
         ZStack {
-            // Camera preview background
             Color.black
-            
-            // Camera image with aspect ratio crop overlay. Its own view so
-            // the ~20fps frame stream re-renders ONLY this subtree — not the
-            // menu and the rest of the chrome.
+
+            // Its own view so the ~20fps frame stream re-renders ONLY this
+            // subtree — not the chrome.
             LiveFrameView(frames: viewModel.frames,
                           aspectRatio: viewModel.currentAspectRatio)
-            
-            // Which camera is driving the preview. Mac-only: choosing among several
-            // attached cameras is a Mac capability, so that's where the name earns its
-            // place. The iOS monitor sits inside a nav controller whose back button
-            // owns this corner — the label would render on top of it.
-            #if targetEnvironment(macCatalyst)
-            if let active = viewModel.remoteCameraDevices.first(where: { $0.isActive }) {
-                VStack {
-                    HStack {
-                        Text(active.localizedName)
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.9))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.black.opacity(0.45))
-                            .cornerRadius(6)
-                            .padding(.top, 20)
-                            .padding(.leading, 12)
-                        Spacer()
-                    }
-                    Spacer()
-                }
-                .allowsHitTesting(false)
-            }
-            #endif
+                // A stalled stream is a stale picture. Desaturating it says so
+                // continuously, where a badge alone can be missed.
+                .saturation(viewModel.isPreviewStale ? 0.25 : 1)
+                .opacity(viewModel.isPreviewStale ? 0.65 : 1)
+                .animation(.easeInOut(duration: 0.25), value: viewModel.isPreviewStale)
 
-            // Recording indicator with duration timer
-            if viewModel.isShowingRecordingDuration {
-                VStack {
-                    HStack {
-                        Spacer()
-                        RecordingTimer(
-                            startTime: viewModel.recordingStartTime,
-                            isRecording: viewModel.isRecording
-                        )
-                        .padding(.top, 20)
-                        .padding(.trailing, 20)
-                    }
-                    Spacer()
-                }
-            }
-
-            // Preview gestures live on this layer, which sits BELOW the
-            // interactive zoom pill (added next) so a tap on the pill is never
-            // stolen as a focus tap. Double tap toggles the camera; a single tap
-            // focuses (runs simultaneously so the reticle is instant — an
-            // exclusive gesture would stall it for the double-tap window); pinch
-            // zooms. The translation guard keeps drags/pinches from focusing.
+            // Preview gestures sit BELOW the interactive chrome, so a tap on a
+            // control is never stolen as a focus tap. Double tap toggles the
+            // camera; a single tap focuses (simultaneous so the reticle is
+            // instant — an exclusive gesture would stall it for the double-tap
+            // window); pinch zooms. The translation guard keeps drags and
+            // pinches from focusing.
             Color.clear
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
@@ -154,44 +156,16 @@ struct MonitorView: View {
                         }
                 )
 
-            zoomControls
+            focusReticleOverlay
 
-            // Video transfer progress overlay - positioned at center
-            if viewModel.isVideoTransferring {
-                VideoTransferProgressView(
-                    progress: viewModel.videoTransferProgress,
-                    transferSizeText: viewModel.videoTransferSizeText,
-                    transferSpeedText: viewModel.videoTransferSpeedText,
-                    isVisible: viewModel.isVideoTransferring
-                )
-            }
-            
-            // Flash status overlay
-            if !viewModel.flashStatus.isEmpty && viewModel.uiState == .photoMode {
-                VStack {
-                    HStack {
-                        Text(viewModel.flashStatus)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.black.opacity(0.6))
-                            .cornerRadius(8)
-                            .padding(.leading, 20)
-                            .padding(.top, 20)
-                        Spacer()
-                    }
-                    Spacer()
-                }
-            }
-
+            countdownOverlay
         }
         .background(
             GeometryReader { geo in
                 Color.clear.preference(key: PreviewSizePreferenceKey.self, value: geo.size)
             }
         )
-        .onPreferenceChange(PreviewSizePreferenceKey.self) { previewSize = $0 }
-        .overlay(focusReticleOverlay)
+        .ignoresSafeArea(edges: Self.previewBleedEdges)
     }
 
     /// The focus reticle, drawn in the preview's coordinate space. Non-interactive
@@ -202,6 +176,27 @@ struct MonitorView: View {
             FocusReticleView()
                 .id(reticle.id)
                 .position(reticle.point)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// The self-timer, centered and large. The capture happens across the room:
+    /// a subject walking into frame has to read this at a glance, which a digit
+    /// tucked inside the shutter never allowed.
+    @ViewBuilder
+    private var countdownOverlay: some View {
+        if viewModel.timerValue > 0 {
+            Text("\(viewModel.timerValue)")
+                .font(.system(size: 96, weight: .bold, design: .rounded))
+                .foregroundColor(AppTheme.accent)
+                // The number must read against whatever the camera is pointed
+                // at, including a bright wall. Two shadows — one tight for edge
+                // definition, one wide for separation — keep it legible without
+                // a backing plate smudging the frame the user is composing.
+                .shadow(color: .black.opacity(0.85), radius: 3)
+                .shadow(color: .black.opacity(0.55), radius: 16)
+                .id(viewModel.timerValue)
+                .transition(.scale(scale: 1.15).combined(with: .opacity))
                 .allowsHitTesting(false)
         }
     }
@@ -224,83 +219,235 @@ struct MonitorView: View {
             if focusReticle?.id == reticle.id { focusReticle = nil }
         }
     }
-    
-    // MARK: - Recording Indicator
-    // Note: Replaced with RecordingTimer component that includes duration
-    
-    // MARK: - Zoom & Lens Control
 
-    /// One detented pill drives both zoom and lens selection on every platform — tap a
-    /// stop to jump lenses, drag or scroll to zoom between them. It floats at the bottom
-    /// over the preview; pinch-to-zoom still works underneath it.
-    private var zoomControls: some View {
-        VStack {
-            Spacer()
+    // MARK: - Chrome
+
+    /// Everything that floats over the preview, arranged for the docked edge.
+    private func chrome(dock: MonitorChromeDock) -> some View {
+        VStack(spacing: 0) {
+            topBar
+
+            Spacer(minLength: 0)
+
+            switch dock {
+            case .bottom:
+                bottomCluster
+            case .leading:
+                sideCluster(onLeading: true)
+            case .trailing:
+                sideCluster(onLeading: false)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+    }
+
+    /// Back (leading) · recording timecode (centered) · state capsule (trailing).
+    private var topBar: some View {
+        ZStack {
+            if viewModel.isShowingRecordingDuration {
+                RecordingTimer(
+                    startTime: viewModel.recordingStartTime,
+                    isRecording: viewModel.isRecording
+                )
+            }
+
+            HStack(spacing: 0) {
+                if Self.showsFloatingBackButton {
+                    // 44pt with a 22pt chevron: the nav bar's own back button is
+                    // a 44pt target and its glyph reads at about this weight, so
+                    // leaving the viewfinder feels like the same control.
+                    GlassCircleButton(systemImage: "chevron.backward",
+                                      size: 44,
+                                      glyphSize: 22,
+                                      isEnabled: viewModel.isBackEnabled,
+                                      action: onBackTapped)
+                }
+                LinkChip(state: MonitorLinkState.resolve(link: peerLink.link,
+                                                         isPreviewStale: viewModel.isPreviewStale))
+                    .equatable()
+                    .padding(.leading, 8)
+                // Status, not an overlay on the picture being framed.
+                activeCameraCaption
+                    .padding(.leading, 8)
+                Spacer(minLength: 0)
+                ControlCapsule(showsFlash: viewModel.uiState == .photoMode,
+                               isFlashEnabled: viewModel.isFlashEnabled,
+                               isFlashButtonEnabled: viewModel.isFlashButtonEnabled,
+                               isTorchEnabled: viewModel.isTorchEnabled,
+                               isTorchButtonEnabled: viewModel.isTorchButtonEnabled,
+                               isTrayOpen: isTrayOpen,
+                               onToggleFlash: onToggleFlash,
+                               onToggleTorch: onToggleTorch,
+                               onToggleTray: toggleTray)
+                    .equatable()
+            }
+        }
+    }
+
+    /// Portrait and other tall shapes: everything stacks across the bottom.
+    /// Full width so no child sits outside its parent — SwiftUI draws those
+    /// but UIKit will not hit-test them.
+    private var bottomCluster: some View {
+        VStack(spacing: 14) {
             ZoomPill(scale: viewModel.zoomScale,
                      currentZoomFactor: viewModel.currentZoomFactor,
                      onZoomChange: onZoomChange)
-                .padding(.bottom, 24)
+            actionCluster(axis: .horizontal)
+            modeSelector
         }
+        .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Quality Controls
-    private var qualityControls: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                if viewModel.uiState == .videoMode {
-                    videoQualityButtons
-                } else if viewModel.uiState == .photoMode {
-                    photoQualityButtons
-                }
+    /// Wide shapes: the action cluster rides the rail on the home-indicator side
+    /// so it doesn't move when the device turns; zoom and mode stay low.
+    private func sideCluster(onLeading: Bool) -> some View {
+        HStack(alignment: .bottom, spacing: 16) {
+            if !onLeading { Spacer(minLength: 0) }
+            if onLeading { actionCluster(axis: .vertical) }
+
+            // Inboard of the rail: one control zone on the docked edge.
+            VStack(spacing: 10) {
+                Spacer(minLength: 0)
+                ZoomPill(scale: viewModel.zoomScale,
+                         currentZoomFactor: viewModel.currentZoomFactor,
+                         onZoomChange: onZoomChange)
+                modeSelector
             }
-            .padding(.horizontal, 20)
+
+            if !onLeading { actionCluster(axis: .vertical) }
+            if onLeading { Spacer(minLength: 0) }
         }
     }
 
+    /// Gallery · shutter · camera switch, laid out along `axis`.
+    private func actionCluster(axis: Axis) -> some View {
+        let gallery = GlassCircleButton(systemImage: "photo.on.rectangle.angled",
+                                        size: 44,
+                                        glyphSize: 20,
+                                        isEnabled: viewModel.isGalleryEnabled,
+                                        action: onGalleryTapped)
+        let shutter = ShutterButton(uiState: viewModel.uiState,
+                                    isRecording: viewModel.isRecording,
+                                    activity: viewModel.activity,
+                                    isEnabled: viewModel.isSegmentedControlEnabled || viewModel.isRecording,
+                                    action: onTakePicture)
+            .equatable()
+        let switcher = CameraSwitchControlView(
+            control: viewModel.cameraSwitchControl,
+            devices: viewModel.remoteCameraDevices,
+            activeDeviceID: viewModel.activeRemoteDeviceID,
+            isEnabled: viewModel.isToggleCameraEnabled,
+            isSwitching: viewModel.activity == .switchingCamera,
+            onToggleCamera: onToggleCamera,
+            onSelectCameraDevice: onSelectCameraDevice)
+            .equatable()
+
+        return Group {
+            if axis == .horizontal {
+                HStack(spacing: 40) {
+                    gallery
+                    shutter
+                    switcher
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                VStack(spacing: 24) {
+                    gallery
+                    shutter
+                    switcher
+                }
+                .frame(maxHeight: .infinity)
+            }
+        }
+    }
+
+    /// Which camera is driving the preview. Only meaningful when the peer has
+    /// more than one — a single-camera peer has nothing to disambiguate.
     @ViewBuilder
-    private var videoQualityButtons: some View {
-        // Resolution picker
-        if viewModel.supportedResolutions.count > 1 {
-            ForEach(viewModel.supportedResolutions, id: \.self) { resolution in
-                Button(action: {
-                    onVideoQualityChange(resolution, viewModel.currentVideoFrameRate)
-                }) {
-                    Text(resolution.displayName)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(viewModel.currentVideoResolution == resolution ? .black : .white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            viewModel.currentVideoResolution == resolution ?
-                            AppTheme.accent : Color.gray.opacity(0.3)
-                        )
-                        .cornerRadius(6)
-                }
-                .disabled(!viewModel.isQualityControlEnabled)
-            }
-
-            Divider()
-                .frame(height: 20)
-                .background(Color.gray.opacity(0.5))
+    private var activeCameraCaption: some View {
+        if viewModel.remoteCameraDevices.count > 1,
+           let active = viewModel.remoteCameraDevices.first(where: { $0.uniqueID == viewModel.activeRemoteDeviceID }) {
+            Text(active.localizedName)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.9))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(.ultraThinMaterial))
+                .allowsHitTesting(false)
         }
+    }
 
-        // FPS picker
-        ForEach(availableFrameRates, id: \.self) { rate in
-            Button(action: {
-                onVideoQualityChange(viewModel.currentVideoResolution, rate)
-            }) {
-                Text("\(rate.displayName) fps")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(viewModel.currentVideoFrameRate == rate ? .black : .white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        viewModel.currentVideoFrameRate == rate ?
-                        AppTheme.accent : Color.gray.opacity(0.3)
-                    )
-                    .cornerRadius(6)
+    // MARK: - Mode selector
+
+    private var modeSelector: some View {
+        HStack(spacing: 4) {
+            modeButton(title: NSLocalizedString("PHOTO", comment: "capture mode"), mode: .Photo)
+            modeButton(title: NSLocalizedString("VIDEO", comment: "capture mode"), mode: .Video)
+
+            if FeatureFlags.ENABLE_SHORTS_MODE {
+                modeButton(title: NSLocalizedString("SHORTS", comment: "capture mode"), mode: .Shorts)
             }
-            .disabled(!viewModel.isQualityControlEnabled)
+        }
+        .padding(4)
+        .background(Capsule().fill(.ultraThinMaterial))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+        .disabled(!viewModel.isSegmentedControlEnabled)
+    }
+
+    private func modeButton(title: String, mode: RecordingMode) -> some View {
+        let isActive = viewModel.currentMode == mode
+        return Button(action: { onModeChange(mode) }) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .tracking(0.5)
+                .foregroundColor(isActive ? AppTheme.accent : .white.opacity(0.75))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule().fill(isActive ? Color.white.opacity(0.16) : Color.clear)
+                )
+                .contentShape(Capsule())
+        }
+    }
+
+    // MARK: - Tray
+
+    private func toggleTray() {
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+            isTrayOpen.toggle()
+        }
+    }
+
+    private var trayLayer: some View {
+        ZStack(alignment: .bottom) {
+            // Near-invisible full-screen scrim: dismisses on tap without
+            // dimming the preview the user is still framing with. Must stay
+            // above 0.01 — UIKit does not hit-test at or below that.
+            Color.black.opacity(0.02)
+                .ignoresSafeArea()
+                .onTapGesture { toggleTray() }
+
+            MonitorTrayPanel(
+                items: MonitorTray.items(for: viewModel.uiState,
+                                         supportsHEIF: viewModel.supportsHEIF,
+                                         supportsHDR: viewModel.supportsHDR,
+                                         supportsCameraStandby: viewModel.supportsCameraStandby,
+                                         resolutionCount: viewModel.supportedResolutions.count,
+                                         frameRateCount: availableFrameRates.count),
+                timerValue: Int(viewModel.timerSliderValue),
+                aspectRatio: viewModel.currentAspectRatio,
+                resolution: viewModel.currentVideoResolution,
+                frameRate: viewModel.currentVideoFrameRate,
+                photoFormat: viewModel.currentPhotoFormat,
+                hdrMode: viewModel.currentHDRMode,
+                cameraPreviewMode: viewModel.cameraPreviewMode,
+                isQualityEnabled: viewModel.isQualityControlEnabled,
+                isTimerEnabled: viewModel.isTimerSliderEnabled,
+                isSettingsEnabled: viewModel.isSettingsEnabled,
+                onTap: handleTrayTap)
+                .transition(.move(edge: .bottom))
         }
     }
 
@@ -309,336 +456,426 @@ struct MonitorView: View {
         return (rates?.isEmpty == false) ? rates! : viewModel.supportedFrameRates
     }
 
-    @ViewBuilder
-    private var photoQualityButtons: some View {
-        // Format picker
-        if viewModel.supportsHEIF {
-            ForEach(PhotoFormat.selectableCases, id: \.self) { format in
-                Button(action: {
-                    onPhotoQualityChange(format, viewModel.currentHDRMode)
-                }) {
-                    Text(format.displayName)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(viewModel.currentPhotoFormat == format ? .black : .white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            viewModel.currentPhotoFormat == format ?
-                            AppTheme.accent : Color.gray.opacity(0.3)
-                        )
-                        .cornerRadius(6)
-                }
-                .disabled(!viewModel.isQualityControlEnabled)
-            }
+    /// Value tiles cycle in place and leave the tray open — you watch the glyph
+    /// change. Tiles that push a screen close it first.
+    private func handleTrayTap(_ item: MonitorTrayItem) {
+        switch item {
+        case .timer:
+            let next = MonitorTimer.next(after: Int(viewModel.timerSliderValue))
+            viewModel.timerSliderValue = Double(next)
+            onTimerChange(next)
 
-            Divider()
-                .frame(height: 20)
-                .background(Color.gray.opacity(0.5))
-        }
+        case .aspect:
+            onAspectRatioChange(Self.cycled(viewModel.currentAspectRatio, in: AspectRatio.selectableCases))
 
-        // HDR toggle
-        if viewModel.supportsHDR {
-            Button(action: {
-                let newHDR: HDRMode = viewModel.currentHDRMode == .on ? .off : .on
-                onPhotoQualityChange(viewModel.currentPhotoFormat, newHDR)
-            }) {
-                Text("HDR")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(viewModel.currentHDRMode == .on ? .black : .white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        viewModel.currentHDRMode == .on ?
-                        AppTheme.accent : Color.gray.opacity(0.3)
-                    )
-                    .cornerRadius(6)
-            }
-            .disabled(!viewModel.isQualityControlEnabled)
+        case .resolution:
+            onVideoQualityChange(Self.cycled(viewModel.currentVideoResolution, in: viewModel.supportedResolutions),
+                                 viewModel.currentVideoFrameRate)
+
+        case .frameRate:
+            onVideoQualityChange(viewModel.currentVideoResolution,
+                                 Self.cycled(viewModel.currentVideoFrameRate, in: availableFrameRates))
+
+        case .format:
+            onPhotoQualityChange(Self.cycled(viewModel.currentPhotoFormat, in: PhotoFormat.selectableCases),
+                                 viewModel.currentHDRMode)
+
+        case .hdr:
+            onPhotoQualityChange(viewModel.currentPhotoFormat,
+                                 viewModel.currentHDRMode == .on ? .off : .on)
+
+        case .cameraStandby:
+            // Stays open: the glyph reflects the camera's confirmed mode, so
+            // it is worth watching settle.
+            onToggleCameraStandby()
+
+        case .settings:
+            toggleTray()
+            onSettingsTapped()
+
+        case .help:
+            toggleTray()
+            onHelpTapped()
         }
     }
 
-    // MARK: - Controls Section
-    private var controlsSection: some View {
-        VStack(spacing: viewModel.areControlsExpanded ? 20 : 12) {
-            // Mode Selector + expand/collapse toggle
-            HStack {
-                modeSelector
-
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.areControlsExpanded.toggle()
-                    }
-                }) {
-                    Image(systemName: viewModel.areControlsExpanded ? "chevron.down" : "chevron.up")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
-                        .frame(width: 24, height: 24)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(4)
-                }
-            }
-
-            if viewModel.areControlsExpanded {
-                // Quality Controls (video: resolution + fps, photo: format + HDR)
-                if FeatureFlags.ENABLE_QUALITY_CONTROLS
-                    && (viewModel.uiState == .videoMode || viewModel.uiState == .photoMode) {
-                    qualityControls
-                }
-
-                // Timer Controls (only for Photo/Video modes)
-                if viewModel.uiState != .shortsMode {
-                    timerControls
-                }
-
-
-                // Aspect Ratio Controls
-                aspectRatioControls
-            }
-
-            // Main Action Buttons (always visible)
-            mainActionButtons
-
-            // Bottom Navigation (always visible)
-            bottomNavigation
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-    }
-    
-    // MARK: - Mode Selector
-    private var modeSelector: some View {
-        HStack(spacing: 0) {
-            modeButton(title: "Photo", mode: .Photo)
-            modeButton(title: "Video", mode: .Video)
-            
-            // Shorts mode - feature flagged
-            if FeatureFlags.ENABLE_SHORTS_MODE {
-                modeButton(title: "Shorts", mode: .Shorts)
-            }
-        }
-        .background(Color.gray.opacity(0.2))
-        .cornerRadius(8)
-        .disabled(!viewModel.isSegmentedControlEnabled)
-    }
-    
-    private func modeButton(title: String, mode: RecordingMode) -> some View {
-        Button(action: {
-            onModeChange(mode)
-        }) {
-            Text(title)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(viewModel.currentMode == mode ? .black : .white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(
-                    viewModel.currentMode == mode ?
-                    AppTheme.accent : Color.clear
-                )
-                .cornerRadius(6)
-        }
-    }
-    
-    // MARK: - Timer Controls
-    private var timerControls: some View {
-        HStack(spacing: 16) {
-            Text("Timer:")
-                .font(.system(size: 16))
-                .foregroundColor(.white)
-            
-            Slider(
-                value: Binding(
-                    get: { viewModel.timerSliderValue },
-                    set: { newValue in
-                        viewModel.timerSliderValue = newValue
-                        onTimerChange(Int(newValue))
-                    }
-                ),
-                in: 0...viewModel.maxTimerValue,
-                step: 1
-            )
-            .accentColor(AppTheme.accent)
-            .disabled(!viewModel.isTimerSliderEnabled)
-            
-            Text("\(Int(viewModel.timerSliderValue))s")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white)
-                .frame(width: 30)
-        }
-    }
-    
-    // MARK: - Aspect Ratio Controls
-    private var aspectRatioControls: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(AspectRatio.selectableCases, id: \.self) { ratio in
-                    Button(action: {
-                        onAspectRatioChange(ratio)
-                    }) {
-                        Text(ratio.displayName)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(viewModel.currentAspectRatio == ratio ? .black : .white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                viewModel.currentAspectRatio == ratio ?
-                                AppTheme.accent : Color.gray.opacity(0.3)
-                            )
-                            .cornerRadius(6)
-                    }
-                    .disabled(!viewModel.isQualityControlEnabled)
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-    
-    // MARK: - Main Action Buttons
-    private var mainActionButtons: some View {
-        HStack(spacing: 40) {
-            // Gallery Button
-            actionButton(
-                systemImage: "photo.on.rectangle",
-                action: onGalleryTapped,
-                isEnabled: viewModel.isGalleryEnabled
-            )
-            
-            // Main Action Button (Take Photo/Record Video)
-            mainActionButton
-            
-            // Camera switch control, isolated behind Equatable: it must not
-            // re-render (an open menu dismisses if rebuilt) unless the
-            // devices, active ID, or enabled state actually changed.
-            CameraSwitchControlView(
-                control: viewModel.cameraSwitchControl,
-                devices: viewModel.remoteCameraDevices,
-                activeDeviceID: viewModel.activeRemoteDeviceID,
-                isEnabled: viewModel.isToggleCameraEnabled,
-                onToggleCamera: onToggleCamera,
-                onSelectCameraDevice: onSelectCameraDevice
-            )
-            .equatable()
-        }
-    }
-    
-    private var mainActionButton: some View {
-        Button(action: onTakePicture) {
-            ZStack {
-                // Outer border (always white)
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 80, height: 80)
-                
-                // Main button styling based on mode and recording state
-                if viewModel.isRecording {
-                    // Recording: Red background with white stop square
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 70, height: 70)
-                    
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white)
-                        .frame(width: 22, height: 22)
-                } else if viewModel.uiState == .videoMode || viewModel.uiState == .shortsMode {
-                    // Video mode (not recording): Red circle ready to record
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 70, height: 70)
-                } else {
-                    // Photo mode: White with black inner border
-                    Circle()
-                        .stroke(Color.black, lineWidth: 3)
-                        .frame(width: 65, height: 65)
-                }
-                
-                // Show countdown number if timer is active
-                if viewModel.timerValue > 0 {
-                    Text("\(viewModel.timerValue)")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(viewModel.uiState == .photoMode ? .black : .white)
-                }
-            }
-        }
-        .disabled(!viewModel.isSegmentedControlEnabled && !viewModel.isRecording)
-    }
-    
-    private func actionButton(systemImage: String, action: @escaping () -> Void, isEnabled: Bool) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 24))
-                .foregroundColor(isEnabled ? .white : .gray)
-                .frame(width: 44, height: 44)
-        }
-        .disabled(!isEnabled)
-    }
-    
-    // MARK: - Bottom Navigation
-    private var bottomNavigation: some View {
-        HStack {
-            Spacer()
-
-            // Flash/Torch Controls (context-dependent)
-            if viewModel.uiState == .photoMode {
-                // Show both flash and torch for photo mode
-                HStack(spacing: 20) {
-                    flashButton
-                    torchButton
-                }
-            } else if viewModel.uiState == .videoMode || viewModel.uiState == .shortsMode {
-                torchButton
-            }
-
-            Spacer()
-
-            // Settings Button
-            Button(action: onSettingsTapped) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 20))
-                    .foregroundColor(.white)
-            }
-            .disabled(!viewModel.isSettingsEnabled)
-        }
-    }
-    
-    private var flashButton: some View {
-        Button(action: onToggleFlash) {
-            Image(systemName: viewModel.isFlashEnabled ? "bolt.fill" : "bolt.slash")
-                .font(.system(size: 20))
-                .foregroundColor(viewModel.isFlashEnabled ? .yellow : .white)
-        }
-        .disabled(!viewModel.isFlashButtonEnabled)
-    }
-    
-    private var torchButton: some View {
-        Button(action: onToggleTorch) {
-            Image(systemName: viewModel.isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill")
-                .font(.system(size: 20))
-                .foregroundColor(viewModel.isTorchEnabled ? .yellow : .white)
-        }
-        .disabled(!viewModel.isTorchButtonEnabled)
+    /// The next option after `current`, wrapping. Falls back to the first
+    /// option when the current value isn't among them (a capability list can
+    /// change under us when the peer swaps cameras).
+    static func cycled<T: Equatable>(_ current: T, in options: [T]) -> T {
+        guard let index = options.firstIndex(of: current) else { return options.first ?? current }
+        return options[(index + 1) % options.count]
     }
 }
 
-// MARK: - Preview
-struct MonitorView_Previews: PreviewProvider {
-    static var previews: some View {
-        MonitorView(
-            viewModel: MonitorViewModel(),
-            onTakePicture: {},
-            onToggleCamera: {},
-            onSelectCameraDevice: { _ in },
-            onToggleFlash: {},
-            onToggleTorch: {},
-            onTimerChange: { _ in },
-            onModeChange: { _ in },
-            onGalleryTapped: {},
-            onSettingsTapped: {},
-            onZoomChange: { _ in },
-            onVideoQualityChange: { _, _ in },
-            onPhotoQualityChange: { _, _ in },
-            onAspectRatioChange: { _ in },
-            onFocusTap: { _ in }
+// MARK: - Link chip
+
+/// The state of the picture, top-leading.
+///
+/// Quiet by design: a healthy link is one small dot, because a remote that
+/// shouts about being connected is noise. It earns words only when the picture
+/// on screen has stopped being trustworthy.
+struct LinkChip: View, Equatable {
+    let state: MonitorLinkState
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.state == rhs.state }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(dotColor)
+                .frame(width: 7, height: 7)
+
+            if let label {
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(0.5)
+                    .foregroundColor(.white)
+            }
+        }
+        .padding(.horizontal, label == nil ? 7 : 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(.ultraThinMaterial))
+        .allowsHitTesting(false)
+    }
+
+    private var dotColor: Color {
+        switch state {
+        case .live: return AppTheme.success
+        case .stalled, .reconnecting: return AppTheme.accent
+        }
+    }
+
+    private var label: String? {
+        switch state {
+        case .live: return nil
+        case .stalled: return NSLocalizedString("NO SIGNAL", comment: "preview stream stalled")
+        case .reconnecting: return NSLocalizedString("RECONNECTING", comment: "peer link dropped")
+        }
+    }
+}
+
+// MARK: - Glass circle button
+
+/// A translucent round button — the monitor's standard auxiliary control.
+struct GlassCircleButton: View {
+    let systemImage: String
+    let size: CGFloat
+    let glyphSize: CGFloat
+    var isActive: Bool = false
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: glyphSize, weight: .semibold))
+                .foregroundColor(tint)
+                .frame(width: size, height: size)
+                .background(Circle().fill(.ultraThinMaterial))
+        }
+        .disabled(!isEnabled)
+    }
+
+    private var tint: Color {
+        if !isEnabled { return .white.opacity(0.35) }
+        return isActive ? AppTheme.accent : .white
+    }
+}
+
+// MARK: - Control capsule
+
+/// The state-carrying toggles, top-trailing: flash (photo only), torch, and the
+/// tray button. `Equatable` over value inputs so the ~20fps frame stream — and
+/// any unrelated view-model change — cannot rebuild it.
+struct ControlCapsule: View, Equatable {
+    let showsFlash: Bool
+    let isFlashEnabled: Bool
+    let isFlashButtonEnabled: Bool
+    let isTorchEnabled: Bool
+    let isTorchButtonEnabled: Bool
+    let isTrayOpen: Bool
+    let onToggleFlash: () -> Void
+    let onToggleTorch: () -> Void
+    let onToggleTray: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.showsFlash == rhs.showsFlash
+            && lhs.isFlashEnabled == rhs.isFlashEnabled
+            && lhs.isFlashButtonEnabled == rhs.isFlashButtonEnabled
+            && lhs.isTorchEnabled == rhs.isTorchEnabled
+            && lhs.isTorchButtonEnabled == rhs.isTorchButtonEnabled
+            && lhs.isTrayOpen == rhs.isTrayOpen
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if showsFlash {
+                glyph(isFlashEnabled ? "bolt.fill" : "bolt.slash.fill",
+                      isActive: isFlashEnabled,
+                      isEnabled: isFlashButtonEnabled,
+                      action: onToggleFlash)
+            }
+            glyph(isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill",
+                  isActive: isTorchEnabled,
+                  isEnabled: isTorchButtonEnabled,
+                  action: onToggleTorch)
+            glyph("circle.grid.3x3.fill",
+                  isActive: isTrayOpen,
+                  isEnabled: true,
+                  action: onToggleTray)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(.ultraThinMaterial))
+    }
+
+    private func glyph(_ name: String, isActive: Bool, isEnabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: name)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(isEnabled ? (isActive ? AppTheme.accent : .white) : .white.opacity(0.35))
+                .frame(width: 38, height: 34)
+                .contentShape(Rectangle())
+        }
+        .disabled(!isEnabled)
+    }
+}
+
+// MARK: - Shutter
+
+/// The capture button, including what the camera is currently doing about it.
+/// In-flight feedback belongs on the control you pressed, not over the picture
+/// you are framing.
+struct ShutterButton: View, Equatable {
+    let uiState: MonitorUIState
+    let isRecording: Bool
+    let activity: MonitorActivity?
+    let isEnabled: Bool
+    let action: () -> Void
+
+    private static let diameter: CGFloat = 74
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.uiState == rhs.uiState
+            && lhs.isRecording == rhs.isRecording
+            && lhs.activity == rhs.activity
+            && lhs.isEnabled == rhs.isEnabled
+    }
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: Self.diameter, height: Self.diameter)
+
+                if isRecording {
+                    Circle()
+                        .fill(AppTheme.record)
+                        .frame(width: 64, height: 64)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white)
+                        .frame(width: 22, height: 22)
+                } else if uiState == .videoMode || uiState == .shortsMode {
+                    Circle()
+                        .fill(AppTheme.record)
+                        .frame(width: 64, height: 64)
+                } else {
+                    Circle()
+                        .stroke(Color.black.opacity(0.85), lineWidth: 3)
+                        .frame(width: 60, height: 60)
+                }
+
+                if isCaptureInFlight {
+                    ShutterActivityRing()
+                }
+            }
+            .frame(width: Self.diameter, height: Self.diameter)
+            .contentShape(Circle())
+        }
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.5)
+    }
+
+    /// Only capture states dim the shutter — a flash or lens change in flight
+    /// shows on its own control, not here.
+    private var isCaptureInFlight: Bool {
+        activity == .capturing || activity == .receivingCapture
+    }
+}
+
+/// A rotating arc drawn around the shutter while a capture is in flight.
+struct ShutterActivityRing: View {
+    @State private var spinning = false
+
+    var body: some View {
+        Circle()
+            .trim(from: 0, to: 0.28)
+            .stroke(AppTheme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            .frame(width: 86, height: 86)
+            .rotationEffect(.degrees(spinning ? 360 : 0))
+            .onAppear {
+                withAnimation(.linear(duration: 0.9).repeatForever(autoreverses: false)) {
+                    spinning = true
+                }
+            }
+    }
+}
+
+// MARK: - Tray panel
+
+/// The capture tray: the controls that earn a tap rather than a permanent row.
+struct MonitorTrayPanel: View {
+    let items: [MonitorTrayItem]
+    let timerValue: Int
+    let aspectRatio: AspectRatio
+    let resolution: VideoResolution
+    let frameRate: VideoFrameRate
+    let photoFormat: PhotoFormat
+    let hdrMode: HDRMode
+    /// The camera's *confirmed* mode, not local intent — the tile only lights
+    /// up once the peer has said so.
+    var cameraPreviewMode: CameraPreviewMode = .on
+    let isQualityEnabled: Bool
+    let isTimerEnabled: Bool
+    let isSettingsEnabled: Bool
+    let onTap: (MonitorTrayItem) -> Void
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Capsule()
+                .fill(Color.white.opacity(0.3))
+                .frame(width: 36, height: 5)
+
+            LazyVGrid(columns: columns, spacing: 20) {
+                ForEach(items, id: \.self) { item in
+                    MonitorTrayTile(item: item,
+                                    value: value(for: item),
+                                    isActive: isActive(item),
+                                    isEnabled: isEnabled(item),
+                                    action: { onTap(item) })
+                }
+            }
+        }
+        .padding(.top, 10)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 28)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .bottom)
         )
-        .preferredColorScheme(.dark)
+    }
+
+    /// The glyph's payload — each tile shows its own current value, which is
+    /// what lets it live behind a tap.
+    private func value(for item: MonitorTrayItem) -> String? {
+        switch item {
+        case .timer: return timerValue > 0 ? "\(timerValue)" : nil
+        case .aspect: return aspectRatio.displayName
+        case .resolution: return resolution.displayName
+        case .frameRate: return frameRate.displayName
+        case .format: return photoFormat.displayName
+        // Glyph-only: state is carried by the symbol.
+        case .hdr, .cameraStandby, .settings, .help: return nil
+        }
+    }
+
+    private func isActive(_ item: MonitorTrayItem) -> Bool {
+        switch item {
+        case .timer: return timerValue > 0
+        case .hdr: return hdrMode == .on
+        case .cameraStandby: return cameraPreviewMode == .standby
+        default: return false
+        }
+    }
+
+    private func isEnabled(_ item: MonitorTrayItem) -> Bool {
+        switch item {
+        case .timer: return isTimerEnabled
+        case .aspect, .resolution, .frameRate, .format, .hdr: return isQualityEnabled
+        // Not a capture setting: usable mid-recording.
+        case .cameraStandby: return true
+        case .settings: return isSettingsEnabled
+        case .help: return true
+        }
+    }
+}
+
+/// One tray tile: a circular glyph carrying its current value, over a caption.
+struct MonitorTrayTile: View {
+    let item: MonitorTrayItem
+    let value: String?
+    let isActive: Bool
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 56, height: 56)
+
+                    if let value {
+                        Text(value)
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .minimumScaleFactor(0.6)
+                            .lineLimit(1)
+                            .padding(.horizontal, 6)
+                    } else {
+                        Image(systemName: symbol)
+                            .font(.system(size: 22, weight: .semibold))
+                    }
+                }
+                .foregroundColor(tint)
+
+                Text(caption)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(0.5)
+                    .foregroundColor(isEnabled ? .white.opacity(0.6) : .white.opacity(0.3))
+            }
+            .contentShape(Rectangle())
+        }
+        .disabled(!isEnabled)
+    }
+
+    private var tint: Color {
+        if !isEnabled { return .white.opacity(0.3) }
+        return isActive ? AppTheme.accent : .white
+    }
+
+    private var symbol: String {
+        switch item {
+        case .timer: return "timer"
+        case .aspect: return "aspectratio"
+        case .resolution: return "rectangle.on.rectangle"
+        case .frameRate: return "speedometer"
+        case .format: return "doc"
+        case .hdr: return "camera.filters"
+        case .cameraStandby: return isActive ? "moon.zzz.fill" : "moon.zzz"
+        case .settings: return "gearshape.fill"
+        case .help: return "questionmark"
+        }
+    }
+
+    private var caption: String {
+        switch item {
+        case .timer: return NSLocalizedString("TIMER", comment: "tray tile")
+        case .aspect: return NSLocalizedString("ASPECT", comment: "tray tile")
+        case .resolution: return NSLocalizedString("QUALITY", comment: "tray tile")
+        case .frameRate: return NSLocalizedString("FPS", comment: "tray tile")
+        case .format: return NSLocalizedString("FORMAT", comment: "tray tile")
+        case .hdr: return NSLocalizedString("HDR", comment: "tray tile")
+        case .cameraStandby: return NSLocalizedString("STANDBY", comment: "tray tile")
+        case .settings: return NSLocalizedString("SETTINGS", comment: "tray tile")
+        case .help: return NSLocalizedString("HELP", comment: "tray tile")
+        }
     }
 }
 
@@ -731,6 +968,8 @@ struct CameraSwitchControlView: View, Equatable {
     let devices: [RemoteCmd.CameraDeviceEntry]
     let activeDeviceID: String?
     let isEnabled: Bool
+    /// A switch is in flight; the glyph says so.
+    var isSwitching: Bool = false
     let onToggleCamera: () -> Void
     let onSelectCameraDevice: (String) -> Void
 
@@ -739,6 +978,7 @@ struct CameraSwitchControlView: View, Equatable {
             && lhs.devices == rhs.devices
             && lhs.activeDeviceID == rhs.activeDeviceID
             && lhs.isEnabled == rhs.isEnabled
+            && lhs.isSwitching == rhs.isSwitching
     }
 
     var body: some View {
@@ -767,10 +1007,18 @@ struct CameraSwitchControlView: View, Equatable {
     }
 
     private var switchIcon: some View {
-        Image(systemName: "arrow.triangle.2.circlepath.camera")
-            .font(.system(size: 24))
-            .foregroundColor(isEnabled ? .white : .gray)
-            .frame(width: 44, height: 44)
+        ZStack {
+            Circle()
+                .fill(.ultraThinMaterial)
+                .frame(width: 44, height: 44)
+            Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundColor(isEnabled ? .white : .white.opacity(0.35))
+                .rotationEffect(.degrees(isSwitching ? 180 : 0))
+                .animation(.easeInOut(duration: 0.35), value: isSwitching)
+        }
+        .frame(width: 44, height: 44)
+        .contentShape(Circle())
     }
 }
 
@@ -878,5 +1126,33 @@ struct AspectRatioCropOverlay: View {
         } else {
             return CGSize(width: fittedSize.width, height: fittedSize.width / targetRatio)
         }
+    }
+}
+
+// MARK: - Preview
+
+struct MonitorView_Previews: PreviewProvider {
+    static var previews: some View {
+        MonitorView(
+            viewModel: MonitorViewModel(),
+            onTakePicture: {},
+            onToggleCamera: {},
+            onSelectCameraDevice: { _ in },
+            onToggleFlash: {},
+            onToggleTorch: {},
+            onTimerChange: { _ in },
+            onModeChange: { _ in },
+            onGalleryTapped: {},
+            onSettingsTapped: {},
+            onHelpTapped: {},
+            onBackTapped: {},
+            onZoomChange: { _ in },
+            onVideoQualityChange: { _, _ in },
+            onPhotoQualityChange: { _, _ in },
+            onAspectRatioChange: { _ in },
+            onFocusTap: { _ in },
+            onToggleCameraStandby: {}
+        )
+        .preferredColorScheme(.dark)
     }
 }

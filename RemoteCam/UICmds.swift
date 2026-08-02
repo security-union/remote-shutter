@@ -202,6 +202,24 @@ public class UICmd {
         }
     }
 
+    // MARK: - Camera Preview Mode Commands
+
+    /// Set the camera device's local-preview mode (on / standby). Role-directed
+    /// by whoever holds the coordinator:
+    /// - on the **camera** device it applies + persists the mode locally (a
+    ///   local toggle from the camera's own chrome), then reports back;
+    /// - on the **monitor** device it forwards to the camera peer as
+    ///   `RemoteCmd.SetCameraPreviewMode` (capability-gated).
+    /// Either way there is one persisted preference on the camera phone.
+    public class SetCameraPreviewMode: Message, @unchecked Sendable {
+        public let mode: CameraPreviewMode
+
+        public init(mode: CameraPreviewMode) {
+            self.mode = mode
+            super.init(sender: nil)
+        }
+    }
+
     public class SetZoomResp: Message, @unchecked Sendable {
         public let zoomFactor: CGFloat?
         public let currentLens: CameraLensType?

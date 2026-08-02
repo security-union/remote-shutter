@@ -35,6 +35,14 @@ enum LensSwitchReturn: Equatable {
 /// Theater machine as a compiler-checked case. Transient states carry their
 /// timeout generation; states whose "stack parent" varies carry where they
 /// return to.
+/// How far a monitor-initiated photo has got. The camera acks the shutter
+/// before the picture itself arrives, and the gap is long enough to matter:
+/// `.receiving` is the moment the subject can stop holding the pose.
+enum CapturePhase: Equatable {
+    case requesting
+    case receiving
+}
+
 enum SessionState: Equatable {
     case waitingForLobby
     case lobby
@@ -54,7 +62,7 @@ enum SessionState: Equatable {
 
     // Monitor family
     case monitor(mode: MonitorMode)
-    case monitorTakingPicture(generation: Int)
+    case monitorTakingPicture(generation: Int, phase: CapturePhase)
     case monitorTogglingFlash(generation: Int)
     case monitorTogglingCamera(mode: MonitorMode, generation: Int)
     case monitorSwitchingLens(returnTo: LensSwitchReturn, generation: Int)
@@ -203,6 +211,13 @@ public actor SessionCoordinator {
     /// Test support.
     func peerSupportsFocusPointForTesting() -> Bool { peerSupportsFocusPoint }
 
+    /// Whether the connected camera peer advertised preview-mode support in its
+    /// capabilities — the feature gate for `RemoteCmd.SetCameraPreviewMode`.
+    private var peerSupportsPreviewMode = false
+
+    /// Test support.
+    func peerSupportsPreviewModeForTesting() -> Bool { peerSupportsPreviewMode }
+
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
@@ -216,6 +231,12 @@ public actor SessionCoordinator {
     /// Test support: the old state-name vocabulary.
     func currentStateName() -> RemoteCamState {
         state.name
+    }
+
+    /// Test support: the full state, for assertions the name vocabulary cannot
+    /// express — a capture's `CapturePhase`, for one.
+    func currentState() -> SessionState {
+        state
     }
 
     /// Test support: place the machine directly into a state with context.
@@ -446,6 +467,9 @@ public actor SessionCoordinator {
         }
         state = newState
         publishWaitingOverlay()
+        // One write, at the one place state changes: an in-flight indicator
+        // cannot outlive the command it describes.
+        monitor?.setActivity(MonitorActivity.forState(newState))
         await didEnter(newState)
     }
 
@@ -523,6 +547,7 @@ public actor SessionCoordinator {
     func popToScanning() async {
         peerAdvertisedCameraDevices = false
         peerSupportsFocusPoint = false
+        peerSupportsPreviewMode = false
         monitorReceivedVP9Frame = false
         switch state {
         case .scanning:
@@ -562,7 +587,7 @@ public actor SessionCoordinator {
             await inCameraTransmittingVideo(msg)
         case .monitor(let mode):
             await inMonitor(msg, mode: mode)
-        case .monitorTakingPicture(let generation):
+        case .monitorTakingPicture(let generation, _):
             await inMonitorTakingPicture(msg, generation: generation)
         case .monitorTogglingFlash(let generation):
             await inMonitorToggling(msg, kind: .flash, mode: .photo, generation: generation)
@@ -788,6 +813,8 @@ public actor SessionCoordinator {
         switch msg {
         case let become as UICmd.BecomeCamera:
             ctrl = become.ctrl
+            // The standby screen shows who is driving the camera.
+            become.ctrl.cameraViewModel.setConnectedPeerName(peer?.displayName)
             await transition(to: .camera)
             await sendOrGoToScanning(RemoteCmd.PeerBecameCamera.createWithDefaults())
 
@@ -1235,7 +1262,11 @@ public actor SessionCoordinator {
         }
     }
 
-    // MARK: - Progress alerts (camera "Taking picture" and monitor transients)
+    // MARK: - Progress alerts (camera "Taking picture" only)
+    //
+    // Camera-side only. The monitor's in-flight feedback is `MonitorActivity`,
+    // drawn on the control the user pressed; a modal there would cover the
+    // preview they are framing with.
 
     private var alertHandle: AlertHandle?
 
@@ -1245,14 +1276,6 @@ public actor SessionCoordinator {
             OperationQueue.main.addOperation {
                 continuation.resume(returning: presenter.showAlert(title: title))
             }
-        }
-    }
-
-    private func updateCameraAlert(_ title: String) {
-        guard let handle = alertHandle else { return }
-        let presenter = alertPresenter
-        OperationQueue.main.addOperation {
-            presenter.updateAlert(handle, title: title)
         }
     }
 
@@ -1413,6 +1436,20 @@ public actor SessionCoordinator {
             // Forward capabilities to the connected monitor.
             await sendOrGoToScanning(capabilities)
 
+        case let cmd as RemoteCmd.SetCameraPreviewMode:
+            // Camera side: a monitor asked us to change the local preview mode.
+            await applyCameraPreviewMode(cmd.mode)
+
+        case let ui as UICmd.SetCameraPreviewMode:
+            // Camera side: a local toggle from this device's own chrome. (On a
+            // monitor this is handled by the monitor states before reaching here;
+            // `ctrl` is nil there, so `applyCameraPreviewMode` no-ops safely.)
+            await applyCameraPreviewMode(ui.mode)
+
+        case let resp as RemoteCmd.CameraPreviewModeResp:
+            // Monitor side: the camera reported its current preview mode.
+            monitor?.updatePreviewMode(resp.mode)
+
         case let retry as RetryCapabilities:
             await attemptToSendCapabilities(attempt: retry.attempt)
 
@@ -1448,6 +1485,16 @@ public actor SessionCoordinator {
         default:
             debugLog("SessionCoordinator: message not handled \(type(of: msg)) in state \(state.name)")
         }
+    }
+
+    /// Camera side: apply + persist the local preview mode and report it back to
+    /// the monitor. A no-op off the camera (no `ctrl`). The report is
+    /// best-effort (`sendMessage`, not `sendOrGoToScanning`): a local toggle
+    /// while briefly unlinked must never tear the session down.
+    private func applyCameraPreviewMode(_ mode: CameraPreviewMode) async {
+        guard let ctrl else { return }
+        await ctrl.setPreviewMode(mode)
+        sendMessage(RemoteCmd.CameraPreviewModeResp(mode: mode))
     }
 
     // MARK: - Video resource transfer (camera side)
@@ -1556,7 +1603,6 @@ public actor SessionCoordinator {
 
         case is UICmd.ToggleCamera:
             if sendMessage(RemoteCmd.ToggleCamera()) {
-                await showCameraAlert("Requesting camera toggle")
                 let generation = scheduleTimeout(.monitorTogglingCamera)
                 await transition(to: .monitorTogglingCamera(mode: mode, generation: generation))
             } else {
@@ -1569,7 +1615,6 @@ public actor SessionCoordinator {
                 break
             }
             if sendMessage(RemoteCmd.SelectCameraDevice(uniqueID: select.uniqueID)) {
-                await showCameraAlert(NSLocalizedString("Switching camera", comment: ""))
                 let generation = scheduleTimeout(.monitorTogglingCamera)
                 await transition(to: .monitorTogglingCamera(mode: mode, generation: generation))
             } else {
@@ -1578,7 +1623,6 @@ public actor SessionCoordinator {
 
         case is UICmd.ToggleFlash where mode == .photo:
             if sendMessage(RemoteCmd.ToggleFlash()) {
-                await showCameraAlert("Requesting flash toggle")
                 let generation = scheduleTimeout(.monitorTogglingFlash)
                 await transition(to: .monitorTogglingFlash(generation: generation))
             } else {
@@ -1598,9 +1642,8 @@ public actor SessionCoordinator {
             switch mode {
             case .photo:
                 if sendMessage(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: take.sendMediaToRemote)) {
-                    await showCameraAlert(NSLocalizedString("Requesting picture", comment: ""))
                     let generation = scheduleTimeout(.monitorTakingPicture)
-                    await transition(to: .monitorTakingPicture(generation: generation))
+                    await transition(to: .monitorTakingPicture(generation: generation, phase: .requesting))
                 } else {
                     await popToScanning()
                 }
@@ -1615,7 +1658,9 @@ public actor SessionCoordinator {
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
             peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
             peerSupportsFocusPoint = capabilities.supportsFocusPoint
+            peerSupportsPreviewMode = capabilities.supportsPreviewMode
             monitor?.updateCapabilities(capabilities)
+            monitor?.updatePreviewMode(capabilities.previewMode)
 
         case let zoom as UICmd.SetZoom:
             sendMessage(RemoteCmd.SetZoom(zoomFactor: zoom.zoomFactor))
@@ -1629,6 +1674,15 @@ public actor SessionCoordinator {
             }
             sendMessage(RemoteCmd.FocusAtPoint(x: focus.x, y: focus.y))
 
+        case let preview as UICmd.SetCameraPreviewMode:
+            // Wire-safety gate mirroring FocusAtPoint: never send action 24 to a
+            // peer that predates it (it would misread the unknown action).
+            guard peerSupportsPreviewMode else {
+                debugLog("SetCameraPreviewMode dropped: peer did not advertise preview-mode support")
+                break
+            }
+            sendMessage(RemoteCmd.SetCameraPreviewMode(mode: preview.mode))
+
         case let zoomResp as RemoteCmd.SetZoomResp:
             monitor?.updateZoom(zoomResp.zoomFactor, zoomRange: zoomResp.zoomRange, currentLens: zoomResp.currentLens)
 
@@ -1637,7 +1691,6 @@ public actor SessionCoordinator {
 
         case let lens as UICmd.SwitchLens:
             if sendMessage(RemoteCmd.SwitchLens(lensType: lens.lensType)) {
-                await showCameraAlert("Switching lens")
                 let generation = scheduleTimeout(.monitorSwitchingLens)
                 await transition(to: .monitorSwitchingLens(returnTo: .mode(mode), generation: generation))
             } else {
@@ -1693,11 +1746,12 @@ public actor SessionCoordinator {
         switch msg {
         case let timeout as UICmd.StateTimeout:
             guard timeout.stateName == .monitorTakingPicture && timeout.generation == generation else { break }
-            await dismissCameraAlert()
             await transition(to: .monitor(mode: .photo))
 
         case is RemoteCmd.TakePicAck:
-            updateCameraAlert(NSLocalizedString("Receiving picture", comment: ""))
+            // Same generation, so the armed 10s watchdog stays valid — this is
+            // an in-place phase swap, not a new request.
+            await transition(to: .monitorTakingPicture(generation: generation, phase: .receiving))
             // Quirk preserved from the old machine: the ack is echoed back to
             // the peers (the camera drops it via its root default).
             await sendOrGoToScanning(msg)
@@ -1708,31 +1762,25 @@ public actor SessionCoordinator {
         case let resp as RemoteCmd.TakePicResp:
             if let pic = resp.pic {
                 savePictureOnMonitor(pic)
-                await dismissCameraAlert()
             } else if let error = resp.error {
-                await dismissCameraAlert()
                 showErrorAlert(error._domain)
             }
             await transition(to: .monitor(mode: .photo))
 
         case is UICmd.UnbecomeMonitor:
-            await dismissCameraAlert()
             await transition(to: .connected)
 
         case let disconnected as DisconnectPeer:
-            await dismissCameraAlert()
             if let lost = disconnected.peer, lost.displayName == peer?.displayName, connectedPeers.isEmpty {
                 await loseSessionPeer(lost)
             }
 
         case is UICmd.ScannerDidAppear:
-            await dismissCameraAlert()
             await leaveSession()
 
         default:
             // The old state dismissed the alert and dropped unhandled messages
             // (deliberately NOT the root handler — no error-resp synthesis here).
-            await dismissCameraAlert()
             debugLog("monitorTakingPicture: ignoring \(type(of: msg))")
         }
     }
@@ -1745,7 +1793,6 @@ public actor SessionCoordinator {
         switch msg {
         case let timeout as UICmd.StateTimeout:
             guard timeout.stateName == ownName && timeout.generation == generation else { break }
-            await dismissCameraAlert()
             await transition(to: .monitor(mode: mode))
 
         case is UICmd.ToggleFlash where kind == .flash:
@@ -1758,12 +1805,9 @@ public actor SessionCoordinator {
         case let flashResp as RemoteCmd.ToggleFlashResp where kind == .flash:
             if flashResp.flashMode != nil {
                 monitor?.updateFlashMode(flashResp.flashMode)
-                await dismissCameraAlert()
             } else if let error = flashResp.error {
-                await dismissCameraAlert()
                 showErrorAlert(error._domain)
             } else {
-                await dismissCameraAlert()
             }
             await transition(to: .monitor(mode: mode))
 
@@ -1775,28 +1819,24 @@ public actor SessionCoordinator {
             if let capabilities = toggleResp.cameraCapabilities {
                 peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
                 peerSupportsFocusPoint = capabilities.supportsFocusPoint
+                peerSupportsPreviewMode = capabilities.supportsPreviewMode
                 monitor?.updateCapabilities(capabilities)
-                await dismissCameraAlert()
+                monitor?.updatePreviewMode(capabilities.previewMode)
             } else if let error = toggleResp.error {
-                await dismissCameraAlert()
                 showErrorAlert(error._domain)
             } else {
-                await dismissCameraAlert()
             }
             await transition(to: .monitor(mode: mode))
 
         case let disconnected as DisconnectPeer:
-            await dismissCameraAlert()
             if let lost = disconnected.peer, lost.displayName == peer?.displayName, connectedPeers.isEmpty {
                 await loseSessionPeer(lost)
             }
 
         case is UICmd.ScannerDidAppear:
-            await dismissCameraAlert()
             await leaveSession()
 
         case is UICmd.UnbecomeMonitor:
-            await dismissCameraAlert()
             await transition(to: .connected)
 
         default:
@@ -1815,7 +1855,6 @@ public actor SessionCoordinator {
         switch msg {
         case let timeout as UICmd.StateTimeout:
             guard timeout.stateName == .monitorSwitchingLens && timeout.generation == generation else { break }
-            await dismissCameraAlert()
             await transition(to: returnState())
 
         case is UICmd.SwitchLens:
@@ -1827,27 +1866,21 @@ public actor SessionCoordinator {
                                     availableLenses: lensResp.availableLenses,
                                     currentZoom: lensResp.currentZoom,
                                     zoomRange: lensResp.zoomRange)
-                await dismissCameraAlert()
             } else if let error = lensResp.error {
-                await dismissCameraAlert()
                 showErrorAlert(error._domain)
             } else {
-                await dismissCameraAlert()
             }
             await transition(to: returnState())
 
         case let disconnected as DisconnectPeer:
-            await dismissCameraAlert()
             if let lost = disconnected.peer, lost.displayName == peer?.displayName, connectedPeers.isEmpty {
                 await loseSessionPeer(lost)
             }
 
         case is UICmd.ScannerDidAppear:
-            await dismissCameraAlert()
             await leaveSession()
 
         case is UICmd.UnbecomeMonitor:
-            await dismissCameraAlert()
             await transition(to: .connected)
 
         default:
@@ -1889,12 +1922,18 @@ public actor SessionCoordinator {
             }
             sendMessage(RemoteCmd.FocusAtPoint(x: focus.x, y: focus.y))
 
+        case let preview as UICmd.SetCameraPreviewMode:
+            guard peerSupportsPreviewMode else {
+                debugLog("SetCameraPreviewMode dropped: peer did not advertise preview-mode support")
+                break
+            }
+            sendMessage(RemoteCmd.SetCameraPreviewMode(mode: preview.mode))
+
         case let zoomResp as RemoteCmd.SetZoomResp:
             monitor?.updateZoom(zoomResp.zoomFactor, zoomRange: zoomResp.zoomRange, currentLens: zoomResp.currentLens)
 
         case let lens as UICmd.SwitchLens:
             if sendMessage(RemoteCmd.SwitchLens(lensType: lens.lensType)) {
-                await showCameraAlert("Switching lens")
                 let generation = scheduleTimeout(.monitorSwitchingLens)
                 await transition(to: .monitorSwitchingLens(returnTo: .recording, generation: generation))
             }

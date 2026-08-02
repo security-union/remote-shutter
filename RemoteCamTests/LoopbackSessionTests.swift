@@ -847,4 +847,111 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
         XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
     }
+
+    // MARK: - Camera preview mode (standby)
+
+    /// A monitor tells the camera to go to standby; the camera applies + persists
+    /// the mode and reports it back across the wire.
+    func testSetCameraPreviewModeHappyPathAcrossTheWire() async {
+        let fakeCamera = await connectCameraAndMonitor()
+
+        monitorCoordinator.tell(UICmd.SetCameraPreviewMode(mode: .standby))
+        await drainBothSessions()
+
+        // Camera applied standby exactly once.
+        XCTAssertEqual(fakeCamera.previewModeCalls, [.standby])
+        // Never confused with a capture: standby is display-only.
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
+
+        // The camera reported the new mode back to the monitor.
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.CameraPreviewModeResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertEqual(resps.first?.mode, .standby)
+
+        // Restoring the preview round-trips the same way.
+        monitorCoordinator.tell(UICmd.SetCameraPreviewMode(mode: .on))
+        await drainBothSessions()
+        XCTAssertEqual(fakeCamera.previewModeCalls, [.standby, .on])
+
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+        XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
+        XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
+    }
+
+    /// Safety gate mirroring FocusAtPoint: a peer that did not advertise
+    /// preview-mode support must never be sent action 24 (it would misread it).
+    func testSetCameraPreviewModeIsNeverSentToLegacyPeer() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.advertisesPreviewMode = false   // peer predates the feature
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Photo)
+        monitorTransport.sentMessages.removeAll()
+
+        monitorCoordinator.tell(UICmd.SetCameraPreviewMode(mode: .standby))
+        await drainBothSessions()
+
+        XCTAssertFalse(monitorTransport.sentMessages.contains { $0 is RemoteCmd.SetCameraPreviewMode },
+                       "SetCameraPreviewMode must be gated on advertised supports_preview_mode")
+        XCTAssertTrue(fakeCamera.previewModeCalls.isEmpty)
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty,
+                      "an ungated command could decode as a capture on an old peer")
+    }
+
+    /// Standby does not gate the *transport*: with the camera in standby, a
+    /// frame handed to a real FrameSender still crosses the wire and leaves the
+    /// monitor in `.monitor`.
+    ///
+    /// SCOPE: calls `sender.send(...)` directly, so it covers only FrameSender
+    /// outward. It says nothing about whether frames are still *produced* —
+    /// `AVCaptureVideoDataOutput` → `CaptureEngine` → `FrameStreamingCoordinator`
+    /// is bypassed. That needs real capture hardware; cover it in
+    /// `CaptureIntegrationTests`.
+    func testStandbyDoesNotBlockTheFrameTransport() async {
+        let fakeCamera = await connectCameraAndMonitor()
+
+        // Wire a real FrameSender into the camera's session, pointed at the
+        // monitor peer — exactly what the camera rig does in production.
+        let sender = FrameSender(coordinator: cameraCoordinator)
+        sender.setSession(peer: monitorTransport.localPeerID, transport: cameraTransport)
+        cameraCoordinator.setFrameSender(sender)
+
+        // Put the camera into standby over the wire.
+        monitorCoordinator.tell(UICmd.SetCameraPreviewMode(mode: .standby))
+        await drainBothSessions()
+        XCTAssertEqual(fakeCamera.previewModeCalls, [.standby], "standby must have been applied")
+
+        cameraTransport.sentMessages.removeAll()
+
+        // Produce a preview frame the way the capture pipeline would. If standby
+        // had touched the streaming path this frame would never leave.
+        sender.send(RemoteCmd.SendFrame(
+            data: Data([0xFF, 0xD8, 0xFF, 0xE0]),
+            sender: nil,
+            fps: 30,
+            camPosition: .back,
+            camOrientation: .portrait,
+            codec: .jpeg))
+
+        // FrameSender streams on its own serial queue; give it a moment to flush.
+        var streamed = false
+        for _ in 0..<50 {
+            if cameraTransport.sentMessages.contains(where: { $0 is RemoteCmd.SendFrame }) {
+                streamed = true
+                break
+            }
+            await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
+        }
+
+        XCTAssertTrue(streamed,
+                      "frame streaming to the monitor must continue while the camera is in standby")
+        // The loopback transport delivered that SendFrame to the monitor peer
+        // (didReceiveFrame → OnFrame), so the monitor's live preview kept going.
+        await drainBothSessions()
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+    }
 }

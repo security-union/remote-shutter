@@ -23,11 +23,14 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
             onModeChange: { _ in },
             onGalleryTapped: {},
             onSettingsTapped: {},
+            onHelpTapped: {},
+            onBackTapped: {},
             onZoomChange: { _ in },
             onVideoQualityChange: { _, _ in },
             onPhotoQualityChange: { _, _ in },
             onAspectRatioChange: { _ in },
-            onFocusTap: { _ in })
+            onFocusTap: { _ in },
+            onToggleCameraStandby: {})
     }
 
     /// A connected monitor with a live frame and the full lens/zoom surface.
@@ -126,5 +129,131 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
 
         let image = renderScreen(named: "monitor-video-transfer", makeMonitorView(model))
         assertHasChrome(image)
+    }
+
+    // MARK: - Landscape
+
+    /// The remote turned sideways to match a tripod-mounted landscape camera.
+    func testLandscapePutsActionClusterOnTrailingRail() {
+        setWindowSize(CGSize(width: 852, height: 393))
+        let model = makeConnectedModel()
+        model.currentMode = .Photo
+        model.uiState = .photoMode
+        model.interfaceOrientation = .landscapeRight
+
+        let image = renderScreen(named: "monitor-landscape-photo", makeMonitorView(model))
+        assertHasChrome(image)
+    }
+
+    /// The other landscape: the cluster rides the opposite rail so it stays on
+    /// the same physical edge of the device.
+    func testOppositeLandscapePutsActionClusterOnLeadingRail() {
+        setWindowSize(CGSize(width: 852, height: 393))
+        let model = makeConnectedModel()
+        model.currentMode = .Photo
+        model.uiState = .photoMode
+        model.interfaceOrientation = .landscapeLeft
+
+        let image = renderScreen(named: "monitor-landscape-photo-left", makeMonitorView(model))
+        assertHasChrome(image)
+    }
+
+    func testLandscapeVideoRecording() {
+        setWindowSize(CGSize(width: 852, height: 393))
+        let model = makeConnectedModel()
+        model.currentMode = .Video
+        model.uiState = .videoRecording
+        model.isRecording = true
+        model.recordingStartTime = Date().addingTimeInterval(-42)
+        model.isShowingRecordingDuration = true
+        model.interfaceOrientation = .landscapeRight
+
+        let image = renderScreen(named: "monitor-landscape-recording", makeMonitorView(model))
+        assertHasChrome(image)
+    }
+
+    // MARK: - Capture feedback
+
+    /// A capture in flight shows on the shutter, not as a modal over the
+    /// preview — the whole point of deriving activity from session state.
+    func testCaptureInFlightShowsOnShutterNotOverPreview() {
+        let model = makeConnectedModel()
+        model.currentMode = .Photo
+        model.uiState = .photoMode
+        model.activity = .capturing
+
+        let image = renderScreen(named: "monitor-capture-in-flight", makeMonitorView(model))
+        assertHasChrome(image)
+    }
+
+    /// The self-timer is centered and large enough to read from across the
+    /// room, where the subject actually is.
+    func testCountdownIsCenteredOverPreview() {
+        let model = makeConnectedModel()
+        model.currentMode = .Photo
+        model.uiState = .photoMode
+        model.timerValue = 5
+
+        let image = renderScreen(named: "monitor-countdown", makeMonitorView(model))
+        assertHasChrome(image)
+    }
+
+    // MARK: - Tray
+
+    /// The tray is where the self-timer and the quality controls went when they
+    /// left the permanent row, so it needs its own render: `MonitorView` owns
+    /// `isTrayOpen` as private state and no test can reach it, which would
+    /// otherwise leave every tile uncovered by snapshots.
+    private func makeTrayPanel(items: [MonitorTrayItem], timerValue: Int) -> MonitorTrayPanel {
+        MonitorTrayPanel(
+            items: items,
+            timerValue: timerValue,
+            aspectRatio: .sixteenNine,
+            resolution: .hd1080p,
+            frameRate: .fps30,
+            photoFormat: .heif,
+            hdrMode: .on,
+            isQualityEnabled: true,
+            isTimerEnabled: true,
+            isSettingsEnabled: true,
+            onTap: { _ in })
+    }
+
+    /// Docked to the bottom over the dimmed viewfinder, the way it appears in
+    /// the screen rather than floating in isolation.
+    private func trayAsPresented(_ panel: MonitorTrayPanel) -> some View {
+        ZStack(alignment: .bottom) {
+            Color.black
+            panel
+        }
+        .ignoresSafeArea()
+    }
+
+    func testPhotoTrayShowsTimerWithItsValue() {
+        let items = MonitorTray.items(for: .photoMode,
+                                      supportsHEIF: true,
+                                      supportsHDR: true,
+                                      supportsCameraStandby: false,
+                                      resolutionCount: 0,
+                                      frameRateCount: 0)
+        XCTAssertEqual(items.first, .timer, "Timer should lead the photo tray")
+
+        let image = renderScreen(named: "monitor-tray-photo",
+                                 trayAsPresented(makeTrayPanel(items: items, timerValue: 10)))
+        assertRendered(image)
+    }
+
+    func testVideoTrayShowsTimerAlongsideQuality() {
+        let items = MonitorTray.items(for: .videoMode,
+                                      supportsHEIF: false,
+                                      supportsHDR: false,
+                                      supportsCameraStandby: false,
+                                      resolutionCount: 2,
+                                      frameRateCount: 3)
+        XCTAssertEqual(items.first, .timer, "Timer should lead the video tray")
+
+        let image = renderScreen(named: "monitor-tray-video",
+                                 trayAsPresented(makeTrayPanel(items: items, timerValue: 3)))
+        assertRendered(image)
     }
 }

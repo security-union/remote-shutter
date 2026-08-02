@@ -21,11 +21,19 @@ struct ZoomPill: View {
     /// round trip — so without this the thumb visibly trails the cursor.
     @State private var pendingZoom: CGFloat?
     @State private var isAdjusting = false
+    /// Track position (0…1) when the current drag began, so movement is applied
+    /// as a delta. Nil when no drag is in flight.
+    @State private var dragStartPosition: Double?
 
     private static let trackWidth: CGFloat = 240
     private static let horizontalPadding: CGFloat = 14
     private static let height: CGFloat = 46
     private static let stopDiameter: CGFloat = 32
+    /// Gap between adjacent lens circles when collapsed. The stops sit in a tight
+    /// cluster rather than spread along the track: a lens button is a *choice*,
+    /// not a position, and spacing them by their zoom factor left ragged gaps
+    /// that grow with the camera's range.
+    private static let stopSpacing: CGFloat = 10
     /// Breathing room between the number and the circle's edge.
     private static let stopTextInset: CGFloat = 5
     private static let thumbWidth: CGFloat = 3
@@ -46,7 +54,11 @@ struct ZoomPill: View {
                 stopRow
             }
         }
-        .frame(width: Self.trackWidth, height: Self.height)
+        // Collapsed, the pill is only as wide as its lens circles; it grows to the
+        // full track only while the ruler is up. A fixed track-width capsule sat
+        // there at 268pt permanently, which is a lot of viewfinder to spend on
+        // three buttons.
+        .frame(width: isExpanded ? Self.trackWidth : collapsedWidth, height: Self.height)
         .padding(.horizontal, Self.horizontalPadding)
         .background(glassBackground)
         // Scrolling over the pill zooms — reaching for the wheel is the reflex on a Mac.
@@ -87,13 +99,20 @@ struct ZoomPill: View {
     // MARK: - Collapsed: the lens stops
 
     private var stopRow: some View {
-        ZStack(alignment: .leading) {
+        HStack(spacing: Self.stopSpacing) {
             ForEach(scale.stops, id: \.self) { stop in
                 stopButton(stop)
-                    .offset(x: offset(forHardware: stop, itemWidth: Self.stopDiameter))
             }
         }
-        .frame(width: Self.trackWidth, alignment: .leading)
+    }
+
+    /// The cluster's intrinsic width, which the pill collapses to. Held as a
+    /// number rather than left to `fit` so the capsule can animate between the
+    /// two widths.
+    private var collapsedWidth: CGFloat {
+        let count = CGFloat(scale.stops.count)
+        guard count > 0 else { return Self.stopDiameter }
+        return count * Self.stopDiameter + (count - 1) * Self.stopSpacing
     }
 
     private func stopButton(_ stop: CGFloat) -> some View {
@@ -188,17 +207,30 @@ struct ZoomPill: View {
 
     // MARK: - Interaction
 
+    /// Zoom moves *relative* to where it was when the drag began, rather than
+    /// jumping to the absolute position under the finger. Two reasons: the pill
+    /// is narrower than the track while collapsed, so an absolute mapping would
+    /// read the first event in the wrong coordinate space and snap somewhere
+    /// unintended; and picking up from the current value is what the Camera
+    /// app's ruler does, so a small correction stays a small correction.
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 2)
             .onChanged { value in
                 cancelCollapse()
                 isAdjusting = true
-                if !isExpanded { isExpanded = true }
-                let x = value.location.x - Self.horizontalPadding
-                let raw = scale.hardwareFactor(atPosition: Double(x / Self.trackWidth))
-                commit(scale.snappedToStop(raw))
+                let start: Double
+                if let existing = dragStartPosition {
+                    start = existing
+                } else {
+                    start = scale.position(forHardware: displayedZoom)
+                    dragStartPosition = start
+                    isExpanded = true
+                }
+                let moved = start + Double(value.translation.width) / Double(Self.trackWidth)
+                commit(scale.snappedToStop(scale.hardwareFactor(atPosition: moved)))
             }
             .onEnded { _ in
+                dragStartPosition = nil
                 isAdjusting = false
                 scheduleCollapse()
             }

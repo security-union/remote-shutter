@@ -17,6 +17,31 @@ class CameraViewModel: ObservableObject {
     /// Spinner shown while the capture session is being configured.
     @Published var isBusy = false
 
+    // MARK: - Local Preview Mode (on / standby)
+    /// The camera's own preview mode. `.standby` renders the minimal status
+    /// screen instead of the live preview; the capture session and the frames
+    /// streamed to the monitor keep running either way. Seeded from the
+    /// persisted preference and updated by `CameraRig`.
+    @Published var previewMode: CameraPreviewMode = .on
+    /// The connected monitor's display name, shown on the standby screen so the
+    /// operator knows who is driving the camera. Nil when no peer is connected.
+    @Published var connectedPeerName: String?
+
+    /// Main-thread setter for the connected peer's name (called from the rig /
+    /// coordinator glue, which may be off-main).
+    func setConnectedPeerName(_ name: String?) {
+        DispatchQueue.main.async {
+            if self.connectedPeerName != name { self.connectedPeerName = name }
+        }
+    }
+
+    /// Main-thread setter for the local preview mode.
+    func setPreviewMode(_ mode: CameraPreviewMode) {
+        DispatchQueue.main.async {
+            if self.previewMode != mode { self.previewMode = mode }
+        }
+    }
+
     // MARK: - Local Camera Devices (picker chrome; a Mac has N cameras)
     @Published var availableCameraDevices: [CameraDeviceDescriptor] = []
     @Published var activeCameraDeviceID: String?
