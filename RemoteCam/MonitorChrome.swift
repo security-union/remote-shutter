@@ -7,28 +7,28 @@
 
 import CoreGraphics
 import Foundation
+import UIKit
 
 // MARK: - Chrome dock
 
-/// Where the monitor's action cluster (gallery · shutter · camera switch) sits.
+/// Which edge the action cluster (gallery · shutter · camera switch) sits on.
 enum MonitorChromeDock: Equatable {
-    /// Across the bottom — the screen is taller than it is wide.
     case bottom
-    /// Down the trailing edge — the screen is wider than it is tall, so the
-    /// bottom is the scarce axis and the side rails are the free space.
+    case leading
     case trailing
 }
 
-/// The monitor screen's pure layout policy. Deliberately a function of the
-/// view's own shape rather than of size class or platform: an iPhone in
-/// landscape is *compact* width on every non-Max phone, so a size-class rule
-/// would bottom-dock the exact case this screen exists to serve. Shape covers
-/// iPhone rotation, iPad Split View, and a resized Mac window with one rule and
-/// no `#if`.
+/// Layout policy. Shape decides whether to dock on a rail — a size-class rule
+/// would bottom-dock iPhone landscape, which is compact width. Orientation
+/// decides which rail: the cluster stays on the home-indicator edge so the
+/// shutter doesn't move under the user's hand when the device turns.
 enum MonitorChromeLayout {
 
-    static func dock(viewSize: CGSize) -> MonitorChromeDock {
-        viewSize.width > viewSize.height ? .trailing : .bottom
+    static func dock(viewSize: CGSize,
+                     interfaceOrientation: UIInterfaceOrientation) -> MonitorChromeDock {
+        guard viewSize.width > viewSize.height else { return .bottom }
+        // Interface orientation is the inverse of device orientation.
+        return interfaceOrientation == .landscapeLeft ? .leading : .trailing
     }
 }
 

@@ -83,6 +83,10 @@ class MonitorViewModel: ObservableObject {
     /// in standby. The standby button icon is a function of this.
     @Published var cameraPreviewMode: CameraPreviewMode = .on
 
+    /// Mirrored from the hosting controller; picks the dock rail. Size can't
+    /// answer that — both landscapes are the same shape.
+    @Published var interfaceOrientation: UIInterfaceOrientation = .portrait
+
     /// Which switch control the monitor shows for the peer's cameras.
     enum CameraSwitchControl {
         /// One camera — nothing to switch to.

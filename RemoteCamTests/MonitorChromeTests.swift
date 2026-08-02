@@ -15,37 +15,47 @@ final class MonitorChromeTests: XCTestCase {
 
     // MARK: - Dock
 
-    /// iPhone portrait — the shape this screen has always had.
-    func testPortraitPhoneDocksBottom() {
-        XCTAssertEqual(MonitorChromeLayout.dock(viewSize: CGSize(width: 393, height: 852)), .bottom)
+    private func dock(_ size: CGSize,
+                      _ orientation: UIInterfaceOrientation = .portrait) -> MonitorChromeDock {
+        MonitorChromeLayout.dock(viewSize: size, interfaceOrientation: orientation)
     }
 
-    /// The case the redesign exists for: iPhone turned sideways to match a
-    /// landscape camera. A `horizontalSizeClass` rule would call this compact
-    /// and wrongly dock it at the bottom, crushing the preview.
-    func testLandscapePhoneDocksTrailing() {
-        XCTAssertEqual(MonitorChromeLayout.dock(viewSize: CGSize(width: 852, height: 393)), .trailing)
+    func testPortraitPhoneDocksBottom() {
+        XCTAssertEqual(dock(CGSize(width: 393, height: 852)), .bottom)
+    }
+
+    /// A `horizontalSizeClass` rule would call iPhone landscape compact and
+    /// wrongly dock it at the bottom, crushing the preview.
+    func testLandscapePhoneDocksToARail() {
+        XCTAssertEqual(dock(CGSize(width: 852, height: 393), .landscapeRight), .trailing)
+        XCTAssertEqual(dock(CGSize(width: 852, height: 393), .landscapeLeft), .leading)
+    }
+
+    /// The shutter is muscle memory: the two landscapes must dock to opposite
+    /// rails, so the cluster stays on the same physical edge as the device turns.
+    func testOppositeLandscapesDockToOppositeRails() {
+        let size = CGSize(width: 852, height: 393)
+        XCTAssertNotEqual(dock(size, .landscapeLeft), dock(size, .landscapeRight))
     }
 
     /// An iPad in Split View is landscape as a *device* but portrait-shaped as
     /// a view; the layout must follow the view.
     func testNarrowSplitViewDocksBottom() {
-        XCTAssertEqual(MonitorChromeLayout.dock(viewSize: CGSize(width: 507, height: 1024)), .bottom)
+        XCTAssertEqual(dock(CGSize(width: 507, height: 1024), .landscapeRight), .bottom)
     }
 
     func testWideMacWindowDocksTrailing() {
-        XCTAssertEqual(MonitorChromeLayout.dock(viewSize: CGSize(width: 1440, height: 900)), .trailing)
+        XCTAssertEqual(dock(CGSize(width: 1440, height: 900)), .trailing)
     }
 
     /// A resized Mac window can be portrait-shaped; nothing about being a Mac
-    /// should force the trailing rail.
+    /// should force a rail.
     func testNarrowMacWindowDocksBottom() {
-        XCTAssertEqual(MonitorChromeLayout.dock(viewSize: CGSize(width: 600, height: 900)), .bottom)
+        XCTAssertEqual(dock(CGSize(width: 600, height: 900)), .bottom)
     }
 
-    /// Exactly square resolves to bottom rather than being undefined.
     func testSquareDocksBottom() {
-        XCTAssertEqual(MonitorChromeLayout.dock(viewSize: CGSize(width: 800, height: 800)), .bottom)
+        XCTAssertEqual(dock(CGSize(width: 800, height: 800)), .bottom)
     }
 
     // MARK: - Self-timer

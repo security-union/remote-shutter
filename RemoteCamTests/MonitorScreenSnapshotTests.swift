@@ -133,16 +133,28 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
 
     // MARK: - Landscape
 
-    /// The shape the redesign exists to serve: the remote turned sideways to
-    /// match a tripod-mounted landscape camera. The action cluster moves to the
-    /// trailing rail so the bottom stays free for the picture.
+    /// The remote turned sideways to match a tripod-mounted landscape camera.
     func testLandscapePutsActionClusterOnTrailingRail() {
         setWindowSize(CGSize(width: 852, height: 393))
         let model = makeConnectedModel()
         model.currentMode = .Photo
         model.uiState = .photoMode
+        model.interfaceOrientation = .landscapeRight
 
         let image = renderScreen(named: "monitor-landscape-photo", makeMonitorView(model))
+        assertHasChrome(image)
+    }
+
+    /// The other landscape: the cluster rides the opposite rail so it stays on
+    /// the same physical edge of the device.
+    func testOppositeLandscapePutsActionClusterOnLeadingRail() {
+        setWindowSize(CGSize(width: 852, height: 393))
+        let model = makeConnectedModel()
+        model.currentMode = .Photo
+        model.uiState = .photoMode
+        model.interfaceOrientation = .landscapeLeft
+
+        let image = renderScreen(named: "monitor-landscape-photo-left", makeMonitorView(model))
         assertHasChrome(image)
     }
 
@@ -154,6 +166,7 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
         model.isRecording = true
         model.recordingStartTime = Date().addingTimeInterval(-42)
         model.isShowingRecordingDuration = true
+        model.interfaceOrientation = .landscapeRight
 
         let image = renderScreen(named: "monitor-landscape-recording", makeMonitorView(model))
         assertHasChrome(image)

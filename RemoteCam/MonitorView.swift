@@ -50,7 +50,9 @@ struct MonitorView: View {
             ZStack {
                 previewLayer
 
-                chrome(dock: MonitorChromeLayout.dock(viewSize: geometry.size))
+                chrome(dock: MonitorChromeLayout.dock(
+                    viewSize: geometry.size,
+                    interfaceOrientation: viewModel.interfaceOrientation))
 
                 if isTrayOpen {
                     trayLayer
@@ -221,8 +223,10 @@ struct MonitorView: View {
             switch dock {
             case .bottom:
                 bottomCluster
+            case .leading:
+                sideCluster(onLeading: true)
             case .trailing:
-                trailingCluster
+                sideCluster(onLeading: false)
             }
         }
         .padding(.horizontal, 16)
@@ -279,10 +283,12 @@ struct MonitorView: View {
         }
     }
 
-    /// Wide shapes: the bottom is the scarce axis, so the action cluster moves
-    /// to the trailing rail and only the zoom pill and mode selector stay low.
-    private var trailingCluster: some View {
+    /// Wide shapes: the action cluster rides the rail on the home-indicator side
+    /// so it doesn't move when the device turns; zoom and mode stay low.
+    private func sideCluster(onLeading: Bool) -> some View {
         HStack(alignment: .bottom, spacing: 16) {
+            if onLeading { actionCluster(axis: .vertical) }
+
             VStack(spacing: 10) {
                 Spacer(minLength: 0)
                 activeCameraCaption
@@ -294,7 +300,7 @@ struct MonitorView: View {
                 }
             }
 
-            actionCluster(axis: .vertical)
+            if !onLeading { actionCluster(axis: .vertical) }
         }
     }
 

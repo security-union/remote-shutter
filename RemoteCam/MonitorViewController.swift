@@ -94,6 +94,28 @@ public class MonitorViewController: UIViewController {
         // side suppresses its own chevron there.
         self.navigationController?.setNavigationBarHidden(true, animated: animated)
         navigationItem.title = nil
+        syncInterfaceOrientation()
+    }
+
+    override public func viewWillTransition(to size: CGSize,
+                                            with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: { _ in
+            self.syncInterfaceOrientation()
+        })
+    }
+
+    /// Both landscapes are the same shape, so the view can't infer which rail
+    /// keeps the shutter on the device's home-indicator edge.
+    private func syncInterfaceOrientation() {
+        let orientation = view.window?.windowScene?.interfaceOrientation
+            ?? UIApplication.shared.connectedScenes
+                .compactMap { ($0 as? UIWindowScene)?.interfaceOrientation }
+                .first
+            ?? .portrait
+        if viewModel.interfaceOrientation != orientation {
+            viewModel.interfaceOrientation = orientation
+        }
     }
 
     override public func viewWillDisappear(_ animated: Bool) {
