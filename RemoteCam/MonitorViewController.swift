@@ -86,15 +86,38 @@ public class MonitorViewController: UIViewController {
         return true
     }
 
+    /// The nav bar's appearance before this screen made it transparent.
+    private var savedBarAppearance: (standard: UINavigationBarAppearance,
+                                     scrollEdge: UINavigationBarAppearance?,
+                                     tint: UIColor?)?
+
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // The viewfinder is full-bleed: Back is a floating chevron in the
-        // chrome and Help is a tray tile, so the nav bar has nothing left to
-        // carry. On Catalyst the window toolbar still owns Back — the SwiftUI
-        // side suppresses its own chevron there.
-        self.navigationController?.setNavigationBarHidden(true, animated: animated)
+        // The bar stays *present* but is made fully transparent, so the preview
+        // still runs edge to edge behind it. Hiding it instead costs the
+        // interactive swipe-back gesture, which UIKit disables along with the
+        // bar; keeping it means Back and the swipe are both the system's own.
+        self.navigationController?.setNavigationBarHidden(false, animated: animated)
+        makeNavigationBarTransparent()
         navigationItem.title = nil
         syncInterfaceOrientation()
+    }
+
+    private func makeNavigationBarTransparent() {
+        guard let bar = navigationController?.navigationBar else { return }
+        if savedBarAppearance == nil {
+            savedBarAppearance = (bar.standardAppearance, bar.scrollEdgeAppearance, bar.tintColor)
+        }
+        let transparent = UINavigationBarAppearance()
+        transparent.configureWithTransparentBackground()
+        transparent.backgroundColor = .clear
+        transparent.shadowColor = .clear
+        bar.standardAppearance = transparent
+        bar.scrollEdgeAppearance = transparent
+        bar.compactAppearance = transparent
+        // The viewfinder is dark in every state, so the back chevron and its
+        // title are always white rather than following the tint.
+        bar.tintColor = .white
     }
 
     override public func viewWillTransition(to size: CGSize,
@@ -120,7 +143,14 @@ public class MonitorViewController: UIViewController {
 
     override public func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        // Hand the bar back to whatever screen comes next.
+        // Hand the bar back to whatever screen comes next exactly as we found it.
+        if let bar = navigationController?.navigationBar, let saved = savedBarAppearance {
+            bar.standardAppearance = saved.standard
+            bar.scrollEdgeAppearance = saved.scrollEdge
+            bar.compactAppearance = nil
+            bar.tintColor = saved.tint
+            savedBarAppearance = nil
+        }
         self.navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 

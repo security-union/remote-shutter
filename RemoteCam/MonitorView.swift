@@ -91,10 +91,10 @@ struct MonitorView: View {
         #endif
     }
 
-    /// The viewfinder hides the nav bar on every platform, and the Mac window
-    /// has no toolbar Back of its own, so the floating chevron is the only way
-    /// out everywhere.
-    private static let showsFloatingBackButton = true
+    /// The nav bar stays present (transparent) so the swipe-back gesture
+    /// survives, which means Back is the system's own button and a floating
+    /// chevron would duplicate it.
+    private static let showsFloatingBackButton = false
 
     /// A Mac window neither rotates nor is held, so the side rail buys nothing
     /// there and the bottom bar is the convention.
