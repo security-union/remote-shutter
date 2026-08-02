@@ -10,7 +10,7 @@
 import Foundation
 import UIKit
 #if !targetEnvironment(macCatalyst)
-import      WatchConnectivity
+import WatchConnectivity
 #endif
 import FlatBuffers
 

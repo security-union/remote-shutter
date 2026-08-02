@@ -233,6 +233,7 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
         let items = MonitorTray.items(for: .photoMode,
                                       supportsHEIF: true,
                                       supportsHDR: true,
+                                      supportsCameraStandby: false,
                                       resolutionCount: 0,
                                       frameRateCount: 0)
         XCTAssertEqual(items.first, .timer, "Timer should lead the photo tray")
@@ -246,6 +247,7 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
         let items = MonitorTray.items(for: .videoMode,
                                       supportsHEIF: false,
                                       supportsHDR: false,
+                                      supportsCameraStandby: false,
                                       resolutionCount: 2,
                                       frameRateCount: 3)
         XCTAssertEqual(items.first, .timer, "Timer should lead the video tray")

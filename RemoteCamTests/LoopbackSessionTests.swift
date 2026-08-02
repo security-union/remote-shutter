@@ -905,14 +905,11 @@ class LoopbackSessionTests: XCTestCase {
     /// frame handed to a real FrameSender still crosses the wire and leaves the
     /// monitor in `.monitor`.
     ///
-    /// SCOPE — read before trusting this. It calls `sender.send(...)` directly,
-    /// so it covers only the half of the path from FrameSender outward. It says
-    /// nothing about whether frames are still *produced*:
+    /// SCOPE: calls `sender.send(...)` directly, so it covers only FrameSender
+    /// outward. It says nothing about whether frames are still *produced* —
     /// `AVCaptureVideoDataOutput` → `CaptureEngine` → `FrameStreamingCoordinator`
-    /// is bypassed entirely. An earlier version of standby unmounted
-    /// `CameraPreviewView` and killed delivery at the producer; this test passed
-    /// throughout. Producing frames needs real capture hardware — cover it in
-    /// `CaptureIntegrationTests`, not here.
+    /// is bypassed. That needs real capture hardware; cover it in
+    /// `CaptureIntegrationTests`.
     func testStandbyDoesNotBlockTheFrameTransport() async {
         let fakeCamera = await connectCameraAndMonitor()
 

@@ -44,20 +44,15 @@ enum MonitorChromeLayout {
 
 // MARK: - Self-timer
 
-/// The self-timer's detented values. Replaces the 0...20 continuous slider: a
-/// remote's timer is picked from a handful of useful delays, and a tap-to-cycle
-/// glyph costs a fraction of the screen a labelled slider did.
+/// The self-timer's detented values.
 enum MonitorTimer {
 
-    /// Ascending, starting at "off". Mirrors the delays a camera app offers.
+    /// Ascending, starting at "off".
     static let stops: [Int] = [0, 3, 5, 10, 20]
 
     /// The next stop strictly above `value`, wrapping to off at the end.
-    ///
-    /// Values that are not themselves stops are rounded *up* to the next one,
-    /// so a delay restored from an older build's slider (which stored any
-    /// integer 0...20 under `timerDefault`) lands on a real stop instead of
-    /// being stranded.
+    /// Non-stop values round *up*, so a delay persisted as any integer 0...20
+    /// under `timerDefault` lands on a real stop rather than being stranded.
     static func next(after value: Int) -> Int {
         stops.first { $0 > value } ?? stops[0]
     }
@@ -65,11 +60,9 @@ enum MonitorTimer {
 
 // MARK: - Tray
 
-/// One tile in the capture tray — the controls that leave the viewfinder.
-///
-/// Each tile's glyph carries its own current value (the timer shows "5", aspect
-/// shows "16:9"), which is what lets them live behind a tap instead of
-/// occupying a permanent row.
+/// One tile in the capture tray. Each tile's glyph carries its own current
+/// value (timer shows "5", aspect "16:9"), which is what lets it live behind a
+/// tap rather than occupy a permanent row.
 enum MonitorTrayItem: Equatable {
     case timer
     case aspect
@@ -77,9 +70,8 @@ enum MonitorTrayItem: Equatable {
     case frameRate
     case format
     case hdr
-    /// Puts the peer camera's *local* preview to sleep. The camera keeps
-    /// capturing and keeps streaming here — this only stops it compositing a
-    /// preview nobody is looking at while it sits on a tripod.
+    /// Puts the peer camera's *local* preview to sleep. It keeps capturing and
+    /// keeps streaming here.
     case cameraStandby
     case settings
     case help
@@ -87,16 +79,13 @@ enum MonitorTrayItem: Equatable {
 
 enum MonitorTray {
 
-    /// The tiles for a given mode and set of peer capabilities.
-    ///
-    /// Capability-driven tiles are omitted rather than disabled: a camera that
-    /// cannot do HDR should not show an HDR tile at all. Tiles that exist but
-    /// are momentarily unavailable (quality during a recording) stay in the
-    /// list and are dimmed by the view — that is enablement, not composition.
+    /// Capability-driven tiles are omitted, not disabled: a camera that cannot
+    /// do HDR shows no HDR tile. Tiles that merely aren't available right now
+    /// (quality mid-recording) stay and are dimmed by the view.
     static func items(for state: MonitorUIState,
                       supportsHEIF: Bool,
                       supportsHDR: Bool,
-                      supportsCameraStandby: Bool = false,
+                      supportsCameraStandby: Bool,
                       resolutionCount: Int,
                       frameRateCount: Int) -> [MonitorTrayItem] {
         var items: [MonitorTrayItem] = []
@@ -118,8 +107,6 @@ enum MonitorTray {
             break
         }
 
-        // Capability-gated like the rest: a camera that predates the feature
-        // would silently ignore the command, so it must not be offered one.
         if supportsCameraStandby { items.append(.cameraStandby) }
 
         items.append(.settings)
@@ -130,12 +117,9 @@ enum MonitorTray {
 
 // MARK: - Link health
 
-/// What the monitor can say about the picture it is showing.
-///
-/// Apple's Camera has no equivalent — its sensor is in your hand, so a frozen
-/// preview is impossible. Here the stream can go quiet while the session still
-/// believes it is connected, and the old behaviour was silence: the image
-/// simply stopped updating with nothing on screen to say so.
+/// What the monitor can say about the picture it is showing. The stream can go
+/// quiet while the session still believes it is connected, so a frozen preview
+/// needs saying out loud.
 enum MonitorLinkState: Equatable {
     /// Frames are arriving. Rendered as a single quiet dot.
     case live
@@ -159,17 +143,15 @@ enum MonitorLinkState: Equatable {
 
 /// What the monitor is waiting on the camera for, right now.
 ///
-/// Derived from the session state at the single `transition(to:)` choke point
-/// rather than pushed from each command site, for the reason `PeerLinkStatus`
-/// documents about the reconnect overlay: when the indicator is a function of
-/// the state, it cannot outlive the thing it describes. The show/dismiss pairs
-/// that a pushed indicator needs are exactly what used to leave a modal spinner
-/// over the preview.
+/// Derived from session state at the single `transition(to:)` choke point
+/// rather than pushed from each command site: an indicator that is a function
+/// of the state cannot outlive the thing it describes, and needs no
+/// show/dismiss pairing to get wrong.
 enum MonitorActivity: Equatable {
     /// Shutter pressed; the camera has not acknowledged yet.
     case capturing
-    /// The camera took the shot and the picture is on its way. A distinct state
-    /// because it is the moment the subject can stop holding the pose.
+    /// The shot is taken and on its way — the moment the subject can stop
+    /// holding the pose.
     case receivingCapture
     case switchingCamera
     case togglingFlash

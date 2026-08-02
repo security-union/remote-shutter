@@ -71,10 +71,9 @@ struct MonitorView: View {
                 PeerLinkOverlay(status: peerLink)
             }
         }
-        // Every control here draws its own shape; Catalyst's default style
-        // paints a bordered box behind them. .borderless removes that box.
-        // NOT .plain -- that also drops the style's hit region, which left the
-        // material-filled controls clickable only where their glyph draws.
+        // Catalyst's default style paints a bordered box behind controls that
+        // already draw their own shape. Not .plain — that also drops the
+        // style's hit region, leaving material fills unclickable.
         .buttonStyle(.borderless)
         .onPreferenceChange(PreviewSizePreferenceKey.self) { previewSize = $0 }
         .statusBarHidden()
@@ -269,8 +268,7 @@ struct MonitorView: View {
                                                          isPreviewStale: viewModel.isPreviewStale))
                     .equatable()
                     .padding(.leading, 8)
-                // Belongs with the other status, not floating over the middle
-                // of the picture the user is framing.
+                // Status, not an overlay on the picture being framed.
                 activeCameraCaption
                     .padding(.leading, 8)
                 Spacer(minLength: 0)
@@ -289,10 +287,8 @@ struct MonitorView: View {
     }
 
     /// Portrait and other tall shapes: everything stacks across the bottom.
-    ///
-    /// Full width on purpose. A stack sizes to its widest child, and children
-    /// wider than that draw outside its bounds but stop receiving clicks there
-    /// — which left a centred live band and killed the outer buttons.
+    /// Full width so no child sits outside its parent — SwiftUI draws those
+    /// but UIKit will not hit-test them.
     private var bottomCluster: some View {
         VStack(spacing: 14) {
             ZoomPill(scale: viewModel.zoomScale,
@@ -311,8 +307,7 @@ struct MonitorView: View {
             if !onLeading { Spacer(minLength: 0) }
             if onLeading { actionCluster(axis: .vertical) }
 
-            // Sits inboard of the rail, not adrift in the middle: one control
-            // zone on the docked edge instead of three scattered groups.
+            // Inboard of the rail: one control zone on the docked edge.
             VStack(spacing: 10) {
                 Spacer(minLength: 0)
                 ZoomPill(scale: viewModel.zoomScale,
@@ -490,8 +485,8 @@ struct MonitorView: View {
                                  viewModel.currentHDRMode == .on ? .off : .on)
 
         case .cameraStandby:
-            // Stays open: the tile's glyph is the reflection of what the camera
-            // is doing, so you want to watch it settle rather than lose it.
+            // Stays open: the glyph reflects the camera's confirmed mode, so
+            // it is worth watching settle.
             onToggleCameraStandby()
 
         case .settings:
@@ -650,10 +645,8 @@ struct ControlCapsule: View, Equatable {
 // MARK: - Shutter
 
 /// The capture button, including what the camera is currently doing about it.
-///
-/// The in-flight ring replaces the modal spinner that used to cover the preview
-/// on every command: the feedback belongs on the control you pressed, not over
-/// the picture you are framing.
+/// In-flight feedback belongs on the control you pressed, not over the picture
+/// you are framing.
 struct ShutterButton: View, Equatable {
     let uiState: MonitorUIState
     let isRecording: Bool
@@ -741,9 +734,8 @@ struct MonitorTrayPanel: View {
     let frameRate: VideoFrameRate
     let photoFormat: PhotoFormat
     let hdrMode: HDRMode
-    /// The camera's reported local-preview mode. The standby tile is a
-    /// reflection of the peer's actual state, not of a local intent, so it
-    /// only lights up once the camera has confirmed.
+    /// The camera's *confirmed* mode, not local intent — the tile only lights
+    /// up once the peer has said so.
     var cameraPreviewMode: CameraPreviewMode = .on
     let isQualityEnabled: Bool
     let isTimerEnabled: Bool
@@ -788,7 +780,7 @@ struct MonitorTrayPanel: View {
         case .resolution: return resolution.displayName
         case .frameRate: return frameRate.displayName
         case .format: return photoFormat.displayName
-        // Glyph-only tiles: their state is carried by the symbol, not a label.
+        // Glyph-only: state is carried by the symbol.
         case .hdr, .cameraStandby, .settings, .help: return nil
         }
     }
@@ -806,8 +798,7 @@ struct MonitorTrayPanel: View {
         switch item {
         case .timer: return isTimerEnabled
         case .aspect, .resolution, .frameRate, .format, .hdr: return isQualityEnabled
-        // Not a capture setting — it stays usable mid-recording, when quality
-        // controls are locked.
+        // Not a capture setting: usable mid-recording.
         case .cameraStandby: return true
         case .settings: return isSettingsEnabled
         case .help: return true
@@ -977,7 +968,7 @@ struct CameraSwitchControlView: View, Equatable {
     let devices: [RemoteCmd.CameraDeviceEntry]
     let activeDeviceID: String?
     let isEnabled: Bool
-    /// A switch is in flight; the glyph says so instead of a modal.
+    /// A switch is in flight; the glyph says so.
     var isSwitching: Bool = false
     let onToggleCamera: () -> Void
     let onSelectCameraDevice: (String) -> Void

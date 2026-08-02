@@ -37,7 +37,7 @@ struct CameraScreenView: View {
 
             // Always mounted: it owns CameraPreviewView, whose backing layer is
             // the AVCaptureVideoPreviewLayer on the live session. Unmounting it
-            // stops frame delivery. Standby covers the preview, never unmounts it.
+            // stops frame delivery — standby covers the preview, never unmounts it.
             liveContent
 
             if viewModel.previewMode == .standby {

@@ -1264,10 +1264,9 @@ public actor SessionCoordinator {
 
     // MARK: - Progress alerts (camera "Taking picture" only)
     //
-    // The monitor no longer raises these. Its in-flight feedback is
-    // `MonitorActivity`, derived from the state at `transition(to:)` and drawn
-    // on the control the user pressed — a modal here covered the live preview
-    // at exactly the moment the user was framing with it.
+    // Camera-side only. The monitor's in-flight feedback is `MonitorActivity`,
+    // drawn on the control the user pressed; a modal there would cover the
+    // preview they are framing with.
 
     private var alertHandle: AlertHandle?
 
