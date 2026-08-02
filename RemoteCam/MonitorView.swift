@@ -341,17 +341,24 @@ struct MonitorView: View {
             onSelectCameraDevice: onSelectCameraDevice)
             .equatable()
 
+        // TEMPORARY DIAGNOSTIC — shutter and gallery are swapped.
+        // Back (top bar, material) works; gallery and switcher (outer items
+        // here, material) do not; shutter (centre, opaque) does. That leaves
+        // either the component or the position as the cause.
+        //   position  -> shutter breaks on the edge, gallery works in the centre
+        //   component -> gallery stays broken in the centre, shutter still works
+        // Revert this block either way once we know.
         return Group {
             if axis == .horizontal {
                 HStack(spacing: 40) {
-                    gallery
                     shutter
+                    gallery
                     switcher
                 }
             } else {
                 VStack(spacing: 24) {
-                    gallery
                     shutter
+                    gallery
                     switcher
                 }
             }
