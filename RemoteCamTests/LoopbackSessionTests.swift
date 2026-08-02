@@ -901,11 +901,19 @@ class LoopbackSessionTests: XCTestCase {
                       "an ungated command could decode as a capture on an old peer")
     }
 
-    /// THE CRITICAL INVARIANT: standby stops the camera's LOCAL preview only —
-    /// the camera keeps streaming preview frames to the monitor. Here a real
-    /// FrameSender is wired to the camera's session; after the camera is put in
-    /// standby, a produced frame still crosses the wire to the monitor.
-    func testStandbyDoesNotStopFrameStreamingToMonitor() async {
+    /// Standby does not gate the *transport*: with the camera in standby, a
+    /// frame handed to a real FrameSender still crosses the wire and leaves the
+    /// monitor in `.monitor`.
+    ///
+    /// SCOPE — read before trusting this. It calls `sender.send(...)` directly,
+    /// so it covers only the half of the path from FrameSender outward. It says
+    /// nothing about whether frames are still *produced*:
+    /// `AVCaptureVideoDataOutput` → `CaptureEngine` → `FrameStreamingCoordinator`
+    /// is bypassed entirely. An earlier version of standby unmounted
+    /// `CameraPreviewView` and killed delivery at the producer; this test passed
+    /// throughout. Producing frames needs real capture hardware — cover it in
+    /// `CaptureIntegrationTests`, not here.
+    func testStandbyDoesNotBlockTheFrameTransport() async {
         let fakeCamera = await connectCameraAndMonitor()
 
         // Wire a real FrameSender into the camera's session, pointed at the

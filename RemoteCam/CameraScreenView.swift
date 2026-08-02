@@ -35,19 +35,26 @@ struct CameraScreenView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
+            // `liveContent` stays mounted in every mode. It owns
+            // `CameraPreviewView`, whose backing layer IS the
+            // AVCaptureVideoPreviewLayer holding a reference to the running
+            // capture session — so swapping it out of the tree dismantles the
+            // UIView and mutates a live capture graph as a side effect of a
+            // view change. That stopped frame delivery outright, and the only
+            // thing that recovered it was CameraRig's 5s first-frame watchdog
+            // bouncing the session (which can also land you on a different
+            // camera than the one you framed with). Standby covers the
+            // preview; it must never unmount it.
+            liveContent
+
             if viewModel.previewMode == .standby {
-                // Standby: the capture session and the monitor frame stream keep
-                // running; only this local display is replaced with a minimal
-                // status screen to save battery/heat on a long tripod shoot.
                 CameraStandbyView(viewModel: viewModel,
                                   onRestore: { onSetPreviewMode?(.on) })
-            } else {
-                liveContent
             }
         }
     }
 
-    /// The full-screen live preview and its chrome — shown when preview is on.
+    /// The full-screen live preview and its chrome.
     private var liveContent: some View {
         ZStack {
             Color.black.ignoresSafeArea()
