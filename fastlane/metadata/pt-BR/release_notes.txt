@@ -1,8 +1,8 @@
-O controle remoto foi redesenhado em torno do visor: primeiro a imagem, os controles fora do caminho.
+O controle remoto foi redesenhado em torno do visor: primeiro a imagem, com os controles de lado.
 
 - Prévia ao vivo em tela cheia: a cena agora preenche a tela com os controles flutuando por cima, no lugar de uma imagem pequena espremida acima de um painel de botões
 - Modo paisagem: gire o controle de lado e a imagem toma quase toda a tela
-- Layout mais organizado: temporizador, proporção e qualidade foram para uma bandeja a um toque de distância, e cada bloco mostra seu ajuste atual num relance
+- Layout mais organizado: temporizador, proporção e qualidade foram para um painel a um toque de distância, e cada um mostra seu ajuste atual num relance
 - Status de conexão claro: um indicador discreto confirma que a imagem está ao vivo e avisa assim que a transmissão trava
 - Nada cobre seu enquadramento: o progresso da captura aparece agora no botão do obturador, e não numa janela sobre a imagem que você está compondo
 - Câmera em espera: o aparelho que serve de câmera pode descansar a própria tela em sessões longas e segue transmitindo e capturando

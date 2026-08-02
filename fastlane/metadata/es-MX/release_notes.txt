@@ -1,8 +1,8 @@
-El control remoto se rediseñó alrededor del visor: primero la imagen, los controles fuera de su camino.
+El control remoto se rediseñó alrededor del visor: primero la imagen, y los controles a un lado.
 
 - Vista en vivo a pantalla completa: la toma ahora llena la pantalla con los controles flotando encima, en lugar de una imagen pequeña apretada sobre un panel de botones
-- Modo horizontal: gira el control remoto de lado y la imagen se apodera de casi toda la pantalla
-- Diseño más ordenado: el temporizador, la proporción y la calidad se movieron a una bandeja a un toque de distancia, y cada mosaico muestra su ajuste actual de un vistazo
+- Modo horizontal: gira el control remoto de lado y la imagen ocupa casi toda la pantalla
+- Diseño más ordenado: el temporizador, la proporción y la calidad se movieron a un panel a un toque de distancia, y cada uno muestra su ajuste actual de un vistazo
 - Estado de conexión claro: un indicador discreto confirma que la imagen está en vivo y avisa en cuanto la transmisión se detiene
 - Nada tapa tu toma: el progreso de la captura ahora aparece en el botón del obturador y no en una ventana sobre el encuadre que estás componiendo
 - Cámara en reposo: el dispositivo que hace de cámara puede apagar su propia pantalla en sesiones largas mientras sigue transmitiendo y capturando

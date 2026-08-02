@@ -1,11 +1,11 @@
-Kumanda vizörün etrafında yeniden tasarlandı: önce görüntü, kontroller yoldan çekilsin.
+Kumanda vizörün etrafında yeniden tasarlandı: önce görüntü, kontroller geri planda.
 
 - Tam ekran canlı önizleme: kare artık ekranı dolduruyor ve kontroller onun üzerinde süzülüyor; düğme panelinin üstüne sıkıştırılmış küçük görüntü geride kaldı
 - Yatay mod: kumandayı yan çevirin, görüntü ekranın neredeyse tamamını kaplasın
-- Daha derli toplu yerleşim: zamanlayıcı, en boy oranı ve kalite tek dokunuşluk bir çekmeceye taşındı; her karo geçerli ayarını bir bakışta gösteriyor
+- Daha derli toplu yerleşim: zamanlayıcı, en boy oranı ve kalite tek dokunuşluk bir panele taşındı; her biri geçerli ayarını bir bakışta gösteriyor
 - Net bağlantı durumu: sessiz bir gösterge görüntünün canlı olduğunu doğruluyor ve akış durduğu anda bunu söylüyor
 - Karenizi hiçbir şey kapatmıyor: çekim ilerlemesi artık kurduğunuz karenin üzerindeki bir pencerede değil, deklanşör düğmesinde görünüyor
-- Kamera bekleme modu: kamera olan cihaz uzun çekimlerde kendi ekranını dinlendirirken yayına ve çekime devam edebiliyor
+- Kamera bekleme modu: kamera görevini üstlenen cihaz uzun çekimlerde kendi ekranını dinlendirirken yayına ve çekime devam edebiliyor
 
 Yakın zamanda eklendi:
 

@@ -2,10 +2,10 @@ The remote is redesigned around the viewfinder: the picture first, the controls 
 
 - Full-screen live preview: the shot now fills the display with the controls floating over it, instead of a small picture squeezed above a panel of buttons
 - Landscape support: turn the remote sideways and the image takes over almost the entire screen
-- A tidier layout: self-timer, aspect ratio and quality moved into a tray one tap away, each tile showing its current setting at a glance
+- A tidier layout: self-timer, aspect ratio and quality moved into a panel one tap away, each showing its current setting at a glance
 - Clear connection status: a quiet indicator confirms the picture is live, and says so the moment the feed stalls
 - Nothing covers your shot: capture progress now appears on the shutter button instead of a pop-up over the frame you are composing
-- Camera standby: the camera device can rest its own screen during long shoots while it keeps streaming and shooting
+- Camera standby: the device acting as the camera can rest its own screen during long shoots while it keeps streaming and shooting
 
 Recently added:
 

@@ -1,11 +1,11 @@
-Fjernbetjeningen er redesignet omkring søgeren: billedet først, knapperne af vejen.
+Fjernbetjeningen er redesignet omkring søgeren: billedet først, knapperne ude af vejen.
 
-- Live-visning i fuld skærm: motivet fylder nu hele skærmen med knapperne svævende ovenpå i stedet for et lille billede klemt over et panel af knapper
+- Live-visning i fuld skærm: motivet fylder nu hele skærmen, og knapperne svæver ovenpå i stedet for et lille billede klemt inde over et panel af knapper
 - Understøtter liggende format: drej fjernbetjeningen på siden, og billedet overtager næsten hele skærmen
-- Ryddeligere layout: selvudløser, billedformat og kvalitet er flyttet ind i en bakke ét tryk væk, hvor hver flise viser sin aktuelle indstilling
-- Tydelig forbindelsesstatus: en diskret indikator bekræfter, at billedet er live, og siger til i det øjeblik strømmen går i stå
-- Intet dækker dit motiv: optagelsens forløb vises nu på udløserknappen i stedet for i en pop op over det billede, du er ved at komponere
-- Kamera på standby: kameraenheden kan slukke sin egen skærm under lange optagelser og fortsætter samtidig med at streame og fotografere
+- Ryddeligere layout: selvudløser, billedformat og kvalitet er flyttet ind i et panel ét tryk væk, hvor hver enkelt viser sin aktuelle indstilling
+- Tydelig forbindelsesstatus: en diskret indikator bekræfter, at billedet er live, og siger til i samme øjeblik billedet fryser
+- Intet dækker dit motiv: optagelsens forløb vises nu på udløserknappen i stedet for i et vindue over det billede, du er ved at komponere
+- Kamera på standby: enheden, der fungerer som kamera, kan slukke sin egen skærm under lange optagelser og fortsætter samtidig med at streame og fotografere
 
 Tilføjet for nylig:
 

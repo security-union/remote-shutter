@@ -1,11 +1,11 @@
-La télécommande est repensée autour du viseur : l'image d'abord, les commandes hors du chemin.
+La télécommande est repensée autour du viseur : l'image d'abord, les commandes s'effacent.
 
 - Aperçu en direct plein écran : la prise de vue occupe désormais tout l'écran, les commandes flottant par-dessus, au lieu d'une petite image coincée au-dessus d'un panneau de boutons
 - Mode paysage : tournez la télécommande sur le côté et l'image prend presque tout l'écran
-- Une disposition plus nette : retardateur, format et qualité sont regroupés dans un tiroir à portée d'un geste, chaque tuile affichant son réglage actuel d'un coup d'œil
+- Une disposition plus nette : retardateur, format et qualité sont regroupés dans un panneau accessible d'un seul toucher, et chacun affiche son réglage actuel
 - État de connexion clair : un indicateur discret confirme que l'image est en direct et le signale dès que le flux s'interrompt
 - Rien ne masque votre cadrage : la progression de la capture s'affiche sur le déclencheur plutôt que dans une fenêtre par-dessus l'image que vous composez
-- Veille de la caméra : l'appareil qui filme peut éteindre son propre écran lors des longues séances tout en continuant à diffuser et à déclencher
+- Veille de la caméra : l'appareil qui sert de caméra peut éteindre son propre écran lors des longues séances tout en continuant à diffuser et à déclencher
 
 Ajouté récemment :
 

@@ -1,9 +1,9 @@
-Il telecomando è stato ridisegnato attorno al mirino: prima l'immagine, i controlli fuori dai piedi.
+Il telecomando è stato ridisegnato attorno al mirino: prima l'immagine, i controlli in secondo piano.
 
-- Anteprima live a tutto schermo: l'inquadratura riempie ora il display con i controlli che le fluttuano sopra, invece di una piccola immagine schiacciata sopra un pannello di pulsanti
+- Anteprima in diretta a tutto schermo: l'inquadratura riempie ora il display e i controlli fluttuano sopra di essa, invece di una piccola immagine schiacciata sopra un pannello di pulsanti
 - Modalità orizzontale: gira il telecomando di lato e l'immagine occupa quasi tutto lo schermo
-- Layout più ordinato: autoscatto, proporzioni e qualità si sono spostati in un pannello a un tocco di distanza, e ogni riquadro mostra la sua impostazione attuale a colpo d'occhio
-- Stato della connessione chiaro: un indicatore discreto conferma che l'immagine è live e lo segnala nell'istante in cui il flusso si blocca
+- Layout più ordinato: autoscatto, proporzioni e qualità si sono spostati in un pannello a un tocco di distanza, e ognuno mostra la sua impostazione attuale a colpo d'occhio
+- Stato della connessione chiaro: un indicatore discreto conferma che l'immagine è in diretta e lo segnala nell'istante in cui il flusso si blocca
 - Niente copre la tua inquadratura: l'avanzamento dello scatto appare ora sul pulsante di scatto invece che in una finestra sopra l'immagine che stai componendo
 - Standby della fotocamera: il dispositivo che fa da fotocamera può spegnere il proprio schermo nelle sessioni lunghe e continua comunque a trasmettere e a scattare
 

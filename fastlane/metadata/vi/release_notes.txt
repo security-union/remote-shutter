@@ -1,11 +1,11 @@
-Điều khiển được thiết kế lại quanh khung ngắm: hình ảnh trước, các nút điều khiển tránh đường.
+Điều khiển được thiết kế lại quanh khung ngắm: hình ảnh trước, các nút điều khiển lùi lại phía sau.
 
 - Xem trực tiếp toàn màn hình: khuôn hình giờ lấp đầy màn hình với các nút nổi lên trên, thay vì một khung hình nhỏ bị kẹp phía trên bảng nút
 - Hỗ trợ nằm ngang: xoay ngang điều khiển và hình ảnh chiếm gần trọn màn hình
-- Bố cục gọn gàng hơn: hẹn giờ, tỉ lệ khung hình và chất lượng chuyển vào một khay chỉ cách một lần chạm, mỗi ô hiển thị ngay thiết lập hiện tại
+- Bố cục gọn gàng hơn: hẹn giờ, tỉ lệ khung hình và chất lượng chuyển vào một bảng chỉ cách một lần chạm, mỗi mục hiển thị ngay thiết lập hiện tại
 - Trạng thái kết nối rõ ràng: một chỉ báo kín đáo xác nhận hình ảnh đang trực tiếp, và báo ngay khi luồng bị đứng
 - Không gì che khuôn hình: tiến trình chụp giờ hiện trên nút chụp thay vì một cửa sổ đè lên khuôn hình bạn đang dàn dựng
-- Máy ảnh chờ: thiết bị đóng vai máy ảnh có thể cho màn hình của nó nghỉ trong buổi chụp dài mà vẫn tiếp tục truyền hình ảnh và chụp
+- Máy ảnh ở chế độ chờ: thiết bị đóng vai máy ảnh có thể cho màn hình của nó nghỉ trong buổi chụp dài mà vẫn tiếp tục truyền hình ảnh và chụp
 
 Mới thêm gần đây:
 

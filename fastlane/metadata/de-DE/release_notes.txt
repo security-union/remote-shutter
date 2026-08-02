@@ -1,11 +1,11 @@
-Die Fernbedienung ist rund um den Sucher neu gestaltet: das Bild zuerst, die Bedienelemente aus dem Weg.
+Die Fernbedienung ist rund um den Sucher neu gestaltet: das Bild zuerst, die Bedienelemente treten zurück.
 
 - Live-Vorschau im Vollbild: Die Aufnahme füllt jetzt den Bildschirm, die Bedienelemente schweben darüber, statt eines kleinen Bildes über einer Leiste voller Tasten
 - Querformat: Drehen Sie die Fernbedienung zur Seite, und das Bild übernimmt fast den gesamten Bildschirm
-- Aufgeräumtes Layout: Selbstauslöser, Seitenverhältnis und Qualität sind in ein Fach umgezogen, nur einen Tipp entfernt, und jede Kachel zeigt ihre aktuelle Einstellung
+- Aufgeräumtes Layout: Selbstauslöser, Seitenverhältnis und Qualität liegen jetzt in einem Bedienfeld, das nur ein Tippen entfernt ist, und jedes zeigt seine aktuelle Einstellung
 - Klarer Verbindungsstatus: Eine dezente Anzeige bestätigt, dass das Bild live ist, und meldet sich, sobald der Stream stockt
 - Nichts verdeckt Ihre Aufnahme: Der Fortschritt erscheint jetzt auf dem Auslöser statt in einem Dialog über dem Bild, das Sie gerade gestalten
-- Kamera-Standby: Das Kameragerät kann seinen eigenen Bildschirm bei langen Aufnahmen ruhen lassen und überträgt und fotografiert dabei weiter
+- Kamera-Standby: Das Gerät, das als Kamera dient, kann bei langen Aufnahmen seinen eigenen Bildschirm ruhen lassen und überträgt und fotografiert dabei weiter
 
 Kürzlich hinzugefügt:
 

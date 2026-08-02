@@ -2,10 +2,10 @@ Alat kawalan jauh direka semula mengelilingi pembidik: gambar dahulu, kawalan ke
 
 - Pratonton langsung skrin penuh: gambar kini memenuhi skrin dengan kawalan terapung di atasnya, bukan lagi gambar kecil yang tersepit di atas panel butang
 - Sokongan landskap: pusingkan alat kawalan ke sisi dan gambar mengambil hampir seluruh skrin
-- Susun atur lebih kemas: pemasa kendiri, nisbah bidang dan kualiti berpindah ke dalam dulang sejauh satu ketikan, dan setiap jubin menunjukkan tetapan semasanya sepintas lalu
+- Susun atur lebih kemas: pemasa kendiri, nisbah bidang dan kualiti berpindah ke dalam panel sejauh satu ketikan, dan setiap satu menunjukkan tetapan semasanya sepintas lalu
 - Status sambungan yang jelas: penunjuk yang tidak menonjol mengesahkan gambar itu langsung, dan memberitahu sebaik sahaja strim tersekat
 - Tiada apa menutup gambar anda: kemajuan tangkapan kini muncul pada butang pengatup, bukan tetingkap timbul di atas gambar yang sedang anda susun
-- Kamera tunggu sedia: peranti kamera boleh merehatkan skrinnya sendiri semasa penggambaran panjang sambil terus menstrim dan menangkap
+- Kamera mod sedia: peranti yang menjadi kamera boleh merehatkan skrinnya sendiri semasa penggambaran panjang sambil terus menstrim dan menangkap
 
 Ditambah baru-baru ini:
 
