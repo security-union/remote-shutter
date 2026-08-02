@@ -71,11 +71,11 @@ struct MonitorView: View {
                 PeerLinkOverlay(status: peerLink)
             }
         }
-        // Every control here draws its own shape. Catalyst's default button
-        // style paints a bordered box behind them, which showed as rectangles
-        // around the shutter, gallery and flip. Set once at the root so no
-        // control has to remember.
-        .buttonStyle(.plain)
+        // Every control here draws its own shape; Catalyst's default style
+        // paints a bordered box behind them. .borderless removes that box.
+        // NOT .plain -- that also drops the style's hit region, which left the
+        // material-filled controls clickable only where their glyph draws.
+        .buttonStyle(.borderless)
         .onPreferenceChange(PreviewSizePreferenceKey.self) { previewSize = $0 }
         .statusBarHidden()
     }
