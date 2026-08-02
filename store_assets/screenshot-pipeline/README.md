@@ -1,7 +1,7 @@
 # App Store Screenshot Pipeline
 
-Generates every App Store screenshot (10 locales × iPhone/iPad) plus the In-App
-Event banner from AI-generated lifestyle scenes with the **real app UI**
+Generates every App Store screenshot (15 locales × iPhone/iPad/Mac) plus the
+In-App Event banner from AI-generated lifestyle scenes with the **real app UI**
 composited onto the in-scene device screens. Rendering is fully deterministic —
 no AI calls, no manual image editing.
 
@@ -9,7 +9,7 @@ no AI calls, no manual image editing.
 
 ```bash
 cd store_assets/screenshot-pipeline
-./ship-locales.sh              # render all 10 locales -> fastlane/screenshots/<locale>/
+./ship-locales.sh              # render all 15 locales -> fastlane/screenshots/<locale>/
 ./ship-locales.sh it ja        # or just specific locales
 ./ship-locales.sh -p mac       # only one platform (iphone,ipad,mac,banner); others untouched
 ./ship-locales.sh -p mac it ja # combine: platform subset x locale subset
@@ -27,14 +27,58 @@ and `fastlane/metadata/` to App Store Connect.
 | File | Purpose |
 |---|---|
 | `manifest.js` | The layout source of truth: per-slot scene image, screen quads, UI captures, callouts, mockup config |
-| `translations.js` | **All localized strings** (headlines, sublines, callout labels) for the 10 locales |
+| `translations.js` | **All localized strings** (headlines, sublines, callout labels) for the 15 locales |
 | `template.html` | Renders one slot in headless Chrome: caption + scene + perspective-mapped screens + callouts |
 | `render.mjs` | Drives Chrome over the slot × device matrix (`PLANS`), crops to exact pixels |
 | `ship-locales.sh` | Renders every locale and syncs `fastlane/screenshots/<locale>/` (cleans stale files, keeps Watch captures) |
 | `generate.mjs` | Nano Banana (Gemini) scene generation/editing — needs `AI_STUDIO` env var; only used when creating **new** scenes |
-| `tools.py` | Quad helpers: `detect` (find a screen's corners), `overlay` (draw a quad to verify), `zoom`, `crop` |
-| `assets/` | Real app UI captures composited onto screens (monitor iPhone/iPad, etc.) |
+| `tools.py` | Quad helpers: `detect` (find a screen's corners), `overlay` (draw a quad to verify), `zoom`, `crop`; plus `chrome` (chrome overlays, below) |
+| `assets/` | Chrome overlays composited onto device screens |
+| `assets/raw/` | The unmodified device captures each overlay is derived from |
 | `../ai-scenes/` | Generated scene photos + "what the camera sees" preview shots |
+
+## The viewfinder: how a remote screen is composited
+
+The remote is a full-bleed preview under floating glass chrome, so the chrome
+overlaps the picture and cannot be a flat capture pasted behind a preview
+rectangle. Each remote screen is instead built in three layers — black, the
+frame aspect-fit (`object-fit: contain`, the app's own letterboxing), then a
+**chrome overlay**: a straight-alpha RGBA layer keyed from a real capture.
+
+A capture taken over a **black** viewfinder is exactly the chrome premultiplied
+over black, so the value channel recovers it: `alpha = max(R,G,B)`,
+`color = pixel/alpha`. That is exact over black, and over a bright frame it
+produces the same washed-out light glass the real app shows — dark-mode
+`.ultraThinMaterial` is additive light over its backdrop. The value channel is
+used rather than luma so the gold accent and the red record disc keep their hue.
+
+`tools.py chrome` does the keying. Two regions need help: `--blank` zeroes the
+device status bar (the template redraws a clean 9:41 one) and anything else that
+must not ship, and `--disc` finds the shutter — a white disc with a *black* ring
+drawn inside it, which would otherwise key to a hole — and forces it opaque.
+`--opaque` does the same for a region known to be solid, like a Mac title bar.
+
+```bash
+# Regenerate the overlays from assets/raw/ (what produced the committed ones)
+python3 tools.py chrome assets/raw/monitor-iphone.png assets/ui-monitor-iphone.png \
+  --blank 0,0,1170,125 --blank 283,155,425,150 --disc 0,1700,1170,832
+python3 tools.py chrome assets/raw/monitor-ipad.png assets/ui-monitor-ipad.png \
+  --blank 0,0,1640,72 --disc 0,1600,1640,760
+python3 tools.py chrome assets/raw/monitor-mac.png /tmp/mac_keyed.png \
+  --opaque 55,37,1891,54 --disc 800,880,400,200
+python3 tools.py crop /tmp/mac_keyed.png 55 37 1946 1089 assets/ui-monitor-mac.png
+```
+
+A slot opts in with `viewfinder: "<preview image>"` alongside its `ui:` overlay,
+on either a perspective surface or a flat mockup. `viewfinderTop` (percent)
+holds the frame below opaque chrome the app never draws under — on the Mac, the
+window's title bar. One Mac overlay serves every Mac slot, because the preview is
+composited rather than baked in.
+
+**Taking a new capture**: run the remote with a peer connected and the camera
+pointed at something black (a lens cap works), so the viewfinder is empty and
+only the chrome is lit. Anything visible in the frame has to be blanked, so a
+black frame is the whole job.
 
 ## Updating translations
 
@@ -59,6 +103,12 @@ English callout text (CAMERA, REMOTE, …) to the localized pill text.
 - Whatever the camera device sees must match the remote's live preview
   (same subject, same orientation, same aspect: portrait camera ⇒ portrait preview).
 - iPad screenshots must feature iPads, iPhone screenshots iPhones.
+- The feature-callout slots (2, 2i, mac1) need a preview whose edges have
+  contrast. Glass chrome over a bright, flat frame is legitimately near-invisible
+  — accurate, and useless for a screenshot whose job is labelling the controls.
+- No third-party brand names on a device screen. The camera-name chip carries
+  whatever `AVCaptureDevice.localizedName` returns, so a capture made against a
+  USB webcam has to have that chip blanked.
 
 ## Adding a new screenshot (the Claude workflow)
 
@@ -90,7 +140,7 @@ What Claude does under the hood (or do it manually):
    line fits, and check that rendered UI rows sit parallel to the device's bottom edge.
 4. **Add the slot to `manifest.js`** (scene, quads, UI capture, preview, callouts)
    and to the `PLANS` slot lists in `render.mjs` (iPhone and/or iPad variants).
-5. **Add strings to `translations.js`** for all 10 locales.
+5. **Add strings to `translations.js`** for all 15 locales.
 6. `./ship-locales.sh` and review the output.
 
 ## Gotchas (learned the hard way)

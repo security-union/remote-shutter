@@ -63,12 +63,24 @@
   .surf-ui > img.fill {
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
   }
-  .surf-preview { position: absolute; overflow: hidden; background: #000; }
-  .surf-preview img { width: 100%; height: 100%; object-fit: cover; }
   .surf-statusbar {
     position: absolute; left: 0; top: 0; width: 100%;
     background: #000; color: #fff;
     display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* ---- Viewfinder: the remote's full-bleed preview under floating chrome ----
+     The frame is aspect-fit (letterboxed) exactly as LiveFrameView draws it,
+     and the chrome overlay — a straight-alpha layer keyed from a real capture
+     by `tools.py chrome` — composites over the top. */
+  .vf { position: absolute; inset: 0; background: #000; overflow: hidden; }
+  .vf > img { width: 100%; height: 100%; object-fit: contain; }
+  /* The overlay's aspect matches the screen rect, so it maps 1:1. */
+  .vf-chrome { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* iOS draws the status bar over a full-bleed camera UI, not on a black
+     plate, so the plate would eat the top of the picture. */
+  .statusbar.over-vf, .surf-statusbar.over-vf {
+    background: transparent; text-shadow: 0 1px 3px rgba(0,0,0,.55);
   }
   .surf-glare {
     position: absolute; inset: 0; pointer-events: none;
@@ -80,17 +92,6 @@
   .mockup { position: absolute; z-index: 2; }
   .mockup .screen { position: relative; overflow: hidden; background: #000; }
   .mockup img.ui { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .mockup .preview {
-    position: absolute;
-    left: 17.86%; top: 5.61%; width: 64.36%; height: 52.88%;
-    overflow: hidden; background: #000;
-  }
-  .mockup .preview img {
-    width: 100%; height: 100%; object-fit: cover;
-    object-position: var(--preview-pos, 50% 50%);
-    transform: scale(var(--preview-scale, 1));
-    transform-origin: var(--preview-pos, 50% 50%);
-  }
   .mockup .statusbar {
     position: absolute; left: 0; top: 0; width: 100%; height: 5.61%;
     background: #000; color: #fff;
@@ -212,9 +213,14 @@
 
   // ---- Flat device mockup (mode B); metrics in design px, scaled by k ----
   const MOCKUP_PRESETS = {
-    iphone: { ar: 2532 / 1170, sr: 92, fr: 116, pad: 24, pv: [17.86, 5.61, 64.36, 52.88], sbH: 5.61, sbF: 23, sbP: 55 },
-    ipad: { ar: 2360 / 1640, sr: 36, fr: 60, pad: 26, pv: [22.0, 2.0, 55.9, 70.0], sbH: 2.0, sbF: 19, sbP: 40 },
+    iphone: { ar: 2532 / 1170, sr: 92, fr: 116, pad: 24, sbH: 5.61, sbF: 23, sbP: 55 },
+    ipad: { ar: 2360 / 1640, sr: 36, fr: 60, pad: 26, sbH: 2.0, sbF: 19, sbP: 40 },
   };
+  // The remote's screen: black, the aspect-fit frame, then the chrome overlay.
+  // `top` (percent) keeps the frame below opaque chrome the app never draws
+  // under — on the Mac, the window's title bar.
+  const viewfinder = (img, ui, top) =>
+    `<div class="vf" style="top:${top || 0}%"><img src="${img}"></div><img class="vf-chrome" src="${ui}">`;
   let mockupMetrics = null;
   if (slot.mockup && slot.mockup.device === "mac") {
     // Mac window screenshot placed as-is (chrome + rounded alpha baked in).
@@ -230,7 +236,7 @@
     el.style.borderRadius = rad + "px";
     el.style.boxShadow = `0 ${60 * k}px ${120 * k}px rgba(0,0,0,.5), 0 ${20 * k}px ${40 * k}px rgba(0,0,0,.35)`;
     el.innerHTML = `<div class="screen" style="width:${screenW}px;height:${screenH}px;border-radius:${rad}px;background:transparent;">
-      <img class="ui" src="${m.ui}"></div>`;
+      ${m.viewfinder ? viewfinder(m.viewfinder, m.ui, m.viewfinderTop) : `<img class="ui" src="${m.ui}">`}</div>`;
     canvas.appendChild(el);
     mockupMetrics = {
       screenLeft: cw * parseFloat(m.left || "72") / 100 - screenW / 2,
@@ -252,17 +258,14 @@
     el.style.borderRadius = P.fr * k + "px";
     el.style.boxShadow = `0 ${80 * k}px ${160 * k}px rgba(0,0,0,.45), 0 ${30 * k}px ${60 * k}px rgba(0,0,0,.3), inset 0 0 0 ${3 * k}px rgba(255,255,255,.14)`;
     const sb = m.statusbar === false ? "" :
-      `<div class="statusbar" style="height:${P.sbH}%;padding:0 ${P.sbP * k}px;font-size:${P.sbF * k}px;font-weight:600;">
+      `<div class="statusbar${m.viewfinder ? " over-vf" : ""}" style="height:${P.sbH}%;padding:0 ${P.sbP * k}px;font-size:${P.sbF * k}px;font-weight:600;">
         <span>9:41</span>
         <span style="display:flex;align-items:center;gap:${8 * k}px;">${WIFI(P.sbF * k, P.sbF * 0.7 * k)}${BATT(P.sbF * 1.5 * k, P.sbF * 0.75 * k, 2 * k)}</span>
       </div>`;
     el.innerHTML = `<div class="screen" style="width:${screenW}px;height:${screenH}px;border-radius:${P.sr * k}px;">
-      <img class="ui" src="${m.ui}">
-      ${m.preview ? `<div class="preview" style="left:${P.pv[0]}%;top:${P.pv[1]}%;width:${P.pv[2]}%;height:${P.pv[3]}%;"><img src="${m.preview}"></div>` : ""}
+      ${m.viewfinder ? viewfinder(m.viewfinder, m.ui) : `<img class="ui" src="${m.ui}">`}
       ${sb}</div>`;
     canvas.appendChild(el);
-    if (m.previewPosition) document.documentElement.style.setProperty("--preview-pos", m.previewPosition);
-    if (m.previewScale) document.documentElement.style.setProperty("--preview-scale", m.previewScale);
     const leftPct = parseFloat(m.left || "50") / 100;
     mockupMetrics = {
       screenLeft: cw * leftPct - screenW / 2,
@@ -296,20 +299,26 @@
       ui.style.borderRadius = (s.innerRadius || s.radius || 0) + "px";
 
       let html = "";
-      if (s.ui) html += `<img class="fill" src="${s.ui}">`;
+      if (s.viewfinder) html += viewfinder(s.viewfinder, s.ui, s.viewfinderTop);
+      else if (s.ui) html += `<img class="fill" src="${s.ui}">`;
       else if (s.img && s.chrome !== "watch") html += `<img class="fill" src="${s.img}" style="object-position:${s.pos || "50% 50%"};transform:scale(${s.scale || 1});transform-origin:${s.pos || "50% 50%"};">`;
 
-      if (s.preview) {
-        const [l, t, pw, ph] = s.preview.rect;
-        html += `<div class="surf-preview" style="left:${l}%;top:${t}%;width:${pw}%;height:${ph}%;">
-          <img src="${s.preview.img}" style="object-position:${s.preview.pos || "50% 50%"};transform:scale(${s.preview.scale || 1});transform-origin:${s.preview.pos || "50% 50%"};"></div>`;
-      }
-      // Camera-side chrome (matches CameraViewController).
+      // Camera-side chrome (matches CameraScreenView): the preview is the whole
+      // screen. The only permanent control is the standby button, top-trailing;
+      // the recording badge is video-mode only, the device picker appears only
+      // when the peer has more than one camera.
       if (s.chrome === "camera") {
-        html += `<div style="position:absolute;top:0;left:0;width:100%;height:14%;background:linear-gradient(rgba(0,0,0,.38),transparent);"></div>`;
-        html += `<svg style="position:absolute;top:200px;left:70px;" width="90" height="90" viewBox="0 0 24 24" fill="none"><path d="M15 4 L7 12 L15 20" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-        html += `<div style="position:absolute;top:215px;left:50%;transform:translateX(-50%);width:64px;height:64px;border-radius:50%;background:#FF3B30;box-shadow:0 0 24px rgba(255,59,48,.8);"></div>`;
-        html += `<svg style="position:absolute;top:200px;right:70px;" width="90" height="90" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="1.8"/><text x="12" y="16" text-anchor="middle" fill="white" font-size="11" font-weight="600" font-family="-apple-system">?</text></svg>`;
+        // 44pt button, 17/16pt insets — as fractions of the screen's SHORT
+        // edge, which is what makes them the same physical size whether the
+        // device is held portrait or landscape.
+        const m = Math.min(w, h);
+        const r = 0.073 * m;
+        const inset = 0.027 * m;
+        html += `<div style="position:absolute;top:${inset}px;right:${inset}px;width:${r}px;height:${r}px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;">
+          <svg width="${r * 0.5}" height="${r * 0.5}" viewBox="0 0 24 24" fill="white"><path d="M20.7 14.3a8.5 8.5 0 0 1-11-11 8.5 8.5 0 1 0 11 11z"/><path d="M13.5 2h5.2l-5.2 5.2h5.2" stroke="white" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+        if (s.recording) {
+          html += `<div style="position:absolute;top:${inset}px;left:50%;transform:translateX(-50%);width:${r * 0.42}px;height:${r * 0.42}px;border-radius:50%;background:#FF3B30;box-shadow:0 0 ${r * 0.4}px rgba(255,59,48,.85);"></div>`;
+        }
       }
       // Watch remote chrome (matches the Watch live-view screen).
       if (s.chrome === "watch") {
@@ -327,7 +336,7 @@
       }
       if (s.statusbar) {
         const sb = s.statusbar;
-        html += `<div class="surf-statusbar" style="height:${sb.heightPct}%;font-size:${sb.font}px;font-weight:600;padding:0 ${sb.pad}px;">
+        html += `<div class="surf-statusbar${s.viewfinder ? " over-vf" : ""}" style="height:${sb.heightPct}%;font-size:${sb.font}px;font-weight:600;padding:0 ${sb.pad}px;">
           <span>9:41</span>
           <span style="display:flex;align-items:center;gap:${sb.font * 0.4}px;">${WIFI(sb.font * 0.9, sb.font * 0.64)}${BATT(sb.font * 1.1, sb.font * 0.55, 2)}</span>
         </div>`;

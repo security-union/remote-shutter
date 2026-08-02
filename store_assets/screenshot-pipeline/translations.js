@@ -225,7 +225,8 @@ window.I18N = {
     labels: {
       "CAMERA": "कैमरा", "REMOTE": "रिमोट", "PRO CAMERA": "प्रो कैमरा",
       "PHOTO & VIDEO": "फ़ोटो और वीडियो", "TIMER": "टाइमर",
-      "ZOOM & LENS": "ज़ूम और लेंस", "FLASH & TORCH": "फ़्लैश और टॉर्च"
+      "ZOOM & LENS": "ज़ूम और लेंस", "FLASH & TORCH": "फ़्लैश और टॉर्च",
+      "LIVE PREVIEW": "लाइव प्रीव्यू"
     }
   },
   "vi": {
@@ -245,7 +246,8 @@ window.I18N = {
     labels: {
       "CAMERA": "MÁY ẢNH", "REMOTE": "ĐIỀU KHIỂN", "PRO CAMERA": "MÁY ẢNH PRO",
       "PHOTO & VIDEO": "ẢNH & VIDEO", "TIMER": "HẸN GIỜ",
-      "ZOOM & LENS": "THU PHÓNG & ỐNG KÍNH", "FLASH & TORCH": "ĐÈN FLASH & ĐÈN PIN"
+      "ZOOM & LENS": "THU PHÓNG & ỐNG KÍNH", "FLASH & TORCH": "ĐÈN FLASH & ĐÈN PIN",
+      "LIVE PREVIEW": "XEM TRỰC TIẾP"
     }
   },
   "ms": {
@@ -265,7 +267,8 @@ window.I18N = {
     labels: {
       "CAMERA": "KAMERA", "REMOTE": "KAWALAN JAUH", "PRO CAMERA": "KAMERA PRO",
       "PHOTO & VIDEO": "FOTO & VIDEO", "TIMER": "PEMASA",
-      "ZOOM & LENS": "ZUM & KANTA", "FLASH & TORCH": "DENYAR & SULUH"
+      "ZOOM & LENS": "ZUM & KANTA", "FLASH & TORCH": "DENYAR & SULUH",
+      "LIVE PREVIEW": "PRATONTON LANGSUNG"
     }
   },
   "tr": {
@@ -285,7 +288,8 @@ window.I18N = {
     labels: {
       "CAMERA": "KAMERA", "REMOTE": "KUMANDA", "PRO CAMERA": "PRO KAMERA",
       "PHOTO & VIDEO": "FOTOĞRAF VE VİDEO", "TIMER": "ZAMANLAYICI",
-      "ZOOM & LENS": "ZOOM VE OBJEKTİF", "FLASH & TORCH": "FLAŞ VE EL FENERİ"
+      "ZOOM & LENS": "ZOOM VE OBJEKTİF", "FLASH & TORCH": "FLAŞ VE EL FENERİ",
+      "LIVE PREVIEW": "CANLI ÖNİZLEME"
     }
   },
   "ru": {
@@ -305,7 +309,8 @@ window.I18N = {
     labels: {
       "CAMERA": "КАМЕРА", "REMOTE": "ПУЛЬТ", "PRO CAMERA": "ПРОФ. КАМЕРА",
       "PHOTO & VIDEO": "ФОТО И ВИДЕО", "TIMER": "ТАЙМЕР",
-      "ZOOM & LENS": "ЗУМ И ОБЪЕКТИВ", "FLASH & TORCH": "ВСПЫШКА И ФОНАРИК"
+      "ZOOM & LENS": "ЗУМ И ОБЪЕКТИВ", "FLASH & TORCH": "ВСПЫШКА И ФОНАРИК",
+      "LIVE PREVIEW": "ЖИВОЙ ПРОСМОТР"
     }
   }
 };

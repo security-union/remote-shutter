@@ -18,13 +18,8 @@ window.MANIFEST = {
           radius: 56,
           innerRadius: 32,
           ui: "assets/ui-monitor-ipad.png",
-          preview: {
-            img: "../ai-scenes/slot0_ots_preview.jpg",
-            rect: [22.0, 2.0, 55.9, 70.0],
-            pos: "50% 47%",
-            scale: 1.3
-          },
-          statusbar: { heightPct: 2.0, font: 34, pad: 44 }
+          viewfinder: "../ai-scenes/slot0_ots_preview.jpg",
+          statusbar: { heightPct: 3.0, font: 34, pad: 44 }
         },
         {
           quad: [[88, 1113], [262, 1115], [90, 1494], [263, 1496]],
@@ -76,17 +71,19 @@ window.MANIFEST = {
       accentLine: 1,
       mockup: {
         ui: "assets/ui-monitor-iphone.png",
-        preview: "../ai-scenes/slot1_preview.jpg",
-        previewPosition: "50% 45%",
-        previewScale: 1.0,
+        // Near the screen's own aspect, so the frame runs wall to wall — the
+        // point of the redesign, and it gives the glass chrome something with
+        // contrast to sit on.
+        viewfinder: "../ai-scenes/mac3_preview_port.jpg",
         top: 800,
         width: 660
       },
       callouts: [
-        { text: "PHOTO & VIDEO", anchorScreen: [0.726, 0.628], dx: 220, dy: -80 },
-        { text: "TIMER", anchorScreen: [0.244, 0.693], dx: -230, dy: -60 },
-        { text: "ZOOM & LENS", anchorScreen: [0.264, 0.752], dx: -230, dy: 110 },
-        { text: "FLASH & TORCH", anchorScreen: [0.539, 0.928], dx: 240, dy: 30 }
+        { text: "FLASH & TORCH", anchorScreen: [0.727, 0.091], dx: -170, dy: -150 },
+        { text: "TIMER", anchorScreen: [0.897, 0.091], dx: 150, dy: -150 },
+        { text: "LIVE PREVIEW", anchorScreen: [0.5, 0.42], dx: 300, dy: -60 },
+        { text: "ZOOM & LENS", anchorScreen: [0.5, 0.757], dx: -290, dy: 30 },
+        { text: "PHOTO & VIDEO", anchorScreen: [0.5, 0.923], dx: 300, dy: 120 }
       ]
     },
 
@@ -101,17 +98,13 @@ window.MANIFEST = {
         {
           // Her phone: real monitor UI, live preview shows the cardinal.
           quad: [[458, 1119], [750, 1108], [497, 1766], [789, 1746]],
-          size: [1210, 2572],
+          // The overlay's native pixels — the chrome maps 1:1, no stretch.
+          size: [1170, 2532],
           bezel: 0,
-          radius: 190,
+          radius: 185,
           ui: "assets/ui-monitor-iphone.png",
-          preview: {
-            img: "../ai-scenes/slot3_preview.jpg",
-            rect: [17.86, 5.61, 64.36, 52.88],
-            pos: "50% 40%",
-            scale: 1.1
-          },
-          statusbar: { heightPct: 5.6, font: 42, pad: 60 }
+          viewfinder: "../ai-scenes/slot3_preview.jpg",
+          statusbar: { heightPct: 4.9, font: 42, pad: 60 }
         },
         {
           // Camera phone on the railing tripod (soft focus like the scene).
@@ -186,17 +179,18 @@ window.MANIFEST = {
       mockup: {
         device: "ipad",
         ui: "assets/ui-monitor-ipad.png",
-        preview: "../ai-scenes/slot1_preview.jpg",
-        previewPosition: "50% 45%",
-        previewScale: 1.0,
+        // Same frame the iPhone slot uses: the feature story reads the same on
+        // both device families, and it fills the screen top to bottom.
+        viewfinder: "../ai-scenes/mac3_preview_port.jpg",
         top: 700,
         width: 1150
       },
       callouts: [
-        { text: "PHOTO & VIDEO", anchorScreen: [0.738, 0.739], dx: 300, dy: -80 },
-        { text: "TIMER", anchorScreen: [0.115, 0.786], dx: -260, dy: -60 },
-        { text: "ZOOM & LENS", anchorScreen: [0.128, 0.828], dx: -260, dy: 110 },
-        { text: "FLASH & TORCH", anchorScreen: [0.52, 0.953], dx: 300, dy: 30 }
+        { text: "FLASH & TORCH", anchorScreen: [0.870, 0.053], dx: -180, dy: -160 },
+        { text: "TIMER", anchorScreen: [0.951, 0.053], dx: 170, dy: -160 },
+        { text: "LIVE PREVIEW", anchorScreen: [0.5, 0.42], dx: 380, dy: -60 },
+        { text: "ZOOM & LENS", anchorScreen: [0.5, 0.834], dx: -360, dy: 30 },
+        { text: "PHOTO & VIDEO", anchorScreen: [0.5, 0.956], dx: 330, dy: 90 }
       ]
     },
     "3i": {
@@ -213,13 +207,8 @@ window.MANIFEST = {
           bezel: 0,
           radius: 70,
           ui: "assets/ui-monitor-ipad.png",
-          preview: {
-            img: "../ai-scenes/slot3_preview.jpg",
-            rect: [22.0, 2.0, 55.9, 70.0],
-            pos: "50% 40%",
-            scale: 1.1
-          },
-          statusbar: { heightPct: 2.0, font: 34, pad: 44 }
+          viewfinder: "../ai-scenes/slot3_preview.jpg",
+          statusbar: { heightPct: 3.0, font: 34, pad: 44 }
         },
         {
           // Camera phone on the railing tripod (soft focus like the scene).
@@ -275,18 +264,14 @@ window.MANIFEST = {
           // iPhone in her hand: real monitor UI, live preview of the watch —
           // same treatment as slot 3's remote phone.
           quad: [[910, 952], [1114, 928], [979, 1417], [1183, 1392]],
-          size: [1210, 2572],
+          size: [1170, 2532],
           bezel: 0,
           radius: 185,
           ui: "assets/ui-monitor-iphone.png",
-          preview: {
-            // Same landscape frame as the Mac, letterboxed (real app behavior).
-            img: "../ai-scenes/mac0_preview_phone.jpg",
-            rect: [17.86, 5.61, 64.36, 52.88],
-            pos: "50% 50%",
-            scale: 1.0
-          },
-          statusbar: { heightPct: 5.6, font: 42, pad: 60 }
+          // The Mac's landscape frame, letterboxed by the viewfinder's own fit —
+          // exactly what the phone shows when the camera is a wide sensor.
+          viewfinder: "../ai-scenes/mac0_preview.jpg",
+          statusbar: { heightPct: 4.9, font: 42, pad: 60 }
         }
       ],
       callouts: [
@@ -311,11 +296,13 @@ window.MANIFEST = {
         {
           // MacBook screen: real Mac monitor UI, live view of the cardinal.
           quad: [[566, 1314], [1386, 1323], [511, 1841], [1378, 1866]],
-          size: [3842, 2102],
+          size: [1891, 1052],
           bezel: 0,
-          radius: 18,
-          // Real capture with the live view baked into the viewfinder region.
-          ui: "assets/ui-monitor-mac.png"
+          radius: 9,
+          ui: "assets/ui-monitor-mac.png",
+          viewfinder: "../ai-scenes/mac3_preview.jpg",
+          // Below the window's opaque title bar (54px of 1052).
+          viewfinderTop: 5.13
         },
         {
           // Camera phone in the GorillaPod clamp: live view with camera chrome.
@@ -344,17 +331,27 @@ window.MANIFEST = {
       accentLine: 1,
       mockup: {
         device: "mac",
-        ui: "assets/ui-monitor-mac-remote.png",
-        naturalSize: [1716, 1807],
-        width: 1025,
-        left: "68%",
-        top: 60
+        // Its own capture: a near-square window, which fits the landscape
+        // canvas better than the wide one the in-scene MacBooks use, and lets
+        // the 16:9 frame letterbox — putting every control on black, which is
+        // what a callout slot needs.
+        ui: "assets/ui-monitor-mac-square.png",
+        viewfinder: "../ai-scenes/slot1_preview.jpg",
+        viewfinderTop: 5.13,
+        naturalSize: [1205, 1052],
+        width: 900,
+        left: "72%",
+        top: 147
       },
       callouts: [
-        { text: "PHOTO & VIDEO", anchorScreen: [0.474, 0.596], dx: 250, dy: 100 },
-        { text: "TIMER", anchorScreen: [0.092, 0.705], dx: -230, dy: -80 },
-        { text: "ZOOM & LENS", anchorScreen: [0.10, 0.757], dx: -210, dy: 110 },
-        { text: "FLASH & TORCH", anchorScreen: [0.452, 0.965], dx: -280, dy: 0 }
+        // Both labels are pulled left and separated vertically: the window's
+        // top-right corner sits ~130px from the canvas edge, so a label routed
+        // outward clips the moment a locale spells it out (ru ТАЙМЕР, vi ĐÈN
+        // FLASH & ĐÈN PIN).
+        { text: "FLASH & TORCH", anchorScreen: [0.911, 0.078], dx: -640, dy: -125 },
+        { text: "TIMER", anchorScreen: [0.966, 0.078], dx: -110, dy: -125 },
+        { text: "ZOOM & LENS", anchorScreen: [0.5, 0.836], dx: -400, dy: 190 },
+        { text: "PHOTO & VIDEO", anchorScreen: [0.5, 0.973], dx: 260, dy: 150 }
       ]
     },
 
@@ -369,12 +366,14 @@ window.MANIFEST = {
       scenePosition: "50% 50%",
       surfaces: [
         {
-          // MacBook screen: monitor UI with the overhead board feed baked in.
+          // MacBook screen: monitor UI over the overhead board feed.
           quad: [[-53, 1094], [414, 967], [130, 1598], [579, 1391]],
-          size: [3842, 2102],
+          size: [1891, 1052],
           bezel: 0,
-          radius: 18,
-          ui: "assets/ui-monitor-mac-cook.png"
+          radius: 9,
+          ui: "assets/ui-monitor-mac.png",
+          viewfinder: "../ai-scenes/mac2_preview.jpg",
+          viewfinderTop: 5.13
         }
       ],
       callouts: [
@@ -399,13 +398,8 @@ window.MANIFEST = {
           radius: 56,
           innerRadius: 32,
           ui: "assets/ui-monitor-ipad.png",
-          preview: {
-            img: "../ai-scenes/slot0_ots_preview.jpg",
-            rect: [22.0, 2.0, 55.9, 70.0],
-            pos: "50% 47%",
-            scale: 1.3
-          },
-          statusbar: { heightPct: 2.0, font: 34, pad: 44 }
+          viewfinder: "../ai-scenes/slot0_ots_preview.jpg",
+          statusbar: { heightPct: 3.0, font: 34, pad: 44 }
         },
         {
           quad: [[88, 1113], [262, 1115], [90, 1494], [263, 1496]],
