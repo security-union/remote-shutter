@@ -418,8 +418,9 @@ struct MonitorView: View {
     private var trayLayer: some View {
         ZStack(alignment: .bottom) {
             // Near-invisible full-screen scrim: dismisses on tap without
-            // dimming the preview the user is still framing with.
-            Color.black.opacity(0.001)
+            // dimming the preview the user is still framing with. Must stay
+            // above 0.01 — UIKit does not hit-test at or below that.
+            Color.black.opacity(0.02)
                 .ignoresSafeArea()
                 .onTapGesture { toggleTray() }
 
@@ -571,7 +572,7 @@ struct GlassCircleButton: View {
                 // where the glyph draws.
                 .background(
                     Circle()
-                        .fill(Color.white.opacity(0.001))
+                        .fill(Color.white.opacity(0.02))
                         .background(Circle().fill(.ultraThinMaterial))
                 )
                 .contentShape(Circle())
@@ -1026,7 +1027,7 @@ struct CameraSwitchControlView: View, Equatable {
         ZStack {
             // See GlassCircleButton: the material fill alone does not hit-test.
             Circle()
-                .fill(Color.white.opacity(0.001))
+                .fill(Color.white.opacity(0.02))
                 .background(Circle().fill(.ultraThinMaterial))
                 .frame(width: 44, height: 44)
             Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
