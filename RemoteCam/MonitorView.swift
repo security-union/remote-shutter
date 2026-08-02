@@ -569,6 +569,11 @@ struct GlassCircleButton: View {
                 .background(Circle().fill(.ultraThinMaterial))
                 .contentShape(Circle())
         }
+        // Outside the Button too: the inner shape only covers the label, and the
+        // Button still hit-tests its own frame. Never smaller than 44pt — Back
+        // draws at 36 and was a correspondingly small target.
+        .frame(width: max(size, 44), height: max(size, 44))
+        .contentShape(Circle())
         .disabled(!isEnabled)
     }
 
@@ -988,6 +993,8 @@ struct CameraSwitchControlView: View, Equatable {
             Button(action: onToggleCamera) {
                 switchIcon
             }
+            .frame(width: 44, height: 44)
+            .contentShape(Circle())
             .disabled(!isEnabled)
         case .deviceMenu:
             Menu {
@@ -1001,6 +1008,9 @@ struct CameraSwitchControlView: View, Equatable {
             } label: {
                 switchIcon
             }
+            .menuStyle(.borderlessButton)
+            .frame(width: 44, height: 44)
+            .contentShape(Circle())
             .disabled(!isEnabled)
         }
     }
