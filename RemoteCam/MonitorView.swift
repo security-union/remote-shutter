@@ -324,6 +324,7 @@ struct MonitorView: View {
                                         size: 44,
                                         glyphSize: 20,
                                         isEnabled: viewModel.isGalleryEnabled,
+                                        usesSolidFill: true,
                                         action: onGalleryTapped)
         let shutter = ShutterButton(uiState: viewModel.uiState,
                                     isRecording: viewModel.isRecording,
@@ -559,10 +560,13 @@ struct GlassCircleButton: View {
     let glyphSize: CGFloat
     var isActive: Bool = false
     let isEnabled: Bool
+    /// Opaque fill instead of the usual material. Only the gallery button sets
+    /// this — it is the one instance that does not respond to clicks on macOS,
+    /// and this isolates the fill as the single variable under test.
+    var usesSolidFill: Bool = false
     let action: () -> Void
 
-    /// Opaque on purpose. Shared with the camera-switch glyph so the two match.
-    static let fill = Color(white: 0.18)
+    static let solidFill = Color(white: 0.18)
 
     var body: some View {
         Button(action: action) {
@@ -570,16 +574,13 @@ struct GlassCircleButton: View {
                 .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundColor(tint)
                 .frame(width: size, height: size)
-                // Fully opaque, no material: a material fill does not hit-test.
-                .background(Circle().fill(Self.fill))
-                .contentShape(Circle())
+                .background(Circle().fill(background))
         }
-        // Outside the Button too: the inner shape only covers the label, and the
-        // Button still hit-tests its own frame. Never smaller than 44pt — Back
-        // draws at 36 and was a correspondingly small target.
-        .frame(width: max(size, 44), height: max(size, 44))
-        .contentShape(Circle())
         .disabled(!isEnabled)
+    }
+
+    private var background: AnyShapeStyle {
+        usesSolidFill ? AnyShapeStyle(Self.solidFill) : AnyShapeStyle(.ultraThinMaterial)
     }
 
     private var tint: Color {
@@ -998,8 +999,6 @@ struct CameraSwitchControlView: View, Equatable {
             Button(action: onToggleCamera) {
                 switchIcon
             }
-            .frame(width: 44, height: 44)
-            .contentShape(Circle())
             .disabled(!isEnabled)
         case .deviceMenu:
             Menu {
@@ -1013,18 +1012,16 @@ struct CameraSwitchControlView: View, Equatable {
             } label: {
                 switchIcon
             }
-            .menuStyle(.borderlessButton)
-            .frame(width: 44, height: 44)
-            .contentShape(Circle())
             .disabled(!isEnabled)
         }
     }
 
     private var switchIcon: some View {
         ZStack {
-            // Opaque, matching GlassCircleButton: material does not hit-test.
+            // Opaque, matching the gallery button: the fill is the variable
+            // under test.
             Circle()
-                .fill(GlassCircleButton.fill)
+                .fill(GlassCircleButton.solidFill)
                 .frame(width: 44, height: 44)
             Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
                 .font(.system(size: 19, weight: .semibold))
