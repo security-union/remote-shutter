@@ -43,6 +43,7 @@ struct MonitorView: View {
     @State private var focusReticle: FocusReticle?
     /// The preview area's measured size, for tap → normalized-image mapping.
     @State private var previewSize: CGSize = .zero
+    @State private var isTrayOpen = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -54,7 +55,7 @@ struct MonitorView: View {
                     interfaceOrientation: viewModel.interfaceOrientation,
                     input: Self.chromeInput))
 
-                if viewModel.isTrayOpen {
+                if isTrayOpen {
                     trayLayer
                 }
 
@@ -90,26 +91,10 @@ struct MonitorView: View {
         #endif
     }
 
-    /// On iOS the transparent nav bar carries Back, so a chevron here would
-    /// duplicate it. Catalyst does not render that bar at all — without this
-    /// the Mac has no way off the screen.
-    private static var showsFloatingBackButton: Bool {
-        #if targetEnvironment(macCatalyst)
-        true
-        #else
-        false
-        #endif
-    }
-
-    /// Mac keeps the flash/torch/tray capsule in the chrome, because it has no
-    /// navigation bar to put it in. iOS hosts it as a right bar button item.
-    static var showsInlineControlCapsule: Bool {
-        #if targetEnvironment(macCatalyst)
-        true
-        #else
-        false
-        #endif
-    }
+    /// The viewfinder hides the nav bar on every platform, and the Mac window
+    /// has no toolbar Back of its own, so the floating chevron is the only way
+    /// out everywhere.
+    private static let showsFloatingBackButton = true
 
     /// A Mac window neither rotates nor is held, so the side rail buys nothing
     /// there and the bottom bar is the convention.
@@ -289,20 +274,16 @@ struct MonitorView: View {
                 activeCameraCaption
                     .padding(.leading, 8)
                 Spacer(minLength: 0)
-                // On iOS this capsule is a right bar button item instead, so the
-                // top strip the nav bar already occupies isn't spent twice.
-                if Self.showsInlineControlCapsule {
-                    ControlCapsule(showsFlash: viewModel.uiState == .photoMode,
-                                   isFlashEnabled: viewModel.isFlashEnabled,
-                                   isFlashButtonEnabled: viewModel.isFlashButtonEnabled,
-                                   isTorchEnabled: viewModel.isTorchEnabled,
-                                   isTorchButtonEnabled: viewModel.isTorchButtonEnabled,
-                                   isTrayOpen: viewModel.isTrayOpen,
-                                   onToggleFlash: onToggleFlash,
-                                   onToggleTorch: onToggleTorch,
-                                   onToggleTray: toggleTray)
-                        .equatable()
-                }
+                ControlCapsule(showsFlash: viewModel.uiState == .photoMode,
+                               isFlashEnabled: viewModel.isFlashEnabled,
+                               isFlashButtonEnabled: viewModel.isFlashButtonEnabled,
+                               isTorchEnabled: viewModel.isTorchEnabled,
+                               isTorchButtonEnabled: viewModel.isTorchButtonEnabled,
+                               isTrayOpen: isTrayOpen,
+                               onToggleFlash: onToggleFlash,
+                               onToggleTorch: onToggleTorch,
+                               onToggleTray: toggleTray)
+                    .equatable()
             }
         }
     }
@@ -440,7 +421,7 @@ struct MonitorView: View {
 
     private func toggleTray() {
         withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
-            viewModel.isTrayOpen.toggle()
+            isTrayOpen.toggle()
         }
     }
 
@@ -576,33 +557,6 @@ struct LinkChip: View, Equatable {
         case .stalled: return NSLocalizedString("NO SIGNAL", comment: "preview stream stalled")
         case .reconnecting: return NSLocalizedString("RECONNECTING", comment: "peer link dropped")
         }
-    }
-}
-
-// MARK: - Navigation bar controls
-
-/// The flash · torch · tray capsule, hosted as a right bar button item on iOS.
-///
-/// Observes the view model directly so the bar item refreshes itself; a
-/// `UIBarButtonItem` has no way to be re-rendered from outside.
-struct MonitorNavControls: View {
-    @ObservedObject var viewModel: MonitorViewModel
-    let onToggleFlash: () -> Void
-    let onToggleTorch: () -> Void
-    let onToggleTray: () -> Void
-
-    var body: some View {
-        ControlCapsule(showsFlash: viewModel.uiState == .photoMode,
-                       isFlashEnabled: viewModel.isFlashEnabled,
-                       isFlashButtonEnabled: viewModel.isFlashButtonEnabled,
-                       isTorchEnabled: viewModel.isTorchEnabled,
-                       isTorchButtonEnabled: viewModel.isTorchButtonEnabled,
-                       isTrayOpen: viewModel.isTrayOpen,
-                       onToggleFlash: onToggleFlash,
-                       onToggleTorch: onToggleTorch,
-                       onToggleTray: onToggleTray)
-            .equatable()
-            .buttonStyle(.borderless)
     }
 }
 

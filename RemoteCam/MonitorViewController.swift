@@ -86,94 +86,15 @@ public class MonitorViewController: UIViewController {
         return true
     }
 
-    /// The nav bar's appearance before this screen made it transparent.
-    private var savedBarAppearance: (standard: UINavigationBarAppearance,
-                                     scrollEdge: UINavigationBarAppearance?,
-                                     tint: UIColor?)?
-
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // iOS: the bar stays *present* but fully transparent, so the preview
-        // still runs edge to edge behind it. Hiding it instead costs the
-        // interactive swipe-back gesture, which UIKit disables along with the
-        // bar; keeping it means Back and the swipe are both the system's own.
-        //
-        // Catalyst does not render this bar, and a Mac has no swipe to protect,
-        // so there it stays hidden and MonitorView draws its own chevron.
-        #if targetEnvironment(macCatalyst)
+        // The viewfinder is full-bleed: Back is a floating chevron in the
+        // chrome and Help is a tray tile, so the nav bar has nothing left to
+        // carry. On Catalyst the window toolbar still owns Back — the SwiftUI
+        // side suppresses its own chevron there.
         self.navigationController?.setNavigationBarHidden(true, animated: animated)
-        #else
-        self.navigationController?.setNavigationBarHidden(false, animated: animated)
-        makeNavigationBarTransparent()
-        installNavigationBarControls()
-        #endif
         navigationItem.title = nil
         syncInterfaceOrientation()
-    }
-
-    /// Retained, but deliberately NOT added as a child view controller.
-    /// `UIBarButtonItem(customView:)` puts the *view* inside the navigation
-    /// bar, whose owning controller is the UINavigationController — parenting
-    /// the hosting controller here as well makes UIKit see a child whose view
-    /// lives under a different controller, and it raises
-    /// UIViewControllerHierarchyInconsistency. The strong reference is what
-    /// keeps the SwiftUI view alive and updating.
-    private var navControlsHost: UIHostingController<MonitorNavControls>?
-
-    /// Puts the flash · torch · tray capsule in the bar rather than in the
-    /// chrome, so the strip the bar already occupies isn't spent twice.
-    private func installNavigationBarControls() {
-        guard navControlsHost == nil else { return }
-        let controls = MonitorNavControls(
-            viewModel: viewModel,
-            onToggleFlash: { [weak self] in self?.handleToggleFlash() },
-            onToggleTorch: { [weak self] in self?.handleToggleTorch() },
-            onToggleTray: { [weak self] in
-                guard let self else { return }
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
-                    self.viewModel.isTrayOpen.toggle()
-                }
-            })
-        let host = UIHostingController(rootView: controls)
-        // Both: a hosting controller's view is opaque by default, which would
-        // put a solid rectangle behind the capsule in the bar.
-        host.view.backgroundColor = .clear
-        host.view.isOpaque = false
-        // Let Auto Layout ask SwiftUI for the size: the capsule is narrower in
-        // video mode, where the flash glyph drops out.
-        host.view.translatesAutoresizingMaskIntoConstraints = false
-        navControlsHost = host
-        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: host.view)
-    }
-
-    private func makeNavigationBarTransparent() {
-        guard let bar = navigationController?.navigationBar else { return }
-        if savedBarAppearance == nil {
-            savedBarAppearance = (bar.standardAppearance, bar.scrollEdgeAppearance, bar.tintColor)
-        }
-        let transparent = UINavigationBarAppearance()
-        transparent.configureWithTransparentBackground()
-        transparent.backgroundColor = .clear
-        transparent.backgroundEffect = nil
-        transparent.shadowColor = .clear
-        bar.standardAppearance = transparent
-        bar.scrollEdgeAppearance = transparent
-        bar.compactAppearance = transparent
-        // The one used in landscape on iPhone. Left unset it falls back to the
-        // default opaque background, so the bar goes solid when you rotate.
-        if #available(iOS 15.0, *) {
-            bar.compactScrollEdgeAppearance = transparent
-        }
-        bar.isTranslucent = true
-        bar.setBackgroundImage(UIImage(), for: .default)
-        bar.shadowImage = UIImage()
-
-        // Chevron only: the destination is a viewfinder, and "Disconnect" as a
-        // back title read as a button rather than as where you came from.
-        navigationItem.backButtonDisplayMode = .minimal
-        // The viewfinder is dark in every state, so the back chevron and its
-        // title are always white rather than following the tint.
-        bar.tintColor = .white
     }
 
     override public func viewWillTransition(to size: CGSize,
@@ -199,22 +120,7 @@ public class MonitorViewController: UIViewController {
 
     override public func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        // Hand the bar back to whatever screen comes next exactly as we found it.
-        if let bar = navigationController?.navigationBar, let saved = savedBarAppearance {
-            bar.standardAppearance = saved.standard
-            bar.scrollEdgeAppearance = saved.scrollEdge
-            bar.compactAppearance = nil
-            if #available(iOS 15.0, *) {
-                bar.compactScrollEdgeAppearance = nil
-            }
-            // Undo the legacy overrides too, or the next screen inherits a
-            // transparent bar.
-            bar.setBackgroundImage(nil, for: .default)
-            bar.shadowImage = nil
-            bar.isTranslucent = true
-            bar.tintColor = saved.tint
-            savedBarAppearance = nil
-        }
+        // Hand the bar back to whatever screen comes next.
         self.navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 
