@@ -1,14 +1,17 @@
-Une mise à niveau majeure de la connexion elle-même : le nouveau moteur Stormo.
+La télécommande est repensée autour du viseur : l'image d'abord, les commandes s'effacent.
 
-- Moteur P2P Stormo en QUIC : la liaison entre appareils est reconstruite sur QUIC, le transport derrière HTTP/3
-- Connexion qui se répare d'elle-même : l'appairage est plus rapide, l'aperçu en direct reste stable et les coupures se rétablissent seules
-- Chiffrée en TLS 1.3 et toujours directe d'appareil à appareil : sans routeur ni réseau
-- Mettez Remote Shutter à jour sur les deux appareils : les anciennes versions ne peuvent pas s'appairer avec celle-ci
+- Aperçu en direct plein écran : la prise de vue occupe désormais tout l'écran, les commandes flottant par-dessus, au lieu d'une petite image coincée au-dessus d'un panneau de boutons
+- Mode paysage : tournez la télécommande sur le côté et l'image prend presque tout l'écran
+- Une disposition plus nette : retardateur, format et qualité sont regroupés dans un panneau accessible d'un seul toucher, et chacun affiche son réglage actuel
+- État de connexion clair : un indicateur discret confirme que l'image est en direct et le signale dès que le flux s'interrompt
+- Rien ne masque votre cadrage : la progression de la capture s'affiche sur le déclencheur plutôt que dans une fenêtre par-dessus l'image que vous composez
+- Veille de la caméra : l'appareil qui sert de caméra peut éteindre son propre écran lors des longues séances tout en continuant à diffuser et à déclencher
 
 Ajouté récemment :
 
-- Toucher pour faire la mise au point : touchez l'aperçu en direct pour régler la mise au point et l'exposition exactement où vous le souhaitez, inclus avec Pro
-- Vidéo en temps réel : un flux en direct fluide remplace les photos fixes, pour cadrer chaque prise sans effort
-- Curseur de zoom repensé : un contrôle plus précis et plus doux depuis l'autre bout de la pièce
-- Boutique d'Accessoires : parcourez trépieds, supports et accessoires choisis pour votre configuration photo
-- Fiabilité et performances améliorées de bout en bout
+- Moteur P2P Stormo en QUIC : la liaison entre appareils est reconstruite sur QUIC, le transport derrière HTTP/3, chiffrée en TLS 1.3 et toujours directe d'appareil à appareil, sans routeur ni réseau
+- Mettez Remote Shutter à jour sur les deux appareils. Les versions plus anciennes ne peuvent pas s'y appairer
+- Toucher pour faire le point : touchez l'aperçu en direct pour régler la mise au point et l'exposition exactement où vous le souhaitez, inclus avec Pro
+- Vidéo en temps réel : un flux en direct fluide remplace les images fixes, pour cadrer chaque prise sans effort
+- Boutique d'accessoires : trépieds, supports et accessoires choisis pour votre configuration
+- Fiabilité et performances améliorées partout

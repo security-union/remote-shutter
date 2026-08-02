@@ -1,14 +1,17 @@
-A major upgrade to the connection itself: the new Stormo engine.
+The remote is redesigned around the viewfinder: the picture first, the controls out of its way.
 
-- Stormo QUIC P2P engine: the device-to-device link is rebuilt on QUIC, the transport behind HTTP/3
-- Self-healing connection: pairing lands quicker, live preview holds steady, and dropouts heal themselves
-- Encrypted with TLS 1.3 and still direct device to device, with no router or network needed
-- Please update Remote Shutter on both devices. Older versions can't pair with this one
+- Full-screen live preview: the shot now fills the display with the controls floating over it, instead of a small picture squeezed above a panel of buttons
+- Landscape support: turn the remote sideways and the image takes over almost the entire screen
+- A tidier layout: self-timer, aspect ratio and quality moved into a panel one tap away, each showing its current setting at a glance
+- Clear connection status: a quiet indicator confirms the picture is live, and says so the moment the feed stalls
+- Nothing covers your shot: capture progress now appears on the shutter button instead of a pop-up over the frame you are composing
+- Camera standby: the device acting as the camera can rest its own screen during long shoots while it keeps streaming and shooting
 
 Recently added:
 
+- Stormo QUIC P2P engine: the device-to-device link rebuilt on QUIC, the transport behind HTTP/3, encrypted with TLS 1.3 and still direct device to device, with no router or network needed
+- Please update Remote Shutter on both devices. Older versions can't pair with this one
 - Tap to Focus: tap the live preview to set focus and exposure exactly where you want it, included with Pro
 - Real-time video: a smooth live feed replaces still snapshots, so framing every shot is effortless
-- Redesigned zoom slider: finer, smoother control from across the room
 - Gear Store: browse tripods, mounts, and accessories picked for your camera setup
 - Reliability and performance improvements throughout

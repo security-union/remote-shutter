@@ -1,14 +1,17 @@
-Uma grande atualização na própria conexão: o novo motor Stormo.
+O controle remoto foi redesenhado em torno do visor: primeiro a imagem, com os controles de lado.
 
-- Motor P2P Stormo com QUIC: a conexão entre os aparelhos foi reconstruída sobre QUIC, o transporte por trás do HTTP/3
-- Conexão que se recupera sozinha: o pareamento é mais rápido, a prévia ao vivo fica estável e as quedas se recuperam sozinhas
-- Criptografada com TLS 1.3 e sempre direta entre aparelhos: sem roteador nem rede
-- Atualize o Remote Shutter nos dois aparelhos: versões antigas não conseguem parear com esta
+- Prévia ao vivo em tela cheia: a cena agora preenche a tela com os controles flutuando por cima, no lugar de uma imagem pequena espremida acima de um painel de botões
+- Modo paisagem: gire o controle de lado e a imagem toma quase toda a tela
+- Layout mais organizado: temporizador, proporção e qualidade foram para um painel a um toque de distância, e cada um mostra seu ajuste atual num relance
+- Status de conexão claro: um indicador discreto confirma que a imagem está ao vivo e avisa assim que a transmissão trava
+- Nada cobre seu enquadramento: o progresso da captura aparece agora no botão do obturador, e não numa janela sobre a imagem que você está compondo
+- Câmera em espera: o aparelho que serve de câmera pode descansar a própria tela em sessões longas e segue transmitindo e capturando
 
 Adicionado recentemente:
 
-- Toque para focar: toque na visualização ao vivo para definir o foco e a exposição exatamente onde você quiser, incluído no Pro
-- Vídeo em tempo real: uma transmissão ao vivo e fluida substitui as fotos estáticas, deixando o enquadramento de cada cena sem esforço
-- Controle de zoom redesenhado: ajustes mais finos e suaves do outro lado da sala
-- Loja de Acessórios: explore tripés, suportes e acessórios escolhidos para o seu equipamento de câmera
+- Motor P2P Stormo com QUIC: a conexão entre os aparelhos foi reconstruída sobre QUIC, o transporte por trás do HTTP/3, criptografada com TLS 1.3 e sempre direta entre aparelhos, sem roteador nem rede
+- Atualize o Remote Shutter nos dois aparelhos. Versões antigas não conseguem parear com esta
+- Toque para focar: toque na prévia ao vivo para definir foco e exposição exatamente onde quiser, incluído no Pro
+- Vídeo em tempo real: uma transmissão ao vivo e fluida substitui as fotos estáticas, para enquadrar cada tomada sem esforço
+- Loja de Equipamentos: explore tripés, suportes e acessórios escolhidos para o seu equipamento
 - Melhorias de estabilidade e desempenho em todo o app

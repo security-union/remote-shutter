@@ -1,14 +1,17 @@
-Bu kez bağlantının kendisi büyük bir güncelleme aldı: yeni Stormo motoru.
+Kumanda vizörün etrafında yeniden tasarlandı: önce görüntü, kontroller geri planda.
 
-- Stormo QUIC P2P motoru: Cihazlar arası bağlantı, HTTP/3'ün ardındaki taşıma protokolü QUIC üzerine yeniden kuruldu
-- Kendini onaran bağlantı: Eşleşme daha hızlı, canlı önizleme daha kararlı ve kopmalar kendi kendine düzeliyor
-- TLS 1.3 ile şifreli ve hâlâ doğrudan cihazdan cihaza, modem de ağ da gerekmez
-- Lütfen Remote Shutter'ı iki cihazda da güncelleyin. Eski sürümler bu sürümle eşleşemez
+- Tam ekran canlı önizleme: kare artık ekranı dolduruyor ve kontroller onun üzerinde süzülüyor; düğme panelinin üstüne sıkıştırılmış küçük görüntü geride kaldı
+- Yatay mod: kumandayı yan çevirin, görüntü ekranın neredeyse tamamını kaplasın
+- Daha derli toplu yerleşim: zamanlayıcı, en boy oranı ve kalite tek dokunuşluk bir panele taşındı; her biri geçerli ayarını bir bakışta gösteriyor
+- Net bağlantı durumu: sessiz bir gösterge görüntünün canlı olduğunu doğruluyor ve akış durduğu anda bunu söylüyor
+- Karenizi hiçbir şey kapatmıyor: çekim ilerlemesi artık kurduğunuz karenin üzerindeki bir pencerede değil, deklanşör düğmesinde görünüyor
+- Kamera bekleme modu: kamera görevini üstlenen cihaz uzun çekimlerde kendi ekranını dinlendirirken yayına ve çekime devam edebiliyor
 
-Son eklenenler:
+Yakın zamanda eklendi:
 
-- Dokunarak Odaklan: canlı önizlemede istediğiniz noktaya dokunarak odağı ve pozlamayı tam olarak ayarlayın (Pro ile birlikte gelir)
-- Gerçek zamanlı video: tek tek fotoğraf karelerinin yerini akıcı canlı görüntü alır, böylece her kareyi çerçevelemek çok kolay
-- Yeniden tasarlanan yakınlaştırma çubuğu: odanın öbür ucundan bile daha ince, daha akıcı kontrol
-- Ekipman Mağazası: kamera düzeneğinize göre seçilmiş tripodlara, tutuculara ve aksesuarlara göz atın
+- Stormo QUIC P2P motoru: cihazlar arası bağlantı, HTTP/3'ün ardındaki taşıma protokolü QUIC üzerine yeniden kuruldu; TLS 1.3 ile şifreli ve hâlâ doğrudan cihazdan cihaza, yönlendirici ve ağ gerekmeden
+- Lütfen Remote Shutter'ı her iki cihazda da güncelleyin. Eski sürümler bu sürümle eşleşemez
+- Dokunarak odaklama: canlı önizlemeye dokunup odağı ve pozlamayı tam istediğiniz yere ayarlayın, Pro ile birlikte gelir
+- Gerçek zamanlı video: durağan görüntülerin yerini akıcı canlı yayın alıyor, böylece her kareyi kurmak zahmetsiz
+- Ekipman Mağazası: tripodlara, bağlantı aparatlarına ve kamera düzeneğiniz için seçilmiş aksesuarlara göz atın
 - Baştan sona güvenilirlik ve performans iyileştirmeleri

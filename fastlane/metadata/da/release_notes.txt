@@ -1,14 +1,17 @@
-En stor opgradering af selve forbindelsen: den nye Stormo-motor.
+Fjernbetjeningen er redesignet omkring søgeren: billedet først, knapperne ude af vejen.
 
-- Stormo P2P-motor på QUIC: Forbindelsen mellem enhederne er bygget om på QUIC, transporten bag HTTP/3
-- Selvhelende forbindelse: Parring sker hurtigere, live-visningen holder stabilt, og udfald retter sig selv
-- Krypteret med TLS 1.3 og stadig direkte mellem enhederne, uden router og uden netværk
-- Opdater Remote Shutter på begge enheder. Ældre versioner kan ikke parres med denne
+- Live-visning i fuld skærm: motivet fylder nu hele skærmen, og knapperne svæver ovenpå i stedet for et lille billede klemt inde over et panel af knapper
+- Understøtter liggende format: drej fjernbetjeningen på siden, og billedet overtager næsten hele skærmen
+- Ryddeligere layout: selvudløser, billedformat og kvalitet er flyttet ind i et panel ét tryk væk, hvor hver enkelt viser sin aktuelle indstilling
+- Tydelig forbindelsesstatus: en diskret indikator bekræfter, at billedet er live, og siger til i samme øjeblik billedet fryser
+- Intet dækker dit motiv: optagelsens forløb vises nu på udløserknappen i stedet for i et vindue over det billede, du er ved at komponere
+- Kamera på standby: enheden, der fungerer som kamera, kan slukke sin egen skærm under lange optagelser og fortsætter samtidig med at streame og fotografere
 
 Tilføjet for nylig:
 
-- Tryk for fokus: Tryk på live-billedet for at sætte fokus og eksponering præcis, hvor du vil have det, inkluderet med Pro
-- Realtidsvideo: Et jævnt live-billede erstatter stillbilleder, så det er ubesværet at komponere hvert eneste billede
-- Nydesignet zoom-skyder: Finere og mere jævn styring fra den anden ende af rummet
-- Udstyrsbutik: Gennemse stativer, holdere og tilbehør udvalgt til din kameraopsætning
-- Forbedret pålidelighed og ydeevne hele vejen igennem
+- Stormo QUIC P2P-motor: forbindelsen mellem enhederne er bygget om på QUIC, transporten bag HTTP/3, krypteret med TLS 1.3 og stadig direkte mellem enheder, uden router og uden netværk
+- Opdater Remote Shutter på begge enheder. Ældre versioner kan ikke forbinde til denne
+- Tryk for at fokusere: tryk på live-visningen for at sætte fokus og eksponering præcis hvor du vil have det, inkluderet i Pro
+- Video i realtid: et jævnt live-feed erstatter stillbilleder, så det er ubesværet at komponere hvert billede
+- Udstyrsbutik: find stativer, holdere og tilbehør valgt til din kameraopsætning
+- Forbedret stabilitet og ydeevne overalt
