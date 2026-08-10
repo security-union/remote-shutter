@@ -71,6 +71,22 @@ export default async function BlogPost({ params }: Props) {
     image: `${SITE_URL}/og-image.jpg`,
   };
 
+  const faqSchema =
+    post.faq.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: post.faq.map((f) => ({
+            '@type': 'Question',
+            name: f.q,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: f.a,
+            },
+          })),
+        }
+      : null;
+
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -99,6 +115,7 @@ export default async function BlogPost({ params }: Props) {
     <>
       <JsonLd data={articleSchema} />
       <JsonLd data={breadcrumbSchema} />
+      {faqSchema && <JsonLd data={faqSchema} />}
       <Header />
       <main className={styles.main}>
         <nav className={styles.breadcrumb} aria-label="Breadcrumb">
@@ -122,6 +139,17 @@ export default async function BlogPost({ params }: Props) {
             className={styles.content}
             dangerouslySetInnerHTML={{ __html: post.contentHtml }}
           />
+          {post.faq.length > 0 && (
+            <section className={styles.content} aria-label="Frequently asked questions">
+              <h2>Frequently asked questions</h2>
+              {post.faq.map((f) => (
+                <div key={f.q}>
+                  <h3>{f.q}</h3>
+                  <p>{f.a}</p>
+                </div>
+              ))}
+            </section>
+          )}
         </article>
       </main>
       <Footer />

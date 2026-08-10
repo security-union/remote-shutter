@@ -62,6 +62,27 @@ describe('Home page', () => {
     expect(screen.getByText('Shoot')).toBeInTheDocument();
   });
 
+  it('renders the about section', () => {
+    render(<Home />);
+    expect(screen.getByText('What is Remote Shutter?')).toBeInTheDocument();
+    expect(
+      screen.getByText('group photo at the beach').closest('a')
+    ).toHaveAttribute('href', '/blog/group-photos-everyone-in-the-shot');
+  });
+
+  it('renders the FAQ section', () => {
+    render(<Home />);
+    expect(
+      screen.getByText('Frequently asked questions')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Does Remote Shutter need Wi-Fi or an internet connection?')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Is Remote Shutter free? Is there a subscription?')
+    ).toBeInTheDocument();
+  });
+
   it('links to the gear and blog pages', () => {
     render(<Home />);
     expect(screen.getByText('Field kit').closest('a')).toHaveAttribute(
