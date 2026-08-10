@@ -1,0 +1,25 @@
+# Remote Shutter
+
+> Remote Shutter is an iOS app that turns any two Apple devices into a wireless camera system: one device (iPhone or iPad) is the camera, the other (iPhone, iPad, Apple Watch, or Apple-silicon Mac) is the remote control with a full live preview. The devices connect directly over peer-to-peer Wi-Fi — no internet, no Wi-Fi network, no account, no subscription. Range is about 50 feet (15 m) line of sight, or the whole network when both devices share Wi-Fi. Free download with one-time paid upgrades (no subscription). Photos and videos stay on the devices; nothing is uploaded to any server.
+
+Key facts:
+- App Store: https://apps.apple.com/us/app/remote-shutter/id633274861 (iOS, Photography)
+- Remote controls: shutter, video start/stop, lens switching, front/back camera, flash, torch
+- Common uses: group photos with everyone in the shot, using a spare/old iPhone as a wireless camera (wildlife, home check-ins), overhead or product video rigs monitored from an iPad or Mac, Apple Watch as a trigger
+- Developer: Dario Lencina (Black Fire Apps), https://github.com/security-union/remote-shutter
+
+## Guides
+
+- [How to use an old iPhone as a remote camera](https://remoteshutter.app/blog/use-old-iphone-as-remote-camera): spare phone as wireless camera for wildlife, check-ins, hard angles
+- [Group photos with everyone in the shot](https://remoteshutter.app/blog/group-photos-everyone-in-the-shot): live-preview remote vs self-timer, strangers, and clickers
+- [iPhone camera remote without a Bluetooth button](https://remoteshutter.app/blog/iphone-camera-remote-without-bluetooth): app-based remote vs Bluetooth shutter buttons
+- [iPhone as a second camera with an iPad/Mac monitor](https://remoteshutter.app/blog/iphone-as-second-camera-mac-monitor): overhead video, product shots, workbench tutorials
+- [Apple Watch as a camera remote](https://remoteshutter.app/blog/apple-watch-camera-remote): what the built-in Watch remote can and cannot do
+- [Camera remotes compared: app vs Bluetooth button vs Apple Watch](https://remoteshutter.app/blog/camera-remote-comparison): honest three-way comparison
+
+## Site
+
+- [Home](https://remoteshutter.app/): features, how it works, FAQ
+- [Recommended gear](https://remoteshutter.app/gear): tripods, mounts, and lenses for remote shooting
+- [Blog](https://remoteshutter.app/blog): all posts
+- [Privacy policy](https://remoteshutter.app/privacy): no accounts, no tracking of photo content

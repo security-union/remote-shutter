@@ -111,6 +111,48 @@
   flex: none;
 }
 
+.about {
+  padding: 2.5rem 0 0;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.about p {
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 1rem;
+}
+
+.about a {
+  color: var(--accent);
+}
+
+.faq {
+  padding: 2.5rem 0 0;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.faqItem {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.faqItem h3 {
+  font-size: 1rem;
+  color: var(--accent);
+  margin-bottom: 0.35rem;
+}
+
+.faqItem p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
 .more {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

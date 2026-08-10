@@ -14,8 +14,14 @@ export interface PostMeta {
   description: string;
 }
 
+export interface PostFaqEntry {
+  q: string;
+  a: string;
+}
+
 export interface Post extends PostMeta {
   contentHtml: string;
+  faq: PostFaqEntry[];
 }
 
 export function getAllPostSlugs(): string[] {
@@ -53,6 +59,14 @@ export async function getPost(slug: string): Promise<Post> {
 
   const processed = await remark().use(html).process(content);
 
+  const faq: PostFaqEntry[] = Array.isArray(data.faq)
+    ? data.faq
+        .filter((f: unknown): f is { q: unknown; a: unknown } =>
+          typeof f === 'object' && f !== null && 'q' in f && 'a' in f
+        )
+        .map((f) => ({ q: String(f.q), a: String(f.a) }))
+    : [];
+
   return {
     slug,
     title: data.title ?? slug,
@@ -60,5 +74,6 @@ export async function getPost(slug: string): Promise<Post> {
     author: data.author ?? 'Dario Lencina',
     description: data.description ?? '',
     contentHtml: processed.toString(),
+    faq,
   };
 }

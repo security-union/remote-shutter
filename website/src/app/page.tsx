@@ -31,11 +31,81 @@ const appSchema = {
   },
 };
 
+const FAQ = [
+  {
+    q: 'Does Remote Shutter need Wi-Fi or an internet connection?',
+    a: 'No. The two devices connect directly to each other over peer-to-peer Wi-Fi — no router, no cellular signal, no account. It works at a beach, on a trail, or in a basement with zero bars. If both devices are on the same Wi-Fi network, that works too.',
+  },
+  {
+    q: 'Which devices can I use?',
+    a: 'Any two Apple devices: iPhone, iPad, Apple Watch, or an Apple-silicon Mac. One acts as the camera (iPhone or iPad), the other as the remote with a live preview — a spare iPhone becomes a wireless camera, or an iPad or Mac becomes a big director’s monitor.',
+  },
+  {
+    q: 'How far away does the remote work?',
+    a: 'About 50 feet (15 m) with line of sight when the devices connect directly. On a shared Wi-Fi network, range is whatever the network covers.',
+  },
+  {
+    q: 'Can I record video remotely, not just photos?',
+    a: 'Yes. You can start and stop video recording from the remote device, watching the live preview the whole time.',
+  },
+  {
+    q: 'Is Remote Shutter free? Is there a subscription?',
+    a: 'The app is a free download with no account and no subscription. Live preview and remote photo capture work for free; one-time purchases unlock video recording and the full feature set.',
+  },
+  {
+    q: 'Where do my photos and videos go?',
+    a: 'They save to the camera device’s photo library and never leave your devices. Nothing is uploaded to any server.',
+  },
+];
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
+
+const howToSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'HowTo',
+  name: 'How to use one iPhone as a remote camera for another',
+  description:
+    'Turn two Apple devices into a wireless camera system with a live-preview remote.',
+  tool: [{ '@type': 'HowToTool', name: 'Two Apple devices with Remote Shutter installed' }],
+  step: [
+    {
+      '@type': 'HowToStep',
+      name: 'Install on both devices',
+      text: 'Install Remote Shutter on both Apple devices — the camera and the remote.',
+    },
+    {
+      '@type': 'HowToStep',
+      name: 'Connect',
+      text: 'Open the app on both devices; they discover each other and connect directly, peer to peer.',
+    },
+    {
+      '@type': 'HowToStep',
+      name: 'Pick camera & remote',
+      text: 'Choose which device is the camera and which is the remote with live preview.',
+    },
+    {
+      '@type': 'HowToStep',
+      name: 'Shoot',
+      text: 'Frame the shot on the live preview, then capture photos or record video from the remote.',
+    },
+  ],
+};
+
 export default function Home() {
   return (
     <>
       <JsonLd data={websiteSchema} />
       <JsonLd data={appSchema} />
+      <JsonLd data={faqSchema} />
+      <JsonLd data={howToSchema} />
       <Header />
       <main className={styles.main}>
         <section className={styles.hero}>
@@ -115,6 +185,46 @@ export default function Home() {
               Shoot
             </li>
           </ol>
+        </section>
+
+        <section className={styles.about} id="about">
+          <h2 className={styles.sectionTitle}>What is Remote Shutter?</h2>
+          <p>
+            Remote Shutter turns any two Apple devices into a wireless camera
+            system. One device — an iPhone or iPad — is the camera. The other —
+            an iPhone, iPad, Apple Watch, or Apple-silicon Mac — is the remote,
+            with a full live preview of what the camera sees plus controls for
+            the shutter, video recording, lenses, flash, and front or back
+            camera.
+          </p>
+          <p>
+            The devices connect directly to each other, peer to peer: no Wi-Fi
+            network, no cellular signal, no account, and nothing uploaded to any
+            server. That makes it work anywhere — a{' '}
+            <Link href="/blog/group-photos-everyone-in-the-shot">
+              group photo at the beach
+            </Link>
+            , a{' '}
+            <Link href="/blog/use-old-iphone-as-remote-camera">
+              spare iPhone watching the backyard
+            </Link>
+            , or an{' '}
+            <Link href="/blog/iphone-as-second-camera-mac-monitor">
+              overhead video rig monitored from an iPad or Mac
+            </Link>
+            . Range is about 50 feet line of sight, or your whole network when
+            both devices share Wi-Fi.
+          </p>
+        </section>
+
+        <section className={styles.faq} id="faq">
+          <h2 className={styles.sectionTitle}>Frequently asked questions</h2>
+          {FAQ.map((f) => (
+            <div key={f.q} className={styles.faqItem}>
+              <h3>{f.q}</h3>
+              <p>{f.a}</p>
+            </div>
+          ))}
         </section>
 
         <section className={styles.more}>
