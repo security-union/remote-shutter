@@ -29,6 +29,8 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
+    case let m as RemoteCmd.ClockSyncPing: return m.toFlatBuffer()
+    case let m as RemoteCmd.ClockSyncPong: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
@@ -741,6 +743,28 @@ extension RemoteCmd.RequestKeyframe {
     }
 }
 
+extension RemoteCmd.ClockSyncPing {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb, clockSyncT0Ms: t0Millis)
+        return buildCommand(&fbb, action: .clocksyncping, parameters: params)
+    }
+}
+
+extension RemoteCmd.ClockSyncPong {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &fbb,
+            action: .clocksyncping,
+            success: true,
+            clockSyncEchoT0Ms: echoT0Millis,
+            clockSyncCameraClockMs: cameraClockMillis)
+        return buildResponse(&fbb, action: .clocksyncping, response: resp)
+    }
+}
+
 extension RemoteCmd.ToggleFlash {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1101,6 +1125,9 @@ extension RemoteCmd {
         case .requestkeyframe:
             return RequestKeyframe(sender: nil)
 
+        case .clocksyncping:
+            return ClockSyncPing(t0Millis: params?.clockSyncT0Ms ?? 0)
+
         case .toggleflash:
             return ToggleFlash()
 
@@ -1161,6 +1188,10 @@ extension RemoteCmd {
         let nsError: Error? = errorStr.map { NSError(domain: "RemoteCmd", code: -1, userInfo: [NSLocalizedDescriptionKey: $0]) }
 
         switch resp.action {
+        case .clocksyncping:
+            return ClockSyncPong(echoT0Millis: resp.clockSyncEchoT0Ms,
+                                 cameraClockMillis: resp.clockSyncCameraClockMs)
+
         case .startrecording:
             let startTime: Date? = resp.recordingStartTime > 0 ? Date(timeIntervalSince1970: Double(resp.recordingStartTime) / 1000.0) : nil
             return StartRecordingVideoAck(sender: nil, recordingStartTime: startTime, error: nsError)

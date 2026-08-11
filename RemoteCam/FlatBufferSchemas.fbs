@@ -38,8 +38,12 @@ enum CommandAction : byte {
     RequestKeyframe = 21,      // monitor -> camera: force a VP9 keyframe
     FocusAtPoint = 22,         // monitor -> camera: focus/exposure point
     EndSession = 23,           // either side: "I am leaving on purpose"
-    SetCameraPreviewMode = 24  // monitor -> camera: local preview on/standby;
+    SetCameraPreviewMode = 24, // monitor -> camera: local preview on/standby;
                                // only sent to peers advertising supports_preview_mode
+    ClockSyncPing = 25         // director -> camera: clock-offset probe carrying the
+                               // director's send time; the camera answers with a
+                               // ClockSyncPing response echoing it plus its own clock.
+                               // Only sent to peers advertising supports_multicam.
 }
 
 // Whether the camera device drives its own on-screen live preview. On is the
@@ -158,6 +162,7 @@ table CommandParameters {
     focus_point_x: float;            // payload for FocusAtPoint (normalized 0..1,
     focus_point_y: float;            // upright-display space; origin top-left)
     camera_preview_mode: CameraPreviewModeEnum;  // payload for SetCameraPreviewMode
+    clock_sync_t0_ms: uint64;        // payload for ClockSyncPing: director clock at send
 }
 
 // MARK: - Command Structure
@@ -277,6 +282,9 @@ table CameraStateResponse {
     available_lenses: [CameraLensType];
     zoom_range: ZoomRange;
     current_zoom: double;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    clock_sync_echo_t0_ms: uint64;    // ClockSyncPing response: echoed director t0
+    clock_sync_camera_clock_ms: uint64; // ClockSyncPing response: camera clock at receipt
 }
 
 // MARK: - Frame Data

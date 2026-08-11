@@ -202,6 +202,8 @@
 		FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */; };
 		CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0120000000000002 /* MonitorChrome.swift */; };
 		CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */; };
+		CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */; };
+		CAFEBABE0133000000000002 /* ClockOffsetEstimatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */; };
 		CAFEBABE0131000000000002 /* CaptureSyncMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */; };
 		FEEDFACE0000000000000001 /* StormoLoopbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000002 /* StormoLoopbackTests.swift */; };
 /* End PBXBuildFile section */
@@ -445,6 +447,8 @@
 		FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FocusPointMapping.swift; sourceTree = "<group>"; };
 		CAFEBABE0120000000000002 /* MonitorChrome.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorChrome.swift; sourceTree = "<group>"; };
 		CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaptureSyncMetadata.swift; sourceTree = "<group>"; };
+		CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClockOffsetEstimator.swift; sourceTree = "<group>"; };
+		CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockOffsetEstimatorTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSyncMetadataTests.swift; sourceTree = "<group>"; };
 		FCB0F6BA2086BF9BB4242D66 /* Pods_RemoteShutterWatch.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterWatch.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FEEDFACE0000000000000002 /* StormoLoopbackTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StormoLoopbackTests.swift; sourceTree = "<group>"; };
@@ -596,6 +600,7 @@
 				CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */,
 				CAFEBABE0121000000000001 /* MonitorChromeTests.swift */,
 				CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */,
+				CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */,
 				CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */,
 				CAFEBABE0003000000000001 /* WatchSerializationTests.swift */,
 				CAFEBABE0006000000000001 /* WatchPreviewStreamerTests.swift */,
@@ -689,6 +694,7 @@
 				FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */,
 				CAFEBABE0120000000000002 /* MonitorChrome.swift */,
 				CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */,
+				CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */,
 				060B1E141BE7079800077BCC /* Helpers */,
 				06E965202535199400E5A8B3 /* MediaProcessors.swift */,
 				06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */,
@@ -1182,6 +1188,7 @@
 				FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */,
 				CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */,
 				CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */,
+				CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */,
 				06BB79B82E374D410094E085 /* FeatureFlags.swift in Sources */,
 				0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */,
 				069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */,
@@ -1255,6 +1262,7 @@
 				CAFEBABE00F0000000000002 /* FocusPointMappingTests.swift in Sources */,
 				CAFEBABE0121000000000002 /* MonitorChromeTests.swift in Sources */,
 				CAFEBABE0131000000000002 /* CaptureSyncMetadataTests.swift in Sources */,
+				CAFEBABE0133000000000002 /* ClockOffsetEstimatorTests.swift in Sources */,
 				CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */,
 				CAFEBABE0003000000000002 /* WatchSerializationTests.swift in Sources */,
 				CAFEBABE0006000000000002 /* WatchPreviewStreamerTests.swift in Sources */,

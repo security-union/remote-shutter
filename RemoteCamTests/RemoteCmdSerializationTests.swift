@@ -47,6 +47,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
+        case let m as RemoteCmd.ClockSyncPing: return m.toFlatBuffer()
+        case let m as RemoteCmd.ClockSyncPong: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
@@ -1181,6 +1183,18 @@ extension RemoteCmdSerializationTests {
         let result = roundTrip(caps)
         XCTAssertFalse(result.supportsPreviewMode)
         XCTAssertEqual(result.previewMode, .on)
+    }
+
+    func testClockSyncPing_roundTrip() {
+        let result = roundTrip(RemoteCmd.ClockSyncPing(t0Millis: 987_654_321_012))
+        XCTAssertEqual(result.t0Millis, 987_654_321_012)
+    }
+
+    func testClockSyncPong_roundTrip() {
+        let result = roundTrip(RemoteCmd.ClockSyncPong(
+            echoT0Millis: 987_654_321_012, cameraClockMillis: 123_456_789_345))
+        XCTAssertEqual(result.echoT0Millis, 987_654_321_012)
+        XCTAssertEqual(result.cameraClockMillis, 123_456_789_345)
     }
 
     /// The multicam capability survives the wire, and a peer that predates it

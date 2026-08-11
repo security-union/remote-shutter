@@ -287,6 +287,21 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(sent(RemoteCmd.RequestFrame.self).map(\.peers), [[harness.peer]])
     }
 
+    /// A camera answers a clock-sync ping immediately, from any state, with
+    /// the pong addressed to the pinging peer — off the actor inbox so the
+    /// timestamp isn't smeared by queued state-machine work.
+    func testClockSyncPingIsAnsweredDirectlyToTheSource() async {
+        harness.coordinator.didReceiveMessage(
+            RemoteCmd.ClockSyncPing(t0Millis: 424_242), from: harness.peer)
+
+        let pongs = sent(RemoteCmd.ClockSyncPong.self)
+        XCTAssertEqual(pongs.count, 1)
+        XCTAssertEqual(pongs[0].peers, [harness.peer])
+        XCTAssertEqual((pongs[0].msg as? RemoteCmd.ClockSyncPong)?.echoT0Millis, 424_242)
+        XCTAssertGreaterThan(
+            (pongs[0].msg as? RemoteCmd.ClockSyncPong)?.cameraClockMillis ?? 0, 0)
+    }
+
     func testMonitorPhotoModeUnbecomeMonitorPopsToConnected() async {
         await enterMonitor(.Photo)
         await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))

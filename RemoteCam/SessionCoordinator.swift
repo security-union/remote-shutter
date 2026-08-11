@@ -2439,9 +2439,21 @@ public actor SessionCoordinator {
 extension SessionCoordinator: MultipeerServiceDelegate {
 
     public nonisolated func didReceiveMessage(_ message: Message, from peer: MCPeerID) {
-        // `peer` is deliberately unused: this coordinator links exactly one
-        // peer, so every message's source is unambiguous. The multicam
-        // director's controller is the consumer that routes by it.
+        if let ping = message as? RemoteCmd.ClockSyncPing {
+            // Answered here, off the actor inbox: the sample's quality is the
+            // camera clock *at receipt*, and queuing behind state-machine work
+            // would smear it (same pacing argument as didReceiveFrameRequest).
+            // Stateless, so no isolation is needed.
+            _ = transportShared.value?.send(
+                RemoteCmd.ClockSyncPong(echoT0Millis: ping.t0Millis,
+                                        cameraClockMillis: SyncClock.nowMillis()),
+                to: [peer], mode: .reliable)
+            tell(UICmd.PeerTrafficObserved())
+            return
+        }
+        // `peer` is otherwise deliberately unused: this coordinator links
+        // exactly one peer, so every message's source is unambiguous. The
+        // multicam director's controller is the consumer that routes by it.
         tell(UICmd.PeerTrafficObserved())
         tell(message)
     }

@@ -194,6 +194,32 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Director → camera: clock-offset probe. `t0Millis` is the director's
+    /// monotonic clock at send; the camera answers immediately with a
+    /// `ClockSyncPong` echoing it. Only sent to peers advertising
+    /// `supportsMulticam` (an old peer would decode it as Unknown and drop it).
+    public class ClockSyncPing: Message, @unchecked Sendable {
+        public let t0Millis: UInt64
+        init(t0Millis: UInt64, sender: AnyObject? = nil) {
+            self.t0Millis = t0Millis
+            super.init(sender: sender)
+        }
+    }
+
+    /// Camera → director: answer to `ClockSyncPing`. Echoes the director's
+    /// `t0Millis` (so the director can compute RTT against its own clock) and
+    /// carries the camera's monotonic clock at receipt — the pair the
+    /// director's `ClockOffsetEstimator` turns into an offset sample.
+    public class ClockSyncPong: Message, @unchecked Sendable {
+        public let echoT0Millis: UInt64
+        public let cameraClockMillis: UInt64
+        init(echoT0Millis: UInt64, cameraClockMillis: UInt64, sender: AnyObject? = nil) {
+            self.echoT0Millis = echoT0Millis
+            self.cameraClockMillis = cameraClockMillis
+            super.init(sender: sender)
+        }
+    }
+
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
         public let peerId: MCPeerID
