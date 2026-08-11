@@ -44,12 +44,17 @@ enum CommandAction : byte {
                                // director's send time; the camera answers with a
                                // ClockSyncPing response echoing it plus its own clock.
                                // Only sent to peers advertising supports_multicam.
-    ScheduledCapture = 26      // director -> camera: take a photo at a wall-clock
+    ScheduledCapture = 26,     // director -> camera: take a photo at a wall-clock
                                // instant expressed in the camera's own clock domain
                                // (the director already applied the per-camera offset),
                                // so N cameras fire together. Only sent to peers
                                // advertising supports_multicam; the camera acks with a
                                // CameraStateResponse echoing the capture id.
+    ScheduledStartRecording = 27, // director -> camera: start recording at the fire
+                               // instant. Reuses the ScheduledCapture params; acks by
+                               // echoing the capture id. Only sent to multicam peers.
+    ScheduledStopRecording = 28   // director -> camera: stop recording at the fire
+                               // instant, so clip lengths match across the rig.
 }
 
 // Whether the camera device drives its own on-screen live preview. On is the

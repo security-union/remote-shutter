@@ -45,9 +45,13 @@ public final class MulticamViewController: UIViewController {
                 guard let self else { return }
                 Task { await self.controller.setFocusedPeer(lane.peerID) }
             },
-            onCapture: { [weak self] in
+            onShutter: { [weak self] in
                 guard let self else { return }
-                Task { await self.controller.capturePhoto() }
+                self.triggerShutter()
+            },
+            onToggleMode: { [weak self] in
+                guard let self, !self.viewModel.isRecording else { return }
+                self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
             })
         hosting = embedSwiftUIView(multicamView)
 
@@ -69,6 +73,19 @@ public final class MulticamViewController: UIViewController {
     public override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
+    /// Route the shutter: a photo, or record start/stop, per the current mode.
+    private func triggerShutter() {
+        let mode = viewModel.mode
+        let recording = viewModel.isRecording
+        Task {
+            switch (mode, recording) {
+            case (.photo, _): await controller.capturePhoto()
+            case (.video, false): await controller.startRecording()
+            case (.video, true): await controller.stopRecording()
+            }
+        }
     }
 
     private func syncInterfaceOrientation() {
@@ -110,8 +127,9 @@ extension MulticamViewController: MulticamDisplay {
         for lane in created { wire(lane) }
     }
 
-    func applyCaptureInFlight(_ inFlight: Bool) {
-        viewModel.isCapturing = inFlight
+    func applyShutterState(capturing: Bool, recording: Bool) {
+        viewModel.isCapturing = capturing
+        viewModel.isRecording = recording
     }
 
     func receiveFrame(_ frame: RemoteCmd.OnFrame) {

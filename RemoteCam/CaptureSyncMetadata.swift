@@ -76,12 +76,14 @@ struct CaptureSyncMetadata: Codable, Equatable {
     }
 
     /// Re-encode `imageData` with this shot's sync fields embedded in EXIF, so
-    /// the alignment travels inside the photo itself (survives export/AirDrop):
-    /// the JSON in `UserComment`, and the anchor instant in
-    /// `DateTimeOriginal`/`SubSecTimeOriginal`. Format (JPEG/HEIC) is preserved.
-    /// Returns the original data unchanged if re-encoding isn't possible, so a
-    /// stamping failure never costs the user the photo.
-    func stamped(_ imageData: Data) -> Data {
+    /// the alignment travels inside the photo itself (survives export/AirDrop).
+    /// The alignment key (`anchorMillis`) rides in `UserComment` as opaque JSON;
+    /// `DateTimeOriginal`/`SubSecTimeOriginal` are the camera's **wall clock at
+    /// capture** (`capturedAt`) — EXIF's meaning is "when the photo was taken",
+    /// and `anchorMillis` is monotonic uptime, not a wall-clock date. Format
+    /// (JPEG/HEIC) is preserved. Returns the original data unchanged if
+    /// re-encoding isn't possible, so a stamping failure never costs the photo.
+    func stamped(_ imageData: Data, capturedAt: Date = Date()) -> Data {
         guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
               let type = CGImageSourceGetType(source) else { return imageData }
 
@@ -92,10 +94,9 @@ struct CaptureSyncMetadata: Codable, Equatable {
         if let json = jsonString() {
             exif[kCGImagePropertyExifUserComment] = json
         }
-        let anchorSeconds = Double(anchorMillis) / 1000.0
-        let date = Date(timeIntervalSince1970: anchorSeconds)
-        exif[kCGImagePropertyExifDateTimeOriginal] = Self.exifDateFormatter.string(from: date)
-        exif[kCGImagePropertyExifSubsecTimeOriginal] = String(format: "%03d", anchorMillis % 1000)
+        exif[kCGImagePropertyExifDateTimeOriginal] = Self.exifDateFormatter.string(from: capturedAt)
+        let subsec = Int((capturedAt.timeIntervalSince1970.truncatingRemainder(dividingBy: 1)) * 1000)
+        exif[kCGImagePropertyExifSubsecTimeOriginal] = String(format: "%03d", subsec)
         properties[kCGImagePropertyExifDictionary] = exif
 
         let output = NSMutableData()
@@ -111,6 +112,9 @@ struct CaptureSyncMetadata: Codable, Equatable {
     func photoFilename(isHEIC: Bool) -> String {
         "\(filenamePrefix).\(isHEIC ? "heic" : "jpg")"
     }
+
+    /// A Photos `originalFilename` for this clip, e.g. `RS_<sess>_<cap>_cam2.mov`.
+    func videoFilename() -> String { "\(filenamePrefix).mov" }
 
     /// EXIF wants `yyyy:MM:dd HH:mm:ss` in the local zone.
     private static let exifDateFormatter: DateFormatter = {

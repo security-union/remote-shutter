@@ -264,6 +264,66 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Director → camera: begin recording at `fireAtCameraClockMillis` (this
+    /// camera's clock domain), so every camera rolls together. Same fields and
+    /// meaning as `ScheduledCapture`. Only sent to `supportsMulticam` peers.
+    public class ScheduledStartRecording: Message, @unchecked Sendable {
+        public let fireAtCameraClockMillis: UInt64
+        public let anchorMillis: UInt64
+        public let captureId: String
+        public let sessionId: String
+        public let cameraIndex: Int
+
+        public init(fireAtCameraClockMillis: UInt64, anchorMillis: UInt64,
+                    captureId: String, sessionId: String, cameraIndex: Int,
+                    sender: AnyObject? = nil) {
+            self.fireAtCameraClockMillis = fireAtCameraClockMillis
+            self.anchorMillis = anchorMillis
+            self.captureId = captureId
+            self.sessionId = sessionId
+            self.cameraIndex = cameraIndex
+            super.init(sender: sender)
+        }
+    }
+
+    /// Director → camera: stop recording at the fire instant, so clip lengths
+    /// line up across the rig. Reuses the same params (index/anchor unused).
+    public class ScheduledStopRecording: Message, @unchecked Sendable {
+        public let fireAtCameraClockMillis: UInt64
+        public let anchorMillis: UInt64
+        public let captureId: String
+        public let sessionId: String
+        public let cameraIndex: Int
+
+        public init(fireAtCameraClockMillis: UInt64, anchorMillis: UInt64,
+                    captureId: String, sessionId: String, cameraIndex: Int,
+                    sender: AnyObject? = nil) {
+            self.fireAtCameraClockMillis = fireAtCameraClockMillis
+            self.anchorMillis = anchorMillis
+            self.captureId = captureId
+            self.sessionId = sessionId
+            self.cameraIndex = cameraIndex
+            super.init(sender: sender)
+        }
+    }
+
+    /// Camera → director: the scheduled record start/stop was accepted (or
+    /// refused). Immediate, like `ScheduledCaptureAck`; `isStop` distinguishes
+    /// the two so the director's start/stop aggregation stay separate.
+    public class ScheduledRecordingAck: Message, @unchecked Sendable {
+        public let captureId: String
+        public let isStop: Bool
+        public let error: Error?
+
+        public init(captureId: String, isStop: Bool, error: Error? = nil,
+                    sender: AnyObject? = nil) {
+            self.captureId = captureId
+            self.isStop = isStop
+            self.error = error
+            super.init(sender: sender)
+        }
+    }
+
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
         public let peerId: MCPeerID

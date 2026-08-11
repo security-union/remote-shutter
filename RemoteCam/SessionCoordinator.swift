@@ -136,6 +136,17 @@ final class FireScheduledCapture: Message, @unchecked Sendable {
         super.init(sender: nil)
     }
 }
+/// Camera side: a scheduled multicam recording's start instant has arrived
+/// (same off-actor-delay → pump-message pattern as `FireScheduledCapture`).
+final class FireScheduledRecordingStart: Message, @unchecked Sendable {
+    let metadata: CaptureSyncMetadata
+    init(metadata: CaptureSyncMetadata) {
+        self.metadata = metadata
+        super.init(sender: nil)
+    }
+}
+/// Camera side: a scheduled multicam recording's stop instant has arrived.
+final class FireScheduledRecordingStop: Message, @unchecked Sendable {}
 /// Retry tick for the capabilities ladder.
 final class RetryCapabilities: Message, @unchecked Sendable {
     let attempt: Int
@@ -243,6 +254,16 @@ public actor SessionCoordinator {
     /// refuses it (clock error and one retransmit can nudge it slightly late;
     /// beyond this it is stale and would fire out of sync).
     private let scheduledCaptureMaxLatenessMillis: Int64 = 1000
+
+    /// Camera side: this session is being driven by a multicam director. Latched
+    /// the first time any scheduled multicam command arrives, cleared when the
+    /// session ends (`popToScanning`/`leaveSession`). It gates the ONE behavior
+    /// change on the camera — keep recording through a director drop instead of
+    /// stopping — so a single-camera session is never affected.
+    private var inMulticamSession = false
+
+    /// Test support.
+    func inMulticamSessionForTesting() -> Bool { inMulticamSession }
 
     /// Multicam director "collecting" mode. Off by default and only ever set
     /// by the scanner when `ENABLE_MULTICAM` and the monitor role, so every
@@ -635,6 +656,12 @@ public actor SessionCoordinator {
         peerSupportsFocusPoint = false
         peerSupportsPreviewMode = false
         monitorReceivedVP9Frame = false
+        // The session is being torn down for good (deliberate leave, EndSession,
+        // or a dead link) — a fresh session starts single-cam until a director
+        // says otherwise. A reconnect goes through `.reconnecting`, not here, so
+        // the latch survives a transient director drop.
+        inMulticamSession = false
+        pendingSyncMetadata = nil
         switch state {
         case .scanning:
             // Already there — re-entering would restart discovery and reset
@@ -996,6 +1023,20 @@ public actor SessionCoordinator {
         case let scheduled as RemoteCmd.ScheduledCapture:
             await handleScheduledCapture(scheduled)
 
+        case let scheduled as RemoteCmd.ScheduledStartRecording:
+            await handleScheduledStartRecording(scheduled)
+
+        case let fire as FireScheduledRecordingStart:
+            // The start instant arrived. Stamp the recording with its sync
+            // metadata, then roll exactly as a normal StartRecordingVideo —
+            // local save, no auto-transfer to the director in v1.
+            inMulticamSession = true
+            ctrl.setVideoSyncMetadata(fire.metadata)
+            ctrl.currentCameraMode = .Video
+            ctrl.updateCameraStatus()
+            ctrl.startRecordingVideo()
+            await transition(to: .cameraRecordingVideo)
+
         case let fire as FireScheduledCapture:
             // The fire instant arrived (enqueued by the off-actor delay task).
             // Pull the shutter through the normal photo path, saving locally
@@ -1217,6 +1258,7 @@ public actor SessionCoordinator {
     /// enqueues `FireScheduledCapture`, so the capture is pulled by the message
     /// pump in order — never racing a state transition.
     private func handleScheduledCapture(_ scheduled: RemoteCmd.ScheduledCapture) async {
+        inMulticamSession = true
         let now = SyncClock.nowMillis()
         let lateness = Int64(now) - Int64(scheduled.fireAtCameraClockMillis)
         guard lateness <= scheduledCaptureMaxLatenessMillis else {
@@ -1243,6 +1285,48 @@ public actor SessionCoordinator {
         Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
             self?.tell(FireScheduledCapture(metadata: metadata))
+        }
+    }
+
+    /// Camera side of a synced multicam recording start. Same ack-now,
+    /// schedule-off-the-actor pattern as `handleScheduledCapture`; the fire
+    /// message rolls the recording through the normal pipeline.
+    private func handleScheduledStartRecording(_ scheduled: RemoteCmd.ScheduledStartRecording) async {
+        inMulticamSession = true
+        let lateness = Int64(SyncClock.nowMillis()) - Int64(scheduled.fireAtCameraClockMillis)
+        guard lateness <= scheduledCaptureMaxLatenessMillis else {
+            await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+                captureId: scheduled.captureId, isStop: false,
+                error: NSError(domain: "Scheduled recording start already passed",
+                               code: 0, userInfo: nil)))
+            return
+        }
+        await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+            captureId: scheduled.captureId, isStop: false))
+
+        let metadata = CaptureSyncMetadata(
+            sessionID: scheduled.sessionId, captureID: scheduled.captureId,
+            cameraIndex: scheduled.cameraIndex, anchorMillis: scheduled.anchorMillis,
+            clockOffsetMillis: 0, roundTripMillis: 0)
+        let delayMillis = max(0, -lateness)
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
+            self?.tell(FireScheduledRecordingStart(metadata: metadata))
+        }
+    }
+
+    /// Camera side of a synced recording stop — acks now, fires the stop at the
+    /// instant so every camera's clip ends together.
+    private func handleScheduledStopRecording(_ scheduled: RemoteCmd.ScheduledStopRecording) async {
+        let lateness = Int64(SyncClock.nowMillis()) - Int64(scheduled.fireAtCameraClockMillis)
+        // A late stop still needs to fire (a clip left rolling is worse than a
+        // slightly-long clip), so we never nack it — just clamp the delay.
+        await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+            captureId: scheduled.captureId, isStop: true))
+        let delayMillis = max(0, -lateness)
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
+            self?.tell(FireScheduledRecordingStop())
         }
     }
 
@@ -1352,10 +1436,30 @@ public actor SessionCoordinator {
             await sendOrGoToScanning(RemoteCmd.StopRecordingVideoAck(sender: nil), mode: .reliable)
             await transition(to: .cameraTransmittingVideo)
 
+        case let scheduled as RemoteCmd.ScheduledStopRecording:
+            await handleScheduledStopRecording(scheduled)
+
+        case is FireScheduledRecordingStop:
+            // The scheduled stop instant arrived. Save locally only (multicam
+            // never auto-transfers in v1) and return to the camera screen.
+            ctrl.stopRecordingVideo(false)
+            await transition(to: .cameraTransmittingVideo)
+
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
-                ctrl.stopRecordingVideo(false)
-                await loseSessionPeer(lost)
+                if inMulticamSession {
+                    // Resilient camera: the director dropped mid-recording, but
+                    // the OTHER cameras in the rig keep rolling — so must this
+                    // one. Keep recording (do NOT stop), and enter the normal
+                    // reconnect path; the clip is saved when the scheduled stop
+                    // finally fires, or when the user stops on-device. This is
+                    // the ONE behavior gated on `inMulticamSession`; a
+                    // single-camera session falls through to the stop below.
+                    await loseSessionPeer(lost)
+                } else {
+                    ctrl.stopRecordingVideo(false)
+                    await loseSessionPeer(lost)
+                }
             }
 
         case is UICmd.ScannerDidAppear:
@@ -1585,6 +1689,12 @@ public actor SessionCoordinator {
             // ack aggregation completes instead of timing out.
             await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(
                 captureId: scheduled.captureId, error: unableToProcessError(msg)))
+        case let scheduled as RemoteCmd.ScheduledStartRecording:
+            await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+                captureId: scheduled.captureId, isStop: false, error: unableToProcessError(msg)))
+        case let scheduled as RemoteCmd.ScheduledStopRecording:
+            await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+                captureId: scheduled.captureId, isStop: true, error: unableToProcessError(msg)))
         case is RemoteCmd.ToggleCamera:
             await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.SelectCameraDevice:

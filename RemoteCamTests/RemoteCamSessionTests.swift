@@ -343,6 +343,93 @@ class SessionCoordinatorTests: XCTestCase {
                        "the scheduled shutter fires, saving locally (not to the director)")
     }
 
+    // MARK: - Resilient camera (multicam only)
+
+    /// In a multicam session the camera keeps recording through a director
+    /// drop — the rest of the rig is still rolling. It enters the reconnect
+    /// path without stopping the clip.
+    func testMulticamDisconnectMidRecordingKeepsRecording() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        // A real scheduled start latches the multicam session and rolls tape.
+        await harness.deliver(RemoteCmd.ScheduledStartRecording(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: SyncClock.nowMillis(),
+            captureId: "R", sessionId: "S", cameraIndex: 1))
+        let latched = await harness.coordinator.inMulticamSessionForTesting()
+        XCTAssertTrue(latched)
+
+        for _ in 0..<200 where camera.startRecordingCalls == 0 {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(camera.startRecordingCalls, 1)
+        await harness.coordinator.waitForIdle()
+        var name = await harness.stateName()
+        XCTAssertEqual(name, .cameraRecordingVideo)
+
+        // Director drops.
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        XCTAssertTrue(camera.stopRecordingCalls.isEmpty,
+                      "the clip keeps rolling through a director drop in multicam")
+        name = await harness.stateName()
+        XCTAssertEqual(name, .reconnecting)
+    }
+
+    /// A single-camera session is unchanged: a disconnect mid-recording stops
+    /// the clip exactly as before (the resilient behavior must not leak here).
+    func testSingleCamDisconnectMidRecordingStops() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .cameraRecordingVideo)
+        let latched = await harness.coordinator.inMulticamSessionForTesting()
+        XCTAssertFalse(latched, "no multicam command arrived")
+
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        XCTAssertEqual(camera.stopRecordingCalls, [false],
+                       "single-camera recording still stops on disconnect")
+    }
+
+    /// A scheduled start latches the session and stamps the recording with sync
+    /// metadata; a scheduled stop later fires the stop.
+    func testScheduledRecordingStampsMetadataAndFires() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        await harness.deliver(RemoteCmd.ScheduledStartRecording(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: 42, captureId: "R7", sessionId: "S3", cameraIndex: 4))
+
+        let acks = sent(RemoteCmd.ScheduledRecordingAck.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledRecordingAck }
+        XCTAssertEqual(acks.map(\.captureId), ["R7"])
+        XCTAssertFalse(acks[0].isStop)
+
+        for _ in 0..<200 where camera.startRecordingCalls == 0 {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        // The recording carries its sync metadata (anchor as opaque key).
+        XCTAssertEqual(camera.videoSyncMetadata?.captureID, "R7")
+        XCTAssertEqual(camera.videoSyncMetadata?.cameraIndex, 4)
+        XCTAssertEqual(camera.videoSyncMetadata?.anchorMillis, 42)
+
+        // A scheduled stop fires the stop.
+        await harness.deliver(RemoteCmd.ScheduledStopRecording(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: 42, captureId: "R7", sessionId: "S3", cameraIndex: 4))
+        for _ in 0..<200 where camera.stopRecordingCalls.isEmpty {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(camera.stopRecordingCalls, [false], "scheduled stop saves locally")
+    }
+
     func testMonitorPhotoModeUnbecomeMonitorPopsToConnected() async {
         await enterMonitor(.Photo)
         await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))

@@ -33,6 +33,9 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.ClockSyncPong: return m.toFlatBuffer()
     case let m as RemoteCmd.ScheduledCapture: return m.toFlatBuffer()
     case let m as RemoteCmd.ScheduledCaptureAck: return m.toFlatBuffer()
+    case let m as RemoteCmd.ScheduledStartRecording: return m.toFlatBuffer()
+    case let m as RemoteCmd.ScheduledStopRecording: return m.toFlatBuffer()
+    case let m as RemoteCmd.ScheduledRecordingAck: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
@@ -798,6 +801,54 @@ extension RemoteCmd.ScheduledCaptureAck {
     }
 }
 
+extension RemoteCmd.ScheduledStartRecording {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let captureIdOffset = fbb.create(string: captureId)
+        let sessionIdOffset = fbb.create(string: sessionId)
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb,
+            captureFireAtCameraClockMs: fireAtCameraClockMillis,
+            captureAnchorMs: anchorMillis,
+            captureIdOffset: captureIdOffset,
+            captureSessionIdOffset: sessionIdOffset,
+            captureCameraIndex: Int32(cameraIndex))
+        return buildCommand(&fbb, action: .scheduledstartrecording, parameters: params)
+    }
+}
+
+extension RemoteCmd.ScheduledStopRecording {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let captureIdOffset = fbb.create(string: captureId)
+        let sessionIdOffset = fbb.create(string: sessionId)
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb,
+            captureFireAtCameraClockMs: fireAtCameraClockMillis,
+            captureAnchorMs: anchorMillis,
+            captureIdOffset: captureIdOffset,
+            captureSessionIdOffset: sessionIdOffset,
+            captureCameraIndex: Int32(cameraIndex))
+        return buildCommand(&fbb, action: .scheduledstoprecording, parameters: params)
+    }
+}
+
+extension RemoteCmd.ScheduledRecordingAck {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let echoOffset = fbb.create(string: captureId)
+        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let action: RemoteShutter_CommandAction = isStop ? .scheduledstoprecording : .scheduledstartrecording
+        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &fbb,
+            action: action,
+            success: error == nil,
+            errorOffset: errorOffset,
+            captureIdEchoOffset: echoOffset)
+        return buildResponse(&fbb, action: action, response: resp)
+    }
+}
+
 extension RemoteCmd.ToggleFlash {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1169,6 +1220,22 @@ extension RemoteCmd {
                 sessionId: params?.captureSessionId ?? "",
                 cameraIndex: Int(params?.captureCameraIndex ?? 0))
 
+        case .scheduledstartrecording:
+            return ScheduledStartRecording(
+                fireAtCameraClockMillis: params?.captureFireAtCameraClockMs ?? 0,
+                anchorMillis: params?.captureAnchorMs ?? 0,
+                captureId: params?.captureId ?? "",
+                sessionId: params?.captureSessionId ?? "",
+                cameraIndex: Int(params?.captureCameraIndex ?? 0))
+
+        case .scheduledstoprecording:
+            return ScheduledStopRecording(
+                fireAtCameraClockMillis: params?.captureFireAtCameraClockMs ?? 0,
+                anchorMillis: params?.captureAnchorMs ?? 0,
+                captureId: params?.captureId ?? "",
+                sessionId: params?.captureSessionId ?? "",
+                cameraIndex: Int(params?.captureCameraIndex ?? 0))
+
         case .toggleflash:
             return ToggleFlash()
 
@@ -1235,6 +1302,12 @@ extension RemoteCmd {
 
         case .scheduledcapture:
             return ScheduledCaptureAck(captureId: resp.captureIdEcho ?? "", error: nsError)
+
+        case .scheduledstartrecording:
+            return ScheduledRecordingAck(captureId: resp.captureIdEcho ?? "", isStop: false, error: nsError)
+
+        case .scheduledstoprecording:
+            return ScheduledRecordingAck(captureId: resp.captureIdEcho ?? "", isStop: true, error: nsError)
 
         case .startrecording:
             let startTime: Date? = resp.recordingStartTime > 0 ? Date(timeIntervalSince1970: Double(resp.recordingStartTime) / 1000.0) : nil

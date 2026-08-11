@@ -133,6 +133,8 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     func takePicture(_ sendMediaToRemote: Bool) { takePictureCalls.append(sendMediaToRemote) }
     func startRecordingVideo() { startRecordingCalls += 1 }
     func stopRecordingVideo(_ shouldSendVideo: Bool) { stopRecordingCalls.append(shouldSendVideo) }
+    var videoSyncMetadata: CaptureSyncMetadata?
+    func setVideoSyncMetadata(_ metadata: CaptureSyncMetadata?) { videoSyncMetadata = metadata }
 
     // swiftlint:disable:next large_tuple
     func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {

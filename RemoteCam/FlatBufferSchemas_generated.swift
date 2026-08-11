@@ -35,8 +35,10 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case setcamerapreviewmode = 24
   case clocksyncping = 25
   case scheduledcapture = 26
+  case scheduledstartrecording = 27
+  case scheduledstoprecording = 28
 
-  public static var max: RemoteShutter_CommandAction { return .scheduledcapture }
+  public static var max: RemoteShutter_CommandAction { return .scheduledstoprecording }
   public static var min: RemoteShutter_CommandAction { return .unknown }
 }
 

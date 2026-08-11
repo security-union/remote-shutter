@@ -51,6 +51,9 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.ClockSyncPong: return m.toFlatBuffer()
         case let m as RemoteCmd.ScheduledCapture: return m.toFlatBuffer()
         case let m as RemoteCmd.ScheduledCaptureAck: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledStartRecording: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledStopRecording: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledRecordingAck: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
@@ -1222,6 +1225,39 @@ extension RemoteCmdSerializationTests {
             captureId: "CAP-43",
             error: NSError(domain: "too late", code: 0)))
         XCTAssertEqual(nack.captureId, "CAP-43")
+        XCTAssertNotNil(nack.error)
+    }
+
+    func testScheduledStartRecording_roundTrip() {
+        let result = roundTrip(RemoteCmd.ScheduledStartRecording(
+            fireAtCameraClockMillis: 111, anchorMillis: 100,
+            captureId: "REC-1", sessionId: "S", cameraIndex: 2))
+        XCTAssertEqual(result.fireAtCameraClockMillis, 111)
+        XCTAssertEqual(result.anchorMillis, 100)
+        XCTAssertEqual(result.captureId, "REC-1")
+        XCTAssertEqual(result.cameraIndex, 2)
+    }
+
+    func testScheduledStopRecording_roundTrip() {
+        let result = roundTrip(RemoteCmd.ScheduledStopRecording(
+            fireAtCameraClockMillis: 222, anchorMillis: 200,
+            captureId: "REC-1", sessionId: "S", cameraIndex: 2))
+        XCTAssertEqual(result.fireAtCameraClockMillis, 222)
+        XCTAssertEqual(result.captureId, "REC-1")
+    }
+
+    /// The start/stop distinction (`isStop`) rides the response action, so the
+    /// director routes each ack to the right aggregation.
+    func testScheduledRecordingAck_roundTripPreservesIsStop() {
+        let start = roundTrip(RemoteCmd.ScheduledRecordingAck(captureId: "R", isStop: false))
+        XCTAssertFalse(start.isStop)
+        XCTAssertEqual(start.captureId, "R")
+
+        let stop = roundTrip(RemoteCmd.ScheduledRecordingAck(captureId: "R", isStop: true))
+        XCTAssertTrue(stop.isStop)
+
+        let nack = roundTrip(RemoteCmd.ScheduledRecordingAck(
+            captureId: "R", isStop: false, error: NSError(domain: "x", code: 0)))
         XCTAssertNotNil(nack.error)
     }
 

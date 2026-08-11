@@ -27,6 +27,8 @@ final class CameraLane: ObservableObject, Identifiable {
     @Published var isFocused: Bool
     /// How this camera answered the last synced capture — a brief tile badge.
     @Published var captureOutcome: CaptureOutcome?
+    /// This camera is rolling in a synced recording — REC badge.
+    @Published var isRecording: Bool
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -39,6 +41,7 @@ final class CameraLane: ObservableObject, Identifiable {
         self.status = info.status
         self.isFocused = info.isFocused
         self.captureOutcome = info.captureOutcome
+        self.isRecording = info.isRecording
     }
 }
 
@@ -49,6 +52,10 @@ final class MulticamViewModel: ObservableObject {
     @Published var interfaceOrientation: UIInterfaceOrientation = .portrait
     /// A synced photo is in flight — drives the shutter's activity ring.
     @Published var isCapturing: Bool = false
+    /// The rig is recording — the shutter becomes a stop button.
+    @Published var isRecording: Bool = false
+    /// Photo vs video shutter mode.
+    @Published var mode: MonitorMode = .photo
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }
@@ -69,6 +76,7 @@ final class MulticamViewModel: ObservableObject {
                 if lane.status != info.status { lane.status = info.status }
                 if lane.isFocused != info.isFocused { lane.isFocused = info.isFocused }
                 if lane.captureOutcome != info.captureOutcome { lane.captureOutcome = info.captureOutcome }
+                if lane.isRecording != info.isRecording { lane.isRecording = info.isRecording }
                 return lane
             }
             let lane = CameraLane(info: info)

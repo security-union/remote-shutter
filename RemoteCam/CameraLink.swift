@@ -55,6 +55,10 @@ final class CameraLink {
     /// first). Drives the tile's captured/failed badge.
     var captureOutcome: CaptureOutcome?
 
+    /// This camera is rolling as part of a synced recording — drives the tile's
+    /// REC badge.
+    var isRecording = false
+
     /// This camera's own preview decoder + stall watchdog. Frames tagged with
     /// this peer's id are fed here; its `onImage` drives exactly this lane's
     /// tile, so a frame from another camera never touches it.

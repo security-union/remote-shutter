@@ -13,11 +13,15 @@ import XCTest
 private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     var lastLanes: [MulticamLaneInfo] = []
     var receivedFrames: [MCPeerID] = []
-    var captureInFlight = false
+    var capturing = false
+    var recording = false
     var didExit = false
 
     func applyLanes(_ lanes: [MulticamLaneInfo]) { lastLanes = lanes }
-    func applyCaptureInFlight(_ inFlight: Bool) { captureInFlight = inFlight }
+    func applyShutterState(capturing: Bool, recording: Bool) {
+        self.capturing = capturing
+        self.recording = recording
+    }
     func receiveFrame(_ frame: RemoteCmd.OnFrame) { receivedFrames.append(frame.peerId) }
     func exitMulticam() { didExit = true }
 }
@@ -271,6 +275,83 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(Set(takes.flatMap(\.peers)), [camA, camB])
         let fallbackState = await controller.captureStateForTesting()
         XCTAssertEqual(fallbackState?.remaining, 2)
+    }
+
+    // MARK: - Synced video
+
+    func testStartAndStopAnchorsGiveMatchingClipLengths() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 100)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: -50)
+        transport.sentMessages.removeAll()
+
+        await controller.startRecording()
+        await controller.waitForIdle()
+        let starts = sent(transport, RemoteCmd.ScheduledStartRecording.self)
+        func startFire(_ p: MCPeerID) -> UInt64 {
+            (starts.first { $0.peers == [p] }!.msg as! RemoteCmd.ScheduledStartRecording).fireAtCameraClockMillis
+        }
+
+        // Mark both rolling so stopRecording targets them.
+        let recID = await controller.recordingStateForTesting()?.id
+        controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camA)
+        controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        await controller.stopRecording()
+        await controller.waitForIdle()
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        func stopFire(_ p: MCPeerID) -> UInt64 {
+            (stops.first { $0.peers == [p] }!.msg as! RemoteCmd.ScheduledStopRecording).fireAtCameraClockMillis
+        }
+
+        // Per-lane clip length (stop − start) is identical across cameras: each
+        // lane's offset cancels, leaving the shared (stopBase − startBase).
+        let lenA = Int64(stopFire(camA)) - Int64(startFire(camA))
+        let lenB = Int64(stopFire(camB)) - Int64(startFire(camB))
+        XCTAssertEqual(lenA, lenB, "clip lengths must match across the rig")
+        // And the per-lane fire instants differ by the offset delta (150) for
+        // both start and stop.
+        XCTAssertEqual(Int64(startFire(camA)) - Int64(startFire(camB)), 150)
+        XCTAssertEqual(Int64(stopFire(camA)) - Int64(stopFire(camB)), 150)
+    }
+
+    func testStartAcksMarkLanesRecording() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        await controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.recordingStateForTesting()?.id
+        XCTAssertNotNil(recID)
+
+        controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camA)
+        controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camB)
+        await controller.waitForIdle()
+
+        let recA = await controller.isRecordingForTesting(camA)
+        let recB = await controller.isRecordingForTesting(camB)
+        XCTAssertTrue(recA)
+        XCTAssertTrue(recB)
+        // Still recording (all start acks in, remaining 0).
+        let stillRecording = await controller.recordingStateForTesting()
+        XCTAssertEqual(stillRecording?.remaining, 0)
+
+        // Stop resolves back to monitoring.
+        await controller.stopRecording()
+        await controller.waitForIdle()
+        let stopID = await controller.stoppingStateForTesting()?.id
+        controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: stopID!, isStop: true), from: camA)
+        controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: stopID!, isStop: true), from: camB)
+        await controller.waitForIdle()
+        let afterStop = await controller.recordingStateForTesting()
+        let stoppingAfter = await controller.stoppingStateForTesting()
+        XCTAssertNil(afterStop)
+        XCTAssertNil(stoppingAfter, "back to monitoring")
+        let recAafter = await controller.isRecordingForTesting(camA)
+        XCTAssertFalse(recAafter)
     }
 
     // MARK: - Removal
