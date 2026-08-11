@@ -370,3 +370,16 @@
 "RECONNECTING" = "正在重新连接";
 "Connect (%d)" = "连接 (%d)";
 "Select All" = "全选";
+
+// Multicam rig settings tray
+"Auto" = "自动";
+"Timer" = "定时器";
+"Off" = "关闭";
+"Video Quality" = "视频质量";
+"Automatic" = "自动";
+"Photo" = "照片";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "多机位设置";
+"%@ can't" = "%@ 不支持";
+"%@ can't do HDR" = "%@ 不支持 HDR";

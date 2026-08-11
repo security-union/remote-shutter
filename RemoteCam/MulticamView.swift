@@ -25,6 +25,15 @@ struct MulticamView: View {
     let onAddCamera: () -> Void
     /// Invite a discovered camera into the rig.
     let onInviteCamera: (MCPeerID) -> Void
+    /// Rig self-timer changed (seconds; 0 = off).
+    let onSetTimer: (Int) -> Void
+    /// Rig video quality picked (fans out to every lane).
+    let onSelectVideoQuality: (VideoResolution, VideoFrameRate) -> Void
+    /// "Automatic" — recompute best-in-intersection and apply.
+    let onAutomaticVideoQuality: () -> Void
+    /// Rig photo format / HDR picked.
+    let onSetPhotoFormat: (PhotoFormat) -> Void
+    let onSetHDR: (Bool) -> Void
 
     var body: some View {
         GeometryReader { geo in
@@ -46,11 +55,65 @@ struct MulticamView: View {
                 // The capture cluster stays in both modes; per-camera controls
                 // (the strip) are hidden in grid.
                 shutterOverlay(dock: dock)
-                gridToggle
+                topControls
+                countdownOverlay
             }
             .sheet(isPresented: $viewModel.showingAddCamera) {
                 AddCameraSheet(peers: viewModel.availablePeers, onInvite: onInviteCamera)
             }
+            .sheet(isPresented: $viewModel.showingRigTray) {
+                RigTrayView(settings: viewModel.rigSettings,
+                            onSetTimer: onSetTimer,
+                            onSelectVideoQuality: onSelectVideoQuality,
+                            onAutomaticVideoQuality: onAutomaticVideoQuality,
+                            onSetPhotoFormat: onSetPhotoFormat,
+                            onSetHDR: onSetHDR)
+            }
+        }
+    }
+
+    /// Top-left cluster: the rig settings (tray) button, and the focus/grid
+    /// toggle when there's more than one camera. Reachable in both modes.
+    private var topControls: some View {
+        VStack {
+            HStack(spacing: 12) {
+                Button { viewModel.showingRigTray = true } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.title3)
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Color.black.opacity(0.4))
+                        .clipShape(Circle())
+                }
+                if MultiCamChrome.showsGridToggle(cameraCount: viewModel.lanes.count) {
+                    Button {
+                        viewModel.displayMode = viewModel.displayMode == .grid ? .focus : .grid
+                    } label: {
+                        Image(systemName: viewModel.displayMode == .grid
+                              ? "rectangle.inset.filled" : "square.grid.2x2.fill")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.black.opacity(0.4))
+                            .clipShape(Circle())
+                    }
+                }
+                Spacer()
+            }
+            .padding(.leading, 12)
+            .padding(.top, 12)
+            Spacer()
+        }
+    }
+
+    /// The rig self-timer countdown, big and centered so subjects see it.
+    @ViewBuilder
+    private var countdownOverlay: some View {
+        if let n = viewModel.rigSettings.countdown, n > 0 {
+            Text("\(n)")
+                .font(.system(size: 96, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .shadow(radius: 8)
         }
     }
 
@@ -72,32 +135,6 @@ struct MulticamView: View {
             }
         }
         .padding(8)
-    }
-
-    /// Focus/grid switch, only when there's more than one camera.
-    @ViewBuilder
-    private var gridToggle: some View {
-        if MultiCamChrome.showsGridToggle(cameraCount: viewModel.lanes.count) {
-            VStack {
-                HStack {
-                    Button {
-                        viewModel.displayMode = viewModel.displayMode == .grid ? .focus : .grid
-                    } label: {
-                        Image(systemName: viewModel.displayMode == .grid
-                              ? "rectangle.inset.filled" : "square.grid.2x2.fill")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.4))
-                            .clipShape(Circle())
-                    }
-                    .padding(.leading, 12)
-                    .padding(.top, 12)
-                    Spacer()
-                }
-                Spacer()
-            }
-        }
     }
 
     /// The all-camera shutter + a photo/video mode toggle, docked on the same
@@ -248,6 +285,19 @@ struct CameraTileView: View {
                             .foregroundColor(.white))
             }
 
+            if lane.needsQualityRematch {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundColor(.yellow)
+                            .padding(6)
+                    }
+                    Spacer()
+                }
+            }
+
             if lane.isRecording {
                 VStack {
                     HStack {
@@ -326,6 +376,85 @@ struct AddCameraSheet: View {
             }
             .navigationTitle(NSLocalizedString("Add camera",
                                                comment: "add a camera to the multicam rig"))
+        }
+    }
+}
+
+/// The rig settings tray: one self-timer + rig-wide quality (the intersection
+/// model). Manual quality selection is first-class; "Automatic" is the reset at
+/// the top. Reachable from both focus and grid modes.
+struct RigTrayView: View {
+    let settings: RigSettingsSnapshot
+    let onSetTimer: (Int) -> Void
+    let onSelectVideoQuality: (VideoResolution, VideoFrameRate) -> Void
+    let onAutomaticVideoQuality: () -> Void
+    let onSetPhotoFormat: (PhotoFormat) -> Void
+    let onSetHDR: (Bool) -> Void
+
+    private let timerStops = [0, 3, 5, 10, 20]
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(NSLocalizedString("Timer", comment: "rig self-timer")) {
+                    Picker(NSLocalizedString("Timer", comment: ""),
+                           selection: Binding(get: { settings.timerSeconds },
+                                              set: { onSetTimer($0) })) {
+                        ForEach(timerStops, id: \.self) { s in
+                            Text(s == 0 ? NSLocalizedString("Off", comment: "timer off") : "\(s)s").tag(s)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Section(NSLocalizedString("Video Quality", comment: "rig video quality")) {
+                    Button {
+                        onAutomaticVideoQuality()
+                    } label: {
+                        HStack {
+                            Text(NSLocalizedString("Automatic", comment: "best-in-intersection"))
+                            Spacer()
+                            Text(settings.activeVideoLabel).foregroundColor(.secondary)
+                        }
+                    }
+                    ForEach(settings.videoOptions) { opt in
+                        Button {
+                            if opt.enabled { onSelectVideoQuality(opt.resolution, opt.frameRate) }
+                        } label: {
+                            HStack {
+                                Text(opt.label)
+                                    .foregroundColor(opt.enabled ? .primary : .secondary)
+                                Spacer()
+                                if !opt.enabled, let blocker = opt.blockedBy.first {
+                                    Text(String(format: NSLocalizedString("%@ can't", comment: "camera blocks a quality"), blocker))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                if settings.activeVideoLabel == opt.label {
+                                    Image(systemName: "checkmark").foregroundColor(AppTheme.accent)
+                                }
+                            }
+                        }
+                        .disabled(!opt.enabled)
+                    }
+                }
+
+                Section(NSLocalizedString("Photo", comment: "rig photo quality")) {
+                    Toggle(NSLocalizedString("HEIF", comment: "photo format"),
+                           isOn: Binding(get: { settings.activePhotoFormat == .heif },
+                                         set: { onSetPhotoFormat($0 ? .heif : .jpeg) }))
+                        .disabled(!settings.heifAvailable)
+                    Toggle(NSLocalizedString("HDR", comment: "photo HDR"),
+                           isOn: Binding(get: { settings.activeHDR == .on },
+                                         set: { onSetHDR($0) }))
+                        .disabled(!settings.hdrAvailable)
+                    if !settings.hdrAvailable, let blocker = settings.hdrBlockedBy.first {
+                        Text(String(format: NSLocalizedString("%@ can't do HDR", comment: "camera blocks HDR"), blocker))
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+                }
+            }
+            .navigationTitle(NSLocalizedString("Rig Settings", comment: "multicam settings tray"))
         }
     }
 }

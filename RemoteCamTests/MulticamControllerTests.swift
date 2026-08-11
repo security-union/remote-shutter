@@ -16,6 +16,7 @@ private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     var capturing = false
     var recording = false
     var availablePeers: [MCPeerID] = []
+    var rigSettings: RigSettingsSnapshot?
     var didExit = false
 
     func applyLanes(_ lanes: [MulticamLaneInfo]) { lastLanes = lanes }
@@ -24,6 +25,7 @@ private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
         self.recording = recording
     }
     func applyAvailablePeers(_ peers: [MCPeerID]) { availablePeers = peers }
+    func applyRigSettings(_ settings: RigSettingsSnapshot) { rigSettings = settings }
     func receiveFrame(_ frame: RemoteCmd.OnFrame) { receivedFrames.append(frame.peerId) }
     func exitMulticam() { didExit = true }
 }
@@ -470,6 +472,135 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(lanes.map(\.peerID), [camB])
         let focusedAfter = await controller.focusedPeerForTesting()
         XCTAssertEqual(focusedAfter, camB)
+    }
+
+    // MARK: - Rig quality (intersection) + timer
+
+    /// Caps whose current (back) camera advertises a resolution/fps matrix.
+    private func capsWith(_ matrix: [VideoResolution: [VideoFrameRate]],
+                          heif: Bool = true, hdr: Bool = true) -> RemoteCmd.CameraCapabilitiesResp {
+        let info = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
+            zoomCapabilities: [:],
+            supportedResolutions: Array(matrix.keys),
+            supportedFrameRates: Array(Set(matrix.values.flatMap { $0 })),
+            resolutionFrameRates: matrix, supportsHEIF: heif, supportsHDR: hdr)
+        return RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: info,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true, error: nil)
+    }
+
+    private let full4K: [VideoResolution: [VideoFrameRate]] =
+        [.uhd4k: [.fps30, .fps60], .hd1080p: [.fps30, .fps60]]
+    private let only1080: [VideoResolution: [VideoFrameRate]] = [.hd1080p: [.fps30]]
+
+    func testSetVideoQualityFansOutToEveryLane() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        transport.sentMessages.removeAll()
+
+        await controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
+        await controller.waitForIdle()
+
+        let sends = sent(transport, RemoteCmd.SetVideoQuality.self)
+        XCTAssertEqual(Set(sends.flatMap(\.peers)), [camA, camB])
+        for s in sends {
+            let q = s.msg as? RemoteCmd.SetVideoQuality
+            XCTAssertEqual(q?.resolution, .uhd4k)
+            XCTAssertEqual(q?.frameRate, .fps30)
+        }
+        let active = await controller.activeVideoQualityForTesting()
+        XCTAssertEqual(active?.0, .uhd4k)
+    }
+
+    /// Manual toggle between two shared options fans out each time (Dario's
+    /// first-class-manual requirement).
+    func testManualQualityToggleFansOutEachTime() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(full4K), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        await controller.setVideoQuality(resolution: .hd1080p, frameRate: .fps30)
+        await controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
+        await controller.waitForIdle()
+
+        let sends = sent(transport, RemoteCmd.SetVideoQuality.self)
+        // Two toggles × two lanes = four sends.
+        XCTAssertEqual(sends.count, 4)
+    }
+
+    func testAutomaticPicksBestInIntersectionAndFansOut() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        // camA does 4K; camB only 1080p → the rig can only agree on 1080p30.
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(only1080), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        await controller.applyAutomaticVideoQuality()
+        await controller.waitForIdle()
+
+        let sends = sent(transport, RemoteCmd.SetVideoQuality.self)
+        XCTAssertEqual(Set(sends.flatMap(\.peers)), [camA, camB])
+        let q = sends.first?.msg as? RemoteCmd.SetVideoQuality
+        XCTAssertEqual(q?.resolution, .hd1080p)
+        XCTAssertEqual(q?.frameRate, .fps30)
+    }
+
+    func testLateJoinerThatCannotMatchIsFlagged() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(full4K), from: camB)
+        await controller.waitForIdle()
+        // Rig set to 4K30 (both can).
+        await controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
+        await controller.waitForIdle()
+        let flaggedBefore = await controller.needsRematchForTesting(camB)
+        XCTAssertFalse(flaggedBefore)
+
+        // camB device-switches to a 1080-only camera → can't match → flagged.
+        controller.didReceiveMessage(capsWith(only1080), from: camB)
+        await controller.waitForIdle()
+        let flaggedAfter = await controller.needsRematchForTesting(camB)
+        let camAstillOK = await controller.needsRematchForTesting(camA)
+        XCTAssertTrue(flaggedAfter)
+        XCTAssertFalse(camAstillOK)
+    }
+
+    func testRigTimerCountsDownFansOutAndFiresCapture() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        // Seed offsets so the fired capture takes the scheduled path.
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(0.001) // fast
+        await controller.setRigTimer(3)
+        transport.sentMessages.removeAll()
+
+        await controller.capturePhoto()
+        // Wait for the countdown (3 ticks + fire) to elapse.
+        for _ in 0..<200 where sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty {
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
+        // The countdown fanned out TimerCountdown to both cameras...
+        let ticks = sent(transport, RemoteCmd.TimerCountdown.self)
+        XCTAssertTrue(ticks.contains { ($0.msg as? RemoteCmd.TimerCountdown)?.value == 3 })
+        XCTAssertTrue(ticks.contains { ($0.msg as? RemoteCmd.TimerCountdown)?.value == 0 })
+        // ...and the synced capture fired after expiry.
+        XCTAssertFalse(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty)
+    }
+
+    func testSetPhotoQualityFansOut() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        transport.sentMessages.removeAll()
+        await controller.setPhotoQuality(format: .heif, hdr: .on)
+        await controller.waitForIdle()
+        let sends = sent(transport, RemoteCmd.SetPhotoQuality.self)
+        XCTAssertEqual(Set(sends.flatMap(\.peers)), [camA, camB])
+        let q = sends.first?.msg as? RemoteCmd.SetPhotoQuality
+        XCTAssertEqual(q?.format, .heif)
+        XCTAssertEqual(q?.hdrMode, .on)
     }
 
     // MARK: - Fixtures

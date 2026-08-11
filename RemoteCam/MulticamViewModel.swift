@@ -29,6 +29,8 @@ final class CameraLane: ObservableObject, Identifiable {
     @Published var captureOutcome: CaptureOutcome?
     /// This camera is rolling in a synced recording — REC badge.
     @Published var isRecording: Bool
+    /// This camera can't match the running rig quality — badge + re-match.
+    @Published var needsQualityRematch: Bool
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -42,6 +44,7 @@ final class CameraLane: ObservableObject, Identifiable {
         self.isFocused = info.isFocused
         self.captureOutcome = info.captureOutcome
         self.isRecording = info.isRecording
+        self.needsQualityRematch = info.needsQualityRematch
     }
 }
 
@@ -62,6 +65,10 @@ final class MulticamViewModel: ObservableObject {
     @Published var availablePeers: [MCPeerID] = []
     /// Whether the add-camera sheet is showing.
     @Published var showingAddCamera: Bool = false
+    /// Rig-wide settings (timer + quality intersection) for the tray.
+    @Published var rigSettings = RigSettingsSnapshot(activeVideoLabel: "Auto")
+    /// Whether the rig settings tray is showing.
+    @Published var showingRigTray: Bool = false
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }
@@ -83,6 +90,7 @@ final class MulticamViewModel: ObservableObject {
                 if lane.isFocused != info.isFocused { lane.isFocused = info.isFocused }
                 if lane.captureOutcome != info.captureOutcome { lane.captureOutcome = info.captureOutcome }
                 if lane.isRecording != info.isRecording { lane.isRecording = info.isRecording }
+                if lane.needsQualityRematch != info.needsQualityRematch { lane.needsQualityRematch = info.needsQualityRematch }
                 return lane
             }
             let lane = CameraLane(info: info)

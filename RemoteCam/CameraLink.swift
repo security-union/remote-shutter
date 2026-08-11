@@ -63,6 +63,11 @@ final class CameraLink {
     /// only re-sends `SetStreamProfile` when the tier actually changes.
     var lastSentProfile: StreamProfile?
 
+    /// A late joiner (or a device-switched camera) that cannot honor the
+    /// running rig video quality — its tile is badged and the tray offers a
+    /// re-match rather than silently changing the rig.
+    var needsQualityRematch = false
+
     /// This camera's own preview decoder + stall watchdog. Frames tagged with
     /// this peer's id are fed here; its `onImage` drives exactly this lane's
     /// tile, so a frame from another camera never touches it.

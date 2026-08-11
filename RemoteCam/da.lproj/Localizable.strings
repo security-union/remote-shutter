@@ -249,3 +249,16 @@
 "RECONNECTING" = "GENOPRETTER FORBINDELSE";
 "Connect (%d)" = "Forbind (%d)";
 "Select All" = "Vælg alle";
+
+// Multicam rig settings tray
+"Auto" = "Auto";
+"Timer" = "Timer";
+"Off" = "Fra";
+"Video Quality" = "Videokvalitet";
+"Automatic" = "Automatisk";
+"Photo" = "Foto";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "Rig-indstillinger";
+"%@ can't" = "%@ kan ikke";
+"%@ can't do HDR" = "%@ kan ikke HDR";

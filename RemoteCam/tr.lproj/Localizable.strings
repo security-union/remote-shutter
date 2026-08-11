@@ -370,3 +370,16 @@
 "RECONNECTING" = "YENİDEN BAĞLANIYOR";
 "Connect (%d)" = "Bağlan (%d)";
 "Select All" = "Tümünü seç";
+
+// Multicam rig settings tray
+"Auto" = "Otomatik";
+"Timer" = "Zamanlayıcı";
+"Off" = "Kapalı";
+"Video Quality" = "Video kalitesi";
+"Automatic" = "Otomatik";
+"Photo" = "Fotoğraf";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "Rig ayarları";
+"%@ can't" = "%@ yapamaz";
+"%@ can't do HDR" = "%@ HDR yapamaz";

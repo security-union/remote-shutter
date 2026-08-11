@@ -370,3 +370,16 @@
 "RECONNECTING" = "ПЕРЕПОДКЛЮЧЕНИЕ";
 "Connect (%d)" = "Подключить (%d)";
 "Select All" = "Выбрать все";
+
+// Multicam rig settings tray
+"Auto" = "Авто";
+"Timer" = "Таймер";
+"Off" = "Выкл";
+"Video Quality" = "Качество видео";
+"Automatic" = "Автоматически";
+"Photo" = "Фото";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "Настройки рига";
+"%@ can't" = "%@ не может";
+"%@ can't do HDR" = "%@ не поддерживает HDR";

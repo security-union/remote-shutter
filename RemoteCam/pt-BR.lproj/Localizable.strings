@@ -370,3 +370,16 @@
 "RECONNECTING" = "RECONECTANDO";
 "Connect (%d)" = "Conectar (%d)";
 "Select All" = "Selecionar todas";
+
+// Multicam rig settings tray
+"Auto" = "Auto";
+"Timer" = "Temporizador";
+"Off" = "Desligado";
+"Video Quality" = "Qualidade de vídeo";
+"Automatic" = "Automático";
+"Photo" = "Foto";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "Ajustes do rig";
+"%@ can't" = "%@ não pode";
+"%@ can't do HDR" = "%@ não faz HDR";

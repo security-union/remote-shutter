@@ -370,3 +370,16 @@
 "RECONNECTING" = "再接続中";
 "Connect (%d)" = "接続 (%d)";
 "Select All" = "すべて選択";
+
+// Multicam rig settings tray
+"Auto" = "自動";
+"Timer" = "タイマー";
+"Off" = "オフ";
+"Video Quality" = "ビデオ画質";
+"Automatic" = "自動";
+"Photo" = "写真";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "リグ設定";
+"%@ can't" = "%@は非対応";
+"%@ can't do HDR" = "%@はHDR非対応";

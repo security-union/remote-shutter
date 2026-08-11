@@ -48,6 +48,8 @@ struct MulticamLaneInfo: Equatable {
     let captureOutcome: CaptureOutcome?
     /// This camera is rolling as part of a synced recording (REC badge).
     let isRecording: Bool
+    /// This camera can't match the running rig quality — tile badge + re-match.
+    let needsQualityRematch: Bool
 }
 
 /// The main-actor bridge from the controller to the multicam screen — the
@@ -63,6 +65,8 @@ protocol MulticamDisplay: AnyObject {
     /// Cameras the browser has found that aren't in the rig — the add-camera
     /// sheet's list.
     func applyAvailablePeers(_ peers: [MCPeerID])
+    /// The rig-wide settings (timer + quality intersection) for the tray.
+    func applyRigSettings(_ settings: RigSettingsSnapshot)
     func receiveFrame(_ frame: RemoteCmd.OnFrame)
     func exitMulticam()
 }
@@ -115,6 +119,7 @@ public actor MulticamController {
 
     public nonisolated func stop() {
         clockSyncTask.value?.cancel()
+        timerTask.value?.cancel()
         transportShared.value?.stopSession()
         inboxContinuation.value?.finish()
     }
@@ -153,6 +158,20 @@ public actor MulticamController {
     /// How long a camera has to answer before it is counted as failed.
     private var captureAckTimeout: TimeInterval = 3
 
+    // MARK: Rig-wide settings ("the shot belongs to the rig")
+
+    /// The rig's active video quality — applied to every lane. Nil until the
+    /// first pick (or Automatic). Manual selection within the intersection is
+    /// first-class; Automatic just recomputes best-in-intersection.
+    private var activeVideoQuality: (resolution: VideoResolution, frameRate: VideoFrameRate)?
+    private var activePhotoQuality: (format: PhotoFormat, hdr: HDRMode)?
+    /// One rig self-timer (seconds); 0 = off. Fans out to every camera so
+    /// subjects see the countdown, and its expiry triggers the synced capture.
+    private var rigTimerSeconds: Int = 0
+    /// The countdown tick interval — injectable so tests don't wait real seconds.
+    private var timerTickInterval: TimeInterval = 1
+    private nonisolated let timerTask = Locked<Task<Void, Never>?>(nil)
+
     private weak var display: MulticamDisplay?
 
     /// The interval between clock-offset refreshes per camera.
@@ -163,8 +182,11 @@ public actor MulticamController {
 
     // MARK: Test / wiring seams
 
+    func needsRematchForTesting(_ peer: MCPeerID) -> Bool { links[peer]?.needsQualityRematch ?? false }
+
     func setDisplay(_ display: MulticamDisplay) {
         self.display = display
+        publishRigSettings()
         // The display is wired after `install` (the screen is pushed only once
         // the handoff is done), so replay the current lanes now — otherwise the
         // first snapshot, emitted during install, reaches no one.
@@ -276,7 +298,12 @@ public actor MulticamController {
         case let caps as RemoteCmd.CameraCapabilitiesResp:
             link.capabilities = caps
             if link.status != .failed { link.status = .linked }
+            // A late joiner may not match the running rig quality: flag it (its
+            // tile badges + the tray offers re-match) rather than silently
+            // changing the rig. Also refreshes the intersection menu.
+            refreshRematchFlags()
             publishLanes()
+            publishRigSettings()
             // A multicam-capable camera gets an immediate clock probe so its
             // offset is ready well before the first synced capture (PR4), and
             // its preview tier (full if focused, else thumbnail).
@@ -523,10 +550,16 @@ public actor MulticamController {
         return captureID
     }
 
-    /// Fire a synced photo on every ready multicam camera. Scheduled at a shared
-    /// instant when every clock offset is known; else a plain `TakePic` fan-out
-    /// under the same shot id. No-op unless idle with a ready camera.
+    /// Fire a synced photo on every ready multicam camera. If the rig timer is
+    /// set, run one director-side countdown first (fanned out so subjects see
+    /// it), then fire. Scheduled at a shared instant when every clock offset is
+    /// known; else a plain `TakePic` fan-out. No-op unless idle with a camera.
     func capturePhoto() {
+        guard rigTimerSeconds > 0 else { performCapturePhoto(); return }
+        startCountdown(then: .photo)
+    }
+
+    private func performCapturePhoto() {
         guard case .monitoring = state else { return }
         let ready = readyMulticamLanes()
         guard !ready.isEmpty else { return }
@@ -545,8 +578,13 @@ public actor MulticamController {
         armAckTimeout(captureID)
     }
 
-    /// Start a synced recording on every ready multicam camera.
+    /// Start a synced recording on every ready multicam camera (timer-gated).
     func startRecording() {
+        guard rigTimerSeconds > 0 else { performStartRecording(); return }
+        startCountdown(then: .record)
+    }
+
+    private func performStartRecording() {
         guard case .monitoring = state else { return }
         let ready = readyMulticamLanes()
         guard !ready.isEmpty else { return }
@@ -583,6 +621,133 @@ public actor MulticamController {
         state = .stoppingRecording(captureId: captureID, acksRemaining: capturingLanes.count)
         publishLanes()
         armAckTimeout(captureID)
+    }
+
+    // MARK: - Rig-wide quality ("the shot belongs to the rig")
+
+    /// Test seams.
+    func setTimerTickInterval(_ t: TimeInterval) { timerTickInterval = t }
+    func activeVideoQualityForTesting() -> (VideoResolution, VideoFrameRate)? {
+        activeVideoQuality.map { ($0.resolution, $0.frameRate) }
+    }
+    func rigTimerForTesting() -> Int { rigTimerSeconds }
+
+    /// The current rig quality menu, computed from every connected lane's
+    /// current-camera capabilities (the intersection model).
+    func rigQualityMenu() -> RigQualityMenu {
+        let menuLanes: [RigQualityMenu.Lane] = order.enumerated().compactMap { index, peer in
+            guard let link = links[peer], link.status != .failed,
+                  let info = link.capabilities?.getCurrentCameraInfo() else { return nil }
+            return RigQualityMenu.Lane(name: link.displayName.isEmpty ? "Camera \(index + 1)" : link.displayName,
+                                       info: info)
+        }
+        return RigQualityMenu(lanes: menuLanes)
+    }
+
+    /// Manual video pick — fans the chosen quality to every lane and records it
+    /// as the active rig setting (first-class; not a mode you leave).
+    func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) {
+        activeVideoQuality = (resolution, frameRate)
+        for peer in order {
+            sendTo(peer, RemoteCmd.SetVideoQuality(resolution: resolution, frameRate: frameRate))
+        }
+        refreshRematchFlags()
+        publishLanes()
+    }
+
+    func setPhotoQuality(format: PhotoFormat, hdr: HDRMode) {
+        activePhotoQuality = (format, hdr)
+        for peer in order {
+            sendTo(peer, RemoteCmd.SetPhotoQuality(format: format, hdrMode: hdr))
+        }
+        publishLanes()
+    }
+
+    /// "Automatic" / re-match: recompute best-in-intersection and apply it.
+    func applyAutomaticVideoQuality() {
+        let auto = rigQualityMenu().automaticVideo()
+        setVideoQuality(resolution: auto.resolution, frameRate: auto.frameRate)
+    }
+
+    func applyAutomaticPhotoQuality() {
+        let auto = rigQualityMenu().automaticPhoto()
+        setPhotoQuality(format: auto.format, hdr: auto.hdr)
+    }
+
+    /// After caps change (new lane, device switch), flag any lane that can't
+    /// honor the running rig video setting — its tile is badged and the tray
+    /// offers a re-match. Never silently changes the rig.
+    private func refreshRematchFlags() {
+        guard let active = activeVideoQuality else { return }
+        let menu = rigQualityMenu()
+        for peer in order {
+            guard let link = links[peer], let info = link.capabilities?.getCurrentCameraInfo() else { continue }
+            let lane = RigQualityMenu.Lane(name: link.displayName, info: info)
+            link.needsQualityRematch = !menu.laneCanMatch(
+                lane, resolution: active.resolution, frameRate: active.frameRate)
+        }
+    }
+
+    // MARK: - Rig self-timer
+
+    func setRigTimer(_ seconds: Int) {
+        rigTimerSeconds = max(0, seconds)
+        publishRigSettings()
+    }
+
+    private enum TimedAction { case photo, record }
+
+    /// Run a director-side countdown, fanned out to every camera so subjects see
+    /// it, then fire the synced capture at zero.
+    private func startCountdown(then action: TimedAction) {
+        timerTask.value?.cancel()
+        let total = rigTimerSeconds
+        let interval = timerTickInterval
+        timerTask.value = Task { [weak self] in
+            for remaining in stride(from: total, through: 1, by: -1) {
+                if Task.isCancelled { return }
+                await self?.fanOutTimerTick(remaining)
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+            }
+            if Task.isCancelled { return }
+            await self?.fireTimed(action)
+        }
+    }
+
+    private func fireTimed(_ action: TimedAction) {
+        fanOutTimerTick(0)
+        switch action {
+        case .photo: performCapturePhoto()
+        case .record: performStartRecording()
+        }
+    }
+
+    private func fanOutTimerTick(_ remaining: Int) {
+        for peer in order { sendTo(peer, RemoteCmd.TimerCountdown(value: remaining)) }
+        publishRigSettings(countdown: remaining > 0 ? remaining : nil)
+    }
+
+    private func publishRigSettings(countdown: Int? = nil) {
+        let menu = rigQualityMenu()
+        let videoLabel: String
+        if let v = activeVideoQuality {
+            videoLabel = "\(v.resolution.displayName)\(v.frameRate.displayName)"
+        } else {
+            videoLabel = NSLocalizedString("Auto", comment: "automatic rig quality")
+        }
+        let snapshot = RigSettingsSnapshot(
+            timerSeconds: rigTimerSeconds,
+            countdown: countdown,
+            activeVideoLabel: videoLabel,
+            videoOptions: menu.videoPickerOptions(),
+            heifAvailable: menu.supportsHEIF(),
+            hdrAvailable: menu.supportsHDR(),
+            heifBlockedBy: menu.lanesBlockingHEIF(),
+            hdrBlockedBy: menu.lanesBlockingHDR(),
+            activePhotoFormat: activePhotoQuality?.format,
+            activeHDR: activePhotoQuality?.hdr)
+        let display = display
+        OperationQueue.main.addOperation { display?.applyRigSettings(snapshot) }
     }
 
     // MARK: Ack aggregation (shared across photo / start / stop)
@@ -723,7 +888,8 @@ public actor MulticamController {
                 isFocused: peer == focusedPeer,
                 clockOffsetMillis: link.latestOffset?.offsetMillis,
                 captureOutcome: link.captureOutcome,
-                isRecording: link.isRecording)
+                isRecording: link.isRecording,
+                needsQualityRematch: link.needsQualityRematch)
         }
     }
 

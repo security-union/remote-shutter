@@ -370,3 +370,16 @@
 "RECONNECTING" = "फिर से कनेक्ट हो रहा है";
 "Connect (%d)" = "कनेक्ट करें (%d)";
 "Select All" = "सभी चुनें";
+
+// Multicam rig settings tray
+"Auto" = "ऑटो";
+"Timer" = "टाइमर";
+"Off" = "बंद";
+"Video Quality" = "वीडियो गुणवत्ता";
+"Automatic" = "स्वचालित";
+"Photo" = "फ़ोटो";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "रिग सेटिंग्स";
+"%@ can't" = "%@ नहीं कर सकता";
+"%@ can't do HDR" = "%@ HDR नहीं कर सकता";

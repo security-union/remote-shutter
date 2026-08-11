@@ -370,3 +370,16 @@
 "RECONNECTING" = "MENYAMBUNG SEMULA";
 "Connect (%d)" = "Sambung (%d)";
 "Select All" = "Pilih semua";
+
+// Multicam rig settings tray
+"Auto" = "Auto";
+"Timer" = "Pemasa";
+"Off" = "Mati";
+"Video Quality" = "Kualiti video";
+"Automatic" = "Automatik";
+"Photo" = "Foto";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "Tetapan rig";
+"%@ can't" = "%@ tidak boleh";
+"%@ can't do HDR" = "%@ tidak boleh HDR";
