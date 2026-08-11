@@ -34,8 +34,14 @@ struct RolePickerView: View {
                 Button(action: onRemote) {
                     glassPanel(
                         icon: "antenna.radiowaves.left.and.right",
-                        title: NSLocalizedString("Remote", comment: ""),
-                        subtitle: NSLocalizedString("Control the shutter", comment: ""),
+                        // Multicam reframes this role as the "Director" of one or
+                        // more cameras; single-cam keeps the "Remote" wording.
+                        title: FeatureFlags.ENABLE_MULTICAM
+                            ? NSLocalizedString("Director", comment: "")
+                            : NSLocalizedString("Remote", comment: ""),
+                        subtitle: FeatureFlags.ENABLE_MULTICAM
+                            ? NSLocalizedString("Control one or more iPhone cameras", comment: "")
+                            : NSLocalizedString("Control the shutter", comment: ""),
                         tint: AppTheme.secondary
                     )
                 }

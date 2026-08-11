@@ -46,6 +46,22 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertFalse(store.hasTapToFocusFeature())
     }
 
+    // MARK: - Multicam camera cap
+
+    func testFreeTierGetsTwoCameras() {
+        XCTAssertEqual(StoreManager.shared.maxCameras(), 2)
+    }
+
+    func testProModeUnlocksFourCameras() {
+        UserDefaults.standard.set(true, forKey: proModeKey)
+        XCTAssertEqual(StoreManager.shared.maxCameras(), 4)
+    }
+
+    func testProSubscriptionUnlocksFourCameras() {
+        UserDefaults.standard.set(true, forKey: proSubscriptionKey)
+        XCTAssertEqual(StoreManager.shared.maxCameras(), 4)
+    }
+
     // MARK: - Individual Feature Flags
 
     func testHasAdRemovalWhenPurchased() {

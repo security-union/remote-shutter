@@ -179,6 +179,14 @@ public class DeviceScannerViewController: UIViewController {
             },
             onSelectPeer: { [weak self] peer in
                 guard let self = self else { return }
+                // Multicam collecting: block a connection past the tier cap and
+                // route to the paywall instead. (Non-multicam is unaffected —
+                // the count stays 0.)
+                if FeatureFlags.ENABLE_MULTICAM && self.role == .monitor
+                    && self.scannerViewModel.multicamCollectedCount >= StoreManager.shared.maxCameras() {
+                    self.presentMulticamPaywall()
+                    return
+                }
                 self.remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
                 self.scannerViewModel.connectingToPeer()
             },
@@ -360,6 +368,13 @@ public class DeviceScannerViewController: UIViewController {
                 goToRole()
             }
         }
+    }
+
+    /// The shared Settings/paywall sheet — the same one the monitor gates use.
+    private func presentMulticamPaywall() {
+        let ctrl = UIHostingController(rootView: SettingsView())
+        ctrl.modalPresentationStyle = .pageSheet
+        present(ctrl, animated: true)
     }
 
     func goToAppSettings() {

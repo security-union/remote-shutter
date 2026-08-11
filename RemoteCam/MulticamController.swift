@@ -60,6 +60,9 @@ protocol MulticamDisplay: AnyObject {
     /// Aggregate shutter state: `capturing` = a synced photo is in flight
     /// (activity ring); `recording` = the rig is rolling (record/stop button).
     func applyShutterState(capturing: Bool, recording: Bool)
+    /// Cameras the browser has found that aren't in the rig — the add-camera
+    /// sheet's list.
+    func applyAvailablePeers(_ peers: [MCPeerID])
     func receiveFrame(_ frame: RemoteCmd.OnFrame)
     func exitMulticam()
 }
@@ -130,6 +133,11 @@ public actor MulticamController {
     private var order: [MCPeerID] = []
     private var links: [MCPeerID: CameraLink] = [:]
     private var focusedPeer: MCPeerID?
+
+    /// Cameras the browser has found that are not in the rig yet — the source
+    /// list for the in-session "add camera" sheet. Insertion-ordered.
+    private var availableOrder: [MCPeerID] = []
+    private var available: Set<MCPeerID> = []
 
     /// One id per director session, part of every capture's filename group.
     private let sessionID = UUID().uuidString
@@ -225,6 +233,12 @@ public actor MulticamController {
         case let found as UICmd.BrowserFoundPeer:
             handleBrowserFound(found.peer)
 
+        case let lost as UICmd.BrowserLostPeer:
+            if available.remove(lost.peer) != nil {
+                availableOrder.removeAll { $0 == lost.peer }
+                publishAvailable()
+            }
+
         case let routed as RoutedMessage:
             await handleRouted(routed.message, from: routed.peer)
 
@@ -306,9 +320,20 @@ public actor MulticamController {
             order.append(peer)
             links[peer] = CameraLink(peerID: peer)
         }
+        // It's in the rig now, so it's no longer an "available" candidate.
+        if available.remove(peer) != nil {
+            availableOrder.removeAll { $0 == peer }
+            publishAvailable()
+        }
         focusedPeer = focusedPeer ?? peer
         beginHandshake(with: peer)
         publishLanes()
+    }
+
+    private func publishAvailable() {
+        let peers = availableOrder
+        let display = display
+        OperationQueue.main.addOperation { display?.applyAvailablePeers(peers) }
     }
 
     private func handlePeerDisconnected(_ peer: MCPeerID) {
@@ -321,11 +346,29 @@ public actor MulticamController {
     }
 
     private func handleBrowserFound(_ peer: MCPeerID) {
-        // Re-invite only a camera we are actively missing; a fresh peer is a
-        // job for the add-camera flow (PR7), not an auto-join.
-        guard let link = links[peer], link.status == .reconnecting else { return }
+        // A camera we are actively missing is auto-re-invited.
+        if let link = links[peer], link.status == .reconnecting {
+            multipeerService?.invitePeer(peer, timeout: reconnectInviteTimeout)
+            return
+        }
+        // An unrelated fresh peer becomes a candidate for the "add camera"
+        // sheet — it never auto-joins.
+        guard links[peer] == nil, !available.contains(peer) else { return }
+        available.insert(peer)
+        availableOrder.append(peer)
+        publishAvailable()
+    }
+
+    /// Invite a discovered camera into the rig (the "add camera" flow). The
+    /// tier cap is enforced by the UI before this is called.
+    func inviteCamera(_ peer: MCPeerID) {
+        guard available.contains(peer) else { return }
         multipeerService?.invitePeer(peer, timeout: reconnectInviteTimeout)
     }
+
+    /// The current number of cameras in the rig — the UI checks this against
+    /// `StoreManager.maxCameras()` before offering to add another.
+    func cameraCount() -> Int { order.count }
 
     private func armReconnect(_ peer: MCPeerID) {
         let delay = reconnectRetryDelay
@@ -428,6 +471,8 @@ public actor MulticamController {
     }
     func captureOutcomeForTesting(_ peer: MCPeerID) -> CaptureOutcome? { links[peer]?.captureOutcome }
     func isRecordingForTesting(_ peer: MCPeerID) -> Bool { links[peer]?.isRecording ?? false }
+    func availablePeersForTesting() -> [MCPeerID] { availableOrder }
+    func cameraCountForTesting() -> Int { order.count }
 
     /// Test seam: put a lane in the state a real handshake would — linked, with
     /// known multicam capability and (optionally) a known clock offset — so

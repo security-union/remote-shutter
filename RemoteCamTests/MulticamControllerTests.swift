@@ -15,6 +15,7 @@ private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     var receivedFrames: [MCPeerID] = []
     var capturing = false
     var recording = false
+    var availablePeers: [MCPeerID] = []
     var didExit = false
 
     func applyLanes(_ lanes: [MulticamLaneInfo]) { lastLanes = lanes }
@@ -22,6 +23,7 @@ private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
         self.capturing = capturing
         self.recording = recording
     }
+    func applyAvailablePeers(_ peers: [MCPeerID]) { availablePeers = peers }
     func receiveFrame(_ frame: RemoteCmd.OnFrame) { receivedFrames.append(frame.peerId) }
     func exitMulticam() { didExit = true }
 }
@@ -275,6 +277,59 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(Set(takes.flatMap(\.peers)), [camA, camB])
         let fallbackState = await controller.captureStateForTesting()
         XCTAssertEqual(fallbackState?.remaining, 2)
+    }
+
+    // MARK: - Add camera
+
+    func testDiscoveredPeerBecomesAvailableButDoesNotAutoJoin() async {
+        let camC = MCPeerID(displayName: "CameraC")
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        transport.invitedPeers.removeAll()
+
+        controller.browserDidFindPeer(camC)
+        await controller.waitForIdle()
+
+        let available = await controller.availablePeersForTesting()
+        XCTAssertEqual(available, [camC])
+        // A fresh peer is a candidate only — it is never auto-invited.
+        XCTAssertTrue(transport.invitedPeers.isEmpty)
+        // And it is not in the rig.
+        let count = await controller.cameraCountForTesting()
+        XCTAssertEqual(count, 2)
+    }
+
+    func testInviteCameraInvitesADiscoveredPeer() async {
+        let camC = MCPeerID(displayName: "CameraC")
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.browserDidFindPeer(camC)
+        await controller.waitForIdle()
+        transport.invitedPeers.removeAll()
+
+        await controller.inviteCamera(camC)
+        await controller.waitForIdle()
+        XCTAssertEqual(transport.invitedPeers.map(\.peer), [camC])
+
+        // Inviting a peer that was never discovered does nothing.
+        transport.invitedPeers.removeAll()
+        await controller.inviteCamera(MCPeerID(displayName: "Ghost"))
+        await controller.waitForIdle()
+        XCTAssertTrue(transport.invitedPeers.isEmpty)
+    }
+
+    func testAvailablePeerClearsOnceItJoins() async {
+        let camC = MCPeerID(displayName: "CameraC")
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.browserDidFindPeer(camC)
+        await controller.waitForIdle()
+        let avail = await controller.availablePeersForTesting()
+        XCTAssertEqual(avail, [camC])
+
+        controller.peerDidConnect(camC)
+        await controller.waitForIdle()
+        let availAfter = await controller.availablePeersForTesting()
+        let countAfter = await controller.cameraCountForTesting()
+        XCTAssertTrue(availAfter.isEmpty)
+        XCTAssertEqual(countAfter, 3)
     }
 
     // MARK: - Stream profile tiering

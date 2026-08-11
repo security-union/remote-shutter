@@ -92,6 +92,13 @@ final class StoreManager: ObservableObject {
         hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.tapToFocus)
     }
 
+    /// How many cameras a multicam director may connect: a free 2-camera
+    /// teaser, or up to 4 with full access. The director's entitlement is what
+    /// counts (matching every other gate — checked locally on this device).
+    func maxCameras() -> Int {
+        hasFullAccess() ? 4 : 2
+    }
+
     // MARK: - Init
 
     private var updateListenerTask: Task<Void, Never>?

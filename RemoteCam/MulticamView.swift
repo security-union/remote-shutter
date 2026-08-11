@@ -5,6 +5,7 @@
 //  Copyright © 2026 Security Union LLC. All rights reserved.
 //
 
+import MPCCompat
 import SwiftUI
 
 /// The director screen in focus mode: the selected camera fills the viewfinder
@@ -20,6 +21,10 @@ struct MulticamView: View {
     let onShutter: () -> Void
     /// Toggle the shutter between photo and video mode.
     let onToggleMode: () -> Void
+    /// "Add camera" tapped — the host decides paywall vs. the sheet.
+    let onAddCamera: () -> Void
+    /// Invite a discovered camera into the rig.
+    let onInviteCamera: (MCPeerID) -> Void
 
     var body: some View {
         GeometryReader { geo in
@@ -42,6 +47,9 @@ struct MulticamView: View {
                 // (the strip) are hidden in grid.
                 shutterOverlay(dock: dock)
                 gridToggle
+            }
+            .sheet(isPresented: $viewModel.showingAddCamera) {
+                AddCameraSheet(peers: viewModel.availablePeers, onInvite: onInviteCamera)
             }
         }
     }
@@ -169,34 +177,50 @@ struct MulticamView: View {
     @ViewBuilder
     private func stripOverlay(dock: MonitorChromeDock) -> some View {
         let others = viewModel.otherLanes
-        if !others.isEmpty {
-            switch dock {
-            case .bottom:
-                VStack {
-                    Spacer()
-                    HStack(spacing: 8) {
-                        ForEach(others) { lane in
-                            CameraTileView(lane: lane, isThumbnail: true)
-                                .frame(width: 96, height: 128)
-                                .onTapGesture { onFocusLane(lane) }
-                        }
+        switch dock {
+        case .bottom:
+            VStack {
+                Spacer()
+                HStack(spacing: 8) {
+                    ForEach(others) { lane in
+                        CameraTileView(lane: lane, isThumbnail: true)
+                            .frame(width: 96, height: 128)
+                            .onTapGesture { onFocusLane(lane) }
                     }
-                    .padding(.bottom, 96)
+                    addCameraTile.frame(width: 96, height: 128)
                 }
-            case .leading, .trailing:
-                HStack {
-                    if dock == .trailing { Spacer() }
-                    VStack(spacing: 8) {
-                        ForEach(others) { lane in
-                            CameraTileView(lane: lane, isThumbnail: true)
-                                .frame(width: 128, height: 96)
-                                .onTapGesture { onFocusLane(lane) }
-                        }
-                    }
-                    .padding(dock == .leading ? .leading : .trailing, 12)
-                    if dock == .leading { Spacer() }
-                }
+                .padding(.bottom, 96)
             }
+        case .leading, .trailing:
+            HStack {
+                if dock == .trailing { Spacer() }
+                VStack(spacing: 8) {
+                    ForEach(others) { lane in
+                        CameraTileView(lane: lane, isThumbnail: true)
+                            .frame(width: 128, height: 96)
+                            .onTapGesture { onFocusLane(lane) }
+                    }
+                    addCameraTile.frame(width: 128, height: 96)
+                }
+                .padding(dock == .leading ? .leading : .trailing, 12)
+                if dock == .leading { Spacer() }
+            }
+        }
+    }
+
+    /// The "add camera" affordance at the end of the strip. The host decides
+    /// whether tapping opens the sheet or the paywall (at the tier cap).
+    private var addCameraTile: some View {
+        Button(action: onAddCamera) {
+            VStack(spacing: 6) {
+                Image(systemName: "plus.circle.fill").font(.title)
+                Text(NSLocalizedString("Add camera", comment: "add a camera to the multicam rig"))
+                    .font(.caption2)
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.white.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 }
@@ -265,5 +289,43 @@ struct CameraTileView: View {
         .overlay(
             RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0)
                 .stroke(lane.isFocused ? AppTheme.accent : .clear, lineWidth: 3))
+    }
+}
+
+/// Lists the cameras the director's browser has discovered but not yet added,
+/// so the user can invite them into the rig mid-session. Shown only below the
+/// tier cap (the host routes to the paywall at the cap).
+struct AddCameraSheet: View {
+    let peers: [MCPeerID]
+    let onInvite: (MCPeerID) -> Void
+
+    var body: some View {
+        NavigationView {
+            Group {
+                if peers.isEmpty {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text(NSLocalizedString("Searching for cameras…",
+                                               comment: "add-camera sheet, no peers yet"))
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    List(peers, id: \.self) { peer in
+                        Button { onInvite(peer) } label: {
+                            HStack {
+                                Image(systemName: "iphone.radiowaves.left.and.right")
+                                    .foregroundColor(AppTheme.accent)
+                                Text(peer.displayName)
+                                Spacer()
+                                Text(NSLocalizedString("Add", comment: "invite this camera"))
+                                    .foregroundColor(AppTheme.accent)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(NSLocalizedString("Add camera",
+                                               comment: "add a camera to the multicam rig"))
+        }
     }
 }

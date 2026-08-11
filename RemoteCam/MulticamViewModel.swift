@@ -58,6 +58,10 @@ final class MulticamViewModel: ObservableObject {
     @Published var mode: MonitorMode = .photo
     /// Focus (viewfinder + strip) vs grid (monitor wall) layout.
     @Published var displayMode: MulticamDisplayMode = .focus
+    /// Cameras discovered but not yet in the rig — the add-camera sheet's list.
+    @Published var availablePeers: [MCPeerID] = []
+    /// Whether the add-camera sheet is showing.
+    @Published var showingAddCamera: Bool = false
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }

@@ -6,6 +6,7 @@
 //
 
 import MPCCompat
+import StoreKit
 import SwiftUI
 import UIKit
 
@@ -52,6 +53,12 @@ public final class MulticamViewController: UIViewController {
             onToggleMode: { [weak self] in
                 guard let self, !self.viewModel.isRecording else { return }
                 self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
+            },
+            onAddCamera: { [weak self] in self?.handleAddCameraTapped() },
+            onInviteCamera: { [weak self] peer in
+                guard let self else { return }
+                self.viewModel.showingAddCamera = false
+                Task { await self.controller.inviteCamera(peer) }
             })
         hosting = embedSwiftUIView(multicamView)
 
@@ -73,6 +80,27 @@ public final class MulticamViewController: UIViewController {
     public override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
+    /// "Add camera" tapped: at the tier cap, route free users to the paywall
+    /// (the same Settings sheet every other gate uses); otherwise open the
+    /// discovered-cameras sheet.
+    private func handleAddCameraTapped() {
+        Task { @MainActor in
+            let count = await controller.cameraCount()
+            if count >= StoreManager.shared.maxCameras() {
+                showPaywall()
+            } else {
+                viewModel.showingAddCamera = true
+            }
+        }
+    }
+
+    /// Reuse the existing Settings/paywall sheet — no bespoke multicam paywall.
+    func showPaywall() {
+        let ctrl = UIHostingController(rootView: SettingsView())
+        ctrl.modalPresentationStyle = .pageSheet
+        present(ctrl, animated: true)
     }
 
     /// Route the shutter: a photo, or record start/stop, per the current mode.
@@ -130,6 +158,10 @@ extension MulticamViewController: MulticamDisplay {
     func applyShutterState(capturing: Bool, recording: Bool) {
         viewModel.isCapturing = capturing
         viewModel.isRecording = recording
+    }
+
+    func applyAvailablePeers(_ peers: [MCPeerID]) {
+        viewModel.availablePeers = peers
     }
 
     func receiveFrame(_ frame: RemoteCmd.OnFrame) {

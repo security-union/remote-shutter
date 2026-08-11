@@ -57,7 +57,12 @@ struct SettingsView: View {
         } header: {
             Text(NSLocalizedString("Pro — Unlock Everything", comment: ""))
         } footer: {
-            Text(NSLocalizedString("Pro unlocks every feature, including future ones.", comment: ""))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(NSLocalizedString("Pro unlocks every feature, including future ones.", comment: ""))
+                if FeatureFlags.ENABLE_MULTICAM {
+                    Text(NSLocalizedString("Direct up to 4 cameras at once", comment: "Pro multicam feature"))
+                }
+            }
         }
 
         // À la carte: individual features for a one-time purchase.
