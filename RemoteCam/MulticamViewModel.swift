@@ -25,6 +25,8 @@ final class CameraLane: ObservableObject, Identifiable {
 
     @Published var status: CameraLink.Status
     @Published var isFocused: Bool
+    /// How this camera answered the last synced capture — a brief tile badge.
+    @Published var captureOutcome: CaptureOutcome?
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -36,6 +38,7 @@ final class CameraLane: ObservableObject, Identifiable {
         self.displayName = info.displayName
         self.status = info.status
         self.isFocused = info.isFocused
+        self.captureOutcome = info.captureOutcome
     }
 }
 
@@ -44,6 +47,8 @@ final class CameraLane: ObservableObject, Identifiable {
 final class MulticamViewModel: ObservableObject {
     @Published private(set) var lanes: [CameraLane] = []
     @Published var interfaceOrientation: UIInterfaceOrientation = .portrait
+    /// A synced photo is in flight — drives the shutter's activity ring.
+    @Published var isCapturing: Bool = false
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }
@@ -63,6 +68,7 @@ final class MulticamViewModel: ObservableObject {
             if let lane = existing.removeValue(forKey: info.peerID) {
                 if lane.status != info.status { lane.status = info.status }
                 if lane.isFocused != info.isFocused { lane.isFocused = info.isFocused }
+                if lane.captureOutcome != info.captureOutcome { lane.captureOutcome = info.captureOutcome }
                 return lane
             }
             let lane = CameraLane(info: info)

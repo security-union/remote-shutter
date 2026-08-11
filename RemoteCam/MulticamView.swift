@@ -16,6 +16,8 @@ struct MulticamView: View {
 
     /// Tap a thumbnail to make that camera the focused one.
     let onFocusLane: (CameraLane) -> Void
+    /// The synced shutter — fires a photo on every ready camera at once.
+    let onCapture: () -> Void
 
     var body: some View {
         GeometryReader { geo in
@@ -30,7 +32,31 @@ struct MulticamView: View {
                 focusedViewfinder
 
                 stripOverlay(dock: dock)
+
+                shutterOverlay(dock: dock)
             }
+        }
+    }
+
+    /// The all-camera shutter, docked on the same edge the 1:1 monitor uses so
+    /// the two screens feel of a piece. Reuses the monitor's `ShutterButton`
+    /// (and its activity ring) for a consistent feel.
+    @ViewBuilder
+    private func shutterOverlay(dock: MonitorChromeDock) -> some View {
+        let shutter = ShutterButton(
+            uiState: .photoMode,
+            isRecording: false,
+            activity: viewModel.isCapturing ? .capturing : nil,
+            isEnabled: !viewModel.isCapturing && viewModel.focusedLane != nil,
+            action: onCapture)
+
+        switch dock {
+        case .bottom:
+            VStack { Spacer(); shutter.padding(.bottom, 24) }
+        case .leading:
+            HStack { shutter.padding(.leading, 24); Spacer() }
+        case .trailing:
+            HStack { Spacer(); shutter.padding(.trailing, 24) }
         }
     }
 
@@ -117,6 +143,20 @@ struct CameraTileView: View {
                         Text(NSLocalizedString("RECONNECTING", comment: "peer link dropped"))
                             .font(.caption2.weight(.semibold))
                             .foregroundColor(.white))
+            }
+
+            if let outcome = lane.captureOutcome {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Image(systemName: outcome == .captured
+                              ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .font(.body)
+                            .foregroundColor(outcome == .captured ? .green : .yellow)
+                            .padding(6)
+                    }
+                    Spacer()
+                }
             }
 
             VStack {

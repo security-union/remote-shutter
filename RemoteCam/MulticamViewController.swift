@@ -44,6 +44,10 @@ public final class MulticamViewController: UIViewController {
             onFocusLane: { [weak self] lane in
                 guard let self else { return }
                 Task { await self.controller.setFocusedPeer(lane.peerID) }
+            },
+            onCapture: { [weak self] in
+                guard let self else { return }
+                Task { await self.controller.capturePhoto() }
             })
         hosting = embedSwiftUIView(multicamView)
 
@@ -104,6 +108,10 @@ extension MulticamViewController: MulticamDisplay {
     func applyLanes(_ lanes: [MulticamLaneInfo]) {
         let created = viewModel.apply(lanes)
         for lane in created { wire(lane) }
+    }
+
+    func applyCaptureInFlight(_ inFlight: Bool) {
+        viewModel.isCapturing = inFlight
     }
 
     func receiveFrame(_ frame: RemoteCmd.OnFrame) {

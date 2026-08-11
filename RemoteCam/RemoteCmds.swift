@@ -220,6 +220,50 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Director → camera: fire the shutter at `fireAtCameraClockMillis`, a
+    /// wall-clock instant already translated into this camera's own
+    /// `SyncClock` domain (the director applied the per-camera offset), so all
+    /// cameras expose together. `anchorMillis` is the same instant in the
+    /// director's clock — identical across every camera in the shot, so it is
+    /// the alignment key each clip is stamped with. Only sent to peers that
+    /// advertised `supportsMulticam`.
+    public class ScheduledCapture: Message, @unchecked Sendable {
+        public let fireAtCameraClockMillis: UInt64
+        public let anchorMillis: UInt64
+        public let captureId: String
+        public let sessionId: String
+        public let cameraIndex: Int
+
+        public init(fireAtCameraClockMillis: UInt64,
+                    anchorMillis: UInt64,
+                    captureId: String,
+                    sessionId: String,
+                    cameraIndex: Int,
+                    sender: AnyObject? = nil) {
+            self.fireAtCameraClockMillis = fireAtCameraClockMillis
+            self.anchorMillis = anchorMillis
+            self.captureId = captureId
+            self.sessionId = sessionId
+            self.cameraIndex = cameraIndex
+            super.init(sender: sender)
+        }
+    }
+
+    /// Camera → director: the scheduled capture was accepted (or refused). Sent
+    /// immediately on receipt — before the shutter actually fires — so the
+    /// director can aggregate acks without waiting for N photos. `error` set =
+    /// the camera could not schedule it (wrong state, fire time long past).
+    public class ScheduledCaptureAck: Message, @unchecked Sendable {
+        public let captureId: String
+        public let error: Error?
+
+        public init(captureId: String, error: Error? = nil, sender: AnyObject? = nil) {
+            self.captureId = captureId
+            self.error = error
+            super.init(sender: sender)
+        }
+    }
+
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
         public let peerId: MCPeerID

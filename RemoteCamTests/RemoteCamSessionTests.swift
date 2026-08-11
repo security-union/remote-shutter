@@ -302,6 +302,47 @@ class SessionCoordinatorTests: XCTestCase {
             (pongs[0].msg as? RemoteCmd.ClockSyncPong)?.cameraClockMillis ?? 0, 0)
     }
 
+    // MARK: - Scheduled (multicam) capture, camera side
+
+    func testScheduledCaptureInThePastNacks() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        await harness.deliver(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: 1, // long past
+            anchorMillis: 1, captureId: "CAP-1", sessionId: "S", cameraIndex: 1))
+
+        let acks = sent(RemoteCmd.ScheduledCaptureAck.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledCaptureAck }
+        XCTAssertEqual(acks.count, 1)
+        XCTAssertEqual(acks[0].captureId, "CAP-1")
+        XCTAssertNotNil(acks[0].error, "a fire time in the past is refused")
+        XCTAssertTrue(camera.takePictureCalls.isEmpty, "no shutter on a nack")
+    }
+
+    func testValidScheduledCaptureAcksImmediatelyAndFires() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        // Fire ~now: acked immediately, then the shutter pulls a moment later.
+        await harness.deliver(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: SyncClock.nowMillis(), captureId: "CAP-2",
+            sessionId: "S", cameraIndex: 2))
+
+        let acks = sent(RemoteCmd.ScheduledCaptureAck.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledCaptureAck }
+        XCTAssertEqual(acks.map(\.captureId), ["CAP-2"])
+        XCTAssertNil(acks[0].error, "accepted")
+
+        // The fire is enqueued by an off-actor delay task; wait for it.
+        for _ in 0..<200 where camera.takePictureCalls.isEmpty {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(camera.takePictureCalls, [false],
+                       "the scheduled shutter fires, saving locally (not to the director)")
+    }
+
     func testMonitorPhotoModeUnbecomeMonitorPopsToConnected() async {
         await enterMonitor(.Photo)
         await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))

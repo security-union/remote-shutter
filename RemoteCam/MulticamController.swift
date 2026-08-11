@@ -13,10 +13,18 @@ import Stormo
 import UIKit
 
 /// The director's aggregate posture across all cameras. One shutter drives
-/// them all, so the capture states are aggregate, not per-camera. PR3 only
-/// needs `.monitoring`; the capture cases arrive with synced photo/video.
+/// them all, so the capture states are aggregate, not per-camera.
 enum MulticamState: Equatable {
     case monitoring(mode: MonitorMode)
+    /// A synced photo is in flight: `acksRemaining` cameras have yet to accept
+    /// or refuse `captureId`. Returns to `.monitoring` when it reaches zero.
+    case capturingPhoto(captureId: String, acksRemaining: Int)
+}
+
+/// How a camera answered the last synced capture, for the tile badge.
+enum CaptureOutcome: Equatable {
+    case captured
+    case failed
 }
 
 /// A UI-facing snapshot of one lane. Deliberately a value type carrying only
@@ -30,6 +38,8 @@ struct MulticamLaneInfo: Equatable {
     /// Clock-offset estimate in ms (nil until the first pong), for a future
     /// sync-quality indicator; unused by PR3's UI beyond diagnostics.
     let clockOffsetMillis: Int64?
+    /// How this camera answered the last synced capture, for the tile badge.
+    let captureOutcome: CaptureOutcome?
 }
 
 /// The main-actor bridge from the controller to the multicam screen — the
@@ -39,6 +49,8 @@ struct MulticamLaneInfo: Equatable {
 /// camera B never re-renders camera A.
 protocol MulticamDisplay: AnyObject {
     func applyLanes(_ lanes: [MulticamLaneInfo])
+    /// A synced photo is (or is no longer) in flight — drives the shutter ring.
+    func applyCaptureInFlight(_ inFlight: Bool)
     func receiveFrame(_ frame: RemoteCmd.OnFrame)
     func exitMulticam()
 }
@@ -109,6 +121,20 @@ public actor MulticamController {
     private var order: [MCPeerID] = []
     private var links: [MCPeerID: CameraLink] = [:]
     private var focusedPeer: MCPeerID?
+
+    /// One id per director session, part of every capture's filename group.
+    private let sessionID = UUID().uuidString
+    /// Cameras that have yet to answer the in-flight synced capture. Empty
+    /// unless `state` is `.capturingPhoto`.
+    private var capturingLanes: Set<MCPeerID> = []
+    private var currentCaptureID: String?
+
+    /// Lead time before a synced shutter fires — long enough to cover the
+    /// worst-case one-way latency plus a retransmit and scheduling slop, so
+    /// every camera has the command in hand before the instant arrives.
+    private let captureLeadMillis: UInt64 = 150
+    /// How long a camera has to answer before it is counted as failed.
+    private var captureAckTimeout: TimeInterval = 3
 
     private weak var display: MulticamDisplay?
 
@@ -234,6 +260,18 @@ public actor MulticamController {
                 sendTo(peer, RemoteCmd.ClockSyncPing(t0Millis: SyncClock.nowMillis()))
             }
 
+        case let ack as RemoteCmd.ScheduledCaptureAck:
+            recordCaptureAck(from: peer, outcome: ack.error == nil ? .captured : .failed)
+
+        case is RemoteCmd.TakePicAck:
+            // The fallback (plain TakePic) path's positive ack.
+            recordCaptureAck(from: peer, outcome: .captured)
+
+        case let resp as RemoteCmd.TakePicResp:
+            // Fallback failure signal; a success here is a duplicate of the ack
+            // and is ignored (the lane is already resolved).
+            if resp.error != nil { recordCaptureAck(from: peer, outcome: .failed) }
+
         default:
             // Per-camera command responses (zoom/lens/flash/torch acks) update
             // only the focused lane's controls, wired to the UI in a later PR;
@@ -331,6 +369,111 @@ public actor MulticamController {
         sendTo(peer, msg)
     }
 
+    // MARK: - Synced photo capture (all cameras)
+
+    /// Test seam.
+    func setCaptureAckTimeout(_ t: TimeInterval) { captureAckTimeout = t }
+    func captureStateForTesting() -> (id: String, remaining: Int)? {
+        if case .capturingPhoto(let id, let remaining) = state { return (id, remaining) }
+        return nil
+    }
+    func captureOutcomeForTesting(_ peer: MCPeerID) -> CaptureOutcome? { links[peer]?.captureOutcome }
+
+    /// Test seam: put a lane in the state a real handshake would — linked, with
+    /// known multicam capability and (optionally) a known clock offset — so
+    /// capture behavior can be asserted deterministically.
+    func seedLaneForTesting(_ peer: MCPeerID, supportsMulticam: Bool, offsetMillis: Int64?) {
+        guard let link = links[peer] else { return }
+        link.status = .linked
+        link.capabilities = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back,
+            currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: supportsMulticam, error: nil)
+        if let offsetMillis {
+            // t0 == t3 == 0 → rtt 0, midpoint 0, so offset == cameraClock.
+            link.clockEstimator.recordExchange(
+                t0Millis: 0, cameraClockMillis: UInt64(bitPattern: offsetMillis), t3Millis: 0)
+        }
+    }
+
+    /// Fire a synced photo on every ready multicam camera. When each camera's
+    /// clock offset is known, the shutter is scheduled at a shared instant
+    /// (`ScheduledCapture`) so the exposures line up sub-frame; if any offset
+    /// is still missing it falls back to a plain fan-out (`TakePic`) — the same
+    /// shot id groups both paths. No-op if nothing is ready or a capture is
+    /// already in flight.
+    func capturePhoto() {
+        guard case .monitoring = state else { return }
+        let ready = order.compactMap { links[$0] }
+            .filter { $0.status == .linked && $0.supportsMulticam }
+        guard !ready.isEmpty else { return }
+
+        let captureID = UUID().uuidString
+        capturingLanes = Set(ready.map(\.peerID))
+        currentCaptureID = captureID
+        for link in ready { link.captureOutcome = nil }
+
+        let everyOffsetKnown = ready.allSatisfy { $0.latestOffset != nil }
+        if everyOffsetKnown {
+            let fireAt = SyncClock.nowMillis() + captureLeadMillis
+            for (index, link) in ready.enumerated() {
+                let offset = link.latestOffset?.offsetMillis ?? 0
+                let fireAtCameraClock = UInt64(Int64(fireAt) + offset)
+                sendTo(link.peerID, RemoteCmd.ScheduledCapture(
+                    fireAtCameraClockMillis: fireAtCameraClock,
+                    anchorMillis: fireAt,
+                    captureId: captureID,
+                    sessionId: sessionID,
+                    cameraIndex: index + 1))
+            }
+        } else {
+            // Fallback: not every clock is measured yet, so we can't promise a
+            // sub-frame shutter — take the shot immediately on each camera.
+            for link in ready {
+                sendTo(link.peerID, RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
+            }
+        }
+
+        state = .capturingPhoto(captureId: captureID, acksRemaining: capturingLanes.count)
+        publishLanes()
+        armCaptureTimeout(captureID)
+    }
+
+    /// A camera answered the in-flight capture (accepted or refused). Counts it
+    /// once; later duplicate acks (e.g. a scheduled camera also sends TakePic
+    /// acks after it fires) are ignored.
+    private func recordCaptureAck(from peer: MCPeerID, outcome: CaptureOutcome) {
+        guard case .capturingPhoto(let captureID, _) = state,
+              capturingLanes.contains(peer) else { return }
+        links[peer]?.captureOutcome = outcome
+        capturingLanes.remove(peer)
+        let remaining = capturingLanes.count
+        state = remaining == 0
+            ? .monitoring(mode: .photo)
+            : .capturingPhoto(captureId: captureID, acksRemaining: remaining)
+        publishLanes()
+    }
+
+    private func armCaptureTimeout(_ captureID: String) {
+        let timeout = captureAckTimeout
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            guard let self else { return }
+            await self.expireCaptureAcks(captureID)
+        }
+    }
+
+    /// Any camera that never answered by the deadline is counted as failed, so
+    /// the aggregate always resolves back to monitoring.
+    private func expireCaptureAcks(_ captureID: String) {
+        guard case .capturingPhoto(let inFlight, _) = state, inFlight == captureID else { return }
+        for peer in capturingLanes { links[peer]?.captureOutcome = .failed }
+        capturingLanes.removeAll()
+        currentCaptureID = nil
+        state = .monitoring(mode: .photo)
+        publishLanes()
+    }
+
     /// A lane's stall watchdog fired — re-request a frame to unstick just that
     /// camera's pump (the others are unaffected).
     func nudgeFrame(for peer: MCPeerID) {
@@ -384,15 +527,19 @@ public actor MulticamController {
                 displayName: link.displayName,
                 status: link.status,
                 isFocused: peer == focusedPeer,
-                clockOffsetMillis: link.latestOffset?.offsetMillis)
+                clockOffsetMillis: link.latestOffset?.offsetMillis,
+                captureOutcome: link.captureOutcome)
         }
     }
 
     private func publishLanes() {
         let snapshot = laneSnapshot()
+        let inFlight: Bool
+        if case .capturingPhoto = state { inFlight = true } else { inFlight = false }
         let display = display
         OperationQueue.main.addOperation {
             display?.applyLanes(snapshot)
+            display?.applyCaptureInFlight(inFlight)
         }
     }
 

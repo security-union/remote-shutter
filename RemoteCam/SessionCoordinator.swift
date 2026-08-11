@@ -126,6 +126,16 @@ final class DeferredPopAndScan: Message, @unchecked Sendable {
 /// Incompatibility detected by the transport (routed through the inbox — the
 /// old code mutated state directly on the delegate thread).
 final class IncompatibilityDetected: Message, @unchecked Sendable {}
+/// Camera side: a scheduled multicam capture's fire time has arrived. Enqueued
+/// by the off-actor delay task so the shutter is pulled by the message pump,
+/// in order with every other state transition — never racing it.
+final class FireScheduledCapture: Message, @unchecked Sendable {
+    let metadata: CaptureSyncMetadata
+    init(metadata: CaptureSyncMetadata) {
+        self.metadata = metadata
+        super.init(sender: nil)
+    }
+}
 /// Retry tick for the capabilities ladder.
 final class RetryCapabilities: Message, @unchecked Sendable {
     let attempt: Int
@@ -221,6 +231,18 @@ public actor SessionCoordinator {
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
+
+    /// Camera side: the sync metadata for a scheduled multicam capture that is
+    /// about to fire. Set when `FireScheduledCapture` triggers the shutter and
+    /// consumed by the next `OnPicture`, so exactly that photo is stamped and
+    /// saved under its `RS_<sess>_<cap>_cam<k>` filename. Nil for ordinary
+    /// single-camera captures, which save exactly as before.
+    private var pendingSyncMetadata: CaptureSyncMetadata?
+
+    /// How far in the past a scheduled fire time may be before the camera
+    /// refuses it (clock error and one retransmit can nudge it slightly late;
+    /// beyond this it is stale and would fire out of sync).
+    private let scheduledCaptureMaxLatenessMillis: Int64 = 1000
 
     /// Multicam director "collecting" mode. Off by default and only ever set
     /// by the scanner when `ENABLE_MULTICAM` and the monitor role, so every
@@ -971,6 +993,22 @@ public actor SessionCoordinator {
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
             await transition(to: .cameraTakingPic(sendMediaToPeer: pic.sendMediaToPeer, generation: generation))
 
+        case let scheduled as RemoteCmd.ScheduledCapture:
+            await handleScheduledCapture(scheduled)
+
+        case let fire as FireScheduledCapture:
+            // The fire instant arrived (enqueued by the off-actor delay task).
+            // Pull the shutter through the normal photo path, saving locally
+            // only — the director does not collect stills in v1 — but stamp
+            // this photo with its sync metadata on the way to Photos.
+            pendingSyncMetadata = fire.metadata
+            ctrl.currentCameraMode = .Photo
+            ctrl.updateCameraStatus()
+            ctrl.takePicture(false)
+            let generation = scheduleTimeout(.cameraTakingPic)
+            await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
+            await transition(to: .cameraTakingPic(sendMediaToPeer: false, generation: generation))
+
         case is RemoteCmd.ToggleCamera:
             do {
                 _ = try await ctrl.toggleCamera()
@@ -1173,6 +1211,41 @@ public actor SessionCoordinator {
         sendMessage(RemoteCmd.RequestKeyframe(sender: nil), mode: .reliable)
     }
 
+    /// Camera side of a synced multicam shot. Acks (or nacks) immediately so
+    /// the director can aggregate without waiting for the photo, then schedules
+    /// the shutter for the fire instant. The delay runs off the actor and only
+    /// enqueues `FireScheduledCapture`, so the capture is pulled by the message
+    /// pump in order — never racing a state transition.
+    private func handleScheduledCapture(_ scheduled: RemoteCmd.ScheduledCapture) async {
+        let now = SyncClock.nowMillis()
+        let lateness = Int64(now) - Int64(scheduled.fireAtCameraClockMillis)
+        guard lateness <= scheduledCaptureMaxLatenessMillis else {
+            await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(
+                captureId: scheduled.captureId,
+                error: NSError(domain: "Scheduled capture fire time already passed",
+                               code: 0, userInfo: nil)))
+            return
+        }
+        await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(captureId: scheduled.captureId))
+
+        let metadata = CaptureSyncMetadata(
+            sessionID: scheduled.sessionId,
+            captureID: scheduled.captureId,
+            cameraIndex: scheduled.cameraIndex,
+            anchorMillis: scheduled.anchorMillis,
+            // The camera does not compute its own clock offset — the director
+            // did, when it translated the fire time into this clock. The
+            // shared `anchorMillis` is the alignment key; these are diagnostics.
+            clockOffsetMillis: 0,
+            roundTripMillis: 0)
+
+        let delayMillis = max(0, -lateness)
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
+            self?.tell(FireScheduledCapture(metadata: metadata))
+        }
+    }
+
     private func inCameraTakingPic(_ msg: Message, sendMediaToPeer: Bool, generation: Int) async {
         switch msg {
         case is RemoteCmd.RequestKeyframe:
@@ -1183,6 +1256,7 @@ public actor SessionCoordinator {
 
         case let timeout as UICmd.StateTimeout:
             guard timeout.stateName == .cameraTakingPic && timeout.generation == generation else { break }
+            pendingSyncMetadata = nil
             await dismissCameraAlert()
             let sent = sendMessage(RemoteCmd.TakePicResp(
                 sender: nil,
@@ -1195,8 +1269,16 @@ public actor SessionCoordinator {
 
         case let picture as UICmd.OnPicture:
             if let pic = picture.pic {
-                photoLibrarySaver(pic)
+                // A scheduled multicam capture stamps its sync metadata and
+                // saves under the shared RS_<sess>_<cap>_cam<k> name; an
+                // ordinary capture saves exactly as before.
+                if let metadata = pendingSyncMetadata {
+                    saveSyncedPictureToLibrary(pic, metadata: metadata)
+                } else {
+                    photoLibrarySaver(pic)
+                }
             }
+            pendingSyncMetadata = nil
             await dismissCameraAlert()
             guard sendMessage(RemoteCmd.TakePicAck(sender: nil)) else {
                 await popToScanning()
@@ -1498,6 +1580,11 @@ public actor SessionCoordinator {
 
         case is RemoteCmd.TakePic:
             await sendOrGoToScanning(RemoteCmd.TakePicResp(sender: nil, error: unableToProcessError(msg)))
+        case let scheduled as RemoteCmd.ScheduledCapture:
+            // Not in a state that can take a picture — nack so the director's
+            // ack aggregation completes instead of timing out.
+            await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(
+                captureId: scheduled.captureId, error: unableToProcessError(msg)))
         case is RemoteCmd.ToggleCamera:
             await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.SelectCameraDevice:
@@ -2433,6 +2520,36 @@ public actor SessionCoordinator {
                 } else {
                     print("Failed to save photo!")
                 }
+            }
+        }
+    }
+
+    /// Save a synced multicam still: the image is stamped with the shot's sync
+    /// fields (EXIF) and lands under the shared `RS_<sess>_<cap>_cam<k>` name,
+    /// so any editor can group and align the angles. Full-res stays on this
+    /// camera — the director does not collect stills in v1.
+    private nonisolated func saveSyncedPictureToLibrary(_ data: Data,
+                                                        metadata: CaptureSyncMetadata) {
+        let stamped = metadata.stamped(data)
+        // HEIC magic: bytes 4..12 are "ftyp" then a heic/heix/mif1 brand.
+        let isHEIC = stamped.count > 12
+            && stamped[4] == 0x66 && stamped[5] == 0x74
+            && stamped[6] == 0x79 && stamped[7] == 0x70
+        PHPhotoLibrary.requestAuthorization { status in
+            guard status == .authorized else {
+                DispatchQueue.main.async {
+                    showPhotosAccessDeniedModal(for: .photo)
+                }
+                return
+            }
+            PHPhotoLibrary.shared().performChanges({
+                let options = PHAssetResourceCreationOptions()
+                options.originalFilename = metadata.photoFilename(isHEIC: isHEIC)
+                PHAssetCreationRequest.forAsset()
+                    .addResource(with: .photo, data: stamped, options: options)
+            }) { (success: Bool, _: Error?) in
+                print(success ? "Saved synced photo \(metadata.filenamePrefix)"
+                              : "Failed to save synced photo!")
             }
         }
     }

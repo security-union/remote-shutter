@@ -17,7 +17,8 @@ final class MulticamViewModelTests: XCTestCase {
     private func info(_ peer: MCPeerID, status: CameraLink.Status = .linked,
                       focused: Bool = false) -> MulticamLaneInfo {
         MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
-                         status: status, isFocused: focused, clockOffsetMillis: nil)
+                         status: status, isFocused: focused, clockOffsetMillis: nil,
+                         captureOutcome: nil)
     }
 
     func testApplyAddsLanesAndReportsCreated() {

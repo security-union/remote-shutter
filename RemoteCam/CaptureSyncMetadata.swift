@@ -8,6 +8,8 @@
 
 import AVFoundation
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 /// Alignment metadata attached to every clip and photo captured in a multicam
 /// director session. Each camera saves full-res media locally; these fields
@@ -72,6 +74,51 @@ struct CaptureSyncMetadata: Codable, Equatable {
         guard let data = string.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(CaptureSyncMetadata.self, from: data)
     }
+
+    /// Re-encode `imageData` with this shot's sync fields embedded in EXIF, so
+    /// the alignment travels inside the photo itself (survives export/AirDrop):
+    /// the JSON in `UserComment`, and the anchor instant in
+    /// `DateTimeOriginal`/`SubSecTimeOriginal`. Format (JPEG/HEIC) is preserved.
+    /// Returns the original data unchanged if re-encoding isn't possible, so a
+    /// stamping failure never costs the user the photo.
+    func stamped(_ imageData: Data) -> Data {
+        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+              let type = CGImageSourceGetType(source) else { return imageData }
+
+        var properties = (CGImageSourceCopyPropertiesAtIndex(source, 0, nil)
+            as? [CFString: Any]) ?? [:]
+        var exif = (properties[kCGImagePropertyExifDictionary] as? [CFString: Any]) ?? [:]
+
+        if let json = jsonString() {
+            exif[kCGImagePropertyExifUserComment] = json
+        }
+        let anchorSeconds = Double(anchorMillis) / 1000.0
+        let date = Date(timeIntervalSince1970: anchorSeconds)
+        exif[kCGImagePropertyExifDateTimeOriginal] = Self.exifDateFormatter.string(from: date)
+        exif[kCGImagePropertyExifSubsecTimeOriginal] = String(format: "%03d", anchorMillis % 1000)
+        properties[kCGImagePropertyExifDictionary] = exif
+
+        let output = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(
+            output, type, 1, nil) else { return imageData }
+        CGImageDestinationAddImageFromSource(dest, source, 0, properties as CFDictionary)
+        guard CGImageDestinationFinalize(dest) else { return imageData }
+        return output as Data
+    }
+
+    /// A Photos `originalFilename` for this shot, e.g.
+    /// `RS_<sess>_<cap>_cam2.heic`. Groups a capture's files across cameras.
+    func photoFilename(isHEIC: Bool) -> String {
+        "\(filenamePrefix).\(isHEIC ? "heic" : "jpg")"
+    }
+
+    /// EXIF wants `yyyy:MM:dd HH:mm:ss` in the local zone.
+    private static let exifDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
 
     private static func shortID(_ uuidString: String) -> String {
         String(uuidString.prefix(8)).lowercased()

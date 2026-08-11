@@ -49,6 +49,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
         case let m as RemoteCmd.ClockSyncPing: return m.toFlatBuffer()
         case let m as RemoteCmd.ClockSyncPong: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledCapture: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledCaptureAck: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
@@ -1195,6 +1197,32 @@ extension RemoteCmdSerializationTests {
             echoT0Millis: 987_654_321_012, cameraClockMillis: 123_456_789_345))
         XCTAssertEqual(result.echoT0Millis, 987_654_321_012)
         XCTAssertEqual(result.cameraClockMillis, 123_456_789_345)
+    }
+
+    func testScheduledCapture_roundTrip() {
+        let result = roundTrip(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: 1_754_800_000_123,
+            anchorMillis: 1_754_800_000_000,
+            captureId: "CAP-123",
+            sessionId: "SESS-9",
+            cameraIndex: 3))
+        XCTAssertEqual(result.fireAtCameraClockMillis, 1_754_800_000_123)
+        XCTAssertEqual(result.anchorMillis, 1_754_800_000_000)
+        XCTAssertEqual(result.captureId, "CAP-123")
+        XCTAssertEqual(result.sessionId, "SESS-9")
+        XCTAssertEqual(result.cameraIndex, 3)
+    }
+
+    func testScheduledCaptureAck_roundTrip() {
+        let ok = roundTrip(RemoteCmd.ScheduledCaptureAck(captureId: "CAP-42"))
+        XCTAssertEqual(ok.captureId, "CAP-42")
+        XCTAssertNil(ok.error)
+
+        let nack = roundTrip(RemoteCmd.ScheduledCaptureAck(
+            captureId: "CAP-43",
+            error: NSError(domain: "too late", code: 0)))
+        XCTAssertEqual(nack.captureId, "CAP-43")
+        XCTAssertNotNil(nack.error)
     }
 
     /// The multicam capability survives the wire, and a peer that predates it
