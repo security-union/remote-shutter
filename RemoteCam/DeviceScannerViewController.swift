@@ -109,6 +109,11 @@ public class DeviceScannerViewController: UIViewController {
         remoteCamSession.setFrameSender(frameSender)
         self.remoteCamSession ! SetScannerLobby(lobby: self)
         scannerViewModel.role = role
+        // Multicam director collecting: only the monitor role, only behind the
+        // flag. Off, the coordinator's scanning path is byte-identical.
+        if FeatureFlags.ENABLE_MULTICAM && role == .monitor {
+            remoteCamSession ! UICmd.SetMulticamCollecting(on: true)
+        }
         // The reconnect overlay's only action, routed like every other UI
         // command; the overlay itself is pure state (PeerLinkStatus).
         PeerLinkStatus.shared.onCancel = { [weak self] in
@@ -188,7 +193,10 @@ public class DeviceScannerViewController: UIViewController {
             },
             onHelp: { [weak self] in
                 self?.showHelpModal()
-            }
+            },
+            onStartMulticam: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
+                ? { [weak self] in self?.startMulticamSession() }
+                : nil
         )
 
         swiftUIHostingController = embedSwiftUIView(scannerView)
@@ -331,6 +339,29 @@ public class DeviceScannerViewController: UIViewController {
         }
     }
 
+    /// Multicam "Start (N)": one camera runs the classic 1:1 monitor
+    /// (unchanged); two or more hands the live transport to a
+    /// `MulticamController` and pushes the director screen.
+    private func startMulticamSession() {
+        Task { @MainActor in
+            // Two or more cameras: hand the live transport to a director.
+            if let handoff = await remoteCamSession.detachTransportForMulticam() {
+                let controller = MulticamController()
+                await controller.install(transport: handoff.transport,
+                                         initialPeers: handoff.peers,
+                                         mode: .photo)
+                let directorVC = MulticamViewController(controller: controller)
+                navigationController?.pushViewController(directorVC, animated: true)
+                return
+            }
+            // Exactly one camera: promote it to a normal session and run the
+            // classic 1:1 monitor, unchanged.
+            if await remoteCamSession.promoteSingleCollectedToConnected() {
+                goToRole()
+            }
+        }
+    }
+
     func goToAppSettings() {
         #if targetEnvironment(macCatalyst)
         // Local-network permission lives in System Settings on the Mac.
@@ -375,6 +406,11 @@ extension DeviceScannerViewController: ScannerLobby {
     /// Pop navigation back to this screen when scanning restarts.
     func returnToLobby() {
         navigationController?.popToViewController(self, animated: true)
+    }
+
+    /// Multicam collecting: surface the running count so "Start (N)" appears.
+    func didCollectMulticamCameras(_ peers: [MCPeerID]) {
+        scannerViewModel.multicamCollectedCount = peers.count
     }
 
     func presentScanningError() {

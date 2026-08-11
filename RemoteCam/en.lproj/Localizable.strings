@@ -359,3 +359,6 @@
 "IncompatibleBothTitle" = "App is out of date";
 "IncompatibleBothBody" = "Please update Remote Shutter on both devices.";
 "IncompatibleUpdateButton" = "Update";
+
+// Multicam director (behind ENABLE_MULTICAM)
+"Start (%d)" = "Start (%d)";

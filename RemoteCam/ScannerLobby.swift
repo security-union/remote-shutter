@@ -26,11 +26,20 @@ protocol ScannerLobby: AnyObject, Sendable {
     /// Navigate to the role picker after a peer connects.
     func goToRole()
 
+    /// Multicam collecting: the set of cameras connected so far grew. Lets the
+    /// scanner show a "Start (N)" affordance. Default no-op — only the
+    /// production scanner implements it, and only when `ENABLE_MULTICAM`.
+    func didCollectMulticamCameras(_ peers: [MCPeerID])
+
     /// Pop navigation back to the scanner screen (called when scanning restarts).
     func returnToLobby()
 
     /// Surface a "can't scan for nearby devices" failure to the user.
     func presentScanningError()
+}
+
+extension ScannerLobby {
+    func didCollectMulticamCameras(_ peers: [MCPeerID]) {}
 }
 
 /// Binds a `ScannerLobby` to `RemoteCamSession` — the protocol-typed

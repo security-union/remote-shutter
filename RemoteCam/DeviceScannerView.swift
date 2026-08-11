@@ -14,6 +14,9 @@ struct DeviceScannerView: View {
     let onShareApp: () -> Void
     let onOpenSettings: () -> Void
     let onHelp: () -> Void
+    /// Multicam only: begin a director session with the cameras collected so
+    /// far. Nil in the single-camera build (flag off), where it never shows.
+    var onStartMulticam: (() -> Void)? = nil
 
     /// Peer-link state; the reconnect overlay is a function of it.
     @ObservedObject var peerLink: PeerLinkStatus = .shared
@@ -34,7 +37,31 @@ struct DeviceScannerView: View {
                 connectingOverlay
             }
 
+            if viewModel.multicamCollectedCount >= 1, let onStartMulticam {
+                startMulticamButton(onStartMulticam)
+            }
+
             PeerLinkOverlay(status: peerLink)
+        }
+    }
+
+    /// Floating "Start (N)" for the multicam collecting flow. One camera starts
+    /// the classic monitor; two or more starts the director grid.
+    private func startMulticamButton(_ action: @escaping () -> Void) -> some View {
+        VStack {
+            Spacer()
+            Button(action: action) {
+                Text(String(format: NSLocalizedString("Start (%d)", comment: "start multicam with N cameras"),
+                            viewModel.multicamCollectedCount))
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppTheme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
         }
     }
 

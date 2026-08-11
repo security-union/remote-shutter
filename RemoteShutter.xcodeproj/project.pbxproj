@@ -203,6 +203,13 @@
 		CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0120000000000002 /* MonitorChrome.swift */; };
 		CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */; };
 		CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */; };
+		CAFEBABE0140000000000001 /* CameraLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0140000000000002 /* CameraLink.swift */; };
+		CAFEBABE0141000000000001 /* MulticamController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0141000000000002 /* MulticamController.swift */; };
+		CAFEBABE0142000000000001 /* MulticamViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0142000000000002 /* MulticamViewModel.swift */; };
+		CAFEBABE0143000000000001 /* MulticamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0143000000000002 /* MulticamView.swift */; };
+		CAFEBABE0144000000000001 /* MulticamViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0144000000000002 /* MulticamViewController.swift */; };
+		CAFEBABE0145000000000002 /* MulticamControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0145000000000001 /* MulticamControllerTests.swift */; };
+		CAFEBABE0146000000000002 /* MulticamViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0146000000000001 /* MulticamViewModelTests.swift */; };
 		CAFEBABE0133000000000002 /* ClockOffsetEstimatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */; };
 		CAFEBABE0131000000000002 /* CaptureSyncMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */; };
 		FEEDFACE0000000000000001 /* StormoLoopbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEDFACE0000000000000002 /* StormoLoopbackTests.swift */; };
@@ -448,6 +455,13 @@
 		CAFEBABE0120000000000002 /* MonitorChrome.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorChrome.swift; sourceTree = "<group>"; };
 		CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaptureSyncMetadata.swift; sourceTree = "<group>"; };
 		CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClockOffsetEstimator.swift; sourceTree = "<group>"; };
+		CAFEBABE0140000000000002 /* CameraLink.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraLink.swift; sourceTree = "<group>"; };
+		CAFEBABE0141000000000002 /* MulticamController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MulticamController.swift; sourceTree = "<group>"; };
+		CAFEBABE0142000000000002 /* MulticamViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MulticamViewModel.swift; sourceTree = "<group>"; };
+		CAFEBABE0143000000000002 /* MulticamView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MulticamView.swift; sourceTree = "<group>"; };
+		CAFEBABE0144000000000002 /* MulticamViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MulticamViewController.swift; sourceTree = "<group>"; };
+		CAFEBABE0145000000000001 /* MulticamControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MulticamControllerTests.swift; sourceTree = "<group>"; };
+		CAFEBABE0146000000000001 /* MulticamViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MulticamViewModelTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockOffsetEstimatorTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSyncMetadataTests.swift; sourceTree = "<group>"; };
 		FCB0F6BA2086BF9BB4242D66 /* Pods_RemoteShutterWatch.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RemoteShutterWatch.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -601,6 +615,8 @@
 				CAFEBABE0121000000000001 /* MonitorChromeTests.swift */,
 				CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */,
 				CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */,
+				CAFEBABE0145000000000001 /* MulticamControllerTests.swift */,
+				CAFEBABE0146000000000001 /* MulticamViewModelTests.swift */,
 				CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */,
 				CAFEBABE0003000000000001 /* WatchSerializationTests.swift */,
 				CAFEBABE0006000000000001 /* WatchPreviewStreamerTests.swift */,
@@ -695,6 +711,11 @@
 				CAFEBABE0120000000000002 /* MonitorChrome.swift */,
 				CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */,
 				CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */,
+				CAFEBABE0140000000000002 /* CameraLink.swift */,
+				CAFEBABE0141000000000002 /* MulticamController.swift */,
+				CAFEBABE0142000000000002 /* MulticamViewModel.swift */,
+				CAFEBABE0143000000000002 /* MulticamView.swift */,
+				CAFEBABE0144000000000002 /* MulticamViewController.swift */,
 				060B1E141BE7079800077BCC /* Helpers */,
 				06E965202535199400E5A8B3 /* MediaProcessors.swift */,
 				06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */,
@@ -1189,6 +1210,11 @@
 				CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */,
 				CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */,
 				CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */,
+				CAFEBABE0140000000000001 /* CameraLink.swift in Sources */,
+				CAFEBABE0141000000000001 /* MulticamController.swift in Sources */,
+				CAFEBABE0142000000000001 /* MulticamViewModel.swift in Sources */,
+				CAFEBABE0143000000000001 /* MulticamView.swift in Sources */,
+				CAFEBABE0144000000000001 /* MulticamViewController.swift in Sources */,
 				06BB79B82E374D410094E085 /* FeatureFlags.swift in Sources */,
 				0692844F1BE5C0E600AF4678 /* MultipeerMessages.swift in Sources */,
 				069284531BE5C0E600AF4678 /* RemoteCamStateNames.swift in Sources */,
@@ -1263,6 +1289,8 @@
 				CAFEBABE0121000000000002 /* MonitorChromeTests.swift in Sources */,
 				CAFEBABE0131000000000002 /* CaptureSyncMetadataTests.swift in Sources */,
 				CAFEBABE0133000000000002 /* ClockOffsetEstimatorTests.swift in Sources */,
+				CAFEBABE0145000000000002 /* MulticamControllerTests.swift in Sources */,
+				CAFEBABE0146000000000002 /* MulticamViewModelTests.swift in Sources */,
 				CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */,
 				CAFEBABE0003000000000002 /* WatchSerializationTests.swift in Sources */,
 				CAFEBABE0006000000000002 /* WatchPreviewStreamerTests.swift in Sources */,

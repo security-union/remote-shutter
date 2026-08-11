@@ -53,6 +53,9 @@ final class DeviceScannerViewModel: ObservableObject {
     @Published var hasScanningError: Bool = false
     @Published var isConnecting: Bool = false
     @Published var hasConnectionError: Bool = false
+    /// Multicam director collecting: how many cameras are connected so far.
+    /// Drives the "Start (N)" affordance; stays 0 in the single-camera build.
+    @Published var multicamCollectedCount: Int = 0
 
     /// When the current scan began. Not @Published: the view samples it on a
     /// TimelineView clock, so publishing would only cause redundant redraws.

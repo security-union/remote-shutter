@@ -222,6 +222,19 @@ public actor SessionCoordinator {
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
 
+    /// Multicam director "collecting" mode. Off by default and only ever set
+    /// by the scanner when `ENABLE_MULTICAM` and the monitor role, so every
+    /// non-multicam path is byte-identical. While set, a peer connecting in
+    /// `.scanning` is accumulated (the machine stays scanning, keeps browsing)
+    /// instead of transitioning to `.connected` and auto-advancing to the 1:1
+    /// monitor; the scanner reads `multicamCollectedPeers` on "Start".
+    private var multicamCollecting = false
+    private var multicamCollectedPeers: [MCPeerID] = []
+
+    /// Test support.
+    func multicamCollectingForTesting() -> Bool { multicamCollecting }
+    func multicamCollectedPeersForTesting() -> [MCPeerID] { multicamCollectedPeers }
+
     /// Test support.
     func monitorReceivedVP9FrameForTesting() -> Bool { monitorReceivedVP9Frame }
 
@@ -294,6 +307,45 @@ public actor SessionCoordinator {
     nonisolated func setFrameSender(_ sender: FrameSender?) { frameSenderShared.value = sender }
 
     var connectedPeers: [MCPeerID] { multipeerService?.connectedPeers ?? [] }
+
+    /// How many cameras the collecting scanner has connected. The scanner
+    /// reads this on "Start" to choose the single-camera vs director path.
+    func multicamConnectedCount() -> Int { multicamCollecting ? connectedPeers.count : 0 }
+
+    /// Hand the live transport (and the ≥2 cameras it is connected to) to a
+    /// `MulticamController`. Detaches this coordinator from the transport —
+    /// nils its references without stopping the session — so the multicam
+    /// controller becomes the sole delegate and this coordinator's `stop()`
+    /// (on scanner teardown) cannot kill a session the director is using.
+    /// Returns nil unless collecting with two or more cameras (the single
+    /// camera case stays on the classic monitor — see below).
+    func detachTransportForMulticam() -> (transport: any MultipeerServiceProtocol, peers: [MCPeerID])? {
+        guard multicamCollecting, let transport = multipeerService else { return nil }
+        let peers = transport.connectedPeers
+        guard peers.count >= 2 else { return nil }
+        multipeerService = nil
+        transportShared.value = nil
+        multicamCollecting = false
+        multicamCollectedPeers = []
+        return (transport, peers)
+    }
+
+    /// The single-camera exit from collecting: promote the one connected peer
+    /// to a normal `.connected` session so the classic `MonitorViewController`
+    /// path runs exactly as it does without the flag. Returns false (leaving
+    /// the scanner as-is) unless collecting with exactly one camera.
+    func promoteSingleCollectedToConnected() async -> Bool {
+        guard multicamCollecting, connectedPeers.count == 1,
+              let peer = connectedPeers.first, let liveLobby = lobby?.value else { return false }
+        multicamCollecting = false
+        multicamCollectedPeers = []
+        link = .linked(peer)
+        OperationQueue.main.addOperation {
+            liveLobby.scannerViewModel.connectedToPeer()
+        }
+        await transition(to: .connected)
+        return true
+    }
 
     private func unableToProcessError(_ msg: Message) async -> NSError {
         let deviceName = await MainActor.run { UIDevice.current.name }
@@ -691,6 +743,22 @@ public actor SessionCoordinator {
             break
 
         case let connected as OnConnectToDevice:
+            if multicamCollecting {
+                // Accumulate and stay scanning: the director wants several
+                // cameras, so keep browsing/inviting and let the scanner show a
+                // growing set. The transport holds every connection; the handoff
+                // reads them on "Start". No transition to `.connected` (which
+                // would stop browsing and auto-advance).
+                if !multicamCollectedPeers.contains(connected.peer) {
+                    multicamCollectedPeers.append(connected.peer)
+                }
+                link = .none // free the invite slot so the next camera can dial
+                let peers = multicamCollectedPeers
+                OperationQueue.main.addOperation {
+                    liveLobby.didCollectMulticamCameras(peers)
+                }
+                break
+            }
             link = .linked(connected.peer)
             OperationQueue.main.addOperation {
                 liveLobby.scannerViewModel.connectedToPeer()
@@ -1401,6 +1469,9 @@ public actor SessionCoordinator {
 
         case is UICmd.AppForegrounded:
             await rearmAfterForeground()
+
+        case let collect as UICmd.SetMulticamCollecting:
+            multicamCollecting = collect.on
 
         case is UICmd.PeerTrafficObserved:
             // Arrives with every inbound message; only a wait cares (see
