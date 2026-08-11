@@ -260,6 +260,33 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(frameRequests[0].mode, .reliable)
     }
 
+    /// Seam B: a frame's ack goes only to the camera that sent it. With two
+    /// peers connected, a broadcast ack would advance the credit window of a
+    /// camera whose frame was never consumed.
+    func testFrameAckTargetsOnlyTheSendingPeer() async {
+        let secondCamera = MCPeerID(displayName: "SecondCamera")
+        await enterMonitor(.Photo)
+        harness.fakeMP.connectedPeers.append(secondCamera)
+        harness.fakeMP.sendResult = true
+
+        await harness.deliver(RemoteCmd.OnFrame(
+            data: Data([1, 2, 3]), sender: nil, peerId: secondCamera,
+            fps: 30, camPosition: .back, camOrientation: .portrait,
+            codec: .jpeg, sequenceNumber: 1))
+
+        let acks = sent(RemoteCmd.RequestFrame.self)
+        XCTAssertEqual(acks.count, 1)
+        XCTAssertEqual(acks[0].peers, [secondCamera],
+                       "ack must address the frame's source, not all connected peers")
+
+        harness.fakeMP.sentMessages.removeAll()
+        await harness.deliver(RemoteCmd.OnFrame(
+            data: Data([4, 5, 6]), sender: nil, peerId: harness.peer,
+            fps: 30, camPosition: .back, camOrientation: .portrait,
+            codec: .jpeg, sequenceNumber: 2))
+        XCTAssertEqual(sent(RemoteCmd.RequestFrame.self).map(\.peers), [[harness.peer]])
+    }
+
     func testMonitorPhotoModeUnbecomeMonitorPopsToConnected() async {
         await enterMonitor(.Photo)
         await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))

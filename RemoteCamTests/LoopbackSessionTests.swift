@@ -82,7 +82,7 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
         case let frame as RemoteCmd.SendFrame:
             remoteDelegate.didReceiveFrame(frame, from: localPeerID)
         default:
-            remoteDelegate.didReceiveMessage(decoded)
+            remoteDelegate.didReceiveMessage(decoded, from: localPeerID)
         }
         return true
     }

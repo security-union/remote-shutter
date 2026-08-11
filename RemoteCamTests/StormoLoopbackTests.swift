@@ -57,7 +57,7 @@ final class StormoLoopbackTests: XCTestCase {
 
         func peerDidConnect(_ peer: PeerID) { connected.fulfill() }
 
-        func didReceiveMessage(_ message: Message) {
+        func didReceiveMessage(_ message: Message, from peer: PeerID) {
             lock.lock(); _receivedMessages.append(message); lock.unlock()
             messageReceived.fulfill()
         }

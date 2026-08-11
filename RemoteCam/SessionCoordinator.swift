@@ -302,23 +302,27 @@ public actor SessionCoordinator {
     }
 
     @discardableResult
-    func sendMessage(_ msg: Message, mode: MCSessionSendDataMode = .reliable) -> Bool {
+    func sendMessage(_ msg: Message, to peers: [MCPeerID]? = nil,
+                     mode: MCSessionSendDataMode = .reliable) -> Bool {
         guard let multipeerService else {
             // Watch Remote mode never starts a multipeer session.
             return false
         }
-        return multipeerService.send(msg, to: connectedPeers, mode: mode)
+        return multipeerService.send(msg, to: peers ?? connectedPeers, mode: mode)
     }
 
     /// Send, or pop to scanning with a connection-error alert on failure —
-    /// the old `sendCommandOrGoToScanning`.
-    func sendOrGoToScanning(_ msg: Message, mode: MCSessionSendDataMode = .reliable) async {
+    /// the old `sendCommandOrGoToScanning`. `peers` nil = all connected
+    /// (identical for this 1:1 coordinator; the param exists so per-peer
+    /// sends like frame acks address only their source).
+    func sendOrGoToScanning(_ msg: Message, to peers: [MCPeerID]? = nil,
+                            mode: MCSessionSendDataMode = .reliable) async {
         guard multipeerService != nil else {
             // Watch Remote mode: there is no peer and no scanning state to fall back to.
             debugLog("sendOrGoToScanning: no multipeer session, dropping \(type(of: msg))")
             return
         }
-        if !sendMessage(msg, mode: mode) {
+        if !sendMessage(msg, to: peers, mode: mode) {
             await popToScanning()
             let presenter = alertPresenter
             OperationQueue.main.addOperation {
@@ -540,6 +544,14 @@ public actor SessionCoordinator {
 
     private func requestFrame() async {
         await sendOrGoToScanning(RemoteCmd.RequestFrame(sender: nil))
+    }
+
+    /// Ack the camera that sent this frame so only its credit window
+    /// advances. With one connected peer this is identical to the broadcast
+    /// form; with several cameras a broadcast ack would let every camera
+    /// send on one camera's consumed frame.
+    private func requestFrame(acking frame: RemoteCmd.OnFrame) async {
+        await sendOrGoToScanning(RemoteCmd.RequestFrame(sender: nil), to: [frame.peerId])
     }
 
     /// Pop to scanning (stops at the lobby floor like the old machine) and
@@ -1590,7 +1602,7 @@ public actor SessionCoordinator {
         case let frame as RemoteCmd.OnFrame:
             noteMonitorFrame(frame)
             monitor?.show(frame: frame)
-            await requestFrame()
+            await requestFrame(acking: frame)
 
         case is UICmd.StreamStalled:
             await requestFrame()
@@ -1893,7 +1905,7 @@ public actor SessionCoordinator {
         case let frame as RemoteCmd.OnFrame:
             noteMonitorFrame(frame)
             monitor?.show(frame: frame)
-            await requestFrame()
+            await requestFrame(acking: frame)
 
         case is UICmd.StreamStalled:
             await requestFrame()
@@ -2426,7 +2438,10 @@ public actor SessionCoordinator {
 
 extension SessionCoordinator: MultipeerServiceDelegate {
 
-    public nonisolated func didReceiveMessage(_ message: Message) {
+    public nonisolated func didReceiveMessage(_ message: Message, from peer: MCPeerID) {
+        // `peer` is deliberately unused: this coordinator links exactly one
+        // peer, so every message's source is unambiguous. The multicam
+        // director's controller is the consumer that routes by it.
         tell(UICmd.PeerTrafficObserved())
         tell(message)
     }

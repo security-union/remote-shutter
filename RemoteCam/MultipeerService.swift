@@ -12,7 +12,10 @@ import Combine
 import UIKit
 
 protocol MultipeerServiceDelegate: AnyObject {
-    func didReceiveMessage(_ message: Message)
+    /// `peer` is the message's source. The 1:1 SessionCoordinator can ignore
+    /// it (there is only one peer a message can come from); a multicam
+    /// director needs it to route responses to the right camera.
+    func didReceiveMessage(_ message: Message, from peer: MCPeerID)
     func didReceiveFrameRequest(_ request: RemoteCmd.RequestFrame)
     func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID)
     func peerDidConnect(_ peer: MCPeerID)
@@ -205,7 +208,7 @@ class MultipeerService: NSObject, MCSessionDelegate,
         case let frame as RemoteCmd.SendFrame:
             delegate?.didReceiveFrame(frame, from: peerID)
         default:
-            delegate?.didReceiveMessage(inboundMessage)
+            delegate?.didReceiveMessage(inboundMessage, from: peerID)
         }
     }
 
