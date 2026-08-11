@@ -20,6 +20,14 @@ import Stormo
 /// would force a dictionary read-modify-write on every frame.
 final class CameraLink {
 
+    /// Progress of one lane's footage transfer to the director after a take.
+    enum LaneCollectionState: Equatable {
+        case idle
+        case transferring(Double) // 0…1
+        case collected
+        case failed
+    }
+
     enum Status: Equatable {
         /// The session is up and frames are expected.
         case linked
@@ -67,6 +75,10 @@ final class CameraLink {
     /// running rig video quality — its tile is badged and the tray offers a
     /// re-match rather than silently changing the rig.
     var needsQualityRematch = false
+
+    /// Where this lane's footage is in the post-take auto-collect to the
+    /// director. Drives the tile's transfer progress / done / failed badge.
+    var collection: LaneCollectionState = .idle
 
     /// This camera's own preview decoder + stall watchdog. Frames tagged with
     /// this peer's id are fed here; its `onImage` drives exactly this lane's

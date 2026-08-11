@@ -55,9 +55,11 @@ enum CommandAction : byte {
                                // echoing the capture id. Only sent to multicam peers.
     ScheduledStopRecording = 28,  // director -> camera: stop recording at the fire
                                // instant, so clip lengths match across the rig.
-    SetStreamProfile = 29      // director -> camera: reconfigure the live preview
+    SetStreamProfile = 29,     // director -> camera: reconfigure the live preview
                                // encoder (resolution/bitrate/fps) for tiered
                                // multicam previews. Only sent to multicam peers.
+    RequestVideoResend = 30    // director -> camera: re-send the last collected
+                               // clip (auto-collect retry). Reuses capture_id.
 }
 
 // Whether the camera device drives its own on-screen live preview. On is the

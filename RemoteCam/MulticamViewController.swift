@@ -78,6 +78,9 @@ public final class MulticamViewController: UIViewController {
                 Task { await self?.controller.setPhotoQuality(
                     format: self?.viewModel.rigSettings.activePhotoFormat ?? .jpeg,
                     hdr: on ? .on : .off) }
+            },
+            onRetryCollection: { [weak self] lane in
+                Task { await self?.controller.retryCollection(for: lane.peerID) }
             })
         hosting = embedSwiftUIView(multicamView)
 

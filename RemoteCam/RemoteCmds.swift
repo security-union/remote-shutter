@@ -340,6 +340,17 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Director → camera: re-send the clip for `captureId` — the auto-collect
+    /// retry after a failed transfer. The camera keeps its last multicam clip
+    /// until collected, so it can honor this.
+    public class RequestVideoResend: Message, @unchecked Sendable {
+        public let captureId: String
+        public init(captureId: String, sender: AnyObject? = nil) {
+            self.captureId = captureId
+            super.init(sender: sender)
+        }
+    }
+
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
         public let peerId: MCPeerID

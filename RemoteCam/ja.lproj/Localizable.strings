@@ -383,3 +383,4 @@
 "Rig Settings" = "リグ設定";
 "%@ can't" = "%@は非対応";
 "%@ can't do HDR" = "%@はHDR非対応";
+"Retry" = "再試行";

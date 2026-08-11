@@ -249,6 +249,16 @@ public actor SessionCoordinator {
     /// saved under its `RS_<sess>_<cap>_cam<k>` filename. Nil for ordinary
     /// single-camera captures, which save exactly as before.
     private var pendingSyncMetadata: CaptureSyncMetadata?
+    /// The sync metadata for the multicam clip currently being recorded, used
+    /// to name its auto-collect transfer (`RS_…cam<k>.mov`) and to stagger the
+    /// send by camera index. Kept until the next recording so a director retry
+    /// (`RequestVideoResend`) can re-send from `lastMulticamClipURL`.
+    private var pendingVideoSyncMetadata: CaptureSyncMetadata?
+    private var lastMulticamClipURL: URL?
+    /// Per-camera transfer stagger, so N×4K clips don't all hit the link at once.
+    private var multicamTransferStaggerSeconds: Double = 2
+    /// Test seam.
+    func setMulticamTransferStaggerForTesting(_ s: Double) { multicamTransferStaggerSeconds = s }
 
     /// How far in the past a scheduled fire time may be before the camera
     /// refuses it (clock error and one retransmit can nudge it slightly late;
@@ -1063,9 +1073,9 @@ public actor SessionCoordinator {
 
         case let fire as FireScheduledRecordingStart:
             // The start instant arrived. Stamp the recording with its sync
-            // metadata, then roll exactly as a normal StartRecordingVideo —
-            // local save, no auto-transfer to the director in v1.
+            // metadata (for the QuickTime keys + the RS_ filename), then roll.
             inMulticamSession = true
+            pendingVideoSyncMetadata = fire.metadata
             ctrl.setVideoSyncMetadata(fire.metadata)
             ctrl.currentCameraMode = .Video
             ctrl.updateCameraStatus()
@@ -1074,16 +1084,16 @@ public actor SessionCoordinator {
 
         case let fire as FireScheduledCapture:
             // The fire instant arrived (enqueued by the off-actor delay task).
-            // Pull the shutter through the normal photo path, saving locally
-            // only — the director does not collect stills in v1 — but stamp
-            // this photo with its sync metadata on the way to Photos.
+            // Pull the shutter through the normal photo path: save locally
+            // stamped, AND return the (stamped) still to the director so it
+            // auto-collects every angle.
             pendingSyncMetadata = fire.metadata
             ctrl.currentCameraMode = .Photo
             ctrl.updateCameraStatus()
-            ctrl.takePicture(false)
+            ctrl.takePicture(true)
             let generation = scheduleTimeout(.cameraTakingPic)
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
-            await transition(to: .cameraTakingPic(sendMediaToPeer: false, generation: generation))
+            await transition(to: .cameraTakingPic(sendMediaToPeer: true, generation: generation))
 
         case is RemoteCmd.ToggleCamera:
             do {
@@ -1387,15 +1397,15 @@ public actor SessionCoordinator {
             }
 
         case let picture as UICmd.OnPicture:
-            if let pic = picture.pic {
-                // A scheduled multicam capture stamps its sync metadata and
-                // saves under the shared RS_<sess>_<cap>_cam<k> name; an
-                // ordinary capture saves exactly as before.
-                if let metadata = pendingSyncMetadata {
-                    saveSyncedPictureToLibrary(pic, metadata: metadata)
-                } else {
-                    photoLibrarySaver(pic)
-                }
+            // A scheduled multicam capture stamps the still with its sync
+            // metadata once; that same stamped image is saved locally under the
+            // shared RS_<sess>_<cap>_cam<k> name AND returned to the director so
+            // it collects every angle. An ordinary capture saves as before.
+            let metadata = pendingSyncMetadata
+            let stampedPic = picture.pic.map { pic in metadata.map { $0.stamped(pic) } ?? pic }
+            if let pic = stampedPic {
+                if let metadata { saveSyncedPictureToLibrary(pic, metadata: metadata) }
+                else { photoLibrarySaver(pic) }
             }
             pendingSyncMetadata = nil
             await dismissCameraAlert()
@@ -1405,7 +1415,7 @@ public actor SessionCoordinator {
             }
             let resp = RemoteCmd.TakePicResp(
                 sender: nil,
-                pic: sendMediaToPeer ? picture.pic : nil,
+                pic: sendMediaToPeer ? stampedPic : nil,
                 error: picture.error)
             guard sendMessage(resp) else {
                 await popToScanning()
@@ -1483,9 +1493,10 @@ public actor SessionCoordinator {
                 fps: UInt32(max(0, profile.fps))))
 
         case is FireScheduledRecordingStop:
-            // The scheduled stop instant arrived. Save locally only (multicam
-            // never auto-transfers in v1) and return to the camera screen.
-            ctrl.stopRecordingVideo(false)
+            // The scheduled stop instant arrived. Save locally AND push the clip
+            // to the director so it auto-collects every angle (the existing
+            // resource-transfer path; QuickTime sync metadata rides in the file).
+            ctrl.stopRecordingVideo(true)
             await transition(to: .cameraTransmittingVideo)
 
         case let disconnected as DisconnectPeer:
@@ -1702,6 +1713,16 @@ public actor SessionCoordinator {
         case let collect as UICmd.SetMulticamCollecting:
             multicamCollecting = collect.on
 
+        case is RemoteCmd.RequestVideoResend:
+            // Auto-collect retry: the director's transfer failed. Re-send the
+            // last multicam clip, which we kept for exactly this.
+            if let url = lastMulticamClipURL, FileManager.default.fileExists(atPath: url.path),
+               let name = pendingVideoSyncMetadata?.videoFilename() {
+                for director in connectedPeers {
+                    await sendVideoResourceNow(url: url, name: name, to: director)
+                }
+            }
+
         case is UICmd.PeerTrafficObserved:
             // Arrives with every inbound message; only a wait cares (see
             // `inReconnecting`), and it is swallowed here so the rest of the
@@ -1844,25 +1865,42 @@ public actor SessionCoordinator {
             return
         }
 
-        let resourceName = "video_\(UUID().uuidString).mov"
+        // Multicam auto-collect: name the transfer with the shared RS_ filename
+        // so the director saves it under the group, remember the clip for a
+        // possible retry, and stagger the send by camera index so N clips don't
+        // saturate the link at once.
+        let multicamMeta = pendingVideoSyncMetadata
+        let resourceName = multicamMeta?.videoFilename() ?? "video_\(UUID().uuidString).mov"
+        if multicamMeta != nil { lastMulticamClipURL = sendVideo.videoURL }
+        let staggerDelay = multicamMeta.map { Double($0.cameraIndex - 1) * multicamTransferStaggerSeconds } ?? 0
         tell(UICmd.VideoResourceTransferStarted(totalBytes: fileSize, resourceName: resourceName, sender: nil))
 
+        let url = sendVideo.videoURL
         for peer in peers {
-            let sendProgress = multipeerService.sendResource(
-                at: sendVideo.videoURL,
-                withName: resourceName,
-                toPeer: peer
-            ) { [weak self] error in
-                if let error {
-                    self?.tell(UICmd.VideoResourceTransferFailed(error: error, resourceName: resourceName, sender: nil))
-                } else {
-                    self?.tell(UICmd.VideoResourceTransferCompleted(resourceName: resourceName, success: true, sender: nil))
+            if staggerDelay > 0 {
+                let ns = UInt64(staggerDelay * 1_000_000_000)
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: ns)
+                    await self?.sendVideoResourceNow(url: url, name: resourceName, to: peer)
                 }
+            } else {
+                await sendVideoResourceNow(url: url, name: resourceName, to: peer)
             }
+        }
+    }
 
-            if let progress = sendProgress {
-                trackSendProgress(progress, resourceName: resourceName, into: multipeerService)
+    /// The actual staggered send of one clip to one peer.
+    private func sendVideoResourceNow(url: URL, name: String, to peer: MCPeerID) async {
+        guard let multipeerService else { return }
+        let sendProgress = multipeerService.sendResource(at: url, withName: name, toPeer: peer) { [weak self] error in
+            if let error {
+                self?.tell(UICmd.VideoResourceTransferFailed(error: error, resourceName: name, sender: nil))
+            } else {
+                self?.tell(UICmd.VideoResourceTransferCompleted(resourceName: name, success: true, sender: nil))
             }
+        }
+        if let progress = sendProgress {
+            trackSendProgress(progress, resourceName: name, into: multipeerService)
         }
     }
 
@@ -2860,7 +2898,9 @@ extension SessionCoordinator: MultipeerServiceDelegate {
         tell(UICmd.BrowserFailed(error: error))
     }
 
-    public nonisolated func didStartReceivingResource(name resourceName: String, progress: Progress) {
+    public nonisolated func didStartReceivingResource(name resourceName: String, from peer: MCPeerID, progress: Progress) {
+        // `peer` unused: this 1:1 coordinator has one source. The multicam
+        // director routes by it.
         debugLog("📥 DEBUG: Started receiving resource: \(resourceName)")
         guard resourceName.hasPrefix("video_") else { return }
 
@@ -2911,7 +2951,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
             .store(in: &service.progressCancellables)
     }
 
-    public nonisolated func didFinishReceivingResource(name resourceName: String, at localURL: URL?, error: Error?) {
+    public nonisolated func didFinishReceivingResource(name resourceName: String, from peer: MCPeerID, at localURL: URL?, error: Error?) {
         debugLog("📥 DEBUG: Finished receiving resource: \(resourceName)")
 
         if let error {

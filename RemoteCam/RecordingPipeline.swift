@@ -209,7 +209,10 @@ class RecordingPipeline {
                 let syncMetadata = self?.pendingSyncMetadata
                 PHPhotoLibrary.shared().performChanges({
                     let options = PHAssetResourceCreationOptions()
-                    options.shouldMoveFile = true
+                    // A multicam clip is COPIED (not moved) so the temp file
+                    // survives the staggered/retried auto-collect transfer to
+                    // the director; the next recording cleans it up.
+                    options.shouldMoveFile = (syncMetadata == nil)
                     // Synced clip: name it under the shared RS_ group.
                     if let syncMetadata { options.originalFilename = syncMetadata.videoFilename() }
                     let creationRequest = PHAssetCreationRequest.forAsset()
@@ -218,7 +221,7 @@ class RecordingPipeline {
                     if !success {
                         print("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
                     }
-                    cleanupFileAt(outputFileURL)
+                    if syncMetadata == nil { cleanupFileAt(outputFileURL) }
                 }
                 )
                 self?.pendingSyncMetadata = nil

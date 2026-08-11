@@ -55,6 +55,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.ScheduledStopRecording: return m.toFlatBuffer()
         case let m as RemoteCmd.ScheduledRecordingAck: return m.toFlatBuffer()
         case let m as RemoteCmd.SetStreamProfile: return m.toFlatBuffer()
+        case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
@@ -1268,6 +1269,11 @@ extension RemoteCmdSerializationTests {
         XCTAssertEqual(result.maxLongEdge, 640)
         XCTAssertEqual(result.bitrateKbps, 500)
         XCTAssertEqual(result.fps, 20)
+    }
+
+    func testRequestVideoResend_roundTrip() {
+        let result = roundTrip(RemoteCmd.RequestVideoResend(captureId: "R7"))
+        XCTAssertEqual(result.captureId, "R7")
     }
 
     /// The multicam capability survives the wire, and a peer that predates it

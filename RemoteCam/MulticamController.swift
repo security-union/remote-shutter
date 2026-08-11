@@ -9,6 +9,7 @@
 
 import Foundation
 import MPCCompat
+import Photos
 import Stormo
 import UIKit
 
@@ -50,6 +51,8 @@ struct MulticamLaneInfo: Equatable {
     let isRecording: Bool
     /// This camera can't match the running rig quality — tile badge + re-match.
     let needsQualityRematch: Bool
+    /// Where this lane's footage is in the post-take auto-collect.
+    let collection: CameraLink.LaneCollectionState
 }
 
 /// The main-actor bridge from the controller to the multicam screen — the
@@ -150,6 +153,9 @@ public actor MulticamController {
     /// unless `state` is `.capturingPhoto`.
     private var capturingLanes: Set<MCPeerID> = []
     private var currentCaptureID: String?
+    /// The most recent photo/video capture id, used to name auto-collected
+    /// footage on the director under the shared `RS_<sess>_<cap>_cam<k>` group.
+    private var lastCaptureID: String?
 
     /// Lead time before a synced shutter fires — long enough to cover the
     /// worst-case one-way latency plus a retransmit and scheduling slop, so
@@ -267,6 +273,12 @@ public actor MulticamController {
         case let frame as RemoteCmd.OnFrame:
             handleFrame(frame)
 
+        case let started as ResourceTransferStarted:
+            handleResourceStarted(started)
+
+        case let finished as ResourceTransferFinished:
+            handleResourceFinished(finished)
+
         case let measured as ClockPongMeasured:
             storePong(measured.pong, t3: measured.t3, from: measured.peer)
 
@@ -320,9 +332,13 @@ public actor MulticamController {
             resolvePhotoAck(from: peer, success: true)
 
         case let resp as RemoteCmd.TakePicResp:
-            // Fallback failure signal; a success here is a duplicate of the ack
-            // and is ignored (the lane is already resolved).
-            if resp.error != nil { resolvePhotoAck(from: peer, success: false) }
+            if resp.error != nil {
+                resolvePhotoAck(from: peer, success: false)
+            } else if let pic = resp.pic {
+                // Auto-collect: the camera returned its (EXIF-stamped) still.
+                // Save it to the director's library under the shared RS_ name.
+                collectPhoto(pic, from: peer)
+            }
 
         case let ack as RemoteCmd.ScheduledRecordingAck:
             resolveRecordingAck(from: peer, isStop: ack.isStop, success: ack.error == nil)
@@ -534,6 +550,8 @@ public actor MulticamController {
         let captureID = UUID().uuidString
         capturingLanes = Set(lanes.map(\.peerID))
         currentCaptureID = captureID
+        lastCaptureID = captureID
+        for link in lanes { link.collection = .idle }
 
         if lanes.allSatisfy({ $0.latestOffset != nil }) {
             let fireAt = SyncClock.nowMillis() + captureLeadMillis
@@ -833,6 +851,94 @@ public actor MulticamController {
         publishLanes()
     }
 
+    // MARK: - Auto-collect (footage back to the director)
+
+    /// Test seams.
+    func collectionStateForTesting(_ peer: MCPeerID) -> CameraLink.LaneCollectionState? { links[peer]?.collection }
+
+    /// The lane's 1-based index, for the shared RS_ filename group.
+    private func cameraIndex(of peer: MCPeerID) -> Int {
+        (order.firstIndex(of: peer) ?? 0) + 1
+    }
+
+    private func rigMetadata(for peer: MCPeerID) -> CaptureSyncMetadata {
+        CaptureSyncMetadata(
+            sessionID: sessionID, captureID: lastCaptureID ?? UUID().uuidString,
+            cameraIndex: cameraIndex(of: peer), anchorMillis: 0,
+            clockOffsetMillis: 0, roundTripMillis: 0)
+    }
+
+    /// Save a camera's returned still (already EXIF-stamped on the camera) to
+    /// the director's library under the shared RS_ name, and mark the lane
+    /// collected.
+    private func collectPhoto(_ data: Data, from peer: MCPeerID) {
+        guard let link = links[peer] else { return }
+        let name = rigMetadata(for: peer).photoFilename(isHEIC: Self.isHEIC(data))
+        link.collection = .collected
+        publishLanes()
+        Self.savePhotoToLibrary(data, originalFilename: name)
+    }
+
+    private func handleResourceStarted(_ started: ResourceTransferStarted) {
+        guard let link = links[started.peer] else { return }
+        link.collection = .transferring(0)
+        publishLanes()
+    }
+
+    private func handleResourceFinished(_ finished: ResourceTransferFinished) {
+        guard let link = links[finished.peer] else { return }
+        if finished.error != nil || finished.localURL == nil {
+            // Footage is still safe on the camera; the tile offers a retry.
+            link.collection = .failed
+            publishLanes()
+            return
+        }
+        link.collection = .collected
+        publishLanes()
+        // The resource is named with the RS_ filename by the camera, so save it
+        // under that; QuickTime sync metadata rides inside the .mov itself.
+        Self.saveVideoToLibrary(at: finished.localURL!, originalFilename: finished.name)
+    }
+
+    /// Re-request a failed lane's footage (the camera still holds it).
+    func retryCollection(for peer: MCPeerID) {
+        guard let link = links[peer], link.collection == .failed else { return }
+        link.collection = .transferring(0)
+        publishLanes()
+        sendTo(peer, RemoteCmd.RequestVideoResend(captureId: lastCaptureID ?? ""))
+    }
+
+    private static func isHEIC(_ data: Data) -> Bool {
+        data.count > 12 && data[4] == 0x66 && data[5] == 0x74 && data[6] == 0x79 && data[7] == 0x70
+    }
+
+    private static func savePhotoToLibrary(_ data: Data, originalFilename: String) {
+        PHPhotoLibrary.requestAuthorization { status in
+            guard status == .authorized else { return }
+            PHPhotoLibrary.shared().performChanges({
+                let options = PHAssetResourceCreationOptions()
+                options.originalFilename = originalFilename
+                PHAssetCreationRequest.forAsset().addResource(with: .photo, data: data, options: options)
+            }, completionHandler: { ok, _ in
+                print(ok ? "Director collected photo \(originalFilename)" : "collect photo failed")
+            })
+        }
+    }
+
+    private static func saveVideoToLibrary(at url: URL, originalFilename: String) {
+        PHPhotoLibrary.requestAuthorization { status in
+            guard status == .authorized else { return }
+            PHPhotoLibrary.shared().performChanges({
+                let options = PHAssetResourceCreationOptions()
+                options.shouldMoveFile = true
+                options.originalFilename = originalFilename
+                PHAssetCreationRequest.forAsset().addResource(with: .video, fileURL: url, options: options)
+            }, completionHandler: { ok, _ in
+                print(ok ? "Director collected clip \(originalFilename)" : "collect clip failed")
+            })
+        }
+    }
+
     /// A lane's stall watchdog fired — re-request a frame to unstick just that
     /// camera's pump (the others are unaffected).
     func nudgeFrame(for peer: MCPeerID) {
@@ -889,7 +995,8 @@ public actor MulticamController {
                 clockOffsetMillis: link.latestOffset?.offsetMillis,
                 captureOutcome: link.captureOutcome,
                 isRecording: link.isRecording,
-                needsQualityRematch: link.needsQualityRematch)
+                needsQualityRematch: link.needsQualityRematch,
+                collection: link.collection)
         }
     }
 
@@ -1003,6 +1110,35 @@ extension MulticamController: MultipeerServiceDelegate {
 
     public nonisolated func browserDidFail(_ error: Error) {}
     public nonisolated func advertiserDidFail(_ error: Error) {}
-    public nonisolated func didStartReceivingResource(name: String, progress: Progress) {}
-    public nonisolated func didFinishReceivingResource(name: String, at localURL: URL?, error: Error?) {}
+
+    public nonisolated func didStartReceivingResource(name: String, from peer: MCPeerID, progress: Progress) {
+        tell(ResourceTransferStarted(peer: peer, name: name, progress: progress))
+    }
+
+    public nonisolated func didFinishReceivingResource(name: String, from peer: MCPeerID, at localURL: URL?, error: Error?) {
+        tell(ResourceTransferFinished(peer: peer, name: name, localURL: localURL, error: error))
+    }
+}
+
+/// A footage transfer from one camera started (carries a `Progress` to observe).
+final class ResourceTransferStarted: Message, @unchecked Sendable {
+    let peer: MCPeerID
+    let name: String
+    let progress: Progress
+    init(peer: MCPeerID, name: String, progress: Progress) {
+        self.peer = peer; self.name = name; self.progress = progress
+        super.init(sender: nil)
+    }
+}
+
+/// A footage transfer from one camera finished (or failed).
+final class ResourceTransferFinished: Message, @unchecked Sendable {
+    let peer: MCPeerID
+    let name: String
+    let localURL: URL?
+    let error: Error?
+    init(peer: MCPeerID, name: String, localURL: URL?, error: Error?) {
+        self.peer = peer; self.name = name; self.localURL = localURL; self.error = error
+        super.init(sender: nil)
+    }
 }

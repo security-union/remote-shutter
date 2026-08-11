@@ -37,6 +37,7 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.ScheduledStopRecording: return m.toFlatBuffer()
     case let m as RemoteCmd.ScheduledRecordingAck: return m.toFlatBuffer()
     case let m as RemoteCmd.SetStreamProfile: return m.toFlatBuffer()
+    case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
@@ -834,6 +835,15 @@ extension RemoteCmd.ScheduledStopRecording {
     }
 }
 
+extension RemoteCmd.RequestVideoResend {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let idOffset = fbb.create(string: captureId)
+        let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, captureIdOffset: idOffset)
+        return buildCommand(&fbb, action: .requestvideoresend, parameters: params)
+    }
+}
+
 extension RemoteCmd.SetStreamProfile {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1254,6 +1264,9 @@ extension RemoteCmd {
                 maxLongEdge: Int(params?.streamMaxLongEdge ?? 0),
                 bitrateKbps: Int(params?.streamBitrateKbps ?? 0),
                 fps: Int(params?.streamFps ?? 0))
+
+        case .requestvideoresend:
+            return RequestVideoResend(captureId: params?.captureId ?? "")
 
         case .toggleflash:
             return ToggleFlash()

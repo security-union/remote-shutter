@@ -38,8 +38,9 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case scheduledstartrecording = 27
   case scheduledstoprecording = 28
   case setstreamprofile = 29
+  case requestvideoresend = 30
 
-  public static var max: RemoteShutter_CommandAction { return .setstreamprofile }
+  public static var max: RemoteShutter_CommandAction { return .requestvideoresend }
   public static var min: RemoteShutter_CommandAction { return .unknown }
 }
 

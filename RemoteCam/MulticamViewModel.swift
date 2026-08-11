@@ -31,6 +31,8 @@ final class CameraLane: ObservableObject, Identifiable {
     @Published var isRecording: Bool
     /// This camera can't match the running rig quality — badge + re-match.
     @Published var needsQualityRematch: Bool
+    /// Post-take footage collection progress — transfer badge / done / failed.
+    @Published var collection: CameraLink.LaneCollectionState
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -45,6 +47,7 @@ final class CameraLane: ObservableObject, Identifiable {
         self.captureOutcome = info.captureOutcome
         self.isRecording = info.isRecording
         self.needsQualityRematch = info.needsQualityRematch
+        self.collection = info.collection
     }
 }
 
@@ -91,6 +94,7 @@ final class MulticamViewModel: ObservableObject {
                 if lane.captureOutcome != info.captureOutcome { lane.captureOutcome = info.captureOutcome }
                 if lane.isRecording != info.isRecording { lane.isRecording = info.isRecording }
                 if lane.needsQualityRematch != info.needsQualityRematch { lane.needsQualityRematch = info.needsQualityRematch }
+                if lane.collection != info.collection { lane.collection = info.collection }
                 return lane
             }
             let lane = CameraLane(info: info)

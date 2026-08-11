@@ -21,8 +21,8 @@ protocol MultipeerServiceDelegate: AnyObject {
     func peerDidConnect(_ peer: MCPeerID)
     func peerDidDisconnect(_ peer: MCPeerID)
     func didDetectIncompatibility()
-    func didStartReceivingResource(name: String, progress: Progress)
-    func didFinishReceivingResource(name: String, at localURL: URL?, error: Error?)
+    func didStartReceivingResource(name: String, from peer: MCPeerID, progress: Progress)
+    func didFinishReceivingResource(name: String, from peer: MCPeerID, at localURL: URL?, error: Error?)
     func browserDidFindPeer(_ peer: MCPeerID)
     func browserDidLosePeer(_ peer: MCPeerID)
     func browserDidFail(_ error: Error)
@@ -218,11 +218,11 @@ class MultipeerService: NSObject, MCSessionDelegate,
 
     public func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String,
                         fromPeer peerID: MCPeerID, with progress: Progress) {
-        delegate?.didStartReceivingResource(name: resourceName, progress: progress)
+        delegate?.didStartReceivingResource(name: resourceName, from: peerID, progress: progress)
     }
 
     public func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String,
                         fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {
-        delegate?.didFinishReceivingResource(name: resourceName, at: localURL, error: error)
+        delegate?.didFinishReceivingResource(name: resourceName, from: peerID, at: localURL, error: error)
     }
 }

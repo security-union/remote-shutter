@@ -397,8 +397,8 @@ class SessionCoordinatorTests: XCTestCase {
         for _ in 0..<200 where camera.takePictureCalls.isEmpty {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
-        XCTAssertEqual(camera.takePictureCalls, [false],
-                       "the scheduled shutter fires, saving locally (not to the director)")
+        XCTAssertEqual(camera.takePictureCalls, [true],
+                       "the scheduled shutter fires, saving locally AND returning the still to the director")
     }
 
     // MARK: - Resilient camera (multicam only)
@@ -485,7 +485,8 @@ class SessionCoordinatorTests: XCTestCase {
         for _ in 0..<200 where camera.stopRecordingCalls.isEmpty {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
-        XCTAssertEqual(camera.stopRecordingCalls, [false], "scheduled stop saves locally")
+        XCTAssertEqual(camera.stopRecordingCalls, [true],
+                       "scheduled stop saves locally AND pushes the clip to the director")
     }
 
     func testMonitorPhotoModeUnbecomeMonitorPopsToConnected() async {

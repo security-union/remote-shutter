@@ -34,6 +34,8 @@ struct MulticamView: View {
     /// Rig photo format / HDR picked.
     let onSetPhotoFormat: (PhotoFormat) -> Void
     let onSetHDR: (Bool) -> Void
+    /// Retry a lane's failed footage collection.
+    let onRetryCollection: (CameraLane) -> Void
 
     var body: some View {
         GeometryReader { geo in
@@ -126,7 +128,7 @@ struct MulticamView: View {
             count: MultiCamChrome.gridColumnCount(cameraCount: count))
         return LazyVGrid(columns: columns, spacing: 4) {
             ForEach(viewModel.lanes) { lane in
-                CameraTileView(lane: lane, isThumbnail: true)
+                CameraTileView(lane: lane, isThumbnail: true, onRetry: { onRetryCollection(lane) })
                     .aspectRatio(9.0 / 16.0, contentMode: .fit)
                     .onTapGesture {
                         onFocusLane(lane)
@@ -220,7 +222,7 @@ struct MulticamView: View {
                 Spacer()
                 HStack(spacing: 8) {
                     ForEach(others) { lane in
-                        CameraTileView(lane: lane, isThumbnail: true)
+                        CameraTileView(lane: lane, isThumbnail: true, onRetry: { onRetryCollection(lane) })
                             .frame(width: 96, height: 128)
                             .onTapGesture { onFocusLane(lane) }
                     }
@@ -233,7 +235,7 @@ struct MulticamView: View {
                 if dock == .trailing { Spacer() }
                 VStack(spacing: 8) {
                     ForEach(others) { lane in
-                        CameraTileView(lane: lane, isThumbnail: true)
+                        CameraTileView(lane: lane, isThumbnail: true, onRetry: { onRetryCollection(lane) })
                             .frame(width: 128, height: 96)
                             .onTapGesture { onFocusLane(lane) }
                     }
@@ -269,12 +271,16 @@ struct MulticamView: View {
 struct CameraTileView: View {
     @ObservedObject var lane: CameraLane
     var isThumbnail: Bool = false
+    /// Retry a failed footage collection for this lane (nil = not offered).
+    var onRetry: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
             LiveFrameView(frames: lane.frames, aspectRatio: .sixteenNine)
                 .clipShape(RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0))
                 .saturation(lane.status == .linked ? 1 : 0)
+
+            collectionBadge
 
             if lane.status == .reconnecting {
                 RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0)
@@ -339,6 +345,44 @@ struct CameraTileView: View {
         .overlay(
             RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0)
                 .stroke(lane.isFocused ? AppTheme.accent : .clear, lineWidth: 3))
+    }
+
+    /// Post-take footage collection: a spinner while transferring, a check when
+    /// collected, and a tappable retry when the transfer failed.
+    @ViewBuilder
+    private var collectionBadge: some View {
+        switch lane.collection {
+        case .idle:
+            EmptyView()
+        case .transferring:
+            VStack {
+                Spacer()
+                HStack {
+                    ProgressView().tint(.white)
+                    Image(systemName: "square.and.arrow.down").foregroundColor(.white)
+                }
+                Spacer()
+            }
+        case .collected:
+            VStack {
+                HStack {
+                    Spacer()
+                    Image(systemName: "checkmark.icloud.fill").foregroundColor(.green).padding(6)
+                }
+                Spacer()
+            }
+        case .failed:
+            Button { onRetry?() } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: "arrow.clockwise.icloud").font(.title3)
+                    Text(NSLocalizedString("Retry", comment: "retry footage collection")).font(.caption2)
+                }
+                .foregroundColor(.white)
+                .padding(8)
+                .background(Color.black.opacity(0.55))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+        }
     }
 }
 

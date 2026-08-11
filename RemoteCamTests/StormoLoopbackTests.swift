@@ -67,8 +67,8 @@ final class StormoLoopbackTests: XCTestCase {
         func didReceiveFrameRequest(_ request: RemoteCmd.RequestFrame) {}
         func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: PeerID) {}
         func didDetectIncompatibility() {}
-        func didStartReceivingResource(name: String, progress: Progress) {}
-        func didFinishReceivingResource(name: String, at localURL: URL?, error: Error?) {}
+        func didStartReceivingResource(name: String, from peer: PeerID, progress: Progress) {}
+        func didFinishReceivingResource(name: String, from peer: PeerID, at localURL: URL?, error: Error?) {}
         func browserDidLosePeer(_ peer: PeerID) {}
         func browserDidFail(_ error: Error) {}
         func advertiserDidFail(_ error: Error) {}

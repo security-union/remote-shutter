@@ -603,6 +603,57 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(q?.hdrMode, .on)
     }
 
+    // MARK: - Auto-collect
+
+    func testVideoResourceTransferUpdatesLaneStateAndSaves() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        let progress = Progress(totalUnitCount: 100)
+
+        controller.didStartReceivingResource(name: "RS_a_b_cam1.mov", from: camA, progress: progress)
+        await controller.waitForIdle()
+        var stateA = await controller.collectionStateForTesting(camA)
+        XCTAssertEqual(stateA, .transferring(0))
+
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("clip.mov")
+        controller.didFinishReceivingResource(name: "RS_a_b_cam1.mov", from: camA, at: url, error: nil)
+        await controller.waitForIdle()
+        stateA = await controller.collectionStateForTesting(camA)
+        XCTAssertEqual(stateA, .collected)
+        // camB untouched.
+        let stateB = await controller.collectionStateForTesting(camB)
+        XCTAssertEqual(stateB, .idle)
+    }
+
+    func testFailedTransferMarksLaneAndRetryReRequests() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didFinishReceivingResource(
+            name: "RS_a_b_cam1.mov", from: camA, at: nil,
+            error: NSError(domain: "x", code: 1))
+        await controller.waitForIdle()
+        let failed = await controller.collectionStateForTesting(camA)
+        XCTAssertEqual(failed, .failed)
+
+        transport.sentMessages.removeAll()
+        await controller.retryCollection(for: camA)
+        await controller.waitForIdle()
+        // Re-request goes to that camera, and its lane returns to transferring.
+        let resends = sent(transport, RemoteCmd.RequestVideoResend.self)
+        XCTAssertEqual(resends.map(\.peers), [[camA]])
+        let retrying = await controller.collectionStateForTesting(camA)
+        XCTAssertEqual(retrying, .transferring(0))
+    }
+
+    func testReturnedPhotoMarksLaneCollected() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        // A returned still (non-nil pic, no error) is collected on the director.
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0, 0, 0, 0, 0])
+        controller.didReceiveMessage(
+            RemoteCmd.TakePicResp(sender: nil, pic: jpeg, error: nil), from: camB)
+        await controller.waitForIdle()
+        let state = await controller.collectionStateForTesting(camB)
+        XCTAssertEqual(state, .collected)
+    }
+
     // MARK: - Fixtures
 
     private func multicamCaps() -> RemoteCmd.CameraCapabilitiesResp {
