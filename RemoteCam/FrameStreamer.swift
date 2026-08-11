@@ -38,6 +38,12 @@ final class FrameStreamer {
     private let config: StreamingConfig
     private let send: Send
 
+    /// The live preview profile (resolution/bitrate/fps). Starts at the full
+    /// peer profile — byte-identical to the 1:1 stream — and only a multicam
+    /// director changes it (via `applyProfile`) to tier previews. Capture-queue
+    /// confined, like every other field here.
+    private var activeProfile: StreamProfile
+
     /// Remaining still-codec chain; first entry is the active still encoder.
     private var encoders: [FrameEncoding]
     private var frameCount = 0
@@ -55,7 +61,7 @@ final class FrameStreamer {
     /// Builds the stateful video encoder (HEVC preferred, VP9 fallback) on first
     /// use; nil when no video codec is available at runtime or in tests that
     /// don't exercise video.
-    private let makeVideoEncoder: () -> StreamVideoEncoding?
+    private let makeVideoEncoder: (StreamProfile) -> StreamVideoEncoding?
     private var videoEncoder: StreamVideoEncoding?
     /// Latched when the video encoder fails on this hardware: never retried, the
     /// stream stays on stills for the rest of the connection.
@@ -74,14 +80,34 @@ final class FrameStreamer {
          encoders: [FrameEncoding]? = nil,
          creditAvailable: @escaping () -> Bool = { true },
          takeKeyframeRequest: @escaping () -> Bool = { false },
-         makeVideoEncoder: @escaping () -> StreamVideoEncoding? = { nil },
+         makeVideoEncoder: @escaping (StreamProfile) -> StreamVideoEncoding? = { _ in nil },
          send: @escaping Send) {
         self.config = config
         self.send = send
-        self.encoders = encoders ?? Self.makeEncoders(config: config)
+        // The default profile reproduces today's peer stream exactly, so a
+        // streamer that is never re-profiled behaves identically to before.
+        self.activeProfile = StreamProfile(
+            maxLongEdge: config.maxLongEdge,
+            bitrateKbps: config.peerHEVC.bitrateKbps,
+            fps: config.peerHEVC.fps)
+        self.encoders = encoders ?? Self.makeEncoders(config: config, maxLongEdge: config.maxLongEdge)
         self.creditAvailable = creditAvailable
         self.takeKeyframeRequest = takeKeyframeRequest
         self.makeVideoEncoder = makeVideoEncoder
+    }
+
+    /// Multicam: switch this stream to a new preview profile. Capture-queue
+    /// confined (called from `FrameSender`). Rebuilds the still chain and drops
+    /// the video encoder so it is rebuilt at the new resolution on the next
+    /// frame — the same rebuild path the failure fallback already uses, so the
+    /// new encoder's first frame is a keyframe the monitor re-syncs on.
+    func applyProfile(_ profile: StreamProfile) {
+        guard profile != activeProfile else { return }
+        activeProfile = profile
+        encoders = Self.makeEncoders(config: config, maxLongEdge: profile.maxLongEdge)
+        // Only rebuild a video encoder that is actually running; a permanently
+        // failed one stays failed (stills).
+        if videoEncoder != nil { videoEncoder = nil }
     }
 
     /// The active still-codec head (used by tests). The video stream, when
@@ -110,7 +136,7 @@ final class FrameStreamer {
     /// is available and the dev-only still fallback runs instead.
     private var useVideo: Bool {
         guard !videoFailed else { return false }
-        if videoEncoder == nil { videoEncoder = makeVideoEncoder() }
+        if videoEncoder == nil { videoEncoder = makeVideoEncoder(activeProfile) }
         return videoEncoder != nil
     }
 
@@ -170,13 +196,13 @@ final class FrameStreamer {
         ))
     }
 
-    private static func makeEncoders(config: StreamingConfig) -> [FrameEncoding] {
+    private static func makeEncoders(config: StreamingConfig, maxLongEdge: CGFloat) -> [FrameEncoding] {
         config.preferredCodecs.compactMap { codec in
             switch codec {
             case .heic:
-                return HEICFrameEncoder(maxLongEdge: config.maxLongEdge, quality: config.heicQuality)
+                return HEICFrameEncoder(maxLongEdge: maxLongEdge, quality: config.heicQuality)
             case .jpeg:
-                return JPEGFrameEncoder(maxLongEdge: config.maxLongEdge, quality: config.jpegQuality)
+                return JPEGFrameEncoder(maxLongEdge: maxLongEdge, quality: config.jpegQuality)
             case .hevc:
                 return nil // video codec: follow-up PR (HEVCFrameEncoder)
             case .vp9:

@@ -1026,6 +1026,12 @@ public actor SessionCoordinator {
         case let scheduled as RemoteCmd.ScheduledStartRecording:
             await handleScheduledStartRecording(scheduled)
 
+        case let profile as RemoteCmd.SetStreamProfile:
+            ctrl.applyStreamProfile(StreamProfile(
+                maxLongEdge: CGFloat(profile.maxLongEdge),
+                bitrateKbps: UInt32(max(0, profile.bitrateKbps)),
+                fps: UInt32(max(0, profile.fps))))
+
         case let fire as FireScheduledRecordingStart:
             // The start instant arrived. Stamp the recording with its sync
             // metadata, then roll exactly as a normal StartRecordingVideo —
@@ -1438,6 +1444,14 @@ public actor SessionCoordinator {
 
         case let scheduled as RemoteCmd.ScheduledStopRecording:
             await handleScheduledStopRecording(scheduled)
+
+        case let profile as RemoteCmd.SetStreamProfile:
+            // The preview keeps streaming while recording, so a focus change
+            // can retune this lane here too.
+            ctrl.applyStreamProfile(StreamProfile(
+                maxLongEdge: CGFloat(profile.maxLongEdge),
+                bitrateKbps: UInt32(max(0, profile.bitrateKbps)),
+                fps: UInt32(max(0, profile.fps))))
 
         case is FireScheduledRecordingStop:
             // The scheduled stop instant arrived. Save locally only (multicam

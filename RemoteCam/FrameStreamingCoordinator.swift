@@ -52,15 +52,22 @@ final class FrameStreamingCoordinator: NSObject {
     private lazy var frameStreamer = FrameStreamer(
         creditAvailable: frameCreditAvailable,
         takeKeyframeRequest: takePeerKeyframeRequest,
-        makeVideoEncoder: {
+        makeVideoEncoder: { profile in
             // Prefer hardware HEVC; fall back to software VP9; nil only on an
             // arch with neither (dev-only), where the stream drops to stills.
+            // The multicam profile overrides resolution/bitrate/fps; the rest of
+            // the encoder tuning (keyframe interval, quantizers) stays put.
             let config = StreamingConfig.default
             if HEVCSupport.canEncode {
-                return HEVCFrameEncoder(maxLongEdge: config.maxLongEdge, settings: config.peerHEVC)
+                let hevc = HEVCSettings(bitrateKbps: profile.bitrateKbps, fps: profile.fps,
+                                        keyframeInterval: config.peerHEVC.keyframeInterval)
+                return HEVCFrameEncoder(maxLongEdge: profile.maxLongEdge, settings: hevc)
             }
             if VP9Support.isAvailable {
-                return VP9FrameEncoder(maxLongEdge: config.maxLongEdge, settings: config.peerVP9)
+                var vp9 = config.peerVP9
+                vp9.bitrateKbps = profile.bitrateKbps
+                vp9.fps = profile.fps
+                return VP9FrameEncoder(maxLongEdge: profile.maxLongEdge, settings: vp9)
             }
             return nil
         },
@@ -109,6 +116,15 @@ final class FrameStreamingCoordinator: NSObject {
     /// The Watch acked the in-flight preview frame — let the streamer send the next.
     func acknowledgeWatchPreview() {
         watchPreviewStreamer.acknowledge()
+    }
+
+    /// Multicam: retune the phone-monitor preview stream. Hops onto the capture
+    /// queue the streamer lives on, so the reconfigure is serialized with frame
+    /// encoding.
+    func applyStreamProfile(_ profile: StreamProfile) {
+        engine.dataOutputQueue.async { [weak self] in
+            self?.frameStreamer.applyProfile(profile)
+        }
     }
 
     /// Wall-clock of the most recent video sample buffer, for the rig's

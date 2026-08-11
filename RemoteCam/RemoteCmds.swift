@@ -324,6 +324,22 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Director → camera: reconfigure the live preview encoder for tiered
+    /// multicam previews (the focused lane full-size, the rest thumbnails).
+    /// Only sent to `supportsMulticam` peers.
+    public class SetStreamProfile: Message, @unchecked Sendable {
+        public let maxLongEdge: Int
+        public let bitrateKbps: Int
+        public let fps: Int
+
+        public init(maxLongEdge: Int, bitrateKbps: Int, fps: Int, sender: AnyObject? = nil) {
+            self.maxLongEdge = maxLongEdge
+            self.bitrateKbps = bitrateKbps
+            self.fps = fps
+            super.init(sender: sender)
+        }
+    }
+
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
         public let peerId: MCPeerID

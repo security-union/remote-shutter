@@ -53,8 +53,11 @@ enum CommandAction : byte {
     ScheduledStartRecording = 27, // director -> camera: start recording at the fire
                                // instant. Reuses the ScheduledCapture params; acks by
                                // echoing the capture id. Only sent to multicam peers.
-    ScheduledStopRecording = 28   // director -> camera: stop recording at the fire
+    ScheduledStopRecording = 28,  // director -> camera: stop recording at the fire
                                // instant, so clip lengths match across the rig.
+    SetStreamProfile = 29      // director -> camera: reconfigure the live preview
+                               // encoder (resolution/bitrate/fps) for tiered
+                               // multicam previews. Only sent to multicam peers.
 }
 
 // Whether the camera device drives its own on-screen live preview. On is the
@@ -185,6 +188,10 @@ table CommandParameters {
     capture_id: string;
     capture_session_id: string;
     capture_camera_index: int;
+    // SetStreamProfile payload: live preview-encoder reconfiguration.
+    stream_max_long_edge: int;
+    stream_bitrate_kbps: int;
+    stream_fps: int;
 }
 
 // MARK: - Command Structure

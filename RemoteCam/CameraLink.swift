@@ -59,6 +59,10 @@ final class CameraLink {
     /// REC badge.
     var isRecording = false
 
+    /// The preview profile most recently pushed to this camera, so the director
+    /// only re-sends `SetStreamProfile` when the tier actually changes.
+    var lastSentProfile: StreamProfile?
+
     /// This camera's own preview decoder + stall watchdog. Frames tagged with
     /// this peer's id are fed here; its `onImage` drives exactly this lane's
     /// tile, so a frame from another camera never touches it.

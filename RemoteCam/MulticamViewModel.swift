@@ -56,6 +56,8 @@ final class MulticamViewModel: ObservableObject {
     @Published var isRecording: Bool = false
     /// Photo vs video shutter mode.
     @Published var mode: MonitorMode = .photo
+    /// Focus (viewfinder + strip) vs grid (monitor wall) layout.
+    @Published var displayMode: MulticamDisplayMode = .focus
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }

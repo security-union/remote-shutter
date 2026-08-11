@@ -264,9 +264,11 @@ public actor MulticamController {
             if link.status != .failed { link.status = .linked }
             publishLanes()
             // A multicam-capable camera gets an immediate clock probe so its
-            // offset is ready well before the first synced capture (PR4).
+            // offset is ready well before the first synced capture (PR4), and
+            // its preview tier (full if focused, else thumbnail).
             if link.supportsMulticam {
                 sendTo(peer, RemoteCmd.ClockSyncPing(t0Millis: SyncClock.nowMillis()))
+                pushProfile(to: peer)
             }
 
         case let ack as RemoteCmd.ScheduledCaptureAck:
@@ -366,7 +368,30 @@ public actor MulticamController {
     func setFocusedPeer(_ peer: MCPeerID) {
         guard links[peer] != nil else { return }
         focusedPeer = peer
+        // Retier previews: the newly focused camera goes full-size, the rest
+        // (including the one that just lost focus) drop to thumbnail.
+        for p in order { pushProfile(to: p) }
         publishLanes()
+    }
+
+    /// The preview tier a camera should be on: full for the focused lane,
+    /// thumbnail for the rest.
+    private func desiredProfile(for peer: MCPeerID) -> StreamProfile {
+        peer == focusedPeer ? .focused : .thumbnail
+    }
+
+    /// Push a camera its preview profile, but only when it actually changes —
+    /// and only to a multicam-capable peer (an old peer would misread the
+    /// unknown action).
+    private func pushProfile(to peer: MCPeerID) {
+        guard let link = links[peer], link.supportsMulticam else { return }
+        let profile = desiredProfile(for: peer)
+        guard link.lastSentProfile != profile else { return }
+        link.lastSentProfile = profile
+        sendTo(peer, RemoteCmd.SetStreamProfile(
+            maxLongEdge: Int(profile.maxLongEdge),
+            bitrateKbps: Int(profile.bitrateKbps),
+            fps: Int(profile.fps)))
     }
 
     /// Logically remove a camera from the rig. The QUIC session has no

@@ -31,11 +31,63 @@ struct MulticamView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                focusedViewfinder
+                if viewModel.displayMode == .grid {
+                    gridWall
+                } else {
+                    focusedViewfinder
+                    stripOverlay(dock: dock)
+                }
 
-                stripOverlay(dock: dock)
-
+                // The capture cluster stays in both modes; per-camera controls
+                // (the strip) are hidden in grid.
                 shutterOverlay(dock: dock)
+                gridToggle
+            }
+        }
+    }
+
+    /// An equal grid of every camera — the monitor wall. Tap a tile to focus it
+    /// (and return to focus mode).
+    private var gridWall: some View {
+        let count = viewModel.lanes.count
+        let columns = Array(
+            repeating: GridItem(.flexible(), spacing: 4),
+            count: MultiCamChrome.gridColumnCount(cameraCount: count))
+        return LazyVGrid(columns: columns, spacing: 4) {
+            ForEach(viewModel.lanes) { lane in
+                CameraTileView(lane: lane, isThumbnail: true)
+                    .aspectRatio(9.0 / 16.0, contentMode: .fit)
+                    .onTapGesture {
+                        onFocusLane(lane)
+                        viewModel.displayMode = .focus
+                    }
+            }
+        }
+        .padding(8)
+    }
+
+    /// Focus/grid switch, only when there's more than one camera.
+    @ViewBuilder
+    private var gridToggle: some View {
+        if MultiCamChrome.showsGridToggle(cameraCount: viewModel.lanes.count) {
+            VStack {
+                HStack {
+                    Button {
+                        viewModel.displayMode = viewModel.displayMode == .grid ? .focus : .grid
+                    } label: {
+                        Image(systemName: viewModel.displayMode == .grid
+                              ? "rectangle.inset.filled" : "square.grid.2x2.fill")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.black.opacity(0.4))
+                            .clipShape(Circle())
+                    }
+                    .padding(.leading, 12)
+                    .padding(.top, 12)
+                    Spacer()
+                }
+                Spacer()
             }
         }
     }

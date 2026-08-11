@@ -37,8 +37,9 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case scheduledcapture = 26
   case scheduledstartrecording = 27
   case scheduledstoprecording = 28
+  case setstreamprofile = 29
 
-  public static var max: RemoteShutter_CommandAction { return .scheduledstoprecording }
+  public static var max: RemoteShutter_CommandAction { return .setstreamprofile }
   public static var min: RemoteShutter_CommandAction { return .unknown }
 }
 
@@ -341,6 +342,9 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     case captureId = 48
     case captureSessionId = 50
     case captureCameraIndex = 52
+    case streamMaxLongEdge = 54
+    case streamBitrateKbps = 56
+    case streamFps = 58
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -375,7 +379,10 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public var captureSessionId: String? { let o = _accessor.offset(VTOFFSET.captureSessionId.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var captureSessionIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.captureSessionId.v) }
   public var captureCameraIndex: Int32 { let o = _accessor.offset(VTOFFSET.captureCameraIndex.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
-  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 25) }
+  public var streamMaxLongEdge: Int32 { let o = _accessor.offset(VTOFFSET.streamMaxLongEdge.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
+  public var streamBitrateKbps: Int32 { let o = _accessor.offset(VTOFFSET.streamBitrateKbps.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
+  public var streamFps: Int32 { let o = _accessor.offset(VTOFFSET.streamFps.v); return o == 0 ? 0 : _accessor.readBuffer(of: Int32.self, at: o) }
+  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 28) }
   public static func add(sendToRemote: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: sendToRemote, def: false,
    at: VTOFFSET.sendToRemote.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
@@ -402,6 +409,9 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public static func add(captureId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: captureId, at: VTOFFSET.captureId.p) }
   public static func add(captureSessionId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: captureSessionId, at: VTOFFSET.captureSessionId.p) }
   public static func add(captureCameraIndex: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: captureCameraIndex, def: 0, at: VTOFFSET.captureCameraIndex.p) }
+  public static func add(streamMaxLongEdge: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: streamMaxLongEdge, def: 0, at: VTOFFSET.streamMaxLongEdge.p) }
+  public static func add(streamBitrateKbps: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: streamBitrateKbps, def: 0, at: VTOFFSET.streamBitrateKbps.p) }
+  public static func add(streamFps: Int32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: streamFps, def: 0, at: VTOFFSET.streamFps.p) }
   public static func endCommandParameters(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCommandParameters(
     _ fbb: inout FlatBufferBuilder,
@@ -429,7 +439,10 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     captureAnchorMs: UInt64 = 0,
     captureIdOffset captureId: Offset = Offset(),
     captureSessionIdOffset captureSessionId: Offset = Offset(),
-    captureCameraIndex: Int32 = 0
+    captureCameraIndex: Int32 = 0,
+    streamMaxLongEdge: Int32 = 0,
+    streamBitrateKbps: Int32 = 0,
+    streamFps: Int32 = 0
   ) -> Offset {
     let __start = RemoteShutter_CommandParameters.startCommandParameters(&fbb)
     RemoteShutter_CommandParameters.add(sendToRemote: sendToRemote, &fbb)
@@ -457,6 +470,9 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     RemoteShutter_CommandParameters.add(captureId: captureId, &fbb)
     RemoteShutter_CommandParameters.add(captureSessionId: captureSessionId, &fbb)
     RemoteShutter_CommandParameters.add(captureCameraIndex: captureCameraIndex, &fbb)
+    RemoteShutter_CommandParameters.add(streamMaxLongEdge: streamMaxLongEdge, &fbb)
+    RemoteShutter_CommandParameters.add(streamBitrateKbps: streamBitrateKbps, &fbb)
+    RemoteShutter_CommandParameters.add(streamFps: streamFps, &fbb)
     return RemoteShutter_CommandParameters.endCommandParameters(&fbb, start: __start)
   }
 
@@ -487,6 +503,9 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.captureId.p, fieldName: "captureId", required: false, type: ForwardOffset<String>.self)
     try _v.visit(field: VTOFFSET.captureSessionId.p, fieldName: "captureSessionId", required: false, type: ForwardOffset<String>.self)
     try _v.visit(field: VTOFFSET.captureCameraIndex.p, fieldName: "captureCameraIndex", required: false, type: Int32.self)
+    try _v.visit(field: VTOFFSET.streamMaxLongEdge.p, fieldName: "streamMaxLongEdge", required: false, type: Int32.self)
+    try _v.visit(field: VTOFFSET.streamBitrateKbps.p, fieldName: "streamBitrateKbps", required: false, type: Int32.self)
+    try _v.visit(field: VTOFFSET.streamFps.p, fieldName: "streamFps", required: false, type: Int32.self)
     _v.finish()
   }
 }

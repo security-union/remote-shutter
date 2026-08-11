@@ -553,6 +553,10 @@ extension CameraRig: CameraControlling {
         pipeline.pendingSyncMetadata = metadata
     }
 
+    func applyStreamProfile(_ profile: StreamProfile) {
+        streamingCoordinator.applyStreamProfile(profile)
+    }
+
     func updateTimerCountdown(value: Int) {
         OperationQueue.main.addOperation {
             if value > 0 {

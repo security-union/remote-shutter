@@ -37,6 +37,9 @@ protocol CameraControlling: AnyObject, Sendable {
     /// Cleared (nil) for ordinary single-camera recording — never called
     /// there, so that path is byte-identical.
     func setVideoSyncMetadata(_ metadata: CaptureSyncMetadata?)
+    /// Multicam only: retune the live preview encoder (resolution/bitrate/fps)
+    /// for tiered director previews. Never called in a single-camera session.
+    func applyStreamProfile(_ profile: StreamProfile)
 
     func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange)
     /// Sets the focus/exposure point of interest from a monitor tap. `x`/`y` are

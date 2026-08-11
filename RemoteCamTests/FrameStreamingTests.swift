@@ -172,7 +172,7 @@ final class FrameStreamerTests: XCTestCase {
             encoders: stillEncoders,
             creditAvailable: creditAvailable,
             takeKeyframeRequest: takeKeyframeRequest,
-            makeVideoEncoder: { vp9 }
+            makeVideoEncoder: { _ in vp9 }
         ) { [weak self] frame in self?.sentFrames.append(frame) }
     }
 
@@ -183,6 +183,35 @@ final class FrameStreamerTests: XCTestCase {
         streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
         XCTAssertEqual(vp9.encodeCount, 1, "a new camera streams VP9 to every (version-gated) monitor")
         XCTAssertEqual(sentFrames.map(\.codec), [.vp9])
+    }
+
+    /// Multicam: a profile change rebuilds the video encoder (at the new
+    /// resolution) — the same drop-and-rebuild path the failure fallback uses,
+    /// so the next frame comes from a fresh encoder built with the new profile.
+    func testApplyProfileRebuildsTheVideoEncoder() {
+        var built: [StreamProfile] = []
+        var config = StreamingConfig.default
+        config.frameDivisor = 1
+        let streamer = FrameStreamer(
+            config: config,
+            encoders: [FakeEncoder(codec: .heic, result: Data([1]))],
+            makeVideoEncoder: { profile in built.append(profile); return FakeVideoEncoder() }
+        ) { [weak self] frame in self?.sentFrames.append(frame) }
+
+        // First frame builds the encoder at the default (focused-equivalent) profile.
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(built.count, 1)
+
+        // Switch to the thumbnail profile → the next frame rebuilds at 640.
+        streamer.applyProfile(.thumbnail)
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(built.count, 2)
+        XCTAssertEqual(built.last?.maxLongEdge, StreamProfile.thumbnail.maxLongEdge)
+
+        // Re-applying the same profile does not force another rebuild.
+        streamer.applyProfile(.thumbnail)
+        streamer.handle(pixelBuffer: makePixelBuffer(), position: .back, orientation: .portrait, fps: 30)
+        XCTAssertEqual(built.count, 2)
     }
 
     /// Dev-only fallback: when VP9 is unavailable at runtime (factory returns

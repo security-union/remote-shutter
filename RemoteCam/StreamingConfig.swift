@@ -150,3 +150,20 @@ struct StreamingConfig {
 
     static let `default` = StreamingConfig()
 }
+
+/// A live-adjustable preview profile for one multicam lane. The director sends
+/// the focused camera the full profile and the others a smaller thumbnail
+/// profile, so N previews fit the aggregate bandwidth + decode budget. Only the
+/// three levers that matter for that trade-off are here; the encoders keep
+/// their other tuning (quantizers, keyframe interval) from `StreamingConfig`.
+struct StreamProfile: Equatable {
+    var maxLongEdge: CGFloat
+    var bitrateKbps: UInt32
+    var fps: UInt32
+
+    /// The focused lane: today's full peer preview (unchanged from 1:1).
+    static let focused = StreamProfile(maxLongEdge: 1200, bitrateKbps: 1200, fps: 30)
+    /// An unfocused strip/grid tile: smaller and cheaper to decode, so four of
+    /// them stay within ~2.7 Mbps aggregate and a sane VideoToolbox load.
+    static let thumbnail = StreamProfile(maxLongEdge: 640, bitrateKbps: 500, fps: 20)
+}

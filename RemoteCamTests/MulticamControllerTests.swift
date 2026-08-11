@@ -277,6 +277,57 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(fallbackState?.remaining, 2)
     }
 
+    // MARK: - Stream profile tiering
+
+    func testFocusedLaneGetsFullProfileOthersGetThumbnail() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        transport.sentMessages.removeAll()
+
+        // Both cameras report multicam caps; camA is focused (first-in).
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.waitForIdle()
+
+        let profiles = sent(transport, RemoteCmd.SetStreamProfile.self)
+        func profile(_ p: MCPeerID) -> RemoteCmd.SetStreamProfile? {
+            profiles.first { $0.peers == [p] }?.msg as? RemoteCmd.SetStreamProfile
+        }
+        XCTAssertEqual(profile(camA)?.maxLongEdge, Int(StreamProfile.focused.maxLongEdge))
+        XCTAssertEqual(profile(camB)?.maxLongEdge, Int(StreamProfile.thumbnail.maxLongEdge))
+    }
+
+    func testFocusSwitchRetiersBothLanes() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        await controller.setFocusedPeer(camB)
+        await controller.waitForIdle()
+
+        let profiles = sent(transport, RemoteCmd.SetStreamProfile.self)
+        func edge(_ p: MCPeerID) -> Int? {
+            (profiles.first { $0.peers == [p] }?.msg as? RemoteCmd.SetStreamProfile)?.maxLongEdge
+        }
+        // camB becomes full, camA drops to thumbnail — no redundant re-sends.
+        XCTAssertEqual(edge(camB), Int(StreamProfile.focused.maxLongEdge))
+        XCTAssertEqual(edge(camA), Int(StreamProfile.thumbnail.maxLongEdge))
+    }
+
+    func testProfileNotResentWhenUnchanged() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        // Focusing the already-focused camera changes no tier → no profile sends.
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetStreamProfile.self).isEmpty)
+    }
+
     // MARK: - Synced video
 
     func testStartAndStopAnchorsGiveMatchingClipLengths() async {

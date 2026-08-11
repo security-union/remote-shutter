@@ -36,6 +36,7 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.ScheduledStartRecording: return m.toFlatBuffer()
     case let m as RemoteCmd.ScheduledStopRecording: return m.toFlatBuffer()
     case let m as RemoteCmd.ScheduledRecordingAck: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetStreamProfile: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
@@ -833,6 +834,18 @@ extension RemoteCmd.ScheduledStopRecording {
     }
 }
 
+extension RemoteCmd.SetStreamProfile {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb,
+            streamMaxLongEdge: Int32(maxLongEdge),
+            streamBitrateKbps: Int32(bitrateKbps),
+            streamFps: Int32(fps))
+        return buildCommand(&fbb, action: .setstreamprofile, parameters: params)
+    }
+}
+
 extension RemoteCmd.ScheduledRecordingAck {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1235,6 +1248,12 @@ extension RemoteCmd {
                 captureId: params?.captureId ?? "",
                 sessionId: params?.captureSessionId ?? "",
                 cameraIndex: Int(params?.captureCameraIndex ?? 0))
+
+        case .setstreamprofile:
+            return SetStreamProfile(
+                maxLongEdge: Int(params?.streamMaxLongEdge ?? 0),
+                bitrateKbps: Int(params?.streamBitrateKbps ?? 0),
+                fps: Int(params?.streamFps ?? 0))
 
         case .toggleflash:
             return ToggleFlash()
