@@ -17,6 +17,13 @@ struct DeviceScannerView: View {
     /// Multicam only: begin a director session with the cameras collected so
     /// far. Nil in the single-camera build (flag off), where it never shows.
     var onStartMulticam: (() -> Void)? = nil
+    /// Multicam only: select every discovered camera up to the tier cap.
+    var onConnectAll: (() -> Void)? = nil
+
+    /// The scanner is in multicam edit-mode selection (monitor role, flag on).
+    private var isMulticamScanner: Bool {
+        FeatureFlags.ENABLE_MULTICAM && viewModel.role == .monitor
+    }
 
     /// Peer-link state; the reconnect overlay is a function of it.
     @ObservedObject var peerLink: PeerLinkStatus = .shared
@@ -73,37 +80,13 @@ struct DeviceScannerView: View {
                 statusBadge
                     .padding(.top, 8)
 
+                if isMulticamScanner { connectAllRow }
+
                 ForEach(viewModel.connectedPeers, id: \.self) { peer in
                     Button {
                         onSelectPeer(peer)
                     } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: "iphone.radiowaves.left.and.right")
-                                .font(.title3)
-                                .foregroundColor(AppTheme.accent)
-                                .frame(width: 40, height: 40)
-                                .background(AppTheme.accentSubtle)
-                                .clipShape(Circle())
-
-                            Text(peer.displayName)
-                                .font(.body)
-                                .fontWeight(.medium)
-                                .foregroundColor(.primary)
-
-                            Spacer()
-
-                            Text(NSLocalizedString("Connect", comment: ""))
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(AppTheme.accent)
-                        }
-                        .padding(14)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .strokeBorder(AppTheme.glassBorder, lineWidth: 0.5)
-                        )
+                        peerRow(peer)
                     }
                     .buttonStyle(GlassPressStyle())
                 }
@@ -112,7 +95,116 @@ struct DeviceScannerView: View {
                     .padding(.top, 8)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 40)
+            .padding(.bottom, isMulticamScanner ? 100 : 40) // room for Start (N)
+        }
+    }
+
+    /// One discovered-camera row. In multicam it carries a leading selection
+    /// circle (Apple edit-mode idiom); otherwise it keeps the classic
+    /// icon + "Connect" affordance.
+    private func peerRow(_ peer: MCPeerID) -> some View {
+        HStack(spacing: 14) {
+            if isMulticamScanner {
+                multicamSelectionCircle(peer)
+            } else {
+                Image(systemName: "iphone.radiowaves.left.and.right")
+                    .font(.title3)
+                    .foregroundColor(AppTheme.accent)
+                    .frame(width: 40, height: 40)
+                    .background(AppTheme.accentSubtle)
+                    .clipShape(Circle())
+            }
+
+            Text(peer.displayName)
+                .font(.body)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+
+            Spacer()
+
+            peerRowTrailing(peer)
+        }
+        .padding(14)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(rowBorderColor(peer), lineWidth: rowBorderWidth(peer))
+        )
+    }
+
+    /// The edit-mode leading circle: empty → spinner → filled check.
+    @ViewBuilder
+    private func multicamSelectionCircle(_ peer: MCPeerID) -> some View {
+        switch viewModel.multicamRowState(peer) {
+        case .selected:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title2)
+                .foregroundColor(AppTheme.accent)
+                .frame(width: 40, height: 40)
+        case .connecting:
+            ProgressView()
+                .frame(width: 40, height: 40)
+        case .unselected:
+            Image(systemName: "circle")
+                .font(.title2)
+                .foregroundColor(.secondary)
+                .frame(width: 40, height: 40)
+        }
+    }
+
+    @ViewBuilder
+    private func peerRowTrailing(_ peer: MCPeerID) -> some View {
+        if isMulticamScanner {
+            // At the cap, an unselected row shows a lock: tapping it opens the
+            // paywall (handled by the host).
+            if viewModel.multicamRowState(peer) == .unselected
+                && viewModel.multicamCollectedCount >= StoreManager.shared.maxCameras() {
+                Image(systemName: "lock.fill")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        } else {
+            Text(NSLocalizedString("Connect", comment: ""))
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(AppTheme.accent)
+        }
+    }
+
+    private func rowBorderColor(_ peer: MCPeerID) -> Color {
+        isMulticamScanner && viewModel.multicamRowState(peer) == .selected
+            ? AppTheme.accent : AppTheme.glassBorder
+    }
+
+    private func rowBorderWidth(_ peer: MCPeerID) -> CGFloat {
+        isMulticamScanner && viewModel.multicamRowState(peer) == .selected ? 2 : 0.5
+    }
+
+    /// "Connect All" — invites every discovered, not-yet-selected camera up to
+    /// the cap. Hidden once everything discovered is already selected.
+    @ViewBuilder
+    private var connectAllRow: some View {
+        let unselectedCount = viewModel.connectedPeers.filter {
+            viewModel.multicamRowState($0) == .unselected
+        }.count
+        if unselectedCount > 0 {
+            Button {
+                onConnectAll?()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.badge.questionmark")
+                        .font(.title3)
+                    Text(NSLocalizedString("Connect All", comment: "select every discovered camera"))
+                        .fontWeight(.semibold)
+                    Spacer()
+                }
+                .foregroundColor(AppTheme.accent)
+                .padding(14)
+                .background(AppTheme.accentSubtle)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+            .buttonStyle(GlassPressStyle())
         }
     }
 

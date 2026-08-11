@@ -179,16 +179,12 @@ public class DeviceScannerViewController: UIViewController {
             },
             onSelectPeer: { [weak self] peer in
                 guard let self = self else { return }
-                // Multicam collecting: block a connection past the tier cap and
-                // route to the paywall instead. (Non-multicam is unaffected —
-                // the count stays 0.)
-                if FeatureFlags.ENABLE_MULTICAM && self.role == .monitor
-                    && self.scannerViewModel.multicamCollectedCount >= StoreManager.shared.maxCameras() {
-                    self.presentMulticamPaywall()
-                    return
+                if FeatureFlags.ENABLE_MULTICAM && self.role == .monitor {
+                    self.handleMulticamRowTap(peer)
+                } else {
+                    self.remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
+                    self.scannerViewModel.connectingToPeer()
                 }
-                self.remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
-                self.scannerViewModel.connectingToPeer()
             },
             onCancelConnect: { [weak self] in
                 self?.remoteCamSession ! UICmd.CancelConnect(sender: nil)
@@ -204,6 +200,9 @@ public class DeviceScannerViewController: UIViewController {
             },
             onStartMulticam: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
                 ? { [weak self] in self?.startMulticamSession() }
+                : nil,
+            onConnectAll: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
+                ? { [weak self] in self?.handleConnectAll() }
                 : nil
         )
 
@@ -370,6 +369,38 @@ public class DeviceScannerViewController: UIViewController {
         }
     }
 
+    /// A tap on a discovered-camera row in multicam collecting mode. Toggling
+    /// off (deselect) is always allowed; toggling on is blocked past the tier
+    /// cap and routed to the paywall.
+    private func handleMulticamRowTap(_ peer: MCPeerID) {
+        let vm = scannerViewModel
+        switch vm.multicamRowState(peer) {
+        case .selected:
+            remoteCamSession ! UICmd.ToggleMulticamCamera(peer: peer)
+        case .connecting:
+            break // already in flight; ignore repeat taps
+        case .unselected:
+            guard vm.multicamCollectedCount + vm.multicamConnectingPeers.count
+                    < StoreManager.shared.maxCameras() else {
+                presentMulticamPaywall()
+                return
+            }
+            vm.multicamConnectingPeers.insert(peer)
+            remoteCamSession ! UICmd.ToggleMulticamCamera(peer: peer)
+        }
+    }
+
+    /// "Connect All": select every discovered, not-yet-selected camera up to
+    /// the cap. Over-cap rows keep their lock affordance (handled by per-row
+    /// taps routing to the paywall).
+    private func handleConnectAll() {
+        let vm = scannerViewModel
+        for peer in vm.peersToConnectAll(maxCameras: StoreManager.shared.maxCameras()) {
+            vm.multicamConnectingPeers.insert(peer)
+            remoteCamSession ! UICmd.ToggleMulticamCamera(peer: peer)
+        }
+    }
+
     /// The shared Settings/paywall sheet — the same one the monitor gates use.
     private func presentMulticamPaywall() {
         let ctrl = UIHostingController(rootView: SettingsView())
@@ -423,9 +454,10 @@ extension DeviceScannerViewController: ScannerLobby {
         navigationController?.popToViewController(self, animated: true)
     }
 
-    /// Multicam collecting: surface the running count so "Start (N)" appears.
+    /// Multicam collecting: reconcile the per-row selection + the "Start (N)"
+    /// count from the coordinator's effective set.
     func didCollectMulticamCameras(_ peers: [MCPeerID]) {
-        scannerViewModel.multicamCollectedCount = peers.count
+        scannerViewModel.updateMulticamSelection(peers)
     }
 
     func presentScanningError() {

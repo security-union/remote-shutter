@@ -56,6 +56,42 @@ final class DeviceScannerViewModel: ObservableObject {
     /// Multicam director collecting: how many cameras are connected so far.
     /// Drives the "Start (N)" affordance; stays 0 in the single-camera build.
     @Published var multicamCollectedCount: Int = 0
+    /// The cameras currently in the rig (selected), for the per-row checkmark.
+    @Published var multicamSelectedPeers: Set<MCPeerID> = []
+    /// Cameras whose invite is in flight, for the per-row spinner (a set so
+    /// "Connect All" can show several at once).
+    @Published var multicamConnectingPeers: Set<MCPeerID> = []
+
+    /// Reconcile the multicam selection from the coordinator's effective set:
+    /// updates the checkmarks and count, and clears the spinner for any camera
+    /// that has now joined.
+    func updateMulticamSelection(_ peers: [MCPeerID]) {
+        multicamSelectedPeers = Set(peers)
+        multicamCollectedCount = peers.count
+        multicamConnectingPeers.subtract(multicamSelectedPeers)
+    }
+
+    /// Row selection state for the edit-mode circle.
+    enum MulticamRowState { case unselected, connecting, selected }
+    func multicamRowState(_ peer: MCPeerID) -> MulticamRowState {
+        if multicamSelectedPeers.contains(peer) { return .selected }
+        if multicamConnectingPeers.contains(peer) { return .connecting }
+        return .unselected
+    }
+
+    /// The discovered cameras "Connect All" should invite: every unselected
+    /// one, in list order, up to the remaining room under `maxCameras` (already
+    /// selected and in-flight cameras count against it).
+    func peersToConnectAll(maxCameras: Int) -> [MCPeerID] {
+        var pending = multicamSelectedPeers.count + multicamConnectingPeers.count
+        var result: [MCPeerID] = []
+        for peer in connectedPeers where multicamRowState(peer) == .unselected {
+            guard pending < maxCameras else { break }
+            result.append(peer)
+            pending += 1
+        }
+        return result
+    }
 
     /// When the current scan began. Not @Published: the view samples it on a
     /// TimelineView clock, so publishing would only cause redundant redraws.

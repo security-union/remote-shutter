@@ -510,6 +510,49 @@ final class LocalNetworkProbeTests: XCTestCase {
         XCTAssertEqual(LocalNetworkProbe.verdict(for: .ready), .proceed)
     }
 
+    // MARK: - Multicam edit-mode selection
+
+    func testMulticamRowStateTransitions() {
+        let vm = DeviceScannerViewModel()
+        let a = MCPeerID(displayName: "A")
+        XCTAssertEqual(vm.multicamRowState(a), .unselected)
+
+        vm.multicamConnectingPeers.insert(a)
+        XCTAssertEqual(vm.multicamRowState(a), .connecting)
+
+        // The coordinator reports A joined → checkmark, spinner cleared.
+        vm.updateMulticamSelection([a])
+        XCTAssertEqual(vm.multicamRowState(a), .selected)
+        XCTAssertTrue(vm.multicamConnectingPeers.isEmpty)
+        XCTAssertEqual(vm.multicamCollectedCount, 1)
+
+        // Deselect round-trip: the coordinator reports the effective set shrank.
+        vm.updateMulticamSelection([])
+        XCTAssertEqual(vm.multicamRowState(a), .unselected)
+        XCTAssertEqual(vm.multicamCollectedCount, 0)
+    }
+
+    func testConnectAllRespectsTheCap() {
+        let vm = DeviceScannerViewModel()
+        let peers = (1...5).map { MCPeerID(displayName: "Cam\($0)") }
+        peers.forEach { vm.addPeer($0) }
+
+        // Free tier (cap 2), nothing selected yet → invite the first two only.
+        XCTAssertEqual(vm.peersToConnectAll(maxCameras: 2), Array(peers.prefix(2)))
+
+        // One already selected → only one more slot.
+        vm.updateMulticamSelection([peers[0]])
+        XCTAssertEqual(vm.peersToConnectAll(maxCameras: 2), [peers[1]])
+
+        // Pro tier (cap 4) with one selected → three more.
+        XCTAssertEqual(vm.peersToConnectAll(maxCameras: 4), Array(peers[1...3]))
+
+        // In-flight cameras also count against the cap.
+        vm.multicamConnectingPeers.insert(peers[1])
+        XCTAssertEqual(vm.peersToConnectAll(maxCameras: 2), [],
+                       "one selected + one connecting fills the free cap")
+    }
+
     func testStatesWithNoEvidenceKeepWaiting() {
         XCTAssertEqual(LocalNetworkProbe.verdict(for: .setup), .keepWaiting)
         XCTAssertEqual(LocalNetworkProbe.verdict(for: .cancelled), .keepWaiting)

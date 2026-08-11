@@ -577,4 +577,17 @@ extension UICmd {
             super.init(sender: nil)
         }
     }
+
+    /// Multicam collecting: the user tapped a discovered-camera row. The
+    /// coordinator toggles that peer's membership in the rig — invite a fresh
+    /// peer, re-select a deselected-but-connected one, or deselect a selected
+    /// one (logical, since the QUIC session has no per-peer teardown). The cap
+    /// is enforced by the scanner before an increasing toggle is sent.
+    public class ToggleMulticamCamera: Message, @unchecked Sendable {
+        let peer: MCPeerID
+        init(peer: MCPeerID) {
+            self.peer = peer
+            super.init(sender: nil)
+        }
+    }
 }
