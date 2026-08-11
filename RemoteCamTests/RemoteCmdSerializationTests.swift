@@ -1182,4 +1182,20 @@ extension RemoteCmdSerializationTests {
         XCTAssertFalse(result.supportsPreviewMode)
         XCTAssertEqual(result.previewMode, .on)
     }
+
+    /// The multicam capability survives the wire, and a peer that predates it
+    /// (absent field) decodes as not-multicam-capable.
+    func testCapabilitiesCarryMulticamSupport() {
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true, error: nil)
+        XCTAssertTrue(roundTrip(caps).supportsMulticam)
+
+        let legacy = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            error: nil)
+        XCTAssertFalse(roundTrip(legacy).supportsMulticam)
+    }
 }

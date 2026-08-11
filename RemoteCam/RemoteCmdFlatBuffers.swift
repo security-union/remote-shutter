@@ -418,7 +418,8 @@ private func encodeCapabilitiesEnvelope(
         cameraDevicesVectorOffset: devicesVector,
         activeDeviceIdOffset: activeIDOffset,
         supportsFocusPoint: c.supportsFocusPoint,
-        supportsPreviewMode: c.supportsPreviewMode)
+        supportsPreviewMode: c.supportsPreviewMode,
+        supportsMulticam: c.supportsMulticam)
 
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
@@ -1303,6 +1304,7 @@ extension RemoteCmd {
             activeDeviceID: activeDeviceID,
             supportsFocusPoint: caps?.supportsFocusPoint ?? false,
             supportsPreviewMode: caps?.supportsPreviewMode ?? false,
+            supportsMulticam: caps?.supportsMulticam ?? false,
             previewMode: state.map { fromFBPreviewMode($0.previewMode) } ?? .on,
             error: error
         )

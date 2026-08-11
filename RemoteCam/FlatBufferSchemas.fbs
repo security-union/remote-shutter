@@ -257,6 +257,11 @@ table CameraCapabilities {
     // not send SetCameraPreviewMode to such a peer (old decoders read the
     // unknown action as its enum default).
     supports_preview_mode: bool;
+    // False/absent = peer cannot join a multicam director session; a director
+    // must not send scheduled-capture or stream-profile commands to such a
+    // peer (they would be decoded as Unknown and dropped, silently desyncing
+    // the rig).
+    supports_multicam: bool;
 }
 
 // MARK: - Response Structure

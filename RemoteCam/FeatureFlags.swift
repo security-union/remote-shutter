@@ -31,6 +31,12 @@ struct FeatureFlags {
     /// one-time buy, and the entitlement code stays in place for when it flips on.
     static let ENABLE_PRO_SUBSCRIPTION = false
 
+    /// Multicam director mode: one monitor controlling several cameras with
+    /// synced capture. Off until the feature ships (target 9.1.0); while off,
+    /// cameras advertise `supports_multicam=false` and the scanner keeps its
+    /// single-camera flow.
+    static let ENABLE_MULTICAM = false
+
     /// Show the local camera-device picker on the camera screen. On for Mac
     /// Catalyst only (a Mac has N cameras — built-in, Continuity, USB);
     /// iPhone keeps its flip button.

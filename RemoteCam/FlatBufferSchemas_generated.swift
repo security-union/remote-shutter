@@ -1011,6 +1011,7 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     case activeDeviceId = 10
     case supportsFocusPoint = 12
     case supportsPreviewMode = 14
+    case supportsMulticam = 16
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1024,7 +1025,8 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
   public var activeDeviceIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.activeDeviceId.v) }
   public var supportsFocusPoint: Bool { let o = _accessor.offset(VTOFFSET.supportsFocusPoint.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
   public var supportsPreviewMode: Bool { let o = _accessor.offset(VTOFFSET.supportsPreviewMode.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
-  public static func startCameraCapabilities(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 6) }
+  public var supportsMulticam: Bool { let o = _accessor.offset(VTOFFSET.supportsMulticam.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public static func startCameraCapabilities(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 7) }
   public static func add(frontCamera: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: frontCamera, at: VTOFFSET.frontCamera.p) }
   public static func add(backCamera: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: backCamera, at: VTOFFSET.backCamera.p) }
   public static func addVectorOf(cameraDevices: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: cameraDevices, at: VTOFFSET.cameraDevices.p) }
@@ -1033,6 +1035,8 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
    at: VTOFFSET.supportsFocusPoint.p) }
   public static func add(supportsPreviewMode: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsPreviewMode, def: false,
    at: VTOFFSET.supportsPreviewMode.p) }
+  public static func add(supportsMulticam: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsMulticam, def: false,
+   at: VTOFFSET.supportsMulticam.p) }
   public static func endCameraCapabilities(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraCapabilities(
     _ fbb: inout FlatBufferBuilder,
@@ -1041,7 +1045,8 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     cameraDevicesVectorOffset cameraDevices: Offset = Offset(),
     activeDeviceIdOffset activeDeviceId: Offset = Offset(),
     supportsFocusPoint: Bool = false,
-    supportsPreviewMode: Bool = false
+    supportsPreviewMode: Bool = false,
+    supportsMulticam: Bool = false
   ) -> Offset {
     let __start = RemoteShutter_CameraCapabilities.startCameraCapabilities(&fbb)
     RemoteShutter_CameraCapabilities.add(frontCamera: frontCamera, &fbb)
@@ -1050,6 +1055,7 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     RemoteShutter_CameraCapabilities.add(activeDeviceId: activeDeviceId, &fbb)
     RemoteShutter_CameraCapabilities.add(supportsFocusPoint: supportsFocusPoint, &fbb)
     RemoteShutter_CameraCapabilities.add(supportsPreviewMode: supportsPreviewMode, &fbb)
+    RemoteShutter_CameraCapabilities.add(supportsMulticam: supportsMulticam, &fbb)
     return RemoteShutter_CameraCapabilities.endCameraCapabilities(&fbb, start: __start)
   }
 
@@ -1061,6 +1067,7 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.activeDeviceId.p, fieldName: "activeDeviceId", required: false, type: ForwardOffset<String>.self)
     try _v.visit(field: VTOFFSET.supportsFocusPoint.p, fieldName: "supportsFocusPoint", required: false, type: Bool.self)
     try _v.visit(field: VTOFFSET.supportsPreviewMode.p, fieldName: "supportsPreviewMode", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.supportsMulticam.p, fieldName: "supportsMulticam", required: false, type: Bool.self)
     _v.finish()
   }
 }

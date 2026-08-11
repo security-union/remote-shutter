@@ -410,6 +410,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// `RemoteCmd.SetCameraPreviewMode`. The monitor's standby gate reads
         /// this so it never sends the command to a peer that would misread it.
         public let supportsPreviewMode: Bool
+        /// True when this peer's build can join a multicam director session
+        /// (scheduled capture, stream profiles). A director must not send
+        /// multicam commands to a peer that doesn't advertise this.
+        public let supportsMulticam: Bool
         /// The camera's current local-preview mode, so the monitor can reflect
         /// it from the first capabilities exchange.
         public let previewMode: CameraPreviewMode
@@ -426,6 +430,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    activeDeviceID: String? = nil,
                    supportsFocusPoint: Bool = false,
                    supportsPreviewMode: Bool = false,
+                   supportsMulticam: Bool = false,
                    previewMode: CameraPreviewMode = .on,
                    error: Error?) {
             self.frontCamera = frontCamera
@@ -441,6 +446,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.activeDeviceID = activeDeviceID
             self.supportsFocusPoint = supportsFocusPoint
             self.supportsPreviewMode = supportsPreviewMode
+            self.supportsMulticam = supportsMulticam
             self.previewMode = previewMode
             self.error = error
             super.init(sender: nil)
