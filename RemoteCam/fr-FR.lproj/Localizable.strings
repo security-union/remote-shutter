@@ -255,7 +255,6 @@
 "IncompatibleUpdateButton" = "Mettre à jour";
 
 // Multicam director (behind ENABLE_MULTICAM)
-"Start (%d)" = "Démarrer (%d)";
 "Add camera" = "Ajouter une caméra";
 "Add" = "Ajouter";
 "Searching for cameras…" = "Recherche de caméras…";
@@ -263,4 +262,5 @@
 "Control one or more iPhone cameras" = "Contrôlez une ou plusieurs caméras iPhone";
 "Direct up to 4 cameras at once" = "Dirigez jusqu'à 4 caméras à la fois";
 "RECONNECTING" = "RECONNEXION";
-"Connect All" = "Tout connecter";
+"Connect (%d)" = "Connecter (%d)";
+"Select All" = "Tout sélectionner";

@@ -240,7 +240,6 @@
 "IncompatibleUpdateButton" = "Opdater";
 
 // Multicam director (behind ENABLE_MULTICAM)
-"Start (%d)" = "Start (%d)";
 "Add camera" = "Tilføj kamera";
 "Add" = "Tilføj";
 "Searching for cameras…" = "Søger efter kameraer …";
@@ -248,4 +247,5 @@
 "Control one or more iPhone cameras" = "Styr et eller flere iPhone-kameraer";
 "Direct up to 4 cameras at once" = "Instruér op til 4 kameraer på én gang";
 "RECONNECTING" = "GENOPRETTER FORBINDELSE";
-"Connect All" = "Forbind alle";
+"Connect (%d)" = "Forbind (%d)";
+"Select All" = "Vælg alle";

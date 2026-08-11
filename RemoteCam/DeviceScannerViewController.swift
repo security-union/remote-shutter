@@ -198,11 +198,11 @@ public class DeviceScannerViewController: UIViewController {
             onHelp: { [weak self] in
                 self?.showHelpModal()
             },
-            onStartMulticam: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
-                ? { [weak self] in self?.startMulticamSession() }
+            onSelectAll: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
+                ? { [weak self] in self?.handleSelectAll() }
                 : nil,
-            onConnectAll: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
-                ? { [weak self] in self?.handleConnectAll() }
+            onConnectSelected: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
+                ? { [weak self] in self?.handleConnectSelected() }
                 : nil
         )
 
@@ -349,56 +349,63 @@ public class DeviceScannerViewController: UIViewController {
     /// Multicam "Start (N)": one camera runs the classic 1:1 monitor
     /// (unchanged); two or more hands the live transport to a
     /// `MulticamController` and pushes the director screen.
-    private func startMulticamSession() {
-        Task { @MainActor in
-            // Two or more cameras: hand the live transport to a director.
-            if let handoff = await remoteCamSession.detachTransportForMulticam() {
-                let controller = MulticamController()
-                await controller.install(transport: handoff.transport,
-                                         initialPeers: handoff.peers,
-                                         mode: .photo)
-                let directorVC = MulticamViewController(controller: controller)
-                navigationController?.pushViewController(directorVC, animated: true)
-                return
-            }
-            // Exactly one camera: promote it to a normal session and run the
-            // classic 1:1 monitor, unchanged.
-            if await remoteCamSession.promoteSingleCollectedToConnected() {
-                goToRole()
-            }
-        }
-    }
-
-    /// A tap on a discovered-camera row in multicam collecting mode. Toggling
-    /// off (deselect) is always allowed; toggling on is blocked past the tier
-    /// cap and routed to the paywall.
+    /// A tap on a discovered-camera row while SELECTING. Pure — it toggles the
+    /// checkmark and fires zero network. An over-cap unselected row is locked
+    /// and routes to the paywall instead.
     private func handleMulticamRowTap(_ peer: MCPeerID) {
         let vm = scannerViewModel
-        switch vm.multicamRowState(peer) {
-        case .selected:
-            remoteCamSession ! UICmd.ToggleMulticamCamera(peer: peer)
-        case .connecting:
-            break // already in flight; ignore repeat taps
-        case .unselected:
-            guard vm.multicamCollectedCount + vm.multicamConnectingPeers.count
-                    < StoreManager.shared.maxCameras() else {
-                presentMulticamPaywall()
-                return
-            }
-            vm.multicamConnectingPeers.insert(peer)
-            remoteCamSession ! UICmd.ToggleMulticamCamera(peer: peer)
+        if vm.multicamRowLocked(peer, maxCameras: StoreManager.shared.maxCameras()) {
+            presentMulticamPaywall()
+            return
+        }
+        vm.toggleMulticamSelection(peer)
+    }
+
+    /// "Select All": pick every discovered camera up to the cap. Pure.
+    private func handleSelectAll() {
+        scannerViewModel.selectAllMulticam(maxCameras: StoreManager.shared.maxCameras())
+    }
+
+    /// "Connect (N)": leave selecting, fire an invite per selected camera, and
+    /// hand off once every invite has settled.
+    private func handleConnectSelected() {
+        let peers = scannerViewModel.beginMulticamConnecting()
+        guard !peers.isEmpty else { return }
+        for peer in peers {
+            remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
         }
     }
 
-    /// "Connect All": select every discovered, not-yet-selected camera up to
-    /// the cap. Over-cap rows keep their lock affordance (handled by per-row
-    /// taps routing to the paywall).
-    private func handleConnectAll() {
+    /// Every selected camera has connected or failed. Hand off to the right
+    /// screen, or fall back to the scanner if none connected.
+    private func finishMulticamConnectIfSettled() {
         let vm = scannerViewModel
-        for peer in vm.peersToConnectAll(maxCameras: StoreManager.shared.maxCameras()) {
-            vm.multicamConnectingPeers.insert(peer)
-            remoteCamSession ! UICmd.ToggleMulticamCamera(peer: peer)
+        guard vm.multicamConnectSettled else { return }
+        let connected = vm.multicamConnectedPeers
+        switch MulticamHandoff.decide(
+            connected: connectedPeersInSelectionOrder(connected)) {
+        case .none:
+            vm.resetMulticamToSelecting()
+            presentScanningError()
+        case .classicMonitor:
+            Task { @MainActor in
+                if await remoteCamSession.promoteSingleCollectedToConnected() { goToRole() }
+            }
+        case .director:
+            Task { @MainActor in
+                guard let handoff = await remoteCamSession.detachTransportForMulticam() else { return }
+                let controller = MulticamController()
+                await controller.install(transport: handoff.transport,
+                                         initialPeers: handoff.peers, mode: .photo)
+                let directorVC = MulticamViewController(controller: controller)
+                navigationController?.pushViewController(directorVC, animated: true)
+            }
         }
+    }
+
+    /// The connected cameras in discovered-list order (stable handoff order).
+    private func connectedPeersInSelectionOrder(_ connected: Set<MCPeerID>) -> [MCPeerID] {
+        scannerViewModel.connectedPeers.filter { connected.contains($0) }
     }
 
     /// The shared Settings/paywall sheet — the same one the monitor gates use.
@@ -457,7 +464,13 @@ extension DeviceScannerViewController: ScannerLobby {
     /// Multicam collecting: reconcile the per-row selection + the "Start (N)"
     /// count from the coordinator's effective set.
     func didCollectMulticamCameras(_ peers: [MCPeerID]) {
-        scannerViewModel.updateMulticamSelection(peers)
+        scannerViewModel.reconcileMulticamConnected(peers)
+        finishMulticamConnectIfSettled()
+    }
+
+    func didFailMulticamCamera(_ peer: MCPeerID) {
+        scannerViewModel.markMulticamFailed(peer)
+        finishMulticamConnectIfSettled()
     }
 
     func presentScanningError() {

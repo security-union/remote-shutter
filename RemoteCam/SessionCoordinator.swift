@@ -273,24 +273,14 @@ public actor SessionCoordinator {
     /// monitor; the scanner reads `multicamCollectedPeers` on "Start".
     private var multicamCollecting = false
     private var multicamCollectedPeers: [MCPeerID] = []
-    /// Cameras the user has tapped to remove from the rig while collecting.
-    /// Logical only — the transport keeps the connection (no per-peer teardown)
-    /// — so a deselected peer is simply excluded from the effective set the
-    /// count, handoff and scanner all read.
-    private var multicamDeselectedPeers: Set<MCPeerID> = []
-
-    /// The cameras actually in the rig: connected, tracked, and not deselected.
-    private func effectiveMulticamPeers() -> [MCPeerID] {
-        let connected = Set(connectedPeers)
-        return multicamCollectedPeers.filter {
-            connected.contains($0) && !multicamDeselectedPeers.contains($0)
-        }
-    }
+    /// Per-peer invite attempts during a multicam "Connect (N)" — the scanner
+    /// invites the whole selected set at once, so retry/timeout is tracked per
+    /// camera rather than through the single-peer `link`.
+    private var multicamInviteAttempts: [MCPeerID: Int] = [:]
 
     /// Test support.
     func multicamCollectingForTesting() -> Bool { multicamCollecting }
     func multicamCollectedPeersForTesting() -> [MCPeerID] { multicamCollectedPeers }
-    func effectiveMulticamPeersForTesting() -> [MCPeerID] { effectiveMulticamPeers() }
 
     /// Test support.
     func monitorReceivedVP9FrameForTesting() -> Bool { monitorReceivedVP9Frame }
@@ -367,7 +357,7 @@ public actor SessionCoordinator {
 
     /// How many cameras the collecting scanner has connected. The scanner
     /// reads this on "Start" to choose the single-camera vs director path.
-    func multicamConnectedCount() -> Int { multicamCollecting ? effectiveMulticamPeers().count : 0 }
+    func multicamConnectedCount() -> Int { multicamCollecting ? connectedPeers.count : 0 }
 
     /// Hand the live transport (and the ≥2 cameras it is connected to) to a
     /// `MulticamController`. Detaches this coordinator from the transport —
@@ -378,13 +368,13 @@ public actor SessionCoordinator {
     /// camera case stays on the classic monitor — see below).
     func detachTransportForMulticam() -> (transport: any MultipeerServiceProtocol, peers: [MCPeerID])? {
         guard multicamCollecting, let transport = multipeerService else { return nil }
-        let peers = effectiveMulticamPeers()
+        let peers = transport.connectedPeers
         guard peers.count >= 2 else { return nil }
         multipeerService = nil
         transportShared.value = nil
         multicamCollecting = false
         multicamCollectedPeers = []
-        multicamDeselectedPeers = []
+        multicamInviteAttempts = [:]
         return (transport, peers)
     }
 
@@ -393,12 +383,11 @@ public actor SessionCoordinator {
     /// path runs exactly as it does without the flag. Returns false (leaving
     /// the scanner as-is) unless collecting with exactly one camera.
     func promoteSingleCollectedToConnected() async -> Bool {
-        let effective = effectiveMulticamPeers()
-        guard multicamCollecting, effective.count == 1,
-              let peer = effective.first, let liveLobby = lobby?.value else { return false }
+        guard multicamCollecting, connectedPeers.count == 1,
+              let peer = connectedPeers.first, let liveLobby = lobby?.value else { return false }
         multicamCollecting = false
         multicamCollectedPeers = []
-        multicamDeselectedPeers = []
+        multicamInviteAttempts = [:]
         link = .linked(peer)
         OperationQueue.main.addOperation {
             liveLobby.scannerViewModel.connectedToPeer()
@@ -771,6 +760,14 @@ public actor SessionCoordinator {
             startScanning(lobby: liveLobby)
 
         case let connect as ConnectToDevice:
+            if multicamCollecting {
+                // "Connect (N)" fires an invite per selected camera; each is
+                // tracked independently (retry/timeout per peer) rather than
+                // through the single-peer `link`.
+                multicamInviteAttempts[connect.peer] = 1
+                multipeerService?.invitePeer(connect.peer, timeout: inviteTimeout)
+                break
+            }
             link = .inviting(connect.peer, attempt: 1)
             multipeerService?.invitePeer(connect.peer, timeout: inviteTimeout)
             OperationQueue.main.addOperation {
@@ -778,6 +775,22 @@ public actor SessionCoordinator {
             }
 
         case let disconnected as DisconnectPeer:
+            if multicamCollecting, let peer = disconnected.peer,
+               let attempt = multicamInviteAttempts[peer] {
+                // A selected camera's invite dropped/timed out — retry once,
+                // then report it failed so the scanner can proceed with the
+                // cameras that did connect.
+                if attempt < maxConnectAttempts {
+                    multicamInviteAttempts[peer] = attempt + 1
+                    multipeerService?.invitePeer(peer, timeout: inviteTimeout)
+                } else {
+                    multicamInviteAttempts[peer] = nil
+                    OperationQueue.main.addOperation {
+                        liveLobby.didFailMulticamCamera(peer)
+                    }
+                }
+                break
+            }
             guard let invited = link.invited, invited.peer == disconnected.peer else {
                 startScanning(lobby: liveLobby)
                 break
@@ -808,43 +821,17 @@ public actor SessionCoordinator {
             // The machine popped its own way back here; nothing to end.
             break
 
-        case let toggle as UICmd.ToggleMulticamCamera:
-            guard multicamCollecting else { break }
-            let peer = toggle.peer
-            if effectiveMulticamPeers().contains(peer) {
-                // Selected → deselect (logical: the transport stays connected).
-                multicamDeselectedPeers.insert(peer)
-            } else if connectedPeers.contains(peer) {
-                // A deselected-but-still-connected camera → re-select instantly.
-                multicamDeselectedPeers.remove(peer)
-                if !multicamCollectedPeers.contains(peer) { multicamCollectedPeers.append(peer) }
-            } else {
-                // A fresh camera → invite it, exactly like a single-select tap.
-                multicamDeselectedPeers.remove(peer)
-                link = .inviting(peer, attempt: 1)
-                multipeerService?.invitePeer(peer, timeout: inviteTimeout)
-                OperationQueue.main.addOperation {
-                    liveLobby.scannerViewModel.connectingToPeer()
-                }
-            }
-            let toggled = effectiveMulticamPeers()
-            OperationQueue.main.addOperation {
-                liveLobby.didCollectMulticamCameras(toggled)
-            }
-
         case let connected as OnConnectToDevice:
             if multicamCollecting {
-                // Accumulate and stay scanning: the director wants several
-                // cameras, so keep browsing/inviting and let the scanner show a
-                // growing set. The transport holds every connection; the handoff
-                // reads them on "Start". No transition to `.connected` (which
-                // would stop browsing and auto-advance).
+                // A selected camera established. Accumulate and stay scanning
+                // (no transition to `.connected`, which would stop browsing);
+                // report the full connected set so the scanner advances the
+                // row to "connected" and, once every invite settles, hands off.
+                multicamInviteAttempts[connected.peer] = nil
                 if !multicamCollectedPeers.contains(connected.peer) {
                     multicamCollectedPeers.append(connected.peer)
                 }
-                multicamDeselectedPeers.remove(connected.peer) // a (re)connect selects
-                link = .none // free the invite slot so the next camera can dial
-                let peers = effectiveMulticamPeers()
+                let peers = connectedPeers
                 OperationQueue.main.addOperation {
                     liveLobby.didCollectMulticamCameras(peers)
                 }

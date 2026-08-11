@@ -117,44 +117,62 @@ class SessionCoordinatorTests: XCTestCase {
         await harness.coordinator.seed(state: .scanning, lobby: harness.lobbyWrapper)
     }
 
-    // MARK: - Multicam collecting: select / deselect / reselect
+    // MARK: - Multicam "Connect (N)": invite the selected set, retry, report
 
-    func testMulticamToggleSelectConnectDeselectReselect() async {
+    /// The device-test regression, guarded at the transport: selecting rows
+    /// (pure VM toggles, the production tap path) must invite nothing.
+    func testSelectingRowsSendsZeroInvites() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        let vm = harness.lobby.scannerViewModel
+        let peers = (0..<5).map { MCPeerID(displayName: "Cam\($0)") }
+        peers.forEach { vm.addPeer($0) }
+        peers.forEach { vm.toggleMulticamSelection($0) } // taps = pure selection
+
+        await harness.coordinator.waitForIdle()
+        XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
+                      "selecting must never invite — the device-test regression")
+    }
+
+    func testMulticamConnectInvitesEachSelectedPeer() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        harness.fakeMP.connectedPeers = []
+        let camA = MCPeerID(displayName: "CamA")
+        let camB = MCPeerID(displayName: "CamB")
+
+        // "Connect" fires one invite per selected camera — no `link` clobbering.
+        await harness.deliver(ConnectToDevice(peer: camA, sender: nil))
+        await harness.deliver(ConnectToDevice(peer: camB, sender: nil))
+        XCTAssertEqual(Set(harness.fakeMP.invitedPeers.map(\.peer)), [camA, camB])
+
+        // As each connects, the coordinator reports the growing connected set.
+        harness.fakeMP.connectedPeers = [camA]
+        await harness.deliver(OnConnectToDevice(peer: camA, sender: nil))
+        harness.fakeMP.connectedPeers = [camA, camB]
+        await harness.deliver(OnConnectToDevice(peer: camB, sender: nil))
+        let count = await harness.coordinator.multicamConnectedCount()
+        XCTAssertEqual(count, 2)
+    }
+
+    func testMulticamInviteRetriesOnceThenReportsFailure() async {
         await seedScanning()
         await harness.deliver(UICmd.SetMulticamCollecting(on: true))
         harness.fakeMP.connectedPeers = []
         let camA = MCPeerID(displayName: "CamA")
 
-        // Tap a fresh camera → it is invited (nothing selected yet).
-        await harness.deliver(UICmd.ToggleMulticamCamera(peer: camA))
-        XCTAssertEqual(harness.fakeMP.invitedPeers.map(\.peer), [camA])
-        var effective = await harness.coordinator.effectiveMulticamPeersForTesting()
-        XCTAssertTrue(effective.isEmpty, "not selected until it actually connects")
+        await harness.deliver(ConnectToDevice(peer: camA, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1)
 
-        // It connects → now selected.
-        harness.fakeMP.connectedPeers = [camA]
-        await harness.deliver(OnConnectToDevice(peer: camA, sender: nil))
-        effective = await harness.coordinator.effectiveMulticamPeersForTesting()
-        XCTAssertEqual(effective, [camA])
-        var count = await harness.coordinator.multicamConnectedCount()
-        XCTAssertEqual(count, 1)
+        // First drop → retry (a second invite), no failure yet.
+        await harness.deliver(DisconnectPeer(peer: camA, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 2)
+        XCTAssertTrue(harness.lobby.failedPeers.isEmpty)
 
-        // Tap again → deselect (logical; the transport stays connected).
-        await harness.deliver(UICmd.ToggleMulticamCamera(peer: camA))
-        effective = await harness.coordinator.effectiveMulticamPeersForTesting()
-        XCTAssertTrue(effective.isEmpty)
-        count = await harness.coordinator.multicamConnectedCount()
-        XCTAssertEqual(count, 0)
-        XCTAssertTrue(harness.fakeMP.connectedPeers.contains(camA),
-                      "deselect is logical — no per-peer transport teardown")
-
-        // Tap once more → re-select the still-connected camera, no re-invite.
-        harness.fakeMP.invitedPeers.removeAll()
-        await harness.deliver(UICmd.ToggleMulticamCamera(peer: camA))
-        effective = await harness.coordinator.effectiveMulticamPeersForTesting()
-        XCTAssertEqual(effective, [camA])
-        XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
-                      "a still-connected camera is re-selected without re-inviting")
+        // Second drop → reported failed, no third invite.
+        await harness.deliver(DisconnectPeer(peer: camA, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 2, "no third invite")
+        XCTAssertEqual(harness.lobby.failedPeers, [camA])
     }
 
     func testConnectInvitesWithLongTimeout() async {

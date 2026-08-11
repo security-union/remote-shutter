@@ -361,7 +361,6 @@
 "IncompatibleUpdateButton" = "更新";
 
 // Multicam director (behind ENABLE_MULTICAM)
-"Start (%d)" = "开始 (%d)";
 "Add camera" = "添加相机";
 "Add" = "添加";
 "Searching for cameras…" = "正在搜索相机…";
@@ -369,4 +368,5 @@
 "Control one or more iPhone cameras" = "控制一台或多台 iPhone 相机";
 "Direct up to 4 cameras at once" = "同时导演最多 4 台相机";
 "RECONNECTING" = "正在重新连接";
-"Connect All" = "全部连接";
+"Connect (%d)" = "连接 (%d)";
+"Select All" = "全选";

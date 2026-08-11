@@ -91,10 +91,14 @@ class FakeScannerLobby: ScannerLobby, @unchecked Sendable {
     var roleScreenShown = 0
     var returnsToLobby = 0
     var scanningErrors = 0
+    var collectedReports: [[MCPeerID]] = []
+    var failedPeers: [MCPeerID] = []
 
     func goToRole() { roleScreenShown += 1 }
     func returnToLobby() { returnsToLobby += 1 }
     func presentScanningError() { scanningErrors += 1 }
+    func didCollectMulticamCameras(_ peers: [MCPeerID]) { collectedReports.append(peers) }
+    func didFailMulticamCamera(_ peer: MCPeerID) { failedPeers.append(peer) }
 }
 
 // MARK: - Fake camera (CameraControlling)

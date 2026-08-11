@@ -510,47 +510,135 @@ final class LocalNetworkProbeTests: XCTestCase {
         XCTAssertEqual(LocalNetworkProbe.verdict(for: .ready), .proceed)
     }
 
-    // MARK: - Multicam edit-mode selection
+    // MARK: - Multicam select-then-connect (parametrized screen behavior)
 
-    func testMulticamRowStateTransitions() {
+    private func makeVM(discovered: Int) -> ([MCPeerID], DeviceScannerViewModel) {
         let vm = DeviceScannerViewModel()
-        let a = MCPeerID(displayName: "A")
-        XCTAssertEqual(vm.multicamRowState(a), .unselected)
-
-        vm.multicamConnectingPeers.insert(a)
-        XCTAssertEqual(vm.multicamRowState(a), .connecting)
-
-        // The coordinator reports A joined → checkmark, spinner cleared.
-        vm.updateMulticamSelection([a])
-        XCTAssertEqual(vm.multicamRowState(a), .selected)
-        XCTAssertTrue(vm.multicamConnectingPeers.isEmpty)
-        XCTAssertEqual(vm.multicamCollectedCount, 1)
-
-        // Deselect round-trip: the coordinator reports the effective set shrank.
-        vm.updateMulticamSelection([])
-        XCTAssertEqual(vm.multicamRowState(a), .unselected)
-        XCTAssertEqual(vm.multicamCollectedCount, 0)
+        vm.role = .monitor
+        let peers = (0..<discovered).map { MCPeerID(displayName: "Cam\($0)") }
+        peers.forEach { vm.addPeer($0) }
+        return (peers, vm)
     }
 
-    func testConnectAllRespectsTheCap() {
-        let vm = DeviceScannerViewModel()
-        let peers = (1...5).map { MCPeerID(displayName: "Cam\($0)") }
-        peers.forEach { vm.addPeer($0) }
+    /// The core parametric sweep Dario asked for: 0…10 discovered, select
+    /// 0…min(discovered,cap), and assert selecting NEVER connects, the CTA
+    /// tracks the count, and Connect fires exactly the selected invites.
+    func testSelectThenConnectSweep() {
+        for discovered in 0...10 {
+            for cap in [2, 4] {
+                let (peers, vm) = makeVM(discovered: discovered)
+                let selectable = min(discovered, cap)
 
-        // Free tier (cap 2), nothing selected yet → invite the first two only.
-        XCTAssertEqual(vm.peersToConnectAll(maxCameras: 2), Array(peers.prefix(2)))
+                for k in 0...selectable {
+                    vm.resetMulticamToSelecting()
 
-        // One already selected → only one more slot.
-        vm.updateMulticamSelection([peers[0]])
-        XCTAssertEqual(vm.peersToConnectAll(maxCameras: 2), [peers[1]])
+                    // Select k rows (a) — pure, so a fresh fake transport would
+                    // see zero invites; the VM itself performs no network.
+                    for i in 0..<k where !vm.multicamRowLocked(peers[i], maxCameras: cap) {
+                        vm.toggleMulticamSelection(peers[i])
+                    }
+                    XCTAssertEqual(vm.multicamSelectedPeers.count, k,
+                                   "discovered=\(discovered) cap=\(cap) k=\(k)")
 
-        // Pro tier (cap 4) with one selected → three more.
-        XCTAssertEqual(vm.peersToConnectAll(maxCameras: 4), Array(peers[1...3]))
+                    // (b) Connect CTA disabled iff k == 0; label = k.
+                    XCTAssertEqual(vm.canConnectMulticam, k > 0)
+                    XCTAssertEqual(vm.multicamSelectionCount, k)
 
-        // In-flight cameras also count against the cap.
-        vm.multicamConnectingPeers.insert(peers[1])
-        XCTAssertEqual(vm.peersToConnectAll(maxCameras: 2), [],
-                       "one selected + one connecting fills the free cap")
+                    // (c) tap Connect → exactly the k selected peers to invite.
+                    let toInvite = vm.beginMulticamConnecting()
+                    XCTAssertEqual(Set(toInvite), Set(peers.prefix(k)))
+                    XCTAssertEqual(toInvite.count, k)
+                    if k > 0 { XCTAssertEqual(vm.multicamPhase, .connecting) }
+                }
+            }
+        }
+    }
+
+    /// (d) Rows transition selected → connecting → connected, and the handoff
+    /// decision matches the connected count.
+    func testConnectingTransitionsAndHandoffDestination() {
+        for connectCount in 0...4 {
+            let (peers, vm) = makeVM(discovered: 4)
+            let selected = Array(peers.prefix(max(connectCount, 1)))
+            selected.forEach { vm.toggleMulticamSelection($0) }
+            let toInvite = vm.beginMulticamConnecting()
+
+            // All selected are "connecting" right after Connect.
+            for p in toInvite { XCTAssertEqual(vm.multicamRowState(p), .connecting) }
+
+            // The first `connectCount` connect; the rest fail.
+            let connected = Array(selected.prefix(connectCount))
+            vm.reconcileMulticamConnected(connected)
+            for p in selected where !connected.contains(p) { vm.markMulticamFailed(p) }
+
+            for p in connected { XCTAssertEqual(vm.multicamRowState(p), .connected) }
+            XCTAssertTrue(vm.multicamConnectSettled)
+
+            switch MulticamHandoff.decide(connected: connected) {
+            case .none: XCTAssertEqual(connectCount, 0)
+            case .classicMonitor(let p): XCTAssertEqual(connectCount, 1); XCTAssertEqual(p, connected[0])
+            case .director(let ps): XCTAssertGreaterThanOrEqual(connectCount, 2); XCTAssertEqual(ps, connected)
+            }
+        }
+    }
+
+    /// Cap: with 10 discovered you can select up to `cap`; the (cap+1)th row
+    /// locks, and Select All stops at the cap.
+    func testCapLocksBeyondMaxCameras() {
+        for cap in [2, 4] {
+            let (peers, vm) = makeVM(discovered: 10)
+            for i in 0..<cap { vm.toggleMulticamSelection(peers[i]) }
+            XCTAssertEqual(vm.multicamSelectedPeers.count, cap)
+            // Every remaining row is locked (the host routes a tap to the
+            // paywall instead of selecting).
+            for i in cap..<10 {
+                XCTAssertTrue(vm.multicamRowLocked(peers[i], maxCameras: cap),
+                              "row \(i) must lock at cap \(cap)")
+            }
+            // An already-selected row is never locked (it can still deselect).
+            XCTAssertFalse(vm.multicamRowLocked(peers[0], maxCameras: cap))
+
+            // Select All also stops exactly at the cap.
+            let (peers2, vm2) = makeVM(discovered: 10)
+            vm2.selectAllMulticam(maxCameras: cap)
+            XCTAssertEqual(vm2.multicamSelectedPeers.count, cap)
+            XCTAssertEqual(Set(vm2.multicamSelectedPeers), Set(peers2.prefix(cap)))
+        }
+    }
+
+    /// Empty state: nothing discovered → no Select All, CTA disabled.
+    func testEmptyStateHasNoSelectAllAndDisabledConnect() {
+        let (_, vm) = makeVM(discovered: 0)
+        XCTAssertFalse(vm.showsMulticamSelectAll)
+        XCTAssertFalse(vm.canConnectMulticam)
+        XCTAssertEqual(vm.multicamSelectionCount, 0)
+    }
+
+    /// Partial: 3 selected, 1 never connects → settles with 2 connected, the
+    /// straggler marked failed.
+    func testPartialConnectMarksFailedAndSettles() {
+        let (peers, vm) = makeVM(discovered: 3)
+        peers.forEach { vm.toggleMulticamSelection($0) }
+        _ = vm.beginMulticamConnecting()
+
+        vm.reconcileMulticamConnected([peers[0], peers[1]])
+        XCTAssertFalse(vm.multicamConnectSettled, "one invite still outstanding")
+
+        vm.markMulticamFailed(peers[2])
+        XCTAssertTrue(vm.multicamConnectSettled)
+        XCTAssertEqual(vm.multicamRowState(peers[2]), .failed)
+        XCTAssertEqual(vm.multicamConnectedPeers.count, 2)
+        XCTAssertEqual(MulticamHandoff.decide(
+            connected: peers.filter { vm.multicamConnectedPeers.contains($0) }),
+            .director([peers[0], peers[1]]))
+    }
+
+    func testSelectingNeverEntersConnectingWithoutConnectTap() {
+        let (peers, vm) = makeVM(discovered: 3)
+        peers.forEach { vm.toggleMulticamSelection($0) }
+        // Selection only — still in the selecting phase, nothing connecting.
+        XCTAssertEqual(vm.multicamPhase, .selecting)
+        XCTAssertTrue(vm.multicamConnectingPeers.isEmpty)
     }
 
     func testStatesWithNoEvidenceKeepWaiting() {
