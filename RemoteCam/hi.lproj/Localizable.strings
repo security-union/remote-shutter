@@ -359,3 +359,13 @@
 "IncompatibleBothTitle" = "ऐप पुराना है";
 "IncompatibleBothBody" = "दोनों डिवाइस पर Remote Shutter अपडेट करें।";
 "IncompatibleUpdateButton" = "अपडेट करें";
+
+// Multicam director (behind ENABLE_MULTICAM)
+"Start (%d)" = "शुरू करें (%d)";
+"Add camera" = "कैमरा जोड़ें";
+"Add" = "जोड़ें";
+"Searching for cameras…" = "कैमरे खोजे जा रहे हैं…";
+"Director" = "डायरेक्टर";
+"Control one or more iPhone cameras" = "एक या अधिक iPhone कैमरों को नियंत्रित करें";
+"Direct up to 4 cameras at once" = "एक साथ 4 कैमरों तक निर्देशित करें";
+"RECONNECTING" = "फिर से कनेक्ट हो रहा है";

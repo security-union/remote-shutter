@@ -359,3 +359,13 @@
 "IncompatibleBothTitle" = "Uygulama güncel değil";
 "IncompatibleBothBody" = "Remote Shutter'ı iki cihazda da güncelleyin.";
 "IncompatibleUpdateButton" = "Güncelle";
+
+// Multicam director (behind ENABLE_MULTICAM)
+"Start (%d)" = "Başlat (%d)";
+"Add camera" = "Kamera ekle";
+"Add" = "Ekle";
+"Searching for cameras…" = "Kameralar aranıyor…";
+"Director" = "Yönetmen";
+"Control one or more iPhone cameras" = "Bir veya daha fazla iPhone kamerasını kontrol edin";
+"Direct up to 4 cameras at once" = "Aynı anda 4 kameraya kadar yönetin";
+"RECONNECTING" = "YENİDEN BAĞLANIYOR";

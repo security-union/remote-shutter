@@ -359,3 +359,13 @@
 "IncompatibleBothTitle" = "Apl bukan versi terkini";
 "IncompatibleBothBody" = "Sila kemas kini Remote Shutter pada kedua-dua peranti.";
 "IncompatibleUpdateButton" = "Kemas kini";
+
+// Multicam director (behind ENABLE_MULTICAM)
+"Start (%d)" = "Mula (%d)";
+"Add camera" = "Tambah kamera";
+"Add" = "Tambah";
+"Searching for cameras…" = "Mencari kamera…";
+"Director" = "Pengarah";
+"Control one or more iPhone cameras" = "Kawal satu atau lebih kamera iPhone";
+"Direct up to 4 cameras at once" = "Arahkan sehingga 4 kamera serentak";
+"RECONNECTING" = "MENYAMBUNG SEMULA";

@@ -359,3 +359,13 @@
 "IncompatibleBothTitle" = "Ứng dụng chưa được cập nhật";
 "IncompatibleBothBody" = "Hãy cập nhật Remote Shutter trên cả hai thiết bị.";
 "IncompatibleUpdateButton" = "Cập nhật";
+
+// Multicam director (behind ENABLE_MULTICAM)
+"Start (%d)" = "Bắt đầu (%d)";
+"Add camera" = "Thêm camera";
+"Add" = "Thêm";
+"Searching for cameras…" = "Đang tìm camera…";
+"Director" = "Đạo diễn";
+"Control one or more iPhone cameras" = "Điều khiển một hoặc nhiều camera iPhone";
+"Direct up to 4 cameras at once" = "Điều khiển tối đa 4 camera cùng lúc";
+"RECONNECTING" = "ĐANG KẾT NỐI LẠI";

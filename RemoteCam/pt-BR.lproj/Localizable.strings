@@ -359,3 +359,13 @@
 "IncompatibleBothTitle" = "O app está desatualizado";
 "IncompatibleBothBody" = "Atualize o Remote Shutter nos dois aparelhos.";
 "IncompatibleUpdateButton" = "Atualizar";
+
+// Multicam director (behind ENABLE_MULTICAM)
+"Start (%d)" = "Iniciar (%d)";
+"Add camera" = "Adicionar câmera";
+"Add" = "Adicionar";
+"Searching for cameras…" = "Procurando câmeras…";
+"Director" = "Diretor";
+"Control one or more iPhone cameras" = "Controle uma ou mais câmeras do iPhone";
+"Direct up to 4 cameras at once" = "Dirija até 4 câmeras ao mesmo tempo";
+"RECONNECTING" = "RECONECTANDO";
