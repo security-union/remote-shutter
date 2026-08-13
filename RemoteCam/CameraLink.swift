@@ -11,13 +11,13 @@ import Stormo
 
 /// One camera in a multicam director session. The director holds one of these
 /// per connected camera, keyed by `MCPeerID`; it is the multicam analog of the
-/// single link + single `FrameStreamReceiver` that `SessionCoordinator` holds
-/// for a 1:1 monitor.
+/// single link that `SessionCoordinator` holds for a 1:1 monitor. (Frame
+/// decoding lives entirely on the UI side, one `FrameStreamReceiver` per
+/// `CameraLane`; this actor-domain link never touches pixels.)
 ///
-/// A reference type, not a struct: it owns a `FrameStreamReceiver` (a class
-/// with a running decode timer) and the `MulticamController` actor mutates it
-/// in place as frames, capabilities and clock samples arrive — a value type
-/// would force a dictionary read-modify-write on every frame.
+/// A reference type, not a struct: the `MulticamController` actor mutates it in
+/// place as capabilities and clock samples arrive — a value type would force a
+/// dictionary read-modify-write on every update.
 final class CameraLink {
 
     /// Progress of one lane's footage transfer to the director after a take.
@@ -82,11 +82,6 @@ final class CameraLink {
     /// Where this lane's footage is in the post-take auto-collect to the
     /// director. Drives the tile's transfer progress / done / failed badge.
     var collection: LaneCollectionState = .idle
-
-    /// This camera's own preview decoder + stall watchdog. Frames tagged with
-    /// this peer's id are fed here; its `onImage` drives exactly this lane's
-    /// tile, so a frame from another camera never touches it.
-    let receiver = FrameStreamReceiver()
 
     init(peerID: MCPeerID) {
         self.peerID = peerID

@@ -265,15 +265,21 @@ public actor SessionCoordinator {
     /// beyond this it is stale and would fire out of sync).
     private let scheduledCaptureMaxLatenessMillis: Int64 = 1000
 
-    /// Camera side: this session is being driven by a multicam director. Latched
-    /// the first time any scheduled multicam command arrives, cleared when the
-    /// session ends (`popToScanning`/`leaveSession`). It gates the ONE behavior
-    /// change on the camera — keep recording through a director drop instead of
-    /// stopping — so a single-camera session is never affected.
-    private var inMulticamSession = false
+    /// Camera side: who is driving this session. `.solo` is an ordinary 1:1
+    /// session (or none yet); `.director` latches the first time any scheduled
+    /// multicam command arrives, and is cleared when the session ends
+    /// (`popToScanning`). It gates the ONE behavior change on the camera — keep
+    /// recording through a director drop instead of stopping — so a
+    /// single-camera session is never affected. A reconnect goes through
+    /// `.reconnecting`, not teardown, so the latch survives a transient drop.
+    private enum CameraDriver: Equatable {
+        case solo
+        case director
+    }
+    private var cameraDriver: CameraDriver = .solo
 
     /// Test support.
-    func inMulticamSessionForTesting() -> Bool { inMulticamSession }
+    func inMulticamSessionForTesting() -> Bool { cameraDriver == .director }
 
     /// Multicam director "collecting" mode. Off by default and only ever set
     /// by the scanner when `ENABLE_MULTICAM` and the monitor role, so every
@@ -676,7 +682,7 @@ public actor SessionCoordinator {
         // or a dead link) — a fresh session starts single-cam until a director
         // says otherwise. A reconnect goes through `.reconnecting`, not here, so
         // the latch survives a transient director drop.
-        inMulticamSession = false
+        cameraDriver = .solo
         pendingSyncMetadata = nil
         switch state {
         case .scanning:
@@ -1074,7 +1080,7 @@ public actor SessionCoordinator {
         case let fire as FireScheduledRecordingStart:
             // The start instant arrived. Stamp the recording with its sync
             // metadata (for the QuickTime keys + the RS_ filename), then roll.
-            inMulticamSession = true
+            cameraDriver = .director
             pendingVideoSyncMetadata = fire.metadata
             ctrl.setVideoSyncMetadata(fire.metadata)
             ctrl.currentCameraMode = .Video
@@ -1303,7 +1309,7 @@ public actor SessionCoordinator {
     /// enqueues `FireScheduledCapture`, so the capture is pulled by the message
     /// pump in order — never racing a state transition.
     private func handleScheduledCapture(_ scheduled: RemoteCmd.ScheduledCapture) async {
-        inMulticamSession = true
+        cameraDriver = .director
         let now = SyncClock.nowMillis()
         let lateness = Int64(now) - Int64(scheduled.fireAtCameraClockMillis)
         guard lateness <= scheduledCaptureMaxLatenessMillis else {
@@ -1337,7 +1343,7 @@ public actor SessionCoordinator {
     /// schedule-off-the-actor pattern as `handleScheduledCapture`; the fire
     /// message rolls the recording through the normal pipeline.
     private func handleScheduledStartRecording(_ scheduled: RemoteCmd.ScheduledStartRecording) async {
-        inMulticamSession = true
+        cameraDriver = .director
         let lateness = Int64(SyncClock.nowMillis()) - Int64(scheduled.fireAtCameraClockMillis)
         guard lateness <= scheduledCaptureMaxLatenessMillis else {
             await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
@@ -1501,13 +1507,13 @@ public actor SessionCoordinator {
 
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
-                if inMulticamSession {
+                if cameraDriver == .director {
                     // Resilient camera: the director dropped mid-recording, but
                     // the OTHER cameras in the rig keep rolling — so must this
                     // one. Keep recording (do NOT stop), and enter the normal
                     // reconnect path; the clip is saved when the scheduled stop
                     // finally fires, or when the user stops on-device. This is
-                    // the ONE behavior gated on `inMulticamSession`; a
+                    // the ONE behavior gated on `cameraDriver == .director`; a
                     // single-camera session falls through to the stop below.
                     await loseSessionPeer(lost)
                 } else {

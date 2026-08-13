@@ -55,11 +55,18 @@ struct MulticamLaneInfo: Equatable {
     let collection: CameraLink.LaneCollectionState
 }
 
+/// A Sendable pipe that carries one lane's decoded-preview frames from the
+/// controller (actor domain) to exactly that lane's UI-side decoder. The view
+/// controller hands one to the controller per lane at creation
+/// (`setFrameSink(for:_:)`), so the ~20fps stream routes actor → closure —
+/// never reaching into a `UIViewController` from the actor.
+typealias MulticamFrameSink = @Sendable (RemoteCmd.OnFrame) -> Void
+
 /// The main-actor bridge from the controller to the multicam screen — the
 /// multicam analog of `MonitorDisplay`. Low-frequency lane changes go through
-/// `applyLanes`; the ~20fps preview stream goes through `receiveFrame`, which
-/// the view controller routes to exactly one lane's decoder so a frame from
-/// camera B never re-renders camera A.
+/// `applyLanes`; the ~20fps preview stream goes through per-lane frame sinks
+/// (see `MulticamFrameSink`), each routing to exactly one lane's decoder so a
+/// frame from camera B never re-renders camera A.
 protocol MulticamDisplay: AnyObject {
     func applyLanes(_ lanes: [MulticamLaneInfo])
     /// Aggregate shutter state: `capturing` = a synced photo is in flight
@@ -70,7 +77,6 @@ protocol MulticamDisplay: AnyObject {
     func applyAvailablePeers(_ peers: [MCPeerID])
     /// The rig-wide settings (timer + quality intersection) for the tray.
     func applyRigSettings(_ settings: RigSettingsSnapshot)
-    func receiveFrame(_ frame: RemoteCmd.OnFrame)
     func exitMulticam()
 }
 
@@ -182,6 +188,11 @@ public actor MulticamController {
 
     private weak var display: MulticamDisplay?
 
+    /// One preview-frame sink per lane, keyed by peer. The view controller
+    /// registers one when it creates a lane; `handleFrame` routes each frame to
+    /// its source's sink. Cleared when the link is dropped.
+    private var frameSinks: [MCPeerID: MulticamFrameSink] = [:]
+
     /// The interval between clock-offset refreshes per camera.
     private let clockSyncInterval: TimeInterval = 30
     /// How far ahead a re-invite waits before re-browsing a dropped camera.
@@ -201,6 +212,13 @@ public actor MulticamController {
         publishLanesNow()
     }
     func setReconnectRetryDelay(_ delay: TimeInterval) { reconnectRetryDelay = delay }
+
+    /// Register (or replace) the preview-frame sink for a lane. Called by the
+    /// view controller when it creates the lane; the sink is dropped when the
+    /// link goes away (`handleRemoveCamera`).
+    func setFrameSink(for peer: MCPeerID, _ sink: @escaping MulticamFrameSink) {
+        frameSinks[peer] = sink
+    }
 
     /// Test support.
     func lanesForTesting() -> [MulticamLaneInfo] { laneSnapshot() }
@@ -481,7 +499,7 @@ public actor MulticamController {
         // Route to exactly this lane's decoder (rendering isolation), then ack
         // only this camera so its credit window advances and no other camera
         // sends on a frame it didn't produce (Seam B).
-        display?.receiveFrame(frame)
+        frameSinks[frame.peerId]?(frame)
         sendTo(frame.peerId, RemoteCmd.RequestFrame(sender: nil))
     }
 
@@ -538,6 +556,7 @@ public actor MulticamController {
 
     private func handleRemoveCamera(_ peer: MCPeerID) {
         links[peer] = nil
+        frameSinks[peer] = nil
         order.removeAll { $0 == peer }
         if focusedPeer == peer { focusedPeer = order.first; syncFocusFlags() }
         markLanesDirty()
@@ -834,16 +853,12 @@ public actor MulticamController {
 
     private func publishRigSettingsNow() {
         let menu = rigQualityMenu()
-        let videoLabel: String
-        if let v = activeVideoQuality {
-            videoLabel = "\(v.resolution.displayName)\(v.frameRate.displayName)"
-        } else {
-            videoLabel = NSLocalizedString("Auto", comment: "automatic rig quality")
-        }
         let snapshot = RigSettingsSnapshot(
             timerSeconds: rigTimerSeconds,
             countdown: countdown?.remaining,
-            activeVideoLabel: videoLabel,
+            activeVideo: activeVideoQuality.map {
+                RigVideoSelection(resolution: $0.resolution, frameRate: $0.frameRate)
+            },
             videoOptions: menu.videoPickerOptions(),
             heifAvailable: menu.supportsHEIF(),
             hdrAvailable: menu.supportsHDR(),
@@ -973,9 +988,16 @@ public actor MulticamController {
     }
 
     private func handleResourceFinished(_ finished: ResourceTransferFinished) {
-        guard let link = links[finished.peer] else { return }
-        if finished.error != nil || finished.localURL == nil {
-            // Footage is still safe on the camera; the tile offers a retry.
+        guard let link = links[finished.peer] else {
+            // No lane owns this transfer any more (camera removed mid-flight);
+            // still delete the temp file the transport handed us.
+            finished.localURL.map(Self.discardTempFile)
+            return
+        }
+        guard finished.error == nil, let localURL = finished.localURL else {
+            // Footage is still safe on the camera; the tile offers a retry. Any
+            // partial temp file is ours to clean up.
+            finished.localURL.map(Self.discardTempFile)
             link.collection = .failed
             markLanesDirty()
             return
@@ -983,8 +1005,17 @@ public actor MulticamController {
         link.collection = .collected
         markLanesDirty()
         // The resource is named with the RS_ filename by the camera, so save it
-        // under that; QuickTime sync metadata rides inside the .mov itself.
-        Self.saveVideoToLibrary(at: finished.localURL!, originalFilename: finished.name)
+        // under that; QuickTime sync metadata rides inside the .mov itself. The
+        // controller owns `localURL` until `saveVideoToLibrary` either moves it
+        // into the library or deletes it.
+        Self.saveVideoToLibrary(at: localURL, originalFilename: finished.name)
+    }
+
+    /// The transport hands the director a temp file per received clip; the
+    /// controller owns it and must not leak it on any path that doesn't move it
+    /// into the photo library.
+    private static func discardTempFile(_ url: URL) {
+        try? FileManager.default.removeItem(at: url)
     }
 
     /// Re-request a failed lane's footage (the camera still holds it).
@@ -1016,13 +1047,19 @@ public actor MulticamController {
 
     private static func saveVideoToLibrary(at url: URL, originalFilename: String) {
         PHPhotoLibrary.requestAuthorization { status in
-            guard status == .authorized else { return }
+            guard status == .authorized else {
+                discardTempFile(url) // never authorized to import — don't leak it
+                return
+            }
             PHPhotoLibrary.shared().performChanges({
                 let options = PHAssetResourceCreationOptions()
                 options.shouldMoveFile = true
                 options.originalFilename = originalFilename
                 PHAssetCreationRequest.forAsset().addResource(with: .video, fileURL: url, options: options)
             }, completionHandler: { ok, _ in
+                // `shouldMoveFile` consumes the file only on success; on failure
+                // it stays behind, so the owner removes it.
+                if !ok { discardTempFile(url) }
                 print(ok ? "Director collected clip \(originalFilename)" : "collect clip failed")
             })
         }

@@ -141,11 +141,24 @@ struct RigVideoOption: Equatable, Identifiable {
     var label: String { "\(resolution.displayName)\(frameRate.displayName)" }
 }
 
+/// The rig's active video quality, or nil for Automatic (best-in-intersection).
+/// Typed so the tray matches the running quality by value, not by comparing
+/// rendered label strings.
+struct RigVideoSelection: Equatable {
+    let resolution: VideoResolution
+    let frameRate: VideoFrameRate
+
+    var label: String { "\(resolution.displayName)\(frameRate.displayName)" }
+    func matches(_ option: RigVideoOption) -> Bool {
+        resolution == option.resolution && frameRate == option.frameRate
+    }
+}
+
 /// The rig-settings snapshot the director hands the tray UI.
 struct RigSettingsSnapshot: Equatable {
     var timerSeconds: Int = 0
     var countdown: Int?
-    var activeVideoLabel: String
+    var activeVideo: RigVideoSelection?
     var videoOptions: [RigVideoOption] = []
     var heifAvailable: Bool = false
     var hdrAvailable: Bool = false

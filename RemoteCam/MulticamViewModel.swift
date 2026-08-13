@@ -70,7 +70,7 @@ final class MulticamViewModel: ObservableObject {
     /// Whether the add-camera sheet is showing.
     @Published var showingAddCamera: Bool = false
     /// Rig-wide settings (timer + quality intersection) for the tray.
-    @Published var rigSettings = RigSettingsSnapshot(activeVideoLabel: "Auto")
+    @Published var rigSettings = RigSettingsSnapshot()
     /// Whether the rig settings tray is showing.
     @Published var showingRigTray: Bool = false
 

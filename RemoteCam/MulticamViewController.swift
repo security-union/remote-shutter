@@ -151,6 +151,14 @@ public final class MulticamViewController: UIViewController {
             self?.controller.requestKeyframe(for: peer)
         }
         lane.receiver.start()
+        // Hand the controller a sink that feeds only this lane's decoder, so it
+        // routes frames actor → closure without touching this view controller.
+        // `receive` is queue-hopping and thread-safe; the weak capture lets the
+        // lane deallocate freely.
+        let receiver = lane.receiver
+        Task { await controller.setFrameSink(for: peer) { [weak receiver] frame in
+            receiver?.receive(frame)
+        } }
     }
 }
 
@@ -174,12 +182,6 @@ extension MulticamViewController: MulticamDisplay {
 
     func applyRigSettings(_ settings: RigSettingsSnapshot) {
         viewModel.rigSettings = settings
-    }
-
-    func receiveFrame(_ frame: RemoteCmd.OnFrame) {
-        // Route to exactly the source lane's decoder; a frame for camera B
-        // never touches camera A's tile.
-        viewModel.lane(for: frame.peerId)?.receiver.receive(frame)
     }
 
     func exitMulticam() {

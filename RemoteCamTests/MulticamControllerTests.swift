@@ -12,7 +12,6 @@ import XCTest
 /// Captures what the controller pushes to the screen.
 private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     var lastLanes: [MulticamLaneInfo] = []
-    var receivedFrames: [MCPeerID] = []
     var capturing = false
     var recording = false
     var availablePeers: [MCPeerID] = []
@@ -26,8 +25,16 @@ private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     }
     func applyAvailablePeers(_ peers: [MCPeerID]) { availablePeers = peers }
     func applyRigSettings(_ settings: RigSettingsSnapshot) { rigSettings = settings }
-    func receiveFrame(_ frame: RemoteCmd.OnFrame) { receivedFrames.append(frame.peerId) }
     func exitMulticam() { didExit = true }
+}
+
+/// Records which peers' frame sinks fired — the test stand-in for the view
+/// controller's per-lane decoders. Reads happen after `waitForIdle`.
+private final class FrameSinkCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _peers: [MCPeerID] = []
+    var peers: [MCPeerID] { lock.lock(); defer { lock.unlock() }; return _peers }
+    func record(_ peer: MCPeerID) { lock.lock(); _peers.append(peer); lock.unlock() }
 }
 
 final class MulticamControllerTests: XCTestCase {
@@ -95,13 +102,20 @@ final class MulticamControllerTests: XCTestCase {
     // MARK: - Frame routing (Seam B)
 
     func testFrameRoutesToItsLaneAndAcksOnlyItsSource() async {
-        let (controller, transport, display) = await makeController(peers: [camA, camB])
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        // Register a per-lane sink for each camera, mirroring how the view
+        // controller wires one at lane creation.
+        let collector = FrameSinkCollector()
+        let (a, b) = (camA, camB)
+        await controller.setFrameSink(for: a) { _ in collector.record(a) }
+        await controller.setFrameSink(for: b) { _ in collector.record(b) }
         transport.sentMessages.removeAll()
 
         controller.didReceiveFrame(sendFrame(), from: camB)
         await controller.waitForIdle()
 
-        XCTAssertEqual(display.receivedFrames, [camB])
+        XCTAssertEqual(collector.peers, [camB],
+                       "the frame reaches only its own lane's decoder, never another's")
         let acks = sent(transport, RemoteCmd.RequestFrame.self)
         XCTAssertEqual(acks.map(\.peers), [[camB]],
                        "the frame ack must address only the camera that sent the frame")

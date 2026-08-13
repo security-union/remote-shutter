@@ -458,7 +458,9 @@ struct RigTrayView: View {
                         HStack {
                             Text(NSLocalizedString("Automatic", comment: "best-in-intersection"))
                             Spacer()
-                            Text(settings.activeVideoLabel).foregroundColor(.secondary)
+                            Text(settings.activeVideo?.label
+                                 ?? NSLocalizedString("Auto", comment: "automatic rig quality"))
+                                .foregroundColor(.secondary)
                         }
                     }
                     ForEach(settings.videoOptions) { opt in
@@ -474,7 +476,7 @@ struct RigTrayView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
-                                if settings.activeVideoLabel == opt.label {
+                                if settings.activeVideo?.matches(opt) == true {
                                     Image(systemName: "checkmark").foregroundColor(AppTheme.accent)
                                 }
                             }
