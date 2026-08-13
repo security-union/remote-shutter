@@ -111,7 +111,8 @@ final class MulticamControllerTests: XCTestCase {
 
     func testPerCameraCommandTargetsOnlyTheFocusedPeer() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
-        await controller.setFocusedPeer(camB)
+        controller.setFocusedPeer(camB)
+        await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
         await controller.setZoom(2.0)
@@ -179,7 +180,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: -50)
         transport.sentMessages.removeAll()
 
-        await controller.capturePhoto()
+        controller.capturePhoto()
         await controller.waitForIdle()
 
         let scheduled = sent(transport, RemoteCmd.ScheduledCapture.self)
@@ -208,7 +209,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.seedLaneForTesting(camB, supportsMulticam: false, offsetMillis: 10)
         transport.sentMessages.removeAll()
 
-        await controller.capturePhoto()
+        controller.capturePhoto()
         await controller.waitForIdle()
 
         let scheduled = sent(transport, RemoteCmd.ScheduledCapture.self)
@@ -222,7 +223,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
         await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
 
-        await controller.capturePhoto()
+        controller.capturePhoto()
         await controller.waitForIdle()
         let captureID = await controller.captureStateForTesting()?.id
         XCTAssertNotNil(captureID)
@@ -248,7 +249,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
         await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
 
-        await controller.capturePhoto()
+        controller.capturePhoto()
         await controller.waitForIdle()
         let captureID = await controller.captureStateForTesting()?.id
         controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID!), from: camA)
@@ -270,7 +271,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: nil)
         transport.sentMessages.removeAll()
 
-        await controller.capturePhoto()
+        controller.capturePhoto()
         await controller.waitForIdle()
 
         XCTAssertTrue(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty,
@@ -307,13 +308,13 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.invitedPeers.removeAll()
 
-        await controller.inviteCamera(camC)
+        controller.inviteCamera(camC)
         await controller.waitForIdle()
         XCTAssertEqual(transport.invitedPeers.map(\.peer), [camC])
 
         // Inviting a peer that was never discovered does nothing.
         transport.invitedPeers.removeAll()
-        await controller.inviteCamera(MCPeerID(displayName: "Ghost"))
+        controller.inviteCamera(MCPeerID(displayName: "Ghost"))
         await controller.waitForIdle()
         XCTAssertTrue(transport.invitedPeers.isEmpty)
     }
@@ -393,7 +394,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: -50)
         transport.sentMessages.removeAll()
 
-        await controller.startRecording()
+        controller.startRecording()
         await controller.waitForIdle()
         let starts = sent(transport, RemoteCmd.ScheduledStartRecording.self)
         func startFire(_ p: MCPeerID) -> UInt64 {
@@ -407,7 +408,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        await controller.stopRecording()
+        controller.stopRecording()
         await controller.waitForIdle()
         let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
         func stopFire(_ p: MCPeerID) -> UInt64 {
@@ -430,7 +431,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
         await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
 
-        await controller.startRecording()
+        controller.startRecording()
         await controller.waitForIdle()
         let recID = await controller.recordingStateForTesting()?.id
         XCTAssertNotNil(recID)
@@ -448,7 +449,7 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(stillRecording?.remaining, 0)
 
         // Stop resolves back to monitoring.
-        await controller.stopRecording()
+        controller.stopRecording()
         await controller.waitForIdle()
         let stopID = await controller.stoppingStateForTesting()?.id
         controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: stopID!, isStop: true), from: camA)
@@ -467,7 +468,8 @@ final class MulticamControllerTests: XCTestCase {
     func testRemoveCameraDropsTheLaneAndRefocuses() async {
         let (controller, _, _) = await makeController(peers: [camA, camB])
 
-        await controller.removeCamera(camA)
+        controller.removeCamera(camA)
+        await controller.waitForIdle()
         let lanes = await controller.lanesForTesting()
         XCTAssertEqual(lanes.map(\.peerID), [camB])
         let focusedAfter = await controller.focusedPeerForTesting()
@@ -499,7 +501,7 @@ final class MulticamControllerTests: XCTestCase {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         transport.sentMessages.removeAll()
 
-        await controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
+        controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
         await controller.waitForIdle()
 
         let sends = sent(transport, RemoteCmd.SetVideoQuality.self)
@@ -522,8 +524,8 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        await controller.setVideoQuality(resolution: .hd1080p, frameRate: .fps30)
-        await controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
+        controller.setVideoQuality(resolution: .hd1080p, frameRate: .fps30)
+        controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
         await controller.waitForIdle()
 
         let sends = sent(transport, RemoteCmd.SetVideoQuality.self)
@@ -539,7 +541,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        await controller.applyAutomaticVideoQuality()
+        controller.applyAutomaticVideoQuality()
         await controller.waitForIdle()
 
         let sends = sent(transport, RemoteCmd.SetVideoQuality.self)
@@ -555,7 +557,7 @@ final class MulticamControllerTests: XCTestCase {
         controller.didReceiveMessage(capsWith(full4K), from: camB)
         await controller.waitForIdle()
         // Rig set to 4K30 (both can).
-        await controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
+        controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
         await controller.waitForIdle()
         let flaggedBefore = await controller.needsRematchForTesting(camB)
         XCTAssertFalse(flaggedBefore)
@@ -574,27 +576,37 @@ final class MulticamControllerTests: XCTestCase {
         // Seed offsets so the fired capture takes the scheduled path.
         await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
         await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
-        await controller.setTimerTickInterval(0.001) // fast
-        await controller.setRigTimer(3)
+        // Large interval so the production tick Task never fires during the
+        // test — the ticks are driven deterministically through the inbox.
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(3)
+        await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        await controller.capturePhoto()
-        // Wait for the countdown (3 ticks + fire) to elapse.
-        for _ in 0..<200 where sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty {
-            try? await Task.sleep(nanoseconds: 5_000_000)
+        controller.capturePhoto()
+        await controller.waitForIdle() // arms the countdown, fans tick 3
+        var remaining = await controller.countdownRemainingForTesting()
+        XCTAssertEqual(remaining, 3)
+
+        // Drive the countdown 3 → 2 → 1 → 0 (fires) through the pump.
+        for _ in 0..<3 {
+            await controller.advanceTimerForTesting()
+            await controller.waitForIdle()
         }
-        // The countdown fanned out TimerCountdown to both cameras...
-        let ticks = sent(transport, RemoteCmd.TimerCountdown.self)
-        XCTAssertTrue(ticks.contains { ($0.msg as? RemoteCmd.TimerCountdown)?.value == 3 })
-        XCTAssertTrue(ticks.contains { ($0.msg as? RemoteCmd.TimerCountdown)?.value == 0 })
-        // ...and the synced capture fired after expiry.
-        XCTAssertFalse(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty)
+        remaining = await controller.countdownRemainingForTesting()
+        XCTAssertNil(remaining, "countdown finished")
+
+        let ticks = sent(transport, RemoteCmd.TimerCountdown.self).compactMap { $0.msg as? RemoteCmd.TimerCountdown }
+        XCTAssertTrue(ticks.contains { $0.value == 3 })
+        XCTAssertTrue(ticks.contains { $0.value == 0 })
+        XCTAssertFalse(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty,
+                       "expiry fired the synced capture")
     }
 
     func testSetPhotoQualityFansOut() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         transport.sentMessages.removeAll()
-        await controller.setPhotoQuality(format: .heif, hdr: .on)
+        controller.setPhotoQuality(format: .heif, hdr: .on)
         await controller.waitForIdle()
         let sends = sent(transport, RemoteCmd.SetPhotoQuality.self)
         XCTAssertEqual(Set(sends.flatMap(\.peers)), [camA, camB])
@@ -634,7 +646,7 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(failed, .failed)
 
         transport.sentMessages.removeAll()
-        await controller.retryCollection(for: camA)
+        controller.retryCollection(for: camA)
         await controller.waitForIdle()
         // Re-request goes to that camera, and its lane returns to transferring.
         let resends = sent(transport, RemoteCmd.RequestVideoResend.self)

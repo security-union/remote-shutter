@@ -40,16 +40,13 @@ public final class MulticamViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .black
 
+        // The controller's UI commands are `nonisolated` (they `tell` the
+        // single inbox), so the call sites are plain synchronous sends — no
+        // `Task { await }` wrappers.
         let multicamView = MulticamView(
             viewModel: viewModel,
-            onFocusLane: { [weak self] lane in
-                guard let self else { return }
-                Task { await self.controller.setFocusedPeer(lane.peerID) }
-            },
-            onShutter: { [weak self] in
-                guard let self else { return }
-                self.triggerShutter()
-            },
+            onFocusLane: { [weak self] lane in self?.controller.setFocusedPeer(lane.peerID) },
+            onShutter: { [weak self] in self?.triggerShutter() },
             onToggleMode: { [weak self] in
                 guard let self, !self.viewModel.isRecording else { return }
                 self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
@@ -58,30 +55,23 @@ public final class MulticamViewController: UIViewController {
             onInviteCamera: { [weak self] peer in
                 guard let self else { return }
                 self.viewModel.showingAddCamera = false
-                Task { await self.controller.inviteCamera(peer) }
+                self.controller.inviteCamera(peer)
             },
-            onSetTimer: { [weak self] seconds in
-                Task { await self?.controller.setRigTimer(seconds) }
-            },
+            onSetTimer: { [weak self] seconds in self?.controller.setRigTimer(seconds) },
             onSelectVideoQuality: { [weak self] res, fps in
-                Task { await self?.controller.setVideoQuality(resolution: res, frameRate: fps) }
+                self?.controller.setVideoQuality(resolution: res, frameRate: fps)
             },
-            onAutomaticVideoQuality: { [weak self] in
-                Task { await self?.controller.applyAutomaticVideoQuality() }
-            },
+            onAutomaticVideoQuality: { [weak self] in self?.controller.applyAutomaticVideoQuality() },
             onSetPhotoFormat: { [weak self] format in
-                Task { await self?.controller.setPhotoQuality(
-                    format: format,
-                    hdr: self?.viewModel.rigSettings.activeHDR ?? .off) }
+                self?.controller.setPhotoQuality(format: format,
+                                                 hdr: self?.viewModel.rigSettings.activeHDR ?? .off)
             },
             onSetHDR: { [weak self] on in
-                Task { await self?.controller.setPhotoQuality(
+                self?.controller.setPhotoQuality(
                     format: self?.viewModel.rigSettings.activePhotoFormat ?? .jpeg,
-                    hdr: on ? .on : .off) }
+                    hdr: on ? .on : .off)
             },
-            onRetryCollection: { [weak self] lane in
-                Task { await self?.controller.retryCollection(for: lane.peerID) }
-            })
+            onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) })
         hosting = embedSwiftUIView(multicamView)
 
         Task { await controller.setDisplay(self) }
@@ -127,14 +117,10 @@ public final class MulticamViewController: UIViewController {
 
     /// Route the shutter: a photo, or record start/stop, per the current mode.
     private func triggerShutter() {
-        let mode = viewModel.mode
-        let recording = viewModel.isRecording
-        Task {
-            switch (mode, recording) {
-            case (.photo, _): await controller.capturePhoto()
-            case (.video, false): await controller.startRecording()
-            case (.video, true): await controller.stopRecording()
-            }
+        switch (viewModel.mode, viewModel.isRecording) {
+        case (.photo, _): controller.capturePhoto()
+        case (.video, false): controller.startRecording()
+        case (.video, true): controller.stopRecording()
         }
     }
 
@@ -159,10 +145,10 @@ public final class MulticamViewController: UIViewController {
             OperationQueue.main.addOperation { lane?.frames.cameraImage = image }
         }
         lane.receiver.onStall = { [weak self] in
-            Task { await self?.controller.nudgeFrame(for: peer) }
+            self?.controller.nudgeFrame(for: peer)
         }
         lane.receiver.onKeyframeNeeded = { [weak self] in
-            Task { await self?.controller.requestKeyframe(for: peer) }
+            self?.controller.requestKeyframe(for: peer)
         }
         lane.receiver.start()
     }
