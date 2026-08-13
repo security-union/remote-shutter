@@ -23,16 +23,17 @@ final class CameraLane: ObservableObject, Identifiable {
     /// view model — see `FrameDisplayModel`).
     let frames = FrameDisplayModel()
 
-    @Published var status: CameraLink.Status
-    @Published var isFocused: Bool
-    /// How this camera answered the last synced capture — a brief tile badge.
-    @Published var captureOutcome: CaptureOutcome?
-    /// This camera is rolling in a synced recording — REC badge.
-    @Published var isRecording: Bool
-    /// This camera can't match the running rig quality — badge + re-match.
-    @Published var needsQualityRematch: Bool
-    /// Post-take footage collection progress — transfer badge / done / failed.
-    @Published var collection: CameraLink.LaneCollectionState
+    /// The whole lane snapshot, published as one value — the fields below are
+    /// pure reads, so a status change and a badge change coalesce into a single
+    /// SwiftUI invalidation (frames are separate, in `FrameDisplayModel`).
+    @Published private(set) var info: MulticamLaneInfo
+
+    var status: CameraLink.Status { info.status }
+    var isFocused: Bool { info.isFocused }
+    var captureOutcome: CaptureOutcome? { info.captureOutcome }
+    var isRecording: Bool { info.isRecording }
+    var needsQualityRematch: Bool { info.needsQualityRematch }
+    var collection: CameraLink.LaneCollectionState { info.collection }
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -42,12 +43,12 @@ final class CameraLane: ObservableObject, Identifiable {
     init(info: MulticamLaneInfo) {
         self.peerID = info.peerID
         self.displayName = info.displayName
-        self.status = info.status
-        self.isFocused = info.isFocused
-        self.captureOutcome = info.captureOutcome
-        self.isRecording = info.isRecording
-        self.needsQualityRematch = info.needsQualityRematch
-        self.collection = info.collection
+        self.info = info
+    }
+
+    /// Mechanical reconcile: one Equatable compare, one assignment.
+    func update(_ info: MulticamLaneInfo) {
+        if self.info != info { self.info = info }
     }
 }
 
@@ -89,12 +90,7 @@ final class MulticamViewModel: ObservableObject {
 
         let next: [CameraLane] = infos.map { info in
             if let lane = existing.removeValue(forKey: info.peerID) {
-                if lane.status != info.status { lane.status = info.status }
-                if lane.isFocused != info.isFocused { lane.isFocused = info.isFocused }
-                if lane.captureOutcome != info.captureOutcome { lane.captureOutcome = info.captureOutcome }
-                if lane.isRecording != info.isRecording { lane.isRecording = info.isRecording }
-                if lane.needsQualityRematch != info.needsQualityRematch { lane.needsQualityRematch = info.needsQualityRematch }
-                if lane.collection != info.collection { lane.collection = info.collection }
+                lane.update(info) // one Equatable compare + assignment
                 return lane
             }
             let lane = CameraLane(info: info)

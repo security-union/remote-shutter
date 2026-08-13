@@ -194,11 +194,11 @@ public actor MulticamController {
 
     func setDisplay(_ display: MulticamDisplay) {
         self.display = display
-        publishRigSettings()
-        // The display is wired after `install` (the screen is pushed only once
-        // the handoff is done), so replay the current lanes now — otherwise the
-        // first snapshot, emitted during install, reaches no one.
-        publishLanes()
+        // Pre-pump setup: replay the current state directly (no pump epilogue
+        // to flush a dirty flag). The display is wired after `install`, so the
+        // first snapshot emitted during install would otherwise reach no one.
+        publishRigSettingsNow()
+        publishLanesNow()
     }
     func setReconnectRetryDelay(_ delay: TimeInterval) { reconnectRetryDelay = delay }
 
@@ -236,7 +236,7 @@ public actor MulticamController {
 
         for peer in order { beginHandshake(with: peer) }
         startClockSyncLoop()
-        publishLanes()
+        publishLanesNow() // pre-pump setup
     }
 
     /// The initial per-camera handshake: announce the director role (carries
@@ -252,7 +252,21 @@ public actor MulticamController {
 
     // MARK: - Message handling
 
+    /// Derived publishing: handlers mark what changed instead of pushing to the
+    /// UI themselves, and the pump flushes at most one lanes-publish and one
+    /// rig-publish per message — so multiple mutations coalesce into one main hop.
+    private var lanesDirty = false
+    private var rigDirty = false
+    private func markLanesDirty() { lanesDirty = true }
+    private func markRigDirty() { rigDirty = true }
+
     func handle(_ msg: Message) async {
+        await route(msg)
+        if lanesDirty { lanesDirty = false; publishLanesNow() }
+        if rigDirty { rigDirty = false; publishRigSettingsNow() }
+    }
+
+    private func route(_ msg: Message) async {
         switch msg {
         case let connected as OnConnectToDevice:
             handlePeerConnected(connected.peer)
@@ -327,7 +341,7 @@ public actor MulticamController {
             // fully drive.
             if !isPeerCompatible(became) {
                 link.status = .failed
-                publishLanes()
+                markLanesDirty()
             }
 
         case let caps as RemoteCmd.CameraCapabilitiesResp:
@@ -337,8 +351,8 @@ public actor MulticamController {
             // tile badges + the tray offers re-match) rather than silently
             // changing the rig. Also refreshes the intersection menu.
             refreshRematchFlags()
-            publishLanes()
-            publishRigSettings()
+            markLanesDirty()
+            markRigDirty()
             // A multicam-capable camera gets an immediate clock probe so its
             // offset is ready well before the first synced capture (PR4), and
             // its preview tier (full if focused, else thumbnail).
@@ -392,8 +406,15 @@ public actor MulticamController {
             publishAvailable()
         }
         focusedPeer = focusedPeer ?? peer
+        syncFocusFlags()
         beginHandshake(with: peer)
-        publishLanes()
+        markLanesDirty()
+    }
+
+    /// Mirror `focusedPeer` onto each lane's `isFocused` so `CameraLink.snapshot`
+    /// stays the single source of truth for the tile.
+    private func syncFocusFlags() {
+        for (peer, link) in links { link.isFocused = (peer == focusedPeer) }
     }
 
     private func publishAvailable() {
@@ -407,7 +428,7 @@ public actor MulticamController {
         // Degrade the tile, keep the rest of the rig recording/monitoring. The
         // controller stays browsing, so `browserDidFindPeer` re-invites.
         link.status = .reconnecting
-        publishLanes()
+        markLanesDirty()
         armReconnect(peer)
     }
 
@@ -482,10 +503,11 @@ public actor MulticamController {
     private func handleSetFocusedPeer(_ peer: MCPeerID) {
         guard links[peer] != nil else { return }
         focusedPeer = peer
+        syncFocusFlags()
         // Retier previews: the newly focused camera goes full-size, the rest
         // (including the one that just lost focus) drop to thumbnail.
         for p in order { pushProfile(to: p) }
-        publishLanes()
+        markLanesDirty()
     }
 
     /// The preview tier a camera should be on: full for the focused lane,
@@ -517,8 +539,8 @@ public actor MulticamController {
     private func handleRemoveCamera(_ peer: MCPeerID) {
         links[peer] = nil
         order.removeAll { $0 == peer }
-        if focusedPeer == peer { focusedPeer = order.first }
-        publishLanes()
+        if focusedPeer == peer { focusedPeer = order.first; syncFocusFlags() }
+        markLanesDirty()
     }
 
     private func focusedSend(_ msg: Message) {
@@ -624,7 +646,7 @@ public actor MulticamController {
             lanes: ready)
 
         state = .capturingPhoto(captureId: captureID, acksRemaining: capturingLanes.count)
-        publishLanes()
+        markLanesDirty()
         armAckTimeout(captureID)
     }
 
@@ -651,7 +673,7 @@ public actor MulticamController {
             lanes: ready)
 
         state = .recording(captureId: captureID, acksRemaining: capturingLanes.count)
-        publishLanes()
+        markLanesDirty()
         armAckTimeout(captureID)
     }
 
@@ -673,7 +695,7 @@ public actor MulticamController {
             lanes: rolling)
 
         state = .stoppingRecording(captureId: captureID, acksRemaining: capturingLanes.count)
-        publishLanes()
+        markLanesDirty()
         armAckTimeout(captureID)
     }
 
@@ -714,7 +736,7 @@ public actor MulticamController {
             sendTo(peer, RemoteCmd.SetVideoQuality(resolution: resolution, frameRate: frameRate))
         }
         refreshRematchFlags()
-        publishLanes()
+        markLanesDirty()
     }
 
     public nonisolated func setPhotoQuality(format: PhotoFormat, hdr: HDRMode) {
@@ -726,7 +748,7 @@ public actor MulticamController {
         for peer in order {
             sendTo(peer, RemoteCmd.SetPhotoQuality(format: format, hdrMode: hdr))
         }
-        publishLanes()
+        markLanesDirty()
     }
 
     /// "Automatic" / re-match: recompute best-in-intersection and apply it.
@@ -764,7 +786,7 @@ public actor MulticamController {
 
     private func handleSetRigTimer(_ seconds: Int) {
         rigTimerSeconds = seconds
-        publishRigSettings()
+        markRigDirty()
     }
 
     /// Begin a director-side countdown, fanned out to every camera so subjects
@@ -807,10 +829,10 @@ public actor MulticamController {
 
     private func fanOutTimerTick(_ remaining: Int) {
         for peer in order { sendTo(peer, RemoteCmd.TimerCountdown(value: remaining)) }
-        publishRigSettings(countdown: remaining > 0 ? remaining : nil)
+        markRigDirty() // the countdown value is read from `countdown` state at publish
     }
 
-    private func publishRigSettings(countdown: Int? = nil) {
+    private func publishRigSettingsNow() {
         let menu = rigQualityMenu()
         let videoLabel: String
         if let v = activeVideoQuality {
@@ -820,7 +842,7 @@ public actor MulticamController {
         }
         let snapshot = RigSettingsSnapshot(
             timerSeconds: rigTimerSeconds,
-            countdown: countdown,
+            countdown: countdown?.remaining,
             activeVideoLabel: videoLabel,
             videoOptions: menu.videoPickerOptions(),
             heifAvailable: menu.supportsHEIF(),
@@ -872,7 +894,7 @@ public actor MulticamController {
         case .monitoring:
             break
         }
-        publishLanes()
+        markLanesDirty()
     }
 
     private func armAckTimeout(_ captureID: String) {
@@ -913,7 +935,7 @@ public actor MulticamController {
         default:
             state = .monitoring(mode: .photo)
         }
-        publishLanes()
+        markLanesDirty()
     }
 
     // MARK: - Auto-collect (footage back to the director)
@@ -940,14 +962,14 @@ public actor MulticamController {
         guard let link = links[peer] else { return }
         let name = rigMetadata(for: peer).photoFilename(isHEIC: Self.isHEIC(data))
         link.collection = .collected
-        publishLanes()
+        markLanesDirty()
         Self.savePhotoToLibrary(data, originalFilename: name)
     }
 
     private func handleResourceStarted(_ started: ResourceTransferStarted) {
         guard let link = links[started.peer] else { return }
         link.collection = .transferring(0)
-        publishLanes()
+        markLanesDirty()
     }
 
     private func handleResourceFinished(_ finished: ResourceTransferFinished) {
@@ -955,11 +977,11 @@ public actor MulticamController {
         if finished.error != nil || finished.localURL == nil {
             // Footage is still safe on the camera; the tile offers a retry.
             link.collection = .failed
-            publishLanes()
+            markLanesDirty()
             return
         }
         link.collection = .collected
-        publishLanes()
+        markLanesDirty()
         // The resource is named with the RS_ filename by the camera, so save it
         // under that; QuickTime sync metadata rides inside the .mov itself.
         Self.saveVideoToLibrary(at: finished.localURL!, originalFilename: finished.name)
@@ -971,7 +993,7 @@ public actor MulticamController {
     private func handleRetryCollection(_ peer: MCPeerID) {
         guard let link = links[peer], link.collection == .failed else { return }
         link.collection = .transferring(0)
-        publishLanes()
+        markLanesDirty()
         sendTo(peer, RemoteCmd.RequestVideoResend(captureId: lastCaptureID ?? ""))
     }
 
@@ -1055,23 +1077,13 @@ public actor MulticamController {
 
     // MARK: - Snapshots
 
+    // Each lane declares its own snapshot (see `CameraLink.snapshot`); the
+    // controller just gathers them in order.
     private func laneSnapshot() -> [MulticamLaneInfo] {
-        order.compactMap { peer in
-            guard let link = links[peer] else { return nil }
-            return MulticamLaneInfo(
-                peerID: peer,
-                displayName: link.displayName,
-                status: link.status,
-                isFocused: peer == focusedPeer,
-                clockOffsetMillis: link.latestOffset?.offsetMillis,
-                captureOutcome: link.captureOutcome,
-                isRecording: link.isRecording,
-                needsQualityRematch: link.needsQualityRematch,
-                collection: link.collection)
-        }
+        order.compactMap { links[$0]?.snapshot }
     }
 
-    private func publishLanes() {
+    private func publishLanesNow() {
         let snapshot = laneSnapshot()
         let capturing: Bool
         if case .capturingPhoto = state { capturing = true } else { capturing = false }
@@ -1143,7 +1155,7 @@ extension MulticamController: MultipeerServiceDelegate {
             t0Millis: pong.echoT0Millis,
             cameraClockMillis: pong.cameraClockMillis,
             t3Millis: t3)
-        publishLanes()
+        markLanesDirty()
     }
 
     public nonisolated func didReceiveFrameRequest(_ request: RemoteCmd.RequestFrame) {
