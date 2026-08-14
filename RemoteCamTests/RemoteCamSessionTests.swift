@@ -117,6 +117,64 @@ class SessionCoordinatorTests: XCTestCase {
         await harness.coordinator.seed(state: .scanning, lobby: harness.lobbyWrapper)
     }
 
+    // MARK: - Multicam "Connect (N)": invite the selected set, retry, report
+
+    /// The device-test regression, guarded at the transport: selecting rows
+    /// (pure VM toggles, the production tap path) must invite nothing.
+    func testSelectingRowsSendsZeroInvites() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        let vm = harness.lobby.scannerViewModel
+        let peers = (0..<5).map { MCPeerID(displayName: "Cam\($0)") }
+        peers.forEach { vm.addPeer($0) }
+        peers.forEach { vm.toggleMulticamSelection($0) } // taps = pure selection
+
+        await harness.coordinator.waitForIdle()
+        XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
+                      "selecting must never invite — the device-test regression")
+    }
+
+    func testMulticamConnectInvitesEachSelectedPeer() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        harness.fakeMP.connectedPeers = []
+        let camA = MCPeerID(displayName: "CamA")
+        let camB = MCPeerID(displayName: "CamB")
+
+        // "Connect" fires one invite per selected camera — no `link` clobbering.
+        await harness.deliver(ConnectToDevice(peer: camA, sender: nil))
+        await harness.deliver(ConnectToDevice(peer: camB, sender: nil))
+        XCTAssertEqual(Set(harness.fakeMP.invitedPeers.map(\.peer)), [camA, camB])
+
+        // As each connects, the coordinator reports the growing connected set.
+        harness.fakeMP.connectedPeers = [camA]
+        await harness.deliver(OnConnectToDevice(peer: camA, sender: nil))
+        harness.fakeMP.connectedPeers = [camA, camB]
+        await harness.deliver(OnConnectToDevice(peer: camB, sender: nil))
+        let count = await harness.coordinator.multicamConnectedCount()
+        XCTAssertEqual(count, 2)
+    }
+
+    func testMulticamInviteRetriesOnceThenReportsFailure() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        harness.fakeMP.connectedPeers = []
+        let camA = MCPeerID(displayName: "CamA")
+
+        await harness.deliver(ConnectToDevice(peer: camA, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1)
+
+        // First drop → retry (a second invite), no failure yet.
+        await harness.deliver(DisconnectPeer(peer: camA, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 2)
+        XCTAssertTrue(harness.lobby.failedPeers.isEmpty)
+
+        // Second drop → reported failed, no third invite.
+        await harness.deliver(DisconnectPeer(peer: camA, sender: nil))
+        XCTAssertEqual(harness.fakeMP.invitedPeers.count, 2, "no third invite")
+        XCTAssertEqual(harness.lobby.failedPeers, [camA])
+    }
+
     func testConnectInvitesWithLongTimeout() async {
         await seedScanning()
         await harness.deliver(ConnectToDevice(peer: harness.peer, sender: nil))
@@ -258,6 +316,177 @@ class SessionCoordinatorTests: XCTestCase {
         let frameRequests = sent(RemoteCmd.RequestFrame.self)
         XCTAssertEqual(frameRequests.count, 1)
         XCTAssertEqual(frameRequests[0].mode, .reliable)
+    }
+
+    /// Seam B: a frame's ack goes only to the camera that sent it. With two
+    /// peers connected, a broadcast ack would advance the credit window of a
+    /// camera whose frame was never consumed.
+    func testFrameAckTargetsOnlyTheSendingPeer() async {
+        let secondCamera = MCPeerID(displayName: "SecondCamera")
+        await enterMonitor(.Photo)
+        harness.fakeMP.connectedPeers.append(secondCamera)
+        harness.fakeMP.sendResult = true
+
+        await harness.deliver(RemoteCmd.OnFrame(
+            data: Data([1, 2, 3]), sender: nil, peerId: secondCamera,
+            fps: 30, camPosition: .back, camOrientation: .portrait,
+            codec: .jpeg, sequenceNumber: 1))
+
+        let acks = sent(RemoteCmd.RequestFrame.self)
+        XCTAssertEqual(acks.count, 1)
+        XCTAssertEqual(acks[0].peers, [secondCamera],
+                       "ack must address the frame's source, not all connected peers")
+
+        harness.fakeMP.sentMessages.removeAll()
+        await harness.deliver(RemoteCmd.OnFrame(
+            data: Data([4, 5, 6]), sender: nil, peerId: harness.peer,
+            fps: 30, camPosition: .back, camOrientation: .portrait,
+            codec: .jpeg, sequenceNumber: 2))
+        XCTAssertEqual(sent(RemoteCmd.RequestFrame.self).map(\.peers), [[harness.peer]])
+    }
+
+    /// A camera answers a clock-sync ping immediately, from any state, with
+    /// the pong addressed to the pinging peer — off the actor inbox so the
+    /// timestamp isn't smeared by queued state-machine work.
+    func testClockSyncPingIsAnsweredDirectlyToTheSource() async {
+        harness.coordinator.didReceiveMessage(
+            RemoteCmd.ClockSyncPing(t0Millis: 424_242), from: harness.peer)
+
+        let pongs = sent(RemoteCmd.ClockSyncPong.self)
+        XCTAssertEqual(pongs.count, 1)
+        XCTAssertEqual(pongs[0].peers, [harness.peer])
+        XCTAssertEqual((pongs[0].msg as? RemoteCmd.ClockSyncPong)?.echoT0Millis, 424_242)
+        XCTAssertGreaterThan(
+            (pongs[0].msg as? RemoteCmd.ClockSyncPong)?.cameraClockMillis ?? 0, 0)
+    }
+
+    // MARK: - Scheduled (multicam) capture, camera side
+
+    func testScheduledCaptureInThePastNacks() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        await harness.deliver(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: 1, // long past
+            anchorMillis: 1, captureId: "CAP-1", sessionId: "S", cameraIndex: 1))
+
+        let acks = sent(RemoteCmd.ScheduledCaptureAck.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledCaptureAck }
+        XCTAssertEqual(acks.count, 1)
+        XCTAssertEqual(acks[0].captureId, "CAP-1")
+        XCTAssertNotNil(acks[0].error, "a fire time in the past is refused")
+        XCTAssertTrue(camera.takePictureCalls.isEmpty, "no shutter on a nack")
+    }
+
+    func testValidScheduledCaptureAcksImmediatelyAndFires() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        // Fire ~now: acked immediately, then the shutter pulls a moment later.
+        await harness.deliver(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: SyncClock.nowMillis(), captureId: "CAP-2",
+            sessionId: "S", cameraIndex: 2))
+
+        let acks = sent(RemoteCmd.ScheduledCaptureAck.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledCaptureAck }
+        XCTAssertEqual(acks.map(\.captureId), ["CAP-2"])
+        XCTAssertNil(acks[0].error, "accepted")
+
+        // The fire is enqueued by an off-actor delay task; wait for it.
+        for _ in 0..<200 where camera.takePictureCalls.isEmpty {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(camera.takePictureCalls, [true],
+                       "the scheduled shutter fires, saving locally AND returning the still to the director")
+    }
+
+    // MARK: - Resilient camera (multicam only)
+
+    /// In a multicam session the camera keeps recording through a director
+    /// drop — the rest of the rig is still rolling. It enters the reconnect
+    /// path without stopping the clip.
+    func testMulticamDisconnectMidRecordingKeepsRecording() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        // A real scheduled start latches the multicam session and rolls tape.
+        await harness.deliver(RemoteCmd.ScheduledStartRecording(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: SyncClock.nowMillis(),
+            captureId: "R", sessionId: "S", cameraIndex: 1))
+        let latched = await harness.coordinator.inMulticamSessionForTesting()
+        XCTAssertTrue(latched)
+
+        for _ in 0..<200 where camera.startRecordingCalls == 0 {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(camera.startRecordingCalls, 1)
+        await harness.coordinator.waitForIdle()
+        var name = await harness.stateName()
+        XCTAssertEqual(name, .cameraRecordingVideo)
+
+        // Director drops.
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        XCTAssertTrue(camera.stopRecordingCalls.isEmpty,
+                      "the clip keeps rolling through a director drop in multicam")
+        name = await harness.stateName()
+        XCTAssertEqual(name, .reconnecting)
+    }
+
+    /// A single-camera session is unchanged: a disconnect mid-recording stops
+    /// the clip exactly as before (the resilient behavior must not leak here).
+    func testSingleCamDisconnectMidRecordingStops() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .cameraRecordingVideo)
+        let latched = await harness.coordinator.inMulticamSessionForTesting()
+        XCTAssertFalse(latched, "no multicam command arrived")
+
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        XCTAssertEqual(camera.stopRecordingCalls, [false],
+                       "single-camera recording still stops on disconnect")
+    }
+
+    /// A scheduled start latches the session and stamps the recording with sync
+    /// metadata; a scheduled stop later fires the stop.
+    func testScheduledRecordingStampsMetadataAndFires() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        await harness.deliver(RemoteCmd.ScheduledStartRecording(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: 42, captureId: "R7", sessionId: "S3", cameraIndex: 4))
+
+        let acks = sent(RemoteCmd.ScheduledRecordingAck.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledRecordingAck }
+        XCTAssertEqual(acks.map(\.captureId), ["R7"])
+        XCTAssertFalse(acks[0].isStop)
+
+        for _ in 0..<200 where camera.startRecordingCalls == 0 {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        // The recording carries its sync metadata (anchor as opaque key).
+        XCTAssertEqual(camera.videoSyncMetadata?.captureID, "R7")
+        XCTAssertEqual(camera.videoSyncMetadata?.cameraIndex, 4)
+        XCTAssertEqual(camera.videoSyncMetadata?.anchorMillis, 42)
+
+        // A scheduled stop fires the stop.
+        await harness.deliver(RemoteCmd.ScheduledStopRecording(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: 42, captureId: "R7", sessionId: "S3", cameraIndex: 4))
+        for _ in 0..<200 where camera.stopRecordingCalls.isEmpty {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(camera.stopRecordingCalls, [true],
+                       "scheduled stop saves locally AND pushes the clip to the director")
     }
 
     func testMonitorPhotoModeUnbecomeMonitorPopsToConnected() async {

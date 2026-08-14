@@ -359,3 +359,28 @@
 "IncompatibleBothTitle" = "Apl bukan versi terkini";
 "IncompatibleBothBody" = "Sila kemas kini Remote Shutter pada kedua-dua peranti.";
 "IncompatibleUpdateButton" = "Kemas kini";
+
+// Multicam director (behind ENABLE_MULTICAM)
+"Add camera" = "Tambah kamera";
+"Add" = "Tambah";
+"Searching for cameras…" = "Mencari kamera…";
+"Director" = "Pengarah";
+"Control one or more iPhone cameras" = "Kawal satu atau lebih kamera iPhone";
+"Direct up to 4 cameras at once" = "Arahkan sehingga 4 kamera serentak";
+"RECONNECTING" = "MENYAMBUNG SEMULA";
+"Connect (%d)" = "Sambung (%d)";
+"Select All" = "Pilih semua";
+
+// Multicam rig settings tray
+"Auto" = "Auto";
+"Timer" = "Pemasa";
+"Off" = "Mati";
+"Video Quality" = "Kualiti video";
+"Automatic" = "Automatik";
+"Photo" = "Foto";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "Tetapan rig";
+"%@ can't" = "%@ tidak boleh";
+"%@ can't do HDR" = "%@ tidak boleh HDR";
+"Retry" = "Cuba lagi";

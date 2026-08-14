@@ -71,6 +71,13 @@ class RecordingPipeline {
     /// writer geometry must not chase a mid-recording aspect change.
     var recordingAspectRatio: AspectRatio = .sixteenNine
 
+    /// Set for a synced multicam recording only: embeds the shot's alignment
+    /// fields as QuickTime metadata in the .mov and names the saved clip
+    /// `RS_<sess>_<cap>_cam<k>.mov`. Nil for ordinary single-camera recording,
+    /// which writes and saves exactly as before. Consumed (cleared) when the
+    /// clip is saved.
+    var pendingSyncMetadata: CaptureSyncMetadata?
+
     private let videoCropContext = CIContext(options: [.useSoftwareRenderer: false])
 
     private var videoInput: AVAssetWriterInput!
@@ -132,6 +139,12 @@ class RecordingPipeline {
         // Create an asset writer
         do {
             self.assetWriter = try AVAssetWriter(outputURL: outputFilePath, fileType: .mov)
+            // Synced multicam: embed the shot's alignment fields in the file so
+            // an editor can group and time-align the angles. The anchor rides
+            // as an opaque numeric key, not a wall-clock date.
+            if let metadata = pendingSyncMetadata {
+                self.assetWriter?.metadata = metadata.quickTimeMetadataItems()
+            }
         } catch {
             onError?(NSLocalizedString("Unable to start recording", comment: ""))
         }
@@ -193,18 +206,25 @@ class RecordingPipeline {
         PHPhotoLibrary.requestAuthorization { [weak self] status in
             if status == .authorized {
                 // Save the movie file to the photo library and cleanup.
+                let syncMetadata = self?.pendingSyncMetadata
                 PHPhotoLibrary.shared().performChanges({
                     let options = PHAssetResourceCreationOptions()
-                    options.shouldMoveFile = true
+                    // A multicam clip is COPIED (not moved) so the temp file
+                    // survives the staggered/retried auto-collect transfer to
+                    // the director; the next recording cleans it up.
+                    options.shouldMoveFile = (syncMetadata == nil)
+                    // Synced clip: name it under the shared RS_ group.
+                    if let syncMetadata { options.originalFilename = syncMetadata.videoFilename() }
                     let creationRequest = PHAssetCreationRequest.forAsset()
                     creationRequest.addResource(with: .video, fileURL: outputFileURL, options: options)
                 }, completionHandler: { success, error in
                     if !success {
                         print("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
                     }
-                    cleanupFileAt(outputFileURL)
+                    if syncMetadata == nil { cleanupFileAt(outputFileURL) }
                 }
                 )
+                self?.pendingSyncMetadata = nil
             } else {
                 DispatchQueue.main.async {
                     self?.onPhotosAccessDenied?()

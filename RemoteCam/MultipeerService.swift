@@ -12,14 +12,17 @@ import Combine
 import UIKit
 
 protocol MultipeerServiceDelegate: AnyObject {
-    func didReceiveMessage(_ message: Message)
+    /// `peer` is the message's source. The 1:1 SessionCoordinator can ignore
+    /// it (there is only one peer a message can come from); a multicam
+    /// director needs it to route responses to the right camera.
+    func didReceiveMessage(_ message: Message, from peer: MCPeerID)
     func didReceiveFrameRequest(_ request: RemoteCmd.RequestFrame)
     func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID)
     func peerDidConnect(_ peer: MCPeerID)
     func peerDidDisconnect(_ peer: MCPeerID)
     func didDetectIncompatibility()
-    func didStartReceivingResource(name: String, progress: Progress)
-    func didFinishReceivingResource(name: String, at localURL: URL?, error: Error?)
+    func didStartReceivingResource(name: String, from peer: MCPeerID, progress: Progress)
+    func didFinishReceivingResource(name: String, from peer: MCPeerID, at localURL: URL?, error: Error?)
     func browserDidFindPeer(_ peer: MCPeerID)
     func browserDidLosePeer(_ peer: MCPeerID)
     func browserDidFail(_ error: Error)
@@ -205,7 +208,7 @@ class MultipeerService: NSObject, MCSessionDelegate,
         case let frame as RemoteCmd.SendFrame:
             delegate?.didReceiveFrame(frame, from: peerID)
         default:
-            delegate?.didReceiveMessage(inboundMessage)
+            delegate?.didReceiveMessage(inboundMessage, from: peerID)
         }
     }
 
@@ -215,11 +218,11 @@ class MultipeerService: NSObject, MCSessionDelegate,
 
     public func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String,
                         fromPeer peerID: MCPeerID, with progress: Progress) {
-        delegate?.didStartReceivingResource(name: resourceName, progress: progress)
+        delegate?.didStartReceivingResource(name: resourceName, from: peerID, progress: progress)
     }
 
     public func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String,
                         fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {
-        delegate?.didFinishReceivingResource(name: resourceName, at: localURL, error: error)
+        delegate?.didFinishReceivingResource(name: resourceName, from: peerID, at: localURL, error: error)
     }
 }

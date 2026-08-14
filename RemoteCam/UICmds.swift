@@ -564,4 +564,18 @@ extension UICmd {
             super.init(sender: nil)
         }
     }
+
+    /// Multicam director "collecting" mode: while set, the scanner accumulates
+    /// several connected cameras instead of auto-advancing to the 1:1 monitor
+    /// on the first connect. Sent by the scanner only when `ENABLE_MULTICAM`
+    /// and the monitor role — off, the coordinator's scanning path is
+    /// byte-identical to before.
+    public class SetMulticamCollecting: Message, @unchecked Sendable {
+        let on: Bool
+        init(on: Bool) {
+            self.on = on
+            super.init(sender: nil)
+        }
+    }
+
 }

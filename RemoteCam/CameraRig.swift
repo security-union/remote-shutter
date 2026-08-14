@@ -549,6 +549,14 @@ extension CameraRig: CameraControlling {
         pipeline.stopRecording(shouldSendVideo)
     }
 
+    func setVideoSyncMetadata(_ metadata: CaptureSyncMetadata?) {
+        pipeline.pendingSyncMetadata = metadata
+    }
+
+    func applyStreamProfile(_ profile: StreamProfile) {
+        streamingCoordinator.applyStreamProfile(profile)
+    }
+
     func updateTimerCountdown(value: Int) {
         OperationQueue.main.addOperation {
             if value > 0 {

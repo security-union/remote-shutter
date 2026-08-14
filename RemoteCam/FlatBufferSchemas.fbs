@@ -38,8 +38,28 @@ enum CommandAction : byte {
     RequestKeyframe = 21,      // monitor -> camera: force a VP9 keyframe
     FocusAtPoint = 22,         // monitor -> camera: focus/exposure point
     EndSession = 23,           // either side: "I am leaving on purpose"
-    SetCameraPreviewMode = 24  // monitor -> camera: local preview on/standby;
+    SetCameraPreviewMode = 24, // monitor -> camera: local preview on/standby;
                                // only sent to peers advertising supports_preview_mode
+    ClockSyncPing = 25,        // director -> camera: clock-offset probe carrying the
+                               // director's send time; the camera answers with a
+                               // ClockSyncPing response echoing it plus its own clock.
+                               // Only sent to peers advertising supports_multicam.
+    ScheduledCapture = 26,     // director -> camera: take a photo at a wall-clock
+                               // instant expressed in the camera's own clock domain
+                               // (the director already applied the per-camera offset),
+                               // so N cameras fire together. Only sent to peers
+                               // advertising supports_multicam; the camera acks with a
+                               // CameraStateResponse echoing the capture id.
+    ScheduledStartRecording = 27, // director -> camera: start recording at the fire
+                               // instant. Reuses the ScheduledCapture params; acks by
+                               // echoing the capture id. Only sent to multicam peers.
+    ScheduledStopRecording = 28,  // director -> camera: stop recording at the fire
+                               // instant, so clip lengths match across the rig.
+    SetStreamProfile = 29,     // director -> camera: reconfigure the live preview
+                               // encoder (resolution/bitrate/fps) for tiered
+                               // multicam previews. Only sent to multicam peers.
+    RequestVideoResend = 30    // director -> camera: re-send the last collected
+                               // clip (auto-collect retry). Reuses capture_id.
 }
 
 // Whether the camera device drives its own on-screen live preview. On is the
@@ -158,6 +178,22 @@ table CommandParameters {
     focus_point_x: float;            // payload for FocusAtPoint (normalized 0..1,
     focus_point_y: float;            // upright-display space; origin top-left)
     camera_preview_mode: CameraPreviewModeEnum;  // payload for SetCameraPreviewMode
+    clock_sync_t0_ms: uint64;        // payload for ClockSyncPing: director clock at send
+    // ScheduledCapture payload. `fire_at_camera_clock_ms` is the shutter instant
+    // in the CAMERA's SyncClock domain (director already added the offset), used
+    // to schedule. `anchor_ms` is the same instant in the DIRECTOR's clock — the
+    // value is identical across every camera in the shot, so it is the alignment
+    // key stamped into each clip. `capture_id`/`capture_session_id` group the
+    // shot; `capture_camera_index` is this camera's 1-based slot for filenames.
+    capture_fire_at_camera_clock_ms: uint64;
+    capture_anchor_ms: uint64;
+    capture_id: string;
+    capture_session_id: string;
+    capture_camera_index: int;
+    // SetStreamProfile payload: live preview-encoder reconfiguration.
+    stream_max_long_edge: int;
+    stream_bitrate_kbps: int;
+    stream_fps: int;
 }
 
 // MARK: - Command Structure
@@ -257,6 +293,11 @@ table CameraCapabilities {
     // not send SetCameraPreviewMode to such a peer (old decoders read the
     // unknown action as its enum default).
     supports_preview_mode: bool;
+    // False/absent = peer cannot join a multicam director session; a director
+    // must not send scheduled-capture or stream-profile commands to such a
+    // peer (they would be decoded as Unknown and dropped, silently desyncing
+    // the rig).
+    supports_multicam: bool;
 }
 
 // MARK: - Response Structure
@@ -272,6 +313,10 @@ table CameraStateResponse {
     available_lenses: [CameraLensType];
     zoom_range: ZoomRange;
     current_zoom: double;
+    // Appended fields only below this line (FlatBuffers schema evolution).
+    clock_sync_echo_t0_ms: uint64;    // ClockSyncPing response: echoed director t0
+    clock_sync_camera_clock_ms: uint64; // ClockSyncPing response: camera clock at receipt
+    capture_id_echo: string;          // ScheduledCapture ack: the accepted capture id
 }
 
 // MARK: - Frame Data

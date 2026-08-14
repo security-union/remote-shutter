@@ -126,6 +126,27 @@ final class DeferredPopAndScan: Message, @unchecked Sendable {
 /// Incompatibility detected by the transport (routed through the inbox — the
 /// old code mutated state directly on the delegate thread).
 final class IncompatibilityDetected: Message, @unchecked Sendable {}
+/// Camera side: a scheduled multicam capture's fire time has arrived. Enqueued
+/// by the off-actor delay task so the shutter is pulled by the message pump,
+/// in order with every other state transition — never racing it.
+final class FireScheduledCapture: Message, @unchecked Sendable {
+    let metadata: CaptureSyncMetadata
+    init(metadata: CaptureSyncMetadata) {
+        self.metadata = metadata
+        super.init(sender: nil)
+    }
+}
+/// Camera side: a scheduled multicam recording's start instant has arrived
+/// (same off-actor-delay → pump-message pattern as `FireScheduledCapture`).
+final class FireScheduledRecordingStart: Message, @unchecked Sendable {
+    let metadata: CaptureSyncMetadata
+    init(metadata: CaptureSyncMetadata) {
+        self.metadata = metadata
+        super.init(sender: nil)
+    }
+}
+/// Camera side: a scheduled multicam recording's stop instant has arrived.
+final class FireScheduledRecordingStop: Message, @unchecked Sendable {}
 /// Retry tick for the capabilities ladder.
 final class RetryCapabilities: Message, @unchecked Sendable {
     let attempt: Int
@@ -222,6 +243,61 @@ public actor SessionCoordinator {
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
 
+    /// Camera side: the sync metadata for a scheduled multicam capture that is
+    /// about to fire. Set when `FireScheduledCapture` triggers the shutter and
+    /// consumed by the next `OnPicture`, so exactly that photo is stamped and
+    /// saved under its `RS_<sess>_<cap>_cam<k>` filename. Nil for ordinary
+    /// single-camera captures, which save exactly as before.
+    private var pendingSyncMetadata: CaptureSyncMetadata?
+    /// The sync metadata for the multicam clip currently being recorded, used
+    /// to name its auto-collect transfer (`RS_…cam<k>.mov`) and to stagger the
+    /// send by camera index. Kept until the next recording so a director retry
+    /// (`RequestVideoResend`) can re-send from `lastMulticamClipURL`.
+    private var pendingVideoSyncMetadata: CaptureSyncMetadata?
+    private var lastMulticamClipURL: URL?
+    /// Per-camera transfer stagger, so N×4K clips don't all hit the link at once.
+    private var multicamTransferStaggerSeconds: Double = 2
+    /// Test seam.
+    func setMulticamTransferStaggerForTesting(_ s: Double) { multicamTransferStaggerSeconds = s }
+
+    /// How far in the past a scheduled fire time may be before the camera
+    /// refuses it (clock error and one retransmit can nudge it slightly late;
+    /// beyond this it is stale and would fire out of sync).
+    private let scheduledCaptureMaxLatenessMillis: Int64 = 1000
+
+    /// Camera side: who is driving this session. `.solo` is an ordinary 1:1
+    /// session (or none yet); `.director` latches the first time any scheduled
+    /// multicam command arrives, and is cleared when the session ends
+    /// (`popToScanning`). It gates the ONE behavior change on the camera — keep
+    /// recording through a director drop instead of stopping — so a
+    /// single-camera session is never affected. A reconnect goes through
+    /// `.reconnecting`, not teardown, so the latch survives a transient drop.
+    private enum CameraDriver: Equatable {
+        case solo
+        case director
+    }
+    private var cameraDriver: CameraDriver = .solo
+
+    /// Test support.
+    func inMulticamSessionForTesting() -> Bool { cameraDriver == .director }
+
+    /// Multicam director "collecting" mode. Off by default and only ever set
+    /// by the scanner when `ENABLE_MULTICAM` and the monitor role, so every
+    /// non-multicam path is byte-identical. While set, a peer connecting in
+    /// `.scanning` is accumulated (the machine stays scanning, keeps browsing)
+    /// instead of transitioning to `.connected` and auto-advancing to the 1:1
+    /// monitor; the scanner reads `multicamCollectedPeers` on "Start".
+    private var multicamCollecting = false
+    private var multicamCollectedPeers: [MCPeerID] = []
+    /// Per-peer invite attempts during a multicam "Connect (N)" — the scanner
+    /// invites the whole selected set at once, so retry/timeout is tracked per
+    /// camera rather than through the single-peer `link`.
+    private var multicamInviteAttempts: [MCPeerID: Int] = [:]
+
+    /// Test support.
+    func multicamCollectingForTesting() -> Bool { multicamCollecting }
+    func multicamCollectedPeersForTesting() -> [MCPeerID] { multicamCollectedPeers }
+
     /// Test support.
     func monitorReceivedVP9FrameForTesting() -> Bool { monitorReceivedVP9Frame }
 
@@ -295,6 +371,47 @@ public actor SessionCoordinator {
 
     var connectedPeers: [MCPeerID] { multipeerService?.connectedPeers ?? [] }
 
+    /// How many cameras the collecting scanner has connected. The scanner
+    /// reads this on "Start" to choose the single-camera vs director path.
+    func multicamConnectedCount() -> Int { multicamCollecting ? connectedPeers.count : 0 }
+
+    /// Hand the live transport (and the ≥2 cameras it is connected to) to a
+    /// `MulticamController`. Detaches this coordinator from the transport —
+    /// nils its references without stopping the session — so the multicam
+    /// controller becomes the sole delegate and this coordinator's `stop()`
+    /// (on scanner teardown) cannot kill a session the director is using.
+    /// Returns nil unless collecting with two or more cameras (the single
+    /// camera case stays on the classic monitor — see below).
+    func detachTransportForMulticam() -> (transport: any MultipeerServiceProtocol, peers: [MCPeerID])? {
+        guard multicamCollecting, let transport = multipeerService else { return nil }
+        let peers = transport.connectedPeers
+        guard peers.count >= 2 else { return nil }
+        multipeerService = nil
+        transportShared.value = nil
+        multicamCollecting = false
+        multicamCollectedPeers = []
+        multicamInviteAttempts = [:]
+        return (transport, peers)
+    }
+
+    /// The single-camera exit from collecting: promote the one connected peer
+    /// to a normal `.connected` session so the classic `MonitorViewController`
+    /// path runs exactly as it does without the flag. Returns false (leaving
+    /// the scanner as-is) unless collecting with exactly one camera.
+    func promoteSingleCollectedToConnected() async -> Bool {
+        guard multicamCollecting, connectedPeers.count == 1,
+              let peer = connectedPeers.first, let liveLobby = lobby?.value else { return false }
+        multicamCollecting = false
+        multicamCollectedPeers = []
+        multicamInviteAttempts = [:]
+        link = .linked(peer)
+        OperationQueue.main.addOperation {
+            liveLobby.scannerViewModel.connectedToPeer()
+        }
+        await transition(to: .connected)
+        return true
+    }
+
     private func unableToProcessError(_ msg: Message) async -> NSError {
         let deviceName = await MainActor.run { UIDevice.current.name }
         return NSError(
@@ -302,23 +419,27 @@ public actor SessionCoordinator {
     }
 
     @discardableResult
-    func sendMessage(_ msg: Message, mode: MCSessionSendDataMode = .reliable) -> Bool {
+    func sendMessage(_ msg: Message, to peers: [MCPeerID]? = nil,
+                     mode: MCSessionSendDataMode = .reliable) -> Bool {
         guard let multipeerService else {
             // Watch Remote mode never starts a multipeer session.
             return false
         }
-        return multipeerService.send(msg, to: connectedPeers, mode: mode)
+        return multipeerService.send(msg, to: peers ?? connectedPeers, mode: mode)
     }
 
     /// Send, or pop to scanning with a connection-error alert on failure —
-    /// the old `sendCommandOrGoToScanning`.
-    func sendOrGoToScanning(_ msg: Message, mode: MCSessionSendDataMode = .reliable) async {
+    /// the old `sendCommandOrGoToScanning`. `peers` nil = all connected
+    /// (identical for this 1:1 coordinator; the param exists so per-peer
+    /// sends like frame acks address only their source).
+    func sendOrGoToScanning(_ msg: Message, to peers: [MCPeerID]? = nil,
+                            mode: MCSessionSendDataMode = .reliable) async {
         guard multipeerService != nil else {
             // Watch Remote mode: there is no peer and no scanning state to fall back to.
             debugLog("sendOrGoToScanning: no multipeer session, dropping \(type(of: msg))")
             return
         }
-        if !sendMessage(msg, mode: mode) {
+        if !sendMessage(msg, to: peers, mode: mode) {
             await popToScanning()
             let presenter = alertPresenter
             OperationQueue.main.addOperation {
@@ -542,6 +663,14 @@ public actor SessionCoordinator {
         await sendOrGoToScanning(RemoteCmd.RequestFrame(sender: nil))
     }
 
+    /// Ack the camera that sent this frame so only its credit window
+    /// advances. With one connected peer this is identical to the broadcast
+    /// form; with several cameras a broadcast ack would let every camera
+    /// send on one camera's consumed frame.
+    private func requestFrame(acking frame: RemoteCmd.OnFrame) async {
+        await sendOrGoToScanning(RemoteCmd.RequestFrame(sender: nil), to: [frame.peerId])
+    }
+
     /// Pop to scanning (stops at the lobby floor like the old machine) and
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
@@ -549,6 +678,12 @@ public actor SessionCoordinator {
         peerSupportsFocusPoint = false
         peerSupportsPreviewMode = false
         monitorReceivedVP9Frame = false
+        // The session is being torn down for good (deliberate leave, EndSession,
+        // or a dead link) — a fresh session starts single-cam until a director
+        // says otherwise. A reconnect goes through `.reconnecting`, not here, so
+        // the latch survives a transient director drop.
+        cameraDriver = .solo
+        pendingSyncMetadata = nil
         switch state {
         case .scanning:
             // Already there — re-entering would restart discovery and reset
@@ -641,6 +776,14 @@ public actor SessionCoordinator {
             startScanning(lobby: liveLobby)
 
         case let connect as ConnectToDevice:
+            if multicamCollecting {
+                // "Connect (N)" fires an invite per selected camera; each is
+                // tracked independently (retry/timeout per peer) rather than
+                // through the single-peer `link`.
+                multicamInviteAttempts[connect.peer] = 1
+                multipeerService?.invitePeer(connect.peer, timeout: inviteTimeout)
+                break
+            }
             link = .inviting(connect.peer, attempt: 1)
             multipeerService?.invitePeer(connect.peer, timeout: inviteTimeout)
             OperationQueue.main.addOperation {
@@ -648,6 +791,22 @@ public actor SessionCoordinator {
             }
 
         case let disconnected as DisconnectPeer:
+            if multicamCollecting, let peer = disconnected.peer,
+               let attempt = multicamInviteAttempts[peer] {
+                // A selected camera's invite dropped/timed out — retry once,
+                // then report it failed so the scanner can proceed with the
+                // cameras that did connect.
+                if attempt < maxConnectAttempts {
+                    multicamInviteAttempts[peer] = attempt + 1
+                    multipeerService?.invitePeer(peer, timeout: inviteTimeout)
+                } else {
+                    multicamInviteAttempts[peer] = nil
+                    OperationQueue.main.addOperation {
+                        liveLobby.didFailMulticamCamera(peer)
+                    }
+                }
+                break
+            }
             guard let invited = link.invited, invited.peer == disconnected.peer else {
                 startScanning(lobby: liveLobby)
                 break
@@ -679,6 +838,21 @@ public actor SessionCoordinator {
             break
 
         case let connected as OnConnectToDevice:
+            if multicamCollecting {
+                // A selected camera established. Accumulate and stay scanning
+                // (no transition to `.connected`, which would stop browsing);
+                // report the full connected set so the scanner advances the
+                // row to "connected" and, once every invite settles, hands off.
+                multicamInviteAttempts[connected.peer] = nil
+                if !multicamCollectedPeers.contains(connected.peer) {
+                    multicamCollectedPeers.append(connected.peer)
+                }
+                let peers = connectedPeers
+                OperationQueue.main.addOperation {
+                    liveLobby.didCollectMulticamCameras(peers)
+                }
+                break
+            }
             link = .linked(connected.peer)
             OperationQueue.main.addOperation {
                 liveLobby.scannerViewModel.connectedToPeer()
@@ -891,6 +1065,42 @@ public actor SessionCoordinator {
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
             await transition(to: .cameraTakingPic(sendMediaToPeer: pic.sendMediaToPeer, generation: generation))
 
+        case let scheduled as RemoteCmd.ScheduledCapture:
+            await handleScheduledCapture(scheduled)
+
+        case let scheduled as RemoteCmd.ScheduledStartRecording:
+            await handleScheduledStartRecording(scheduled)
+
+        case let profile as RemoteCmd.SetStreamProfile:
+            ctrl.applyStreamProfile(StreamProfile(
+                maxLongEdge: CGFloat(profile.maxLongEdge),
+                bitrateKbps: UInt32(max(0, profile.bitrateKbps)),
+                fps: UInt32(max(0, profile.fps))))
+
+        case let fire as FireScheduledRecordingStart:
+            // The start instant arrived. Stamp the recording with its sync
+            // metadata (for the QuickTime keys + the RS_ filename), then roll.
+            cameraDriver = .director
+            pendingVideoSyncMetadata = fire.metadata
+            ctrl.setVideoSyncMetadata(fire.metadata)
+            ctrl.currentCameraMode = .Video
+            ctrl.updateCameraStatus()
+            ctrl.startRecordingVideo()
+            await transition(to: .cameraRecordingVideo)
+
+        case let fire as FireScheduledCapture:
+            // The fire instant arrived (enqueued by the off-actor delay task).
+            // Pull the shutter through the normal photo path: save locally
+            // stamped, AND return the (stamped) still to the director so it
+            // auto-collects every angle.
+            pendingSyncMetadata = fire.metadata
+            ctrl.currentCameraMode = .Photo
+            ctrl.updateCameraStatus()
+            ctrl.takePicture(true)
+            let generation = scheduleTimeout(.cameraTakingPic)
+            await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
+            await transition(to: .cameraTakingPic(sendMediaToPeer: true, generation: generation))
+
         case is RemoteCmd.ToggleCamera:
             do {
                 _ = try await ctrl.toggleCamera()
@@ -1093,6 +1303,84 @@ public actor SessionCoordinator {
         sendMessage(RemoteCmd.RequestKeyframe(sender: nil), mode: .reliable)
     }
 
+    /// Camera side of a synced multicam shot. Acks (or nacks) immediately so
+    /// the director can aggregate without waiting for the photo, then schedules
+    /// the shutter for the fire instant. The delay runs off the actor and only
+    /// enqueues `FireScheduledCapture`, so the capture is pulled by the message
+    /// pump in order — never racing a state transition.
+    private func handleScheduledCapture(_ scheduled: RemoteCmd.ScheduledCapture) async {
+        cameraDriver = .director
+        let now = SyncClock.nowMillis()
+        let lateness = Int64(now) - Int64(scheduled.fireAtCameraClockMillis)
+        guard lateness <= scheduledCaptureMaxLatenessMillis else {
+            await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(
+                captureId: scheduled.captureId,
+                error: NSError(domain: "Scheduled capture fire time already passed",
+                               code: 0, userInfo: nil)))
+            return
+        }
+        await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(captureId: scheduled.captureId))
+
+        let metadata = CaptureSyncMetadata(
+            sessionID: scheduled.sessionId,
+            captureID: scheduled.captureId,
+            cameraIndex: scheduled.cameraIndex,
+            anchorMillis: scheduled.anchorMillis,
+            // The camera does not compute its own clock offset — the director
+            // did, when it translated the fire time into this clock. The
+            // shared `anchorMillis` is the alignment key; these are diagnostics.
+            clockOffsetMillis: 0,
+            roundTripMillis: 0)
+
+        let delayMillis = max(0, -lateness)
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
+            self?.tell(FireScheduledCapture(metadata: metadata))
+        }
+    }
+
+    /// Camera side of a synced multicam recording start. Same ack-now,
+    /// schedule-off-the-actor pattern as `handleScheduledCapture`; the fire
+    /// message rolls the recording through the normal pipeline.
+    private func handleScheduledStartRecording(_ scheduled: RemoteCmd.ScheduledStartRecording) async {
+        cameraDriver = .director
+        let lateness = Int64(SyncClock.nowMillis()) - Int64(scheduled.fireAtCameraClockMillis)
+        guard lateness <= scheduledCaptureMaxLatenessMillis else {
+            await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+                captureId: scheduled.captureId, isStop: false,
+                error: NSError(domain: "Scheduled recording start already passed",
+                               code: 0, userInfo: nil)))
+            return
+        }
+        await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+            captureId: scheduled.captureId, isStop: false))
+
+        let metadata = CaptureSyncMetadata(
+            sessionID: scheduled.sessionId, captureID: scheduled.captureId,
+            cameraIndex: scheduled.cameraIndex, anchorMillis: scheduled.anchorMillis,
+            clockOffsetMillis: 0, roundTripMillis: 0)
+        let delayMillis = max(0, -lateness)
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
+            self?.tell(FireScheduledRecordingStart(metadata: metadata))
+        }
+    }
+
+    /// Camera side of a synced recording stop — acks now, fires the stop at the
+    /// instant so every camera's clip ends together.
+    private func handleScheduledStopRecording(_ scheduled: RemoteCmd.ScheduledStopRecording) async {
+        let lateness = Int64(SyncClock.nowMillis()) - Int64(scheduled.fireAtCameraClockMillis)
+        // A late stop still needs to fire (a clip left rolling is worse than a
+        // slightly-long clip), so we never nack it — just clamp the delay.
+        await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+            captureId: scheduled.captureId, isStop: true))
+        let delayMillis = max(0, -lateness)
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
+            self?.tell(FireScheduledRecordingStop())
+        }
+    }
+
     private func inCameraTakingPic(_ msg: Message, sendMediaToPeer: Bool, generation: Int) async {
         switch msg {
         case is RemoteCmd.RequestKeyframe:
@@ -1103,6 +1391,7 @@ public actor SessionCoordinator {
 
         case let timeout as UICmd.StateTimeout:
             guard timeout.stateName == .cameraTakingPic && timeout.generation == generation else { break }
+            pendingSyncMetadata = nil
             await dismissCameraAlert()
             let sent = sendMessage(RemoteCmd.TakePicResp(
                 sender: nil,
@@ -1114,9 +1403,17 @@ public actor SessionCoordinator {
             }
 
         case let picture as UICmd.OnPicture:
-            if let pic = picture.pic {
-                photoLibrarySaver(pic)
+            // A scheduled multicam capture stamps the still with its sync
+            // metadata once; that same stamped image is saved locally under the
+            // shared RS_<sess>_<cap>_cam<k> name AND returned to the director so
+            // it collects every angle. An ordinary capture saves as before.
+            let metadata = pendingSyncMetadata
+            let stampedPic = picture.pic.map { pic in metadata.map { $0.stamped(pic) } ?? pic }
+            if let pic = stampedPic {
+                if let metadata { saveSyncedPictureToLibrary(pic, metadata: metadata) }
+                else { photoLibrarySaver(pic) }
             }
+            pendingSyncMetadata = nil
             await dismissCameraAlert()
             guard sendMessage(RemoteCmd.TakePicAck(sender: nil)) else {
                 await popToScanning()
@@ -1124,7 +1421,7 @@ public actor SessionCoordinator {
             }
             let resp = RemoteCmd.TakePicResp(
                 sender: nil,
-                pic: sendMediaToPeer ? picture.pic : nil,
+                pic: sendMediaToPeer ? stampedPic : nil,
                 error: picture.error)
             guard sendMessage(resp) else {
                 await popToScanning()
@@ -1190,10 +1487,39 @@ public actor SessionCoordinator {
             await sendOrGoToScanning(RemoteCmd.StopRecordingVideoAck(sender: nil), mode: .reliable)
             await transition(to: .cameraTransmittingVideo)
 
+        case let scheduled as RemoteCmd.ScheduledStopRecording:
+            await handleScheduledStopRecording(scheduled)
+
+        case let profile as RemoteCmd.SetStreamProfile:
+            // The preview keeps streaming while recording, so a focus change
+            // can retune this lane here too.
+            ctrl.applyStreamProfile(StreamProfile(
+                maxLongEdge: CGFloat(profile.maxLongEdge),
+                bitrateKbps: UInt32(max(0, profile.bitrateKbps)),
+                fps: UInt32(max(0, profile.fps))))
+
+        case is FireScheduledRecordingStop:
+            // The scheduled stop instant arrived. Save locally AND push the clip
+            // to the director so it auto-collects every angle (the existing
+            // resource-transfer path; QuickTime sync metadata rides in the file).
+            ctrl.stopRecordingVideo(true)
+            await transition(to: .cameraTransmittingVideo)
+
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
-                ctrl.stopRecordingVideo(false)
-                await loseSessionPeer(lost)
+                if cameraDriver == .director {
+                    // Resilient camera: the director dropped mid-recording, but
+                    // the OTHER cameras in the rig keep rolling — so must this
+                    // one. Keep recording (do NOT stop), and enter the normal
+                    // reconnect path; the clip is saved when the scheduled stop
+                    // finally fires, or when the user stops on-device. This is
+                    // the ONE behavior gated on `cameraDriver == .director`; a
+                    // single-camera session falls through to the stop below.
+                    await loseSessionPeer(lost)
+                } else {
+                    ctrl.stopRecordingVideo(false)
+                    await loseSessionPeer(lost)
+                }
             }
 
         case is UICmd.ScannerDidAppear:
@@ -1390,6 +1716,19 @@ public actor SessionCoordinator {
         case is UICmd.AppForegrounded:
             await rearmAfterForeground()
 
+        case let collect as UICmd.SetMulticamCollecting:
+            multicamCollecting = collect.on
+
+        case is RemoteCmd.RequestVideoResend:
+            // Auto-collect retry: the director's transfer failed. Re-send the
+            // last multicam clip, which we kept for exactly this.
+            if let url = lastMulticamClipURL, FileManager.default.fileExists(atPath: url.path),
+               let name = pendingVideoSyncMetadata?.videoFilename() {
+                for director in connectedPeers {
+                    await sendVideoResourceNow(url: url, name: name, to: director)
+                }
+            }
+
         case is UICmd.PeerTrafficObserved:
             // Arrives with every inbound message; only a wait cares (see
             // `inReconnecting`), and it is swallowed here so the rest of the
@@ -1415,6 +1754,17 @@ public actor SessionCoordinator {
 
         case is RemoteCmd.TakePic:
             await sendOrGoToScanning(RemoteCmd.TakePicResp(sender: nil, error: unableToProcessError(msg)))
+        case let scheduled as RemoteCmd.ScheduledCapture:
+            // Not in a state that can take a picture — nack so the director's
+            // ack aggregation completes instead of timing out.
+            await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(
+                captureId: scheduled.captureId, error: unableToProcessError(msg)))
+        case let scheduled as RemoteCmd.ScheduledStartRecording:
+            await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+                captureId: scheduled.captureId, isStop: false, error: unableToProcessError(msg)))
+        case let scheduled as RemoteCmd.ScheduledStopRecording:
+            await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
+                captureId: scheduled.captureId, isStop: true, error: unableToProcessError(msg)))
         case is RemoteCmd.ToggleCamera:
             await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.SelectCameraDevice:
@@ -1521,25 +1871,42 @@ public actor SessionCoordinator {
             return
         }
 
-        let resourceName = "video_\(UUID().uuidString).mov"
+        // Multicam auto-collect: name the transfer with the shared RS_ filename
+        // so the director saves it under the group, remember the clip for a
+        // possible retry, and stagger the send by camera index so N clips don't
+        // saturate the link at once.
+        let multicamMeta = pendingVideoSyncMetadata
+        let resourceName = multicamMeta?.videoFilename() ?? "video_\(UUID().uuidString).mov"
+        if multicamMeta != nil { lastMulticamClipURL = sendVideo.videoURL }
+        let staggerDelay = multicamMeta.map { Double($0.cameraIndex - 1) * multicamTransferStaggerSeconds } ?? 0
         tell(UICmd.VideoResourceTransferStarted(totalBytes: fileSize, resourceName: resourceName, sender: nil))
 
+        let url = sendVideo.videoURL
         for peer in peers {
-            let sendProgress = multipeerService.sendResource(
-                at: sendVideo.videoURL,
-                withName: resourceName,
-                toPeer: peer
-            ) { [weak self] error in
-                if let error {
-                    self?.tell(UICmd.VideoResourceTransferFailed(error: error, resourceName: resourceName, sender: nil))
-                } else {
-                    self?.tell(UICmd.VideoResourceTransferCompleted(resourceName: resourceName, success: true, sender: nil))
+            if staggerDelay > 0 {
+                let ns = UInt64(staggerDelay * 1_000_000_000)
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: ns)
+                    await self?.sendVideoResourceNow(url: url, name: resourceName, to: peer)
                 }
+            } else {
+                await sendVideoResourceNow(url: url, name: resourceName, to: peer)
             }
+        }
+    }
 
-            if let progress = sendProgress {
-                trackSendProgress(progress, resourceName: resourceName, into: multipeerService)
+    /// The actual staggered send of one clip to one peer.
+    private func sendVideoResourceNow(url: URL, name: String, to peer: MCPeerID) async {
+        guard let multipeerService else { return }
+        let sendProgress = multipeerService.sendResource(at: url, withName: name, toPeer: peer) { [weak self] error in
+            if let error {
+                self?.tell(UICmd.VideoResourceTransferFailed(error: error, resourceName: name, sender: nil))
+            } else {
+                self?.tell(UICmd.VideoResourceTransferCompleted(resourceName: name, success: true, sender: nil))
             }
+        }
+        if let progress = sendProgress {
+            trackSendProgress(progress, resourceName: name, into: multipeerService)
         }
     }
 
@@ -1590,7 +1957,7 @@ public actor SessionCoordinator {
         case let frame as RemoteCmd.OnFrame:
             noteMonitorFrame(frame)
             monitor?.show(frame: frame)
-            await requestFrame()
+            await requestFrame(acking: frame)
 
         case is UICmd.StreamStalled:
             await requestFrame()
@@ -1893,7 +2260,7 @@ public actor SessionCoordinator {
         case let frame as RemoteCmd.OnFrame:
             noteMonitorFrame(frame)
             monitor?.show(frame: frame)
-            await requestFrame()
+            await requestFrame(acking: frame)
 
         case is UICmd.StreamStalled:
             await requestFrame()
@@ -2354,6 +2721,36 @@ public actor SessionCoordinator {
         }
     }
 
+    /// Save a synced multicam still: the image is stamped with the shot's sync
+    /// fields (EXIF) and lands under the shared `RS_<sess>_<cap>_cam<k>` name,
+    /// so any editor can group and align the angles. Full-res stays on this
+    /// camera — the director does not collect stills in v1.
+    private nonisolated func saveSyncedPictureToLibrary(_ data: Data,
+                                                        metadata: CaptureSyncMetadata) {
+        let stamped = metadata.stamped(data)
+        // HEIC magic: bytes 4..12 are "ftyp" then a heic/heix/mif1 brand.
+        let isHEIC = stamped.count > 12
+            && stamped[4] == 0x66 && stamped[5] == 0x74
+            && stamped[6] == 0x79 && stamped[7] == 0x70
+        PHPhotoLibrary.requestAuthorization { status in
+            guard status == .authorized else {
+                DispatchQueue.main.async {
+                    showPhotosAccessDeniedModal(for: .photo)
+                }
+                return
+            }
+            PHPhotoLibrary.shared().performChanges({
+                let options = PHAssetResourceCreationOptions()
+                options.originalFilename = metadata.photoFilename(isHEIC: isHEIC)
+                PHAssetCreationRequest.forAsset()
+                    .addResource(with: .photo, data: stamped, options: options)
+            }) { (success: Bool, _: Error?) in
+                print(success ? "Saved synced photo \(metadata.filenamePrefix)"
+                              : "Failed to save synced photo!")
+            }
+        }
+    }
+
     /// Monitor-side picture save (with the App Store review prompt).
     private nonisolated func savePictureOnMonitor(_ imageData: Data) {
         PHPhotoLibrary.requestAuthorization { status in
@@ -2426,7 +2823,22 @@ public actor SessionCoordinator {
 
 extension SessionCoordinator: MultipeerServiceDelegate {
 
-    public nonisolated func didReceiveMessage(_ message: Message) {
+    public nonisolated func didReceiveMessage(_ message: Message, from peer: MCPeerID) {
+        if let ping = message as? RemoteCmd.ClockSyncPing {
+            // Answered here, off the actor inbox: the sample's quality is the
+            // camera clock *at receipt*, and queuing behind state-machine work
+            // would smear it (same pacing argument as didReceiveFrameRequest).
+            // Stateless, so no isolation is needed.
+            _ = transportShared.value?.send(
+                RemoteCmd.ClockSyncPong(echoT0Millis: ping.t0Millis,
+                                        cameraClockMillis: SyncClock.nowMillis()),
+                to: [peer], mode: .reliable)
+            tell(UICmd.PeerTrafficObserved())
+            return
+        }
+        // `peer` is otherwise deliberately unused: this coordinator links
+        // exactly one peer, so every message's source is unambiguous. The
+        // multicam director's controller is the consumer that routes by it.
         tell(UICmd.PeerTrafficObserved())
         tell(message)
     }
@@ -2492,7 +2904,9 @@ extension SessionCoordinator: MultipeerServiceDelegate {
         tell(UICmd.BrowserFailed(error: error))
     }
 
-    public nonisolated func didStartReceivingResource(name resourceName: String, progress: Progress) {
+    public nonisolated func didStartReceivingResource(name resourceName: String, from peer: MCPeerID, progress: Progress) {
+        // `peer` unused: this 1:1 coordinator has one source. The multicam
+        // director routes by it.
         debugLog("📥 DEBUG: Started receiving resource: \(resourceName)")
         guard resourceName.hasPrefix("video_") else { return }
 
@@ -2543,7 +2957,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
             .store(in: &service.progressCancellables)
     }
 
-    public nonisolated func didFinishReceivingResource(name resourceName: String, at localURL: URL?, error: Error?) {
+    public nonisolated func didFinishReceivingResource(name resourceName: String, from peer: MCPeerID, at localURL: URL?, error: Error?) {
         debugLog("📥 DEBUG: Finished receiving resource: \(resourceName)")
 
         if let error {

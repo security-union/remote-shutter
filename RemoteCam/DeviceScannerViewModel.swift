@@ -4,6 +4,23 @@ import Stormo
 import Network
 import dnssd
 
+/// Where a settled multicam connect hands off to, decided purely by how many
+/// cameras actually connected: none → stay (error), one → the classic 1:1
+/// monitor (unchanged), two or more → the director screen.
+enum MulticamHandoff: Equatable {
+    case none
+    case classicMonitor(MCPeerID)
+    case director([MCPeerID])
+
+    static func decide(connected: [MCPeerID]) -> MulticamHandoff {
+        switch connected.count {
+        case 0: return .none
+        case 1: return .classicMonitor(connected[0])
+        default: return .director(connected)
+        }
+    }
+}
+
 /// Classifies the pre-scan local-network probe: one browse whose only job is
 /// to learn whether the user denied Local Network permission, so the app can
 /// route them to Settings instead of scanning into silence.
@@ -53,6 +70,113 @@ final class DeviceScannerViewModel: ObservableObject {
     @Published var hasScanningError: Bool = false
     @Published var isConnecting: Bool = false
     @Published var hasConnectionError: Bool = false
+    // MARK: - Multicam director: select-then-connect
+
+    /// The multicam scanner is a two-phase edit-mode selector: pick cameras
+    /// (pure, zero network), THEN connect the chosen set. Selecting must never
+    /// invite — that was the device-test regression this model fixes.
+    enum MulticamScanPhase { case selecting, connecting }
+    @Published var multicamPhase: MulticamScanPhase = .selecting
+
+    /// Cameras the user has picked (client-side only, no transport activity).
+    @Published var multicamSelectedPeers: Set<MCPeerID> = []
+    /// Selected cameras whose invite is in flight (connecting phase only).
+    @Published var multicamConnectingPeers: Set<MCPeerID> = []
+    /// Cameras whose invite has established.
+    @Published var multicamConnectedPeers: Set<MCPeerID> = []
+    /// Cameras whose invite failed (timed out after the retry).
+    @Published var multicamFailedPeers: Set<MCPeerID> = []
+
+    /// Pure selection toggle — no invite, no coordinator message.
+    func toggleMulticamSelection(_ peer: MCPeerID) {
+        guard multicamPhase == .selecting else { return }
+        if multicamSelectedPeers.contains(peer) {
+            multicamSelectedPeers.remove(peer)
+        } else {
+            multicamSelectedPeers.insert(peer)
+        }
+    }
+
+    /// Select every discovered, not-yet-selected camera up to the cap (pure).
+    func selectAllMulticam(maxCameras: Int) {
+        guard multicamPhase == .selecting else { return }
+        for peer in connectedPeers where !multicamSelectedPeers.contains(peer) {
+            guard multicamSelectedPeers.count < maxCameras else { break }
+            multicamSelectedPeers.insert(peer)
+        }
+    }
+
+    /// The "Connect (N)" CTA: enabled only while selecting with a non-empty set.
+    var canConnectMulticam: Bool {
+        multicamPhase == .selecting && !multicamSelectedPeers.isEmpty
+    }
+    var multicamSelectionCount: Int { multicamSelectedPeers.count }
+
+    /// Enter the connecting phase; returns the peers to invite (the caller
+    /// fires the invites — the view model stays network-free).
+    func beginMulticamConnecting() -> [MCPeerID] {
+        guard multicamPhase == .selecting, !multicamSelectedPeers.isEmpty else { return [] }
+        multicamPhase = .connecting
+        multicamConnectingPeers = multicamSelectedPeers
+        multicamConnectedPeers = []
+        multicamFailedPeers = []
+        return connectedPeers.filter { multicamSelectedPeers.contains($0) }
+    }
+
+    /// Reconcile the set of established cameras (reported by the coordinator).
+    func reconcileMulticamConnected(_ peers: [MCPeerID]) {
+        guard multicamPhase == .connecting else { return }
+        let connected = Set(peers).intersection(multicamSelectedPeers)
+        multicamConnectedPeers = connected
+        multicamConnectingPeers.subtract(connected)
+    }
+
+    /// One camera's invite failed for good.
+    func markMulticamFailed(_ peer: MCPeerID) {
+        guard multicamPhase == .connecting else { return }
+        multicamConnectingPeers.remove(peer)
+        if !multicamConnectedPeers.contains(peer) { multicamFailedPeers.insert(peer) }
+    }
+
+    /// The connect phase is over once no invite is still outstanding.
+    var multicamConnectSettled: Bool {
+        multicamPhase == .connecting && multicamConnectingPeers.isEmpty
+    }
+
+    /// Back to a clean selecting phase (e.g. after all invites failed).
+    func resetMulticamToSelecting() {
+        multicamPhase = .selecting
+        multicamSelectedPeers = []
+        multicamConnectingPeers = []
+        multicamConnectedPeers = []
+        multicamFailedPeers = []
+    }
+
+    /// Row state for the edit-mode circle. Selecting shows only empty/filled;
+    /// spinner/check/x appear only during the connect phase.
+    enum MulticamRowState { case unselected, selected, connecting, connected, failed }
+    func multicamRowState(_ peer: MCPeerID) -> MulticamRowState {
+        if multicamFailedPeers.contains(peer) { return .failed }
+        if multicamConnectedPeers.contains(peer) { return .connected }
+        if multicamConnectingPeers.contains(peer) { return .connecting }
+        if multicamSelectedPeers.contains(peer) { return .selected }
+        return .unselected
+    }
+
+    /// An unselected row is locked (→ paywall) when the cap is already met
+    /// while selecting.
+    func multicamRowLocked(_ peer: MCPeerID, maxCameras: Int) -> Bool {
+        multicamPhase == .selecting
+            && multicamRowState(peer) == .unselected
+            && multicamSelectedPeers.count >= maxCameras
+    }
+
+    /// Whether "Select All" should be offered — some discovered camera is still
+    /// unselected, and we are still selecting.
+    var showsMulticamSelectAll: Bool {
+        multicamPhase == .selecting
+            && connectedPeers.contains { !multicamSelectedPeers.contains($0) }
+    }
 
     /// When the current scan began. Not @Published: the view samples it on a
     /// TimelineView clock, so publishing would only cause redundant redraws.

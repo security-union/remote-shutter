@@ -47,6 +47,15 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
+        case let m as RemoteCmd.ClockSyncPing: return m.toFlatBuffer()
+        case let m as RemoteCmd.ClockSyncPong: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledCapture: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledCaptureAck: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledStartRecording: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledStopRecording: return m.toFlatBuffer()
+        case let m as RemoteCmd.ScheduledRecordingAck: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetStreamProfile: return m.toFlatBuffer()
+        case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
@@ -1181,5 +1190,105 @@ extension RemoteCmdSerializationTests {
         let result = roundTrip(caps)
         XCTAssertFalse(result.supportsPreviewMode)
         XCTAssertEqual(result.previewMode, .on)
+    }
+
+    func testClockSyncPing_roundTrip() {
+        let result = roundTrip(RemoteCmd.ClockSyncPing(t0Millis: 987_654_321_012))
+        XCTAssertEqual(result.t0Millis, 987_654_321_012)
+    }
+
+    func testClockSyncPong_roundTrip() {
+        let result = roundTrip(RemoteCmd.ClockSyncPong(
+            echoT0Millis: 987_654_321_012, cameraClockMillis: 123_456_789_345))
+        XCTAssertEqual(result.echoT0Millis, 987_654_321_012)
+        XCTAssertEqual(result.cameraClockMillis, 123_456_789_345)
+    }
+
+    func testScheduledCapture_roundTrip() {
+        let result = roundTrip(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: 1_754_800_000_123,
+            anchorMillis: 1_754_800_000_000,
+            captureId: "CAP-123",
+            sessionId: "SESS-9",
+            cameraIndex: 3))
+        XCTAssertEqual(result.fireAtCameraClockMillis, 1_754_800_000_123)
+        XCTAssertEqual(result.anchorMillis, 1_754_800_000_000)
+        XCTAssertEqual(result.captureId, "CAP-123")
+        XCTAssertEqual(result.sessionId, "SESS-9")
+        XCTAssertEqual(result.cameraIndex, 3)
+    }
+
+    func testScheduledCaptureAck_roundTrip() {
+        let ok = roundTrip(RemoteCmd.ScheduledCaptureAck(captureId: "CAP-42"))
+        XCTAssertEqual(ok.captureId, "CAP-42")
+        XCTAssertNil(ok.error)
+
+        let nack = roundTrip(RemoteCmd.ScheduledCaptureAck(
+            captureId: "CAP-43",
+            error: NSError(domain: "too late", code: 0)))
+        XCTAssertEqual(nack.captureId, "CAP-43")
+        XCTAssertNotNil(nack.error)
+    }
+
+    func testScheduledStartRecording_roundTrip() {
+        let result = roundTrip(RemoteCmd.ScheduledStartRecording(
+            fireAtCameraClockMillis: 111, anchorMillis: 100,
+            captureId: "REC-1", sessionId: "S", cameraIndex: 2))
+        XCTAssertEqual(result.fireAtCameraClockMillis, 111)
+        XCTAssertEqual(result.anchorMillis, 100)
+        XCTAssertEqual(result.captureId, "REC-1")
+        XCTAssertEqual(result.cameraIndex, 2)
+    }
+
+    func testScheduledStopRecording_roundTrip() {
+        let result = roundTrip(RemoteCmd.ScheduledStopRecording(
+            fireAtCameraClockMillis: 222, anchorMillis: 200,
+            captureId: "REC-1", sessionId: "S", cameraIndex: 2))
+        XCTAssertEqual(result.fireAtCameraClockMillis, 222)
+        XCTAssertEqual(result.captureId, "REC-1")
+    }
+
+    /// The start/stop distinction (`isStop`) rides the response action, so the
+    /// director routes each ack to the right aggregation.
+    func testScheduledRecordingAck_roundTripPreservesIsStop() {
+        let start = roundTrip(RemoteCmd.ScheduledRecordingAck(captureId: "R", isStop: false))
+        XCTAssertFalse(start.isStop)
+        XCTAssertEqual(start.captureId, "R")
+
+        let stop = roundTrip(RemoteCmd.ScheduledRecordingAck(captureId: "R", isStop: true))
+        XCTAssertTrue(stop.isStop)
+
+        let nack = roundTrip(RemoteCmd.ScheduledRecordingAck(
+            captureId: "R", isStop: false, error: NSError(domain: "x", code: 0)))
+        XCTAssertNotNil(nack.error)
+    }
+
+    func testSetStreamProfile_roundTrip() {
+        let result = roundTrip(RemoteCmd.SetStreamProfile(
+            maxLongEdge: 640, bitrateKbps: 500, fps: 20))
+        XCTAssertEqual(result.maxLongEdge, 640)
+        XCTAssertEqual(result.bitrateKbps, 500)
+        XCTAssertEqual(result.fps, 20)
+    }
+
+    func testRequestVideoResend_roundTrip() {
+        let result = roundTrip(RemoteCmd.RequestVideoResend(captureId: "R7"))
+        XCTAssertEqual(result.captureId, "R7")
+    }
+
+    /// The multicam capability survives the wire, and a peer that predates it
+    /// (absent field) decodes as not-multicam-capable.
+    func testCapabilitiesCarryMulticamSupport() {
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true, error: nil)
+        XCTAssertTrue(roundTrip(caps).supportsMulticam)
+
+        let legacy = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            error: nil)
+        XCTAssertFalse(roundTrip(legacy).supportsMulticam)
     }
 }

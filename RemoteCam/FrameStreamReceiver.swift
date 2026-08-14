@@ -20,7 +20,12 @@ import CoreImage
 import VideoToolbox
 import VideocallCodecs
 
-final class FrameStreamReceiver {
+/// `@unchecked Sendable`: `receive(_:)` hops straight to `decodeQueue`, and all
+/// mutable decode state is confined there; the `onImage`/`onStall`/
+/// `onKeyframeNeeded` callbacks are wired once before `start()`. This lets the
+/// multicam controller hold a per-lane frame sink that calls `receive` from the
+/// actor without reaching into a `UIViewController`.
+final class FrameStreamReceiver: @unchecked Sendable {
 
     /// Decoded frame ready for display. Called on the decode queue — hop to
     /// main before touching UI.

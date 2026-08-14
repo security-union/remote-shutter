@@ -109,6 +109,11 @@ public class DeviceScannerViewController: UIViewController {
         remoteCamSession.setFrameSender(frameSender)
         self.remoteCamSession ! SetScannerLobby(lobby: self)
         scannerViewModel.role = role
+        // Multicam director collecting: only the monitor role, only behind the
+        // flag. Off, the coordinator's scanning path is byte-identical.
+        if FeatureFlags.ENABLE_MULTICAM && role == .monitor {
+            remoteCamSession ! UICmd.SetMulticamCollecting(on: true)
+        }
         // The reconnect overlay's only action, routed like every other UI
         // command; the overlay itself is pure state (PeerLinkStatus).
         PeerLinkStatus.shared.onCancel = { [weak self] in
@@ -174,8 +179,12 @@ public class DeviceScannerViewController: UIViewController {
             },
             onSelectPeer: { [weak self] peer in
                 guard let self = self else { return }
-                self.remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
-                self.scannerViewModel.connectingToPeer()
+                if FeatureFlags.ENABLE_MULTICAM && self.role == .monitor {
+                    self.handleMulticamRowTap(peer)
+                } else {
+                    self.remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
+                    self.scannerViewModel.connectingToPeer()
+                }
             },
             onCancelConnect: { [weak self] in
                 self?.remoteCamSession ! UICmd.CancelConnect(sender: nil)
@@ -188,7 +197,13 @@ public class DeviceScannerViewController: UIViewController {
             },
             onHelp: { [weak self] in
                 self?.showHelpModal()
-            }
+            },
+            onSelectAll: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
+                ? { [weak self] in self?.handleSelectAll() }
+                : nil,
+            onConnectSelected: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
+                ? { [weak self] in self?.handleConnectSelected() }
+                : nil
         )
 
         swiftUIHostingController = embedSwiftUIView(scannerView)
@@ -331,6 +346,75 @@ public class DeviceScannerViewController: UIViewController {
         }
     }
 
+    /// Multicam "Start (N)": one camera runs the classic 1:1 monitor
+    /// (unchanged); two or more hands the live transport to a
+    /// `MulticamController` and pushes the director screen.
+    /// A tap on a discovered-camera row while SELECTING. Pure — it toggles the
+    /// checkmark and fires zero network. An over-cap unselected row is locked
+    /// and routes to the paywall instead.
+    private func handleMulticamRowTap(_ peer: MCPeerID) {
+        let vm = scannerViewModel
+        if vm.multicamRowLocked(peer, maxCameras: StoreManager.shared.maxCameras()) {
+            presentMulticamPaywall()
+            return
+        }
+        vm.toggleMulticamSelection(peer)
+    }
+
+    /// "Select All": pick every discovered camera up to the cap. Pure.
+    private func handleSelectAll() {
+        scannerViewModel.selectAllMulticam(maxCameras: StoreManager.shared.maxCameras())
+    }
+
+    /// "Connect (N)": leave selecting, fire an invite per selected camera, and
+    /// hand off once every invite has settled.
+    private func handleConnectSelected() {
+        let peers = scannerViewModel.beginMulticamConnecting()
+        guard !peers.isEmpty else { return }
+        for peer in peers {
+            remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
+        }
+    }
+
+    /// Every selected camera has connected or failed. Hand off to the right
+    /// screen, or fall back to the scanner if none connected.
+    private func finishMulticamConnectIfSettled() {
+        let vm = scannerViewModel
+        guard vm.multicamConnectSettled else { return }
+        let connected = vm.multicamConnectedPeers
+        switch MulticamHandoff.decide(
+            connected: connectedPeersInSelectionOrder(connected)) {
+        case .none:
+            vm.resetMulticamToSelecting()
+            presentScanningError()
+        case .classicMonitor:
+            Task { @MainActor in
+                if await remoteCamSession.promoteSingleCollectedToConnected() { goToRole() }
+            }
+        case .director:
+            Task { @MainActor in
+                guard let handoff = await remoteCamSession.detachTransportForMulticam() else { return }
+                let controller = MulticamController()
+                await controller.install(transport: handoff.transport,
+                                         initialPeers: handoff.peers, mode: .photo)
+                let directorVC = MulticamViewController(controller: controller)
+                navigationController?.pushViewController(directorVC, animated: true)
+            }
+        }
+    }
+
+    /// The connected cameras in discovered-list order (stable handoff order).
+    private func connectedPeersInSelectionOrder(_ connected: Set<MCPeerID>) -> [MCPeerID] {
+        scannerViewModel.connectedPeers.filter { connected.contains($0) }
+    }
+
+    /// The shared Settings/paywall sheet — the same one the monitor gates use.
+    private func presentMulticamPaywall() {
+        let ctrl = UIHostingController(rootView: SettingsView())
+        ctrl.modalPresentationStyle = .pageSheet
+        present(ctrl, animated: true)
+    }
+
     func goToAppSettings() {
         #if targetEnvironment(macCatalyst)
         // Local-network permission lives in System Settings on the Mac.
@@ -375,6 +459,18 @@ extension DeviceScannerViewController: ScannerLobby {
     /// Pop navigation back to this screen when scanning restarts.
     func returnToLobby() {
         navigationController?.popToViewController(self, animated: true)
+    }
+
+    /// Multicam collecting: reconcile the per-row selection + the "Start (N)"
+    /// count from the coordinator's effective set.
+    func didCollectMulticamCameras(_ peers: [MCPeerID]) {
+        scannerViewModel.reconcileMulticamConnected(peers)
+        finishMulticamConnectIfSettled()
+    }
+
+    func didFailMulticamCamera(_ peer: MCPeerID) {
+        scannerViewModel.markMulticamFailed(peer)
+        finishMulticamConnectIfSettled()
     }
 
     func presentScanningError() {

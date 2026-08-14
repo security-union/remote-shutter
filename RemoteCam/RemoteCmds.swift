@@ -194,6 +194,163 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Director → camera: clock-offset probe. `t0Millis` is the director's
+    /// monotonic clock at send; the camera answers immediately with a
+    /// `ClockSyncPong` echoing it. Only sent to peers advertising
+    /// `supportsMulticam` (an old peer would decode it as Unknown and drop it).
+    public class ClockSyncPing: Message, @unchecked Sendable {
+        public let t0Millis: UInt64
+        init(t0Millis: UInt64, sender: AnyObject? = nil) {
+            self.t0Millis = t0Millis
+            super.init(sender: sender)
+        }
+    }
+
+    /// Camera → director: answer to `ClockSyncPing`. Echoes the director's
+    /// `t0Millis` (so the director can compute RTT against its own clock) and
+    /// carries the camera's monotonic clock at receipt — the pair the
+    /// director's `ClockOffsetEstimator` turns into an offset sample.
+    public class ClockSyncPong: Message, @unchecked Sendable {
+        public let echoT0Millis: UInt64
+        public let cameraClockMillis: UInt64
+        init(echoT0Millis: UInt64, cameraClockMillis: UInt64, sender: AnyObject? = nil) {
+            self.echoT0Millis = echoT0Millis
+            self.cameraClockMillis = cameraClockMillis
+            super.init(sender: sender)
+        }
+    }
+
+    /// Director → camera: fire the shutter at `fireAtCameraClockMillis`, a
+    /// wall-clock instant already translated into this camera's own
+    /// `SyncClock` domain (the director applied the per-camera offset), so all
+    /// cameras expose together. `anchorMillis` is the same instant in the
+    /// director's clock — identical across every camera in the shot, so it is
+    /// the alignment key each clip is stamped with. Only sent to peers that
+    /// advertised `supportsMulticam`.
+    public class ScheduledCapture: Message, @unchecked Sendable {
+        public let fireAtCameraClockMillis: UInt64
+        public let anchorMillis: UInt64
+        public let captureId: String
+        public let sessionId: String
+        public let cameraIndex: Int
+
+        public init(fireAtCameraClockMillis: UInt64,
+                    anchorMillis: UInt64,
+                    captureId: String,
+                    sessionId: String,
+                    cameraIndex: Int,
+                    sender: AnyObject? = nil) {
+            self.fireAtCameraClockMillis = fireAtCameraClockMillis
+            self.anchorMillis = anchorMillis
+            self.captureId = captureId
+            self.sessionId = sessionId
+            self.cameraIndex = cameraIndex
+            super.init(sender: sender)
+        }
+    }
+
+    /// Camera → director: the scheduled capture was accepted (or refused). Sent
+    /// immediately on receipt — before the shutter actually fires — so the
+    /// director can aggregate acks without waiting for N photos. `error` set =
+    /// the camera could not schedule it (wrong state, fire time long past).
+    public class ScheduledCaptureAck: Message, @unchecked Sendable {
+        public let captureId: String
+        public let error: Error?
+
+        public init(captureId: String, error: Error? = nil, sender: AnyObject? = nil) {
+            self.captureId = captureId
+            self.error = error
+            super.init(sender: sender)
+        }
+    }
+
+    /// Director → camera: begin recording at `fireAtCameraClockMillis` (this
+    /// camera's clock domain), so every camera rolls together. Same fields and
+    /// meaning as `ScheduledCapture`. Only sent to `supportsMulticam` peers.
+    public class ScheduledStartRecording: Message, @unchecked Sendable {
+        public let fireAtCameraClockMillis: UInt64
+        public let anchorMillis: UInt64
+        public let captureId: String
+        public let sessionId: String
+        public let cameraIndex: Int
+
+        public init(fireAtCameraClockMillis: UInt64, anchorMillis: UInt64,
+                    captureId: String, sessionId: String, cameraIndex: Int,
+                    sender: AnyObject? = nil) {
+            self.fireAtCameraClockMillis = fireAtCameraClockMillis
+            self.anchorMillis = anchorMillis
+            self.captureId = captureId
+            self.sessionId = sessionId
+            self.cameraIndex = cameraIndex
+            super.init(sender: sender)
+        }
+    }
+
+    /// Director → camera: stop recording at the fire instant, so clip lengths
+    /// line up across the rig. Reuses the same params (index/anchor unused).
+    public class ScheduledStopRecording: Message, @unchecked Sendable {
+        public let fireAtCameraClockMillis: UInt64
+        public let anchorMillis: UInt64
+        public let captureId: String
+        public let sessionId: String
+        public let cameraIndex: Int
+
+        public init(fireAtCameraClockMillis: UInt64, anchorMillis: UInt64,
+                    captureId: String, sessionId: String, cameraIndex: Int,
+                    sender: AnyObject? = nil) {
+            self.fireAtCameraClockMillis = fireAtCameraClockMillis
+            self.anchorMillis = anchorMillis
+            self.captureId = captureId
+            self.sessionId = sessionId
+            self.cameraIndex = cameraIndex
+            super.init(sender: sender)
+        }
+    }
+
+    /// Camera → director: the scheduled record start/stop was accepted (or
+    /// refused). Immediate, like `ScheduledCaptureAck`; `isStop` distinguishes
+    /// the two so the director's start/stop aggregation stay separate.
+    public class ScheduledRecordingAck: Message, @unchecked Sendable {
+        public let captureId: String
+        public let isStop: Bool
+        public let error: Error?
+
+        public init(captureId: String, isStop: Bool, error: Error? = nil,
+                    sender: AnyObject? = nil) {
+            self.captureId = captureId
+            self.isStop = isStop
+            self.error = error
+            super.init(sender: sender)
+        }
+    }
+
+    /// Director → camera: reconfigure the live preview encoder for tiered
+    /// multicam previews (the focused lane full-size, the rest thumbnails).
+    /// Only sent to `supportsMulticam` peers.
+    public class SetStreamProfile: Message, @unchecked Sendable {
+        public let maxLongEdge: Int
+        public let bitrateKbps: Int
+        public let fps: Int
+
+        public init(maxLongEdge: Int, bitrateKbps: Int, fps: Int, sender: AnyObject? = nil) {
+            self.maxLongEdge = maxLongEdge
+            self.bitrateKbps = bitrateKbps
+            self.fps = fps
+            super.init(sender: sender)
+        }
+    }
+
+    /// Director → camera: re-send the clip for `captureId` — the auto-collect
+    /// retry after a failed transfer. The camera keeps its last multicam clip
+    /// until collected, so it can honor this.
+    public class RequestVideoResend: Message, @unchecked Sendable {
+        public let captureId: String
+        public init(captureId: String, sender: AnyObject? = nil) {
+            self.captureId = captureId
+            super.init(sender: sender)
+        }
+    }
+
     public class OnFrame: Message, @unchecked Sendable {
         public let data: Data
         public let peerId: MCPeerID
@@ -410,6 +567,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// `RemoteCmd.SetCameraPreviewMode`. The monitor's standby gate reads
         /// this so it never sends the command to a peer that would misread it.
         public let supportsPreviewMode: Bool
+        /// True when this peer's build can join a multicam director session
+        /// (scheduled capture, stream profiles). A director must not send
+        /// multicam commands to a peer that doesn't advertise this.
+        public let supportsMulticam: Bool
         /// The camera's current local-preview mode, so the monitor can reflect
         /// it from the first capabilities exchange.
         public let previewMode: CameraPreviewMode
@@ -426,6 +587,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    activeDeviceID: String? = nil,
                    supportsFocusPoint: Bool = false,
                    supportsPreviewMode: Bool = false,
+                   supportsMulticam: Bool = false,
                    previewMode: CameraPreviewMode = .on,
                    error: Error?) {
             self.frontCamera = frontCamera
@@ -441,6 +603,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.activeDeviceID = activeDeviceID
             self.supportsFocusPoint = supportsFocusPoint
             self.supportsPreviewMode = supportsPreviewMode
+            self.supportsMulticam = supportsMulticam
             self.previewMode = previewMode
             self.error = error
             super.init(sender: nil)

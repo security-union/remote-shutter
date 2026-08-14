@@ -91,10 +91,14 @@ class FakeScannerLobby: ScannerLobby, @unchecked Sendable {
     var roleScreenShown = 0
     var returnsToLobby = 0
     var scanningErrors = 0
+    var collectedReports: [[MCPeerID]] = []
+    var failedPeers: [MCPeerID] = []
 
     func goToRole() { roleScreenShown += 1 }
     func returnToLobby() { returnsToLobby += 1 }
     func presentScanningError() { scanningErrors += 1 }
+    func didCollectMulticamCameras(_ peers: [MCPeerID]) { collectedReports.append(peers) }
+    func didFailMulticamCamera(_ peer: MCPeerID) { failedPeers.append(peer) }
 }
 
 // MARK: - Fake camera (CameraControlling)
@@ -133,6 +137,10 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     func takePicture(_ sendMediaToRemote: Bool) { takePictureCalls.append(sendMediaToRemote) }
     func startRecordingVideo() { startRecordingCalls += 1 }
     func stopRecordingVideo(_ shouldSendVideo: Bool) { stopRecordingCalls.append(shouldSendVideo) }
+    var videoSyncMetadata: CaptureSyncMetadata?
+    func setVideoSyncMetadata(_ metadata: CaptureSyncMetadata?) { videoSyncMetadata = metadata }
+    var appliedProfiles: [StreamProfile] = []
+    func applyStreamProfile(_ profile: StreamProfile) { appliedProfiles.append(profile) }
 
     // swiftlint:disable:next large_tuple
     func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {

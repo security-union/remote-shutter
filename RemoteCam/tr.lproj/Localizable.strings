@@ -359,3 +359,28 @@
 "IncompatibleBothTitle" = "Uygulama güncel değil";
 "IncompatibleBothBody" = "Remote Shutter'ı iki cihazda da güncelleyin.";
 "IncompatibleUpdateButton" = "Güncelle";
+
+// Multicam director (behind ENABLE_MULTICAM)
+"Add camera" = "Kamera ekle";
+"Add" = "Ekle";
+"Searching for cameras…" = "Kameralar aranıyor…";
+"Director" = "Yönetmen";
+"Control one or more iPhone cameras" = "Bir veya daha fazla iPhone kamerasını kontrol edin";
+"Direct up to 4 cameras at once" = "Aynı anda 4 kameraya kadar yönetin";
+"RECONNECTING" = "YENİDEN BAĞLANIYOR";
+"Connect (%d)" = "Bağlan (%d)";
+"Select All" = "Tümünü seç";
+
+// Multicam rig settings tray
+"Auto" = "Otomatik";
+"Timer" = "Zamanlayıcı";
+"Off" = "Kapalı";
+"Video Quality" = "Video kalitesi";
+"Automatic" = "Otomatik";
+"Photo" = "Fotoğraf";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "Rig ayarları";
+"%@ can't" = "%@ yapamaz";
+"%@ can't do HDR" = "%@ HDR yapamaz";
+"Retry" = "Tekrar dene";

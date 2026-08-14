@@ -253,3 +253,28 @@
 "IncompatibleBothTitle" = "La app está desactualizada";
 "IncompatibleBothBody" = "Actualiza Remote Shutter en ambos dispositivos.";
 "IncompatibleUpdateButton" = "Actualizar";
+
+// Multicam director (behind ENABLE_MULTICAM)
+"Add camera" = "Agregar cámara";
+"Add" = "Agregar";
+"Searching for cameras…" = "Buscando cámaras…";
+"Director" = "Director";
+"Control one or more iPhone cameras" = "Controla una o más cámaras de iPhone";
+"Direct up to 4 cameras at once" = "Dirige hasta 4 cámaras a la vez";
+"RECONNECTING" = "RECONECTANDO";
+"Connect (%d)" = "Conectar (%d)";
+"Select All" = "Seleccionar todas";
+
+// Multicam rig settings tray
+"Auto" = "Auto";
+"Timer" = "Temporizador";
+"Off" = "Desactivado";
+"Video Quality" = "Calidad de video";
+"Automatic" = "Automático";
+"Photo" = "Foto";
+"HEIF" = "HEIF";
+"HDR" = "HDR";
+"Rig Settings" = "Ajustes del equipo";
+"%@ can't" = "%@ no puede";
+"%@ can't do HDR" = "%@ no admite HDR";
+"Retry" = "Reintentar";
