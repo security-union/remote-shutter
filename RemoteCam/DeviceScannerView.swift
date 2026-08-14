@@ -52,10 +52,11 @@ struct DeviceScannerView: View {
     }
 
     /// The bottom "Connect (N)" CTA: fires the invites for the selected set.
-    /// Disabled at N = 0; hidden entirely during the connecting phase.
+    /// Disabled at N = 0; hidden only while invites are in flight. Derived from
+    /// state (no phase flag), so it reappears correctly on scanner re-entry.
     @ViewBuilder
     private func connectSelectedButton(_ action: @escaping () -> Void) -> some View {
-        if viewModel.multicamPhase == .selecting {
+        if viewModel.multicamConnectingPeers.isEmpty {
             VStack {
                 Spacer()
                 Button(action: action) {

@@ -160,6 +160,17 @@ public class DeviceScannerViewController: UIViewController {
         super.viewDidAppear(animated)
         remoteCamSession ! UICmd.ScannerDidAppear()
 
+        // Re-arm multicam collecting every time the scanner appears — not just
+        // on first load. Returning here from the monitor/director leaves this
+        // controller in the nav stack (viewDidLoad does not re-run), so without
+        // this the collecting flow stays disarmed and the "Connect (N)" CTA
+        // never returns. Sent AFTER ScannerDidAppear so the coordinator has
+        // settled back into scanning first; the re-arm then reports the live
+        // set and the scanner resyncs (see rearmMulticamScanner).
+        if FeatureFlags.ENABLE_MULTICAM && role == .monitor {
+            remoteCamSession ! UICmd.SetMulticamCollecting(on: true)
+        }
+
         if scannerViewModel.speedRunScanning {
             checkLocalNetworkAccessAndStartScanning()
         }
@@ -366,14 +377,16 @@ public class DeviceScannerViewController: UIViewController {
         scannerViewModel.selectAllMulticam(maxCameras: StoreManager.shared.maxCameras())
     }
 
-    /// "Connect (N)": leave selecting, fire an invite per selected camera, and
-    /// hand off once every invite has settled.
+    /// "Connect (N)": fire an invite per selected camera that isn't already
+    /// linked, and hand off once every invite has settled. A selection made
+    /// entirely of still-live links (back-navigation re-entry) invites nobody
+    /// and settles immediately — hence the unconditional settle check.
     private func handleConnectSelected() {
         let peers = scannerViewModel.beginMulticamConnecting()
-        guard !peers.isEmpty else { return }
         for peer in peers {
             remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
         }
+        finishMulticamConnectIfSettled()
     }
 
     /// Every selected camera has connected or failed. Hand off to the right
@@ -385,7 +398,7 @@ public class DeviceScannerViewController: UIViewController {
         switch MulticamHandoff.decide(
             connected: connectedPeersInSelectionOrder(connected)) {
         case .none:
-            vm.resetMulticamToSelecting()
+            vm.resetMulticamCycle()
             presentScanningError()
         case .classicMonitor:
             Task { @MainActor in
@@ -471,6 +484,15 @@ extension DeviceScannerViewController: ScannerLobby {
     func didFailMulticamCamera(_ peer: MCPeerID) {
         scannerViewModel.markMulticamFailed(peer)
         finishMulticamConnectIfSettled()
+    }
+
+    /// Collecting was (re)armed: sync the view model's live-link truth to the
+    /// coordinator's current set, then clear stale cycle state. A camera whose
+    /// link survived (director re-entry) stays selected+checked; a single-cam
+    /// visit that dropped its link comes back empty and ready to re-select.
+    func rearmMulticamScanner(liveLinks: [MCPeerID]) {
+        scannerViewModel.reconcileMulticamConnected(liveLinks)
+        scannerViewModel.resetMulticamCycle()
     }
 
     func presentScanningError() {

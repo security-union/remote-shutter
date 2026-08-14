@@ -1718,6 +1718,23 @@ public actor SessionCoordinator {
 
         case let collect as UICmd.SetMulticamCollecting:
             multicamCollecting = collect.on
+            if collect.on {
+                // (Re)arming — the scanner appeared or reappeared. Clear the
+                // previous cycle's per-peer bookkeeping (a back-navigation left
+                // it stale) but never a live link: seed the collected set from
+                // whatever is connected right now and hand the scanner that
+                // truth, so its selection reflects reality instead of a latched
+                // set from the last visit. On a first, clean scan this is all
+                // empty and a no-op.
+                multicamInviteAttempts = [:]
+                multicamCollectedPeers = connectedPeers
+                let liveLinks = connectedPeers
+                if let liveLobby = lobby?.value {
+                    OperationQueue.main.addOperation {
+                        liveLobby.rearmMulticamScanner(liveLinks: liveLinks)
+                    }
+                }
+            }
 
         case is RemoteCmd.RequestVideoResend:
             // Auto-collect retry: the director's transfer failed. Re-send the

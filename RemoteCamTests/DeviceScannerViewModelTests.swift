@@ -530,7 +530,7 @@ final class LocalNetworkProbeTests: XCTestCase {
                 let selectable = min(discovered, cap)
 
                 for k in 0...selectable {
-                    vm.resetMulticamToSelecting()
+                    vm.resetMulticamCycle()
 
                     // Select k rows (a) — pure, so a fresh fake transport would
                     // see zero invites; the VM itself performs no network.
@@ -548,7 +548,14 @@ final class LocalNetworkProbeTests: XCTestCase {
                     let toInvite = vm.beginMulticamConnecting()
                     XCTAssertEqual(Set(toInvite), Set(peers.prefix(k)))
                     XCTAssertEqual(toInvite.count, k)
-                    if k > 0 { XCTAssertEqual(vm.multicamPhase, .connecting) }
+                    // No phase flag: an in-flight round is simply a non-empty
+                    // connecting set, which suppresses the CTA and settles only
+                    // once every invite resolves.
+                    if k > 0 {
+                        XCTAssertEqual(vm.multicamConnectingPeers, Set(peers.prefix(k)))
+                        XCTAssertFalse(vm.canConnectMulticam)
+                        XCTAssertFalse(vm.multicamConnectSettled)
+                    }
                 }
             }
         }
@@ -636,9 +643,63 @@ final class LocalNetworkProbeTests: XCTestCase {
     func testSelectingNeverEntersConnectingWithoutConnectTap() {
         let (peers, vm) = makeVM(discovered: 3)
         peers.forEach { vm.toggleMulticamSelection($0) }
-        // Selection only — still in the selecting phase, nothing connecting.
-        XCTAssertEqual(vm.multicamPhase, .selecting)
+        // Selection only — nothing in flight, no connect requested.
         XCTAssertTrue(vm.multicamConnectingPeers.isEmpty)
+        XCTAssertFalse(vm.multicamConnectRequested)
+        XCTAssertTrue(vm.canConnectMulticam)
+    }
+
+    // MARK: - Back-navigation re-entry (Dario's repro)
+
+    /// The exact reported bug: pair a single camera, hand off to the classic
+    /// monitor, navigate back, and the scanner must be usable again — CTA
+    /// visible with the right count, rows selectable, a second connect works.
+    /// Parametrized over how many cameras the first cycle connected (1 = classic
+    /// monitor, ≥2 = director) and whether the link survived the detour.
+    func testSecondCycleAfterBackNavigationIsUsable() {
+        for firstConnected in 1...4 {
+            for linkSurvived in [true, false] {
+                let (peers, vm) = makeVM(discovered: 4)
+                let first = Array(peers.prefix(firstConnected))
+
+                // Cycle 1: select, connect, all establish, handoff would fire.
+                first.forEach { vm.toggleMulticamSelection($0) }
+                _ = vm.beginMulticamConnecting()
+                vm.reconcileMulticamConnected(first)
+                XCTAssertTrue(vm.multicamConnectSettled,
+                              "cycle 1 settles (firstConnected=\(firstConnected))")
+
+                // Back-navigation re-arm: the coordinator reports the current
+                // live set (all survived, or none), then the cycle resets.
+                vm.reconcileMulticamConnected(linkSurvived ? first : [])
+                vm.resetMulticamCycle()
+
+                // The frozen-CTA bug: nothing must be latched from cycle 1.
+                XCTAssertTrue(vm.multicamConnectingPeers.isEmpty)
+                XCTAssertFalse(vm.multicamConnectRequested)
+                XCTAssertTrue(vm.multicamFailedPeers.isEmpty)
+
+                if linkSurvived {
+                    // Still-connected re-entry: the survivors are reseeded as
+                    // selected+checked and the CTA is immediately actionable.
+                    XCTAssertEqual(vm.multicamSelectedPeers, Set(first))
+                    XCTAssertTrue(vm.canConnectMulticam)
+                    for p in first { XCTAssertEqual(vm.multicamRowState(p), .connected) }
+                    // A second connect on live links invites nobody and settles.
+                    let toInvite = vm.beginMulticamConnecting()
+                    XCTAssertTrue(toInvite.isEmpty, "live links are not re-invited")
+                    XCTAssertTrue(vm.multicamConnectSettled)
+                } else {
+                    // Dropped-link re-entry: clean slate, re-select and go.
+                    XCTAssertTrue(vm.multicamSelectedPeers.isEmpty)
+                    XCTAssertFalse(vm.canConnectMulticam, "nothing selected yet")
+                    vm.toggleMulticamSelection(peers[0])
+                    XCTAssertTrue(vm.canConnectMulticam, "CTA returns after re-select")
+                    XCTAssertEqual(vm.beginMulticamConnecting(), [peers[0]],
+                                   "a dropped peer is invited afresh")
+                }
+            }
+        }
     }
 
     func testStatesWithNoEvidenceKeepWaiting() {
