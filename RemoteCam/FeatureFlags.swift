@@ -35,7 +35,7 @@ struct FeatureFlags {
     /// synced capture. Off until the feature ships (target 9.1.0); while off,
     /// cameras advertise `supports_multicam=false` and the scanner keeps its
     /// single-camera flow.
-    static let ENABLE_MULTICAM = false
+    static let ENABLE_MULTICAM = true
 
     /// Show the local camera-device picker on the camera screen. On for Mac
     /// Catalyst only (a Mac has N cameras — built-in, Continuity, USB);
