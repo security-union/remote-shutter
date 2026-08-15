@@ -742,7 +742,10 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(laneB?.canFlipCamera, true, "the other lane is untouched")
     }
 
-    func testFlipIsSuppressedWhenTheFocusedCameraLacksBothPositions() async {
+    /// The flip is ungated by advertised positions (mirroring the 1:1 monitor):
+    /// a linked focused camera is always flipped, and the camera itself decides
+    /// whether it does anything. It is only suppressed when no camera is linked.
+    func testFlipSendsWheneverTheFocusedCameraIsLinked() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         controller.didReceiveMessage(flipCaps(bothPositions: false), from: camA)
         await controller.setFocusedPeer(camA)
@@ -752,8 +755,24 @@ final class MulticamControllerTests: XCTestCase {
         controller.toggleFocusedCamera()
         await controller.waitForIdle()
 
+        XCTAssertEqual(sent(transport, RemoteCmd.ToggleCamera.self).map(\.peers), [[camA]],
+                      "a linked camera is flipped regardless of advertised positions")
+    }
+
+    func testFlipIsSuppressedWhenTheFocusedCameraIsNotLinked() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.setFocusedPeer(camA)
+        // The focused camera drops → its lane goes .reconnecting, not .linked.
+        transport.connectedPeers = [camB]
+        controller.peerDidDisconnect(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.toggleFocusedCamera()
+        await controller.waitForIdle()
+
         XCTAssertTrue(sent(transport, RemoteCmd.ToggleCamera.self).isEmpty,
-                      "a camera with only one position never receives a flip")
+                      "a focused camera that is reconnecting is never flipped")
     }
 
     private func sendFrame() -> RemoteCmd.SendFrame {

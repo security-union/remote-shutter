@@ -72,7 +72,8 @@ public final class MulticamViewController: UIViewController {
                     hdr: on ? .on : .off)
             },
             onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) },
-            onToggleFocusedCamera: { [weak self] in self?.controller.toggleFocusedCamera() })
+            onToggleFocusedCamera: { [weak self] in self?.controller.toggleFocusedCamera() },
+            onBack: { [weak self] in self?.navigationController?.popViewController(animated: true) })
         hosting = embedSwiftUIView(multicamView)
 
         Task { await controller.setDisplay(self) }

@@ -62,24 +62,26 @@ final class MulticamViewModelTests: XCTestCase {
         XCTAssertEqual(vm.otherLanes.map(\.peerID), [camA])
     }
 
-    func testFocusedCameraCanFlipDerivesFromTheFocusedLane() {
+    func testFocusedCameraCanFlipMirrorsTheOneToOneRule() {
         let vm = MulticamViewModel()
 
-        // Focused, linked, both positions → the flip button is live.
-        vm.apply([info(camA, focused: true, canFlipCamera: true), info(camB)])
-        XCTAssertTrue(vm.focusedCameraCanFlip)
-
-        // Focused camera offers only one position → not flippable.
+        // Focused and linked → live, regardless of advertised positions (the
+        // ungated 1:1 rule; the button read as disabled on device when this was
+        // gated on both-positions capabilities).
         vm.apply([info(camA, focused: true, canFlipCamera: false), info(camB)])
-        XCTAssertFalse(vm.focusedCameraCanFlip)
-
-        // The flippable camera is not the focused one → still not flippable.
-        vm.apply([info(camA, focused: true, canFlipCamera: false),
-                  info(camB, canFlipCamera: true)])
-        XCTAssertFalse(vm.focusedCameraCanFlip)
+        XCTAssertTrue(vm.focusedCameraCanFlip)
 
         // Focused but reconnecting → suppressed until it is linked again.
         vm.apply([info(camA, status: .reconnecting, focused: true, canFlipCamera: true)])
+        XCTAssertFalse(vm.focusedCameraCanFlip)
+
+        // No camera focused → nothing to flip.
+        vm.apply([info(camA, canFlipCamera: true)])
+        XCTAssertFalse(vm.focusedCameraCanFlip)
+
+        // Linked but recording → suppressed, mirroring the monitor.
+        vm.apply([info(camA, focused: true, canFlipCamera: true)])
+        vm.isRecording = true
         XCTAssertFalse(vm.focusedCameraCanFlip)
     }
 }

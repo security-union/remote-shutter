@@ -53,8 +53,9 @@ struct MulticamLaneInfo: Equatable {
     let needsQualityRematch: Bool
     /// Where this lane's footage is in the post-take auto-collect.
     let collection: CameraLink.LaneCollectionState
-    /// This camera advertises both a front and a back camera, so the focused
-    /// flip button can drive it.
+    /// This camera advertised both a front and a back camera in its last
+    /// capabilities. Not the flip-button gate (that mirrors the 1:1 monitor and
+    /// stays ungated); a projection of capabilities for diagnostics/tests.
     let canFlipCamera: Bool
 }
 
@@ -528,8 +529,11 @@ public actor MulticamController {
     public nonisolated func toggleFocusedCamera() { tell(MCToggleFocusedCamera()) }
 
     private func handleToggleFocusedCamera() {
-        guard let peer = focusedPeer,
-              links[peer]?.snapshot.canFlipCamera == true else { return }
+        // Sent whenever a camera is focused and linked — the camera decides
+        // whether a flip does anything, exactly as in the 1:1 monitor. Never
+        // gated on advertised positions (the payload doesn't reliably carry
+        // both), which was why the button read as disabled on device.
+        guard let peer = focusedPeer, links[peer]?.status == .linked else { return }
         sendTo(peer, RemoteCmd.ToggleCamera())
     }
 

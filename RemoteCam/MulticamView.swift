@@ -38,6 +38,9 @@ struct MulticamView: View {
     let onRetryCollection: (CameraLane) -> Void
     /// Flip the focused camera front/back (per-camera framing).
     let onToggleFocusedCamera: () -> Void
+    /// Leave the director screen, back to the scanner (links stay up; the
+    /// scanner re-arms and re-selects the still-connected cameras).
+    let onBack: () -> Void
 
     var body: some View {
         GeometryReader { geo in
@@ -59,7 +62,8 @@ struct MulticamView: View {
                 // The capture cluster stays in both modes; per-camera controls
                 // (the strip) are hidden in grid.
                 shutterOverlay(dock: dock)
-                topControls
+                backButton
+                rightControlRail
                 countdownOverlay
             }
             .sheet(isPresented: $viewModel.showingAddCamera) {
@@ -76,38 +80,61 @@ struct MulticamView: View {
         }
     }
 
-    /// Top-left cluster: the rig settings (tray) button, and the focus/grid
-    /// toggle when there's more than one camera. Reachable in both modes.
-    private var topControls: some View {
+    /// Back to the scanner, top-leading — the same floating chevron the 1:1
+    /// monitor uses, so leaving either screen feels like the same control.
+    /// Disabled mid-recording, mirroring the monitor's `isBackEnabled`.
+    private var backButton: some View {
         VStack {
-            HStack(spacing: 12) {
-                Button { viewModel.showingRigTray = true } label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Color.black.opacity(0.4))
-                        .clipShape(Circle())
-                }
-                if MultiCamChrome.showsGridToggle(cameraCount: viewModel.lanes.count) {
-                    Button {
-                        viewModel.displayMode = viewModel.displayMode == .grid ? .focus : .grid
-                    } label: {
-                        Image(systemName: viewModel.displayMode == .grid
-                              ? "rectangle.inset.filled" : "square.grid.2x2.fill")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.4))
-                            .clipShape(Circle())
-                    }
-                }
+            HStack {
+                GlassCircleButton(systemImage: "chevron.backward",
+                                  size: 44, glyphSize: 22,
+                                  isEnabled: !viewModel.isRecording,
+                                  action: onBack)
                 Spacer()
             }
-            .padding(.leading, 12)
-            .padding(.top, 12)
             Spacer()
         }
+        .padding(.leading, 12)
+        .padding(.top, 12)
+    }
+
+    /// The controls rail, top-trailing — like the classic remote, which docks
+    /// its chrome on the right. Rig settings and the focus/grid toggle sit here
+    /// in both modes; the per-camera flip button joins them in focus mode only
+    /// (it addresses the focused camera, so grid mode hides it).
+    private var rightControlRail: some View {
+        VStack {
+            HStack {
+                Spacer()
+                VStack(spacing: 12) {
+                    GlassCircleButton(systemImage: "slider.horizontal.3",
+                                      size: 44, glyphSize: 19,
+                                      isActive: viewModel.showingRigTray,
+                                      isEnabled: true,
+                                      action: { viewModel.showingRigTray = true })
+                    if MultiCamChrome.showsGridToggle(cameraCount: viewModel.lanes.count) {
+                        GlassCircleButton(
+                            systemImage: viewModel.displayMode == .grid
+                                ? "rectangle.inset.filled" : "square.grid.2x2.fill",
+                            size: 44, glyphSize: 19, isEnabled: true,
+                            action: {
+                                viewModel.displayMode =
+                                    viewModel.displayMode == .grid ? .focus : .grid
+                            })
+                    }
+                    if viewModel.displayMode == .focus {
+                        GlassCircleButton(
+                            systemImage: "arrow.triangle.2.circlepath.camera.fill",
+                            size: 44, glyphSize: 19,
+                            isEnabled: viewModel.focusedCameraCanFlip,
+                            action: onToggleFocusedCamera)
+                    }
+                }
+            }
+            Spacer()
+        }
+        .padding(.trailing, 12)
+        .padding(.top, 12)
     }
 
     /// The rig self-timer countdown, big and centered so subjects see it.
@@ -171,44 +198,20 @@ struct MulticamView: View {
                 Spacer()
                 ZStack {
                     shutter
-                    HStack {
-                        focusedFlipButton.padding(.leading, 40)
-                        Spacer()
-                        modeToggle.padding(.trailing, 40)
-                    }
+                    HStack { Spacer(); modeToggle.padding(.trailing, 40) }
                 }
                 .padding(.bottom, 24)
             }
         case .leading:
             HStack {
-                VStack { Spacer(); modeToggle; shutter; focusedFlipButton; Spacer() }
-                    .padding(.leading, 24)
+                VStack { Spacer(); modeToggle; shutter; Spacer() }.padding(.leading, 24)
                 Spacer()
             }
         case .trailing:
             HStack {
                 Spacer()
-                VStack { Spacer(); modeToggle; shutter; focusedFlipButton; Spacer() }
-                    .padding(.trailing, 24)
+                VStack { Spacer(); modeToggle; shutter; Spacer() }.padding(.trailing, 24)
             }
-        }
-    }
-
-    /// Flip the focused camera front/back — a per-camera framing control, so it
-    /// shows only in focus mode and is disabled until the focused camera is
-    /// linked and offers both positions. Uses the 1:1 monitor's flip glyph.
-    @ViewBuilder
-    private var focusedFlipButton: some View {
-        if viewModel.displayMode == .focus {
-            Button(action: onToggleFocusedCamera) {
-                Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
-                    .font(.title3)
-                    .foregroundColor(viewModel.focusedCameraCanFlip ? .white : .white.opacity(0.35))
-                    .frame(width: 44, height: 44)
-                    .background(Color.black.opacity(0.4))
-                    .clipShape(Circle())
-            }
-            .disabled(!viewModel.focusedCameraCanFlip)
         }
     }
 

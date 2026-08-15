@@ -78,11 +78,13 @@ final class MulticamViewModel: ObservableObject {
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }
 
-    /// The focused-camera flip button is live only when that camera is linked
-    /// and advertises both a front and a back camera.
+    /// The focused-camera flip button is live whenever that camera is linked
+    /// and not mid-recording — the same rule the 1:1 monitor uses (it never
+    /// gates the flip on advertised positions; the camera itself decides
+    /// whether a flip does anything).
     var focusedCameraCanFlip: Bool {
         guard let focused = focusedLane else { return false }
-        return focused.status == .linked && focused.canFlipCamera
+        return focused.status == .linked && !isRecording
     }
 
     /// Reconcile against a controller snapshot: add new lanes, drop gone ones,
