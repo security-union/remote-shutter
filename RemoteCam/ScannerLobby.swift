@@ -35,10 +35,9 @@ protocol ScannerLobby: AnyObject, Sendable {
     /// the scanner can mark that row and proceed with the ones that connected.
     func didFailMulticamCamera(_ peer: MCPeerID)
 
-    /// Multicam collecting was (re)armed — e.g. the scanner reappeared after
-    /// back-navigation. `liveLinks` is the coordinator's current connected set
-    /// (the truth), so the scanner can resync its selection to reality and
-    /// clear any stale cycle state from the previous visit. Default no-op.
+    /// Multicam collecting was (re)armed. `liveLinks` is the coordinator's
+    /// current connected set; the scanner resyncs its selection to it and
+    /// clears per-cycle state. Default no-op.
     func rearmMulticamScanner(liveLinks: [MCPeerID])
 
     /// Pop navigation back to the scanner screen (called when scanning restarts).

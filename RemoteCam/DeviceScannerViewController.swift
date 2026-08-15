@@ -160,13 +160,11 @@ public class DeviceScannerViewController: UIViewController {
         super.viewDidAppear(animated)
         remoteCamSession ! UICmd.ScannerDidAppear()
 
-        // Re-arm multicam collecting every time the scanner appears — not just
-        // on first load. Returning here from the monitor/director leaves this
-        // controller in the nav stack (viewDidLoad does not re-run), so without
-        // this the collecting flow stays disarmed and the "Connect (N)" CTA
-        // never returns. Sent AFTER ScannerDidAppear so the coordinator has
-        // settled back into scanning first; the re-arm then reports the live
-        // set and the scanner resyncs (see rearmMulticamScanner).
+        // Re-arm multicam collecting on every appearance: this controller
+        // stays in the nav stack, so viewDidLoad does not re-run on return.
+        // Sent AFTER ScannerDidAppear so the coordinator has settled into
+        // scanning; the re-arm reports the live set and the scanner resyncs
+        // (see rearmMulticamScanner).
         if FeatureFlags.ENABLE_MULTICAM && role == .monitor {
             remoteCamSession ! UICmd.SetMulticamCollecting(on: true)
         }
@@ -379,8 +377,7 @@ public class DeviceScannerViewController: UIViewController {
 
     /// "Connect (N)": fire an invite per selected camera that isn't already
     /// linked, and hand off once every invite has settled. A selection made
-    /// entirely of still-live links (back-navigation re-entry) invites nobody
-    /// and settles immediately — hence the unconditional settle check.
+    /// entirely of still-live links invites nobody and settles immediately.
     private func handleConnectSelected() {
         let peers = scannerViewModel.beginMulticamConnecting()
         for peer in peers {

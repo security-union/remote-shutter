@@ -73,15 +73,9 @@ final class DeviceScannerViewModel: ObservableObject {
     // MARK: - Multicam director: select-then-connect
 
     /// The multicam scanner is an edit-mode selector: pick cameras (pure, zero
-    /// network), THEN connect the chosen set. Selecting never invites.
-    ///
-    /// There is deliberately **no phase flag**. The scanner is a pure function
-    /// of four facts — what is selected, which invites are in flight, which
-    /// failed, and which peers hold a live link right now — so a screen
-    /// re-entered after back-navigation reflects reality instead of a latched
-    /// mode from the previous cycle (the stuck-CTA bug). "Connecting" is a
-    /// transient per-peer condition; "connected" is live-link truth, never a
-    /// latched set.
+    /// network), THEN connect the chosen set. Selecting never invites. Row
+    /// states and the CTA derive from the four fact sets below; nothing is
+    /// latched across cycles.
 
     /// Cameras the user has picked (client-side only, no transport activity).
     @Published var multicamSelectedPeers: Set<MCPeerID> = []
@@ -89,13 +83,10 @@ final class DeviceScannerViewModel: ObservableObject {
     @Published var multicamConnectingPeers: Set<MCPeerID> = []
     /// Cameras whose invite failed (timed out after the retry) this cycle.
     @Published var multicamFailedPeers: Set<MCPeerID> = []
-    /// Peers that currently hold a live link — the reactive truth the
-    /// coordinator reports. "Connected" row state and the still-connected
-    /// re-entry case both derive from this.
+    /// Peers that currently hold a live link, as reported by the coordinator.
     @Published var multicamLiveLinks: Set<MCPeerID> = []
-    /// Set when the user taps Connect this cycle, cleared when the round
-    /// settles into a handoff or the cycle resets. The one honest bit of
-    /// transient intent — and, unlike the old phase, it is reset on re-entry.
+    /// Set when the user taps Connect this cycle; cleared when the round
+    /// settles into a handoff or the cycle resets.
     private(set) var multicamConnectRequested = false
 
     /// Pure selection toggle — no invite, no coordinator message. Blocked only
@@ -119,7 +110,7 @@ final class DeviceScannerViewModel: ObservableObject {
     }
 
     /// The "Connect (N)" CTA: shown whenever cameras are selected and no invite
-    /// round is in flight. No phase gate, so it survives back-navigation.
+    /// round is in flight.
     var canConnectMulticam: Bool {
         !multicamSelectedPeers.isEmpty && multicamConnectingPeers.isEmpty
     }
@@ -156,15 +147,14 @@ final class DeviceScannerViewModel: ObservableObject {
     }
 
     /// The selected cameras that actually connected — the input to the handoff
-    /// decision. Derived from live links, never a latched set.
+    /// decision.
     var multicamConnectedPeers: Set<MCPeerID> {
         multicamSelectedPeers.intersection(multicamLiveLinks)
     }
 
-    /// Reset the connect-round bookkeeping on scanner (re)entry WITHOUT tearing
-    /// down live links: a peer whose QUIC link survived the detour is reseeded
-    /// as selected + checked, so the user starts again with one tap. This is
-    /// what makes back-navigation reactive instead of stuck.
+    /// Reset the connect-round bookkeeping on scanner (re)entry WITHOUT
+    /// tearing down live links: a peer whose link survived is reseeded as
+    /// selected + checked, so starting again is one tap.
     func resetMulticamCycle() {
         multicamConnectRequested = false
         multicamConnectingPeers = []
