@@ -416,7 +416,7 @@ public actor MulticamController {
             // on that lane so the pill's thumb and ceiling track the hardware.
             if let factor = resp.zoomFactor { link.zoomFactor = factor }
             if let maxZoom = resp.zoomRange?.maxZoom {
-                link.maxZoomFactor = Self.clampMaxZoom(maxZoom, wideAngle: link.wideAngleZoomFactor)
+                link.maxZoomFactor = ZoomScaleSeed.clampMaxZoom(maxZoom, wideAngle: link.wideAngleZoomFactor)
             }
             markLanesDirty()
 
@@ -657,24 +657,14 @@ public actor MulticamController {
         sendTo(peer, msg)
     }
 
-    /// Display zoom tops out at 5× the wide-angle reference, mirroring the 1:1
-    /// monitor's `maxDisplayZoom`, so the pill never offers unreachable range.
-    private static let maxDisplayZoom: CGFloat = 5.0
-    private static func clampMaxZoom(_ maxFactor: CGFloat, wideAngle: CGFloat) -> CGFloat {
-        min(maxFactor, maxDisplayZoom * wideAngle)
-    }
-
-    /// Seed a lane's zoom scale from a capabilities exchange, exactly as the
-    /// 1:1 monitor does: stops and wide-angle reference from the current
-    /// camera, the ceiling from that lens's zoom range.
+    /// Seed a lane's zoom scale from a capabilities exchange via the shared
+    /// `ZoomScaleSeed` — the same values the 1:1 monitor derives.
     private func seedZoom(_ link: CameraLink, from caps: RemoteCmd.CameraCapabilitiesResp) {
-        guard let info = caps.getCurrentCameraInfo() else { return }
-        link.zoomStops = info.zoomStops
-        link.wideAngleZoomFactor = info.wideAngleZoomFactor
-        link.zoomFactor = caps.currentZoom
-        if let range = info.getZoomCapabilities()[caps.currentLens] {
-            link.maxZoomFactor = Self.clampMaxZoom(range.maxZoom, wideAngle: info.wideAngleZoomFactor)
-        }
+        guard let seed = ZoomScaleSeed.seed(from: caps) else { return }
+        link.zoomStops = seed.zoomStops
+        link.wideAngleZoomFactor = seed.wideAngleZoomFactor
+        link.zoomFactor = seed.zoomFactor
+        if let maxZoom = seed.maxZoomFactor { link.maxZoomFactor = maxZoom }
     }
 
     // MARK: - Synced photo capture (all cameras)

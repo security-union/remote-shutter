@@ -86,21 +86,18 @@ final class MulticamViewModel: ObservableObject {
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }
 
-    /// The focused-camera flip button is live whenever that camera is linked
-    /// and not mid-recording — the same rule the 1:1 monitor uses (it never
-    /// gates the flip on advertised positions; the camera itself decides
-    /// whether a flip does anything).
-    var focusedCameraCanFlip: Bool {
-        guard let focused = focusedLane else { return false }
-        return focused.status == .linked && !isRecording
+    /// The per-camera framing controls' enablement, from the shared rules the
+    /// 1:1 monitor also uses (flip ungated on positions; flash photo-mode only;
+    /// nothing while recording). One source of truth for both paths.
+    var focusedControlState: FocusedCameraControlState {
+        FocusedCameraControlState(isLinked: focusedLane?.status == .linked,
+                                  isPhotoMode: mode == .photo,
+                                  isRecording: isRecording)
     }
-
-    /// The per-camera framing controls (flip, torch, flash) drive the focused
-    /// camera, and only while it is linked. Flash, as in the 1:1 monitor, is
-    /// unavailable in video mode and while recording.
-    var focusedControlsEnabled: Bool { focusedLane?.status == .linked }
-    var focusedTorchEnabled: Bool { focusedControlsEnabled }
-    var focusedFlashEnabled: Bool { focusedControlsEnabled && mode == .photo && !isRecording }
+    var focusedCameraCanFlip: Bool { focusedControlState.flipEnabled }
+    var focusedControlsEnabled: Bool { focusedControlState.isLinked }
+    var focusedTorchEnabled: Bool { focusedControlState.torchEnabled }
+    var focusedFlashEnabled: Bool { focusedControlState.flashEnabled }
     var focusedTorchOn: Bool { focusedLane?.torchOn ?? false }
     var focusedFlashOn: Bool { focusedLane?.flashOn ?? false }
 

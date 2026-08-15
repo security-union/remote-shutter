@@ -209,9 +209,39 @@ Honest list of what is deliberately first-draft, for whoever picks this up next.
   holds only the *last* clip; it reuses `capture_id` loosely and depends on the
   file still existing. Fine for one-clip-at-a-time retry; it would need a real
   per-capture store to retry an older clip.
-- **`PeerSessionCore` extraction pending.** Reconnect, the per-peer version
-  gate, capability parsing, and the frame pump exist in both
-  `SessionCoordinator` (camera + 1:1 monitor) and `MulticamController`. They
-  have begun to diverge; extracting a shared core is the highest-value
-  robustness refactor, deferred until after the 9.1 release so it doesn't ride
-  the same release as the feature.
+## Shared vs duplicated (DRY state)
+
+Extracted and shared by both the 1:1 and multicam paths:
+
+- View atoms: `GlassCircleButton`, `ControlCapsule`, `ShutterButton`,
+  `CameraSwitchControlView`, `LinkChip`, `ZoomPill`, `MonitorChromeLayout`,
+  `MonitorLinkState`.
+- `ZoomScaleSeed` — the zoom clamp (the single home of the 5×-wide
+  `maxDisplayZoom`) and the capabilities→zoom seed, used by both
+  `MonitorViewModel.updateZoomFactor` and `MulticamController.seedZoom`.
+- `FocusedCameraControlState` — the flip/torch/flash enablement rules.
+  Consumed by `MulticamViewModel` now; the 1:1 `MonitorViewModel` still sets
+  its per-mode `@Published` flags imperatively (adopting it there is a
+  `configure{Photo,Video,Recording}Mode` restructure, part of the post-9.1
+  pass below).
+
+Remaining duplication, by size and disposition:
+
+- **`CaptureModeSelector` (~25 verbatim lines).** The PHOTO/VIDEO capsule
+  (`modeSelector`/`modeButton`) is copied byte-for-byte between `MonitorView`
+  and `MulticamView`. Extract to one component — its own snapshot-guarded PR
+  after this one, because it swaps into `MonitorView`.
+- **`PeerSessionCore` (grew).** The delegate boilerplate, reconnect, per-peer
+  version gate, and response-routing scaffold parallel each other in
+  `SessionCoordinator` and `MulticamController`, and enlarged with flip/zoom
+  routing, `EndSession` handling, and the scanner rearm. Highest-value
+  robustness refactor; structural (touches the 2,995-line revenue path), so
+  post-9.1 behind the full suite.
+- **`MonitorChromeScaffold` generic.** The chrome arrangement
+  (`chrome`/`topBar`/`bottomCluster`/`sideCluster`/`actionCluster`) is mirrored
+  structurally. Fold into a slot-closure scaffold in the post-9.1 pass
+  (rewrites `MonitorView`'s chrome; needs pixel-identical proof).
+- **`CameraCapabilityParse`.** The capabilities read-shape
+  (`getCurrentCameraInfo` → lenses/zoom/quality) is duplicated between
+  `MonitorPresenter` and `MulticamController`; fold into the same post-9.1
+  pass.

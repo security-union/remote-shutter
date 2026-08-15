@@ -135,3 +135,74 @@ final class MulticamViewModelTests: XCTestCase {
         XCTAssertEqual(vm.focusedLinkState, .reconnecting)
     }
 }
+
+/// The shared enablement rules both camera-control paths derive from.
+final class FocusedCameraControlStateTests: XCTestCase {
+    func testEnablementRules() {
+        // Linked, photo, idle → everything on.
+        let photo = FocusedCameraControlState(isLinked: true, isPhotoMode: true, isRecording: false)
+        XCTAssertTrue(photo.flipEnabled)
+        XCTAssertTrue(photo.torchEnabled)
+        XCTAssertTrue(photo.flashEnabled)
+
+        // Video mode → flash off; flip/torch stay on.
+        let video = FocusedCameraControlState(isLinked: true, isPhotoMode: false, isRecording: false)
+        XCTAssertFalse(video.flashEnabled)
+        XCTAssertTrue(video.flipEnabled)
+        XCTAssertTrue(video.torchEnabled)
+
+        // Recording → flip and flash off; torch stays.
+        let rec = FocusedCameraControlState(isLinked: true, isPhotoMode: true, isRecording: true)
+        XCTAssertFalse(rec.flipEnabled)
+        XCTAssertFalse(rec.flashEnabled)
+        XCTAssertTrue(rec.torchEnabled)
+
+        // Not linked → nothing.
+        let off = FocusedCameraControlState(isLinked: false, isPhotoMode: true, isRecording: false)
+        XCTAssertFalse(off.flipEnabled)
+        XCTAssertFalse(off.torchEnabled)
+        XCTAssertFalse(off.flashEnabled)
+    }
+}
+
+/// The shared zoom math both paths derive from.
+final class ZoomScaleSeedTests: XCTestCase {
+    func testClampCapsAtFiveTimesWideAngle() {
+        XCTAssertEqual(ZoomScaleSeed.clampMaxZoom(8, wideAngle: 1), 5)     // 5×1 ceiling
+        XCTAssertEqual(ZoomScaleSeed.clampMaxZoom(8, wideAngle: 2), 8)     // 5×2 = 10, so 8 stands
+        XCTAssertEqual(ZoomScaleSeed.clampMaxZoom(20, wideAngle: 2), 10)   // capped at 5×2
+    }
+
+    func testSeedReadsStopsWideAngleFactorAndClampedRange() {
+        let info = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
+            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 8)],
+            supportedResolutions: [.hd1080p], supportedFrameRates: [.fps30],
+            resolutionFrameRates: [.hd1080p: [.fps30]], supportsHEIF: false, supportsHDR: false,
+            zoomStops: [1, 2], wideAngleZoomFactor: 1)
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: info,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 3,
+            supportsMulticam: true, error: nil)
+
+        let seed = ZoomScaleSeed.seed(from: caps)
+        XCTAssertEqual(seed?.zoomFactor, 3)
+        XCTAssertEqual(seed?.zoomStops, [1, 2])
+        XCTAssertEqual(seed?.wideAngleZoomFactor, 1)
+        XCTAssertEqual(seed?.maxZoomFactor, 5, "range 1–8 clamps to the 5×wide ceiling")
+    }
+
+    func testSeedLeavesCeilingUnsetWhenNoRangeForCurrentLens() {
+        let info = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: false, hasTorch: false,
+            zoomCapabilities: [:],   // no range advertised
+            supportedResolutions: [.hd1080p], supportedFrameRates: [.fps30],
+            resolutionFrameRates: [.hd1080p: [.fps30]], supportsHEIF: false, supportsHDR: false,
+            zoomStops: [1], wideAngleZoomFactor: 1)
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: info,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+            supportsMulticam: true, error: nil)
+        XCTAssertNil(ZoomScaleSeed.seed(from: caps)?.maxZoomFactor)
+    }
+}

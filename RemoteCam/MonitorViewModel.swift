@@ -241,14 +241,10 @@ class MonitorViewModel: ObservableObject {
         }
     }
     
-    /// Max display zoom (5x relative to wide-angle)
-    private static let maxDisplayZoom: CGFloat = 5.0
-
     func updateZoomFactor(_ factor: CGFloat, maxFactor: CGFloat) {
         DispatchQueue.main.async {
-            let maxHardwareZoom = Self.maxDisplayZoom * self.wideAngleZoomFactor
             self.currentZoomFactor = factor
-            self.maxZoomFactor = min(maxFactor, maxHardwareZoom)
+            self.maxZoomFactor = ZoomScaleSeed.clampMaxZoom(maxFactor, wideAngle: self.wideAngleZoomFactor)
         }
     }
     
