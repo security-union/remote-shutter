@@ -87,7 +87,10 @@ struct DeviceScannerView: View {
                 statusBadge
                     .padding(.top, 8)
 
-                if isMulticamScanner && viewModel.showsMulticamSelectAll { selectAllRow }
+                if isMulticamScanner && viewModel.showsMulticamSelectAll {
+                    selectAllRow
+                        .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+                }
 
                 ForEach(viewModel.connectedPeers, id: \.self) { peer in
                     Button {
@@ -103,6 +106,8 @@ struct DeviceScannerView: View {
             }
             .padding(.horizontal, 20)
             .padding(.bottom, isMulticamScanner ? 100 : 40) // room for Connect (N)
+            .animation(.spring(response: 0.32, dampingFraction: 0.85),
+                       value: viewModel.showsMulticamSelectAll)
         }
     }
 
