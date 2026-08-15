@@ -35,6 +35,9 @@ final class CameraLane: ObservableObject, Identifiable {
     var needsQualityRematch: Bool { info.needsQualityRematch }
     var collection: CameraLink.LaneCollectionState { info.collection }
     var canFlipCamera: Bool { info.canFlipCamera }
+    var currentZoomFactor: CGFloat { info.currentZoomFactor }
+    var torchOn: Bool { info.torchOn }
+    var flashOn: Bool { info.flashOn }
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -85,6 +88,24 @@ final class MulticamViewModel: ObservableObject {
     var focusedCameraCanFlip: Bool {
         guard let focused = focusedLane else { return false }
         return focused.status == .linked && !isRecording
+    }
+
+    /// The per-camera framing controls (flip, torch, flash) drive the focused
+    /// camera, and only while it is linked. Flash, as in the 1:1 monitor, is
+    /// unavailable in video mode and while recording.
+    var focusedControlsEnabled: Bool { focusedLane?.status == .linked }
+    var focusedTorchEnabled: Bool { focusedControlsEnabled }
+    var focusedFlashEnabled: Bool { focusedControlsEnabled && mode == .photo && !isRecording }
+    var focusedTorchOn: Bool { focusedLane?.torchOn ?? false }
+    var focusedFlashOn: Bool { focusedLane?.flashOn ?? false }
+
+    /// The link indicator for the focused camera, mapped onto the 1:1 monitor's
+    /// chip states so the same component renders it.
+    var focusedLinkState: MonitorLinkState {
+        switch focusedLane?.status {
+        case .linked, .none: return .live
+        case .reconnecting, .failed: return .reconnecting
+        }
     }
 
     /// Reconcile against a controller snapshot: add new lanes, drop gone ones,

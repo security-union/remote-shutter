@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "카메라 추가";
+"Disconnect Camera" = "카메라 연결 해제";
 "Add" = "추가";
 "Searching for cameras…" = "카메라 검색 중…";
 "Director" = "디렉터";

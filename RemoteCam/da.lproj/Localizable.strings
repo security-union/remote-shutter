@@ -241,6 +241,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "Tilføj kamera";
+"Disconnect Camera" = "Afbryd kamera";
 "Add" = "Tilføj";
 "Searching for cameras…" = "Søger efter kameraer …";
 "Director" = "Instruktør";

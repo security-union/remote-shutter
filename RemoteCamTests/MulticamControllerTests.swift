@@ -775,6 +775,60 @@ final class MulticamControllerTests: XCTestCase {
                       "a focused camera that is reconnecting is never flipped")
     }
 
+    func testTorchTogglesOnlyTheFocusedLaneOptimistically() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.toggleTorch()
+        await controller.waitForIdle()
+
+        XCTAssertEqual(sent(transport, RemoteCmd.ToggleTorch.self).map(\.peers), [[camA]],
+                       "torch drives only the focused camera")
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.torchOn, true,
+                       "the focused lane reflects the tap immediately")
+        XCTAssertEqual(lanes.first { $0.peerID == camB }?.torchOn, false,
+                       "no other lane is touched")
+    }
+
+    // MARK: - Per-camera disconnect
+
+    func testDisconnectSendsEndSessionToOnlyThatCameraAndRemovesItsLane() async {
+        let (controller, transport, display) = await makeController(peers: [camA, camB])
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.disconnectCamera(camA)
+        await controller.waitForIdle()
+
+        let goodbyes = sent(transport, RemoteCmd.EndSession.self)
+        XCTAssertEqual(goodbyes.map(\.peers), [[camA]],
+                       "the goodbye addresses only the disconnected camera")
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.map(\.peerID), [camB], "its lane is dropped")
+        // Focus moved off the removed camera to the remaining one.
+        let focused = await controller.focusedPeerForTesting()
+        XCTAssertEqual(focused, camB)
+        XCTAssertFalse(display.didExit, "the rig still has a camera, so it stays open")
+    }
+
+    func testDisconnectingTheLastCameraExitsTheDirector() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        await controller.waitForIdle()
+
+        controller.disconnectCamera(camA)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        XCTAssertTrue(lanes.isEmpty)
+        XCTAssertTrue(display.didExit, "disconnecting the last camera leaves the director")
+    }
+
     private func sendFrame() -> RemoteCmd.SendFrame {
         RemoteCmd.SendFrame(data: Data([1, 2, 3]), sender: nil,
                             fps: 30, camPosition: .back, camOrientation: .portrait,

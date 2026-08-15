@@ -256,6 +256,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "Ajouter une caméra";
+"Disconnect Camera" = "Déconnecter la caméra";
 "Add" = "Ajouter";
 "Searching for cameras…" = "Recherche de caméras…";
 "Director" = "Réalisateur";

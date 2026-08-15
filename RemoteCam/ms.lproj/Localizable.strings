@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "Tambah kamera";
+"Disconnect Camera" = "Putuskan Kamera";
 "Add" = "Tambah";
 "Searching for cameras…" = "Mencari kamera…";
 "Director" = "Pengarah";

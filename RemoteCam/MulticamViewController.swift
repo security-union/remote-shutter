@@ -73,6 +73,9 @@ public final class MulticamViewController: UIViewController {
             },
             onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) },
             onToggleFocusedCamera: { [weak self] in self?.controller.toggleFocusedCamera() },
+            onToggleTorch: { [weak self] in self?.controller.toggleTorch() },
+            onToggleFlash: { [weak self] in self?.controller.toggleFlash() },
+            onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },
             onBack: { [weak self] in self?.navigationController?.popViewController(animated: true) })
         hosting = embedSwiftUIView(multicamView)
 

@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "添加相机";
+"Disconnect Camera" = "断开相机";
 "Add" = "添加";
 "Searching for cameras…" = "正在搜索相机…";
 "Director" = "导演";

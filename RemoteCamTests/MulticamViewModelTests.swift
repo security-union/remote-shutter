@@ -15,11 +15,15 @@ final class MulticamViewModelTests: XCTestCase {
     private let camB = MCPeerID(displayName: "CameraB")
 
     private func info(_ peer: MCPeerID, status: CameraLink.Status = .linked,
-                      focused: Bool = false, canFlipCamera: Bool = false) -> MulticamLaneInfo {
+                      focused: Bool = false, canFlipCamera: Bool = false,
+                      currentZoomFactor: CGFloat = 1.0, torchOn: Bool = false,
+                      flashOn: Bool = false) -> MulticamLaneInfo {
         MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
                          status: status, isFocused: focused, clockOffsetMillis: nil,
                          captureOutcome: nil, isRecording: false, needsQualityRematch: false,
-                         collection: .idle, canFlipCamera: canFlipCamera)
+                         collection: .idle, canFlipCamera: canFlipCamera,
+                         currentZoomFactor: currentZoomFactor, torchOn: torchOn,
+                         flashOn: flashOn)
     }
 
     func testApplyAddsLanesAndReportsCreated() {
@@ -83,5 +87,25 @@ final class MulticamViewModelTests: XCTestCase {
         vm.apply([info(camA, focused: true, canFlipCamera: true)])
         vm.isRecording = true
         XCTAssertFalse(vm.focusedCameraCanFlip)
+    }
+
+    func testFocusedControlStateDerivesFromTheFocusedLane() {
+        let vm = MulticamViewModel()
+        vm.apply([info(camA, focused: true, torchOn: true, flashOn: false), info(camB)])
+
+        XCTAssertTrue(vm.focusedControlsEnabled)
+        XCTAssertTrue(vm.focusedTorchOn)
+        XCTAssertFalse(vm.focusedFlashOn)
+        XCTAssertEqual(vm.focusedLinkState, .live)
+        // Photo mode → flash available; video mode → not.
+        vm.mode = .photo
+        XCTAssertTrue(vm.focusedFlashEnabled)
+        vm.mode = .video
+        XCTAssertFalse(vm.focusedFlashEnabled)
+
+        // Reconnecting focus → controls off, chip shows reconnecting.
+        vm.apply([info(camA, status: .reconnecting, focused: true)])
+        XCTAssertFalse(vm.focusedControlsEnabled)
+        XCTAssertEqual(vm.focusedLinkState, .reconnecting)
     }
 }

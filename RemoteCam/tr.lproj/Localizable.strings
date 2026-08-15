@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "Kamera ekle";
+"Disconnect Camera" = "Kamerayı Kes";
 "Add" = "Ekle";
 "Searching for cameras…" = "Kameralar aranıyor…";
 "Director" = "Yönetmen";

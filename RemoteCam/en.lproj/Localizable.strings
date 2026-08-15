@@ -364,6 +364,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "Add camera";
+"Disconnect Camera" = "Disconnect Camera";
 "Add" = "Add";
 "Searching for cameras…" = "Searching for cameras…";
 "Director" = "Director";

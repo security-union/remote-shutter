@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "कैमरा जोड़ें";
+"Disconnect Camera" = "कैमरा डिस्कनेक्ट करें";
 "Add" = "जोड़ें";
 "Searching for cameras…" = "कैमरे खोजे जा रहे हैं…";
 "Director" = "डायरेक्टर";

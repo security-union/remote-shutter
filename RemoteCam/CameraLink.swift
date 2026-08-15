@@ -83,6 +83,12 @@ final class CameraLink {
     /// director. Drives the tile's transfer progress / done / failed badge.
     var collection: LaneCollectionState = .idle
 
+    /// Optimistic torch / flash state, flipped when the director sends the
+    /// toggle to this (focused) camera. The camera decides what actually
+    /// happens; this just tints the glyph immediately, like the 1:1 monitor.
+    var torchOn = false
+    var flashOn = false
+
     init(peerID: MCPeerID) {
         self.peerID = peerID
         self.displayName = peerID.displayName
@@ -103,6 +109,9 @@ final class CameraLink {
             collection: collection,
             canFlipCamera: capabilities.map {
                 $0.frontCamera != nil && $0.backCamera != nil
-            } ?? false)
+            } ?? false,
+            currentZoomFactor: capabilities?.currentZoom ?? 1.0,
+            torchOn: torchOn,
+            flashOn: flashOn)
     }
 }
