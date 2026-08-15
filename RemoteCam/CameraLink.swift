@@ -89,6 +89,15 @@ final class CameraLink {
     var torchOn = false
     var flashOn = false
 
+    /// Zoom state for the focused zoom pill, seeded from the capabilities
+    /// exchange and refined by each `SetZoomResp` — the same values the 1:1
+    /// monitor tracks (`zoomStops`/`wideAngleZoomFactor`/`maxZoomFactor` build
+    /// the `ZoomScale`; `zoomFactor` is the live hardware factor).
+    var zoomFactor: CGFloat = 1.0
+    var maxZoomFactor: CGFloat = 10.0
+    var zoomStops: [CGFloat] = [1.0]
+    var wideAngleZoomFactor: CGFloat = 1.0
+
     init(peerID: MCPeerID) {
         self.peerID = peerID
         self.displayName = peerID.displayName
@@ -110,7 +119,10 @@ final class CameraLink {
             canFlipCamera: capabilities.map {
                 $0.frontCamera != nil && $0.backCamera != nil
             } ?? false,
-            currentZoomFactor: capabilities?.currentZoom ?? 1.0,
+            zoomFactor: zoomFactor,
+            maxZoomFactor: maxZoomFactor,
+            zoomStops: zoomStops,
+            wideAngleZoomFactor: wideAngleZoomFactor,
             torchOn: torchOn,
             flashOn: flashOn)
     }

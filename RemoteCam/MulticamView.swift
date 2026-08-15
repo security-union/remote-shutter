@@ -43,6 +43,8 @@ struct MulticamView: View {
     let onToggleFlash: () -> Void
     /// Disconnect one camera from the rig (long-press → EndSession to it).
     let onDisconnectCamera: (CameraLane) -> Void
+    /// Zoom the focused camera (per-camera framing; throttled by the host).
+    let onZoomChange: (CGFloat) -> Void
     /// Leave the director screen, back to the scanner (links stay up; the
     /// scanner re-arms and re-selects the still-connected cameras).
     let onBack: () -> Void
@@ -155,6 +157,7 @@ struct MulticamView: View {
     private var bottomCluster: some View {
         VStack(spacing: 14) {
             if viewModel.displayMode == .focus { cameraStrip(axis: .horizontal) }
+            focusedZoomPill
             actionCluster(axis: .horizontal)
             modeSelector
         }
@@ -171,6 +174,7 @@ struct MulticamView: View {
             VStack(spacing: 10) {
                 Spacer(minLength: 0)
                 if viewModel.displayMode == .focus { cameraStrip(axis: .vertical) }
+                focusedZoomPill
                 modeSelector
             }
 
@@ -207,6 +211,20 @@ struct MulticamView: View {
             } else {
                 VStack(spacing: 24) { leading; shutter; flip }.frame(maxHeight: .infinity)
             }
+        }
+    }
+
+    /// The focused camera's zoom pill — the monitor's `ZoomPill`, same
+    /// component and slot. Per-camera framing, so it shows in focus mode only,
+    /// and hides when the focused camera has no usable zoom range (a
+    /// fixed-focal-length camera, or before its first response), exactly as the
+    /// 1:1 monitor does.
+    @ViewBuilder
+    private var focusedZoomPill: some View {
+        if viewModel.displayMode == .focus && viewModel.showsFocusedZoomPill {
+            ZoomPill(scale: viewModel.focusedZoomScale,
+                     currentZoomFactor: viewModel.focusedZoomFactor,
+                     onZoomChange: onZoomChange)
         }
     }
 

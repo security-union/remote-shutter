@@ -775,6 +775,59 @@ final class MulticamControllerTests: XCTestCase {
                       "a focused camera that is reconnecting is never flipped")
     }
 
+    // MARK: - Zoom (focused peer only)
+
+    /// Capabilities whose back camera carries a real zoom range, so the lane's
+    /// pill has something to draw.
+    private func zoomCaps(maxZoom: CGFloat, wideAngle: CGFloat = 1.0) -> RemoteCmd.CameraCapabilitiesResp {
+        let info = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
+            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: wideAngle, maxZoom: maxZoom)],
+            supportedResolutions: [.hd1080p], supportedFrameRates: [.fps30],
+            resolutionFrameRates: [.hd1080p: [.fps30]], supportsHEIF: false, supportsHDR: false,
+            zoomStops: [wideAngle, wideAngle * 2], wideAngleZoomFactor: wideAngle)
+        return RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: info,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: wideAngle,
+            supportsMulticam: true, error: nil)
+    }
+
+    func testZoomGoesOnlyToTheFocusedCamera() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(zoomCaps(maxZoom: 8), from: camA)
+        controller.didReceiveMessage(zoomCaps(maxZoom: 8), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.setZoom(3.0)
+        await controller.waitForIdle()
+
+        let zooms = sent(transport, RemoteCmd.SetZoom.self)
+        XCTAssertEqual(zooms.map(\.peers), [[camA]], "zoom drives only the focused camera")
+    }
+
+    func testZoomResponseUpdatesOnlyThatLanesRange() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(zoomCaps(maxZoom: 8, wideAngle: 1.0), from: camA)
+        controller.didReceiveMessage(zoomCaps(maxZoom: 8, wideAngle: 1.0), from: camB)
+        await controller.waitForIdle()
+
+        controller.didReceiveMessage(
+            RemoteCmd.SetZoomResp(zoomFactor: 4.0, currentLens: .wideAngle,
+                                  zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 6), error: nil),
+            from: camA)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        let a = lanes.first { $0.peerID == camA }
+        let b = lanes.first { $0.peerID == camB }
+        XCTAssertEqual(a?.zoomFactor, 4.0, "the responder's lane tracks the new factor")
+        // Range 1–6 clamps to the 5×wide-angle display ceiling, like the 1:1 monitor.
+        XCTAssertEqual(a?.maxZoomFactor, 5.0, "its ceiling is capped at 5×wide")
+        XCTAssertEqual(b?.zoomFactor, 1.0, "the other lane is untouched")
+    }
+
     func testTorchTogglesOnlyTheFocusedLaneOptimistically() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         controller.didReceiveMessage(multicamCaps(), from: camA)

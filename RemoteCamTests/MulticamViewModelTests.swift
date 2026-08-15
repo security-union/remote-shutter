@@ -16,14 +16,16 @@ final class MulticamViewModelTests: XCTestCase {
 
     private func info(_ peer: MCPeerID, status: CameraLink.Status = .linked,
                       focused: Bool = false, canFlipCamera: Bool = false,
-                      currentZoomFactor: CGFloat = 1.0, torchOn: Bool = false,
-                      flashOn: Bool = false) -> MulticamLaneInfo {
+                      zoomFactor: CGFloat = 1.0, maxZoomFactor: CGFloat = 10.0,
+                      zoomStops: [CGFloat] = [1.0], wideAngleZoomFactor: CGFloat = 1.0,
+                      torchOn: Bool = false, flashOn: Bool = false) -> MulticamLaneInfo {
         MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
                          status: status, isFocused: focused, clockOffsetMillis: nil,
                          captureOutcome: nil, isRecording: false, needsQualityRematch: false,
                          collection: .idle, canFlipCamera: canFlipCamera,
-                         currentZoomFactor: currentZoomFactor, torchOn: torchOn,
-                         flashOn: flashOn)
+                         zoomFactor: zoomFactor, maxZoomFactor: maxZoomFactor,
+                         zoomStops: zoomStops, wideAngleZoomFactor: wideAngleZoomFactor,
+                         torchOn: torchOn, flashOn: flashOn)
     }
 
     func testApplyAddsLanesAndReportsCreated() {
@@ -87,6 +89,30 @@ final class MulticamViewModelTests: XCTestCase {
         vm.apply([info(camA, focused: true, canFlipCamera: true)])
         vm.isRecording = true
         XCTAssertFalse(vm.focusedCameraCanFlip)
+    }
+
+    func testFocusedZoomPillSwapsRangeWithFocusAndHidesWhenDegenerate() {
+        let vm = MulticamViewModel()
+        // Camera A: real range 1–6; Camera B: a wider 2–8 on a 2× wide-angle.
+        vm.apply([info(camA, focused: true, zoomFactor: 3, maxZoomFactor: 6,
+                       zoomStops: [1, 2], wideAngleZoomFactor: 1),
+                  info(camB, zoomFactor: 4, maxZoomFactor: 8,
+                       zoomStops: [2, 4], wideAngleZoomFactor: 2)])
+
+        XCTAssertTrue(vm.showsFocusedZoomPill)
+        XCTAssertEqual(vm.focusedZoomFactor, 3)
+        XCTAssertEqual(vm.focusedZoomScale.maxZoom, 6)
+
+        // Refocusing swaps the displayed range to camera B's.
+        vm.apply([info(camA, zoomFactor: 3, maxZoomFactor: 6, zoomStops: [1, 2]),
+                  info(camB, focused: true, zoomFactor: 4, maxZoomFactor: 8,
+                       zoomStops: [2, 4], wideAngleZoomFactor: 2)])
+        XCTAssertEqual(vm.focusedZoomFactor, 4)
+        XCTAssertEqual(vm.focusedZoomScale.maxZoom, 8)
+
+        // A fixed-focal-length camera (max == min) → the pill hides, like 1:1.
+        vm.apply([info(camA, focused: true, zoomFactor: 1, maxZoomFactor: 1, zoomStops: [1])])
+        XCTAssertFalse(vm.showsFocusedZoomPill)
     }
 
     func testFocusedControlStateDerivesFromTheFocusedLane() {

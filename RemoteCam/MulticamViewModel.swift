@@ -35,7 +35,12 @@ final class CameraLane: ObservableObject, Identifiable {
     var needsQualityRematch: Bool { info.needsQualityRematch }
     var collection: CameraLink.LaneCollectionState { info.collection }
     var canFlipCamera: Bool { info.canFlipCamera }
-    var currentZoomFactor: CGFloat { info.currentZoomFactor }
+    var zoomFactor: CGFloat { info.zoomFactor }
+    var zoomScale: ZoomScale {
+        ZoomScale(stops: info.zoomStops,
+                  maxZoomFactor: info.maxZoomFactor,
+                  wideAngleZoomFactor: info.wideAngleZoomFactor)
+    }
     var torchOn: Bool { info.torchOn }
     var flashOn: Bool { info.flashOn }
 
@@ -98,6 +103,17 @@ final class MulticamViewModel: ObservableObject {
     var focusedFlashEnabled: Bool { focusedControlsEnabled && mode == .photo && !isRecording }
     var focusedTorchOn: Bool { focusedLane?.torchOn ?? false }
     var focusedFlashOn: Bool { focusedLane?.flashOn ?? false }
+
+    /// The focused camera's zoom scale and current factor for the pill; and
+    /// whether the pill should show at all (the scale collapses to a single
+    /// point on a fixed-focal-length camera, exactly as the 1:1 monitor hides
+    /// its own pill then).
+    var focusedZoomScale: ZoomScale { focusedLane?.zoomScale ?? ZoomScale(stops: [1.0], maxZoomFactor: 1.0, wideAngleZoomFactor: 1.0) }
+    var focusedZoomFactor: CGFloat { focusedLane?.zoomFactor ?? 1.0 }
+    var showsFocusedZoomPill: Bool {
+        guard let focused = focusedLane, focused.status == .linked else { return false }
+        return !focused.zoomScale.isDegenerate
+    }
 
     /// The link indicator for the focused camera, mapped onto the 1:1 monitor's
     /// chip states so the same component renders it.

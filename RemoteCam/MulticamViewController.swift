@@ -23,6 +23,12 @@ public final class MulticamViewController: UIViewController {
     private let viewModel = MulticamViewModel()
     private var hosting: UIHostingController<MulticamView>?
 
+    /// Rate-limits zoom sends to the focused camera, same as the 1:1 monitor,
+    /// so a drag doesn't flood the wire; the trailing edge guarantees the final
+    /// value lands.
+    private var zoomThrottle = ZoomSendThrottle()
+    private var trailingZoomTimer: Timer?
+
     /// `controller` must already be `install`-ed with its transport + peers by
     /// the caller (the scanner handoff), so lanes light up immediately.
     init(controller: MulticamController) {
@@ -76,6 +82,7 @@ public final class MulticamViewController: UIViewController {
             onToggleTorch: { [weak self] in self?.controller.toggleTorch() },
             onToggleFlash: { [weak self] in self?.controller.toggleFlash() },
             onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },
+            onZoomChange: { [weak self] factor in self?.handleZoomChange(factor) },
             onBack: { [weak self] in self?.navigationController?.popViewController(animated: true) })
         hosting = embedSwiftUIView(multicamView)
 
@@ -126,6 +133,22 @@ public final class MulticamViewController: UIViewController {
         case (.photo, _): controller.capturePhoto()
         case (.video, false): controller.startRecording()
         case (.video, true): controller.stopRecording()
+        }
+    }
+
+    /// Throttled zoom to the focused camera, the same leading+trailing pattern
+    /// the 1:1 monitor uses so a drag never floods the wire.
+    private func handleZoomChange(_ factor: CGFloat) {
+        switch zoomThrottle.update(value: Double(factor), now: Date()) {
+        case .sendNow:
+            controller.setZoom(factor)
+        case .scheduleTrailing:
+            trailingZoomTimer?.invalidate()
+            trailingZoomTimer = Timer.scheduledTimer(withTimeInterval: zoomThrottle.interval,
+                                                     repeats: false) { [weak self] _ in
+                guard let self, let pending = self.zoomThrottle.fireTrailing(now: Date()) else { return }
+                self.controller.setZoom(CGFloat(pending))
+            }
         }
     }
 

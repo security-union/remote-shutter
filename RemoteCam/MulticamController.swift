@@ -57,8 +57,12 @@ struct MulticamLaneInfo: Equatable {
     /// capabilities. Not the flip-button gate (that mirrors the 1:1 monitor and
     /// stays ungated); a projection of capabilities for diagnostics/tests.
     let canFlipCamera: Bool
-    /// Current hardware zoom the camera last reported, for the focused zoom pill.
-    let currentZoomFactor: CGFloat
+    /// Zoom state for the focused zoom pill (the same values the 1:1 monitor
+    /// builds its `ZoomScale` from). `zoomFactor` is the live hardware factor.
+    let zoomFactor: CGFloat
+    let maxZoomFactor: CGFloat
+    let zoomStops: [CGFloat]
+    let wideAngleZoomFactor: CGFloat
     /// Optimistic torch / flash state so the control-capsule glyphs tint like
     /// the 1:1 monitor's the instant they are tapped.
     let torchOn: Bool
@@ -379,6 +383,7 @@ public actor MulticamController {
 
         case let caps as RemoteCmd.CameraCapabilitiesResp:
             link.capabilities = caps
+            seedZoom(link, from: caps)
             if link.status != .failed { link.status = .linked }
             // A late joiner may not match the running rig quality: flag it (its
             // tile badges + the tray offers re-match) rather than silently
@@ -398,10 +403,22 @@ public actor MulticamController {
             // The focused camera flipped front/back (or picked a device — the
             // response type is shared). Its refreshed capabilities carry the
             // new position, lenses and zoom, so the lane's controls reflect it.
-            if let caps = resp.cameraCapabilities { link.capabilities = caps }
+            if let caps = resp.cameraCapabilities {
+                link.capabilities = caps
+                seedZoom(link, from: caps)
+            }
             refreshRematchFlags()
             markLanesDirty()
             markRigDirty()
+
+        case let resp as RemoteCmd.SetZoomResp:
+            // The focused camera settled on a zoom; reflect its factor and range
+            // on that lane so the pill's thumb and ceiling track the hardware.
+            if let factor = resp.zoomFactor { link.zoomFactor = factor }
+            if let maxZoom = resp.zoomRange?.maxZoom {
+                link.maxZoomFactor = Self.clampMaxZoom(maxZoom, wideAngle: link.wideAngleZoomFactor)
+            }
+            markLanesDirty()
 
         case let ack as RemoteCmd.ScheduledCaptureAck:
             resolvePhotoAck(from: peer, success: ack.error == nil)
@@ -638,6 +655,26 @@ public actor MulticamController {
     private func focusedSend(_ msg: Message) {
         guard let peer = focusedPeer else { return }
         sendTo(peer, msg)
+    }
+
+    /// Display zoom tops out at 5× the wide-angle reference, mirroring the 1:1
+    /// monitor's `maxDisplayZoom`, so the pill never offers unreachable range.
+    private static let maxDisplayZoom: CGFloat = 5.0
+    private static func clampMaxZoom(_ maxFactor: CGFloat, wideAngle: CGFloat) -> CGFloat {
+        min(maxFactor, maxDisplayZoom * wideAngle)
+    }
+
+    /// Seed a lane's zoom scale from a capabilities exchange, exactly as the
+    /// 1:1 monitor does: stops and wide-angle reference from the current
+    /// camera, the ceiling from that lens's zoom range.
+    private func seedZoom(_ link: CameraLink, from caps: RemoteCmd.CameraCapabilitiesResp) {
+        guard let info = caps.getCurrentCameraInfo() else { return }
+        link.zoomStops = info.zoomStops
+        link.wideAngleZoomFactor = info.wideAngleZoomFactor
+        link.zoomFactor = caps.currentZoom
+        if let range = info.getZoomCapabilities()[caps.currentLens] {
+            link.maxZoomFactor = Self.clampMaxZoom(range.maxZoom, wideAngle: info.wideAngleZoomFactor)
+        }
     }
 
     // MARK: - Synced photo capture (all cameras)
