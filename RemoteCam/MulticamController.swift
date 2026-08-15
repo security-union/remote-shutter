@@ -53,6 +53,9 @@ struct MulticamLaneInfo: Equatable {
     let needsQualityRematch: Bool
     /// Where this lane's footage is in the post-take auto-collect.
     let collection: CameraLink.LaneCollectionState
+    /// This camera advertises both a front and a back camera, so the focused
+    /// flip button can drive it.
+    let canFlipCamera: Bool
 }
 
 /// A Sendable pipe that carries one lane's decoded-preview frames from the
@@ -317,6 +320,7 @@ public actor MulticamController {
             storePong(measured.pong, t3: measured.t3, from: measured.peer)
 
         // --- UI commands (single-entry inbox) ---
+        case is MCToggleFocusedCamera: handleToggleFocusedCamera()
         case is MCCapturePhoto: handleCapturePhoto()
         case is MCStartRecording: handleStartRecording()
         case is MCStopRecording: handleStopRecording()
@@ -378,6 +382,15 @@ public actor MulticamController {
                 sendTo(peer, RemoteCmd.ClockSyncPing(t0Millis: SyncClock.nowMillis()))
                 pushProfile(to: peer)
             }
+
+        case let resp as RemoteCmd.ToggleCameraResp:
+            // The focused camera flipped front/back (or picked a device — the
+            // response type is shared). Its refreshed capabilities carry the
+            // new position, lenses and zoom, so the lane's controls reflect it.
+            if let caps = resp.cameraCapabilities { link.capabilities = caps }
+            refreshRematchFlags()
+            markLanesDirty()
+            markRigDirty()
 
         case let ack as RemoteCmd.ScheduledCaptureAck:
             resolvePhotoAck(from: peer, success: ack.error == nil)
@@ -508,6 +521,17 @@ public actor MulticamController {
     /// PR3 wires these to the focused lane; capture (all-camera) lands in PR4.
     func setZoom(_ factor: CGFloat) { focusedSend(RemoteCmd.SetZoom(zoomFactor: factor)) }
     func toggleTorch() { focusedSend(RemoteCmd.ToggleTorch()) }
+
+    /// Flip the focused camera between front and back. Framing is per-camera,
+    /// so only the focused peer flips; `ToggleCameraResp` carries its refreshed
+    /// capabilities back to that lane.
+    public nonisolated func toggleFocusedCamera() { tell(MCToggleFocusedCamera()) }
+
+    private func handleToggleFocusedCamera() {
+        guard let peer = focusedPeer,
+              links[peer]?.snapshot.canFlipCamera == true else { return }
+        sendTo(peer, RemoteCmd.ToggleCamera())
+    }
 
     func focusAtPoint(x: Float, y: Float) {
         guard let peer = focusedPeer, links[peer]?.capabilities?.supportsFocusPoint == true else { return }
@@ -1272,6 +1296,7 @@ final class ResourceTransferFinished: Message, @unchecked Sendable {
 enum MulticamTimedAction { case photo, record }
 
 final class MCCapturePhoto: Message, @unchecked Sendable {}
+final class MCToggleFocusedCamera: Message, @unchecked Sendable {}
 final class MCStartRecording: Message, @unchecked Sendable {}
 final class MCStopRecording: Message, @unchecked Sendable {}
 final class MCAutomaticVideoQuality: Message, @unchecked Sendable {}

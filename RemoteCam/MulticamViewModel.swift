@@ -34,6 +34,7 @@ final class CameraLane: ObservableObject, Identifiable {
     var isRecording: Bool { info.isRecording }
     var needsQualityRematch: Bool { info.needsQualityRematch }
     var collection: CameraLink.LaneCollectionState { info.collection }
+    var canFlipCamera: Bool { info.canFlipCamera }
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -76,6 +77,13 @@ final class MulticamViewModel: ObservableObject {
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }
+
+    /// The focused-camera flip button is live only when that camera is linked
+    /// and advertises both a front and a back camera.
+    var focusedCameraCanFlip: Bool {
+        guard let focused = focusedLane else { return false }
+        return focused.status == .linked && focused.canFlipCamera
+    }
 
     /// Reconcile against a controller snapshot: add new lanes, drop gone ones,
     /// preserve existing `CameraLane` instances (and their receivers/frames)

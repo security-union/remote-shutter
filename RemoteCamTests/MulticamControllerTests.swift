@@ -689,6 +689,73 @@ final class MulticamControllerTests: XCTestCase {
             supportsMulticam: true, error: nil)
     }
 
+    /// Capabilities advertising both a front and a back camera, or only the
+    /// back (`bothPositions: false`) — the flip button's enable condition.
+    private func flipCaps(bothPositions: Bool) -> RemoteCmd.CameraCapabilitiesResp {
+        let lens = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
+            zoomCapabilities: [:], supportedResolutions: [.hd1080p],
+            supportedFrameRates: [.fps30],
+            resolutionFrameRates: [.hd1080p: [.fps30]],
+            supportsHEIF: false, supportsHDR: false)
+        return RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: bothPositions ? lens : nil, backCamera: lens,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true, error: nil)
+    }
+
+    // MARK: - Camera flip (focused peer only)
+
+    func testFlipGoesOnlyToTheFocusedCamera() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(flipCaps(bothPositions: true), from: camA)
+        controller.didReceiveMessage(flipCaps(bothPositions: true), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.toggleFocusedCamera()
+        await controller.waitForIdle()
+
+        let flips = sent(transport, RemoteCmd.ToggleCamera.self)
+        XCTAssertEqual(flips.map(\.peers), [[camA]],
+                       "framing is per-camera: only the focused peer flips")
+    }
+
+    func testFlipResponseUpdatesOnlyThatLane() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(flipCaps(bothPositions: true), from: camA)
+        controller.didReceiveMessage(flipCaps(bothPositions: true), from: camB)
+        await controller.waitForIdle()
+
+        // The camera flipped to a body that exposes only its back camera; its
+        // refreshed capabilities ride the response.
+        controller.didReceiveMessage(
+            RemoteCmd.ToggleCameraResp(cameraCapabilities: flipCaps(bothPositions: false),
+                                       error: nil), from: camA)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        let laneA = lanes.first { $0.peerID == camA }
+        let laneB = lanes.first { $0.peerID == camB }
+        XCTAssertEqual(laneA?.canFlipCamera, false, "only the responder's lane updates")
+        XCTAssertEqual(laneB?.canFlipCamera, true, "the other lane is untouched")
+    }
+
+    func testFlipIsSuppressedWhenTheFocusedCameraLacksBothPositions() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(flipCaps(bothPositions: false), from: camA)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.toggleFocusedCamera()
+        await controller.waitForIdle()
+
+        XCTAssertTrue(sent(transport, RemoteCmd.ToggleCamera.self).isEmpty,
+                      "a camera with only one position never receives a flip")
+    }
+
     private func sendFrame() -> RemoteCmd.SendFrame {
         RemoteCmd.SendFrame(data: Data([1, 2, 3]), sender: nil,
                             fps: 30, camPosition: .back, camOrientation: .portrait,

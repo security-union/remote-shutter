@@ -100,6 +100,9 @@ final class CameraLink {
             captureOutcome: captureOutcome,
             isRecording: isRecording,
             needsQualityRematch: needsQualityRematch,
-            collection: collection)
+            collection: collection,
+            canFlipCamera: capabilities.map {
+                $0.frontCamera != nil && $0.backCamera != nil
+            } ?? false)
     }
 }

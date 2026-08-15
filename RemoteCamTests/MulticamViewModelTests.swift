@@ -15,11 +15,11 @@ final class MulticamViewModelTests: XCTestCase {
     private let camB = MCPeerID(displayName: "CameraB")
 
     private func info(_ peer: MCPeerID, status: CameraLink.Status = .linked,
-                      focused: Bool = false) -> MulticamLaneInfo {
+                      focused: Bool = false, canFlipCamera: Bool = false) -> MulticamLaneInfo {
         MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
                          status: status, isFocused: focused, clockOffsetMillis: nil,
                          captureOutcome: nil, isRecording: false, needsQualityRematch: false,
-                         collection: .idle)
+                         collection: .idle, canFlipCamera: canFlipCamera)
     }
 
     func testApplyAddsLanesAndReportsCreated() {
@@ -60,5 +60,26 @@ final class MulticamViewModelTests: XCTestCase {
         vm.apply([info(camA), info(camB, focused: true)])
         XCTAssertEqual(vm.focusedLane?.peerID, camB)
         XCTAssertEqual(vm.otherLanes.map(\.peerID), [camA])
+    }
+
+    func testFocusedCameraCanFlipDerivesFromTheFocusedLane() {
+        let vm = MulticamViewModel()
+
+        // Focused, linked, both positions → the flip button is live.
+        vm.apply([info(camA, focused: true, canFlipCamera: true), info(camB)])
+        XCTAssertTrue(vm.focusedCameraCanFlip)
+
+        // Focused camera offers only one position → not flippable.
+        vm.apply([info(camA, focused: true, canFlipCamera: false), info(camB)])
+        XCTAssertFalse(vm.focusedCameraCanFlip)
+
+        // The flippable camera is not the focused one → still not flippable.
+        vm.apply([info(camA, focused: true, canFlipCamera: false),
+                  info(camB, canFlipCamera: true)])
+        XCTAssertFalse(vm.focusedCameraCanFlip)
+
+        // Focused but reconnecting → suppressed until it is linked again.
+        vm.apply([info(camA, status: .reconnecting, focused: true, canFlipCamera: true)])
+        XCTAssertFalse(vm.focusedCameraCanFlip)
     }
 }

@@ -36,6 +36,8 @@ struct MulticamView: View {
     let onSetHDR: (Bool) -> Void
     /// Retry a lane's failed footage collection.
     let onRetryCollection: (CameraLane) -> Void
+    /// Flip the focused camera front/back (per-camera framing).
+    let onToggleFocusedCamera: () -> Void
 
     var body: some View {
         GeometryReader { geo in
@@ -169,20 +171,44 @@ struct MulticamView: View {
                 Spacer()
                 ZStack {
                     shutter
-                    HStack { Spacer(); modeToggle.padding(.trailing, 40) }
+                    HStack {
+                        focusedFlipButton.padding(.leading, 40)
+                        Spacer()
+                        modeToggle.padding(.trailing, 40)
+                    }
                 }
                 .padding(.bottom, 24)
             }
         case .leading:
             HStack {
-                VStack { Spacer(); modeToggle; shutter; Spacer() }.padding(.leading, 24)
+                VStack { Spacer(); modeToggle; shutter; focusedFlipButton; Spacer() }
+                    .padding(.leading, 24)
                 Spacer()
             }
         case .trailing:
             HStack {
                 Spacer()
-                VStack { Spacer(); modeToggle; shutter; Spacer() }.padding(.trailing, 24)
+                VStack { Spacer(); modeToggle; shutter; focusedFlipButton; Spacer() }
+                    .padding(.trailing, 24)
             }
+        }
+    }
+
+    /// Flip the focused camera front/back — a per-camera framing control, so it
+    /// shows only in focus mode and is disabled until the focused camera is
+    /// linked and offers both positions. Uses the 1:1 monitor's flip glyph.
+    @ViewBuilder
+    private var focusedFlipButton: some View {
+        if viewModel.displayMode == .focus {
+            Button(action: onToggleFocusedCamera) {
+                Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
+                    .font(.title3)
+                    .foregroundColor(viewModel.focusedCameraCanFlip ? .white : .white.opacity(0.35))
+                    .frame(width: 44, height: 44)
+                    .background(Color.black.opacity(0.4))
+                    .clipShape(Circle())
+            }
+            .disabled(!viewModel.focusedCameraCanFlip)
         }
     }
 
