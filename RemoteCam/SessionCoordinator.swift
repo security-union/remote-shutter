@@ -1694,10 +1694,7 @@ public actor SessionCoordinator {
     private func armReconnectRetry(_ peer: MCPeerID) {
         guard lobby?.value?.role == .monitor else { return }
         reconnectRetryTask?.cancel()
-        let delay = reconnectRetryDelay
-        reconnectRetryTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            guard !Task.isCancelled else { return }
+        reconnectRetryTask = PeerReconnect.scheduleTick(after: reconnectRetryDelay) { [weak self] in
             self?.tell(UICmd.RetryReconnect(peer: peer))
         }
     }
@@ -2865,14 +2862,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
 
     public nonisolated func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID) {
         tell(UICmd.PeerTrafficObserved())
-        tell(RemoteCmd.OnFrame(data: frame.data,
-            sender: nil,
-            peerId: peer,
-            fps: frame.fps,
-            camPosition: frame.camPosition,
-            camOrientation: frame.camOrientation,
-            codec: frame.codec,
-            sequenceNumber: frame.sequenceNumber))
+        tell(RemoteCmd.OnFrame(forwarding: frame, from: peer))
     }
 
     public nonisolated func peerDidConnect(_ peer: MCPeerID) {

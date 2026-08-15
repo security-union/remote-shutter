@@ -206,3 +206,48 @@ final class ZoomScaleSeedTests: XCTestCase {
         XCTAssertNil(ZoomScaleSeed.seed(from: caps)?.maxZoomFactor)
     }
 }
+
+/// The genuinely-shared coordinator mechanics both actors adopt.
+final class PeerSessionCoreTests: XCTestCase {
+    func testOnFrameForwardingCopiesEveryField() {
+        let peer = MCPeerID(displayName: "Cam")
+        let frame = RemoteCmd.SendFrame(data: Data([9, 8, 7]), sender: nil,
+                                        fps: 24, camPosition: .front, camOrientation: .landscapeLeft,
+                                        codec: .hevc, sequenceNumber: 42)
+        let onFrame = RemoteCmd.OnFrame(forwarding: frame, from: peer)
+        XCTAssertEqual(onFrame.data, Data([9, 8, 7]))
+        XCTAssertEqual(onFrame.peerId, peer)
+        XCTAssertEqual(onFrame.fps, 24)
+        XCTAssertEqual(onFrame.camPosition, .front)
+        XCTAssertEqual(onFrame.camOrientation, .landscapeLeft)
+        XCTAssertEqual(onFrame.codec, .hevc)
+        XCTAssertEqual(onFrame.sequenceNumber, 42)
+    }
+
+    func testIsCompatibleMatchesDecideAndDefaultsTrueWithoutLocalVersion() {
+        // A missing local version never blames the peer.
+        if PeerAppCompatibility.localVersion == nil {
+            XCTAssertTrue(PeerAppCompatibility.isCompatible(remoteShortVersion: "0.0"))
+            return
+        }
+        // Otherwise it agrees with `decide` for a same-major and a cross-major peer.
+        let local = PeerAppCompatibility.localVersion!
+        for remote in ["\(local.major).0", "\(local.major + 1).0", nil] {
+            let expected = PeerAppCompatibility.decide(local: local, remoteShortVersion: remote) == .compatible
+            XCTAssertEqual(PeerAppCompatibility.isCompatible(remoteShortVersion: remote), expected,
+                           "isCompatible must mirror decide for remote \(remote ?? "nil")")
+        }
+    }
+
+    func testReconnectTickFiresAfterDelayAndNotWhenCancelled() async {
+        let fired = expectation(description: "tick fired")
+        PeerReconnect.scheduleTick(after: 0.02) { fired.fulfill() }
+        await fulfillment(of: [fired], timeout: 1.0)
+
+        let notFired = expectation(description: "cancelled tick never fires")
+        notFired.isInverted = true
+        let task = PeerReconnect.scheduleTick(after: 0.2) { notFired.fulfill() }
+        task.cancel()
+        await fulfillment(of: [notFired], timeout: 0.4)
+    }
+}

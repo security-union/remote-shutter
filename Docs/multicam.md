@@ -231,12 +231,22 @@ Remaining duplication, by size and disposition:
   (`modeSelector`/`modeButton`) is copied byte-for-byte between `MonitorView`
   and `MulticamView`. Extract to one component — its own snapshot-guarded PR
   after this one, because it swaps into `MonitorView`.
-- **`PeerSessionCore` (grew).** The delegate boilerplate, reconnect, per-peer
-  version gate, and response-routing scaffold parallel each other in
-  `SessionCoordinator` and `MulticamController`, and enlarged with flip/zoom
-  routing, `EndSession` handling, and the scanner rearm. Highest-value
-  robustness refactor; structural (touches the 2,995-line revenue path), so
-  post-9.1 behind the full suite.
+- **`PeerSessionCore` (done — small by nature).** `PeerSessionCore.swift` now
+  holds the genuinely-identical mechanics both actors share, adopted
+  behavior-identical (full suite unchanged): `RemoteCmd.OnFrame(forwarding:from:)`
+  (the one duplicated frame-construction block), `PeerAppCompatibility.isCompatible`
+  (the director's version gate; the 1:1 keeps `decide` for its verdict-driven
+  UI), and `PeerReconnect.scheduleTick` (the delay→tick timer both reconnect
+  paths use). What stayed local is **role-specialization, not duplication** —
+  the two coordinators are different roles: the camera answers clock pings and
+  runs a frame sender; the director measures pongs and routes by peer. Left
+  local, by design: the clock role in `didReceiveMessage`, the frame-request
+  handler (sender vs no-op), resource transfer (1:1's rich progress + video
+  assembly vs the director's per-lane messages), the incompatibility /
+  browser-fail presentation policy, the 1:1 datagram warm-up on connect, and
+  the reconnect *find/invite/overlay/state* policy (single-peer `.reconnecting`
+  state + overlay vs per-lane status). `CameraCapabilityParse` was skipped —
+  it drags in `MonitorPresenter`'s view-model writes.
 - **`MonitorChromeScaffold` generic.** The chrome arrangement
   (`chrome`/`topBar`/`bottomCluster`/`sideCluster`/`actionCluster`) is mirrored
   structurally. Fold into a slot-closure scaffold in the post-9.1 pass

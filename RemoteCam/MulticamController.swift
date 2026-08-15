@@ -519,11 +519,10 @@ public actor MulticamController {
     func cameraCount() -> Int { order.count }
 
     /// Schedule a reconnect tick; the tick itself runs in the pump (ordered),
-    /// so the only thing off-actor is the one-shot sleep.
+    /// so the only thing off-actor is the shared one-shot delay. The tick
+    /// self-guards on lane status, so the task is fire-and-forget.
     private func armReconnect(_ peer: MCPeerID) {
-        let delay = reconnectRetryDelay
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        PeerReconnect.scheduleTick(after: reconnectRetryDelay) { [weak self] in
             self?.tell(MCPeerCommand(.reconnectTick, peer))
         }
     }
@@ -1237,9 +1236,7 @@ public actor MulticamController {
     }
 
     private func isPeerCompatible(_ became: RemoteCmd.RoleAnnouncement) -> Bool {
-        guard let local = PeerAppCompatibility.localVersion else { return true }
-        return PeerAppCompatibility.decide(local: local,
-                                           remoteShortVersion: became.shortVersion) == .compatible
+        PeerAppCompatibility.isCompatible(remoteShortVersion: became.shortVersion)
     }
 }
 
@@ -1300,14 +1297,7 @@ extension MulticamController: MultipeerServiceDelegate {
     }
 
     public nonisolated func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID) {
-        tell(RemoteCmd.OnFrame(data: frame.data,
-                               sender: nil,
-                               peerId: peer,
-                               fps: frame.fps,
-                               camPosition: frame.camPosition,
-                               camOrientation: frame.camOrientation,
-                               codec: frame.codec,
-                               sequenceNumber: frame.sequenceNumber))
+        tell(RemoteCmd.OnFrame(forwarding: frame, from: peer))
     }
 
     public nonisolated func peerDidConnect(_ peer: MCPeerID) {
