@@ -45,6 +45,8 @@ struct DeviceScannerView: View {
 
             if isMulticamScanner, let onConnectSelected {
                 connectSelectedButton(onConnectSelected)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.85),
+                               value: viewModel.multicamConnectingPeers.isEmpty)
             }
 
             PeerLinkOverlay(status: peerLink)
@@ -69,9 +71,11 @@ struct DeviceScannerView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .disabled(!viewModel.canConnectMulticam)
+                .animation(.easeInOut(duration: 0.15), value: viewModel.canConnectMulticam)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
