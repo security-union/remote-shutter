@@ -45,9 +45,15 @@ struct MulticamView: View {
     let onDisconnectCamera: (CameraLane) -> Void
     /// Zoom the focused camera (per-camera framing; throttled by the host).
     let onZoomChange: (CGFloat) -> Void
+    /// Tap-to-focus on the focused camera (normalized upright coords; the host
+    /// gates on the IAP, the controller on the peer's advertised support).
+    let onFocusTap: (CGPoint) -> Void
     /// Leave the director screen, back to the scanner (links stay up; the
     /// scanner re-arms and re-selects the still-connected cameras).
     let onBack: () -> Void
+
+    @State private var focusReticle: FocusReticle?
+    @State private var focusedPreviewSize: CGSize = .zero
 
     var body: some View {
         GeometryReader { geo in
@@ -325,8 +331,30 @@ struct MulticamView: View {
     @ViewBuilder
     private var focusedViewfinder: some View {
         if let focused = viewModel.focusedLane {
-            LiveFrameView(frames: focused.frames, aspectRatio: .sixteenNine)
-                .ignoresSafeArea()
+            ZStack {
+                LiveFrameView(frames: focused.frames, aspectRatio: .sixteenNine)
+                    .ignoresSafeArea()
+                    .background(GeometryReader { geo in
+                        Color.clear.preference(key: FocusedPreviewSizeKey.self, value: geo.size)
+                    })
+                    // Tap-to-focus, focus mode only (in grid a tap focuses the
+                    // tile). The translation guard keeps a drag from focusing,
+                    // matching the 1:1 preview.
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 0).onEnded { value in
+                            if abs(value.translation.width) < 10, abs(value.translation.height) < 10 {
+                                handleFocusTap(at: value.location, lane: focused)
+                            }
+                        })
+
+                if let reticle = focusReticle {
+                    FocusReticleView()
+                        .id(reticle.id)
+                        .position(reticle.point)
+                        .allowsHitTesting(false)
+                }
+            }
+            .onPreferenceChange(FocusedPreviewSizeKey.self) { focusedPreviewSize = $0 }
         } else {
             // No camera focused yet (all reconnecting, or none linked).
             Rectangle()
@@ -337,6 +365,22 @@ struct MulticamView: View {
                         .foregroundColor(.white.opacity(0.5)))
                 .ignoresSafeArea()
         }
+    }
+
+    /// Maps a preview tap into a normalized upright image point and, if it
+    /// landed on the image (not the letterbox), shows the reticle and forwards
+    /// it. Same `FocusPointMapping` + reticle the 1:1 monitor uses.
+    private func handleFocusTap(at location: CGPoint, lane: CameraLane) {
+        guard let image = lane.frames.cameraImage,
+              let normalized = FocusPointMapping.normalizedImagePoint(
+                tap: location, viewSize: focusedPreviewSize, imageSize: image.size)
+        else { return }
+        let reticle = FocusReticle(point: location)
+        focusReticle = reticle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            if focusReticle?.id == reticle.id { focusReticle = nil }
+        }
+        onFocusTap(normalized)
     }
 
     /// The camera strip — multicam's one added element. Thumbnails of the other
@@ -674,4 +718,11 @@ struct RigTrayView: View {
             .navigationTitle(NSLocalizedString("Rig Settings", comment: "multicam settings tray"))
         }
     }
+}
+
+/// The focused viewfinder's rendered size, for mapping a tap into
+/// normalized image coordinates.
+private struct FocusedPreviewSizeKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) { value = nextValue() }
 }

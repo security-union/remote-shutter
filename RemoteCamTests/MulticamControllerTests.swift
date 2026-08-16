@@ -829,6 +829,53 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(b?.zoomFactor, 1.0, "the other lane is untouched")
     }
 
+    // MARK: - Tap-to-focus (focused peer only)
+
+    private func focusCaps(supportsFocus: Bool) -> RemoteCmd.CameraCapabilitiesResp {
+        let info = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
+            zoomCapabilities: [:], supportedResolutions: [.hd1080p],
+            supportedFrameRates: [.fps30], resolutionFrameRates: [.hd1080p: [.fps30]],
+            supportsHEIF: false, supportsHDR: false)
+        return RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: info,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsFocusPoint: supportsFocus, supportsMulticam: true, error: nil)
+    }
+
+    func testFocusGoesOnlyToTheFocusedCameraWithMappedCoords() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(focusCaps(supportsFocus: true), from: camA)
+        controller.didReceiveMessage(focusCaps(supportsFocus: true), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.focusFocusedCamera(x: 0.25, y: 0.75)
+        await controller.waitForIdle()
+
+        let focuses = sent(transport, RemoteCmd.FocusAtPoint.self)
+        XCTAssertEqual(focuses.map(\.peers), [[camA]],
+                       "tap-to-focus drives only the focused camera")
+        let focus = focuses.first?.msg as? RemoteCmd.FocusAtPoint
+        XCTAssertEqual(focus?.x, 0.25)
+        XCTAssertEqual(focus?.y, 0.75)
+    }
+
+    func testFocusIsDroppedWhenTheFocusedPeerLacksSupport() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(focusCaps(supportsFocus: false), from: camA)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.focusFocusedCamera(x: 0.5, y: 0.5)
+        await controller.waitForIdle()
+
+        XCTAssertTrue(sent(transport, RemoteCmd.FocusAtPoint.self).isEmpty,
+                      "a peer that never advertised focus support is never sent the command")
+    }
+
     func testTorchTogglesOnlyTheFocusedLaneOptimistically() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         controller.didReceiveMessage(multicamCaps(), from: camA)

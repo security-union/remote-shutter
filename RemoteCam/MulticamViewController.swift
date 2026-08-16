@@ -83,6 +83,7 @@ public final class MulticamViewController: UIViewController {
             onToggleFlash: { [weak self] in self?.controller.toggleFlash() },
             onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },
             onZoomChange: { [weak self] factor in self?.handleZoomChange(factor) },
+            onFocusTap: { [weak self] point in self?.handleFocusTap(point) },
             onBack: { [weak self] in self?.navigationController?.popViewController(animated: true) })
         hosting = embedSwiftUIView(multicamView)
 
@@ -118,6 +119,18 @@ public final class MulticamViewController: UIViewController {
                 viewModel.showingAddCamera = true
             }
         }
+    }
+
+    /// Tap-to-focus on the focused camera. Gated behind its own entitlement
+    /// (mirrors the 1:1); a locked user is routed to the paywall. The
+    /// controller additionally drops the command if the focused peer never
+    /// advertised focus support.
+    private func handleFocusTap(_ point: CGPoint) {
+        guard StoreManager.shared.hasTapToFocusFeature() else {
+            showPaywall()
+            return
+        }
+        controller.focusFocusedCamera(x: Float(point.x), y: Float(point.y))
     }
 
     /// Reuse the existing Settings/paywall sheet — no bespoke multicam paywall.

@@ -332,6 +332,7 @@ public actor MulticamController {
 
         // --- UI commands (single-entry inbox) ---
         case is MCToggleFocusedCamera: handleToggleFocusedCamera()
+        case let m as MCFocusAtPoint: handleFocusAtPoint(x: m.x, y: m.y)
         case is MCToggleTorch: handleToggleTorch()
         case is MCToggleFlash: handleToggleFlash()
         case let z as MCSetZoom: handleSetZoom(z.factor)
@@ -598,7 +599,14 @@ public actor MulticamController {
         sendTo(peer, RemoteCmd.ToggleCamera())
     }
 
-    func focusAtPoint(x: Float, y: Float) {
+    /// Tap-to-focus targets the focused camera only. The IAP gate lives on the
+    /// view controller (mirrors the 1:1); here we drop the command if the
+    /// focused peer never advertised focus support.
+    public nonisolated func focusFocusedCamera(x: Float, y: Float) {
+        tell(MCFocusAtPoint(x: x, y: y))
+    }
+
+    private func handleFocusAtPoint(x: Float, y: Float) {
         guard let peer = focusedPeer, links[peer]?.capabilities?.supportsFocusPoint == true else { return }
         sendTo(peer, RemoteCmd.FocusAtPoint(x: x, y: y))
     }
@@ -1363,6 +1371,11 @@ enum MulticamTimedAction { case photo, record }
 
 final class MCCapturePhoto: Message, @unchecked Sendable {}
 final class MCToggleFocusedCamera: Message, @unchecked Sendable {}
+final class MCFocusAtPoint: Message, @unchecked Sendable {
+    let x: Float
+    let y: Float
+    init(x: Float, y: Float) { self.x = x; self.y = y }
+}
 final class MCStartRecording: Message, @unchecked Sendable {}
 final class MCStopRecording: Message, @unchecked Sendable {}
 final class MCAutomaticVideoQuality: Message, @unchecked Sendable {}
