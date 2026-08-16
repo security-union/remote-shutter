@@ -540,20 +540,26 @@ final class LocalNetworkProbeTests: XCTestCase {
                     XCTAssertEqual(vm.multicamSelectedPeers.count, k,
                                    "discovered=\(discovered) cap=\(cap) k=\(k)")
 
-                    // (b) Connect CTA disabled iff k == 0; label = k.
-                    XCTAssertEqual(vm.canConnectMulticam, k > 0)
-                    XCTAssertEqual(vm.multicamSelectionCount, k)
+                    // (b) CTA mode: a selection → connect(k); none but something
+                    // discovered → select-all-and-connect; nothing discovered → hidden.
+                    let cta = vm.multicamCTA(maxCameras: cap)
+                    if k > 0 {
+                        XCTAssertEqual(cta, .connect(k))
+                    } else if discovered > 0 {
+                        XCTAssertEqual(cta, .selectAllAndConnect(min(discovered, cap)))
+                    } else {
+                        XCTAssertNil(cta)
+                    }
 
                     // (c) tap Connect → exactly the k selected peers to invite.
                     let toInvite = vm.beginMulticamConnecting()
                     XCTAssertEqual(Set(toInvite), Set(peers.prefix(k)))
                     XCTAssertEqual(toInvite.count, k)
-                    // No phase flag: an in-flight round is simply a non-empty
-                    // connecting set, which suppresses the CTA and settles only
-                    // once every invite resolves.
+                    // An in-flight round is a non-empty connecting set, which
+                    // suppresses the CTA and settles only once every invite resolves.
                     if k > 0 {
                         XCTAssertEqual(vm.multicamConnectingPeers, Set(peers.prefix(k)))
-                        XCTAssertFalse(vm.canConnectMulticam)
+                        XCTAssertNil(vm.multicamCTA(maxCameras: cap))
                         XCTAssertFalse(vm.multicamConnectSettled)
                     }
                 }
@@ -605,20 +611,43 @@ final class LocalNetworkProbeTests: XCTestCase {
             // An already-selected row is never locked (it can still deselect).
             XCTAssertFalse(vm.multicamRowLocked(peers[0], maxCameras: cap))
 
-            // Select All also stops exactly at the cap.
+            // Select-all-and-connect stops exactly at the cap and invites them.
             let (peers2, vm2) = makeVM(discovered: 10)
-            vm2.selectAllMulticam(maxCameras: cap)
+            let invited = vm2.selectAllAndBeginConnecting(maxCameras: cap)
             XCTAssertEqual(vm2.multicamSelectedPeers.count, cap)
             XCTAssertEqual(Set(vm2.multicamSelectedPeers), Set(peers2.prefix(cap)))
+            XCTAssertEqual(Set(invited), Set(peers2.prefix(cap)),
+                           "one tap invites exactly the capped set")
         }
     }
 
-    /// Empty state: nothing discovered → no Select All, CTA disabled.
-    func testEmptyStateHasNoSelectAllAndDisabledConnect() {
+    /// One-tap select-all-and-connect from an empty selection: caps the count,
+    /// excludes over-cap (locked) rows, and invites exactly the selected set.
+    func testSelectAllAndConnectOneTap() {
+        for cap in [2, 4] {
+            let (peers, vm) = makeVM(discovered: 6)
+            XCTAssertEqual(vm.multicamCTA(maxCameras: cap), .selectAllAndConnect(cap))
+            let invited = vm.selectAllAndBeginConnecting(maxCameras: cap)
+            XCTAssertEqual(Set(invited), Set(peers.prefix(cap)))
+            XCTAssertEqual(vm.multicamConnectingPeers, Set(peers.prefix(cap)))
+            // Nothing beyond the cap was selected (those rows were locked).
+            for i in cap..<6 { XCTAssertEqual(vm.multicamRowState(peers[i]), .unselected) }
+        }
+    }
+
+    /// When fewer cameras are discovered than the cap, the CTA offers the
+    /// discovered count, and one tap connects them all.
+    func testSelectAllAndConnectBelowCap() {
+        let (peers, vm) = makeVM(discovered: 3)
+        XCTAssertEqual(vm.multicamCTA(maxCameras: 4), .selectAllAndConnect(3))
+        XCTAssertEqual(Set(vm.selectAllAndBeginConnecting(maxCameras: 4)), Set(peers))
+    }
+
+    /// Empty state: nothing discovered → no CTA at all.
+    func testEmptyStateHasNoCTA() {
         let (_, vm) = makeVM(discovered: 0)
-        XCTAssertFalse(vm.showsMulticamSelectAll)
-        XCTAssertFalse(vm.canConnectMulticam)
-        XCTAssertEqual(vm.multicamSelectionCount, 0)
+        XCTAssertNil(vm.multicamCTA(maxCameras: 4))
+        XCTAssertEqual(vm.multicamSelectedPeers.count, 0)
     }
 
     /// Partial: 3 selected, 1 never connects → settles with 2 connected, the
@@ -646,7 +675,7 @@ final class LocalNetworkProbeTests: XCTestCase {
         // Selection only — nothing in flight, no connect requested.
         XCTAssertTrue(vm.multicamConnectingPeers.isEmpty)
         XCTAssertFalse(vm.multicamConnectRequested)
-        XCTAssertTrue(vm.canConnectMulticam)
+        XCTAssertEqual(vm.multicamCTA(maxCameras: 4), .connect(3))
     }
 
     // MARK: - Back-navigation re-entry (Dario's repro)
@@ -683,18 +712,21 @@ final class LocalNetworkProbeTests: XCTestCase {
                     // Still-connected re-entry: the survivors are reseeded as
                     // selected+checked and the CTA is immediately actionable.
                     XCTAssertEqual(vm.multicamSelectedPeers, Set(first))
-                    XCTAssertTrue(vm.canConnectMulticam)
+                    XCTAssertEqual(vm.multicamCTA(maxCameras: 4), .connect(firstConnected))
                     for p in first { XCTAssertEqual(vm.multicamRowState(p), .connected) }
                     // A second connect on live links invites nobody and settles.
                     let toInvite = vm.beginMulticamConnecting()
                     XCTAssertTrue(toInvite.isEmpty, "live links are not re-invited")
                     XCTAssertTrue(vm.multicamConnectSettled)
                 } else {
-                    // Dropped-link re-entry: clean slate, re-select and go.
+                    // Dropped-link re-entry: clean slate — nothing selected, so
+                    // the CTA offers select-all-and-connect; re-select and go.
                     XCTAssertTrue(vm.multicamSelectedPeers.isEmpty)
-                    XCTAssertFalse(vm.canConnectMulticam, "nothing selected yet")
+                    XCTAssertEqual(vm.multicamCTA(maxCameras: 4), .selectAllAndConnect(4),
+                                   "nothing selected yet")
                     vm.toggleMulticamSelection(peers[0])
-                    XCTAssertTrue(vm.canConnectMulticam, "CTA returns after re-select")
+                    XCTAssertEqual(vm.multicamCTA(maxCameras: 4), .connect(1),
+                                   "CTA switches to connect after re-select")
                     XCTAssertEqual(vm.beginMulticamConnecting(), [peers[0]],
                                    "a dropped peer is invited afresh")
                 }

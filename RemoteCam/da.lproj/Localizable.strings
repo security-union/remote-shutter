@@ -249,7 +249,7 @@
 "Direct up to 4 cameras at once" = "Instruér op til 4 kameraer på én gang";
 "RECONNECTING" = "GENOPRETTER FORBINDELSE";
 "Connect (%d)" = "Forbind (%d)";
-"Select All" = "Vælg alle";
+"Select all & connect (%d)" = "Vælg alle og forbind (%d)";
 
 // Multicam rig settings tray
 "Auto" = "Auto";

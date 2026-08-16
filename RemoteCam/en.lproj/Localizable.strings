@@ -372,7 +372,7 @@
 "Direct up to 4 cameras at once" = "Direct up to 4 cameras at once";
 "RECONNECTING" = "RECONNECTING";
 "Connect (%d)" = "Connect (%d)";
-"Select All" = "Select All";
+"Select all & connect (%d)" = "Select all & connect (%d)";
 
 // Multicam rig settings tray
 "Auto" = "Auto";

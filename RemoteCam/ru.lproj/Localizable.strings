@@ -370,7 +370,7 @@
 "Direct up to 4 cameras at once" = "Управляйте до 4 камерами одновременно";
 "RECONNECTING" = "ПЕРЕПОДКЛЮЧЕНИЕ";
 "Connect (%d)" = "Подключить (%d)";
-"Select All" = "Выбрать все";
+"Select all & connect (%d)" = "Выбрать все и подключить (%d)";
 
 // Multicam rig settings tray
 "Auto" = "Авто";

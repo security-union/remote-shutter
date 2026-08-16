@@ -370,7 +370,7 @@
 "Direct up to 4 cameras at once" = "Arahkan sehingga 4 kamera serentak";
 "RECONNECTING" = "MENYAMBUNG SEMULA";
 "Connect (%d)" = "Sambung (%d)";
-"Select All" = "Pilih semua";
+"Select all & connect (%d)" = "Pilih semua & sambung (%d)";
 
 // Multicam rig settings tray
 "Auto" = "Auto";

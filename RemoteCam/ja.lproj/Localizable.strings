@@ -370,7 +370,7 @@
 "Direct up to 4 cameras at once" = "最大4台のカメラを同時に操作";
 "RECONNECTING" = "再接続中";
 "Connect (%d)" = "接続 (%d)";
-"Select All" = "すべて選択";
+"Select all & connect (%d)" = "すべて選択して接続 (%d)";
 
 // Multicam rig settings tray
 "Auto" = "自動";

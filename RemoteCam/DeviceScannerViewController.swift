@@ -207,9 +207,6 @@ public class DeviceScannerViewController: UIViewController {
             onHelp: { [weak self] in
                 self?.showHelpModal()
             },
-            onSelectAll: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
-                ? { [weak self] in self?.handleSelectAll() }
-                : nil,
             onConnectSelected: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
                 ? { [weak self] in self?.handleConnectSelected() }
                 : nil
@@ -370,16 +367,14 @@ public class DeviceScannerViewController: UIViewController {
         vm.toggleMulticamSelection(peer)
     }
 
-    /// "Select All": pick every discovered camera up to the cap. Pure.
-    private func handleSelectAll() {
-        scannerViewModel.selectAllMulticam(maxCameras: StoreManager.shared.maxCameras())
-    }
-
-    /// "Connect (N)": fire an invite per selected camera that isn't already
-    /// linked, and hand off once every invite has settled. A selection made
-    /// entirely of still-live links invites nobody and settles immediately.
+    /// The bottom CTA. With a selection, connect it; with none, select all up
+    /// to the cap and connect. A selection made entirely of still-live links
+    /// invites nobody and settles immediately.
     private func handleConnectSelected() {
-        let peers = scannerViewModel.beginMulticamConnecting()
+        let vm = scannerViewModel
+        let peers = vm.multicamSelectedPeers.isEmpty
+            ? vm.selectAllAndBeginConnecting(maxCameras: StoreManager.shared.maxCameras())
+            : vm.beginMulticamConnecting()
         for peer in peers {
             remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
         }

@@ -370,7 +370,7 @@
 "Direct up to 4 cameras at once" = "Điều khiển tối đa 4 camera cùng lúc";
 "RECONNECTING" = "ĐANG KẾT NỐI LẠI";
 "Connect (%d)" = "Kết nối (%d)";
-"Select All" = "Chọn tất cả";
+"Select all & connect (%d)" = "Chọn tất cả và kết nối (%d)";
 
 // Multicam rig settings tray
 "Auto" = "Tự động";

@@ -100,21 +100,29 @@ final class DeviceScannerViewModel: ObservableObject {
         }
     }
 
-    /// Select every discovered, not-yet-selected camera up to the cap (pure).
-    func selectAllMulticam(maxCameras: Int) {
-        guard multicamConnectingPeers.isEmpty else { return }
+    /// Select every discovered camera up to the cap, then begin the connect
+    /// round in one action. Returns the peers to invite (empty if none).
+    func selectAllAndBeginConnecting(maxCameras: Int) -> [MCPeerID] {
+        guard multicamConnectingPeers.isEmpty else { return [] }
         for peer in connectedPeers where !multicamSelectedPeers.contains(peer) {
             guard multicamSelectedPeers.count < maxCameras else { break }
             multicamSelectedPeers.insert(peer)
         }
+        return beginMulticamConnecting()
     }
 
-    /// The "Connect (N)" CTA: shown whenever cameras are selected and no invite
-    /// round is in flight.
-    var canConnectMulticam: Bool {
-        !multicamSelectedPeers.isEmpty && multicamConnectingPeers.isEmpty
+    /// Bottom CTA: with a selection, connect it; with none, select all up to
+    /// the cap and connect in one tap.
+    enum MulticamCTA: Equatable { case connect(Int), selectAllAndConnect(Int) }
+
+    /// nil hides the CTA — nothing discovered, or an invite round in flight.
+    func multicamCTA(maxCameras: Int) -> MulticamCTA? {
+        guard multicamConnectingPeers.isEmpty, !connectedPeers.isEmpty else { return nil }
+        if multicamSelectedPeers.isEmpty {
+            return .selectAllAndConnect(min(connectedPeers.count, maxCameras))
+        }
+        return .connect(multicamSelectedPeers.count)
     }
-    var multicamSelectionCount: Int { multicamSelectedPeers.count }
 
     /// Begin a connect round. Returns only the selected peers that need an
     /// invite — a peer whose link already survived (still-connected re-entry)
@@ -179,13 +187,6 @@ final class DeviceScannerViewModel: ObservableObject {
         multicamConnectingPeers.isEmpty
             && multicamRowState(peer) == .unselected
             && multicamSelectedPeers.count >= maxCameras
-    }
-
-    /// Whether "Select All" should be offered — some discovered camera is still
-    /// unselected, and no invite round is in flight.
-    var showsMulticamSelectAll: Bool {
-        multicamConnectingPeers.isEmpty
-            && connectedPeers.contains { !multicamSelectedPeers.contains($0) }
     }
 
     /// When the current scan began. Not @Published: the view samples it on a

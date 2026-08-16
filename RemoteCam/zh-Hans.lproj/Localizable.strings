@@ -370,7 +370,7 @@
 "Direct up to 4 cameras at once" = "同时导演最多 4 台相机";
 "RECONNECTING" = "正在重新连接";
 "Connect (%d)" = "连接 (%d)";
-"Select All" = "全选";
+"Select all & connect (%d)" = "全选并连接 (%d)";
 
 // Multicam rig settings tray
 "Auto" = "自动";
