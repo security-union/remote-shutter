@@ -385,6 +385,90 @@ struct MulticamView: View {
     }
 }
 
+/// The single status a tile shows, coalesced from the lane's capture and
+/// collection state so a synced photo (both captured AND collected) reads as
+/// one green check, never two overlapping glyphs.
+enum TileStatus: Equatable {
+    case none
+    case reconnecting
+    case recording
+    case transferring(Double)
+    case success        // captured and/or collected — one confirmation
+    case captureFailed  // the shot nacked; not retryable from the tile
+    case transferFailed // footage collection failed; tap to retry
+    case needsRematch   // can't match the running rig quality
+
+    /// Success confirmations are transient — they fade off the tile.
+    var isTransient: Bool { self == .success }
+
+    /// Priority ladder (highest first): failed > reconnecting > transferring >
+    /// REC > success > rematch > nothing. `includeSuccess: false` yields the
+    /// resting status the tile falls back to once a success confirmation fades.
+    static func resolve(status: CameraLink.Status,
+                        captureOutcome: CaptureOutcome?,
+                        isRecording: Bool,
+                        collection: CameraLink.LaneCollectionState,
+                        needsQualityRematch: Bool,
+                        includeSuccess: Bool = true) -> TileStatus {
+        if collection == .failed { return .transferFailed }
+        if captureOutcome == .failed { return .captureFailed }
+        if status == .reconnecting { return .reconnecting }
+        if case .transferring(let progress) = collection { return .transferring(progress) }
+        if isRecording { return .recording }
+        if includeSuccess, collection == .collected || captureOutcome == .captured { return .success }
+        if needsQualityRematch { return .needsRematch }
+        return .none
+    }
+}
+
+/// One corner badge, one glyph, on a glass circle with a surface ring so it
+/// reads cleanly over any frame — the fix for the overlapping-checks blob.
+struct TileStatusBadge: View {
+    let status: TileStatus
+    let onRetry: (() -> Void)?
+    /// Smaller on strip/grid thumbnails, full size on a focused tile.
+    var diameter: CGFloat = 28
+
+    var body: some View {
+        switch status {
+        case .none, .reconnecting:
+            EmptyView()
+        case .transferFailed:
+            Button { onRetry?() } label: { chip("arrow.clockwise.icloud", tint: .white) }
+        case .captureFailed:
+            chip("exclamationmark.triangle.fill", tint: .yellow)
+        case .needsRematch:
+            chip("exclamationmark.triangle.fill", tint: .yellow)
+        case .recording:
+            chip("record.circle.fill", tint: .red)
+        case .transferring(let progress):
+            chip(nil, tint: .white, progress: progress)
+        case .success:
+            chip("checkmark.circle.fill", tint: .green)
+        }
+    }
+
+    /// A glass circle with a 2px surface ring; either an SF Symbol or a
+    /// determinate progress ring.
+    private func chip(_ symbol: String?, tint: Color, progress: Double? = nil) -> some View {
+        ZStack {
+            Circle().fill(.ultraThinMaterial)
+            Circle().strokeBorder(Color.black.opacity(0.35), lineWidth: 2)
+            if let progress {
+                Circle().trim(from: 0, to: max(0.02, progress))
+                    .stroke(tint, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .padding(4)
+            } else if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: diameter * 0.54, weight: .semibold))
+                    .foregroundColor(tint)
+            }
+        }
+        .frame(width: diameter, height: diameter)
+    }
+}
+
 /// One camera's tile: its isolated live frame, a name chip, a focus ring, and
 /// a reconnecting scrim. `Equatable` on the value inputs so a frame delivered
 /// to another lane can't invalidate this tile's chrome — only its own
@@ -395,59 +479,55 @@ struct CameraTileView: View {
     /// Retry a failed footage collection for this lane (nil = not offered).
     var onRetry: (() -> Void)? = nil
 
+    /// The one status this tile shows, before the transient-success fade.
+    private var baseStatus: TileStatus {
+        TileStatus.resolve(status: lane.status,
+                           captureOutcome: lane.captureOutcome,
+                           isRecording: lane.isRecording,
+                           collection: lane.collection,
+                           needsQualityRematch: lane.needsQualityRematch)
+    }
+
+    /// The status actually rendered: once a success confirmation has faded, the
+    /// tile falls back to its resting status (a rematch warning, or nothing).
+    private var shownStatus: TileStatus {
+        guard baseStatus == .success, successFaded else { return baseStatus }
+        return TileStatus.resolve(status: lane.status,
+                                  captureOutcome: lane.captureOutcome,
+                                  isRecording: lane.isRecording,
+                                  collection: lane.collection,
+                                  needsQualityRematch: lane.needsQualityRematch,
+                                  includeSuccess: false)
+    }
+
+    @State private var successFaded = false
+
     var body: some View {
         ZStack {
             LiveFrameView(frames: lane.frames, aspectRatio: .sixteenNine)
                 .clipShape(RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0))
                 .saturation(lane.status == .linked ? 1 : 0)
 
-            collectionBadge
-
-            if lane.status == .reconnecting {
+            // Reconnecting is the one full-tile treatment; every other status is
+            // the single corner badge, so nothing ever stacks on nothing.
+            if shownStatus == .reconnecting {
                 RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0)
                     .fill(Color.black.opacity(0.45))
                     .overlay(
                         Text(NSLocalizedString("RECONNECTING", comment: "peer link dropped"))
                             .font(.caption2.weight(.semibold))
                             .foregroundColor(.white))
-            }
-
-            if lane.needsQualityRematch {
+            } else {
                 VStack {
                     HStack {
                         Spacer()
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                            .foregroundColor(.yellow)
-                            .padding(6)
-                    }
-                    Spacer()
-                }
-            }
-
-            if lane.isRecording {
-                VStack {
-                    HStack {
-                        Image(systemName: "record.circle.fill")
-                            .font(.body)
-                            .foregroundColor(.red)
-                        Spacer()
+                        TileStatusBadge(status: shownStatus, onRetry: onRetry,
+                                        diameter: isThumbnail ? 22 : 28)
+                            .transition(.opacity)
                     }
                     Spacer()
                 }
                 .padding(6)
-            } else if let outcome = lane.captureOutcome {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Image(systemName: outcome == .captured
-                              ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .font(.body)
-                            .foregroundColor(outcome == .captured ? .green : .yellow)
-                            .padding(6)
-                    }
-                    Spacer()
-                }
             }
 
             VStack {
@@ -466,43 +546,13 @@ struct CameraTileView: View {
         .overlay(
             RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0)
                 .stroke(lane.isFocused ? AppTheme.accent : .clear, lineWidth: 3))
-    }
-
-    /// Post-take footage collection: a spinner while transferring, a check when
-    /// collected, and a tappable retry when the transfer failed.
-    @ViewBuilder
-    private var collectionBadge: some View {
-        switch lane.collection {
-        case .idle:
-            EmptyView()
-        case .transferring:
-            VStack {
-                Spacer()
-                HStack {
-                    ProgressView().tint(.white)
-                    Image(systemName: "square.and.arrow.down").foregroundColor(.white)
-                }
-                Spacer()
-            }
-        case .collected:
-            VStack {
-                HStack {
-                    Spacer()
-                    Image(systemName: "checkmark.icloud.fill").foregroundColor(.green).padding(6)
-                }
-                Spacer()
-            }
-        case .failed:
-            Button { onRetry?() } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "arrow.clockwise.icloud").font(.title3)
-                    Text(NSLocalizedString("Retry", comment: "retry footage collection")).font(.caption2)
-                }
-                .foregroundColor(.white)
-                .padding(8)
-                .background(Color.black.opacity(0.55))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
+        // Auto-fade a success confirmation after ~2s; the task restarts (and
+        // resets the fade) whenever the underlying status changes.
+        .task(id: baseStatus) {
+            successFaded = false
+            guard baseStatus.isTransient else { return }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            withAnimation(.easeInOut(duration: 0.3)) { successFaded = true }
         }
     }
 }

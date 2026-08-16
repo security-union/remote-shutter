@@ -251,3 +251,59 @@ final class PeerSessionCoreTests: XCTestCase {
         await fulfillment(of: [notFired], timeout: 0.4)
     }
 }
+
+/// The tile badge coalesces capture + collection into exactly one status, on a
+/// strict priority ladder — the fix for the overlapping-checks blob.
+final class TileStatusTests: XCTestCase {
+    private func resolve(_ status: CameraLink.Status = .linked,
+                         capture: CaptureOutcome? = nil,
+                         recording: Bool = false,
+                         collection: CameraLink.LaneCollectionState = .idle,
+                         rematch: Bool = false,
+                         includeSuccess: Bool = true) -> TileStatus {
+        TileStatus.resolve(status: status, captureOutcome: capture, isRecording: recording,
+                           collection: collection, needsQualityRematch: rematch,
+                           includeSuccess: includeSuccess)
+    }
+
+    func testCapturedAndCollectedCollapseToOneSuccess() {
+        // The exact device case: a synced photo is both captured AND collected.
+        XCTAssertEqual(resolve(capture: .captured, collection: .collected), .success)
+        // Either alone is also a single success.
+        XCTAssertEqual(resolve(capture: .captured), .success)
+        XCTAssertEqual(resolve(collection: .collected), .success)
+    }
+
+    func testPriorityLadder() {
+        // transfer-failed beats everything, even a fresh capture success.
+        XCTAssertEqual(resolve(capture: .captured, collection: .failed), .transferFailed)
+        // capture-failed beats reconnecting/transferring.
+        XCTAssertEqual(resolve(.reconnecting, capture: .failed, collection: .transferring(0.5)), .captureFailed)
+        // reconnecting beats transferring.
+        XCTAssertEqual(resolve(.reconnecting, collection: .transferring(0.5)), .reconnecting)
+        // transferring beats REC.
+        XCTAssertEqual(resolve(recording: true, collection: .transferring(0.3)), .transferring(0.3))
+        // REC beats a success confirmation.
+        XCTAssertEqual(resolve(capture: .captured, recording: true), .recording)
+        // success beats a rematch warning.
+        XCTAssertEqual(resolve(capture: .captured, rematch: true), .success)
+        // rematch is the last thing before nothing.
+        XCTAssertEqual(resolve(rematch: true), .needsRematch)
+        XCTAssertEqual(resolve(), .none)
+    }
+
+    func testRestingStatusRevealedWhenSuccessFades() {
+        // With success suppressed (faded), the tile falls back to its resting
+        // state: a rematch warning if present, else nothing — never two badges.
+        XCTAssertEqual(resolve(capture: .captured, rematch: true, includeSuccess: false), .needsRematch)
+        XCTAssertEqual(resolve(capture: .captured, collection: .collected, includeSuccess: false), .none)
+    }
+
+    func testOnlyReconnectingIsTransient() {
+        XCTAssertTrue(TileStatus.success.isTransient)
+        for s: TileStatus in [.none, .reconnecting, .recording, .transferring(0.5),
+                              .captureFailed, .transferFailed, .needsRematch] {
+            XCTAssertFalse(s.isTransient, "\(s) must not auto-fade")
+        }
+    }
+}
