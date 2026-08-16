@@ -226,15 +226,10 @@ final class DeviceScannerViewModel: ObservableObject {
     // MARK: - Peer Management
 
     func addPeer(_ peer: MCPeerID) {
-        // A re-found peer compares equal (identity is key-hash-only) but may
-        // carry an upgraded display name — the transport re-delivers when TXT
-        // enrichment replaces the AWDL placeholder. Update in place; dropping
-        // would freeze the hash-prefix name in the UI.
-        if let index = connectedPeers.firstIndex(of: peer) {
-            connectedPeers[index] = peer
-        } else {
-            connectedPeers.append(peer)
-        }
+        // `upsert` updates a re-found peer in place, so a re-delivered
+        // name-upgrade replaces the hash-prefix placeholder instead of being
+        // dropped (the shared rule the add-camera sheet also relies on).
+        DiscoveredPeers.upsert(&connectedPeers, peer)
         speedRunScanning = true
     }
 

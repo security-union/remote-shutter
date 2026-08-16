@@ -6,6 +6,7 @@
 //
 
 import MPCCompat
+import Stormo
 import XCTest
 @testable import RemoteShutter
 
@@ -305,5 +306,46 @@ final class TileStatusTests: XCTestCase {
                               .captureFailed, .transferFailed, .needsRematch] {
             XCTAssertFalse(s.isTransient, "\(s) must not auto-fade")
         }
+    }
+}
+
+/// The discovery-list model shared by the main scanner and the director's
+/// add-camera flow — one place for the name-resolution rule.
+final class DiscoveredPeersTests: XCTestCase {
+    private func hashed(_ tag: UInt8, _ name: String) -> MCPeerID {
+        PeerID(keyHash: Data([0x12, 0x20]) + Data(repeating: tag, count: 32), displayName: name)
+    }
+
+    func testUpsertAppendsNewAndUpgradesReDeliveredInPlace() {
+        var d = DiscoveredPeers()
+        d.upsert(hashed(0x01, "QmAbc…"))
+        d.upsert(hashed(0x02, "iPad"))
+        XCTAssertEqual(d.peers.count, 2)
+
+        // Re-delivery of peer 0x01 with a resolved name replaces in place.
+        d.upsert(hashed(0x01, "Dario's iPhone"))
+        XCTAssertEqual(d.peers.count, 2, "no duplicate")
+        XCTAssertEqual(d.peers.first?.displayName, "Dario's iPhone", "name upgraded in place")
+        XCTAssertEqual(d.peers.first, hashed(0x01, "anything"), "identity is key-hash, not name")
+    }
+
+    func testStaticUpsertMatchesTheStructRule() {
+        // The scanner view model uses the static form over its own @Published
+        // array — same in-place upgrade.
+        var peers: [MCPeerID] = []
+        DiscoveredPeers.upsert(&peers, hashed(0x03, "Qm…"))
+        DiscoveredPeers.upsert(&peers, hashed(0x03, "iPad Pro"))
+        XCTAssertEqual(peers.count, 1)
+        XCTAssertEqual(peers[0].displayName, "iPad Pro")
+    }
+
+    func testRemoveAndContains() {
+        var d = DiscoveredPeers()
+        let p = hashed(0x04, "Cam")
+        d.upsert(p)
+        XCTAssertTrue(d.contains(p))
+        XCTAssertTrue(d.remove(p))
+        XCTAssertFalse(d.contains(p))
+        XCTAssertFalse(d.remove(p), "removing an absent peer reports false")
     }
 }

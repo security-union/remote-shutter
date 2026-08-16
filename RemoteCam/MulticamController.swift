@@ -163,9 +163,10 @@ public actor MulticamController {
     private var focusedPeer: MCPeerID?
 
     /// Cameras the browser has found that are not in the rig yet — the source
-    /// list for the in-session "add camera" sheet. Insertion-ordered.
-    private var availableOrder: [MCPeerID] = []
-    private var available: Set<MCPeerID> = []
+    /// list for the in-session "add camera" sheet. Shares the scanner's
+    /// name-resolution rule (`DiscoveredPeers.upsert`), so a re-delivered peer's
+    /// resolved name reaches the sheet instead of the hash placeholder.
+    private var available = DiscoveredPeers()
 
     /// One id per director session, part of every capture's filename group.
     private let sessionID = UUID().uuidString
@@ -310,8 +311,7 @@ public actor MulticamController {
             handleBrowserFound(found.peer)
 
         case let lost as UICmd.BrowserLostPeer:
-            if available.remove(lost.peer) != nil {
-                availableOrder.removeAll { $0 == lost.peer }
+            if available.remove(lost.peer) {
                 publishAvailable()
             }
 
@@ -460,8 +460,7 @@ public actor MulticamController {
             links[peer] = CameraLink(peerID: peer)
         }
         // It's in the rig now, so it's no longer an "available" candidate.
-        if available.remove(peer) != nil {
-            availableOrder.removeAll { $0 == peer }
+        if available.remove(peer) {
             publishAvailable()
         }
         focusedPeer = focusedPeer ?? peer
@@ -477,7 +476,7 @@ public actor MulticamController {
     }
 
     private func publishAvailable() {
-        let peers = availableOrder
+        let peers = available.peers
         let display = display
         OperationQueue.main.addOperation { display?.applyAvailablePeers(peers) }
     }
@@ -498,10 +497,11 @@ public actor MulticamController {
             return
         }
         // An unrelated fresh peer becomes a candidate for the "add camera"
-        // sheet — it never auto-joins.
-        guard links[peer] == nil, !available.contains(peer) else { return }
-        available.insert(peer)
-        availableOrder.append(peer)
+        // sheet — it never auto-joins. `upsert` also handles a re-delivery
+        // that upgrades the peer's name in place, so the sheet shows the
+        // resolved name rather than the hash placeholder.
+        guard links[peer] == nil else { return }
+        available.upsert(peer)
         publishAvailable()
     }
 
@@ -684,7 +684,7 @@ public actor MulticamController {
     }
     func captureOutcomeForTesting(_ peer: MCPeerID) -> CaptureOutcome? { links[peer]?.captureOutcome }
     func isRecordingForTesting(_ peer: MCPeerID) -> Bool { links[peer]?.isRecording ?? false }
-    func availablePeersForTesting() -> [MCPeerID] { availableOrder }
+    func availablePeersForTesting() -> [MCPeerID] { available.peers }
     func cameraCountForTesting() -> Int { order.count }
 
     /// Test seam: put a lane in the state a real handshake would — linked, with

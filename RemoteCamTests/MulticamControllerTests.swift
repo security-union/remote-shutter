@@ -6,6 +6,7 @@
 //
 
 import MPCCompat
+import Stormo
 import XCTest
 @testable import RemoteShutter
 
@@ -848,6 +849,46 @@ final class MulticamControllerTests: XCTestCase {
                        "no other lane is touched")
     }
 
+    // MARK: - Add-camera list name resolution (shared with the scanner)
+
+    /// A key-hashed peer, re-deliverable with an upgraded name (same identity).
+    private func hashedPeer(_ tag: UInt8, name: String) -> MCPeerID {
+        PeerID(keyHash: Data([0x12, 0x20]) + Data(repeating: tag, count: 32), displayName: name)
+    }
+
+    func testAvailableListUpgradesReDeliveredPeerName() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        // Found first as a hash placeholder, then re-delivered resolved.
+        controller.browserDidFindPeer(hashedPeer(0xCD, name: "QmQqML3n…"))
+        await controller.waitForIdle()
+        controller.browserDidFindPeer(hashedPeer(0xCD, name: "iPad"))
+        await controller.waitForIdle()
+
+        let available = await controller.availablePeersForTesting()
+        XCTAssertEqual(available.count, 1, "the re-delivery upgrades in place, not a duplicate")
+        XCTAssertEqual(available.first?.displayName, "iPad",
+                       "the sheet shows the resolved name, not the hash placeholder")
+    }
+
+    func testCameraAddedMidSessionGetsResolvedLaneLabel() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        controller.browserDidFindPeer(hashedPeer(0xEF, name: "Qm7z…"))
+        await controller.waitForIdle()
+        let resolved = hashedPeer(0xEF, name: "iPhone 15")
+        controller.browserDidFindPeer(resolved)
+        await controller.waitForIdle()
+
+        // Invite it from the sheet and let it connect.
+        controller.inviteCamera(resolved)
+        transport.connectedPeers = [camA, resolved]
+        controller.peerDidConnect(resolved)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == resolved }?.displayName, "iPhone 15",
+                       "the mid-session lane label is the resolved name")
+    }
+
     // MARK: - Per-camera disconnect
 
     func testDisconnectSendsEndSessionToOnlyThatCameraAndRemovesItsLane() async {
@@ -879,6 +920,9 @@ final class MulticamControllerTests: XCTestCase {
 
         let lanes = await controller.lanesForTesting()
         XCTAssertTrue(lanes.isEmpty)
+        // exitMulticam() is posted to the main queue; wait for that hop before
+        // reading the display flag (waitForIdle only drains the actor inbox).
+        for _ in 0..<100 where !display.didExit { try? await Task.sleep(nanoseconds: 2_000_000) }
         XCTAssertTrue(display.didExit, "disconnecting the last camera leaves the director")
     }
 

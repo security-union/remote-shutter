@@ -205,6 +205,7 @@
 		CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */; };
 		CAFEBABE0170000000000001 /* ZoomScaleSeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0170000000000002 /* ZoomScaleSeed.swift */; };
 		CAFEBABE0172000000000001 /* PeerSessionCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0172000000000002 /* PeerSessionCore.swift */; };
+		CAFEBABE0173000000000001 /* DiscoveredPeers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0173000000000002 /* DiscoveredPeers.swift */; };
 		CAFEBABE0171000000000001 /* FocusedCameraControlState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0171000000000002 /* FocusedCameraControlState.swift */; };
 		CAFEBABE0160000000000001 /* RigQualityMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0160000000000002 /* RigQualityMenu.swift */; };
 		CAFEBABE0161000000000002 /* RigQualityMenuTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0161000000000001 /* RigQualityMenuTests.swift */; };
@@ -464,6 +465,7 @@
 		CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClockOffsetEstimator.swift; sourceTree = "<group>"; };
 		CAFEBABE0170000000000002 /* ZoomScaleSeed.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZoomScaleSeed.swift; sourceTree = "<group>"; };
 		CAFEBABE0172000000000002 /* PeerSessionCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeerSessionCore.swift; sourceTree = "<group>"; };
+		CAFEBABE0173000000000002 /* DiscoveredPeers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiscoveredPeers.swift; sourceTree = "<group>"; };
 		CAFEBABE0171000000000002 /* FocusedCameraControlState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FocusedCameraControlState.swift; sourceTree = "<group>"; };
 		CAFEBABE0160000000000002 /* RigQualityMenu.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RigQualityMenu.swift; sourceTree = "<group>"; };
 		CAFEBABE0161000000000001 /* RigQualityMenuTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RigQualityMenuTests.swift; sourceTree = "<group>"; };
@@ -729,6 +731,7 @@
 				CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */,
 				CAFEBABE0170000000000002 /* ZoomScaleSeed.swift */,
 				CAFEBABE0172000000000002 /* PeerSessionCore.swift */,
+				CAFEBABE0173000000000002 /* DiscoveredPeers.swift */,
 				CAFEBABE0171000000000002 /* FocusedCameraControlState.swift */,
 				CAFEBABE0160000000000002 /* RigQualityMenu.swift */,
 				CAFEBABE0150000000000002 /* MultiCamChrome.swift */,
@@ -1233,6 +1236,7 @@
 				CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */,
 				CAFEBABE0170000000000001 /* ZoomScaleSeed.swift in Sources */,
 				CAFEBABE0172000000000001 /* PeerSessionCore.swift in Sources */,
+				CAFEBABE0173000000000001 /* DiscoveredPeers.swift in Sources */,
 				CAFEBABE0171000000000001 /* FocusedCameraControlState.swift in Sources */,
 				CAFEBABE0160000000000001 /* RigQualityMenu.swift in Sources */,
 				CAFEBABE0150000000000001 /* MultiCamChrome.swift in Sources */,
