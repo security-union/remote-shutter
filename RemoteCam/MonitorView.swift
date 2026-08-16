@@ -382,33 +382,23 @@ struct MonitorView: View {
     // MARK: - Mode selector
 
     private var modeSelector: some View {
-        HStack(spacing: 4) {
-            modeButton(title: NSLocalizedString("PHOTO", comment: "capture mode"), mode: .Photo)
-            modeButton(title: NSLocalizedString("VIDEO", comment: "capture mode"), mode: .Video)
-
-            if FeatureFlags.ENABLE_SHORTS_MODE {
-                modeButton(title: NSLocalizedString("SHORTS", comment: "capture mode"), mode: .Shorts)
-            }
-        }
-        .padding(4)
-        .background(Capsule().fill(.ultraThinMaterial))
-        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
-        .disabled(!viewModel.isSegmentedControlEnabled)
+        var modes: [RecordingMode] = [.Photo, .Video]
+        if FeatureFlags.ENABLE_SHORTS_MODE { modes.append(.Shorts) }
+        return CaptureModeSelector(
+            segments: modes.enumerated().map { i, mode in
+                CaptureModeSelector.Segment(
+                    id: i, title: modeTitle(mode),
+                    isActive: viewModel.currentMode == mode,
+                    action: { onModeChange(mode) })
+            },
+            isEnabled: viewModel.isSegmentedControlEnabled)
     }
 
-    private func modeButton(title: String, mode: RecordingMode) -> some View {
-        let isActive = viewModel.currentMode == mode
-        return Button(action: { onModeChange(mode) }) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .tracking(0.5)
-                .foregroundColor(isActive ? AppTheme.accent : .white.opacity(0.75))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(
-                    Capsule().fill(isActive ? Color.white.opacity(0.16) : Color.clear)
-                )
-                .contentShape(Capsule())
+    private func modeTitle(_ mode: RecordingMode) -> String {
+        switch mode {
+        case .Photo: return NSLocalizedString("PHOTO", comment: "capture mode")
+        case .Video: return NSLocalizedString("VIDEO", comment: "capture mode")
+        case .Shorts: return NSLocalizedString("SHORTS", comment: "capture mode")
         }
     }
 
@@ -742,33 +732,16 @@ struct MonitorTrayPanel: View {
     let isSettingsEnabled: Bool
     let onTap: (MonitorTrayItem) -> Void
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
-
     var body: some View {
-        VStack(spacing: 18) {
-            Capsule()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 36, height: 5)
-
-            LazyVGrid(columns: columns, spacing: 20) {
-                ForEach(items, id: \.self) { item in
-                    MonitorTrayTile(item: item,
-                                    value: value(for: item),
-                                    isActive: isActive(item),
-                                    isEnabled: isEnabled(item),
-                                    action: { onTap(item) })
-                }
+        TrayPanelShell {
+            ForEach(items, id: \.self) { item in
+                MonitorTrayTile(item: item,
+                                value: value(for: item),
+                                isActive: isActive(item),
+                                isEnabled: isEnabled(item),
+                                action: { onTap(item) })
             }
         }
-        .padding(.top, 10)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 28)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea(edges: .bottom)
-        )
     }
 
     /// The glyph's payload — each tile shows its own current value, which is
@@ -1154,5 +1127,78 @@ struct MonitorView_Previews: PreviewProvider {
             onToggleCameraStandby: {}
         )
         .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - Shared tray components (used by the 1:1 monitor and the director)
+
+/// The PHOTO / VIDEO (/ SHORTS) segmented capsule shared by the 1:1 monitor and
+/// the director. Each segment carries its own active state and action; the
+/// capsule shell, type, and paddings are fixed so both screens read identically.
+struct CaptureModeSelector: View {
+    struct Segment: Identifiable {
+        let id: Int
+        let title: String
+        let isActive: Bool
+        let action: () -> Void
+    }
+    let segments: [Segment]
+    var isEnabled: Bool = true
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(segments) { seg in
+                Button(action: seg.action) {
+                    Text(seg.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .tracking(0.5)
+                        .foregroundColor(seg.isActive ? AppTheme.accent : .white.opacity(0.75))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(seg.isActive ? Color.white.opacity(0.16) : Color.clear))
+                        .contentShape(Capsule())
+                }
+            }
+        }
+        .padding(4)
+        .background(Capsule().fill(.ultraThinMaterial))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+        .disabled(!isEnabled)
+    }
+}
+
+/// The glass tray shell shared by the 1:1 monitor and the director: a drag
+/// handle above a 3-column tile grid on a rounded `.ultraThinMaterial` panel.
+/// The tiles (`content`) and their cycling logic stay with each screen; only
+/// the shell is shared. An optional `footnote` sits below the grid.
+struct TrayPanelShell<Content: View>: View {
+    var footnote: String? = nil
+    @ViewBuilder let content: () -> Content
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Capsule()
+                .fill(Color.white.opacity(0.3))
+                .frame(width: 36, height: 5)
+
+            LazyVGrid(columns: columns, spacing: 20) { content() }
+
+            if let footnote {
+                Text(footnote)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+            }
+        }
+        .padding(.top, 10)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 28)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 }

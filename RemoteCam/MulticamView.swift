@@ -263,32 +263,22 @@ struct MulticamView: View {
         }
     }
 
-    /// PHOTO / VIDEO segmented capsule — the monitor's `modeSelector`, same
-    /// shapes and type. Tapping the inactive segment flips the rig mode.
+    /// PHOTO / VIDEO segmented capsule — the shared `CaptureModeSelector`.
+    /// Tapping the inactive segment flips the rig mode; fades out while recording.
     private var modeSelector: some View {
-        HStack(spacing: 4) {
-            modeButton(title: NSLocalizedString("PHOTO", comment: "capture mode"), isVideo: false)
-            modeButton(title: NSLocalizedString("VIDEO", comment: "capture mode"), isVideo: true)
-        }
-        .padding(4)
-        .background(Capsule().fill(.ultraThinMaterial))
-        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
-        .opacity(viewModel.isRecording ? 0 : 1)
-        .disabled(viewModel.isRecording)
-    }
-
-    private func modeButton(title: String, isVideo: Bool) -> some View {
-        let isActive = (viewModel.mode == .video) == isVideo
-        return Button(action: { if !isActive { onToggleMode() } }) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .tracking(0.5)
-                .foregroundColor(isActive ? AppTheme.accent : .white.opacity(0.75))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(Capsule().fill(isActive ? Color.white.opacity(0.16) : Color.clear))
-                .contentShape(Capsule())
-        }
+        CaptureModeSelector(
+            segments: [
+                CaptureModeSelector.Segment(
+                    id: 0, title: NSLocalizedString("PHOTO", comment: "capture mode"),
+                    isActive: viewModel.mode != .video,
+                    action: { if viewModel.mode == .video { onToggleMode() } }),
+                CaptureModeSelector.Segment(
+                    id: 1, title: NSLocalizedString("VIDEO", comment: "capture mode"),
+                    isActive: viewModel.mode == .video,
+                    action: { if viewModel.mode != .video { onToggleMode() } }),
+            ],
+            isEnabled: !viewModel.isRecording)
+            .opacity(viewModel.isRecording ? 0 : 1)
     }
 
     /// "Disconnect Camera" — a purposeful goodbye to one camera. Long-press on
@@ -667,47 +657,25 @@ struct RigTrayPanel: View {
     let onSetHDR: (Bool) -> Void
 
     private let timerStops = [0, 3, 5, 10, 20]
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
 
     var body: some View {
-        VStack(spacing: 14) {
-            Capsule()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 36, height: 5)
-
-            LazyVGrid(columns: columns, spacing: 20) {
-                MonitorTrayTile(item: .timer, value: settings.timerSeconds > 0 ? "\(settings.timerSeconds)" : nil,
-                                isActive: settings.timerSeconds > 0, isEnabled: true,
-                                action: cycleTimer)
-                MonitorTrayTile(item: .resolution, value: settings.videoTileValue,
-                                isActive: settings.activeVideo != nil,
-                                isEnabled: !settings.videoOptions.filter(\.enabled).isEmpty,
-                                action: cycleQuality)
-                MonitorTrayTile(item: .format, value: (settings.activePhotoFormat ?? .jpeg).displayName,
-                                isActive: settings.activePhotoFormat == .heif,
-                                isEnabled: settings.heifAvailable,
-                                action: { onSetPhotoFormat(settings.activePhotoFormat == .heif ? .jpeg : .heif) })
-                MonitorTrayTile(item: .hdr, value: nil,
-                                isActive: settings.activeHDR == .on,
-                                isEnabled: settings.hdrAvailable,
-                                action: { onSetHDR(settings.activeHDR != .on) })
-            }
-
-            if let footnote = settings.blockerFootnote {
-                Text(footnote)
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
-            }
+        TrayPanelShell(footnote: settings.blockerFootnote) {
+            MonitorTrayTile(item: .timer, value: settings.timerSeconds > 0 ? "\(settings.timerSeconds)" : nil,
+                            isActive: settings.timerSeconds > 0, isEnabled: true,
+                            action: cycleTimer)
+            MonitorTrayTile(item: .resolution, value: settings.videoTileValue,
+                            isActive: settings.activeVideo != nil,
+                            isEnabled: !settings.videoOptions.filter(\.enabled).isEmpty,
+                            action: cycleQuality)
+            MonitorTrayTile(item: .format, value: (settings.activePhotoFormat ?? .jpeg).displayName,
+                            isActive: settings.activePhotoFormat == .heif,
+                            isEnabled: settings.heifAvailable,
+                            action: { onSetPhotoFormat(settings.activePhotoFormat == .heif ? .jpeg : .heif) })
+            MonitorTrayTile(item: .hdr, value: nil,
+                            isActive: settings.activeHDR == .on,
+                            isEnabled: settings.hdrAvailable,
+                            action: { onSetHDR(settings.activeHDR != .on) })
         }
-        .padding(.top, 10)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 28)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea(edges: .bottom)
-        )
     }
 
     private func cycleTimer() {
