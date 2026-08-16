@@ -385,3 +385,8 @@
 "%@ can't" = "%@は非対応";
 "%@ can't do HDR" = "%@はHDR非対応";
 "Retry" = "再試行";
+
+// Multicam glass tray
+"AUTO" = "自動";
+"%@ can’t do %@" = "%@は%@に非対応";
+"%@ can’t do HDR" = "%@はHDRに非対応";

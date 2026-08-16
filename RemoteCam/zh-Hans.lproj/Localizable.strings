@@ -385,3 +385,8 @@
 "%@ can't" = "%@ 不支持";
 "%@ can't do HDR" = "%@ 不支持 HDR";
 "Retry" = "重试";
+
+// Multicam glass tray
+"AUTO" = "自动";
+"%@ can’t do %@" = "%@ 不支持 %@";
+"%@ can’t do HDR" = "%@ 不支持 HDR";

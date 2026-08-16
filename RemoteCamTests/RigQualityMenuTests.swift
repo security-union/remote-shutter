@@ -116,4 +116,56 @@ final class RigQualityMenuTests: XCTestCase {
         XCTAssertTrue(menu.laneCanMatch(lane("Cam 1", full4K),
                                         resolution: .uhd4k, frameRate: .fps30))
     }
+
+    // MARK: - Glass tray: quality cycle, tile value, footnote
+
+    private func option(_ res: VideoResolution, _ fps: VideoFrameRate,
+                        enabled: Bool = true, blockedBy: [String] = []) -> RigVideoOption {
+        RigVideoOption(resolution: res, frameRate: fps, enabled: enabled, blockedBy: blockedBy)
+    }
+
+    /// The tile cycles Automatic → each enabled option in order → back to Automatic.
+    func testQualityTileCyclesThroughIntersectionAndBackToAuto() {
+        let opts = [option(.hd1080p, .fps30), option(.uhd4k, .fps30)]
+        var snap = RigSettingsSnapshot(videoOptions: opts)
+
+        // Automatic → first enabled option.
+        snap.activeVideo = nil
+        XCTAssertEqual(snap.nextVideoSelection, RigVideoSelection(resolution: .hd1080p, frameRate: .fps30))
+        // 1080p30 → 4K30.
+        snap.activeVideo = RigVideoSelection(resolution: .hd1080p, frameRate: .fps30)
+        XCTAssertEqual(snap.nextVideoSelection, RigVideoSelection(resolution: .uhd4k, frameRate: .fps30))
+        // Last option → back to Automatic.
+        snap.activeVideo = RigVideoSelection(resolution: .uhd4k, frameRate: .fps30)
+        XCTAssertNil(snap.nextVideoSelection)
+    }
+
+    func testQualityCycleSkipsDisabledOptions() {
+        let opts = [option(.hd1080p, .fps30), option(.uhd4k, .fps60, enabled: false, blockedBy: ["iPad"])]
+        var snap = RigSettingsSnapshot(videoOptions: opts)
+        snap.activeVideo = RigVideoSelection(resolution: .hd1080p, frameRate: .fps30)
+        // The only other option is disabled, so the cycle wraps to Automatic.
+        XCTAssertNil(snap.nextVideoSelection)
+    }
+
+    func testVideoTileValueShowsAutoOrRunningQuality() {
+        var snap = RigSettingsSnapshot(videoOptions: [option(.uhd4k, .fps30)])
+        snap.activeVideo = nil
+        XCTAssertEqual(snap.videoTileValue, "AUTO")
+        snap.activeVideo = RigVideoSelection(resolution: .uhd4k, frameRate: .fps30)
+        XCTAssertEqual(snap.videoTileValue, RigVideoSelection(resolution: .uhd4k, frameRate: .fps30).label)
+    }
+
+    func testFootnoteNamesTheBlockingCamera() {
+        var snap = RigSettingsSnapshot(videoOptions: [
+            option(.hd1080p, .fps30),
+            option(.uhd4k, .fps60, enabled: false, blockedBy: ["iPad"]),
+        ])
+        XCTAssertNotNil(snap.blockerFootnote)
+        XCTAssertTrue(snap.blockerFootnote?.contains("iPad") == true)
+
+        // No blockers → no footnote.
+        snap = RigSettingsSnapshot(videoOptions: [option(.hd1080p, .fps30)], hdrAvailable: true)
+        XCTAssertNil(snap.blockerFootnote)
+    }
 }

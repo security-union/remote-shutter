@@ -166,4 +166,39 @@ struct RigSettingsSnapshot: Equatable {
     var hdrBlockedBy: [String] = []
     var activePhotoFormat: PhotoFormat?
     var activeHDR: HDRMode?
+
+    /// The glass quality tile cycles in place: Automatic → each enabled option
+    /// in order → back to Automatic. `nil` is Automatic. Disabled options
+    /// (some camera can't do them) are skipped.
+    var nextVideoSelection: RigVideoSelection? {
+        let enabled = videoOptions.filter(\.enabled)
+        guard !enabled.isEmpty else { return nil }
+        guard let current = activeVideo,
+              let idx = enabled.firstIndex(where: { current.matches($0) }) else {
+            return RigVideoSelection(resolution: enabled[0].resolution,
+                                     frameRate: enabled[0].frameRate)
+        }
+        let next = idx + 1
+        guard next < enabled.count else { return nil }
+        return RigVideoSelection(resolution: enabled[next].resolution,
+                                 frameRate: enabled[next].frameRate)
+    }
+
+    /// The tile's displayed value: the running quality, or "AUTO".
+    var videoTileValue: String {
+        activeVideo?.label ?? NSLocalizedString("AUTO", comment: "automatic rig quality tile value")
+    }
+
+    /// A compact footnote naming a camera that blocks an unavailable option, or
+    /// nil when every option is reachable. Video blockers first, then HDR.
+    var blockerFootnote: String? {
+        if let opt = videoOptions.first(where: { !$0.enabled }), let who = opt.blockedBy.first {
+            return String(format: NSLocalizedString("%@ can’t do %@", comment: "camera blocks a quality"),
+                          who, opt.label)
+        }
+        if !hdrAvailable, let who = hdrBlockedBy.first {
+            return String(format: NSLocalizedString("%@ can’t do HDR", comment: "camera blocks HDR"), who)
+        }
+        return nil
+    }
 }

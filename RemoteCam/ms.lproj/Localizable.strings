@@ -385,3 +385,8 @@
 "%@ can't" = "%@ tidak boleh";
 "%@ can't do HDR" = "%@ tidak boleh HDR";
 "Retry" = "Cuba lagi";
+
+// Multicam glass tray
+"AUTO" = "AUTO";
+"%@ can’t do %@" = "%@ tidak boleh %@";
+"%@ can’t do HDR" = "%@ tidak boleh HDR";

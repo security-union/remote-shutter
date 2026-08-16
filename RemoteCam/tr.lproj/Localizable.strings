@@ -385,3 +385,8 @@
 "%@ can't" = "%@ yapamaz";
 "%@ can't do HDR" = "%@ HDR yapamaz";
 "Retry" = "Tekrar dene";
+
+// Multicam glass tray
+"AUTO" = "OTO";
+"%@ can’t do %@" = "%@ %@ yapamaz";
+"%@ can’t do HDR" = "%@ HDR yapamaz";

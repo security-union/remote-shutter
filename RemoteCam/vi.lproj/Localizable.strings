@@ -385,3 +385,8 @@
 "%@ can't" = "%@ không thể";
 "%@ can't do HDR" = "%@ không hỗ trợ HDR";
 "Retry" = "Thử lại";
+
+// Multicam glass tray
+"AUTO" = "TỰ ĐỘNG";
+"%@ can’t do %@" = "%@ không thể %@";
+"%@ can’t do HDR" = "%@ không thể HDR";

@@ -77,18 +77,29 @@ struct MulticamView: View {
                 // action cluster in focus mode only.
                 chrome(dock: dock)
                 countdownOverlay
+                if viewModel.showingRigTray { rigTrayLayer }
             }
+            .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.showingRigTray)
             .sheet(isPresented: $viewModel.showingAddCamera) {
                 AddCameraSheet(peers: viewModel.availablePeers, onInvite: onInviteCamera)
             }
-            .sheet(isPresented: $viewModel.showingRigTray) {
-                RigTrayView(settings: viewModel.rigSettings,
-                            onSetTimer: onSetTimer,
-                            onSelectVideoQuality: onSelectVideoQuality,
-                            onAutomaticVideoQuality: onAutomaticVideoQuality,
-                            onSetPhotoFormat: onSetPhotoFormat,
-                            onSetHDR: onSetHDR)
-            }
+        }
+    }
+
+    /// The rig tray in the classic monitor's glass presentation: a near-invisible
+    /// dismiss scrim (so the preview stays framed) under the floating panel.
+    private var rigTrayLayer: some View {
+        ZStack(alignment: .bottom) {
+            Color.black.opacity(0.02)
+                .ignoresSafeArea()
+                .onTapGesture { viewModel.showingRigTray = false }
+            RigTrayPanel(settings: viewModel.rigSettings,
+                         onSetTimer: onSetTimer,
+                         onSelectVideoQuality: onSelectVideoQuality,
+                         onAutomaticVideoQuality: onAutomaticVideoQuality,
+                         onSetPhotoFormat: onSetPhotoFormat,
+                         onSetHDR: onSetHDR)
+                .transition(.move(edge: .bottom))
         }
     }
 
@@ -642,7 +653,12 @@ struct AddCameraSheet: View {
 /// The rig settings tray: one self-timer + rig-wide quality (the intersection
 /// model). Manual quality selection is first-class; "Automatic" is the reset at
 /// the top. Reachable from both focus and grid modes.
-struct RigTrayView: View {
+/// The rig settings tray, in the 1:1 monitor's glass presentation: a floating
+/// panel of tiles that cycle their value in place over the live preview
+/// (reusing `MonitorTrayTile`), rather than a pushed table. Timer and quality
+/// carry rig semantics — quality cycles the capability intersection, and a
+/// footnote names any camera that blocks an option.
+struct RigTrayPanel: View {
     let settings: RigSettingsSnapshot
     let onSetTimer: (Int) -> Void
     let onSelectVideoQuality: (VideoResolution, VideoFrameRate) -> Void
@@ -651,71 +667,59 @@ struct RigTrayView: View {
     let onSetHDR: (Bool) -> Void
 
     private let timerStops = [0, 3, 5, 10, 20]
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section(NSLocalizedString("Timer", comment: "rig self-timer")) {
-                    Picker(NSLocalizedString("Timer", comment: ""),
-                           selection: Binding(get: { settings.timerSeconds },
-                                              set: { onSetTimer($0) })) {
-                        ForEach(timerStops, id: \.self) { s in
-                            Text(s == 0 ? NSLocalizedString("Off", comment: "timer off") : "\(s)s").tag(s)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
+        VStack(spacing: 14) {
+            Capsule()
+                .fill(Color.white.opacity(0.3))
+                .frame(width: 36, height: 5)
 
-                Section(NSLocalizedString("Video Quality", comment: "rig video quality")) {
-                    Button {
-                        onAutomaticVideoQuality()
-                    } label: {
-                        HStack {
-                            Text(NSLocalizedString("Automatic", comment: "best-in-intersection"))
-                            Spacer()
-                            Text(settings.activeVideo?.label
-                                 ?? NSLocalizedString("Auto", comment: "automatic rig quality"))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    ForEach(settings.videoOptions) { opt in
-                        Button {
-                            if opt.enabled { onSelectVideoQuality(opt.resolution, opt.frameRate) }
-                        } label: {
-                            HStack {
-                                Text(opt.label)
-                                    .foregroundColor(opt.enabled ? .primary : .secondary)
-                                Spacer()
-                                if !opt.enabled, let blocker = opt.blockedBy.first {
-                                    Text(String(format: NSLocalizedString("%@ can't", comment: "camera blocks a quality"), blocker))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                if settings.activeVideo?.matches(opt) == true {
-                                    Image(systemName: "checkmark").foregroundColor(AppTheme.accent)
-                                }
-                            }
-                        }
-                        .disabled(!opt.enabled)
-                    }
-                }
-
-                Section(NSLocalizedString("Photo", comment: "rig photo quality")) {
-                    Toggle(NSLocalizedString("HEIF", comment: "photo format"),
-                           isOn: Binding(get: { settings.activePhotoFormat == .heif },
-                                         set: { onSetPhotoFormat($0 ? .heif : .jpeg) }))
-                        .disabled(!settings.heifAvailable)
-                    Toggle(NSLocalizedString("HDR", comment: "photo HDR"),
-                           isOn: Binding(get: { settings.activeHDR == .on },
-                                         set: { onSetHDR($0) }))
-                        .disabled(!settings.hdrAvailable)
-                    if !settings.hdrAvailable, let blocker = settings.hdrBlockedBy.first {
-                        Text(String(format: NSLocalizedString("%@ can't do HDR", comment: "camera blocks HDR"), blocker))
-                            .font(.caption).foregroundColor(.secondary)
-                    }
-                }
+            LazyVGrid(columns: columns, spacing: 20) {
+                MonitorTrayTile(item: .timer, value: settings.timerSeconds > 0 ? "\(settings.timerSeconds)" : nil,
+                                isActive: settings.timerSeconds > 0, isEnabled: true,
+                                action: cycleTimer)
+                MonitorTrayTile(item: .resolution, value: settings.videoTileValue,
+                                isActive: settings.activeVideo != nil,
+                                isEnabled: !settings.videoOptions.filter(\.enabled).isEmpty,
+                                action: cycleQuality)
+                MonitorTrayTile(item: .format, value: (settings.activePhotoFormat ?? .jpeg).displayName,
+                                isActive: settings.activePhotoFormat == .heif,
+                                isEnabled: settings.heifAvailable,
+                                action: { onSetPhotoFormat(settings.activePhotoFormat == .heif ? .jpeg : .heif) })
+                MonitorTrayTile(item: .hdr, value: nil,
+                                isActive: settings.activeHDR == .on,
+                                isEnabled: settings.hdrAvailable,
+                                action: { onSetHDR(settings.activeHDR != .on) })
             }
-            .navigationTitle(NSLocalizedString("Rig Settings", comment: "multicam settings tray"))
+
+            if let footnote = settings.blockerFootnote {
+                Text(footnote)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+            }
+        }
+        .padding(.top, 10)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 28)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .bottom)
+        )
+    }
+
+    private func cycleTimer() {
+        let idx = timerStops.firstIndex(of: settings.timerSeconds) ?? 0
+        onSetTimer(timerStops[(idx + 1) % timerStops.count])
+    }
+
+    private func cycleQuality() {
+        if let next = settings.nextVideoSelection {
+            onSelectVideoQuality(next.resolution, next.frameRate)
+        } else {
+            onAutomaticVideoQuality()
         }
     }
 }
