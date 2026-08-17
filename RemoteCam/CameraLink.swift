@@ -71,11 +71,6 @@ final class CameraLink {
     /// only re-sends `SetStreamProfile` when the tier actually changes.
     var lastSentProfile: StreamProfile?
 
-    /// A late joiner (or a device-switched camera) that cannot honor the
-    /// running rig video quality — its tile is badged and the tray offers a
-    /// re-match rather than silently changing the rig.
-    var needsQualityRematch = false
-
     /// Where this lane's footage is in the post-take auto-collect to the
     /// director. Drives the tile's transfer progress / done / failed badge.
     var collection: LaneCollectionState = .idle
@@ -101,9 +96,10 @@ final class CameraLink {
     }
 
     /// The single source of the UI snapshot for this lane — every displayed
-    /// field is declared exactly once, here. `isFocused` is derived by the
-    /// caller from `focusedPeer` (the one input), never stored on the lane.
-    func snapshot(isFocused: Bool) -> MulticamLaneInfo {
+    /// field is declared exactly once, here. The cross-cutting fields
+    /// (`isFocused`, the re-match badge) are derived by the caller from the
+    /// rig-level inputs, never stored on the lane.
+    func snapshot(isFocused: Bool, needsQualityRematch: Bool) -> MulticamLaneInfo {
         MulticamLaneInfo(
             peerID: peerID,
             displayName: displayName,

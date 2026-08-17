@@ -94,6 +94,15 @@ struct RigQualityMenu: Equatable {
         laneSupports(lane, resolution: resolution, frameRate: frameRate)
     }
 
+    /// The same rule as a pure function of one camera's info — for deriving a
+    /// lane's re-match badge at render time without building a menu.
+    static func cameraCanMatch(_ info: RemoteCmd.CameraInfo,
+                               resolution: VideoResolution,
+                               frameRate: VideoFrameRate) -> Bool {
+        RigQualityMenu(lanes: []).laneSupports(
+            Lane(name: "", info: info), resolution: resolution, frameRate: frameRate)
+    }
+
     // MARK: - Internals
 
     private func allVideoPairs() -> [(resolution: VideoResolution, frameRate: VideoFrameRate)] {

@@ -59,7 +59,7 @@ final class MulticamControllerTests: XCTestCase {
         transport.connectedPeers = peers
         let display = FakeMulticamDisplay()
         await controller.setDisplay(display)
-        await controller.install(transport: transport, initialPeers: peers, mode: .photo)
+        await controller.install(transport: transport, initialPeers: peers)
         await controller.waitForIdle()
         return (controller, transport, display)
     }
@@ -1143,6 +1143,45 @@ final class MulticamControllerTests: XCTestCase {
         rig = await controller.rigSettingsSnapshotForTesting()
         XCTAssertEqual(rig.videoOptions.first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled,
                        true, "a refused camera no longer constrains the rig")
+    }
+
+    /// The re-match badge is derived at render time: changing the rig quality
+    /// to something the lane CAN do clears it with no refresh call anywhere.
+    func testRematchBadgeIsDerivedFromTheActiveQuality() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(only1080), from: camB)
+        await controller.waitForIdle()
+
+        controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
+        await controller.waitForIdle()
+        var flagged = await controller.needsRematchForTesting(camB)
+        XCTAssertTrue(flagged, "a 1080-only camera can't match 4K30")
+
+        controller.setVideoQuality(resolution: .hd1080p, frameRate: .fps30)
+        await controller.waitForIdle()
+        flagged = await controller.needsRematchForTesting(camB)
+        XCTAssertFalse(flagged, "the badge follows the input — nothing to refresh")
+    }
+
+    /// A reconnecting camera restarted its session: its stream tier is
+    /// re-pushed even though the tier didn't change (the send-dedup cache must
+    /// not survive the old session).
+    func testReconnectRepushesTheStreamProfile() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.waitForIdle()
+        let firstPushes = sent(transport, RemoteCmd.SetStreamProfile.self).count
+        XCTAssertGreaterThanOrEqual(firstPushes, 1)
+
+        controller.peerDidDisconnect(camA)
+        controller.peerDidConnect(camA)
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.waitForIdle()
+
+        let pushes = sent(transport, RemoteCmd.SetStreamProfile.self).count
+        XCTAssertGreaterThan(pushes, firstPushes,
+                             "the fresh session gets its tier again — no stale dedup")
     }
 
     func testRigTimerCountsDownFansOutAndFiresCapture() async {

@@ -401,7 +401,7 @@ public class DeviceScannerViewController: UIViewController {
                 guard let handoff = await remoteCamSession.detachTransportForMulticam() else { return }
                 let controller = MulticamController()
                 await controller.install(transport: handoff.transport,
-                                         initialPeers: handoff.peers, mode: .photo)
+                                         initialPeers: handoff.peers)
                 let directorVC = MulticamViewController(controller: controller)
                 navigationController?.pushViewController(directorVC, animated: true)
             }
