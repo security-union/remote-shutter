@@ -634,6 +634,92 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB])
     }
 
+    /// Stopping never waits on a camera the director already knows is gone:
+    /// the dead lane settles at stop time and the rig resolves on the live
+    /// lanes' acks alone — no 3s timeout ride.
+    func testStopDoesNotWaitForADeadCamerasAck() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camB)
+        await controller.waitForIdle()
+
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.stopRecording()
+        await controller.waitForIdle()
+        // The stop still goes to the dead lane (its camera ends the clip the
+        // moment it reconnects), but only the live lane is awaited.
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB])
+        let stopping = await controller.stoppingStateForTesting()
+        XCTAssertEqual(stopping?.remaining, 1, "only the live camera is awaited")
+
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: stopping!.id, isStop: true), from: camA)
+        await controller.waitForIdle()
+        let after = await controller.stoppingStateForTesting()
+        XCTAssertNil(after, "resolved on the live ack alone — no timeout ride")
+    }
+
+    /// A camera dying inside the stop-ack window settles immediately too.
+    func testCameraDyingDuringStopWindowSettlesImmediately() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camB)
+        await controller.waitForIdle()
+
+        controller.stopRecording()
+        await controller.waitForIdle()
+        let stopID = await controller.stoppingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: stopID, isStop: true), from: camA)
+        controller.peerDidDisconnect(camB) // dies inside the window
+        await controller.waitForIdle()
+
+        let stopping = await controller.stoppingStateForTesting()
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(stopping)
+        XCTAssertNil(recording, "back to monitoring without waiting out the timeout")
+    }
+
+    /// Same smartness for photos: a lane dying in the ack window is settled as
+    /// failed on the spot, not waited on.
+    func testCameraDyingDuringPhotoWindowSettlesImmediately() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        let captureID = await controller.captureStateForTesting()!.id
+        controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID), from: camA)
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+
+        let capture = await controller.captureStateForTesting()
+        XCTAssertNil(capture, "the shot settles on the live ack + the dead lane")
+        let outB = await controller.captureOutcomeForTesting(camB)
+        XCTAssertEqual(outB, .failed)
+    }
+
     func testStopUnsticksWhenNothingIsRolling() async {
         let (controller, _, _) = await makeController(peers: [camA, camB])
         await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)

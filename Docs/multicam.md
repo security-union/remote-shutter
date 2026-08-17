@@ -200,6 +200,10 @@ Photos keep per-lane settling (`.capturingPhoto` until every ack or the
 timeout; a fired photo can't be untaken, so the badges name the failures
 instead of voiding the shot). Stop with zero rolling lanes resets to
 `.monitoring` rather than wedging. Stale acks are dropped by capture id.
+A camera the director knows is gone is never waited on: a dead rolling
+lane settles at stop time (the stop is still sent, so its clip ends on
+reconnect), and a lane dying inside any ack window settles on the spot
+instead of running out the timeout.
 
 ## Resilient camera — a drop mid-recording
 

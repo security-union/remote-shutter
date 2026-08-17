@@ -558,15 +558,32 @@ public actor MulticamController {
         laneLeftShot(peer)
     }
 
-    /// A lane in play for a shot went away. During the start-ack window the
-    /// take is all-or-nothing, so the whole take aborts; during a countdown
-    /// the locked set shrinks, and an emptied set cancels the countdown.
-    /// (An established `.recording` is untouched — the rest of the rig keeps
+    /// A lane in play for a shot went away. A dead camera is never waited on:
+    /// during the start-ack window the take is all-or-nothing, so the whole
+    /// take aborts; during a photo or stop ack window the lane settles
+    /// immediately instead of running out its timeout; during a countdown the
+    /// locked set shrinks, and an emptied set cancels the countdown. (An
+    /// established `.recording` is untouched — the rest of the rig keeps
     /// rolling, and the camera itself keeps recording through the drop.)
     private func laneLeftShot(_ peer: MCPeerID) {
-        if case .startingRecording = state, takeTargets.contains(peer) {
-            links[peer]?.captureOutcome = .failed
-            abortRecordingStart()
+        switch state {
+        case .startingRecording:
+            if takeTargets.contains(peer) {
+                links[peer]?.captureOutcome = .failed
+                abortRecordingStart()
+            }
+        case .capturingPhoto:
+            if capturingLanes.contains(peer) {
+                links[peer]?.captureOutcome = .failed
+                finishLane(peer)
+            }
+        case .stoppingRecording:
+            if capturingLanes.contains(peer) {
+                links[peer]?.isRecording = false
+                finishLane(peer)
+            }
+        case .recording, .monitoring:
+            break
         }
         if var armed = armedTargets, armed.remove(peer) != nil {
             armedTargets = armed
@@ -938,8 +955,20 @@ public actor MulticamController {
             fallback: { _ in RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: false) },
             lanes: rolling)
 
-        state = .stoppingRecording(captureId: fan.captureID, acksRemaining: capturingLanes.count)
-        armAckTimeout(fan.captureID)
+        // A lane we can't hear will never ack — settle it now instead of
+        // holding the rig on its timeout. The stop was still sent above, so
+        // the camera ends its clip the moment it can hear us again.
+        for link in rolling where link.status != .linked {
+            link.isRecording = false
+            capturingLanes.remove(link.peerID)
+        }
+        if capturingLanes.isEmpty {
+            clearRecordingTake()
+            state = .monitoring(mode: .photo)
+        } else {
+            state = .stoppingRecording(captureId: fan.captureID, acksRemaining: capturingLanes.count)
+            armAckTimeout(fan.captureID)
+        }
     }
 
     // MARK: - Rig-wide quality ("the shot belongs to the rig")
