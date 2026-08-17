@@ -514,6 +514,10 @@ struct GlassCircleButton: View {
 /// any unrelated view-model change — cannot rebuild it.
 struct ControlCapsule: View, Equatable {
     let showsFlash: Bool
+    /// The multicam director shows the torch only in focus mode and only when
+    /// the focused camera's current device has one; the 1:1 monitor always
+    /// shows it.
+    var showsTorch: Bool = true
     let isFlashEnabled: Bool
     let isFlashButtonEnabled: Bool
     let isTorchEnabled: Bool
@@ -525,6 +529,7 @@ struct ControlCapsule: View, Equatable {
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.showsFlash == rhs.showsFlash
+            && lhs.showsTorch == rhs.showsTorch
             && lhs.isFlashEnabled == rhs.isFlashEnabled
             && lhs.isFlashButtonEnabled == rhs.isFlashButtonEnabled
             && lhs.isTorchEnabled == rhs.isTorchEnabled
@@ -540,10 +545,16 @@ struct ControlCapsule: View, Equatable {
                       isEnabled: isFlashButtonEnabled,
                       action: onToggleFlash)
             }
-            glyph(isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill",
-                  isActive: isTorchEnabled,
-                  isEnabled: isTorchButtonEnabled,
-                  action: onToggleTorch)
+            if showsTorch {
+                glyph(isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill",
+                      isActive: isTorchEnabled,
+                      isEnabled: isTorchButtonEnabled,
+                      action: onToggleTorch)
+            } else {
+                // The slot stays reserved so the flash and tray glyphs never
+                // shift as the torch control comes and goes.
+                Color.clear.frame(width: 38, height: 34)
+            }
             glyph("circle.grid.3x3.fill",
                   isActive: isTrayOpen,
                   isEnabled: true,
@@ -850,8 +861,13 @@ struct CameraSwitchControlView: View, Equatable {
         case .hidden:
             Color.clear.frame(width: 44, height: 44)   // keep the shutter centered
         case .flipButton:
+            // Label built like GlassCircleButton (glyph → frame → material
+            // background): on Catalyst that whole construction is clickable,
+            // where a pre-framed ZStack label hit-tests as almost nothing.
             Button(action: onToggleCamera) {
-                switchIcon
+                switchGlyph
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(.ultraThinMaterial))
             }
             .disabled(!isEnabled)
         case .deviceMenu:
@@ -875,14 +891,18 @@ struct CameraSwitchControlView: View, Equatable {
             Circle()
                 .fill(.ultraThinMaterial)
                 .frame(width: 44, height: 44)
-            Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundColor(isEnabled ? .white : .white.opacity(0.35))
-                .rotationEffect(.degrees(isSwitching ? 180 : 0))
-                .animation(.easeInOut(duration: 0.35), value: isSwitching)
+            switchGlyph
         }
         .frame(width: 44, height: 44)
         .contentShape(Circle())
+    }
+
+    private var switchGlyph: some View {
+        Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
+            .font(.system(size: 19, weight: .semibold))
+            .foregroundColor(isEnabled ? .white : .white.opacity(0.35))
+            .rotationEffect(.degrees(isSwitching ? 180 : 0))
+            .animation(.easeInOut(duration: 0.35), value: isSwitching)
     }
 }
 

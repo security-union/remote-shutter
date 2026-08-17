@@ -114,6 +114,7 @@ final class CameraLink {
                 $0.frontCamera != nil && $0.backCamera != nil
             } ?? false,
             supportsFocusPoint: capabilities?.supportsFocusPoint ?? false,
+            hasTorch: capabilities?.getCurrentCameraInfo()?.hasTorch ?? false,
             zoomFactor: zoomFactor,
             maxZoomFactor: maxZoomFactor,
             zoomStops: zoomStops,

@@ -9,6 +9,7 @@ final class StoreManagerTests: XCTestCase {
     private let torchKey = "didBuyEnableTorchFeature"
     private let videoOnlyKey = "didBuyEnableVideoOnlyFeature"
     private let tapToFocusKey = "didBuyTapToFocusFeature"
+    private let sixCamerasKey = "didBuySixCamerasFeature"
     private let proSubscriptionKey = "hasActiveProSubscription"
 
     private var savedValues: [String: Bool] = [:]
@@ -17,7 +18,7 @@ final class StoreManagerTests: XCTestCase {
         super.setUp()
         // Save existing values so tests don't corrupt real state
         let keys = [removeAdsKey, proModeKey, torchKey, videoOnlyKey,
-                    tapToFocusKey, proSubscriptionKey]
+                    tapToFocusKey, sixCamerasKey, proSubscriptionKey]
         for key in keys {
             savedValues[key] = UserDefaults.standard.bool(forKey: key)
             UserDefaults.standard.removeObject(forKey: key)
@@ -44,6 +45,7 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertFalse(store.hasProSubscription())
         XCTAssertFalse(store.hasFullAccess())
         XCTAssertFalse(store.hasTapToFocusFeature())
+        XCTAssertFalse(store.hasSixCamerasFeature())
     }
 
     // MARK: - Multicam camera cap
@@ -59,6 +61,24 @@ final class StoreManagerTests: XCTestCase {
 
     func testProSubscriptionUnlocksFourCameras() {
         UserDefaults.standard.set(true, forKey: proSubscriptionKey)
+        XCTAssertEqual(StoreManager.shared.maxCameras(), 4)
+    }
+
+    /// The 6-camera pack (product 10) raises the cap to 6 on its own — an
+    /// à la carte add-on, valid with or without Pro.
+    func testSixCameraPackUnlocksSixCameras() {
+        UserDefaults.standard.set(true, forKey: sixCamerasKey)
+        XCTAssertEqual(StoreManager.shared.maxCameras(), 6)
+
+        // Stacking Pro on top changes nothing — 6 is the pack's cap.
+        UserDefaults.standard.set(true, forKey: proModeKey)
+        XCTAssertEqual(StoreManager.shared.maxCameras(), 6)
+    }
+
+    /// The pack is not folded into full access: Pro alone stays at 4.
+    func testFullAccessAloneDoesNotGrantSixCameras() {
+        UserDefaults.standard.set(true, forKey: proModeKey)
+        XCTAssertFalse(StoreManager.shared.hasSixCamerasFeature())
         XCTAssertEqual(StoreManager.shared.maxCameras(), 4)
     }
 
@@ -163,18 +183,20 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertEqual(enableTorchPID, "07")
         XCTAssertEqual(enableVideoOnlyPID, "08")
         XCTAssertEqual(tapToFocusPID, "09")
+        XCTAssertEqual(sixCamerasPID, "six_cameras")
         XCTAssertEqual(proMonthlyPID, "pro_monthly")
         XCTAssertEqual(proYearlyPID, "pro_yearly")
     }
 
     func testAllProductIDsContainsEveryProduct() {
         let ids = StoreManager.allProductIDs
-        XCTAssertEqual(ids.count, 7)
+        XCTAssertEqual(ids.count, 8)
         XCTAssertTrue(ids.contains(disableAdsPID))
         XCTAssertTrue(ids.contains(enableVideoPID))
         XCTAssertTrue(ids.contains(enableTorchPID))
         XCTAssertTrue(ids.contains(enableVideoOnlyPID))
         XCTAssertTrue(ids.contains(tapToFocusPID))
+        XCTAssertTrue(ids.contains(sixCamerasPID))
         XCTAssertTrue(ids.contains(proMonthlyPID))
         XCTAssertTrue(ids.contains(proYearlyPID))
     }
