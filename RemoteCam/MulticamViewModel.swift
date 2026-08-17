@@ -35,6 +35,7 @@ final class CameraLane: ObservableObject, Identifiable {
     var needsQualityRematch: Bool { info.needsQualityRematch }
     var collection: CameraLink.LaneCollectionState { info.collection }
     var canFlipCamera: Bool { info.canFlipCamera }
+    var supportsFocusPoint: Bool { info.supportsFocusPoint }
     var zoomFactor: CGFloat { info.zoomFactor }
     var zoomScale: ZoomScale {
         ZoomScale(stops: info.zoomStops,

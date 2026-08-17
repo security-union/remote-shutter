@@ -52,9 +52,6 @@ struct MulticamView: View {
     /// scanner re-arms and re-selects the still-connected cameras).
     let onBack: () -> Void
 
-    @State private var focusReticle: FocusReticle?
-    @State private var focusedPreviewSize: CGSize = .zero
-
     var body: some View {
         GeometryReader { geo in
             let dock = MonitorChromeLayout.dock(
@@ -332,30 +329,22 @@ struct MulticamView: View {
     @ViewBuilder
     private var focusedViewfinder: some View {
         if let focused = viewModel.focusedLane {
+            // One ZStack, one `ignoresSafeArea`: the frame, the gestures, and
+            // the reticle share a single coordinate space (the same contract as
+            // the 1:1 monitor's preview layer). Gestures address the focused
+            // camera; in grid mode a tile tap focuses the lane instead.
             ZStack {
                 LiveFrameView(frames: focused.frames, aspectRatio: .sixteenNine)
-                    .ignoresSafeArea()
-                    .background(GeometryReader { geo in
-                        Color.clear.preference(key: FocusedPreviewSizeKey.self, value: geo.size)
-                    })
-                    // Tap-to-focus, focus mode only (in grid a tap focuses the
-                    // tile). The translation guard keeps a drag from focusing,
-                    // matching the 1:1 preview.
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 0).onEnded { value in
-                            if abs(value.translation.width) < 10, abs(value.translation.height) < 10 {
-                                handleFocusTap(at: value.location, lane: focused)
-                            }
-                        })
-
-                if let reticle = focusReticle {
-                    FocusReticleView()
-                        .id(reticle.id)
-                        .position(reticle.point)
-                        .allowsHitTesting(false)
-                }
+                ViewfinderGestureLayer(
+                    cameraImage: { focused.frames.cameraImage },
+                    zoomScale: focused.zoomScale,
+                    currentZoomFactor: focused.zoomFactor,
+                    focusEnabled: focused.supportsFocusPoint,
+                    onFocusTap: onFocusTap,
+                    onDoubleTap: onToggleFocusedCamera,
+                    onZoomChange: onZoomChange)
             }
-            .onPreferenceChange(FocusedPreviewSizeKey.self) { focusedPreviewSize = $0 }
+            .ignoresSafeArea()
         } else {
             // No camera focused yet (all reconnecting, or none linked).
             Rectangle()
@@ -366,22 +355,6 @@ struct MulticamView: View {
                         .foregroundColor(.white.opacity(0.5)))
                 .ignoresSafeArea()
         }
-    }
-
-    /// Maps a preview tap into a normalized upright image point and, if it
-    /// landed on the image (not the letterbox), shows the reticle and forwards
-    /// it. Same `FocusPointMapping` + reticle the 1:1 monitor uses.
-    private func handleFocusTap(at location: CGPoint, lane: CameraLane) {
-        guard let image = lane.frames.cameraImage,
-              let normalized = FocusPointMapping.normalizedImagePoint(
-                tap: location, viewSize: focusedPreviewSize, imageSize: image.size)
-        else { return }
-        let reticle = FocusReticle(point: location)
-        focusReticle = reticle
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            if focusReticle?.id == reticle.id { focusReticle = nil }
-        }
-        onFocusTap(normalized)
     }
 
     /// The camera strip — multicam's one added element. Thumbnails of the other
@@ -690,11 +663,4 @@ struct RigTrayPanel: View {
             onAutomaticVideoQuality()
         }
     }
-}
-
-/// The focused viewfinder's rendered size, for mapping a tap into
-/// normalized image coordinates.
-private struct FocusedPreviewSizeKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) { value = nextValue() }
 }

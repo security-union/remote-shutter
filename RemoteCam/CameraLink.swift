@@ -119,6 +119,7 @@ final class CameraLink {
             canFlipCamera: capabilities.map {
                 $0.frontCamera != nil && $0.backCamera != nil
             } ?? false,
+            supportsFocusPoint: capabilities?.supportsFocusPoint ?? false,
             zoomFactor: zoomFactor,
             maxZoomFactor: maxZoomFactor,
             zoomStops: zoomStops,

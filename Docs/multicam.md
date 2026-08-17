@@ -190,7 +190,10 @@ These are the invariants worth preserving through future changes.
 - **Framing belongs to a camera; the shot belongs to the rig.** Per-camera
   controls (zoom, focus, flash, torch, lens, camera flip) address the *focused*
   camera only. Rig controls (shutter, record, timer, quality/HDR) fan out to
-  all. Nothing per-camera ever broadcasts.
+  all. Nothing per-camera ever broadcasts. The viewfinder gestures (tap to
+  focus, double-tap flip, pinch zoom) live in the shared
+  `ViewfinderGestureLayer` — the same component the 1:1 monitor uses — with the
+  director supplying focused-camera routing through its callbacks.
 - **Rendering isolation per lane.** One decoder and one published image per
   camera; a frame from one camera can only touch its own tile.
 - **Additive, gated wire.** Every multicam action (`ClockSyncPing`,

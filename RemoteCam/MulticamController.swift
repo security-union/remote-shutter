@@ -57,6 +57,9 @@ struct MulticamLaneInfo: Equatable {
     /// capabilities. Not the flip-button gate (that mirrors the 1:1 monitor and
     /// stays ungated); a projection of capabilities for diagnostics/tests.
     let canFlipCamera: Bool
+    /// This camera can focus at a point — gates the viewfinder's focus tap so
+    /// the user never gets a reticle (or a paywall) for a camera that can't.
+    let supportsFocusPoint: Bool
     /// Zoom state for the focused zoom pill (the same values the 1:1 monitor
     /// builds its `ZoomScale` from). `zoomFactor` is the live hardware factor.
     let zoomFactor: CGFloat

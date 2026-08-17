@@ -17,6 +17,7 @@ final class MulticamViewModelTests: XCTestCase {
 
     private func info(_ peer: MCPeerID, status: CameraLink.Status = .linked,
                       focused: Bool = false, canFlipCamera: Bool = false,
+                      supportsFocusPoint: Bool = false,
                       zoomFactor: CGFloat = 1.0, maxZoomFactor: CGFloat = 10.0,
                       zoomStops: [CGFloat] = [1.0], wideAngleZoomFactor: CGFloat = 1.0,
                       torchOn: Bool = false, flashOn: Bool = false) -> MulticamLaneInfo {
@@ -24,6 +25,7 @@ final class MulticamViewModelTests: XCTestCase {
                          status: status, isFocused: focused, clockOffsetMillis: nil,
                          captureOutcome: nil, isRecording: false, needsQualityRematch: false,
                          collection: .idle, canFlipCamera: canFlipCamera,
+                         supportsFocusPoint: supportsFocusPoint,
                          zoomFactor: zoomFactor, maxZoomFactor: maxZoomFactor,
                          zoomStops: zoomStops, wideAngleZoomFactor: wideAngleZoomFactor,
                          torchOn: torchOn, flashOn: flashOn)

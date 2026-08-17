@@ -978,6 +978,19 @@ final class MulticamControllerTests: XCTestCase {
             supportsFocusPoint: supportsFocus, supportsMulticam: true, error: nil)
     }
 
+    /// The lane snapshot projects `supportsFocusPoint`, so the viewfinder can
+    /// withhold the focus tap (no reticle, no paywall) for a camera that can't.
+    func testLaneProjectsSupportsFocusPoint() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(focusCaps(supportsFocus: true), from: camA)
+        controller.didReceiveMessage(focusCaps(supportsFocus: false), from: camB)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.supportsFocusPoint, true)
+        XCTAssertEqual(lanes.first { $0.peerID == camB }?.supportsFocusPoint, false)
+    }
+
     func testFocusGoesOnlyToTheFocusedCameraWithMappedCoords() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         controller.didReceiveMessage(focusCaps(supportsFocus: true), from: camA)
