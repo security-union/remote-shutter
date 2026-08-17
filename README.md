@@ -44,3 +44,11 @@ When you first open the app the phone will start searching for devices to connec
 2. Choose which role the device has (camera or remote)
 3. Set up & take pictures!
 ---
+
+### Contributing, forks & the App Store
+---
+This app is open source, and forks are welcome — but **do not re-upload a copy of Remote Shutter to the App Store**. Submitting a clone of an existing app (same features, minor rename or reskin) violates Apple's App Store Review Guidelines (see 4.1 "Copycats" and 4.2 "Minimum Functionality"), will likely be rejected, and can get your developer account flagged.
+
+What to do instead:
+- **Contribute here.** Bug fixes, features, and translations are welcome as pull requests — your work ships to everyone in the official app.
+- **Fork and make it yours.** If you build on this code, add your own original ideas — new functionality, a genuinely different experience — before you even consider submitting to the App Store. Ship something the store doesn't already have.
