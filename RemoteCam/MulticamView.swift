@@ -218,7 +218,7 @@ struct MulticamView: View {
             uiState: viewModel.mode == .video ? .videoMode : .photoMode,
             isRecording: viewModel.isRecording,
             activity: viewModel.isCapturing ? .capturing : nil,
-            isEnabled: !viewModel.isCapturing && viewModel.focusedLane != nil,
+            isEnabled: viewModel.canFire,
             action: onShutter)
             .equatable()
         let flip = CameraSwitchControlView(

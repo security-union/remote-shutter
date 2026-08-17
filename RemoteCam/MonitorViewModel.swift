@@ -44,7 +44,7 @@ class MonitorViewModel: ObservableObject {
     @Published var timerValue: Int = 0
     @Published var timerSliderValue: Double = 0 {
         didSet {
-            UserDefaults.standard.set(Int(timerSliderValue), forKey: "timerDefault")
+            TimerPreference.seconds = Int(timerSliderValue)
         }
     }
     @Published var maxTimerValue: Double = 20
@@ -124,8 +124,7 @@ class MonitorViewModel: ObservableObject {
     
     // MARK: - Initializer
     init() {
-        // Load timer value from UserDefaults
-        self.timerSliderValue = Double(UserDefaults.standard.integer(forKey: "timerDefault"))
+        self.timerSliderValue = Double(TimerPreference.seconds)
     }
     
     // MARK: - Control State

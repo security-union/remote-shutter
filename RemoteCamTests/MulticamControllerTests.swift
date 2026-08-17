@@ -45,6 +45,12 @@ final class MulticamControllerTests: XCTestCase {
     private let camA = MCPeerID(displayName: "CameraA")
     private let camB = MCPeerID(displayName: "CameraB")
 
+    override func setUp() {
+        super.setUp()
+        // The rig timer seeds from the shared preference; tests start from off.
+        UserDefaults.standard.removeObject(forKey: TimerPreference.key)
+    }
+
     private func makeController(peers: [MCPeerID])
         async -> (MulticamController, FakeMultipeerService, FakeMulticamDisplay) {
         let controller = MulticamController()
@@ -84,6 +90,31 @@ final class MulticamControllerTests: XCTestCase {
         let (controller, _, _) = await makeController(peers: [camA, camB])
         let focused = await controller.focusedPeerForTesting()
         XCTAssertEqual(focused, camA)
+    }
+
+    /// `isFocused` is derived from `focusedPeer` in the render, never stored:
+    /// the entry snapshot already carries it (this pinned a real bug — the
+    /// stored-flag version published every lane unfocused until a tile tap).
+    func testFocusIsDerivedInTheEntrySnapshot() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.isFocused, true,
+                       "the first camera renders focused the moment the screen opens")
+        XCTAssertEqual(lanes.first { $0.peerID == camB }?.isFocused, false)
+    }
+
+    // MARK: - Rig timer preference (shared with the classic remote)
+
+    func testRigTimerSeedsFromAndPersistsTheSharedPreference() async {
+        TimerPreference.seconds = 5
+        let (controller, _, _) = await makeController(peers: [camA])
+        let seeded = await controller.rigTimerForTesting()
+        XCTAssertEqual(seeded, 5, "the classic remote's preset applies to the rig")
+
+        controller.setRigTimer(10)
+        await controller.waitForIdle()
+        XCTAssertEqual(TimerPreference.seconds, 10,
+                       "changing it in multicam persists the one shared preference")
     }
 
     // MARK: - Capabilities → live

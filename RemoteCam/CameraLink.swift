@@ -41,9 +41,6 @@ final class CameraLink {
     let peerID: MCPeerID
     let displayName: String
     var status: Status = .linked
-    /// Whether this lane is the focused one (the controller maintains it when
-    /// focus changes, so the snapshot is a pure read).
-    var isFocused = false
 
     /// The most recent capabilities the camera advertised, or nil until the
     /// first exchange completes. `supportsMulticam` gates the multicam-only
@@ -104,8 +101,9 @@ final class CameraLink {
     }
 
     /// The single source of the UI snapshot for this lane — every displayed
-    /// field is declared exactly once, here.
-    var snapshot: MulticamLaneInfo {
+    /// field is declared exactly once, here. `isFocused` is derived by the
+    /// caller from `focusedPeer` (the one input), never stored on the lane.
+    func snapshot(isFocused: Bool) -> MulticamLaneInfo {
         MulticamLaneInfo(
             peerID: peerID,
             displayName: displayName,

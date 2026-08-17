@@ -215,7 +215,9 @@ public actor MulticamController {
     private var activePhotoQuality: (format: PhotoFormat, hdr: HDRMode)?
     /// One rig self-timer (seconds); 0 = off. Fans out to every camera so
     /// subjects see the countdown, and its expiry triggers the synced capture.
-    private var rigTimerSeconds: Int = 0
+    /// Seeded from the preference the classic remote persists, and written
+    /// back on every change — one preset across both screens.
+    private var rigTimerSeconds: Int = TimerPreference.seconds
     /// The live countdown, or nil when not counting down.
     private var countdown: (remaining: Int, action: MulticamTimedAction)?
     /// Bumped on every countdown begin/cancel; a tick carrying a stale
@@ -551,14 +553,7 @@ public actor MulticamController {
         // It's in the rig now, so it's no longer an "available" candidate.
         _ = available.remove(peer)
         focusedPeer = focusedPeer ?? peer
-        syncFocusFlags()
         beginHandshake(with: peer)
-    }
-
-    /// Mirror `focusedPeer` onto each lane's `isFocused` so `CameraLink.snapshot`
-    /// stays the single source of truth for the tile.
-    private func syncFocusFlags() {
-        for (peer, link) in links { link.isFocused = (peer == focusedPeer) }
     }
 
     private func handlePeerDisconnected(_ peer: MCPeerID) {
@@ -734,7 +729,6 @@ public actor MulticamController {
     private func handleSetFocusedPeer(_ peer: MCPeerID) {
         guard links[peer] != nil else { return }
         focusedPeer = peer
-        syncFocusFlags()
         // Retier previews: the newly focused camera goes full-size, the rest
         // (including the one that just lost focus) drop to thumbnail.
         for p in order { pushProfile(to: p) }
@@ -771,7 +765,7 @@ public actor MulticamController {
         links[peer] = nil
         frameSinks[peer] = nil
         order.removeAll { $0 == peer }
-        if focusedPeer == peer { focusedPeer = order.first; syncFocusFlags() }
+        if focusedPeer == peer { focusedPeer = order.first }
     }
 
     /// Seed a lane's zoom scale from a capabilities exchange via the shared
@@ -1071,6 +1065,7 @@ public actor MulticamController {
 
     private func handleSetRigTimer(_ seconds: Int) {
         rigTimerSeconds = seconds
+        TimerPreference.seconds = seconds
     }
 
     /// Begin a director-side countdown, fanned out to every camera so subjects
@@ -1459,9 +1454,10 @@ public actor MulticamController {
     // MARK: - Snapshots
 
     // Each lane declares its own snapshot (see `CameraLink.snapshot`); the
-    // controller just gathers them in order.
+    // controller gathers them in order, deriving `isFocused` from the one
+    // input (`focusedPeer`) at render time — never stored, never synced.
     private func laneSnapshot() -> [MulticamLaneInfo] {
-        order.compactMap { links[$0]?.snapshot }
+        order.compactMap { peer in links[peer]?.snapshot(isFocused: peer == focusedPeer) }
     }
 
     private func isPeerCompatible(_ became: RemoteCmd.RoleAnnouncement) -> Bool {

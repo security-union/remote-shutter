@@ -31,6 +31,19 @@ final class MulticamViewModelTests: XCTestCase {
                          torchOn: torchOn, flashOn: flashOn)
     }
 
+    /// The shutter is a broadcast: cameras present is enough — focus is
+    /// presentation and must never gate firing.
+    func testShutterNeedsCamerasNotFocus() {
+        let vm = MulticamViewModel()
+        XCTAssertFalse(vm.canFire, "no cameras, nothing to fire")
+
+        _ = vm.apply([info(camA)]) // present but NOT focused
+        XCTAssertTrue(vm.canFire, "an unfocused rig still fires")
+
+        vm.isCapturing = true
+        XCTAssertFalse(vm.canFire, "never mid-capture")
+    }
+
     func testApplyAddsLanesAndReportsCreated() {
         let vm = MulticamViewModel()
         let created = vm.apply([info(camA, focused: true), info(camB)])

@@ -90,6 +90,10 @@ final class MulticamViewModel: ObservableObject {
     @Published var showingRigTray: Bool = false
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
+
+    /// The shutter is a broadcast: it needs cameras, not a focus selection.
+    /// (The controller still refuses to arm or fire when no lane is ready.)
+    var canFire: Bool { !isCapturing && !lanes.isEmpty }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }
 
     /// The per-camera framing controls' enablement, from the shared rules the
