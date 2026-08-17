@@ -187,7 +187,7 @@ final class FrameSender {
         dispatchPrecondition(condition: .onQueue(queue))
         guard generation == ackGeneration else { return } // stale wait
         StreamLog.transport.info(
-            "ack watchdog fired after \(Self.ackTimeout, format: .fixed(precision: 1))s — resetting window")
+            "ack watchdog fired after \(String(format: "%.1f", Self.ackTimeout))s — resetting window")
         window.reset()
         refreshCreditMirror()
     }

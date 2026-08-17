@@ -219,7 +219,7 @@ class RecordingPipeline {
                     creationRequest.addResource(with: .video, fileURL: outputFileURL, options: options)
                 }, completionHandler: { success, error in
                     if !success {
-                        print("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
+                        logWarning("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
                     }
                     if syncMetadata == nil { cleanupFileAt(outputFileURL) }
                 }
@@ -332,11 +332,11 @@ class RecordingPipeline {
             if assetWriter.canAdd(audioInput) {
                 assetWriter.add(audioInput)
             } else {
-                print("Cannot add audio input to asset writer")
+                logWarning("Cannot add audio input to asset writer")
                 return false
             }
         } else {
-            print("Cannot apply audio settings to asset writer")
+            logWarning("Cannot apply audio settings to asset writer")
             return false
         }
         return true

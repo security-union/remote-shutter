@@ -23,6 +23,12 @@ public final class MulticamViewController: UIViewController {
     private let viewModel = MulticamViewModel()
     private var hosting: UIHostingController<MulticamView>?
 
+    /// Rate-limits zoom sends to the focused camera, same as the 1:1 monitor,
+    /// so a drag doesn't flood the wire; the trailing edge guarantees the final
+    /// value lands.
+    private var zoomThrottle = ZoomSendThrottle()
+    private var trailingZoomTimer: Timer?
+
     /// `controller` must already be `install`-ed with its transport + peers by
     /// the caller (the scanner handoff), so lanes light up immediately.
     init(controller: MulticamController) {
@@ -48,7 +54,10 @@ public final class MulticamViewController: UIViewController {
             onFocusLane: { [weak self] lane in self?.controller.setFocusedPeer(lane.peerID) },
             onShutter: { [weak self] in self?.triggerShutter() },
             onToggleMode: { [weak self] in
-                guard let self, !self.viewModel.isRecording else { return }
+                // The mode is frozen while a shot is in play — recording,
+                // collecting acks, or counting down. What you armed is what fires.
+                guard let self, !self.viewModel.isRecording, !self.viewModel.isCapturing,
+                      self.viewModel.rigSettings.countdown == nil else { return }
                 self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
             },
             onAddCamera: { [weak self] in self?.handleAddCameraTapped() },
@@ -71,7 +80,14 @@ public final class MulticamViewController: UIViewController {
                     format: self?.viewModel.rigSettings.activePhotoFormat ?? .jpeg,
                     hdr: on ? .on : .off)
             },
-            onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) })
+            onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) },
+            onFlipCamera: { [weak self] lane in self?.controller.flipCamera(lane.peerID) },
+            onToggleTorch: { [weak self] lane in self?.controller.toggleTorch(on: lane.peerID) },
+            onToggleFlash: { [weak self] lane in self?.controller.toggleFlash(on: lane.peerID) },
+            onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },
+            onZoomChange: { [weak self] lane, factor in self?.handleZoomChange(factor, on: lane.peerID) },
+            onFocusTap: { [weak self] lane, point in self?.handleFocusTap(point, on: lane.peerID) },
+            onBack: { [weak self] in self?.navigationController?.popViewController(animated: true) })
         hosting = embedSwiftUIView(multicamView)
 
         Task { await controller.setDisplay(self) }
@@ -108,6 +124,18 @@ public final class MulticamViewController: UIViewController {
         }
     }
 
+    /// Tap-to-focus on the camera the tap was rendered over. Gated behind its
+    /// own entitlement (mirrors the 1:1); a locked user is routed to the
+    /// paywall. The controller additionally drops the command if that peer
+    /// never advertised focus support.
+    private func handleFocusTap(_ point: CGPoint, on peer: MCPeerID) {
+        guard StoreManager.shared.hasTapToFocusFeature() else {
+            showPaywall()
+            return
+        }
+        controller.focusCamera(peer, x: Float(point.x), y: Float(point.y))
+    }
+
     /// Reuse the existing Settings/paywall sheet — no bespoke multicam paywall.
     func showPaywall() {
         let ctrl = UIHostingController(rootView: SettingsView())
@@ -121,6 +149,24 @@ public final class MulticamViewController: UIViewController {
         case (.photo, _): controller.capturePhoto()
         case (.video, false): controller.startRecording()
         case (.video, true): controller.stopRecording()
+        }
+    }
+
+    /// Throttled zoom, the same leading+trailing pattern the 1:1 monitor uses
+    /// so a drag never floods the wire. The target camera rides through the
+    /// throttle with the value — the trailing edge lands on the camera the
+    /// drag was on, whatever is focused by the time it fires.
+    private func handleZoomChange(_ factor: CGFloat, on peer: MCPeerID) {
+        switch zoomThrottle.update(value: Double(factor), now: Date()) {
+        case .sendNow:
+            controller.setZoom(factor, on: peer)
+        case .scheduleTrailing:
+            trailingZoomTimer?.invalidate()
+            trailingZoomTimer = Timer.scheduledTimer(withTimeInterval: zoomThrottle.interval,
+                                                     repeats: false) { [weak self] _ in
+                guard let self, let pending = self.zoomThrottle.fireTrailing(now: Date()) else { return }
+                self.controller.setZoom(CGFloat(pending), on: peer)
+            }
         }
     }
 
@@ -171,9 +217,10 @@ extension MulticamViewController: MulticamDisplay {
         for lane in created { wire(lane) }
     }
 
-    func applyShutterState(capturing: Bool, recording: Bool) {
+    func applyShutterState(capturing: Bool, recording: Bool, recordingStartTime: Date?) {
         viewModel.isCapturing = capturing
         viewModel.isRecording = recording
+        viewModel.recordingStartTime = recordingStartTime
     }
 
     func applyAvailablePeers(_ peers: [MCPeerID]) {

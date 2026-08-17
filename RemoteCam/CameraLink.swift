@@ -41,9 +41,6 @@ final class CameraLink {
     let peerID: MCPeerID
     let displayName: String
     var status: Status = .linked
-    /// Whether this lane is the focused one (the controller maintains it when
-    /// focus changes, so the snapshot is a pure read).
-    var isFocused = false
 
     /// The most recent capabilities the camera advertised, or nil until the
     /// first exchange completes. `supportsMulticam` gates the multicam-only
@@ -74,14 +71,24 @@ final class CameraLink {
     /// only re-sends `SetStreamProfile` when the tier actually changes.
     var lastSentProfile: StreamProfile?
 
-    /// A late joiner (or a device-switched camera) that cannot honor the
-    /// running rig video quality — its tile is badged and the tray offers a
-    /// re-match rather than silently changing the rig.
-    var needsQualityRematch = false
-
     /// Where this lane's footage is in the post-take auto-collect to the
     /// director. Drives the tile's transfer progress / done / failed badge.
     var collection: LaneCollectionState = .idle
+
+    /// Optimistic torch / flash state, flipped when the director sends the
+    /// toggle to this (focused) camera. The camera decides what actually
+    /// happens; this just tints the glyph immediately, like the 1:1 monitor.
+    var torchOn = false
+    var flashOn = false
+
+    /// Zoom state for the focused zoom pill, seeded from the capabilities
+    /// exchange and refined by each `SetZoomResp` — the same values the 1:1
+    /// monitor tracks (`zoomStops`/`wideAngleZoomFactor`/`maxZoomFactor` build
+    /// the `ZoomScale`; `zoomFactor` is the live hardware factor).
+    var zoomFactor: CGFloat = 1.0
+    var maxZoomFactor: CGFloat = 10.0
+    var zoomStops: [CGFloat] = [1.0]
+    var wideAngleZoomFactor: CGFloat = 1.0
 
     init(peerID: MCPeerID) {
         self.peerID = peerID
@@ -89,8 +96,10 @@ final class CameraLink {
     }
 
     /// The single source of the UI snapshot for this lane — every displayed
-    /// field is declared exactly once, here.
-    var snapshot: MulticamLaneInfo {
+    /// field is declared exactly once, here. The cross-cutting fields
+    /// (`isFocused`, the re-match badge) are derived by the caller from the
+    /// rig-level inputs, never stored on the lane.
+    func snapshot(isFocused: Bool, needsQualityRematch: Bool) -> MulticamLaneInfo {
         MulticamLaneInfo(
             peerID: peerID,
             displayName: displayName,
@@ -100,6 +109,16 @@ final class CameraLink {
             captureOutcome: captureOutcome,
             isRecording: isRecording,
             needsQualityRematch: needsQualityRematch,
-            collection: collection)
+            collection: collection,
+            canFlipCamera: capabilities.map {
+                $0.frontCamera != nil && $0.backCamera != nil
+            } ?? false,
+            supportsFocusPoint: capabilities?.supportsFocusPoint ?? false,
+            zoomFactor: zoomFactor,
+            maxZoomFactor: maxZoomFactor,
+            zoomStops: zoomStops,
+            wideAngleZoomFactor: wideAngleZoomFactor,
+            torchOn: torchOn,
+            flashOn: flashOn)
     }
 }

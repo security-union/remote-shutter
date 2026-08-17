@@ -72,24 +72,27 @@ final class DeviceScannerViewModel: ObservableObject {
     @Published var hasConnectionError: Bool = false
     // MARK: - Multicam director: select-then-connect
 
-    /// The multicam scanner is a two-phase edit-mode selector: pick cameras
-    /// (pure, zero network), THEN connect the chosen set. Selecting must never
-    /// invite — that was the device-test regression this model fixes.
-    enum MulticamScanPhase { case selecting, connecting }
-    @Published var multicamPhase: MulticamScanPhase = .selecting
+    /// The multicam scanner is an edit-mode selector: pick cameras (pure, zero
+    /// network), THEN connect the chosen set. Selecting never invites. Row
+    /// states and the CTA derive from the four fact sets below; nothing is
+    /// latched across cycles.
 
     /// Cameras the user has picked (client-side only, no transport activity).
     @Published var multicamSelectedPeers: Set<MCPeerID> = []
-    /// Selected cameras whose invite is in flight (connecting phase only).
+    /// Selected cameras whose invite is in flight right now.
     @Published var multicamConnectingPeers: Set<MCPeerID> = []
-    /// Cameras whose invite has established.
-    @Published var multicamConnectedPeers: Set<MCPeerID> = []
-    /// Cameras whose invite failed (timed out after the retry).
+    /// Cameras whose invite failed (timed out after the retry) this cycle.
     @Published var multicamFailedPeers: Set<MCPeerID> = []
+    /// Peers that currently hold a live link, as reported by the coordinator.
+    @Published var multicamLiveLinks: Set<MCPeerID> = []
+    /// Set when the user taps Connect this cycle; cleared when the round
+    /// settles into a handoff or the cycle resets.
+    private(set) var multicamConnectRequested = false
 
-    /// Pure selection toggle — no invite, no coordinator message.
+    /// Pure selection toggle — no invite, no coordinator message. Blocked only
+    /// while invites are actually in flight.
     func toggleMulticamSelection(_ peer: MCPeerID) {
-        guard multicamPhase == .selecting else { return }
+        guard multicamConnectingPeers.isEmpty else { return }
         if multicamSelectedPeers.contains(peer) {
             multicamSelectedPeers.remove(peer)
         } else {
@@ -97,85 +100,93 @@ final class DeviceScannerViewModel: ObservableObject {
         }
     }
 
-    /// Select every discovered, not-yet-selected camera up to the cap (pure).
-    func selectAllMulticam(maxCameras: Int) {
-        guard multicamPhase == .selecting else { return }
+    /// Select every discovered camera up to the cap, then begin the connect
+    /// round in one action. Returns the peers to invite (empty if none).
+    func selectAllAndBeginConnecting(maxCameras: Int) -> [MCPeerID] {
+        guard multicamConnectingPeers.isEmpty else { return [] }
         for peer in connectedPeers where !multicamSelectedPeers.contains(peer) {
             guard multicamSelectedPeers.count < maxCameras else { break }
             multicamSelectedPeers.insert(peer)
         }
+        return beginMulticamConnecting()
     }
 
-    /// The "Connect (N)" CTA: enabled only while selecting with a non-empty set.
-    var canConnectMulticam: Bool {
-        multicamPhase == .selecting && !multicamSelectedPeers.isEmpty
-    }
-    var multicamSelectionCount: Int { multicamSelectedPeers.count }
+    /// Bottom CTA: with a selection, connect it; with none, select all up to
+    /// the cap and connect in one tap.
+    enum MulticamCTA: Equatable { case connect(Int), selectAllAndConnect(Int) }
 
-    /// Enter the connecting phase; returns the peers to invite (the caller
-    /// fires the invites — the view model stays network-free).
+    /// nil hides the CTA — nothing discovered, or an invite round in flight.
+    func multicamCTA(maxCameras: Int) -> MulticamCTA? {
+        guard multicamConnectingPeers.isEmpty, !connectedPeers.isEmpty else { return nil }
+        if multicamSelectedPeers.isEmpty {
+            return .selectAllAndConnect(min(connectedPeers.count, maxCameras))
+        }
+        return .connect(multicamSelectedPeers.count)
+    }
+
+    /// Begin a connect round. Returns only the selected peers that need an
+    /// invite — a peer whose link already survived (still-connected re-entry)
+    /// is left alone, never re-invited. If every selected peer is already live,
+    /// nothing is returned and `multicamConnectSettled` is already true.
     func beginMulticamConnecting() -> [MCPeerID] {
-        guard multicamPhase == .selecting, !multicamSelectedPeers.isEmpty else { return [] }
-        multicamPhase = .connecting
-        multicamConnectingPeers = multicamSelectedPeers
-        multicamConnectedPeers = []
+        guard !multicamSelectedPeers.isEmpty else { return [] }
+        multicamConnectRequested = true
         multicamFailedPeers = []
-        return connectedPeers.filter { multicamSelectedPeers.contains($0) }
+        multicamConnectingPeers = multicamSelectedPeers.subtracting(multicamLiveLinks)
+        return connectedPeers.filter { multicamConnectingPeers.contains($0) }
     }
 
-    /// Reconcile the set of established cameras (reported by the coordinator).
+    /// Reconcile the set of established cameras (the coordinator's live links).
     func reconcileMulticamConnected(_ peers: [MCPeerID]) {
-        guard multicamPhase == .connecting else { return }
-        let connected = Set(peers).intersection(multicamSelectedPeers)
-        multicamConnectedPeers = connected
-        multicamConnectingPeers.subtract(connected)
+        multicamLiveLinks = Set(peers)
+        multicamConnectingPeers.subtract(multicamLiveLinks)
     }
 
     /// One camera's invite failed for good.
     func markMulticamFailed(_ peer: MCPeerID) {
-        guard multicamPhase == .connecting else { return }
         multicamConnectingPeers.remove(peer)
-        if !multicamConnectedPeers.contains(peer) { multicamFailedPeers.insert(peer) }
+        if !multicamLiveLinks.contains(peer) { multicamFailedPeers.insert(peer) }
     }
 
-    /// The connect phase is over once no invite is still outstanding.
+    /// The connect round is over once the user asked to connect and no invite
+    /// is still outstanding.
     var multicamConnectSettled: Bool {
-        multicamPhase == .connecting && multicamConnectingPeers.isEmpty
+        multicamConnectRequested && multicamConnectingPeers.isEmpty
     }
 
-    /// Back to a clean selecting phase (e.g. after all invites failed).
-    func resetMulticamToSelecting() {
-        multicamPhase = .selecting
-        multicamSelectedPeers = []
+    /// The selected cameras that actually connected — the input to the handoff
+    /// decision.
+    var multicamConnectedPeers: Set<MCPeerID> {
+        multicamSelectedPeers.intersection(multicamLiveLinks)
+    }
+
+    /// Reset the connect-round bookkeeping on scanner (re)entry WITHOUT
+    /// tearing down live links: a peer whose link survived is reseeded as
+    /// selected + checked, so starting again is one tap.
+    func resetMulticamCycle() {
+        multicamConnectRequested = false
         multicamConnectingPeers = []
-        multicamConnectedPeers = []
         multicamFailedPeers = []
+        multicamSelectedPeers = multicamLiveLinks
     }
 
-    /// Row state for the edit-mode circle. Selecting shows only empty/filled;
-    /// spinner/check/x appear only during the connect phase.
+    /// Row state for the edit-mode circle. Empty/filled while selecting;
+    /// spinner while its invite is in flight; check once its link is live.
     enum MulticamRowState { case unselected, selected, connecting, connected, failed }
     func multicamRowState(_ peer: MCPeerID) -> MulticamRowState {
         if multicamFailedPeers.contains(peer) { return .failed }
-        if multicamConnectedPeers.contains(peer) { return .connected }
         if multicamConnectingPeers.contains(peer) { return .connecting }
+        if multicamLiveLinks.contains(peer) { return .connected }
         if multicamSelectedPeers.contains(peer) { return .selected }
         return .unselected
     }
 
-    /// An unselected row is locked (→ paywall) when the cap is already met
-    /// while selecting.
+    /// An unselected row is locked (→ paywall) when the cap is already met and
+    /// no invite round is in flight.
     func multicamRowLocked(_ peer: MCPeerID, maxCameras: Int) -> Bool {
-        multicamPhase == .selecting
+        multicamConnectingPeers.isEmpty
             && multicamRowState(peer) == .unselected
             && multicamSelectedPeers.count >= maxCameras
-    }
-
-    /// Whether "Select All" should be offered — some discovered camera is still
-    /// unselected, and we are still selecting.
-    var showsMulticamSelectAll: Bool {
-        multicamPhase == .selecting
-            && connectedPeers.contains { !multicamSelectedPeers.contains($0) }
     }
 
     /// When the current scan began. Not @Published: the view samples it on a
@@ -216,15 +227,10 @@ final class DeviceScannerViewModel: ObservableObject {
     // MARK: - Peer Management
 
     func addPeer(_ peer: MCPeerID) {
-        // A re-found peer compares equal (identity is key-hash-only) but may
-        // carry an upgraded display name — the transport re-delivers when TXT
-        // enrichment replaces the AWDL placeholder. Update in place; dropping
-        // would freeze the hash-prefix name in the UI.
-        if let index = connectedPeers.firstIndex(of: peer) {
-            connectedPeers[index] = peer
-        } else {
-            connectedPeers.append(peer)
-        }
+        // `upsert` updates a re-found peer in place, so a re-delivered
+        // name-upgrade replaces the hash-prefix placeholder instead of being
+        // dropped (the shared rule the add-camera sheet also relies on).
+        DiscoveredPeers.upsert(&connectedPeers, peer)
         speedRunScanning = true
     }
 

@@ -80,11 +80,15 @@ MulticamLaneInfo (Sendable value)
 CameraLane (@Published)  →  SwiftUI tile
 ```
 
-Mutations never publish by hand. The controller mutates a `CameraLink` and marks
-the lanes dirty; a single coalescing step turns the current links into
-`[MulticamLaneInfo]` and hands them to the main actor once per pump message. A
-state change can never be "forgotten" on the way to the screen, because
-publishing is a consequence of mutation, not a separate call.
+Mutations never publish by hand. After every pump message the controller
+re-derives each UI snapshot (lanes, shutter state, rig settings, available
+peers) from its state and publishes only the ones whose value changed — one
+coalesced hop to main per message. A state change can never be "forgotten" on
+the way to the screen, because publishing is a diff of derived state, not a
+per-handler call. The rig-settings snapshot in particular is recomputed from
+the live lane set every time, so the tray is always the intersection of the
+cameras actually in the rig — a camera joining, dropping, or being refused
+recomputes it on the same pump turn.
 
 ## Live preview — five hops, four domains
 
@@ -146,6 +150,61 @@ start and stop anchor and the lengths match. Photos come back inline in
 `TakePicResp`; video clips transfer as resources afterward (see
 [Known debts](#known-debts)).
 
+### Broadcast is locked-target; recording is all-or-nothing
+
+Two rules keep a rig shot deterministic:
+
+- **The target set is locked when the shot is armed.** The shutter tap
+  computes the ready lanes once; the countdown ticks and the scheduled
+  command go to exactly that set — the cameras that count down are the
+  cameras that shoot. Nothing arms on an empty set; a target dropping
+  mid-countdown shrinks the set, and an emptied set cancels the countdown.
+- **A recording take exists only if every target commits.** The director
+  holds `.startingRecording` (shutter shows in-flight, not REC) while start
+  acks collect; REC — and the classic recording timer, counting from the
+  shared fire instant — appear only when the last target has acked. One
+  refusal, silence past the 3 s deadline, or a target dropping voids the
+  whole take.
+
+```mermaid
+sequenceDiagram
+    participant UI as Director shutter
+    participant MC as MulticamController
+    participant A as Camera A
+    participant B as Camera B
+
+    UI->>MC: record tap
+    Note over MC: lock targets = ready lanes
+    MC->>A: ScheduledStartRecording fireAt+offsetA, id
+    MC->>B: ScheduledStartRecording fireAt+offsetB, id
+    Note over MC: .startingRecording, shutter in-flight<br/>3 s ack timeout
+
+    alt every target acks success
+        A-->>MC: Ack ok
+        B-->>MC: Ack ok
+        Note over MC: .recording, recordingStartTime = fireAt
+        MC-->>UI: REC + RecordingTimer
+        Note over A,B: both fire at the shared instant
+    else B nacks, or silent, or disconnects
+        A-->>MC: Ack ok
+        B-->>MC: nack, or nothing
+        MC->>A: ScheduledStopRecording id
+        MC->>B: ScheduledStopRecording id
+        Note over MC: stop to EVERY target, covers an<br/>ok-ack still in flight
+        Note over MC: B badged failed, .monitoring<br/>shutter back to idle
+        Note over A: short clip finalizes, auto-collects
+    end
+```
+
+Photos keep per-lane settling (`.capturingPhoto` until every ack or the
+timeout; a fired photo can't be untaken, so the badges name the failures
+instead of voiding the shot). Stop with zero rolling lanes resets to
+`.monitoring` rather than wedging. Stale acks are dropped by capture id.
+A camera the director knows is gone is never waited on: a dead rolling
+lane settles at stop time (the stop is still sent, so its clip ends on
+reconnect), and a lane dying inside any ack window settles on the spot
+instead of running out the timeout.
+
 ## Resilient camera — a drop mid-recording
 
 The one behavior a camera changes in a director session: if the director drops
@@ -186,7 +245,10 @@ These are the invariants worth preserving through future changes.
 - **Framing belongs to a camera; the shot belongs to the rig.** Per-camera
   controls (zoom, focus, flash, torch, lens, camera flip) address the *focused*
   camera only. Rig controls (shutter, record, timer, quality/HDR) fan out to
-  all. Nothing per-camera ever broadcasts.
+  all. Nothing per-camera ever broadcasts. The viewfinder gestures (tap to
+  focus, double-tap flip, pinch zoom) live in the shared
+  `ViewfinderGestureLayer` — the same component the 1:1 monitor uses — with the
+  director supplying focused-camera routing through its callbacks.
 - **Rendering isolation per lane.** One decoder and one published image per
   camera; a frame from one camera can only touch its own tile.
 - **Additive, gated wire.** Every multicam action (`ClockSyncPing`,
@@ -209,9 +271,49 @@ Honest list of what is deliberately first-draft, for whoever picks this up next.
   holds only the *last* clip; it reuses `capture_id` loosely and depends on the
   file still existing. Fine for one-clip-at-a-time retry; it would need a real
   per-capture store to retry an older clip.
-- **`PeerSessionCore` extraction pending.** Reconnect, the per-peer version
-  gate, capability parsing, and the frame pump exist in both
-  `SessionCoordinator` (camera + 1:1 monitor) and `MulticamController`. They
-  have begun to diverge; extracting a shared core is the highest-value
-  robustness refactor, deferred until after the 9.1 release so it doesn't ride
-  the same release as the feature.
+## Shared vs duplicated (DRY state)
+
+Extracted and shared by both the 1:1 and multicam paths:
+
+- View atoms: `GlassCircleButton`, `ControlCapsule`, `ShutterButton`,
+  `CameraSwitchControlView`, `LinkChip`, `ZoomPill`, `MonitorChromeLayout`,
+  `MonitorLinkState`.
+- `ZoomScaleSeed` — the zoom clamp (the single home of the 5×-wide
+  `maxDisplayZoom`) and the capabilities→zoom seed, used by both
+  `MonitorViewModel.updateZoomFactor` and `MulticamController.seedZoom`.
+- `FocusedCameraControlState` — the flip/torch/flash enablement rules.
+  Consumed by `MulticamViewModel` now; the 1:1 `MonitorViewModel` still sets
+  its per-mode `@Published` flags imperatively (adopting it there is a
+  `configure{Photo,Video,Recording}Mode` restructure, part of the post-9.1
+  pass below).
+
+Remaining duplication, by size and disposition:
+
+- **`CaptureModeSelector` (~25 verbatim lines).** The PHOTO/VIDEO capsule
+  (`modeSelector`/`modeButton`) is copied byte-for-byte between `MonitorView`
+  and `MulticamView`. Extract to one component — its own snapshot-guarded PR
+  after this one, because it swaps into `MonitorView`.
+- **`PeerSessionCore` (done — small by nature).** `PeerSessionCore.swift` now
+  holds the genuinely-identical mechanics both actors share, adopted
+  behavior-identical (full suite unchanged): `RemoteCmd.OnFrame(forwarding:from:)`
+  (the one duplicated frame-construction block), `PeerAppCompatibility.isCompatible`
+  (the director's version gate; the 1:1 keeps `decide` for its verdict-driven
+  UI), and `PeerReconnect.scheduleTick` (the delay→tick timer both reconnect
+  paths use). What stayed local is **role-specialization, not duplication** —
+  the two coordinators are different roles: the camera answers clock pings and
+  runs a frame sender; the director measures pongs and routes by peer. Left
+  local, by design: the clock role in `didReceiveMessage`, the frame-request
+  handler (sender vs no-op), resource transfer (1:1's rich progress + video
+  assembly vs the director's per-lane messages), the incompatibility /
+  browser-fail presentation policy, the 1:1 datagram warm-up on connect, and
+  the reconnect *find/invite/overlay/state* policy (single-peer `.reconnecting`
+  state + overlay vs per-lane status). `CameraCapabilityParse` was skipped —
+  it drags in `MonitorPresenter`'s view-model writes.
+- **`MonitorChromeScaffold` generic.** The chrome arrangement
+  (`chrome`/`topBar`/`bottomCluster`/`sideCluster`/`actionCluster`) is mirrored
+  structurally. Fold into a slot-closure scaffold in the post-9.1 pass
+  (rewrites `MonitorView`'s chrome; needs pixel-identical proof).
+- **`CameraCapabilityParse`.** The capabilities read-shape
+  (`getCurrentCameraInfo` → lenses/zoom/quality) is duplicated between
+  `MonitorPresenter` and `MulticamController`; fold into the same post-9.1
+  pass.

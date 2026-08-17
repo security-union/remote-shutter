@@ -160,6 +160,15 @@ public class DeviceScannerViewController: UIViewController {
         super.viewDidAppear(animated)
         remoteCamSession ! UICmd.ScannerDidAppear()
 
+        // Re-arm multicam collecting on every appearance: this controller
+        // stays in the nav stack, so viewDidLoad does not re-run on return.
+        // Sent AFTER ScannerDidAppear so the coordinator has settled into
+        // scanning; the re-arm reports the live set and the scanner resyncs
+        // (see rearmMulticamScanner).
+        if FeatureFlags.ENABLE_MULTICAM && role == .monitor {
+            remoteCamSession ! UICmd.SetMulticamCollecting(on: true)
+        }
+
         if scannerViewModel.speedRunScanning {
             checkLocalNetworkAccessAndStartScanning()
         }
@@ -198,9 +207,6 @@ public class DeviceScannerViewController: UIViewController {
             onHelp: { [weak self] in
                 self?.showHelpModal()
             },
-            onSelectAll: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
-                ? { [weak self] in self?.handleSelectAll() }
-                : nil,
             onConnectSelected: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
                 ? { [weak self] in self?.handleConnectSelected() }
                 : nil
@@ -361,19 +367,18 @@ public class DeviceScannerViewController: UIViewController {
         vm.toggleMulticamSelection(peer)
     }
 
-    /// "Select All": pick every discovered camera up to the cap. Pure.
-    private func handleSelectAll() {
-        scannerViewModel.selectAllMulticam(maxCameras: StoreManager.shared.maxCameras())
-    }
-
-    /// "Connect (N)": leave selecting, fire an invite per selected camera, and
-    /// hand off once every invite has settled.
+    /// The bottom CTA. With a selection, connect it; with none, select all up
+    /// to the cap and connect. A selection made entirely of still-live links
+    /// invites nobody and settles immediately.
     private func handleConnectSelected() {
-        let peers = scannerViewModel.beginMulticamConnecting()
-        guard !peers.isEmpty else { return }
+        let vm = scannerViewModel
+        let peers = vm.multicamSelectedPeers.isEmpty
+            ? vm.selectAllAndBeginConnecting(maxCameras: StoreManager.shared.maxCameras())
+            : vm.beginMulticamConnecting()
         for peer in peers {
             remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
         }
+        finishMulticamConnectIfSettled()
     }
 
     /// Every selected camera has connected or failed. Hand off to the right
@@ -385,7 +390,7 @@ public class DeviceScannerViewController: UIViewController {
         switch MulticamHandoff.decide(
             connected: connectedPeersInSelectionOrder(connected)) {
         case .none:
-            vm.resetMulticamToSelecting()
+            vm.resetMulticamCycle()
             presentScanningError()
         case .classicMonitor:
             Task { @MainActor in
@@ -396,7 +401,7 @@ public class DeviceScannerViewController: UIViewController {
                 guard let handoff = await remoteCamSession.detachTransportForMulticam() else { return }
                 let controller = MulticamController()
                 await controller.install(transport: handoff.transport,
-                                         initialPeers: handoff.peers, mode: .photo)
+                                         initialPeers: handoff.peers)
                 let directorVC = MulticamViewController(controller: controller)
                 navigationController?.pushViewController(directorVC, animated: true)
             }
@@ -446,7 +451,7 @@ public class DeviceScannerViewController: UIViewController {
     }
 
     deinit {
-        print("deinit DeviceScanners")
+        logDebug("deinit DeviceScanners")
         foregroundTask?.cancel()
         networkBrowser?.cancel()
         remoteCamSession.stop()
@@ -471,6 +476,15 @@ extension DeviceScannerViewController: ScannerLobby {
     func didFailMulticamCamera(_ peer: MCPeerID) {
         scannerViewModel.markMulticamFailed(peer)
         finishMulticamConnectIfSettled()
+    }
+
+    /// Collecting was (re)armed: sync the view model's live-link truth to the
+    /// coordinator's current set, then clear stale cycle state. A camera whose
+    /// link survived (director re-entry) stays selected+checked; a single-cam
+    /// visit that dropped its link comes back empty and ready to re-select.
+    func rearmMulticamScanner(liveLinks: [MCPeerID]) {
+        scannerViewModel.reconcileMulticamConnected(liveLinks)
+        scannerViewModel.resetMulticamCycle()
     }
 
     func presentScanningError() {

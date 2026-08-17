@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "Tambah kamera";
+"Disconnect Camera" = "Putuskan Kamera";
 "Add" = "Tambah";
 "Searching for cameras…" = "Mencari kamera…";
 "Director" = "Pengarah";
@@ -369,7 +370,7 @@
 "Direct up to 4 cameras at once" = "Arahkan sehingga 4 kamera serentak";
 "RECONNECTING" = "MENYAMBUNG SEMULA";
 "Connect (%d)" = "Sambung (%d)";
-"Select All" = "Pilih semua";
+"Select all & connect (%d)" = "Pilih semua & sambung (%d)";
 
 // Multicam rig settings tray
 "Auto" = "Auto";
@@ -384,3 +385,8 @@
 "%@ can't" = "%@ tidak boleh";
 "%@ can't do HDR" = "%@ tidak boleh HDR";
 "Retry" = "Cuba lagi";
+
+// Multicam glass tray
+"AUTO" = "AUTO";
+"%@ can’t do %@" = "%@ tidak boleh %@";
+"%@ can’t do HDR" = "%@ tidak boleh HDR";

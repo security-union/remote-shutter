@@ -120,7 +120,7 @@ final class StoreManager: ObservableObject {
             products = try await Product.products(for: Self.allProductIDs)
                 .sorted { $0.price > $1.price }
         } catch {
-            print("Failed to load products: \(error)")
+            logWarning("Failed to load products: \(error)")
         }
     }
 

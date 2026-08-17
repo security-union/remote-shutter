@@ -44,7 +44,7 @@ class MonitorViewModel: ObservableObject {
     @Published var timerValue: Int = 0
     @Published var timerSliderValue: Double = 0 {
         didSet {
-            UserDefaults.standard.set(Int(timerSliderValue), forKey: "timerDefault")
+            TimerPreference.seconds = Int(timerSliderValue)
         }
     }
     @Published var maxTimerValue: Double = 20
@@ -124,8 +124,7 @@ class MonitorViewModel: ObservableObject {
     
     // MARK: - Initializer
     init() {
-        // Load timer value from UserDefaults
-        self.timerSliderValue = Double(UserDefaults.standard.integer(forKey: "timerDefault"))
+        self.timerSliderValue = Double(TimerPreference.seconds)
     }
     
     // MARK: - Control State
@@ -241,14 +240,10 @@ class MonitorViewModel: ObservableObject {
         }
     }
     
-    /// Max display zoom (5x relative to wide-angle)
-    private static let maxDisplayZoom: CGFloat = 5.0
-
     func updateZoomFactor(_ factor: CGFloat, maxFactor: CGFloat) {
         DispatchQueue.main.async {
-            let maxHardwareZoom = Self.maxDisplayZoom * self.wideAngleZoomFactor
             self.currentZoomFactor = factor
-            self.maxZoomFactor = min(maxFactor, maxHardwareZoom)
+            self.maxZoomFactor = ZoomScaleSeed.clampMaxZoom(maxFactor, wideAngle: self.wideAngleZoomFactor)
         }
     }
     

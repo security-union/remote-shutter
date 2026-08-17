@@ -134,6 +134,29 @@ class SessionCoordinatorTests: XCTestCase {
                       "selecting must never invite — the device-test regression")
     }
 
+    /// Re-arming collecting (the scanner reappeared after back-navigation)
+    /// reports the coordinator's current live set so the scanner can resync,
+    /// and clears the previous cycle's per-peer bookkeeping without inviting.
+    func testReArmingCollectingReportsLiveLinksAndClearsCycle() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        // A camera from the first cycle is still connected at the transport.
+        let camA = MCPeerID(displayName: "CamA")
+        harness.fakeMP.connectedPeers = [camA]
+        harness.lobby.rearmReports.removeAll()
+        harness.fakeMP.invitedPeers.removeAll()
+
+        // The scanner reappears → re-arm.
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+
+        XCTAssertEqual(harness.lobby.rearmReports.last, [camA],
+                       "re-arm reports the live set so the scanner resyncs")
+        XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
+                      "re-arming never invites a live peer")
+        let count = await harness.coordinator.multicamConnectedCount()
+        XCTAssertEqual(count, 1, "collecting is armed and sees the live camera")
+    }
+
     func testMulticamConnectInvitesEachSelectedPeer() async {
         await seedScanning()
         await harness.deliver(UICmd.SetMulticamCollecting(on: true))

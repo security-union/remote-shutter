@@ -191,7 +191,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // Continuity iPhone — and must never delay the first frame.
             self.gatherAllCameraCapabilitiesLocked()
         } catch let error as NSError {
-            print("error \(error)")
+            logWarning("error \(error)")
         }
         return true
     }
@@ -211,7 +211,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 if captureSession.canAddInput(audioDeviceInput) {
                     captureSession.addInput(audioDeviceInput)
                 } else {
-                    print("Could not add audio device input to the session")
+                    logWarning("Could not add audio device input to the session")
                 }
                 if captureSession.canAddOutput(audioDataOutput) {
                     captureSession.addOutput(audioDataOutput)
@@ -225,7 +225,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 audioConnection = audioDataOutput.connection(with: .audio)
                 return true
             } catch {
-                print("Error setting up audio for video recording: \(error)")
+                logWarning("Error setting up audio for video recording: \(error)")
                 return false
             }
         }
@@ -364,7 +364,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         if captureSession.canAddOutput(videoDataOutput) {
             captureSession.addOutput(videoDataOutput)
         } else {
-            print("Could not add still image output to the session")
+            logWarning("Could not add still image output to the session")
             return
         }
 
@@ -374,7 +374,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             photoOutput.maxPhotoQualityPrioritization = .quality
             captureSession.addOutput(photoOutput)
         } else {
-            print("Could not add movie file output to the session")
+            logWarning("Could not add movie file output to the session")
             return
         }
         videoConnection = videoDataOutput.connection(with: .video)

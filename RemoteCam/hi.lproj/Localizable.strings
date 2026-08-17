@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "कैमरा जोड़ें";
+"Disconnect Camera" = "कैमरा डिस्कनेक्ट करें";
 "Add" = "जोड़ें";
 "Searching for cameras…" = "कैमरे खोजे जा रहे हैं…";
 "Director" = "डायरेक्टर";
@@ -369,7 +370,7 @@
 "Direct up to 4 cameras at once" = "एक साथ 4 कैमरों तक निर्देशित करें";
 "RECONNECTING" = "फिर से कनेक्ट हो रहा है";
 "Connect (%d)" = "कनेक्ट करें (%d)";
-"Select All" = "सभी चुनें";
+"Select all & connect (%d)" = "सभी चुनें और कनेक्ट करें (%d)";
 
 // Multicam rig settings tray
 "Auto" = "ऑटो";
@@ -384,3 +385,8 @@
 "%@ can't" = "%@ नहीं कर सकता";
 "%@ can't do HDR" = "%@ HDR नहीं कर सकता";
 "Retry" = "पुनः प्रयास करें";
+
+// Multicam glass tray
+"AUTO" = "ऑटो";
+"%@ can’t do %@" = "%@ %@ नहीं कर सकता";
+"%@ can’t do HDR" = "%@ HDR नहीं कर सकता";

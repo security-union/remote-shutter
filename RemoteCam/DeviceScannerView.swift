@@ -14,9 +14,8 @@ struct DeviceScannerView: View {
     let onShareApp: () -> Void
     let onOpenSettings: () -> Void
     let onHelp: () -> Void
-    /// Multicam only: select every discovered camera up to the tier cap (pure).
-    var onSelectAll: (() -> Void)? = nil
-    /// Multicam only: connect the selected cameras (the bottom CTA).
+    /// Multicam only: the bottom CTA — connect the selection, or select-all-
+    /// and-connect when nothing is checked.
     var onConnectSelected: (() -> Void)? = nil
 
     /// The scanner is in multicam edit-mode selection (monitor role, flag on).
@@ -45,33 +44,44 @@ struct DeviceScannerView: View {
 
             if isMulticamScanner, let onConnectSelected {
                 connectSelectedButton(onConnectSelected)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.85),
+                               value: viewModel.multicamConnectingPeers.isEmpty)
             }
 
             PeerLinkOverlay(status: peerLink)
         }
     }
 
-    /// The bottom "Connect (N)" CTA: fires the invites for the selected set.
-    /// Disabled at N = 0; hidden entirely during the connecting phase.
+    /// The bottom CTA: "Connect (k)" for a manual selection, or "Select all &
+    /// connect (N)" when nothing is checked. Hidden while invites are in flight
+    /// or nothing is discovered.
     @ViewBuilder
     private func connectSelectedButton(_ action: @escaping () -> Void) -> some View {
-        if viewModel.multicamPhase == .selecting {
+        if let cta = viewModel.multicamCTA(maxCameras: StoreManager.shared.maxCameras()) {
             VStack {
                 Spacer()
                 Button(action: action) {
-                    Text(String(format: NSLocalizedString("Connect (%d)", comment: "connect N selected cameras"),
-                                viewModel.multicamSelectionCount))
+                    Text(ctaTitle(cta))
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(viewModel.canConnectMulticam ? AppTheme.accent : Color.gray)
+                        .background(AppTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .disabled(!viewModel.canConnectMulticam)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    private func ctaTitle(_ cta: DeviceScannerViewModel.MulticamCTA) -> String {
+        switch cta {
+        case .connect(let n):
+            return String(format: NSLocalizedString("Connect (%d)", comment: "connect N selected cameras"), n)
+        case .selectAllAndConnect(let n):
+            return String(format: NSLocalizedString("Select all & connect (%d)", comment: "select every discovered camera up to the cap and connect"), n)
         }
     }
 
@@ -82,8 +92,6 @@ struct DeviceScannerView: View {
             VStack(spacing: 12) {
                 statusBadge
                     .padding(.top, 8)
-
-                if isMulticamScanner && viewModel.showsMulticamSelectAll { selectAllRow }
 
                 ForEach(viewModel.connectedPeers, id: \.self) { peer in
                     Button {
@@ -98,7 +106,7 @@ struct DeviceScannerView: View {
                     .padding(.top, 8)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, isMulticamScanner ? 100 : 40) // room for Connect (N)
+            .padding(.bottom, isMulticamScanner ? 100 : 40) // room for the CTA
         }
     }
 
@@ -194,28 +202,6 @@ struct DeviceScannerView: View {
         case .selected, .connected, .connecting: return 2
         default: return 0.5
         }
-    }
-
-    /// "Select All" — picks every discovered, not-yet-selected camera up to the
-    /// cap (pure). Offered only while selecting and something is unselected.
-    @ViewBuilder
-    private var selectAllRow: some View {
-        Button {
-            onSelectAll?()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "checklist")
-                    .font(.title3)
-                Text(NSLocalizedString("Select All", comment: "select every discovered camera"))
-                    .fontWeight(.semibold)
-                Spacer()
-            }
-            .foregroundColor(AppTheme.accent)
-            .padding(14)
-            .background(AppTheme.accentSubtle)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-        }
-        .buttonStyle(GlassPressStyle())
     }
 
     // MARK: - Camera Waiting State

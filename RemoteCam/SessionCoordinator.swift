@@ -413,6 +413,7 @@ public actor SessionCoordinator {
     }
 
     private func unableToProcessError(_ msg: Message) async -> NSError {
+        logWarning("session: \(type(of: msg)) REFUSED — wrong state \(currentStateName())")
         let deviceName = await MainActor.run { UIDevice.current.name }
         return NSError(
             domain: "Unable to process \(type(of: msg)) command, since \(deviceName) is not in the camera screen.", code: 0, userInfo: nil)
@@ -701,6 +702,12 @@ public actor SessionCoordinator {
     // MARK: Message dispatch
 
     func handle(_ msg: Message) async {
+        // Reception trace: every command with the state that will judge it —
+        // the seam for chasing wrong-state refusals. The frame stream is
+        // excluded (it would drown everything at 20fps).
+        if !(msg is RemoteCmd.SendFrame || msg is RemoteCmd.RequestFrame) {
+            logInfo("session rx \(type(of: msg)) [\(currentStateName())]")
+        }
         switch state {
         case .waitingForLobby:
             await inWaitingForLobby(msg)
@@ -1313,6 +1320,7 @@ public actor SessionCoordinator {
         let now = SyncClock.nowMillis()
         let lateness = Int64(now) - Int64(scheduled.fireAtCameraClockMillis)
         guard lateness <= scheduledCaptureMaxLatenessMillis else {
+            logWarning("session: ScheduledCapture \(scheduled.captureId.prefix(8)) NACKED — \(lateness)ms late")
             await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(
                 captureId: scheduled.captureId,
                 error: NSError(domain: "Scheduled capture fire time already passed",
@@ -1346,6 +1354,7 @@ public actor SessionCoordinator {
         cameraDriver = .director
         let lateness = Int64(SyncClock.nowMillis()) - Int64(scheduled.fireAtCameraClockMillis)
         guard lateness <= scheduledCaptureMaxLatenessMillis else {
+            logWarning("session: ScheduledStartRecording \(scheduled.captureId.prefix(8)) NACKED — \(lateness)ms late")
             await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
                 captureId: scheduled.captureId, isStop: false,
                 error: NSError(domain: "Scheduled recording start already passed",
@@ -1694,10 +1703,7 @@ public actor SessionCoordinator {
     private func armReconnectRetry(_ peer: MCPeerID) {
         guard lobby?.value?.role == .monitor else { return }
         reconnectRetryTask?.cancel()
-        let delay = reconnectRetryDelay
-        reconnectRetryTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            guard !Task.isCancelled else { return }
+        reconnectRetryTask = PeerReconnect.scheduleTick(after: reconnectRetryDelay) { [weak self] in
             self?.tell(UICmd.RetryReconnect(peer: peer))
         }
     }
@@ -1718,6 +1724,19 @@ public actor SessionCoordinator {
 
         case let collect as UICmd.SetMulticamCollecting:
             multicamCollecting = collect.on
+            if collect.on {
+                // Clear per-cycle bookkeeping but never a live link: seed the
+                // collected set from the current connections and report them
+                // to the scanner. On a first, clean scan this is a no-op.
+                multicamInviteAttempts = [:]
+                multicamCollectedPeers = connectedPeers
+                let liveLinks = connectedPeers
+                if let liveLobby = lobby?.value {
+                    OperationQueue.main.addOperation {
+                        liveLobby.rearmMulticamScanner(liveLinks: liveLinks)
+                    }
+                }
+            }
 
         case is RemoteCmd.RequestVideoResend:
             // Auto-collect retry: the director's transfer failed. Re-send the
@@ -1833,7 +1852,10 @@ public actor SessionCoordinator {
             showErrorAlert(NSLocalizedString("Connection error", comment: ""))
 
         default:
-            debugLog("SessionCoordinator: message not handled \(type(of: msg)) in state \(state.name)")
+            // A message with no handler in any state is DROPPED with no reply —
+            // the sender's request hangs until its own timeout. Warning-level:
+            // this is the bad-state trail.
+            logWarning("session: \(type(of: msg)) DROPPED — no handler in \(state.name)")
         }
     }
 
@@ -2713,9 +2735,9 @@ public actor SessionCoordinator {
                 creationRequest.addResource(with: .photo, data: data, options: nil)
             }) { (success: Bool, _: Error?) in
                 if success {
-                    print("Saved photo!")
+                    logDebug("Saved photo!")
                 } else {
-                    print("Failed to save photo!")
+                    logWarning("Failed to save photo!")
                 }
             }
         }
@@ -2769,7 +2791,7 @@ public actor SessionCoordinator {
                         showReviewPromptIfAppropriate()
                     }
                 } else {
-                    print("Failed to save photo on monitor!")
+                    logWarning("Failed to save photo on monitor!")
                 }
             }
         }
@@ -2852,14 +2874,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
 
     public nonisolated func didReceiveFrame(_ frame: RemoteCmd.SendFrame, from peer: MCPeerID) {
         tell(UICmd.PeerTrafficObserved())
-        tell(RemoteCmd.OnFrame(data: frame.data,
-            sender: nil,
-            peerId: peer,
-            fps: frame.fps,
-            camPosition: frame.camPosition,
-            camOrientation: frame.camOrientation,
-            codec: frame.codec,
-            sequenceNumber: frame.sequenceNumber))
+        tell(RemoteCmd.OnFrame(forwarding: frame, from: peer))
     }
 
     public nonisolated func peerDidConnect(_ peer: MCPeerID) {
@@ -2895,7 +2910,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
     }
 
     public nonisolated func browserDidFail(_ error: Error) {
-        print("Browser failed to start browsing: \(error.localizedDescription)")
+        logWarning("Browser failed to start browsing: \(error.localizedDescription)")
         tell(UICmd.BrowserFailed(error: error))
     }
 

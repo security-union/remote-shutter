@@ -1194,7 +1194,7 @@ extension RemoteCmd {
             // An action this build does not know: ignore-and-log. Before the
             // enum was renumbered this slot was TakePicture, so an unknown
             // command fired the shutter.
-            print("RemoteCmd: ignoring unknown command action")
+            logWarning("RemoteCmd: ignoring unknown command action")
             return nil
 
         case .startrecording:

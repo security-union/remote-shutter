@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "カメラを追加";
+"Disconnect Camera" = "カメラを切断";
 "Add" = "追加";
 "Searching for cameras…" = "カメラを検索中…";
 "Director" = "ディレクター";
@@ -369,7 +370,7 @@
 "Direct up to 4 cameras at once" = "最大4台のカメラを同時に操作";
 "RECONNECTING" = "再接続中";
 "Connect (%d)" = "接続 (%d)";
-"Select All" = "すべて選択";
+"Select all & connect (%d)" = "すべて選択して接続 (%d)";
 
 // Multicam rig settings tray
 "Auto" = "自動";
@@ -384,3 +385,8 @@
 "%@ can't" = "%@は非対応";
 "%@ can't do HDR" = "%@はHDR非対応";
 "Retry" = "再試行";
+
+// Multicam glass tray
+"AUTO" = "自動";
+"%@ can’t do %@" = "%@は%@に非対応";
+"%@ can’t do HDR" = "%@はHDRに非対応";

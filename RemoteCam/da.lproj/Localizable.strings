@@ -241,6 +241,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "Tilføj kamera";
+"Disconnect Camera" = "Afbryd kamera";
 "Add" = "Tilføj";
 "Searching for cameras…" = "Søger efter kameraer …";
 "Director" = "Instruktør";
@@ -248,7 +249,7 @@
 "Direct up to 4 cameras at once" = "Instruér op til 4 kameraer på én gang";
 "RECONNECTING" = "GENOPRETTER FORBINDELSE";
 "Connect (%d)" = "Forbind (%d)";
-"Select All" = "Vælg alle";
+"Select all & connect (%d)" = "Vælg alle og forbind (%d)";
 
 // Multicam rig settings tray
 "Auto" = "Auto";
@@ -263,3 +264,8 @@
 "%@ can't" = "%@ kan ikke";
 "%@ can't do HDR" = "%@ kan ikke HDR";
 "Retry" = "Prøv igen";
+
+// Multicam glass tray
+"AUTO" = "AUTO";
+"%@ can’t do %@" = "%@ kan ikke %@";
+"%@ can’t do HDR" = "%@ kan ikke HDR";

@@ -6,7 +6,7 @@ extension UIViewController {
     func showPhotosAccessDeniedModal(for contentType: PhotosAccessDeniedView.ContentType) {
         // Get the top-most view controller first
         guard let topController = getTopMostViewController() else {
-            print("⚠️ Could not find top view controller to show photos access modal")
+            logWarning("⚠️ Could not find top view controller to show photos access modal")
             return
         }
         
@@ -17,7 +17,7 @@ extension UIViewController {
                 PermissionManager.shared.openAppSettings()
             },
             onDismiss: {
-                print("📱 onDismiss callback called!")
+                logDebug("📱 onDismiss callback called!")
                 dismissPhotosAccessModalGlobally()
             }
         )
@@ -38,7 +38,7 @@ extension UIViewController {
         )
         
         topController.present(hostingController, animated: true) {
-            print("📱 Photos access modal presentation completed")
+            logDebug("📱 Photos access modal presentation completed")
             _isPhotosAccessModalShowing = true
         }
     }
@@ -91,7 +91,7 @@ func showPhotosAccessDeniedModal(for contentType: PhotosAccessDeniedView.Content
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
         // Check if there's already a photos access modal showing
         if isPhotosAccessModalCurrentlyShowing() {
-            print("📱 Photos access modal already showing, skipping duplicate")
+            logDebug("📱 Photos access modal already showing, skipping duplicate")
             return
         }
         
@@ -101,7 +101,7 @@ func showPhotosAccessDeniedModal(for contentType: PhotosAccessDeniedView.Content
               .first(where: { $0.activationState == .foregroundActive })?
               .windows.first(where: { $0.isKeyWindow }),
               let rootViewController = window.rootViewController else {
-            print("⚠️ Could not find root view controller to show photos access modal")
+            logWarning("⚠️ Could not find root view controller to show photos access modal")
             return
         }
 
@@ -110,16 +110,16 @@ func showPhotosAccessDeniedModal(for contentType: PhotosAccessDeniedView.Content
             topController = presentedController
         }
 
-        print("📱 Showing photos access modal for \(contentType)")
+        logDebug("📱 Showing photos access modal for \(contentType)")
         topController.showPhotosAccessDeniedModal(for: contentType)
     }
 }
 
 func dismissPhotosAccessModalGlobally() {
-    print("📱 dismissPhotosAccessModalGlobally() called")
+    logDebug("📱 dismissPhotosAccessModalGlobally() called")
     DispatchQueue.main.async {
-        print("📱 On main queue - attempting to dismiss photos access modal")
-        print("📱 Global flag _isPhotosAccessModalShowing: \(_isPhotosAccessModalShowing)")
+        logDebug("📱 On main queue - attempting to dismiss photos access modal")
+        logDebug("📱 Global flag _isPhotosAccessModalShowing: \(_isPhotosAccessModalShowing)")
         
         // Find the top-most view controller and dismiss the modal
         guard let window = UIApplication.shared.connectedScenes
@@ -127,7 +127,7 @@ func dismissPhotosAccessModalGlobally() {
               .first(where: { $0.activationState == .foregroundActive })?
               .windows.first(where: { $0.isKeyWindow }),
               let rootViewController = window.rootViewController else {
-            print("⚠️ Could not find root view controller to dismiss photos access modal")
+            logWarning("⚠️ Could not find root view controller to dismiss photos access modal")
             return
         }
         
@@ -140,9 +140,9 @@ func dismissPhotosAccessModalGlobally() {
             topController = presentedController
             controllerDepth += 1
         }
-        print("📱 Found top controller at depth: \(controllerDepth)")
-        print("📱 Top controller type: \(type(of: topController))")
-        print("📱 Presenting controller type: \(type(of: presentingController))")
+        logDebug("📱 Found top controller at depth: \(controllerDepth)")
+        logDebug("📱 Top controller type: \(type(of: topController))")
+        logDebug("📱 Presenting controller type: \(type(of: presentingController))")
         
         // Check if there's a presented modal to dismiss
         // Look for the associated object on the PRESENTING controller, not the presented one
@@ -151,15 +151,15 @@ func dismissPhotosAccessModalGlobally() {
             &PhotosAccessAssociatedKeys.photosAccessController
         )
         
-        print("📱 Looking for associated object on presenting controller...")
+        logDebug("📱 Looking for associated object on presenting controller...")
         
         if let modalController = associatedModal as? UIViewController {
-            print("📱 ✅ Found stored photos access modal: \(type(of: modalController))")
-            print("📱 Modal controller matches top controller: \(modalController === topController)")
-            print("📱 Dismissing stored photos access modal")
+            logDebug("📱 ✅ Found stored photos access modal: \(type(of: modalController))")
+            logDebug("📱 Modal controller matches top controller: \(modalController === topController)")
+            logDebug("📱 Dismissing stored photos access modal")
             modalController.dismiss(animated: true) {
                 _isPhotosAccessModalShowing = false
-                print("📱 Photos access modal dismissed completely")
+                logDebug("📱 Photos access modal dismissed completely")
             }
             objc_setAssociatedObject(
                 presentingController,
@@ -168,18 +168,18 @@ func dismissPhotosAccessModalGlobally() {
                 .OBJC_ASSOCIATION_RETAIN_NONATOMIC
             )
         } else {
-            print("📱 ❌ No associated modal found on presenting controller")
-            print("📱 Associated object: \(String(describing: associatedModal))")
+            logDebug("📱 ❌ No associated modal found on presenting controller")
+            logDebug("📱 Associated object: \(String(describing: associatedModal))")
             // If no associated object, try to dismiss any presented view controller directly
             if controllerDepth > 0 {
-                print("📱 Trying to dismiss the top controller directly: \(type(of: topController))")
+                logDebug("📱 Trying to dismiss the top controller directly: \(type(of: topController))")
                 // Since we know there's a presented controller, dismiss it
                 presentingController.dismiss(animated: true) {
                     _isPhotosAccessModalShowing = false
-                    print("📱 Top controller dismissed directly")
+                    logDebug("📱 Top controller dismissed directly")
                 }
             } else {
-                print("📱 No modal found to dismiss - no presentation depth")
+                logDebug("📱 No modal found to dismiss - no presentation depth")
                 _isPhotosAccessModalShowing = false
             }
         }

@@ -76,6 +76,7 @@
 		06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		0A11B22C33D44E55F6070002 /* ZoomScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070001 /* ZoomScale.swift */; };
 		0A11B22C33D44E55F6070004 /* ZoomPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070003 /* ZoomPill.swift */; };
+		0A11B22C33D44E55F6071004 /* ViewfinderGestureLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6071003 /* ViewfinderGestureLayer.swift */; };
 		0A11B22C33D44E55F6070006 /* ZoomScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070005 /* ZoomScaleTests.swift */; };
 		1ECFC14E17A9A47D5951E80B /* RemoteCam/WatchSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148A312CF1B445C71094EF0E /* RemoteCam/WatchSessionManager.swift */; };
 		28DAF89E6644742C1F1E47E6 /* FlatBuffers in Frameworks */ = {isa = PBXBuildFile; productRef = 8C0454249B071E09F8788E2E /* FlatBuffers */; };
@@ -203,6 +204,10 @@
 		CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0120000000000002 /* MonitorChrome.swift */; };
 		CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */; };
 		CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */; };
+		CAFEBABE0170000000000001 /* ZoomScaleSeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0170000000000002 /* ZoomScaleSeed.swift */; };
+		CAFEBABE0172000000000001 /* PeerSessionCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0172000000000002 /* PeerSessionCore.swift */; };
+		CAFEBABE0173000000000001 /* DiscoveredPeers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0173000000000002 /* DiscoveredPeers.swift */; };
+		CAFEBABE0171000000000001 /* FocusedCameraControlState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0171000000000002 /* FocusedCameraControlState.swift */; };
 		CAFEBABE0160000000000001 /* RigQualityMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0160000000000002 /* RigQualityMenu.swift */; };
 		CAFEBABE0161000000000002 /* RigQualityMenuTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0161000000000001 /* RigQualityMenuTests.swift */; };
 		CAFEBABE0150000000000001 /* MultiCamChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0150000000000002 /* MultiCamChrome.swift */; };
@@ -341,6 +346,7 @@
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
 		0A11B22C33D44E55F6070001 /* ZoomScale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomScale.swift; sourceTree = "<group>"; };
 		0A11B22C33D44E55F6070003 /* ZoomPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomPill.swift; sourceTree = "<group>"; };
+		0A11B22C33D44E55F6071003 /* ViewfinderGestureLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewfinderGestureLayer.swift; sourceTree = "<group>"; };
 		0A11B22C33D44E55F6070005 /* ZoomScaleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ZoomScaleTests.swift; sourceTree = "<group>"; };
 		0ACB2DA94752BB4E9C4CE461 /* CountdownTimer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CountdownTimer.swift; sourceTree = "<group>"; };
 		0F7C7180B3B581F22EF07350 /* CaptureEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CaptureEngine.swift; sourceTree = "<group>"; };
@@ -459,6 +465,10 @@
 		CAFEBABE0120000000000002 /* MonitorChrome.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorChrome.swift; sourceTree = "<group>"; };
 		CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaptureSyncMetadata.swift; sourceTree = "<group>"; };
 		CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClockOffsetEstimator.swift; sourceTree = "<group>"; };
+		CAFEBABE0170000000000002 /* ZoomScaleSeed.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZoomScaleSeed.swift; sourceTree = "<group>"; };
+		CAFEBABE0172000000000002 /* PeerSessionCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeerSessionCore.swift; sourceTree = "<group>"; };
+		CAFEBABE0173000000000002 /* DiscoveredPeers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiscoveredPeers.swift; sourceTree = "<group>"; };
+		CAFEBABE0171000000000002 /* FocusedCameraControlState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FocusedCameraControlState.swift; sourceTree = "<group>"; };
 		CAFEBABE0160000000000002 /* RigQualityMenu.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RigQualityMenu.swift; sourceTree = "<group>"; };
 		CAFEBABE0161000000000001 /* RigQualityMenuTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RigQualityMenuTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0150000000000002 /* MultiCamChrome.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MultiCamChrome.swift; sourceTree = "<group>"; };
@@ -663,6 +673,7 @@
 				068DF59A2E3544AD00A49279 /* MonitorView.swift */,
 				0A11B22C33D44E55F6070001 /* ZoomScale.swift */,
 				0A11B22C33D44E55F6070003 /* ZoomPill.swift */,
+				0A11B22C33D44E55F6071003 /* ViewfinderGestureLayer.swift */,
 				06BB79BB2E3884F00094E085 /* CameraProgressOverlayView.swift */,
 				06BB79BE2E3884FA0094E085 /* CameraViewModel.swift */,
 				CAFEBABE0013000000000001 /* CameraPreviewMode.swift */,
@@ -721,6 +732,10 @@
 				CAFEBABE0120000000000002 /* MonitorChrome.swift */,
 				CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */,
 				CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */,
+				CAFEBABE0170000000000002 /* ZoomScaleSeed.swift */,
+				CAFEBABE0172000000000002 /* PeerSessionCore.swift */,
+				CAFEBABE0173000000000002 /* DiscoveredPeers.swift */,
+				CAFEBABE0171000000000002 /* FocusedCameraControlState.swift */,
 				CAFEBABE0160000000000002 /* RigQualityMenu.swift */,
 				CAFEBABE0150000000000002 /* MultiCamChrome.swift */,
 				CAFEBABE0140000000000002 /* CameraLink.swift */,
@@ -1193,6 +1208,7 @@
 				068DF59D2E3544AD00A49279 /* MonitorView.swift in Sources */,
 				0A11B22C33D44E55F6070002 /* ZoomScale.swift in Sources */,
 				0A11B22C33D44E55F6070004 /* ZoomPill.swift in Sources */,
+				0A11B22C33D44E55F6071004 /* ViewfinderGestureLayer.swift in Sources */,
 				068DF59E2E3544AD00A49279 /* MonitorViewController+SwiftUI.swift in Sources */,
 				068DF59F2E3544AD00A49279 /* MonitorViewModel.swift in Sources */,
 				06B1D80F2536C2330029CCB6 /* UIImage+gif.swift in Sources */,
@@ -1222,6 +1238,10 @@
 				CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */,
 				CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */,
 				CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */,
+				CAFEBABE0170000000000001 /* ZoomScaleSeed.swift in Sources */,
+				CAFEBABE0172000000000001 /* PeerSessionCore.swift in Sources */,
+				CAFEBABE0173000000000001 /* DiscoveredPeers.swift in Sources */,
+				CAFEBABE0171000000000001 /* FocusedCameraControlState.swift in Sources */,
 				CAFEBABE0160000000000001 /* RigQualityMenu.swift in Sources */,
 				CAFEBABE0150000000000001 /* MultiCamChrome.swift in Sources */,
 				CAFEBABE0140000000000001 /* CameraLink.swift in Sources */,

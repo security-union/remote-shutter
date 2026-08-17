@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "Thêm camera";
+"Disconnect Camera" = "Ngắt kết nối máy ảnh";
 "Add" = "Thêm";
 "Searching for cameras…" = "Đang tìm camera…";
 "Director" = "Đạo diễn";
@@ -369,7 +370,7 @@
 "Direct up to 4 cameras at once" = "Điều khiển tối đa 4 camera cùng lúc";
 "RECONNECTING" = "ĐANG KẾT NỐI LẠI";
 "Connect (%d)" = "Kết nối (%d)";
-"Select All" = "Chọn tất cả";
+"Select all & connect (%d)" = "Chọn tất cả và kết nối (%d)";
 
 // Multicam rig settings tray
 "Auto" = "Tự động";
@@ -384,3 +385,8 @@
 "%@ can't" = "%@ không thể";
 "%@ can't do HDR" = "%@ không hỗ trợ HDR";
 "Retry" = "Thử lại";
+
+// Multicam glass tray
+"AUTO" = "TỰ ĐỘNG";
+"%@ can’t do %@" = "%@ không thể %@";
+"%@ can’t do HDR" = "%@ không thể HDR";

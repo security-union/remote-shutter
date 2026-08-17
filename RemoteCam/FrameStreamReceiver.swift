@@ -177,8 +177,8 @@ final class FrameStreamReceiver: @unchecked Sendable {
         let kbPerFrame = Double(statsBytes) / Double(statsFrames) / 1024.0
         StreamLog.decode.debug(
             """
-            stream stats: \(fps, format: .fixed(precision: 1))fps \
-            \(kbPerFrame, format: .fixed(precision: 1))KB/frame codec=\(String(describing: frame.codec))
+            stream stats: \(String(format: "%.1f", fps))fps \
+            \(String(format: "%.1f", kbPerFrame))KB/frame codec=\(String(describing: frame.codec))
             """)
         statsWindowStart = time
         statsFrames = 0
@@ -191,7 +191,7 @@ final class FrameStreamReceiver: @unchecked Sendable {
               time - lastStallReportAt > config.stallTimeout else { return }
         lastStallReportAt = time
         StreamLog.transport.info(
-            "no frame for \(time - self.lastFrameAt, format: .fixed(precision: 1))s — raising StreamStalled")
+            "no frame for \(String(format: "%.1f", time - self.lastFrameAt))s — raising StreamStalled")
         onStall?()
     }
 

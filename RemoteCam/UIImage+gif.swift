@@ -25,7 +25,7 @@ extension UIImage {
 
     public class func gifImageWithData(_ data: Data) -> UIImage? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
-            print("image doesn't exist")
+            logWarning("image doesn't exist")
             return nil
         }
 
@@ -35,11 +35,11 @@ extension UIImage {
     public class func gifImageWithName(_ name: String) -> UIImage? {
         guard let bundleURL = Bundle.main
             .url(forResource: name, withExtension: "gif") else {
-                print("SwiftGif: This image named \"\(name)\" does not exist")
+                logWarning("SwiftGif: This image named \"\(name)\" does not exist")
                 return nil
         }
         guard let imageData = try? Data(contentsOf: bundleURL) else {
-            print("SwiftGif: Cannot turn image named \"\(name)\" into NSData")
+            logWarning("SwiftGif: Cannot turn image named \"\(name)\" into NSData")
             return nil
         }
 

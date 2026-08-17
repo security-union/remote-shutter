@@ -12,6 +12,16 @@ import UIKit
 
 public let tempFile = "remoteshutter_video.mov"
 
+/// The self-timer preset, one preference shared by the classic remote and the
+/// multicam director — a single key and accessor so the two can never drift.
+enum TimerPreference {
+    static let key = "timerDefault"
+    static var seconds: Int {
+        get { UserDefaults.standard.integer(forKey: key) }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
+    }
+}
+
 let AppStoreURL = URL(string: "https://apps.apple.com/us/app/remote-shutter/id633274861")!
 // SKStoreReviewController is rate-limited by the system (~3/year) and can show
 // nothing at all, so it is only fit for the unsolicited prompt. A deliberate tap

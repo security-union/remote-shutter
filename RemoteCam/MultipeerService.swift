@@ -127,14 +127,14 @@ class MultipeerService: NSObject, MCSessionDelegate,
     func send(_ msg: Message, to peers: [MCPeerID],
               mode: MCSessionSendDataMode) -> Bool {
         guard let serializedMessage = serializeToFlatBuffer(msg) else {
-            print("send: no wire encoding for \(type(of: msg))")
+            logWarning("send: no wire encoding for \(type(of: msg))")
             return false
         }
         do {
             try session.send(serializedMessage, toPeers: peers, with: mode)
             return true
         } catch {
-            print("send \(type(of: msg)) failed: \(error)")
+            logWarning("send \(type(of: msg)) failed: \(error)")
             return false
         }
     }
@@ -159,7 +159,7 @@ class MultipeerService: NSObject, MCSessionDelegate,
 
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
                     didNotStartAdvertisingPeer error: Error) {
-        print("Advertiser failed to start: \(error.localizedDescription)")
+        logWarning("Advertiser failed to start: \(error.localizedDescription)")
         delegate?.advertiserDidFail(error)
     }
 
@@ -184,15 +184,15 @@ class MultipeerService: NSObject, MCSessionDelegate,
     public func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         switch state {
         case .connected:
-            print("Connected: \(peerID.displayName)")
+            logInfo("Connected: \(peerID.displayName)")
             delegate?.peerDidConnect(peerID)
         case .connecting:
-            print("Connecting: \(peerID.displayName)")
+            logInfo("Connecting: \(peerID.displayName)")
         case .notConnected:
-            print("Not Connected: \(peerID.displayName)")
+            logInfo("Not Connected: \(peerID.displayName)")
             delegate?.peerDidDisconnect(peerID)
         @unknown default:
-            print("Unhandled session state \(state.rawValue) for \(peerID.displayName)")
+            logWarning("Unhandled session state \(state.rawValue) for \(peerID.displayName)")
         }
     }
 

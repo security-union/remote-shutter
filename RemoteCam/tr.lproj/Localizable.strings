@@ -362,6 +362,7 @@
 
 // Multicam director (behind ENABLE_MULTICAM)
 "Add camera" = "Kamera ekle";
+"Disconnect Camera" = "Kamerayı Kes";
 "Add" = "Ekle";
 "Searching for cameras…" = "Kameralar aranıyor…";
 "Director" = "Yönetmen";
@@ -369,7 +370,7 @@
 "Direct up to 4 cameras at once" = "Aynı anda 4 kameraya kadar yönetin";
 "RECONNECTING" = "YENİDEN BAĞLANIYOR";
 "Connect (%d)" = "Bağlan (%d)";
-"Select All" = "Tümünü seç";
+"Select all & connect (%d)" = "Tümünü seç ve bağlan (%d)";
 
 // Multicam rig settings tray
 "Auto" = "Otomatik";
@@ -384,3 +385,8 @@
 "%@ can't" = "%@ yapamaz";
 "%@ can't do HDR" = "%@ HDR yapamaz";
 "Retry" = "Tekrar dene";
+
+// Multicam glass tray
+"AUTO" = "OTO";
+"%@ can’t do %@" = "%@ %@ yapamaz";
+"%@ can’t do HDR" = "%@ HDR yapamaz";

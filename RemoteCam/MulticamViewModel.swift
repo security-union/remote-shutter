@@ -34,6 +34,16 @@ final class CameraLane: ObservableObject, Identifiable {
     var isRecording: Bool { info.isRecording }
     var needsQualityRematch: Bool { info.needsQualityRematch }
     var collection: CameraLink.LaneCollectionState { info.collection }
+    var canFlipCamera: Bool { info.canFlipCamera }
+    var supportsFocusPoint: Bool { info.supportsFocusPoint }
+    var zoomFactor: CGFloat { info.zoomFactor }
+    var zoomScale: ZoomScale {
+        ZoomScale(stops: info.zoomStops,
+                  maxZoomFactor: info.maxZoomFactor,
+                  wideAngleZoomFactor: info.wideAngleZoomFactor)
+    }
+    var torchOn: Bool { info.torchOn }
+    var flashOn: Bool { info.flashOn }
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -57,10 +67,15 @@ final class CameraLane: ObservableObject, Identifiable {
 final class MulticamViewModel: ObservableObject {
     @Published private(set) var lanes: [CameraLane] = []
     @Published var interfaceOrientation: UIInterfaceOrientation = .portrait
-    /// A synced photo is in flight — drives the shutter's activity ring.
+    /// A synced photo or recording start is in flight — the shutter's activity
+    /// ring, shown until every camera has answered.
     @Published var isCapturing: Bool = false
-    /// The rig is recording — the shutter becomes a stop button.
+    /// Every target camera committed and the rig is recording — the shutter
+    /// becomes a stop button and the timecode counts.
     @Published var isRecording: Bool = false
+    /// When the rig actually started rolling — drives the classic
+    /// `RecordingTimer` in the top bar. Nil unless recording.
+    @Published var recordingStartTime: Date?
     /// Photo vs video shutter mode.
     @Published var mode: MonitorMode = .photo
     /// Focus (viewfinder + strip) vs grid (monitor wall) layout.
@@ -75,7 +90,46 @@ final class MulticamViewModel: ObservableObject {
     @Published var showingRigTray: Bool = false
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
+
+    /// The shutter is a broadcast: it needs cameras, not a focus selection.
+    /// (The controller still refuses to arm or fire when no lane is ready.)
+    var canFire: Bool { !isCapturing && !lanes.isEmpty }
     var otherLanes: [CameraLane] { lanes.filter { !$0.isFocused } }
+
+    /// The per-camera framing controls' enablement, from the shared rules the
+    /// 1:1 monitor also uses (flip ungated on positions; flash photo-mode only;
+    /// nothing while recording). One source of truth for both paths.
+    var focusedControlState: FocusedCameraControlState {
+        FocusedCameraControlState(isLinked: focusedLane?.status == .linked,
+                                  isPhotoMode: mode == .photo,
+                                  isRecording: isRecording)
+    }
+    var focusedCameraCanFlip: Bool { focusedControlState.flipEnabled }
+    var focusedControlsEnabled: Bool { focusedControlState.isLinked }
+    var focusedTorchEnabled: Bool { focusedControlState.torchEnabled }
+    var focusedFlashEnabled: Bool { focusedControlState.flashEnabled }
+    var focusedTorchOn: Bool { focusedLane?.torchOn ?? false }
+    var focusedFlashOn: Bool { focusedLane?.flashOn ?? false }
+
+    /// The focused camera's zoom scale and current factor for the pill; and
+    /// whether the pill should show at all (the scale collapses to a single
+    /// point on a fixed-focal-length camera, exactly as the 1:1 monitor hides
+    /// its own pill then).
+    var focusedZoomScale: ZoomScale { focusedLane?.zoomScale ?? ZoomScale(stops: [1.0], maxZoomFactor: 1.0, wideAngleZoomFactor: 1.0) }
+    var focusedZoomFactor: CGFloat { focusedLane?.zoomFactor ?? 1.0 }
+    var showsFocusedZoomPill: Bool {
+        guard let focused = focusedLane, focused.status == .linked else { return false }
+        return !focused.zoomScale.isDegenerate
+    }
+
+    /// The link indicator for the focused camera, mapped onto the 1:1 monitor's
+    /// chip states so the same component renders it.
+    var focusedLinkState: MonitorLinkState {
+        switch focusedLane?.status {
+        case .linked, .none: return .live
+        case .reconnecting, .failed: return .reconnecting
+        }
+    }
 
     /// Reconcile against a controller snapshot: add new lanes, drop gone ones,
     /// preserve existing `CameraLane` instances (and their receivers/frames)

@@ -6,6 +6,7 @@
 //
 
 import MPCCompat
+import Stormo
 import XCTest
 @testable import RemoteShutter
 
@@ -14,14 +15,16 @@ private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     var lastLanes: [MulticamLaneInfo] = []
     var capturing = false
     var recording = false
+    var recordingStartTime: Date?
     var availablePeers: [MCPeerID] = []
     var rigSettings: RigSettingsSnapshot?
     var didExit = false
 
     func applyLanes(_ lanes: [MulticamLaneInfo]) { lastLanes = lanes }
-    func applyShutterState(capturing: Bool, recording: Bool) {
+    func applyShutterState(capturing: Bool, recording: Bool, recordingStartTime: Date?) {
         self.capturing = capturing
         self.recording = recording
+        self.recordingStartTime = recordingStartTime
     }
     func applyAvailablePeers(_ peers: [MCPeerID]) { availablePeers = peers }
     func applyRigSettings(_ settings: RigSettingsSnapshot) { rigSettings = settings }
@@ -42,6 +45,12 @@ final class MulticamControllerTests: XCTestCase {
     private let camA = MCPeerID(displayName: "CameraA")
     private let camB = MCPeerID(displayName: "CameraB")
 
+    override func setUp() {
+        super.setUp()
+        // The rig timer seeds from the shared preference; tests start from off.
+        UserDefaults.standard.removeObject(forKey: TimerPreference.key)
+    }
+
     private func makeController(peers: [MCPeerID])
         async -> (MulticamController, FakeMultipeerService, FakeMulticamDisplay) {
         let controller = MulticamController()
@@ -50,7 +59,7 @@ final class MulticamControllerTests: XCTestCase {
         transport.connectedPeers = peers
         let display = FakeMulticamDisplay()
         await controller.setDisplay(display)
-        await controller.install(transport: transport, initialPeers: peers, mode: .photo)
+        await controller.install(transport: transport, initialPeers: peers)
         await controller.waitForIdle()
         return (controller, transport, display)
     }
@@ -81,6 +90,31 @@ final class MulticamControllerTests: XCTestCase {
         let (controller, _, _) = await makeController(peers: [camA, camB])
         let focused = await controller.focusedPeerForTesting()
         XCTAssertEqual(focused, camA)
+    }
+
+    /// `isFocused` is derived from `focusedPeer` in the render, never stored:
+    /// the entry snapshot already carries it (this pinned a real bug — the
+    /// stored-flag version published every lane unfocused until a tile tap).
+    func testFocusIsDerivedInTheEntrySnapshot() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.isFocused, true,
+                       "the first camera renders focused the moment the screen opens")
+        XCTAssertEqual(lanes.first { $0.peerID == camB }?.isFocused, false)
+    }
+
+    // MARK: - Rig timer preference (shared with the classic remote)
+
+    func testRigTimerSeedsFromAndPersistsTheSharedPreference() async {
+        TimerPreference.seconds = 5
+        let (controller, _, _) = await makeController(peers: [camA])
+        let seeded = await controller.rigTimerForTesting()
+        XCTAssertEqual(seeded, 5, "the classic remote's preset applies to the rig")
+
+        controller.setRigTimer(10)
+        await controller.waitForIdle()
+        XCTAssertEqual(TimerPreference.seconds, 10,
+                       "changing it in multicam persists the one shared preference")
     }
 
     // MARK: - Capabilities → live
@@ -121,19 +155,61 @@ final class MulticamControllerTests: XCTestCase {
                        "the frame ack must address only the camera that sent the frame")
     }
 
-    // MARK: - Focused-camera commands
+    // MARK: - Per-camera commands (target carried by the command)
 
-    func testPerCameraCommandTargetsOnlyTheFocusedPeer() async {
+    /// Routing is the parameter, not the focus register: a command aimed at
+    /// camB lands on camB even while camA is the focused camera.
+    func testPerCameraCommandTargetsItsParameterNotTheFocusRegister() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
-        controller.setFocusedPeer(camB)
+        controller.setFocusedPeer(camA)
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        await controller.setZoom(2.0)
+        controller.setZoom(2.0, on: camB)
         await controller.waitForIdle()
 
         let zooms = sent(transport, RemoteCmd.SetZoom.self)
         XCTAssertEqual(zooms.map(\.peers), [[camB]])
+    }
+
+    /// Dario's repro: zooming one camera must not unroute the broadcast — a
+    /// following photo AND recording still fan to every ready camera.
+    func testZoomingOneCameraNeverUnroutesTheBroadcast() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+        controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+
+        // A pinch burst on camera A, with its responses coming back.
+        for factor in [2.0, 2.5, 3.0, 3.5] {
+            controller.setZoom(CGFloat(factor), on: camA)
+        }
+        controller.didReceiveMessage(
+            RemoteCmd.SetZoomResp(zoomFactor: 3.5, currentLens: .wideAngle,
+                                  zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 8), error: nil),
+            from: camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+        XCTAssertEqual(Set(captures.flatMap(\.peers)), [camA, camB],
+                       "the photo still fans to every ready camera after zooming one")
+
+        // Settle the photo, then the same for a recording start.
+        let captureID = await controller.captureStateForTesting()!.id
+        controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID), from: camA)
+        controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let starts = sent(transport, RemoteCmd.ScheduledStartRecording.self)
+        XCTAssertEqual(Set(starts.flatMap(\.peers)), [camA, camB],
+                       "the recording start still fans to every ready camera")
     }
 
     // MARK: - Disconnect / reconnect
@@ -416,7 +492,7 @@ final class MulticamControllerTests: XCTestCase {
         }
 
         // Mark both rolling so stopRecording targets them.
-        let recID = await controller.recordingStateForTesting()?.id
+        let recID = await controller.startingStateForTesting()?.id
         controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camA)
         controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camB)
         await controller.waitForIdle()
@@ -447,10 +523,17 @@ final class MulticamControllerTests: XCTestCase {
 
         controller.startRecording()
         await controller.waitForIdle()
-        let recID = await controller.recordingStateForTesting()?.id
+        // All-or-nothing: collecting acks is not recording yet.
+        let recID = await controller.startingStateForTesting()?.id
         XCTAssertNotNil(recID)
+        var recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording, "no REC until every target has acked")
 
         controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camA)
+        await controller.waitForIdle()
+        recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording, "one ack of two is still in-flight")
+
         controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camB)
         await controller.waitForIdle()
 
@@ -458,9 +541,11 @@ final class MulticamControllerTests: XCTestCase {
         let recB = await controller.isRecordingForTesting(camB)
         XCTAssertTrue(recA)
         XCTAssertTrue(recB)
-        // Still recording (all start acks in, remaining 0).
+        // Every target committed: the rig is rolling, with a start time.
         let stillRecording = await controller.recordingStateForTesting()
         XCTAssertEqual(stillRecording?.remaining, 0)
+        let startTime = await controller.recordingStartTimeForTesting()
+        XCTAssertNotNil(startTime)
 
         // Stop resolves back to monitoring.
         controller.stopRecording()
@@ -475,6 +560,424 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertNil(stoppingAfter, "back to monitoring")
         let recAafter = await controller.isRecordingForTesting(camA)
         XCTAssertFalse(recAafter)
+    }
+
+    // MARK: - All-or-nothing recording protocol
+
+    /// One refusal voids the whole take: stop goes to EVERY target (even the
+    /// one whose ok-ack is already in), and the rig returns to monitoring.
+    func testStartNackAbortsTheWholeTake() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        transport.sentMessages.removeAll()
+
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false,
+                                            error: NSError(domain: "late", code: 1)), from: camB)
+        await controller.waitForIdle()
+
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB],
+                       "the abort stops every target, not just the acked ones")
+        let starting = await controller.startingStateForTesting()
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(starting)
+        XCTAssertNil(recording, "the take is void — back to monitoring")
+        let outB = await controller.captureOutcomeForTesting(camB)
+        XCTAssertEqual(outB, .failed, "the lane that broke the take is badged")
+        let recA = await controller.isRecordingForTesting(camA)
+        XCTAssertFalse(recA)
+        let startTime = await controller.recordingStartTimeForTesting()
+        XCTAssertNil(startTime)
+    }
+
+    func testStartAckTimeoutAbortsTheTake() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.setCaptureAckTimeout(0.1)
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // camB stays silent
+        await controller.waitForIdle()
+
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB])
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording, "silence past the deadline voids the take")
+        let outB = await controller.captureOutcomeForTesting(camB)
+        XCTAssertEqual(outB, .failed)
+    }
+
+    func testTargetDisconnectDuringStartAborts() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+
+        let starting = await controller.startingStateForTesting()
+        XCTAssertNil(starting, "losing a target during the ack window aborts")
+        XCTAssertFalse(sent(transport, RemoteCmd.ScheduledStopRecording.self).isEmpty)
+        let outB = await controller.captureOutcomeForTesting(camB)
+        XCTAssertEqual(outB, .failed)
+    }
+
+    /// A stale ack from an aborted take must not leak into a newer one.
+    func testStaleStartAckFromAbortedTakeIsIgnored() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let firstID = await controller.startingStateForTesting()!.id
+        controller.startRecording() // second tap = back out of the take
+        await controller.waitForIdle()
+        controller.startRecording() // arm a fresh take
+        await controller.waitForIdle()
+
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: firstID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: firstID, isStop: false), from: camB)
+        await controller.waitForIdle()
+
+        let starting = await controller.startingStateForTesting()
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertEqual(starting?.remaining, 2, "old take's acks count for nothing")
+        XCTAssertNil(recording)
+    }
+
+    /// All-or-nothing governs FORMING a take, never a rolling one: once every
+    /// target has committed, a camera dropping degrades its own lane and
+    /// nothing else — the rig keeps recording, and the eventual stop still
+    /// addresses the missing lane so its clip ends properly on reconnect.
+    func testEstablishedRecordingSurvivesACameraDrop() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNotNil(recording, "the rig keeps rolling through a lane drop")
+        XCTAssertTrue(sent(transport, RemoteCmd.ScheduledStopRecording.self).isEmpty,
+                      "no abort — nothing is stopped")
+        let statusB = await controller.statusForTesting(camB)
+        XCTAssertEqual(statusB, .reconnecting)
+        let recB = await controller.isRecordingForTesting(camB)
+        XCTAssertTrue(recB, "the dropped camera is still rolling on its own")
+
+        // Stop still addresses BOTH rolling lanes, present or not, so the
+        // missing camera's clip is ended the moment it can hear us.
+        controller.stopRecording()
+        await controller.waitForIdle()
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB])
+    }
+
+    /// Stopping never waits on a camera the director already knows is gone:
+    /// the dead lane settles at stop time and the rig resolves on the live
+    /// lanes' acks alone — no 3s timeout ride.
+    func testStopDoesNotWaitForADeadCamerasAck() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camB)
+        await controller.waitForIdle()
+
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.stopRecording()
+        await controller.waitForIdle()
+        // The stop still goes to the dead lane (its camera ends the clip the
+        // moment it reconnects), but only the live lane is awaited.
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB])
+        let stopping = await controller.stoppingStateForTesting()
+        XCTAssertEqual(stopping?.remaining, 1, "only the live camera is awaited")
+
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: stopping!.id, isStop: true), from: camA)
+        await controller.waitForIdle()
+        let after = await controller.stoppingStateForTesting()
+        XCTAssertNil(after, "resolved on the live ack alone — no timeout ride")
+    }
+
+    /// A camera dying inside the stop-ack window settles immediately too.
+    func testCameraDyingDuringStopWindowSettlesImmediately() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camB)
+        await controller.waitForIdle()
+
+        controller.stopRecording()
+        await controller.waitForIdle()
+        let stopID = await controller.stoppingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: stopID, isStop: true), from: camA)
+        controller.peerDidDisconnect(camB) // dies inside the window
+        await controller.waitForIdle()
+
+        let stopping = await controller.stoppingStateForTesting()
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(stopping)
+        XCTAssertNil(recording, "back to monitoring without waiting out the timeout")
+    }
+
+    /// Same smartness for photos: a lane dying in the ack window is settled as
+    /// failed on the spot, not waited on.
+    func testCameraDyingDuringPhotoWindowSettlesImmediately() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        let captureID = await controller.captureStateForTesting()!.id
+        controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID), from: camA)
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+
+        let capture = await controller.captureStateForTesting()
+        XCTAssertNil(capture, "the shot settles on the live ack + the dead lane")
+        let outB = await controller.captureOutcomeForTesting(camB)
+        XCTAssertEqual(outB, .failed)
+    }
+
+    func testStopUnsticksWhenNothingIsRolling() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camB)
+        await controller.waitForIdle()
+
+        // Both rolling lanes get torn out from under the take.
+        controller.removeCamera(camA)
+        controller.removeCamera(camB)
+        await controller.waitForIdle()
+
+        controller.stopRecording()
+        await controller.waitForIdle()
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording, "stop with nothing rolling resets to monitoring")
+    }
+
+    // MARK: - Locked countdown targets
+
+    /// The countdown plays only on the cameras that will shoot: a lane that
+    /// isn't ready gets neither ticks nor the capture.
+    func testCountdownTicksOnlyToArmedTargets() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: false, offsetMillis: nil)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(2)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        for _ in 0..<2 {
+            await controller.advanceTimerForTesting()
+            await controller.waitForIdle()
+        }
+
+        let ticks = sent(transport, RemoteCmd.TimerCountdown.self)
+        XCTAssertEqual(Set(ticks.flatMap(\.peers)), [camA],
+                       "the non-ready camera never sees a countdown it won't shoot")
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+        XCTAssertEqual(Set(captures.flatMap(\.peers)), [camA])
+    }
+
+    /// A camera that becomes ready mid-countdown is NOT pulled into the armed
+    /// shot — the set was locked when the countdown started.
+    func testLateReadyCameraIsExcludedFromArmedShot() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(2)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        // camB's capabilities arrive while the rig is counting down.
+        controller.didReceiveMessage(capsWith(full4K), from: camB)
+        await controller.waitForIdle()
+        for _ in 0..<2 {
+            await controller.advanceTimerForTesting()
+            await controller.waitForIdle()
+        }
+
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+        XCTAssertEqual(Set(captures.flatMap(\.peers)), [camA],
+                       "the shot fires on the set that was armed, nothing else")
+    }
+
+    func testNothingArmsWithoutAReadyCamera() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.setRigTimer(3)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto() // no lane is ready — no countdown, no ticks
+        await controller.waitForIdle()
+
+        let remaining = await controller.countdownRemainingForTesting()
+        XCTAssertNil(remaining)
+        XCTAssertTrue(sent(transport, RemoteCmd.TimerCountdown.self).isEmpty)
+    }
+
+    /// A target dropping mid-countdown shrinks the set; the shot still fires
+    /// on the rest.
+    func testArmedTargetDropShrinksTheShot() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(2)
+        await controller.waitForIdle()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+        for _ in 0..<2 {
+            await controller.advanceTimerForTesting()
+            await controller.waitForIdle()
+        }
+
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+        XCTAssertEqual(Set(captures.flatMap(\.peers)), [camA])
+
+        // Settle the shot, then re-arm: the last armed camera dropping cancels
+        // the countdown outright.
+        let captureID = await controller.captureStateForTesting()!.id
+        controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID), from: camA)
+        await controller.waitForIdle()
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        let armed = await controller.countdownRemainingForTesting()
+        XCTAssertNotNil(armed)
+        controller.peerDidDisconnect(camA)
+        await controller.waitForIdle()
+        let remaining = await controller.countdownRemainingForTesting()
+        XCTAssertNil(remaining, "an emptied target set cancels the countdown")
+    }
+
+    // MARK: - Purposeful goodbye (EndSession from a camera)
+
+    /// A camera that leaves on purpose is dropped like the 1:1 monitor drops
+    /// it: no reconnect chase. Its later re-appearance in discovery makes it
+    /// an add-camera candidate, never an auto-rejoin.
+    func testCameraGoodbyeRemovesLaneWithoutReconnectChase() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+
+        controller.didReceiveMessage(RemoteCmd.EndSession(), from: camA)
+        await controller.waitForIdle()
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.map(\.peerID), [camB], "the goodbye ends the lane")
+
+        // The transport-level disconnect that follows matches no lane…
+        transport.invitedPeers.removeAll()
+        controller.peerDidDisconnect(camA)
+        await controller.waitForIdle()
+        // …and the camera advertising again is NOT re-invited.
+        controller.browserDidFindPeer(camA)
+        await controller.waitForIdle()
+        XCTAssertTrue(transport.invitedPeers.isEmpty,
+                      "a camera that said goodbye is never chased")
+        let available = await controller.availablePeersForTesting()
+        XCTAssertEqual(available, [camA], "it is offered in the add-camera sheet instead")
+    }
+
+    /// Contrast: a camera that DROPS (no goodbye) is still chased — the
+    /// reconnect flow only ever applies to unintentional losses.
+    func testDroppedCameraIsStillReinvited() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+
+        controller.peerDidDisconnect(camA)
+        await controller.waitForIdle()
+        transport.invitedPeers.removeAll()
+        controller.browserDidFindPeer(camA)
+        await controller.waitForIdle()
+
+        XCTAssertEqual(transport.invitedPeers.map(\.peer), [camA],
+                       "an unintentional drop is re-invited")
+    }
+
+    func testGoodbyeDuringStartAckWindowAbortsTheTake() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.didReceiveMessage(RemoteCmd.EndSession(), from: camB)
+        await controller.waitForIdle()
+
+        let starting = await controller.startingStateForTesting()
+        XCTAssertNil(starting, "a target's goodbye during the ack window voids the take")
+        XCTAssertFalse(sent(transport, RemoteCmd.ScheduledStopRecording.self).isEmpty)
     }
 
     // MARK: - Removal
@@ -585,6 +1088,102 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertFalse(camAstillOK)
     }
 
+    /// The tray is the live intersection of the cameras actually in the rig:
+    /// when the camera that was blocking an option leaves, the option unblocks
+    /// on the same pump turn — no manual refresh, no stale copy anywhere.
+    func testCameraDropRecomputesQualityIntersection() async {
+        let (controller, _, display) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(only1080, heif: false, hdr: false), from: camB)
+        await controller.waitForIdle()
+
+        var rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.videoOptions.first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled,
+                       false, "camB (1080-only) blocks 4K30")
+        XCTAssertFalse(rig.heifAvailable)
+        XCTAssertFalse(rig.hdrAvailable)
+
+        controller.disconnectCamera(camB)
+        await controller.waitForIdle()
+
+        rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.videoOptions.first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled,
+                       true, "with camB gone the intersection is camA alone — 4K30 unblocks")
+        XCTAssertTrue(rig.heifAvailable)
+        XCTAssertTrue(rig.hdrAvailable)
+
+        // And the recomputed snapshot is published to the screen, not just
+        // computable on demand.
+        await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
+        XCTAssertEqual(display.rigSettings?.videoOptions
+            .first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled, true)
+    }
+
+    /// A camera whose version handshake is refused is out of the rig's
+    /// intersection too — its constraints must not linger in the tray.
+    func testVersionRefusedCameraLeavesTheIntersection() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(only1080), from: camB)
+        await controller.waitForIdle()
+        var rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.videoOptions.first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled, false)
+
+        // camB announces an incompatible app major → refused (status .failed).
+        guard let local = PeerAppCompatibility.localVersion else {
+            return XCTFail("the test host must carry a parseable CFBundleShortVersionString")
+        }
+        controller.didReceiveMessage(
+            RemoteCmd.PeerBecameCamera(bundleVersion: 1,
+                                       shortVersion: "\(local.major + 1).0.0",
+                                       platform: "iPhone"),
+            from: camB)
+        await controller.waitForIdle()
+
+        rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.videoOptions.first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled,
+                       true, "a refused camera no longer constrains the rig")
+    }
+
+    /// The re-match badge is derived at render time: changing the rig quality
+    /// to something the lane CAN do clears it with no refresh call anywhere.
+    func testRematchBadgeIsDerivedFromTheActiveQuality() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(only1080), from: camB)
+        await controller.waitForIdle()
+
+        controller.setVideoQuality(resolution: .uhd4k, frameRate: .fps30)
+        await controller.waitForIdle()
+        var flagged = await controller.needsRematchForTesting(camB)
+        XCTAssertTrue(flagged, "a 1080-only camera can't match 4K30")
+
+        controller.setVideoQuality(resolution: .hd1080p, frameRate: .fps30)
+        await controller.waitForIdle()
+        flagged = await controller.needsRematchForTesting(camB)
+        XCTAssertFalse(flagged, "the badge follows the input — nothing to refresh")
+    }
+
+    /// A reconnecting camera restarted its session: its stream tier is
+    /// re-pushed even though the tier didn't change (the send-dedup cache must
+    /// not survive the old session).
+    func testReconnectRepushesTheStreamProfile() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.waitForIdle()
+        let firstPushes = sent(transport, RemoteCmd.SetStreamProfile.self).count
+        XCTAssertGreaterThanOrEqual(firstPushes, 1)
+
+        controller.peerDidDisconnect(camA)
+        controller.peerDidConnect(camA)
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.waitForIdle()
+
+        let pushes = sent(transport, RemoteCmd.SetStreamProfile.self).count
+        XCTAssertGreaterThan(pushes, firstPushes,
+                             "the fresh session gets its tier again — no stale dedup")
+    }
+
     func testRigTimerCountsDownFansOutAndFiresCapture() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         // Seed offsets so the fired capture takes the scheduled path.
@@ -615,6 +1214,84 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertTrue(ticks.contains { $0.value == 0 })
         XCTAssertFalse(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty,
                        "expiry fired the synced capture")
+    }
+
+    // MARK: - Countdown cancel (Dario's repro: cancel raced the timer to zero
+    // and the picture fired anyway)
+
+    /// Tapping the shutter while the rig is counting down cancels the countdown
+    /// — the 1:1 monitor's gesture — instead of restarting it or firing.
+    func testShutterTapDuringCountdownCancelsInsteadOfCapturing() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(3)
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        var remaining = await controller.countdownRemainingForTesting()
+        XCTAssertEqual(remaining, 3)
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto() // second tap = cancel
+        await controller.waitForIdle()
+
+        remaining = await controller.countdownRemainingForTesting()
+        XCTAssertNil(remaining, "the countdown is cancelled, not restarted")
+        // Every camera is told the countdown is off (negative tick clears its
+        // overlay and restores its torch)…
+        let cancels = sent(transport, RemoteCmd.TimerCountdown.self)
+            .compactMap { $0.msg as? RemoteCmd.TimerCountdown }
+            .filter { $0.value < 0 }
+        XCTAssertEqual(cancels.count, 2)
+        // …and nothing is captured, by either the scheduled or fallback path.
+        XCTAssertTrue(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty)
+        XCTAssertTrue(sent(transport, RemoteCmd.TakePic.self).isEmpty)
+        let capture = await controller.captureStateForTesting()
+        XCTAssertNil(capture)
+    }
+
+    func testShutterTapDuringRecordCountdownCancels() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(3)
+        controller.startRecording()
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.startRecording() // second tap = cancel
+        await controller.waitForIdle()
+
+        let remaining = await controller.countdownRemainingForTesting()
+        XCTAssertNil(remaining)
+        XCTAssertTrue(sent(transport, RemoteCmd.ScheduledStartRecording.self).isEmpty)
+        XCTAssertTrue(sent(transport, RemoteCmd.StartRecordingVideo.self).isEmpty)
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording)
+    }
+
+    /// The fast-count-to-zero bug: a tick that was already in flight when its
+    /// countdown was cancelled must be inert — it can neither resurrect the old
+    /// countdown nor advance a newer one.
+    func testStaleTickCannotAdvanceANewerCountdown() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(5)
+        controller.capturePhoto() // arm (generation 1)
+        await controller.waitForIdle()
+        controller.capturePhoto() // cancel (generation 2)
+        await controller.waitForIdle()
+        controller.capturePhoto() // re-arm (generation 3)
+        await controller.waitForIdle()
+
+        controller.tell(MCTimerAdvance(generation: 1)) // the late, stale tick
+        await controller.waitForIdle()
+
+        let remaining = await controller.countdownRemainingForTesting()
+        XCTAssertEqual(remaining, 5, "a stale tick must not advance the countdown")
+        XCTAssertTrue(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty)
     }
 
     func testSetPhotoQualityFansOut() async {
@@ -687,6 +1364,302 @@ final class MulticamControllerTests: XCTestCase {
             frontCamera: nil, backCamera: nil,
             currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
             supportsMulticam: true, error: nil)
+    }
+
+    /// Capabilities advertising both a front and a back camera, or only the
+    /// back (`bothPositions: false`) — the flip button's enable condition.
+    private func flipCaps(bothPositions: Bool) -> RemoteCmd.CameraCapabilitiesResp {
+        let lens = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
+            zoomCapabilities: [:], supportedResolutions: [.hd1080p],
+            supportedFrameRates: [.fps30],
+            resolutionFrameRates: [.hd1080p: [.fps30]],
+            supportsHEIF: false, supportsHDR: false)
+        return RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: bothPositions ? lens : nil, backCamera: lens,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true, error: nil)
+    }
+
+    // MARK: - Camera flip (focused peer only)
+
+    func testFlipGoesOnlyToTheFocusedCamera() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(flipCaps(bothPositions: true), from: camA)
+        controller.didReceiveMessage(flipCaps(bothPositions: true), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.flipCamera(camA)
+        await controller.waitForIdle()
+
+        let flips = sent(transport, RemoteCmd.ToggleCamera.self)
+        XCTAssertEqual(flips.map(\.peers), [[camA]],
+                       "framing is per-camera: only the focused peer flips")
+    }
+
+    func testFlipResponseUpdatesOnlyThatLane() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(flipCaps(bothPositions: true), from: camA)
+        controller.didReceiveMessage(flipCaps(bothPositions: true), from: camB)
+        await controller.waitForIdle()
+
+        // The camera flipped to a body that exposes only its back camera; its
+        // refreshed capabilities ride the response.
+        controller.didReceiveMessage(
+            RemoteCmd.ToggleCameraResp(cameraCapabilities: flipCaps(bothPositions: false),
+                                       error: nil), from: camA)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        let laneA = lanes.first { $0.peerID == camA }
+        let laneB = lanes.first { $0.peerID == camB }
+        XCTAssertEqual(laneA?.canFlipCamera, false, "only the responder's lane updates")
+        XCTAssertEqual(laneB?.canFlipCamera, true, "the other lane is untouched")
+    }
+
+    /// The flip is ungated by advertised positions (mirroring the 1:1 monitor):
+    /// a linked focused camera is always flipped, and the camera itself decides
+    /// whether it does anything. It is only suppressed when no camera is linked.
+    func testFlipSendsWheneverTheFocusedCameraIsLinked() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(flipCaps(bothPositions: false), from: camA)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.flipCamera(camA)
+        await controller.waitForIdle()
+
+        XCTAssertEqual(sent(transport, RemoteCmd.ToggleCamera.self).map(\.peers), [[camA]],
+                      "a linked camera is flipped regardless of advertised positions")
+    }
+
+    func testFlipIsSuppressedWhenTheFocusedCameraIsNotLinked() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.setFocusedPeer(camA)
+        // The focused camera drops → its lane goes .reconnecting, not .linked.
+        transport.connectedPeers = [camB]
+        controller.peerDidDisconnect(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.flipCamera(camA)
+        await controller.waitForIdle()
+
+        XCTAssertTrue(sent(transport, RemoteCmd.ToggleCamera.self).isEmpty,
+                      "a focused camera that is reconnecting is never flipped")
+    }
+
+    // MARK: - Zoom (focused peer only)
+
+    /// Capabilities whose back camera carries a real zoom range, so the lane's
+    /// pill has something to draw.
+    private func zoomCaps(maxZoom: CGFloat, wideAngle: CGFloat = 1.0) -> RemoteCmd.CameraCapabilitiesResp {
+        let info = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
+            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: wideAngle, maxZoom: maxZoom)],
+            supportedResolutions: [.hd1080p], supportedFrameRates: [.fps30],
+            resolutionFrameRates: [.hd1080p: [.fps30]], supportsHEIF: false, supportsHDR: false,
+            zoomStops: [wideAngle, wideAngle * 2], wideAngleZoomFactor: wideAngle)
+        return RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: info,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: wideAngle,
+            supportsMulticam: true, error: nil)
+    }
+
+    func testZoomGoesOnlyToTheFocusedCamera() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(zoomCaps(maxZoom: 8), from: camA)
+        controller.didReceiveMessage(zoomCaps(maxZoom: 8), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.setZoom(3.0, on: camA)
+        await controller.waitForIdle()
+
+        let zooms = sent(transport, RemoteCmd.SetZoom.self)
+        XCTAssertEqual(zooms.map(\.peers), [[camA]], "zoom drives only the focused camera")
+    }
+
+    func testZoomResponseUpdatesOnlyThatLanesRange() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(zoomCaps(maxZoom: 8, wideAngle: 1.0), from: camA)
+        controller.didReceiveMessage(zoomCaps(maxZoom: 8, wideAngle: 1.0), from: camB)
+        await controller.waitForIdle()
+
+        controller.didReceiveMessage(
+            RemoteCmd.SetZoomResp(zoomFactor: 4.0, currentLens: .wideAngle,
+                                  zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 6), error: nil),
+            from: camA)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        let a = lanes.first { $0.peerID == camA }
+        let b = lanes.first { $0.peerID == camB }
+        XCTAssertEqual(a?.zoomFactor, 4.0, "the responder's lane tracks the new factor")
+        // Range 1–6 clamps to the 5×wide-angle display ceiling, like the 1:1 monitor.
+        XCTAssertEqual(a?.maxZoomFactor, 5.0, "its ceiling is capped at 5×wide")
+        XCTAssertEqual(b?.zoomFactor, 1.0, "the other lane is untouched")
+    }
+
+    // MARK: - Tap-to-focus (focused peer only)
+
+    private func focusCaps(supportsFocus: Bool) -> RemoteCmd.CameraCapabilitiesResp {
+        let info = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
+            zoomCapabilities: [:], supportedResolutions: [.hd1080p],
+            supportedFrameRates: [.fps30], resolutionFrameRates: [.hd1080p: [.fps30]],
+            supportsHEIF: false, supportsHDR: false)
+        return RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: info,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsFocusPoint: supportsFocus, supportsMulticam: true, error: nil)
+    }
+
+    /// The lane snapshot projects `supportsFocusPoint`, so the viewfinder can
+    /// withhold the focus tap (no reticle, no paywall) for a camera that can't.
+    func testLaneProjectsSupportsFocusPoint() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(focusCaps(supportsFocus: true), from: camA)
+        controller.didReceiveMessage(focusCaps(supportsFocus: false), from: camB)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.supportsFocusPoint, true)
+        XCTAssertEqual(lanes.first { $0.peerID == camB }?.supportsFocusPoint, false)
+    }
+
+    func testFocusGoesOnlyToTheFocusedCameraWithMappedCoords() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(focusCaps(supportsFocus: true), from: camA)
+        controller.didReceiveMessage(focusCaps(supportsFocus: true), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.focusCamera(camA, x: 0.25, y: 0.75)
+        await controller.waitForIdle()
+
+        let focuses = sent(transport, RemoteCmd.FocusAtPoint.self)
+        XCTAssertEqual(focuses.map(\.peers), [[camA]],
+                       "tap-to-focus drives only the focused camera")
+        let focus = focuses.first?.msg as? RemoteCmd.FocusAtPoint
+        XCTAssertEqual(focus?.x, 0.25)
+        XCTAssertEqual(focus?.y, 0.75)
+    }
+
+    func testFocusIsDroppedWhenTheFocusedPeerLacksSupport() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(focusCaps(supportsFocus: false), from: camA)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.focusCamera(camA, x: 0.5, y: 0.5)
+        await controller.waitForIdle()
+
+        XCTAssertTrue(sent(transport, RemoteCmd.FocusAtPoint.self).isEmpty,
+                      "a peer that never advertised focus support is never sent the command")
+    }
+
+    func testTorchTogglesOnlyTheFocusedLaneOptimistically() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.toggleTorch(on: camA)
+        await controller.waitForIdle()
+
+        XCTAssertEqual(sent(transport, RemoteCmd.ToggleTorch.self).map(\.peers), [[camA]],
+                       "torch drives only the focused camera")
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.torchOn, true,
+                       "the focused lane reflects the tap immediately")
+        XCTAssertEqual(lanes.first { $0.peerID == camB }?.torchOn, false,
+                       "no other lane is touched")
+    }
+
+    // MARK: - Add-camera list name resolution (shared with the scanner)
+
+    /// A key-hashed peer, re-deliverable with an upgraded name (same identity).
+    private func hashedPeer(_ tag: UInt8, name: String) -> MCPeerID {
+        PeerID(keyHash: Data([0x12, 0x20]) + Data(repeating: tag, count: 32), displayName: name)
+    }
+
+    func testAvailableListUpgradesReDeliveredPeerName() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        // Found first as a hash placeholder, then re-delivered resolved.
+        controller.browserDidFindPeer(hashedPeer(0xCD, name: "QmQqML3n…"))
+        await controller.waitForIdle()
+        controller.browserDidFindPeer(hashedPeer(0xCD, name: "iPad"))
+        await controller.waitForIdle()
+
+        let available = await controller.availablePeersForTesting()
+        XCTAssertEqual(available.count, 1, "the re-delivery upgrades in place, not a duplicate")
+        XCTAssertEqual(available.first?.displayName, "iPad",
+                       "the sheet shows the resolved name, not the hash placeholder")
+    }
+
+    func testCameraAddedMidSessionGetsResolvedLaneLabel() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        controller.browserDidFindPeer(hashedPeer(0xEF, name: "Qm7z…"))
+        await controller.waitForIdle()
+        let resolved = hashedPeer(0xEF, name: "iPhone 15")
+        controller.browserDidFindPeer(resolved)
+        await controller.waitForIdle()
+
+        // Invite it from the sheet and let it connect.
+        controller.inviteCamera(resolved)
+        transport.connectedPeers = [camA, resolved]
+        controller.peerDidConnect(resolved)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == resolved }?.displayName, "iPhone 15",
+                       "the mid-session lane label is the resolved name")
+    }
+
+    // MARK: - Per-camera disconnect
+
+    func testDisconnectSendsEndSessionToOnlyThatCameraAndRemovesItsLane() async {
+        let (controller, transport, display) = await makeController(peers: [camA, camB])
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.disconnectCamera(camA)
+        await controller.waitForIdle()
+
+        let goodbyes = sent(transport, RemoteCmd.EndSession.self)
+        XCTAssertEqual(goodbyes.map(\.peers), [[camA]],
+                       "the goodbye addresses only the disconnected camera")
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.map(\.peerID), [camB], "its lane is dropped")
+        // Focus moved off the removed camera to the remaining one.
+        let focused = await controller.focusedPeerForTesting()
+        XCTAssertEqual(focused, camB)
+        XCTAssertFalse(display.didExit, "the rig still has a camera, so it stays open")
+    }
+
+    func testDisconnectingTheLastCameraExitsTheDirector() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        await controller.waitForIdle()
+
+        controller.disconnectCamera(camA)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        XCTAssertTrue(lanes.isEmpty)
+        // exitMulticam() is posted to the main queue; wait for that hop before
+        // reading the display flag (waitForIdle only drains the actor inbox).
+        for _ in 0..<100 where !display.didExit { try? await Task.sleep(nanoseconds: 2_000_000) }
+        XCTAssertTrue(display.didExit, "disconnecting the last camera leaves the director")
     }
 
     private func sendFrame() -> RemoteCmd.SendFrame {

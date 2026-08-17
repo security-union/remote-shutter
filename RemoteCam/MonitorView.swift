@@ -12,7 +12,6 @@ import Combine
 /// whichever edge the screen's *shape* makes cheap — see `MonitorChromeLayout`.
 struct MonitorView: View {
     @ObservedObject var viewModel: MonitorViewModel
-    @State private var zoomAtGestureStart: CGFloat?
     /// Peer-link state; the reconnect overlay is a function of it.
     @ObservedObject var peerLink: PeerLinkStatus = .shared
 
@@ -38,11 +37,6 @@ struct MonitorView: View {
     /// Toggles the connected camera's local-preview mode (on ⇄ standby).
     let onToggleCameraStandby: () -> Void
 
-    /// The live focus reticle (view-space position + identity to re-trigger the
-    /// animation on each tap). Local UI only — no round-trip to the camera.
-    @State private var focusReticle: FocusReticle?
-    /// The preview area's measured size, for tap → normalized-image mapping.
-    @State private var previewSize: CGSize = .zero
     @State private var isTrayOpen = false
 
     var body: some View {
@@ -75,7 +69,6 @@ struct MonitorView: View {
         // already draw their own shape. Not .plain — that also drops the
         // style's hit region, leaving material fills unclickable.
         .buttonStyle(.borderless)
-        .onPreferenceChange(PreviewSizePreferenceKey.self) { previewSize = $0 }
         .statusBarHidden()
     }
 
@@ -123,61 +116,21 @@ struct MonitorView: View {
                 .opacity(viewModel.isPreviewStale ? 0.65 : 1)
                 .animation(.easeInOut(duration: 0.25), value: viewModel.isPreviewStale)
 
-            // Preview gestures sit BELOW the interactive chrome, so a tap on a
-            // control is never stolen as a focus tap. Double tap toggles the
-            // camera; a single tap focuses (simultaneous so the reticle is
-            // instant — an exclusive gesture would stall it for the double-tap
-            // window); pinch zooms. The translation guard keeps drags and
-            // pinches from focusing.
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture(count: 2) {
-                    onToggleCamera()
-                }
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0)
-                        .onEnded { value in
-                            if abs(value.translation.width) < 10, abs(value.translation.height) < 10 {
-                                handleFocusTap(at: value.location)
-                            }
-                        }
-                )
-                .simultaneousGesture(
-                    MagnificationGesture()
-                        .onChanged { value in
-                            if zoomAtGestureStart == nil {
-                                zoomAtGestureStart = viewModel.currentZoomFactor
-                            }
-                            let start = zoomAtGestureStart!
-                            onZoomChange(viewModel.zoomScale.pinched(from: start, magnification: value))
-                        }
-                        .onEnded { _ in
-                            zoomAtGestureStart = nil
-                        }
-                )
-
-            focusReticleOverlay
+            // Gestures (focus tap, double-tap flip, pinch zoom) + reticle, in
+            // the preview's own coordinate space, BELOW the interactive chrome
+            // so a tap on a control is never stolen as a focus tap.
+            ViewfinderGestureLayer(
+                cameraImage: { viewModel.frames.cameraImage },
+                zoomScale: { viewModel.zoomScale },
+                currentZoomFactor: { viewModel.currentZoomFactor },
+                focusEnabled: true,
+                onFocusTap: onFocusTap,
+                onDoubleTap: onToggleCamera,
+                onZoomChange: onZoomChange)
 
             countdownOverlay
         }
-        .background(
-            GeometryReader { geo in
-                Color.clear.preference(key: PreviewSizePreferenceKey.self, value: geo.size)
-            }
-        )
         .ignoresSafeArea(edges: Self.previewBleedEdges)
-    }
-
-    /// The focus reticle, drawn in the preview's coordinate space. Non-interactive
-    /// so it never eats a subsequent tap.
-    @ViewBuilder
-    private var focusReticleOverlay: some View {
-        if let reticle = focusReticle {
-            FocusReticleView()
-                .id(reticle.id)
-                .position(reticle.point)
-                .allowsHitTesting(false)
-        }
     }
 
     /// The self-timer, centered and large. The capture happens across the room:
@@ -198,25 +151,6 @@ struct MonitorView: View {
                 .id(viewModel.timerValue)
                 .transition(.scale(scale: 1.15).combined(with: .opacity))
                 .allowsHitTesting(false)
-        }
-    }
-
-    /// Maps a preview tap into a normalized image point and, if it landed on the
-    /// image (not the letterbox), shows the reticle and forwards it to the camera.
-    private func handleFocusTap(at location: CGPoint) {
-        guard let image = viewModel.frames.cameraImage,
-              let normalized = FocusPointMapping.normalizedImagePoint(
-                tap: location, viewSize: previewSize, imageSize: image.size)
-        else { return }
-        showFocusReticle(at: location)
-        onFocusTap(normalized)
-    }
-
-    private func showFocusReticle(at point: CGPoint) {
-        let reticle = FocusReticle(point: point)
-        focusReticle = reticle
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            if focusReticle?.id == reticle.id { focusReticle = nil }
         }
     }
 
@@ -382,33 +316,23 @@ struct MonitorView: View {
     // MARK: - Mode selector
 
     private var modeSelector: some View {
-        HStack(spacing: 4) {
-            modeButton(title: NSLocalizedString("PHOTO", comment: "capture mode"), mode: .Photo)
-            modeButton(title: NSLocalizedString("VIDEO", comment: "capture mode"), mode: .Video)
-
-            if FeatureFlags.ENABLE_SHORTS_MODE {
-                modeButton(title: NSLocalizedString("SHORTS", comment: "capture mode"), mode: .Shorts)
-            }
-        }
-        .padding(4)
-        .background(Capsule().fill(.ultraThinMaterial))
-        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
-        .disabled(!viewModel.isSegmentedControlEnabled)
+        var modes: [RecordingMode] = [.Photo, .Video]
+        if FeatureFlags.ENABLE_SHORTS_MODE { modes.append(.Shorts) }
+        return CaptureModeSelector(
+            segments: modes.enumerated().map { i, mode in
+                CaptureModeSelector.Segment(
+                    id: i, title: modeTitle(mode),
+                    isActive: viewModel.currentMode == mode,
+                    action: { onModeChange(mode) })
+            },
+            isEnabled: viewModel.isSegmentedControlEnabled)
     }
 
-    private func modeButton(title: String, mode: RecordingMode) -> some View {
-        let isActive = viewModel.currentMode == mode
-        return Button(action: { onModeChange(mode) }) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .tracking(0.5)
-                .foregroundColor(isActive ? AppTheme.accent : .white.opacity(0.75))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(
-                    Capsule().fill(isActive ? Color.white.opacity(0.16) : Color.clear)
-                )
-                .contentShape(Capsule())
+    private func modeTitle(_ mode: RecordingMode) -> String {
+        switch mode {
+        case .Photo: return NSLocalizedString("PHOTO", comment: "capture mode")
+        case .Video: return NSLocalizedString("VIDEO", comment: "capture mode")
+        case .Shorts: return NSLocalizedString("SHORTS", comment: "capture mode")
         }
     }
 
@@ -742,33 +666,16 @@ struct MonitorTrayPanel: View {
     let isSettingsEnabled: Bool
     let onTap: (MonitorTrayItem) -> Void
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
-
     var body: some View {
-        VStack(spacing: 18) {
-            Capsule()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 36, height: 5)
-
-            LazyVGrid(columns: columns, spacing: 20) {
-                ForEach(items, id: \.self) { item in
-                    MonitorTrayTile(item: item,
-                                    value: value(for: item),
-                                    isActive: isActive(item),
-                                    isEnabled: isEnabled(item),
-                                    action: { onTap(item) })
-                }
+        TrayPanelShell {
+            ForEach(items, id: \.self) { item in
+                MonitorTrayTile(item: item,
+                                value: value(for: item),
+                                isActive: isActive(item),
+                                isEnabled: isEnabled(item),
+                                action: { onTap(item) })
             }
         }
-        .padding(.top, 10)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 28)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea(edges: .bottom)
-        )
     }
 
     /// The glyph's payload — each tile shows its own current value, which is
@@ -910,49 +817,6 @@ struct LiveFrameView: View {
                         .foregroundColor(.white.opacity(0.5))
                 )
         }
-    }
-}
-
-// MARK: - Tap to Focus
-
-/// One tap-to-focus reticle: its view-space position plus an identity so a new
-/// tap re-instantiates `FocusReticleView` and replays its animation.
-struct FocusReticle: Equatable {
-    let id = UUID()
-    let point: CGPoint
-}
-
-/// Measures the preview area's size so a tap can be mapped to a normalized image
-/// point. A preference key avoids mutating `@State` during layout.
-private struct PreviewSizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        let next = nextValue()
-        if next != .zero { value = next }
-    }
-}
-
-/// The animated focus square: a yellow reticle that pulses in and fades. Purely
-/// local tap feedback — the focus command travels separately.
-struct FocusReticleView: View {
-    @State private var scale: CGFloat = 1.25
-    @State private var opacity: Double = 0
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 6)
-            .stroke(Color.yellow, lineWidth: 1.5)
-            .frame(width: 78, height: 78)
-            .scaleEffect(scale)
-            .opacity(opacity)
-            .onAppear {
-                withAnimation(.easeOut(duration: 0.12)) {
-                    scale = 1.0
-                    opacity = 1
-                }
-                withAnimation(.easeIn(duration: 0.2).delay(0.35)) {
-                    opacity = 0
-                }
-            }
     }
 }
 
@@ -1154,5 +1018,78 @@ struct MonitorView_Previews: PreviewProvider {
             onToggleCameraStandby: {}
         )
         .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - Shared tray components (used by the 1:1 monitor and the director)
+
+/// The PHOTO / VIDEO (/ SHORTS) segmented capsule shared by the 1:1 monitor and
+/// the director. Each segment carries its own active state and action; the
+/// capsule shell, type, and paddings are fixed so both screens read identically.
+struct CaptureModeSelector: View {
+    struct Segment: Identifiable {
+        let id: Int
+        let title: String
+        let isActive: Bool
+        let action: () -> Void
+    }
+    let segments: [Segment]
+    var isEnabled: Bool = true
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(segments) { seg in
+                Button(action: seg.action) {
+                    Text(seg.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .tracking(0.5)
+                        .foregroundColor(seg.isActive ? AppTheme.accent : .white.opacity(0.75))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(seg.isActive ? Color.white.opacity(0.16) : Color.clear))
+                        .contentShape(Capsule())
+                }
+            }
+        }
+        .padding(4)
+        .background(Capsule().fill(.ultraThinMaterial))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+        .disabled(!isEnabled)
+    }
+}
+
+/// The glass tray shell shared by the 1:1 monitor and the director: a drag
+/// handle above a 3-column tile grid on a rounded `.ultraThinMaterial` panel.
+/// The tiles (`content`) and their cycling logic stay with each screen; only
+/// the shell is shared. An optional `footnote` sits below the grid.
+struct TrayPanelShell<Content: View>: View {
+    var footnote: String? = nil
+    @ViewBuilder let content: () -> Content
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Capsule()
+                .fill(Color.white.opacity(0.3))
+                .frame(width: 36, height: 5)
+
+            LazyVGrid(columns: columns, spacing: 20) { content() }
+
+            if let footnote {
+                Text(footnote)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+            }
+        }
+        .padding(.top, 10)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 28)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 }
