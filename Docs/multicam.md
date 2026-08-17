@@ -80,11 +80,15 @@ MulticamLaneInfo (Sendable value)
 CameraLane (@Published)  →  SwiftUI tile
 ```
 
-Mutations never publish by hand. The controller mutates a `CameraLink` and marks
-the lanes dirty; a single coalescing step turns the current links into
-`[MulticamLaneInfo]` and hands them to the main actor once per pump message. A
-state change can never be "forgotten" on the way to the screen, because
-publishing is a consequence of mutation, not a separate call.
+Mutations never publish by hand. After every pump message the controller
+re-derives each UI snapshot (lanes, shutter state, rig settings, available
+peers) from its state and publishes only the ones whose value changed — one
+coalesced hop to main per message. A state change can never be "forgotten" on
+the way to the screen, because publishing is a diff of derived state, not a
+per-handler call. The rig-settings snapshot in particular is recomputed from
+the live lane set every time, so the tray is always the intersection of the
+cameras actually in the rig — a camera joining, dropping, or being refused
+recomputes it on the same pump turn.
 
 ## Live preview — five hops, four domains
 
