@@ -178,7 +178,7 @@ public class MonitorViewController: UIViewController {
     }
 
     deinit {
-        print("MonitorViewController deinit")
+        logDebug("MonitorViewController deinit")
         self.frameStreamReceiver.invalidate()
         self.timer.cancel()
         self.zoomLabelTimer?.invalidate()

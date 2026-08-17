@@ -451,7 +451,7 @@ public class DeviceScannerViewController: UIViewController {
     }
 
     deinit {
-        print("deinit DeviceScanners")
+        logDebug("deinit DeviceScanners")
         foregroundTask?.cancel()
         networkBrowser?.cancel()
         remoteCamSession.stop()

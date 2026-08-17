@@ -2723,9 +2723,9 @@ public actor SessionCoordinator {
                 creationRequest.addResource(with: .photo, data: data, options: nil)
             }) { (success: Bool, _: Error?) in
                 if success {
-                    print("Saved photo!")
+                    logDebug("Saved photo!")
                 } else {
-                    print("Failed to save photo!")
+                    logWarning("Failed to save photo!")
                 }
             }
         }
@@ -2779,7 +2779,7 @@ public actor SessionCoordinator {
                         showReviewPromptIfAppropriate()
                     }
                 } else {
-                    print("Failed to save photo on monitor!")
+                    logWarning("Failed to save photo on monitor!")
                 }
             }
         }
@@ -2898,7 +2898,7 @@ extension SessionCoordinator: MultipeerServiceDelegate {
     }
 
     public nonisolated func browserDidFail(_ error: Error) {
-        print("Browser failed to start browsing: \(error.localizedDescription)")
+        logWarning("Browser failed to start browsing: \(error.localizedDescription)")
         tell(UICmd.BrowserFailed(error: error))
     }
 

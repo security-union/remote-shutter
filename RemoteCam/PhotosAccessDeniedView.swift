@@ -106,12 +106,12 @@ struct PhotosAccessDeniedView: View {
                     .opacity(canDismiss ? 1.0 : 0.7)
                     
                     Button(action: {
-                        print("📱 DISMISS BUTTON TAPPED - canDismiss: \(canDismiss)")
+                        logDebug("📱 DISMISS BUTTON TAPPED - canDismiss: \(canDismiss)")
                         if canDismiss {
-                            print("📱 Calling onDismiss callback...")
+                            logDebug("📱 Calling onDismiss callback...")
                             onDismiss()
                         } else {
-                            print("📱 Button disabled, not calling onDismiss")
+                            logDebug("📱 Button disabled, not calling onDismiss")
                         }
                     }) {
                         HStack {
@@ -135,7 +135,7 @@ struct PhotosAccessDeniedView: View {
                     .disabled(!canDismiss)
                     .opacity(canDismiss ? 1.0 : 0.7)
                     .onChange(of: canDismiss) { newValue in
-                        print("📱 canDismiss changed to: \(newValue)")
+                        logDebug("📱 canDismiss changed to: \(newValue)")
                     }
                 }
                 .padding(.horizontal, 24)
@@ -144,16 +144,16 @@ struct PhotosAccessDeniedView: View {
         }
         .background(Color(.systemBackground))
         .onAppear {
-            print("📱 PhotosAccessDeniedView appeared")
+            logDebug("📱 PhotosAccessDeniedView appeared")
             // Enable dismissal after a short delay to prevent accidental auto-dismissal
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                print("📱 Setting canDismiss = true")
+                logDebug("📱 Setting canDismiss = true")
                 canDismiss = true
-                print("📱 PhotosAccessDeniedView buttons enabled - canDismiss is now: \(canDismiss)")
+                logDebug("📱 PhotosAccessDeniedView buttons enabled - canDismiss is now: \(canDismiss)")
             }
         }
         .onDisappear {
-            print("📱 PhotosAccessDeniedView disappeared")
+            logDebug("📱 PhotosAccessDeniedView disappeared")
         }
     }
 }
