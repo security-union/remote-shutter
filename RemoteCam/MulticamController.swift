@@ -520,6 +520,18 @@ public actor MulticamController {
             // The fallback (plain StartRecordingVideo) path's ack (no id).
             resolveRecordingAck(from: peer, captureId: nil, isStop: false, success: ack.error == nil)
 
+        case is RemoteCmd.EndSession:
+            // The camera is leaving on purpose — the goodbye ends its lane,
+            // exactly as the 1:1 monitor treats it. Dropped without reconnect:
+            // the transport disconnect that follows matches no lane and starts
+            // no chase, and if the camera advertises again it becomes an
+            // "available" candidate — never auto-rejoined.
+            handleRemoveCamera(peer)
+            if order.isEmpty {
+                let display = display
+                OperationQueue.main.addOperation { display?.exitMulticam() }
+            }
+
         default:
             // Per-camera command responses (zoom/lens/flash/torch acks) update
             // only the focused lane's controls, wired to the UI in a later PR;

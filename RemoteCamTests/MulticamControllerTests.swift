@@ -891,6 +891,64 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertNil(remaining, "an emptied target set cancels the countdown")
     }
 
+    // MARK: - Purposeful goodbye (EndSession from a camera)
+
+    /// A camera that leaves on purpose is dropped like the 1:1 monitor drops
+    /// it: no reconnect chase. Its later re-appearance in discovery makes it
+    /// an add-camera candidate, never an auto-rejoin.
+    func testCameraGoodbyeRemovesLaneWithoutReconnectChase() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+
+        controller.didReceiveMessage(RemoteCmd.EndSession(), from: camA)
+        await controller.waitForIdle()
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.map(\.peerID), [camB], "the goodbye ends the lane")
+
+        // The transport-level disconnect that follows matches no lane…
+        transport.invitedPeers.removeAll()
+        controller.peerDidDisconnect(camA)
+        await controller.waitForIdle()
+        // …and the camera advertising again is NOT re-invited.
+        controller.browserDidFindPeer(camA)
+        await controller.waitForIdle()
+        XCTAssertTrue(transport.invitedPeers.isEmpty,
+                      "a camera that said goodbye is never chased")
+        let available = await controller.availablePeersForTesting()
+        XCTAssertEqual(available, [camA], "it is offered in the add-camera sheet instead")
+    }
+
+    /// Contrast: a camera that DROPS (no goodbye) is still chased — the
+    /// reconnect flow only ever applies to unintentional losses.
+    func testDroppedCameraIsStillReinvited() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+
+        controller.peerDidDisconnect(camA)
+        await controller.waitForIdle()
+        transport.invitedPeers.removeAll()
+        controller.browserDidFindPeer(camA)
+        await controller.waitForIdle()
+
+        XCTAssertEqual(transport.invitedPeers.map(\.peer), [camA],
+                       "an unintentional drop is re-invited")
+    }
+
+    func testGoodbyeDuringStartAckWindowAbortsTheTake() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.didReceiveMessage(RemoteCmd.EndSession(), from: camB)
+        await controller.waitForIdle()
+
+        let starting = await controller.startingStateForTesting()
+        XCTAssertNil(starting, "a target's goodbye during the ack window voids the take")
+        XCTAssertFalse(sent(transport, RemoteCmd.ScheduledStopRecording.self).isEmpty)
+    }
+
     // MARK: - Removal
 
     func testRemoveCameraDropsTheLaneAndRefocuses() async {
