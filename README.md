@@ -44,3 +44,13 @@ When you first open the app the phone will start searching for devices to connec
 2. Choose which role the device has (camera or remote)
 3. Set up & take pictures!
 ---
+
+### License
+---
+Remote Shutter is licensed under the [GNU GPL v3](License.txt).
+
+You are welcome to fork it, build it for your own devices, and maintain your
+own version. Note that per the FSF's long-standing position, the App Store's
+distribution terms are incompatible with the GPL — so forks cannot be
+redistributed through the App Store. The official App Store release is
+published by Security Union, which holds the copyright.
