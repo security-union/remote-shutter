@@ -36,6 +36,8 @@ struct MulticamView: View {
     let onSetHDR: (Bool) -> Void
     /// Rig standby: blank (or wake) every supporting camera's own preview.
     let onSetStandby: (Bool) -> Void
+    /// Open the app's Settings sheet (purchases, restore, preferences).
+    let onOpenSettings: () -> Void
     /// Retry a lane's failed footage collection.
     let onRetryCollection: (CameraLane) -> Void
     /// Flip the focused camera front/back (per-camera framing).
@@ -116,7 +118,13 @@ struct MulticamView: View {
                          onAutomaticVideoQuality: onAutomaticVideoQuality,
                          onSetPhotoFormat: onSetPhotoFormat,
                          onSetHDR: onSetHDR,
-                         onSetStandby: onSetStandby)
+                         onSetStandby: onSetStandby,
+                         // Close the tray first, as the 1:1 tray does — the
+                         // sheet returns to a clean viewfinder.
+                         onOpenSettings: {
+                             viewModel.showingRigTray = false
+                             onOpenSettings()
+                         })
                 .transition(.move(edge: .bottom))
         }
     }
@@ -702,6 +710,8 @@ struct RigTrayPanel: View {
     let onSetHDR: (Bool) -> Void
     /// Rig standby: blank (or wake) every supporting camera's own preview.
     let onSetStandby: (Bool) -> Void
+    /// Open the app's Settings sheet (purchases, restore, preferences).
+    let onOpenSettings: () -> Void
 
     private let timerStops = [0, 3, 5, 10, 20]
 
@@ -726,6 +736,9 @@ struct RigTrayPanel: View {
                             isActive: settings.standbyOn,
                             isEnabled: settings.standbyAvailable,
                             action: { onSetStandby(!settings.standbyOn) })
+            MonitorTrayTile(item: .settings, value: nil,
+                            isActive: false, isEnabled: true,
+                            action: onOpenSettings)
         }
     }
 

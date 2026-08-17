@@ -82,6 +82,10 @@ public final class MulticamViewController: UIViewController {
                     hdr: on ? .on : .off)
             },
             onSetStandby: { [weak self] on in self?.controller.setRigStandby(on) },
+            onOpenSettings: { [weak self] in
+                logInfo("director: settings opened")
+                self?.showPaywall()
+            },
             onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) },
             onFlipCamera: { [weak self] lane in self?.controller.flipCamera(lane.peerID) },
             onToggleTorch: { [weak self] lane in self?.controller.toggleTorch(on: lane.peerID) },
