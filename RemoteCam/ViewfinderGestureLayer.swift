@@ -25,9 +25,11 @@ struct ViewfinderGestureLayer: View {
     /// Read at tap time: the live frame whose pixel size maps the tap into
     /// normalized image space (nil while no frame has arrived — taps ignored).
     let cameraImage: () -> UIImage?
-    /// The camera's zoom model, for pinch (same values the zoom pill uses).
-    let zoomScale: ZoomScale
-    let currentZoomFactor: CGFloat
+    /// Read at gesture time (not captured at render), so a pinch always starts
+    /// from the camera's current factor and scale — the same values the zoom
+    /// pill uses.
+    let zoomScale: () -> ZoomScale
+    let currentZoomFactor: () -> CGFloat
     /// Whether single-tap focus is offered at all. The director turns this off
     /// when the focused camera can't focus at a point, so the user gets no
     /// reticle promising something the camera won't do — and a free user isn't
@@ -66,10 +68,10 @@ struct ViewfinderGestureLayer: View {
                     MagnificationGesture()
                         .onChanged { value in
                             if zoomAtGestureStart == nil {
-                                zoomAtGestureStart = currentZoomFactor
+                                zoomAtGestureStart = currentZoomFactor()
                             }
                             let start = zoomAtGestureStart!
-                            onZoomChange(zoomScale.pinched(from: start, magnification: value))
+                            onZoomChange(zoomScale().pinched(from: start, magnification: value))
                         }
                         .onEnded { _ in
                             zoomAtGestureStart = nil

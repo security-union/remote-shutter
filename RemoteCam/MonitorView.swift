@@ -121,8 +121,8 @@ struct MonitorView: View {
             // so a tap on a control is never stolen as a focus tap.
             ViewfinderGestureLayer(
                 cameraImage: { viewModel.frames.cameraImage },
-                zoomScale: viewModel.zoomScale,
-                currentZoomFactor: viewModel.currentZoomFactor,
+                zoomScale: { viewModel.zoomScale },
+                currentZoomFactor: { viewModel.currentZoomFactor },
                 focusEnabled: true,
                 onFocusTap: onFocusTap,
                 onDoubleTap: onToggleCamera,

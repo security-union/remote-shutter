@@ -337,8 +337,8 @@ struct MulticamView: View {
                 LiveFrameView(frames: focused.frames, aspectRatio: .sixteenNine)
                 ViewfinderGestureLayer(
                     cameraImage: { focused.frames.cameraImage },
-                    zoomScale: focused.zoomScale,
-                    currentZoomFactor: focused.zoomFactor,
+                    zoomScale: { focused.zoomScale },
+                    currentZoomFactor: { focused.zoomFactor },
                     focusEnabled: focused.supportsFocusPoint,
                     onFocusTap: onFocusTap,
                     onDoubleTap: onToggleFocusedCamera,
