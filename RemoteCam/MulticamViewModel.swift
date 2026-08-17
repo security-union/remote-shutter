@@ -44,6 +44,7 @@ final class CameraLane: ObservableObject, Identifiable {
     }
     var torchOn: Bool { info.torchOn }
     var flashOn: Bool { info.flashOn }
+    var hasTorch: Bool { info.hasTorch }
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -110,6 +111,14 @@ final class MulticamViewModel: ObservableObject {
     var focusedFlashEnabled: Bool { focusedControlState.flashEnabled }
     var focusedTorchOn: Bool { focusedLane?.torchOn ?? false }
     var focusedFlashOn: Bool { focusedLane?.flashOn ?? false }
+
+    /// The torch glyph is offered only in focus mode (the control drives the
+    /// focused camera — in the grid there is no "current" camera to drive) and
+    /// only when that camera's current device actually has a torch (front
+    /// cameras don't; capabilities absent reads as no torch).
+    var showsTorchButton: Bool {
+        displayMode == .focus && (focusedLane?.hasTorch ?? false)
+    }
 
     /// The focused camera's zoom scale and current factor for the pill; and
     /// whether the pill should show at all (the scale collapses to a single

@@ -25,6 +25,7 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
     @Published var enableTorch = PurchaseItem(id: enableTorchPID, title: "", price: "", isPurchased: false)
     @Published var enableVideo = PurchaseItem(id: enableVideoOnlyPID, title: "", price: "", isPurchased: false)
     @Published var tapToFocus = PurchaseItem(id: tapToFocusPID, title: "", price: "", isPurchased: false)
+    @Published var sixCameras = PurchaseItem(id: sixCamerasPID, title: "", price: "", isPurchased: false)
     /// True once the StoreKit product fetch has completed (success or not), so
     /// the paywall can swap skeleton rows for real names/prices.
     @Published var productsLoaded = false
@@ -135,6 +136,10 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
                 tapToFocus.title = product.displayName
                 tapToFocus.price = product.displayPrice
                 tapToFocus.isPurchased = store.hasTapToFocusFeature()
+            case sixCamerasPID:
+                sixCameras.title = product.displayName
+                sixCameras.price = product.displayPrice
+                sixCameras.isPurchased = store.hasSixCamerasFeature()
             case proMonthlyPID:
                 proSubscriptionMonthly.title = product.displayName
                 proSubscriptionMonthly.price = product.displayPrice
@@ -160,6 +165,7 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
         enableTorch.isPurchased = store.hasTorchFeature()
         enableVideo.isPurchased = store.hasVideoRecordingFeature()
         tapToFocus.isPurchased = store.hasTapToFocusFeature()
+        sixCameras.isPurchased = store.hasSixCamerasFeature()
     }
 
 }

@@ -28,6 +28,15 @@ enum MultiCamChrome {
         return max(1, Int(ceil(Double(cameraCount).squareRoot())))
     }
 
+    /// Rows for the grid at `gridColumnCount` columns — with the columns this
+    /// bounds the wall to the viewport: every cell's height is viewport/rows,
+    /// so the grid never outgrows the window.
+    static func gridRowCount(cameraCount: Int) -> Int {
+        guard cameraCount > 1 else { return 1 }
+        let columns = gridColumnCount(cameraCount: cameraCount)
+        return Int(ceil(Double(cameraCount) / Double(columns)))
+    }
+
     /// The grid toggle is offered only when there is more than one camera —
     /// with a single camera the focus view already is the whole screen.
     static func showsGridToggle(cameraCount: Int) -> Bool {

@@ -69,6 +69,19 @@ final class MulticamControllerTests: XCTestCase {
         transport.sentMessages.filter { $0.msg is T }
     }
 
+    /// Pump the main run loop until `condition` holds (or ~1s passes) — the
+    /// controller publishes to the display via a main-queue hop whose timing
+    /// varies under suite load, so fixed sleeps flake.
+    private func pumpMainUntil(_ condition: @escaping () -> Bool) async {
+        for _ in 0..<50 {
+            let done = await MainActor.run { () -> Bool in
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02))
+                return condition()
+            }
+            if done { return }
+        }
+    }
+
     // MARK: - Handshake
 
     func testInstallSeedsLaneAndHandshakesEveryCamera() async {
@@ -997,9 +1010,11 @@ final class MulticamControllerTests: XCTestCase {
 
     /// Caps whose current (back) camera advertises a resolution/fps matrix.
     private func capsWith(_ matrix: [VideoResolution: [VideoFrameRate]],
-                          heif: Bool = true, hdr: Bool = true) -> RemoteCmd.CameraCapabilitiesResp {
+                          heif: Bool = true, hdr: Bool = true,
+                          torch: Bool = true,
+                          previewMode: Bool = false) -> RemoteCmd.CameraCapabilitiesResp {
         let info = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: torch,
             zoomCapabilities: [:],
             supportedResolutions: Array(matrix.keys),
             supportedFrameRates: Array(Set(matrix.values.flatMap { $0 })),
@@ -1007,12 +1022,54 @@ final class MulticamControllerTests: XCTestCase {
         return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: info,
             currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsPreviewMode: previewMode,
             supportsMulticam: true, error: nil)
     }
 
     private let full4K: [VideoResolution: [VideoFrameRate]] =
         [.uhd4k: [.fps30, .fps60], .hd1080p: [.fps30, .fps60]]
     private let only1080: [VideoResolution: [VideoFrameRate]] = [.hd1080p: [.fps30]]
+
+    /// Rig standby goes only to cameras that advertised preview-mode support,
+    /// surfaces in the tray snapshot, and is applied to a late joiner so the
+    /// whole rig ends up in the commanded mode.
+    func testRigStandbyFansOutToSupportingCamerasAndLateJoiners() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K, previewMode: true), from: camA)
+        controller.didReceiveMessage(capsWith(only1080, previewMode: false), from: camB)
+        await controller.waitForIdle()
+
+        var rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertTrue(rig.standbyAvailable, "one supporting camera offers the tile")
+        XCTAssertFalse(rig.standbyOn)
+
+        transport.sentMessages.removeAll()
+        controller.setRigStandby(true)
+        await controller.waitForIdle()
+
+        let sends = sent(transport, RemoteCmd.SetCameraPreviewMode.self)
+        XCTAssertEqual(sends.flatMap(\.peers), [camA], "only the supporting camera is commanded")
+        XCTAssertEqual((sends.first?.msg as? RemoteCmd.SetCameraPreviewMode)?.mode, .standby)
+        rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertTrue(rig.standbyOn)
+
+        // camB re-advertises with support (device switch / update) while the
+        // rig is in standby — it is put there too.
+        transport.sentMessages.removeAll()
+        controller.didReceiveMessage(capsWith(only1080, previewMode: true), from: camB)
+        await controller.waitForIdle()
+        let lateSends = sent(transport, RemoteCmd.SetCameraPreviewMode.self)
+        XCTAssertEqual(lateSends.flatMap(\.peers), [camB])
+        XCTAssertEqual((lateSends.first?.msg as? RemoteCmd.SetCameraPreviewMode)?.mode, .standby)
+
+        // Waking the rig reaches every supporter.
+        transport.sentMessages.removeAll()
+        controller.setRigStandby(false)
+        await controller.waitForIdle()
+        let wake = sent(transport, RemoteCmd.SetCameraPreviewMode.self)
+        XCTAssertEqual(Set(wake.flatMap(\.peers)), [camA, camB])
+        XCTAssertTrue(wake.allSatisfy { ($0.msg as? RemoteCmd.SetCameraPreviewMode)?.mode == .on })
+    }
 
     func testSetVideoQualityFansOutToEveryLane() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
@@ -1117,6 +1174,122 @@ final class MulticamControllerTests: XCTestCase {
         await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
         XCTAssertEqual(display.rigSettings?.videoOptions
             .first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled, true)
+    }
+
+    /// The exact first-render race: the screen is wired (and has rendered with
+    /// no capabilities → torch hidden) BEFORE the camera's caps arrive. The
+    /// caps must push a fresh lane snapshot to the display on the main queue,
+    /// so the controls re-render with the torch.
+    func testCapsArrivingAfterDisplayRepublishLanesToTheScreen() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        // Drain the install-time publish: the screen has rendered torchless.
+        await pumpMainUntil { !display.lastLanes.isEmpty }
+        XCTAssertEqual(display.lastLanes.first?.hasTorch, false,
+                       "before caps the lane must read torchless")
+
+        // Caps arrive after that first render.
+        controller.didReceiveMessage(capsWith(full4K, torch: true), from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { display.lastLanes.first?.hasTorch == true }
+
+        XCTAssertEqual(display.lastLanes.first?.hasTorch, true,
+                       "caps must republish the lanes so the torch appears")
+    }
+
+    /// The opposite order — caps land while no display is wired yet (the
+    /// scanner installed the controller before the screen existed). Wiring the
+    /// display must deliver the complete current state, torch included, not
+    /// just future diffs.
+    func testCapsArrivingBeforeDisplayAreDeliveredOnWiring() async {
+        let controller = MulticamController()
+        let transport = FakeMultipeerService()
+        transport.sendResult = true
+        transport.connectedPeers = [camA]
+        await controller.install(transport: transport, initialPeers: [camA])
+        controller.didReceiveMessage(capsWith(full4K, torch: true), from: camA)
+        await controller.waitForIdle()
+
+        let display = FakeMulticamDisplay()
+        await controller.setDisplay(display)
+        await controller.waitForIdle()
+        await pumpMainUntil { display.lastLanes.first?.hasTorch == true }
+
+        XCTAssertEqual(display.lastLanes.first?.hasTorch, true,
+                       "a late-wired screen must receive the caps-bearing lanes")
+    }
+
+    /// Stormo first reports a peer under a hash-placeholder name and re-delivers
+    /// it once the name resolves; identity is the key-hash, so the upgraded list
+    /// compares equal under MCPeerID == — the publish diff must still push it,
+    /// or the add-camera sheet shows "QmTQHeFE…" forever.
+    func testAvailablePeerNameUpgradeReachesTheSheet() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        let hashed = { (name: String) in
+            PeerID(keyHash: Data([0x12, 0x20]) + Data(repeating: 0x77, count: 32),
+                   displayName: name)
+        }
+        controller.browserDidFindPeer(hashed("QmTQHeFE…"))
+        await controller.waitForIdle()
+        await pumpMainUntil { display.availablePeers.map(\.displayName) == ["QmTQHeFE…"] }
+        XCTAssertEqual(display.availablePeers.map(\.displayName), ["QmTQHeFE…"])
+
+        controller.browserDidFindPeer(hashed("Dario's iPhone"))
+        await controller.waitForIdle()
+        await pumpMainUntil { display.availablePeers.map(\.displayName) == ["Dario's iPhone"] }
+        XCTAssertEqual(display.availablePeers.map(\.displayName), ["Dario's iPhone"],
+                       "the resolved name must be republished to the sheet")
+    }
+
+    /// A one-shot capability request can miss (the camera's capture session
+    /// may not be ready, and its reply ladder gives up after ~3s): the
+    /// director must keep re-asking until capabilities actually arrive, then
+    /// stop.
+    func testDirectorReRequestsCapabilitiesUntilTheyArrive() async {
+        let controller = MulticamController()
+        let transport = FakeMultipeerService()
+        transport.sendResult = true
+        transport.connectedPeers = [camA]
+        await controller.setCapsRetryDelay(0.05)
+        await controller.install(transport: transport, initialPeers: [camA])
+        await controller.waitForIdle()
+
+        // No caps answer → the director keeps asking.
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        await controller.waitForIdle()
+        let whileMissing = sent(transport, RemoteCmd.RequestCameraCapabilities.self).count
+        XCTAssertGreaterThanOrEqual(whileMissing, 2, "must re-ask while capabilities are missing")
+
+        // Caps land → the loop stops (a leftover tick self-guards and re-sends
+        // nothing).
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        await controller.waitForIdle()
+        let atCaps = sent(transport, RemoteCmd.RequestCameraCapabilities.self).count
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        await controller.waitForIdle()
+        let after = sent(transport, RemoteCmd.RequestCameraCapabilities.self).count
+        XCTAssertEqual(after, atCaps, "capabilities arrived — the retry loop must stop")
+    }
+
+    /// Each lane's `hasTorch` mirrors its current device live, so the focused
+    /// camera's torch glyph follows a device switch — a camera flipping to its
+    /// (torchless) front device re-advertises and the lane updates on the same
+    /// pump turn.
+    func testLaneHasTorchTracksCapabilityUpdates() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K, torch: true), from: camA)
+        controller.didReceiveMessage(capsWith(only1080, torch: false), from: camB)
+        await controller.waitForIdle()
+
+        var lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.hasTorch, true)
+        XCTAssertEqual(lanes.first { $0.peerID == camB }?.hasTorch, false)
+
+        // camA switches to a torchless device and re-advertises.
+        controller.didReceiveMessage(capsWith(full4K, torch: false), from: camA)
+        await controller.waitForIdle()
+
+        lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.hasTorch, false)
     }
 
     /// A camera whose version handshake is refused is out of the rig's
@@ -1344,6 +1517,39 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(resends.map(\.peers), [[camA]])
         let retrying = await controller.collectionStateForTesting(camA)
         XCTAssertEqual(retrying, .transferring(0))
+    }
+
+    /// The camera holds `.cameraTransmittingVideo` — dropping every capture
+    /// command — until the receiver echoes `StopRecordingVideoResp` after the
+    /// clip transfer. The director must send that echo per collected clip, and
+    /// on a failed transfer too (the camera returns to `.camera`, where the
+    /// retry is still answered). Pins the every-command-dead-after-a-take bug.
+    func testCollectedClipEchoesStopRespSoTheCameraUnblocks() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+
+        let clip = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RS_test_\(UUID().uuidString)_cam1.mov")
+        try? Data([0x00]).write(to: clip)
+        transport.sentMessages.removeAll()
+        controller.didFinishReceivingResource(name: "RS_a_b_cam1.mov", from: camA,
+                                              at: clip, error: nil)
+        await controller.waitForIdle()
+
+        var echoes = sent(transport, RemoteCmd.StopRecordingVideoResp.self)
+        XCTAssertEqual(echoes.map(\.peers), [[camA]],
+                       "the collected camera must be released from its transmitting state")
+        XCTAssertNil((echoes.first?.msg as? RemoteCmd.StopRecordingVideoResp)?.error)
+
+        // A failed transfer releases the camera too, carrying the error.
+        transport.sentMessages.removeAll()
+        controller.didFinishReceivingResource(
+            name: "RS_a_b_cam2.mov", from: camB, at: nil,
+            error: NSError(domain: "x", code: 1))
+        await controller.waitForIdle()
+
+        echoes = sent(transport, RemoteCmd.StopRecordingVideoResp.self)
+        XCTAssertEqual(echoes.map(\.peers), [[camB]])
+        XCTAssertNotNil((echoes.first?.msg as? RemoteCmd.StopRecordingVideoResp)?.error)
     }
 
     func testReturnedPhotoMarksLaneCollected() async {

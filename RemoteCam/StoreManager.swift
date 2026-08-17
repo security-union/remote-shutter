@@ -18,6 +18,7 @@ extension Notification.Name {
     static let enableVideoOnly = Notification.Name("EnableVideoOnly")
     static let tapToFocusAcquired = Notification.Name("TapToFocusAcquired")
     static let proSubscriptionAcquired = Notification.Name("ProSubscriptionAcquired")
+    static let sixCamerasAcquired = Notification.Name("SixCamerasAcquired")
 }
 
 // MARK: - UserDefaults Keys
@@ -28,6 +29,7 @@ private enum PurchaseKey {
     static let enableTorch = "didBuyEnableTorchFeature"
     static let enableVideoOnly = "didBuyEnableVideoOnlyFeature"
     static let tapToFocus = "didBuyTapToFocusFeature"
+    static let sixCameras = "didBuySixCamerasFeature"
     // Unlike the one-time flags above, this is NOT append-only: refreshPurchaseState
     // recomputes it from Transaction.currentEntitlements so a lapsed subscription
     // is revoked. It is persisted only so the UI is correct at launch before the
@@ -43,7 +45,7 @@ final class StoreManager: ObservableObject {
 
     static let allProductIDs: Set<String> = [
         disableAdsPID, enableVideoPID, enableTorchPID, enableVideoOnlyPID,
-        tapToFocusPID, proMonthlyPID, proYearlyPID
+        tapToFocusPID, sixCamerasPID, proMonthlyPID, proYearlyPID
     ]
 
     /// The auto-renewable subscription products (the "Pro" subscription group).
@@ -92,11 +94,23 @@ final class StoreManager: ObservableObject {
         hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.tapToFocus)
     }
 
+    /// The multicam camera caps — the single source for every gate and every
+    /// piece of copy that names a number, so they can never disagree.
+    static let maxFreeCameras = 2
+    static let maxPaidCameras = 6
+
+    /// Six-camera directing: unlocked by full access (Pro unlocks everything)
+    /// or the à la carte `six_cameras` pack.
+    func hasSixCamerasFeature() -> Bool {
+        hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.sixCameras)
+    }
+
     /// How many cameras a multicam director may connect: a free 2-camera
-    /// teaser, or up to 4 with full access. The director's entitlement is what
-    /// counts (matching every other gate — checked locally on this device).
+    /// teaser, or the full 6 with Pro or the 6-camera pack. The director's
+    /// entitlement is what counts (matching every other gate — checked locally
+    /// on this device).
     func maxCameras() -> Int {
-        hasFullAccess() ? 4 : 2
+        hasSixCamerasFeature() ? Self.maxPaidCameras : Self.maxFreeCameras
     }
 
     // MARK: - Init
@@ -201,6 +215,8 @@ final class StoreManager: ObservableObject {
             defaults.set(true, forKey: PurchaseKey.enableVideoOnly)
         case tapToFocusPID:
             defaults.set(true, forKey: PurchaseKey.tapToFocus)
+        case sixCamerasPID:
+            defaults.set(true, forKey: PurchaseKey.sixCameras)
         case proMonthlyPID, proYearlyPID:
             // Live purchase/renewal is always active; refreshPurchaseState is the
             // authority that later clears this if the subscription lapses.
@@ -220,6 +236,7 @@ final class StoreManager: ObservableObject {
         if hasVideoRecordingFeature() { post(.enableVideoOnly) }
         if hasProSubscription() { post(.proSubscriptionAcquired) }
         if hasTapToFocusFeature() { post(.tapToFocusAcquired) }
+        if hasSixCamerasFeature() { post(.sixCamerasAcquired) }
     }
 
     enum StoreError: Error {

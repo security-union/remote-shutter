@@ -64,6 +64,9 @@ struct MulticamLaneInfo: Equatable {
     /// This camera can focus at a point — gates the viewfinder's focus tap so
     /// the user never gets a reticle (or a paywall) for a camera that can't.
     let supportsFocusPoint: Bool
+    /// This camera's current device has a torch (front cameras don't) — gates
+    /// the torch glyph when this lane is focused.
+    let hasTorch: Bool
     /// Zoom state for the focused zoom pill (the same values the 1:1 monitor
     /// builds its `ZoomScale` from). `zoomFactor` is the live hardware factor.
     let zoomFactor: CGFloat
@@ -212,6 +215,11 @@ public actor MulticamController {
     /// first-class; Automatic just recomputes best-in-intersection.
     private var activeVideoQuality: (resolution: VideoResolution, frameRate: VideoFrameRate)?
     private var activePhotoQuality: (format: PhotoFormat, hdr: HDRMode)?
+    /// The rig-wide camera-preview mode: standby blanks each camera's own
+    /// on-screen preview (the director is the viewfinder; capture and the
+    /// streamed frames are unaffected). Sent only to cameras that advertised
+    /// `supportsPreviewMode`, including late joiners.
+    private var rigPreviewMode: CameraPreviewMode = .on
     /// One rig self-timer (seconds); 0 = off. Fans out to every camera so
     /// subjects see the countdown, and its expiry triggers the synced capture.
     /// Seeded from the preference the classic remote persists, and written
@@ -238,6 +246,8 @@ public actor MulticamController {
     private let clockSyncInterval: TimeInterval = 30
     /// How far ahead a re-invite waits before re-browsing a dropped camera.
     private var reconnectRetryDelay: TimeInterval = 3
+    /// How long to wait for a lane's capabilities before asking again.
+    private var capsRetryDelay: TimeInterval = 2
     private let reconnectInviteTimeout: TimeInterval = 10
 
     // MARK: Test / wiring seams
@@ -257,6 +267,7 @@ public actor MulticamController {
         publishChangedSnapshots()
     }
     func setReconnectRetryDelay(_ delay: TimeInterval) { reconnectRetryDelay = delay }
+    func setCapsRetryDelay(_ delay: TimeInterval) { capsRetryDelay = delay }
 
     /// Register (or replace) the preview-frame sink for a lane. Called by the
     /// view controller when it creates the lane; the sink is dropped when the
@@ -309,6 +320,26 @@ public actor MulticamController {
         sendTo(peer, RemoteCmd.RequestCameraCapabilities())
         // Prime the stream: the camera streams once it holds a frame credit.
         sendTo(peer, RemoteCmd.RequestFrame(sender: nil))
+        armCapsRetry(peer)
+    }
+
+    /// Ask again until capabilities actually arrive. A one-shot request can
+    /// miss: the camera's capture session may not be ready when it lands (the
+    /// camera's own reply ladder gives up after ~3s), or the request can race
+    /// the role handoff and be refused. The tick self-guards on "capabilities
+    /// still missing", so it is fire-and-forget and stops the moment caps land
+    /// or the lane leaves the rig — the controls always end up rendered from
+    /// real capabilities, however late they are.
+    private func armCapsRetry(_ peer: MCPeerID) {
+        PeerReconnect.scheduleTick(after: capsRetryDelay) { [weak self] in
+            self?.tell(MCPeerCommand(.capsRetryTick, peer))
+        }
+    }
+
+    private func reRequestCapsIfStillMissing(_ peer: MCPeerID) {
+        guard let link = links[peer], link.capabilities == nil, link.status == .linked else { return }
+        logInfo("director: no caps from \(link.displayName) yet — re-requesting")
+        beginHandshake(with: peer) // re-arms the tick
     }
 
     // MARK: - Message handling
@@ -345,7 +376,11 @@ public actor MulticamController {
         let lanesChanged = lanes != publishedLanes
         let shutterChanged = shutter != publishedShutter
         let rigChanged = rig != publishedRig
+        // MCPeerID equality is key-hash only, so a re-delivered peer carrying
+        // its resolved name compares equal to its hash-placeholder self — the
+        // add-camera sheet shows names, so the diff must see them too.
         let availableChanged = availablePeers != publishedAvailable
+            || availablePeers.map(\.displayName) != publishedAvailable?.map(\.displayName)
         guard lanesChanged || shutterChanged || rigChanged || availableChanged else { return }
         publishedLanes = lanes
         publishedShutter = shutter
@@ -454,11 +489,14 @@ public actor MulticamController {
         case let t as MCSetRigTimer:
             logInfo("director: timer preset \(t.seconds)s")
             handleSetRigTimer(t.seconds)
+        case let s as MCSetRigStandby:
+            logInfo("director: standby \(s.on ? "on" : "off") → rig")
+            handleSetRigStandby(s.on)
         case let c as MCPeerCommand:
             switch c.kind {
             case .focus, .invite, .remove, .disconnect, .retryCollection:
                 logInfo("director: \(c.kind) → \(c.peer.displayName)")
-            case .nudgeFrame, .requestKeyframe, .reconnectTick:
+            case .nudgeFrame, .requestKeyframe, .reconnectTick, .capsRetryTick:
                 logDebug("director: \(c.kind) → \(c.peer.displayName)")
             }
             switch c.kind {
@@ -470,6 +508,7 @@ public actor MulticamController {
             case .nudgeFrame: handleNudgeFrame(c.peer)
             case .requestKeyframe: handleRequestKeyframe(c.peer)
             case .reconnectTick: reBrowseIfStillMissing(c.peer)
+            case .capsRetryTick: reRequestCapsIfStillMissing(c.peer)
             }
 
         case is UICmd.AppForegrounded:
@@ -497,6 +536,7 @@ public actor MulticamController {
             }
 
         case let caps as RemoteCmd.CameraCapabilitiesResp:
+            logInfo("director: caps from \(link.displayName) — torch=\(caps.getCurrentCameraInfo()?.hasTorch ?? false), camera=\(caps.currentCamera)")
             link.capabilities = caps
             seedZoom(link, from: caps)
             if link.status != .failed { link.status = .linked }
@@ -509,6 +549,11 @@ public actor MulticamController {
             if link.supportsMulticam {
                 sendTo(peer, RemoteCmd.ClockSyncPing(t0Millis: SyncClock.nowMillis()))
                 pushProfile(to: peer)
+            }
+            // The rig's standby is a setting, not an event: a camera joining
+            // (or re-advertising) while the rig is in standby is put there too.
+            if rigPreviewMode == .standby, caps.supportsPreviewMode {
+                sendTo(peer, RemoteCmd.SetCameraPreviewMode(mode: .standby))
             }
 
         case let resp as RemoteCmd.ToggleCameraResp:
@@ -1092,6 +1137,17 @@ public actor MulticamController {
         TimerPreference.seconds = seconds
     }
 
+    // MARK: - Rig standby (camera-side preview on / standby)
+
+    public nonisolated func setRigStandby(_ on: Bool) { tell(MCSetRigStandby(on)) }
+
+    private func handleSetRigStandby(_ on: Bool) {
+        rigPreviewMode = on ? .standby : .on
+        for (peer, link) in links where link.capabilities?.supportsPreviewMode == true {
+            sendTo(peer, RemoteCmd.SetCameraPreviewMode(mode: rigPreviewMode))
+        }
+    }
+
     /// Begin a director-side countdown, fanned out to every camera so subjects
     /// see it, then fire the synced capture at zero. Each tick is a `tell` on
     /// the inbox (so it is ordered with everything else and visible to
@@ -1174,7 +1230,12 @@ public actor MulticamController {
             heifBlockedBy: menu.lanesBlockingHEIF(),
             hdrBlockedBy: menu.lanesBlockingHDR(),
             activePhotoFormat: activePhotoQuality?.format,
-            activeHDR: activePhotoQuality?.hdr)
+            activeHDR: activePhotoQuality?.hdr,
+            standbyAvailable: order.contains { peer in
+                guard let link = links[peer], link.status != .failed else { return false }
+                return link.capabilities?.supportsPreviewMode == true
+            },
+            standbyOn: rigPreviewMode == .standby)
     }
 
     // MARK: Ack aggregation (shared across photo / start / stop)
@@ -1370,6 +1431,13 @@ public actor MulticamController {
             finished.localURL.map(Self.discardTempFile)
             return
         }
+        // The camera holds `.cameraTransmittingVideo` — where every capture
+        // command is dropped — until the receiver confirms the transfer with
+        // this echo (the 1:1 monitor's contract). Sent on failure too: the
+        // camera returns to `.camera`, where the collection retry
+        // (`RequestVideoResend`) is still answered.
+        sendTo(finished.peer, RemoteCmd.StopRecordingVideoResp(
+            sender: nil, pic: nil, error: finished.error.map { $0 as NSError }))
         guard finished.error == nil, let localURL = finished.localURL else {
             // Footage is still safe on the camera; the tile offers a retry. Any
             // partial temp file is ours to clean up.
@@ -1670,7 +1738,7 @@ final class MCAckTimeout: Message, @unchecked Sendable {
 }
 
 final class MCPeerCommand: Message, @unchecked Sendable {
-    enum Kind { case focus, invite, remove, disconnect, retryCollection, nudgeFrame, requestKeyframe, reconnectTick }
+    enum Kind { case focus, invite, remove, disconnect, retryCollection, nudgeFrame, requestKeyframe, reconnectTick, capsRetryTick }
     let kind: Kind
     let peer: MCPeerID
     init(_ kind: Kind, _ peer: MCPeerID) { self.kind = kind; self.peer = peer; super.init(sender: nil) }
@@ -1707,6 +1775,10 @@ final class MCSetPhotoQuality: Message, @unchecked Sendable {
     init(_ format: PhotoFormat, _ hdr: HDRMode) { self.format = format; self.hdr = hdr; super.init(sender: nil) }
 }
 
+final class MCSetRigStandby: Message, @unchecked Sendable {
+    let on: Bool
+    init(_ on: Bool) { self.on = on; super.init(sender: nil) }
+}
 final class MCSetRigTimer: Message, @unchecked Sendable {
     let seconds: Int
     init(_ seconds: Int) { self.seconds = seconds; super.init(sender: nil) }

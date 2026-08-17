@@ -17,7 +17,7 @@ final class MulticamViewModelTests: XCTestCase {
 
     private func info(_ peer: MCPeerID, status: CameraLink.Status = .linked,
                       focused: Bool = false, canFlipCamera: Bool = false,
-                      supportsFocusPoint: Bool = false,
+                      supportsFocusPoint: Bool = false, hasTorch: Bool = false,
                       zoomFactor: CGFloat = 1.0, maxZoomFactor: CGFloat = 10.0,
                       zoomStops: [CGFloat] = [1.0], wideAngleZoomFactor: CGFloat = 1.0,
                       torchOn: Bool = false, flashOn: Bool = false) -> MulticamLaneInfo {
@@ -25,7 +25,7 @@ final class MulticamViewModelTests: XCTestCase {
                          status: status, isFocused: focused, clockOffsetMillis: nil,
                          captureOutcome: nil, isRecording: false, needsQualityRematch: false,
                          collection: .idle, canFlipCamera: canFlipCamera,
-                         supportsFocusPoint: supportsFocusPoint,
+                         supportsFocusPoint: supportsFocusPoint, hasTorch: hasTorch,
                          zoomFactor: zoomFactor, maxZoomFactor: maxZoomFactor,
                          zoomStops: zoomStops, wideAngleZoomFactor: wideAngleZoomFactor,
                          torchOn: torchOn, flashOn: flashOn)
@@ -129,6 +129,49 @@ final class MulticamViewModelTests: XCTestCase {
         // A fixed-focal-length camera (max == min) → the pill hides, like 1:1.
         vm.apply([info(camA, focused: true, zoomFactor: 1, maxZoomFactor: 1, zoomStops: [1])])
         XCTAssertFalse(vm.showsFocusedZoomPill)
+    }
+
+    /// The torch glyph shows only in focus mode, and only when the focused
+    /// camera's current device has a torch — the grid has no "current" camera
+    /// to drive, and a torchless (front) camera must not offer a dead control.
+    func testTorchButtonShowsOnlyInFocusModeWhenFocusedCameraHasTorch() {
+        let vm = MulticamViewModel()
+
+        // Focused camera has a torch, focus mode → shown.
+        vm.apply([info(camA, focused: true, hasTorch: true), info(camB)])
+        XCTAssertTrue(vm.showsTorchButton)
+
+        // Grid (collage) mode → hidden, torch or not.
+        vm.displayMode = .grid
+        XCTAssertFalse(vm.showsTorchButton)
+        vm.displayMode = .focus
+
+        // Refocusing onto a torchless camera → hidden.
+        vm.apply([info(camA, hasTorch: true), info(camB, focused: true, hasTorch: false)])
+        XCTAssertFalse(vm.showsTorchButton)
+
+        // No focused lane (or capabilities not in yet) → hidden.
+        vm.apply([info(camA, hasTorch: true)])
+        XCTAssertFalse(vm.showsTorchButton)
+    }
+
+    /// The last leg of the caps→controls chain: applying a lane snapshot that
+    /// (only) gained a torch must publish the view model — that's what makes
+    /// SwiftUI re-run the chrome and re-evaluate `showsTorchButton`. Pins the
+    /// first-render race where capabilities arrive after the screen is up.
+    func testApplyingTorchBearingCapsPublishesAndFlipsTheButton() {
+        let vm = MulticamViewModel()
+        vm.apply([info(camA, focused: true, hasTorch: false)]) // pre-caps render
+        XCTAssertFalse(vm.showsTorchButton)
+
+        var published = false
+        let sub = vm.objectWillChange.sink { published = true }
+        defer { sub.cancel() }
+
+        // The caps-bearing snapshot arrives; nothing else about the lane changed.
+        vm.apply([info(camA, focused: true, hasTorch: true)])
+        XCTAssertTrue(published, "apply must publish so the chrome re-renders")
+        XCTAssertTrue(vm.showsTorchButton)
     }
 
     func testFocusedControlStateDerivesFromTheFocusedLane() {

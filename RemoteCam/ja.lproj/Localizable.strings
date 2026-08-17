@@ -367,7 +367,7 @@
 "Searching for cameras…" = "カメラを検索中…";
 "Director" = "ディレクター";
 "Control one or more iPhone cameras" = "1台以上のiPhoneカメラを操作";
-"Direct up to 4 cameras at once" = "最大4台のカメラを同時に操作";
+"Direct up to %d cameras at once" = "最大%d台のカメラを同時に操作";
 "RECONNECTING" = "再接続中";
 "Connect (%d)" = "接続 (%d)";
 "Select all & connect (%d)" = "すべて選択して接続 (%d)";

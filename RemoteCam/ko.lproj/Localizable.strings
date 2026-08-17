@@ -367,7 +367,7 @@
 "Searching for cameras…" = "카메라 검색 중…";
 "Director" = "디렉터";
 "Control one or more iPhone cameras" = "하나 이상의 iPhone 카메라 제어";
-"Direct up to 4 cameras at once" = "최대 4대의 카메라를 동시에 제어";
+"Direct up to %d cameras at once" = "최대 %d대의 카메라를 동시에 제어";
 "RECONNECTING" = "다시 연결 중";
 "Connect (%d)" = "연결 (%d)";
 "Select all & connect (%d)" = "모두 선택 후 연결 (%d)";

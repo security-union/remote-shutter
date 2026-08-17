@@ -311,6 +311,68 @@
         "description": "Коснитесь превью для фокуса."
       }
     },
+    "six_cameras": {
+      "en-US": {
+        "name": "6-Camera Multicam",
+        "description": "Direct up to 6 cameras at once."
+      },
+      "da": {
+        "name": "Multicam med 6 kameraer",
+        "description": "Styr op til 6 kameraer på én gang."
+      },
+      "de-DE": {
+        "name": "Multicam mit 6 Kameras",
+        "description": "Bis zu 6 Kameras gleichzeitig steuern."
+      },
+      "es-MX": {
+        "name": "Multicámara de 6 cámaras",
+        "description": "Dirige hasta 6 cámaras a la vez."
+      },
+      "fr-FR": {
+        "name": "Multicam à 6 caméras",
+        "description": "Dirigez jusqu'à 6 caméras à la fois."
+      },
+      "it": {
+        "name": "Multicam a 6 fotocamere",
+        "description": "Dirigi fino a 6 fotocamere insieme."
+      },
+      "ja": {
+        "name": "6台マルチカム",
+        "description": "最大6台のカメラを同時に操作。"
+      },
+      "ko": {
+        "name": "6대 멀티캠",
+        "description": "최대 6대의 카메라를 동시에 제어."
+      },
+      "pt-BR": {
+        "name": "Multicam de 6 câmeras",
+        "description": "Dirija até 6 câmeras ao mesmo tempo."
+      },
+      "zh-Hans": {
+        "name": "6机位多机拍摄",
+        "description": "同时指挥最多6台相机。"
+      },
+      "vi": {
+        "name": "Multicam 6 máy ảnh",
+        "description": "Điều khiển tối đa 6 máy ảnh cùng lúc."
+      },
+      "hi": {
+        "name": "6-कैमरा मल्टीकैम",
+        "description": "एक साथ 6 कैमरों तक निर्देशित करें।"
+      },
+      "ms": {
+        "name": "Multicam 6 kamera",
+        "description": "Arahkan hingga 6 kamera serentak."
+      },
+      "tr": {
+        "name": "6 Kameralı Multicam",
+        "description": "Aynı anda 6 kameraya kadar yönetin."
+      },
+      "ru": {
+        "name": "Мультикам на 6 камер",
+        "description": "Управляйте до 6 камер одновременно."
+      }
+    },
     "pro_monthly": {
       "en-US": {
         "name": "Pro (Monthly)",
@@ -434,6 +496,13 @@
         "name": "Pro (год)",
         "description": "Все функции, ежегодно."
       }
+    }
+  },
+  "create": {
+    "six_cameras": {
+      "type": "NON_CONSUMABLE",
+      "reference_name": "6-Camera Multicam",
+      "usd_price": "4.99"
     }
   }
 }

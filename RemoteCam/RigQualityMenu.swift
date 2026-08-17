@@ -175,6 +175,12 @@ struct RigSettingsSnapshot: Equatable {
     var hdrBlockedBy: [String] = []
     var activePhotoFormat: PhotoFormat?
     var activeHDR: HDRMode?
+    /// At least one camera in the rig can blank its own preview — offers the
+    /// standby tile. Cameras that can't are simply not sent the command.
+    var standbyAvailable: Bool = false
+    /// The rig's commanded preview mode (standby = every supporting camera's
+    /// screen is blanked; capture and streamed frames are unaffected).
+    var standbyOn: Bool = false
 
     /// The glass quality tile cycles in place: Automatic → each enabled option
     /// in order → back to Automatic. `nil` is Automatic. Disabled options

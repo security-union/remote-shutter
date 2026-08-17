@@ -367,7 +367,7 @@
 "Searching for cameras…" = "Procurando câmeras…";
 "Director" = "Diretor";
 "Control one or more iPhone cameras" = "Controle uma ou mais câmeras do iPhone";
-"Direct up to 4 cameras at once" = "Dirija até 4 câmeras ao mesmo tempo";
+"Direct up to %d cameras at once" = "Dirija até %d câmeras ao mesmo tempo";
 "RECONNECTING" = "RECONECTANDO";
 "Connect (%d)" = "Conectar (%d)";
 "Select all & connect (%d)" = "Selecionar todas e conectar (%d)";

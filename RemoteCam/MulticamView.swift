@@ -34,6 +34,10 @@ struct MulticamView: View {
     /// Rig photo format / HDR picked.
     let onSetPhotoFormat: (PhotoFormat) -> Void
     let onSetHDR: (Bool) -> Void
+    /// Rig standby: blank (or wake) every supporting camera's own preview.
+    let onSetStandby: (Bool) -> Void
+    /// Open the app's Settings sheet (purchases, restore, preferences).
+    let onOpenSettings: () -> Void
     /// Retry a lane's failed footage collection.
     let onRetryCollection: (CameraLane) -> Void
     /// Flip the focused camera front/back (per-camera framing).
@@ -62,10 +66,10 @@ struct MulticamView: View {
                 input: chromeInput)
 
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.black.ignoresSafeArea(edges: Self.previewBleedEdges)
 
                 if viewModel.displayMode == .grid {
-                    gridWall
+                    gridWall(in: geo.size)
                 } else {
                     focusedViewfinder
                 }
@@ -83,6 +87,22 @@ struct MulticamView: View {
                 AddCameraSheet(peers: viewModel.availablePeers, onInvite: onInviteCamera)
             }
         }
+        // Catalyst's default style paints a bordered box behind controls that
+        // already draw their own shape. Not .plain — that also drops the
+        // style's hit region, leaving material fills unclickable.
+        .buttonStyle(.borderless)
+        .statusBarHidden()
+    }
+
+    /// iPhone/iPad draw the preview full-bleed under the notch and the home
+    /// indicator. The Mac's toolbar (Back button, window title) is opaque
+    /// chrome — the preview must never draw under it.
+    private static var previewBleedEdges: Edge.Set {
+        #if targetEnvironment(macCatalyst)
+        []
+        #else
+        .all
+        #endif
     }
 
     /// The rig tray in the classic monitor's glass presentation: a near-invisible
@@ -97,7 +117,14 @@ struct MulticamView: View {
                          onSelectVideoQuality: onSelectVideoQuality,
                          onAutomaticVideoQuality: onAutomaticVideoQuality,
                          onSetPhotoFormat: onSetPhotoFormat,
-                         onSetHDR: onSetHDR)
+                         onSetHDR: onSetHDR,
+                         onSetStandby: onSetStandby,
+                         // Close the tray first, as the 1:1 tray does — the
+                         // sheet returns to a clean viewfinder.
+                         onOpenSettings: {
+                             viewModel.showingRigTray = false
+                             onOpenSettings()
+                         })
                 .transition(.move(edge: .bottom))
         }
     }
@@ -150,6 +177,7 @@ struct MulticamView: View {
                 .padding(.leading, 8)
             Spacer(minLength: 0)
             ControlCapsule(showsFlash: viewModel.mode == .photo,
+                           showsTorch: viewModel.showsTorchButton,
                            isFlashEnabled: viewModel.focusedFlashOn,
                            isFlashButtonEnabled: viewModel.focusedFlashEnabled,
                            isTorchEnabled: viewModel.focusedTorchOn,
@@ -157,7 +185,10 @@ struct MulticamView: View {
                            isTrayOpen: viewModel.showingRigTray,
                            onToggleFlash: withFocused(onToggleFlash),
                            onToggleTorch: withFocused(onToggleTorch),
-                           onToggleTray: { viewModel.showingRigTray = true })
+                           onToggleTray: {
+                               logInfo("director: rig tray opened")
+                               viewModel.showingRigTray = true
+                           })
                 .equatable()
         }
     }
@@ -272,14 +303,18 @@ struct MulticamView: View {
                 size: 44, glyphSize: 20,
                 isActive: viewModel.displayMode == .grid,
                 isEnabled: true,
-                action: { viewModel.displayMode = viewModel.displayMode == .grid ? .focus : .grid })
+                action: {
+                    viewModel.displayMode = viewModel.displayMode == .grid ? .focus : .grid
+                    logInfo("director: display mode → \(viewModel.displayMode)")
+                })
         } else {
             Color.clear.frame(width: 44, height: 44)
         }
     }
 
     /// PHOTO / VIDEO segmented capsule — the shared `CaptureModeSelector`.
-    /// Tapping the inactive segment flips the rig mode; fades out while recording.
+    /// Tapping the inactive segment flips the rig mode; disabled while
+    /// recording.
     private var modeSelector: some View {
         CaptureModeSelector(
             segments: [
@@ -293,7 +328,6 @@ struct MulticamView: View {
                     action: { if viewModel.mode != .video { onToggleMode() } }),
             ],
             isEnabled: !viewModel.isRecording)
-            .opacity(viewModel.isRecording ? 0 : 1)
     }
 
     /// "Disconnect Camera" — a purposeful goodbye to one camera. Long-press on
@@ -305,35 +339,49 @@ struct MulticamView: View {
         }
     }
 
-    /// The rig self-timer countdown, big and centered so subjects see it.
+    /// The rig self-timer countdown, big and centered so subjects see it. The
+    /// number must read against whatever the cameras are pointed at: two
+    /// shadows — one tight for edge definition, one wide for separation —
+    /// keep it legible without a backing plate, and it never steals a tap
+    /// from the viewfinder.
     @ViewBuilder
     private var countdownOverlay: some View {
         if let n = viewModel.rigSettings.countdown, n > 0 {
             Text("\(n)")
                 .font(.system(size: 96, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-                .shadow(radius: 8)
+                .foregroundColor(AppTheme.accent)
+                .shadow(color: .black.opacity(0.85), radius: 3)
+                .shadow(color: .black.opacity(0.55), radius: 16)
+                .id(n)
+                .transition(.scale(scale: 1.15).combined(with: .opacity))
+                .allowsHitTesting(false)
         }
     }
 
     /// An equal grid of every camera — the monitor wall. Tap a tile to focus it
-    /// (and return to focus mode).
-    private var gridWall: some View {
+    /// (and return to focus mode). Cells are sized to the viewport — rows ×
+    /// columns always fit the window on any shape, and each tile letterboxes
+    /// its video (`LiveFrameView` draws `.fit`).
+    private func gridWall(in size: CGSize) -> some View {
         let count = viewModel.lanes.count
+        let rows = MultiCamChrome.gridRowCount(cameraCount: count)
+        let spacing: CGFloat = 4
+        let padding: CGFloat = 8
+        let cellHeight = max(1, (size.height - padding * 2 - spacing * CGFloat(rows - 1)) / CGFloat(rows))
         let columns = Array(
-            repeating: GridItem(.flexible(), spacing: 4),
+            repeating: GridItem(.flexible(), spacing: spacing),
             count: MultiCamChrome.gridColumnCount(cameraCount: count))
-        return LazyVGrid(columns: columns, spacing: 4) {
+        return LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(viewModel.lanes) { lane in
                 CameraTileView(lane: lane, isThumbnail: true, onRetry: { onRetryCollection(lane) })
-                    .aspectRatio(9.0 / 16.0, contentMode: .fit)
+                    .frame(height: cellHeight)
                     .onTapGesture {
                         onFocusLane(lane)
                         viewModel.displayMode = .focus
                     }
             }
         }
-        .padding(8)
+        .padding(padding)
     }
 
     private var chromeInput: MonitorChromeInput {
@@ -362,7 +410,7 @@ struct MulticamView: View {
                     onDoubleTap: { onFlipCamera(focused) },
                     onZoomChange: { onZoomChange(focused, $0) })
             }
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: Self.previewBleedEdges)
         } else {
             // No camera focused yet (all reconnecting, or none linked).
             Rectangle()
@@ -371,7 +419,7 @@ struct MulticamView: View {
                     Image(systemName: "video.slash")
                         .font(.system(size: 44))
                         .foregroundColor(.white.opacity(0.5)))
-                .ignoresSafeArea()
+                .ignoresSafeArea(edges: Self.previewBleedEdges)
         }
     }
 
@@ -600,6 +648,8 @@ struct AddCameraSheet: View {
     let peers: [MCPeerID]
     let onInvite: (MCPeerID) -> Void
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationView {
             Group {
@@ -627,6 +677,18 @@ struct AddCameraSheet: View {
             }
             .navigationTitle(NSLocalizedString("Add camera",
                                                comment: "add a camera to the multicam rig"))
+            // Sheets need an explicit way out on every platform; the
+            // cancellation slot also binds Esc and ⌘. on the Mac. A glyph,
+            // not text — the bar renders its buttons as circles.
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    .accessibilityLabel(NSLocalizedString("Cancel", comment: "dismiss the add-camera sheet"))
+                }
+            }
         }
     }
 }
@@ -646,6 +708,10 @@ struct RigTrayPanel: View {
     let onAutomaticVideoQuality: () -> Void
     let onSetPhotoFormat: (PhotoFormat) -> Void
     let onSetHDR: (Bool) -> Void
+    /// Rig standby: blank (or wake) every supporting camera's own preview.
+    let onSetStandby: (Bool) -> Void
+    /// Open the app's Settings sheet (purchases, restore, preferences).
+    let onOpenSettings: () -> Void
 
     private let timerStops = [0, 3, 5, 10, 20]
 
@@ -666,6 +732,13 @@ struct RigTrayPanel: View {
                             isActive: settings.activeHDR == .on,
                             isEnabled: settings.hdrAvailable,
                             action: { onSetHDR(settings.activeHDR != .on) })
+            MonitorTrayTile(item: .cameraStandby, value: nil,
+                            isActive: settings.standbyOn,
+                            isEnabled: settings.standbyAvailable,
+                            action: { onSetStandby(!settings.standbyOn) })
+            MonitorTrayTile(item: .settings, value: nil,
+                            isActive: false, isEnabled: true,
+                            action: onOpenSettings)
         }
     }
 

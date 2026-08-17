@@ -59,6 +59,7 @@ public final class MulticamViewController: UIViewController {
                 guard let self, !self.viewModel.isRecording, !self.viewModel.isCapturing,
                       self.viewModel.rigSettings.countdown == nil else { return }
                 self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
+                logInfo("director: mode → \(self.viewModel.mode)")
             },
             onAddCamera: { [weak self] in self?.handleAddCameraTapped() },
             onInviteCamera: { [weak self] peer in
@@ -80,6 +81,11 @@ public final class MulticamViewController: UIViewController {
                     format: self?.viewModel.rigSettings.activePhotoFormat ?? .jpeg,
                     hdr: on ? .on : .off)
             },
+            onSetStandby: { [weak self] on in self?.controller.setRigStandby(on) },
+            onOpenSettings: { [weak self] in
+                logInfo("director: settings opened")
+                self?.showPaywall()
+            },
             onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) },
             onFlipCamera: { [weak self] lane in self?.controller.flipCamera(lane.peerID) },
             onToggleTorch: { [weak self] lane in self?.controller.toggleTorch(on: lane.peerID) },
@@ -87,7 +93,10 @@ public final class MulticamViewController: UIViewController {
             onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },
             onZoomChange: { [weak self] lane, factor in self?.handleZoomChange(factor, on: lane.peerID) },
             onFocusTap: { [weak self] lane, point in self?.handleFocusTap(point, on: lane.peerID) },
-            onBack: { [weak self] in self?.navigationController?.popViewController(animated: true) })
+            onBack: { [weak self] in
+                logInfo("director: back → scanner")
+                self?.navigationController?.popViewController(animated: true)
+            })
         hosting = embedSwiftUIView(multicamView)
 
         Task { await controller.setDisplay(self) }
@@ -117,8 +126,10 @@ public final class MulticamViewController: UIViewController {
         Task { @MainActor in
             let count = await controller.cameraCount()
             if count >= StoreManager.shared.maxCameras() {
+                logInfo("director: add camera tap → paywall (\(count) cameras, at tier cap)")
                 showPaywall()
             } else {
+                logInfo("director: add camera tap → sheet")
                 viewModel.showingAddCamera = true
             }
         }
@@ -130,6 +141,7 @@ public final class MulticamViewController: UIViewController {
     /// never advertised focus support.
     private func handleFocusTap(_ point: CGPoint, on peer: MCPeerID) {
         guard StoreManager.shared.hasTapToFocusFeature() else {
+            logInfo("director: focus tap → paywall (feature locked)")
             showPaywall()
             return
         }
@@ -170,8 +182,15 @@ public final class MulticamViewController: UIViewController {
         }
     }
 
+    /// Both landscapes are the same shape, so the view can't infer which rail
+    /// keeps the shutter on the device's home-indicator edge. Falls back to any
+    /// connected scene when the view isn't in a window yet (early lifecycle).
     private func syncInterfaceOrientation() {
-        let orientation = view.window?.windowScene?.interfaceOrientation ?? .portrait
+        let orientation = view.window?.windowScene?.interfaceOrientation
+            ?? UIApplication.shared.connectedScenes
+                .compactMap { ($0 as? UIWindowScene)?.interfaceOrientation }
+                .first
+            ?? .portrait
         if viewModel.interfaceOrientation != orientation {
             viewModel.interfaceOrientation = orientation
         }

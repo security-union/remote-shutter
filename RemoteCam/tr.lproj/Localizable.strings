@@ -367,7 +367,7 @@
 "Searching for cameras…" = "Kameralar aranıyor…";
 "Director" = "Yönetmen";
 "Control one or more iPhone cameras" = "Bir veya daha fazla iPhone kamerasını kontrol edin";
-"Direct up to 4 cameras at once" = "Aynı anda 4 kameraya kadar yönetin";
+"Direct up to %d cameras at once" = "Aynı anda %d kameraya kadar yönetin";
 "RECONNECTING" = "YENİDEN BAĞLANIYOR";
 "Connect (%d)" = "Bağlan (%d)";
 "Select all & connect (%d)" = "Tümünü seç ve bağlan (%d)";

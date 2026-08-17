@@ -88,6 +88,21 @@
       "productID" : "09",
       "referenceName" : "Tap to Focus",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "F0C05003",
+      "localizations" : [
+        {
+          "description" : "Direct up to 6 cameras at once.",
+          "displayName" : "6-Camera Multicam",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "six_cameras",
+      "referenceName" : "6-Camera Multicam",
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {

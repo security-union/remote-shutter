@@ -8,10 +8,14 @@
 # subscriptionLocalizations); both carry the same name/description/locale shape,
 # so the per-locale sync is shared and only the endpoints differ (see ENDPOINTS).
 #
-# This script only syncs LOCALIZATIONS of products that already exist on ASC —
-# it never creates products. Create product 09, the "Pro" subscription group,
-# and the subscriptions (with pricing) manually in App Store Connect first; a
-# product ID not found on ASC is skipped.
+# One-time IAPs listed under the JSON's top-level "create" key are created on
+# ASC when missing (type + reference name + USD base price; every other
+# territory's price derives from Apple's USD price point, and the product is
+# made available in all territories). Everything else — the "Pro" subscription
+# group and its subscriptions in particular — must exist on ASC already; a
+# product ID that is neither present nor in "create" is skipped. A newly
+# created product still needs its review screenshot + submission in the ASC
+# UI before it goes live.
 #
 # ASC state model: a localization in a live/immutable state (ACTIVE/APPROVED) is
 # not editable — posting a NEW localization for the same locale creates the
@@ -58,6 +62,8 @@ module IapSync
       products[sub.dig("attributes", "productId")] = { kind: :subscription, id: sub["id"] }
     end
 
+    create_missing(app["id"], products, data["create"] || {})
+
     data.fetch("products").each do |product_id, locales|
       product = products[product_id]
       unless product
@@ -74,6 +80,73 @@ module IapSync
       end
     end
     raise "sync failed for: #{failures.join(', ')}" unless failures.empty?
+  end
+
+  # Create each "create"-spec'd one-time IAP that is absent on ASC, price it
+  # at the spec's USD price point (other territories derive automatically),
+  # and make it available in all territories.
+  def self.create_missing(app_id, products, spec)
+    spec.each do |product_id, cfg|
+      next if products.key?(product_id)
+      created = req(:post, "/v2/inAppPurchases", {
+        data: {
+          type: "inAppPurchases",
+          attributes: {
+            name: cfg.fetch("reference_name"),
+            productId: product_id,
+            inAppPurchaseType: cfg.fetch("type"),
+          },
+          relationships: { app: { data: { type: "apps", id: app_id } } },
+        },
+      })
+      iap_id = created.fetch("data").fetch("id")
+      puts "CREATED product #{product_id} (#{cfg['type']}, #{iap_id})"
+      set_price(iap_id, product_id, cfg.fetch("usd_price"))
+      set_availability(iap_id, product_id)
+      products[product_id] = { kind: :iap, id: iap_id }
+    end
+  end
+
+  def self.set_price(iap_id, product_id, usd)
+    points = req(:get, "/v2/inAppPurchases/#{iap_id}/pricePoints?filter[territory]=USA&limit=8000")
+      .fetch("data")
+    point = points.find { |p| p.dig("attributes", "customerPrice") == usd } \
+      or raise "no USA price point at $#{usd} for #{product_id}"
+    req(:post, "/v1/inAppPurchasePriceSchedules", {
+      data: {
+        type: "inAppPurchasePriceSchedules",
+        relationships: {
+          inAppPurchase: { data: { type: "inAppPurchases", id: iap_id } },
+          baseTerritory: { data: { type: "territories", id: "USA" } },
+          manualPrices: { data: [{ type: "inAppPurchasePrices", id: "${price-usa}" }] },
+        },
+      },
+      included: [{
+        id: "${price-usa}",
+        type: "inAppPurchasePrices",
+        attributes: { startDate: nil },
+        relationships: {
+          inAppPurchasePricePoint: { data: { type: "inAppPurchasePricePoints", id: point["id"] } },
+          inAppPurchaseV2: { data: { type: "inAppPurchases", id: iap_id } },
+        },
+      }],
+    })
+    puts "PRICED  #{product_id} at $#{usd} (USA base; other territories derive)"
+  end
+
+  def self.set_availability(iap_id, product_id)
+    territories = req(:get, "/v1/territories?limit=200").fetch("data").map { |t| t["id"] }
+    req(:post, "/v1/inAppPurchaseAvailabilities", {
+      data: {
+        type: "inAppPurchaseAvailabilities",
+        attributes: { availableInNewTerritories: true },
+        relationships: {
+          inAppPurchase: { data: { type: "inAppPurchases", id: iap_id } },
+          availableTerritories: { data: territories.map { |t| { type: "territories", id: t } } },
+        },
+      },
+    })
+    puts "AVAILABLE #{product_id} in #{territories.count} territories"
   end
 
   # All subscriptions across the app's subscription groups.
