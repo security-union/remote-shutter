@@ -94,19 +94,23 @@ final class StoreManager: ObservableObject {
         hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.tapToFocus)
     }
 
-    /// The one-time 6-camera pack (product `six_cameras`) — an à la carte cap
-    /// raiser on top of any tier.
+    /// The multicam camera caps — the single source for every gate and every
+    /// piece of copy that names a number, so they can never disagree.
+    static let maxFreeCameras = 2
+    static let maxPaidCameras = 6
+
+    /// Six-camera directing: unlocked by full access (Pro unlocks everything)
+    /// or the à la carte `six_cameras` pack.
     func hasSixCamerasFeature() -> Bool {
-        UserDefaults.standard.bool(forKey: PurchaseKey.sixCameras)
+        hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.sixCameras)
     }
 
     /// How many cameras a multicam director may connect: a free 2-camera
-    /// teaser, 4 with full access, or 6 with the 6-camera pack. The director's
+    /// teaser, or the full 6 with Pro or the 6-camera pack. The director's
     /// entitlement is what counts (matching every other gate — checked locally
     /// on this device).
     func maxCameras() -> Int {
-        if hasSixCamerasFeature() { return 6 }
-        return hasFullAccess() ? 4 : 2
+        hasSixCamerasFeature() ? Self.maxPaidCameras : Self.maxFreeCameras
     }
 
     // MARK: - Init

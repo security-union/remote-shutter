@@ -367,7 +367,7 @@
 "Searching for cameras…" = "Đang tìm camera…";
 "Director" = "Đạo diễn";
 "Control one or more iPhone cameras" = "Điều khiển một hoặc nhiều camera iPhone";
-"Direct up to 4 cameras at once" = "Điều khiển tối đa 4 camera cùng lúc";
+"Direct up to %d cameras at once" = "Điều khiển tối đa %d camera cùng lúc";
 "RECONNECTING" = "ĐANG KẾT NỐI LẠI";
 "Connect (%d)" = "Kết nối (%d)";
 "Select all & connect (%d)" = "Chọn tất cả và kết nối (%d)";

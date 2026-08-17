@@ -367,7 +367,7 @@
 "Searching for cameras…" = "Mencari kamera…";
 "Director" = "Pengarah";
 "Control one or more iPhone cameras" = "Kawal satu atau lebih kamera iPhone";
-"Direct up to 4 cameras at once" = "Arahkan sehingga 4 kamera serentak";
+"Direct up to %d cameras at once" = "Arahkan sehingga %d kamera serentak";
 "RECONNECTING" = "MENYAMBUNG SEMULA";
 "Connect (%d)" = "Sambung (%d)";
 "Select all & connect (%d)" = "Pilih semua & sambung (%d)";

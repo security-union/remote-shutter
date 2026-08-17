@@ -60,7 +60,9 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("Pro unlocks every feature, including future ones.", comment: ""))
                 if FeatureFlags.ENABLE_MULTICAM {
-                    Text(NSLocalizedString("Direct up to 4 cameras at once", comment: "Pro multicam feature"))
+                    Text(String(format: NSLocalizedString("Direct up to %d cameras at once",
+                                                          comment: "Pro multicam feature"),
+                                StoreManager.maxPaidCameras))
                 }
             }
         }

@@ -54,32 +54,29 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertEqual(StoreManager.shared.maxCameras(), 2)
     }
 
-    func testProModeUnlocksFourCameras() {
+    /// Pro unlocks everything, six-camera directing included — the one-time
+    /// bundle and the subscription both land on the full paid cap.
+    func testProModeUnlocksPaidCameraCap() {
         UserDefaults.standard.set(true, forKey: proModeKey)
-        XCTAssertEqual(StoreManager.shared.maxCameras(), 4)
+        XCTAssertTrue(StoreManager.shared.hasSixCamerasFeature())
+        XCTAssertEqual(StoreManager.shared.maxCameras(), StoreManager.maxPaidCameras)
     }
 
-    func testProSubscriptionUnlocksFourCameras() {
+    func testProSubscriptionUnlocksPaidCameraCap() {
         UserDefaults.standard.set(true, forKey: proSubscriptionKey)
-        XCTAssertEqual(StoreManager.shared.maxCameras(), 4)
+        XCTAssertEqual(StoreManager.shared.maxCameras(), StoreManager.maxPaidCameras)
     }
 
-    /// The 6-camera pack (product 10) raises the cap to 6 on its own — an
-    /// à la carte add-on, valid with or without Pro.
-    func testSixCameraPackUnlocksSixCameras() {
+    /// The à la carte pack reaches the same cap without Pro.
+    func testSixCameraPackAloneUnlocksPaidCameraCap() {
         UserDefaults.standard.set(true, forKey: sixCamerasKey)
-        XCTAssertEqual(StoreManager.shared.maxCameras(), 6)
-
-        // Stacking Pro on top changes nothing — 6 is the pack's cap.
-        UserDefaults.standard.set(true, forKey: proModeKey)
-        XCTAssertEqual(StoreManager.shared.maxCameras(), 6)
+        XCTAssertEqual(StoreManager.shared.maxCameras(), StoreManager.maxPaidCameras)
     }
 
-    /// The pack is not folded into full access: Pro alone stays at 4.
-    func testFullAccessAloneDoesNotGrantSixCameras() {
-        UserDefaults.standard.set(true, forKey: proModeKey)
-        XCTAssertFalse(StoreManager.shared.hasSixCamerasFeature())
-        XCTAssertEqual(StoreManager.shared.maxCameras(), 4)
+    /// The constants every gate and every piece of copy derive from.
+    func testCameraCapConstants() {
+        XCTAssertEqual(StoreManager.maxFreeCameras, 2)
+        XCTAssertEqual(StoreManager.maxPaidCameras, 6)
     }
 
     // MARK: - Individual Feature Flags

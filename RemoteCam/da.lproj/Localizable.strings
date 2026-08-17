@@ -246,7 +246,7 @@
 "Searching for cameras…" = "Søger efter kameraer …";
 "Director" = "Instruktør";
 "Control one or more iPhone cameras" = "Styr et eller flere iPhone-kameraer";
-"Direct up to 4 cameras at once" = "Instruér op til 4 kameraer på én gang";
+"Direct up to %d cameras at once" = "Instruér op til %d kameraer på én gang";
 "RECONNECTING" = "GENOPRETTER FORBINDELSE";
 "Connect (%d)" = "Forbind (%d)";
 "Select all & connect (%d)" = "Vælg alle og forbind (%d)";
