@@ -412,22 +412,55 @@ public actor MulticamController {
             storePong(measured.pong, t3: measured.t3, from: measured.peer)
 
         // --- UI commands (single-entry inbox) ---
-        case let m as MCFlipCamera: handleFlipCamera(target: m.target)
-        case let m as MCFocusAtPoint: handleFocusAtPoint(x: m.x, y: m.y, target: m.target)
-        case let m as MCToggleTorch: handleToggleTorch(target: m.target)
-        case let m as MCToggleFlash: handleToggleFlash(target: m.target)
-        case let z as MCSetZoom: handleSetZoom(z.factor, target: z.target)
-        case is MCCapturePhoto: handleCapturePhoto()
-        case is MCStartRecording: handleStartRecording()
-        case is MCStopRecording: handleStopRecording()
-        case is MCAutomaticVideoQuality: handleAutomaticVideoQuality()
-        case is MCAutomaticPhotoQuality: handleAutomaticPhotoQuality()
+        case let m as MCFlipCamera:
+            logInfo("director: flip → \(m.target.displayName)")
+            handleFlipCamera(target: m.target)
+        case let m as MCFocusAtPoint:
+            logInfo("director: focus tap (\(m.x), \(m.y)) → \(m.target.displayName)")
+            handleFocusAtPoint(x: m.x, y: m.y, target: m.target)
+        case let m as MCToggleTorch:
+            logInfo("director: torch → \(m.target.displayName)")
+            handleToggleTorch(target: m.target)
+        case let m as MCToggleFlash:
+            logInfo("director: flash → \(m.target.displayName)")
+            handleToggleFlash(target: m.target)
+        case let z as MCSetZoom:
+            // A drag, not a press — firehose level.
+            logDebug("director: zoom \(z.factor) → \(z.target.displayName)")
+            handleSetZoom(z.factor, target: z.target)
+        case is MCCapturePhoto:
+            logInfo("director: shutter tap (photo)")
+            handleCapturePhoto()
+        case is MCStartRecording:
+            logInfo("director: shutter tap (record)")
+            handleStartRecording()
+        case is MCStopRecording:
+            logInfo("director: shutter tap (stop)")
+            handleStopRecording()
+        case is MCAutomaticVideoQuality:
+            logInfo("director: automatic video quality")
+            handleAutomaticVideoQuality()
+        case is MCAutomaticPhotoQuality:
+            logInfo("director: automatic photo quality")
+            handleAutomaticPhotoQuality()
         case let tick as MCTimerAdvance: advanceCountdown(generation: tick.generation)
         case let expired as MCAckTimeout: expireAcks(expired.captureID)
-        case let q as MCSetVideoQuality: handleSetVideoQuality(resolution: q.resolution, frameRate: q.frameRate)
-        case let q as MCSetPhotoQuality: handleSetPhotoQuality(format: q.format, hdr: q.hdr)
-        case let t as MCSetRigTimer: handleSetRigTimer(t.seconds)
+        case let q as MCSetVideoQuality:
+            logInfo("director: video quality \(q.resolution)/\(q.frameRate) → all")
+            handleSetVideoQuality(resolution: q.resolution, frameRate: q.frameRate)
+        case let q as MCSetPhotoQuality:
+            logInfo("director: photo quality \(q.format)/\(q.hdr) → all")
+            handleSetPhotoQuality(format: q.format, hdr: q.hdr)
+        case let t as MCSetRigTimer:
+            logInfo("director: timer preset \(t.seconds)s")
+            handleSetRigTimer(t.seconds)
         case let c as MCPeerCommand:
+            switch c.kind {
+            case .focus, .invite, .remove, .disconnect, .retryCollection:
+                logInfo("director: \(c.kind) → \(c.peer.displayName)")
+            case .nudgeFrame, .requestKeyframe, .reconnectTick:
+                logDebug("director: \(c.kind) → \(c.peer.displayName)")
+            }
             switch c.kind {
             case .focus: handleSetFocusedPeer(c.peer)
             case .invite: handleInviteCamera(c.peer)
@@ -904,6 +937,7 @@ public actor MulticamController {
             fallback: { _ in RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false) },
             lanes: targets)
 
+        logInfo("director: photo \(shortID(fan.captureID)) → [\(names(targets.map(\.peerID)))]")
         state = .capturingPhoto(captureId: fan.captureID, acksRemaining: capturingLanes.count)
         armAckTimeout(fan.captureID)
     }
@@ -938,6 +972,7 @@ public actor MulticamController {
         takeTargets = targets.map(\.peerID)
         takeScheduled = fan.scheduled
         takeAnchorMillis = fan.anchorMillis
+        logInfo("director: record-start \(shortID(fan.captureID)) → [\(names(targets.map(\.peerID)))]")
         state = .startingRecording(captureId: fan.captureID, acksRemaining: capturingLanes.count)
         armAckTimeout(fan.captureID)
     }
@@ -976,6 +1011,7 @@ public actor MulticamController {
             clearRecordingTake()
             state = .monitoring
         } else {
+            logInfo("director: record-stop \(shortID(fan.captureID)) → [\(names(Array(capturingLanes)))]")
             state = .stoppingRecording(captureId: fan.captureID, acksRemaining: capturingLanes.count)
             armAckTimeout(fan.captureID)
         }
@@ -1148,6 +1184,11 @@ public actor MulticamController {
     private func resolvePhotoAck(from peer: MCPeerID, captureId: String?, success: Bool) {
         guard case .capturingPhoto(let id, _) = state, capturingLanes.contains(peer),
               captureId == nil || captureId == id else { return }
+        if success {
+            logInfo("director: \(peer.displayName) acked photo \(shortID(id))")
+        } else {
+            logWarning("director: \(peer.displayName) NACKED photo \(shortID(id))")
+        }
         links[peer]?.captureOutcome = success ? .captured : .failed
         finishLane(peer)
     }
@@ -1159,15 +1200,18 @@ public actor MulticamController {
             guard capturingLanes.contains(peer), captureId == nil || captureId == id else { return }
             guard success else {
                 // All-or-nothing: one refusal voids the whole take.
+                logWarning("director: \(peer.displayName) NACKED record-start \(shortID(id))")
                 links[peer]?.captureOutcome = .failed
                 abortRecordingStart()
                 return
             }
+            logInfo("director: \(peer.displayName) acked record-start \(shortID(id))")
             links[peer]?.isRecording = true
             capturingLanes.remove(peer)
             if capturingLanes.isEmpty {
                 // Every target committed — the rig is rolling, from the shared
                 // fire instant.
+                logInfo("director: rig rolling \(shortID(id))")
                 state = .recording(captureId: id, acksRemaining: 0)
                 recordingStartedAt = recordingStartDate()
             } else {
@@ -1198,6 +1242,7 @@ public actor MulticamController {
     /// job (nack, timeout, and disconnect know who to blame; the rest didn't fail).
     private func abortRecordingStart() {
         guard case .startingRecording(let id, _) = state else { return }
+        logWarning("director: take \(shortID(id)) ABORTED — stop → [\(names(takeTargets))]")
         for peer in takeTargets {
             if takeScheduled {
                 let fireAt = SyncClock.nowMillis() + captureLeadMillis
@@ -1265,6 +1310,9 @@ public actor MulticamController {
             matches = false
         }
         guard matches else { return }
+        if !capturingLanes.isEmpty {
+            logWarning("director: ack timeout \(shortID(captureID)) — silent: [\(names(Array(capturingLanes)))]")
+        }
 
         switch state {
         case .startingRecording:
@@ -1434,8 +1482,16 @@ public actor MulticamController {
     @discardableResult
     private func sendTo(_ peer: MCPeerID, _ msg: Message,
                         mode: MCSessionSendDataMode = .reliable) -> Bool {
-        transportShared.value?.send(msg, to: [peer], mode: mode) ?? false
+        let ok = transportShared.value?.send(msg, to: [peer], mode: mode) ?? false
+        if !ok { logWarning("director: send \(type(of: msg)) → \(peer.displayName) FAILED") }
+        return ok
     }
+
+    /// Log helpers: peers by display name, capture ids by their first 8 chars.
+    private func names(_ peers: [MCPeerID]) -> String {
+        peers.map(\.displayName).joined(separator: ", ")
+    }
+    private func shortID(_ id: String) -> String { String(id.prefix(8)) }
 
     // MARK: - Snapshots
 

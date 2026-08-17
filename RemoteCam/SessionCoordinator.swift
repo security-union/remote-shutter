@@ -413,6 +413,7 @@ public actor SessionCoordinator {
     }
 
     private func unableToProcessError(_ msg: Message) async -> NSError {
+        logWarning("session: \(type(of: msg)) REFUSED — wrong state \(currentStateName())")
         let deviceName = await MainActor.run { UIDevice.current.name }
         return NSError(
             domain: "Unable to process \(type(of: msg)) command, since \(deviceName) is not in the camera screen.", code: 0, userInfo: nil)
@@ -701,6 +702,12 @@ public actor SessionCoordinator {
     // MARK: Message dispatch
 
     func handle(_ msg: Message) async {
+        // Reception trace: every command with the state that will judge it —
+        // the seam for chasing wrong-state refusals. The frame stream is
+        // excluded (it would drown everything at 20fps).
+        if !(msg is RemoteCmd.SendFrame || msg is RemoteCmd.RequestFrame) {
+            logInfo("session rx \(type(of: msg)) [\(currentStateName())]")
+        }
         switch state {
         case .waitingForLobby:
             await inWaitingForLobby(msg)
@@ -1313,6 +1320,7 @@ public actor SessionCoordinator {
         let now = SyncClock.nowMillis()
         let lateness = Int64(now) - Int64(scheduled.fireAtCameraClockMillis)
         guard lateness <= scheduledCaptureMaxLatenessMillis else {
+            logWarning("session: ScheduledCapture \(scheduled.captureId.prefix(8)) NACKED — \(lateness)ms late")
             await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(
                 captureId: scheduled.captureId,
                 error: NSError(domain: "Scheduled capture fire time already passed",
@@ -1346,6 +1354,7 @@ public actor SessionCoordinator {
         cameraDriver = .director
         let lateness = Int64(SyncClock.nowMillis()) - Int64(scheduled.fireAtCameraClockMillis)
         guard lateness <= scheduledCaptureMaxLatenessMillis else {
+            logWarning("session: ScheduledStartRecording \(scheduled.captureId.prefix(8)) NACKED — \(lateness)ms late")
             await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
                 captureId: scheduled.captureId, isStop: false,
                 error: NSError(domain: "Scheduled recording start already passed",
@@ -1843,7 +1852,10 @@ public actor SessionCoordinator {
             showErrorAlert(NSLocalizedString("Connection error", comment: ""))
 
         default:
-            debugLog("SessionCoordinator: message not handled \(type(of: msg)) in state \(state.name)")
+            // A message with no handler in any state is DROPPED with no reply —
+            // the sender's request hangs until its own timeout. Warning-level:
+            // this is the bad-state trail.
+            logWarning("session: \(type(of: msg)) DROPPED — no handler in \(state.name)")
         }
     }
 
