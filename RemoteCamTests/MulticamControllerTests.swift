@@ -15,14 +15,16 @@ private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     var lastLanes: [MulticamLaneInfo] = []
     var capturing = false
     var recording = false
+    var recordingStartTime: Date?
     var availablePeers: [MCPeerID] = []
     var rigSettings: RigSettingsSnapshot?
     var didExit = false
 
     func applyLanes(_ lanes: [MulticamLaneInfo]) { lastLanes = lanes }
-    func applyShutterState(capturing: Bool, recording: Bool) {
+    func applyShutterState(capturing: Bool, recording: Bool, recordingStartTime: Date?) {
         self.capturing = capturing
         self.recording = recording
+        self.recordingStartTime = recordingStartTime
     }
     func applyAvailablePeers(_ peers: [MCPeerID]) { availablePeers = peers }
     func applyRigSettings(_ settings: RigSettingsSnapshot) { rigSettings = settings }
@@ -417,7 +419,7 @@ final class MulticamControllerTests: XCTestCase {
         }
 
         // Mark both rolling so stopRecording targets them.
-        let recID = await controller.recordingStateForTesting()?.id
+        let recID = await controller.startingStateForTesting()?.id
         controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camA)
         controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camB)
         await controller.waitForIdle()
@@ -448,10 +450,17 @@ final class MulticamControllerTests: XCTestCase {
 
         controller.startRecording()
         await controller.waitForIdle()
-        let recID = await controller.recordingStateForTesting()?.id
+        // All-or-nothing: collecting acks is not recording yet.
+        let recID = await controller.startingStateForTesting()?.id
         XCTAssertNotNil(recID)
+        var recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording, "no REC until every target has acked")
 
         controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camA)
+        await controller.waitForIdle()
+        recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording, "one ack of two is still in-flight")
+
         controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camB)
         await controller.waitForIdle()
 
@@ -459,9 +468,11 @@ final class MulticamControllerTests: XCTestCase {
         let recB = await controller.isRecordingForTesting(camB)
         XCTAssertTrue(recA)
         XCTAssertTrue(recB)
-        // Still recording (all start acks in, remaining 0).
+        // Every target committed: the rig is rolling, with a start time.
         let stillRecording = await controller.recordingStateForTesting()
         XCTAssertEqual(stillRecording?.remaining, 0)
+        let startTime = await controller.recordingStartTimeForTesting()
+        XCTAssertNotNil(startTime)
 
         // Stop resolves back to monitoring.
         controller.stopRecording()
@@ -476,6 +487,241 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertNil(stoppingAfter, "back to monitoring")
         let recAafter = await controller.isRecordingForTesting(camA)
         XCTAssertFalse(recAafter)
+    }
+
+    // MARK: - All-or-nothing recording protocol
+
+    /// One refusal voids the whole take: stop goes to EVERY target (even the
+    /// one whose ok-ack is already in), and the rig returns to monitoring.
+    func testStartNackAbortsTheWholeTake() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        transport.sentMessages.removeAll()
+
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false,
+                                            error: NSError(domain: "late", code: 1)), from: camB)
+        await controller.waitForIdle()
+
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB],
+                       "the abort stops every target, not just the acked ones")
+        let starting = await controller.startingStateForTesting()
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(starting)
+        XCTAssertNil(recording, "the take is void — back to monitoring")
+        let outB = await controller.captureOutcomeForTesting(camB)
+        XCTAssertEqual(outB, .failed, "the lane that broke the take is badged")
+        let recA = await controller.isRecordingForTesting(camA)
+        XCTAssertFalse(recA)
+        let startTime = await controller.recordingStartTimeForTesting()
+        XCTAssertNil(startTime)
+    }
+
+    func testStartAckTimeoutAbortsTheTake() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.setCaptureAckTimeout(0.1)
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // camB stays silent
+        await controller.waitForIdle()
+
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB])
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording, "silence past the deadline voids the take")
+        let outB = await controller.captureOutcomeForTesting(camB)
+        XCTAssertEqual(outB, .failed)
+    }
+
+    func testTargetDisconnectDuringStartAborts() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+
+        let starting = await controller.startingStateForTesting()
+        XCTAssertNil(starting, "losing a target during the ack window aborts")
+        XCTAssertFalse(sent(transport, RemoteCmd.ScheduledStopRecording.self).isEmpty)
+        let outB = await controller.captureOutcomeForTesting(camB)
+        XCTAssertEqual(outB, .failed)
+    }
+
+    /// A stale ack from an aborted take must not leak into a newer one.
+    func testStaleStartAckFromAbortedTakeIsIgnored() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let firstID = await controller.startingStateForTesting()!.id
+        controller.startRecording() // second tap = back out of the take
+        await controller.waitForIdle()
+        controller.startRecording() // arm a fresh take
+        await controller.waitForIdle()
+
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: firstID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: firstID, isStop: false), from: camB)
+        await controller.waitForIdle()
+
+        let starting = await controller.startingStateForTesting()
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertEqual(starting?.remaining, 2, "old take's acks count for nothing")
+        XCTAssertNil(recording)
+    }
+
+    func testStopUnsticksWhenNothingIsRolling() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camB)
+        await controller.waitForIdle()
+
+        // Both rolling lanes get torn out from under the take.
+        controller.removeCamera(camA)
+        controller.removeCamera(camB)
+        await controller.waitForIdle()
+
+        controller.stopRecording()
+        await controller.waitForIdle()
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording, "stop with nothing rolling resets to monitoring")
+    }
+
+    // MARK: - Locked countdown targets
+
+    /// The countdown plays only on the cameras that will shoot: a lane that
+    /// isn't ready gets neither ticks nor the capture.
+    func testCountdownTicksOnlyToArmedTargets() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: false, offsetMillis: nil)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(2)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        for _ in 0..<2 {
+            await controller.advanceTimerForTesting()
+            await controller.waitForIdle()
+        }
+
+        let ticks = sent(transport, RemoteCmd.TimerCountdown.self)
+        XCTAssertEqual(Set(ticks.flatMap(\.peers)), [camA],
+                       "the non-ready camera never sees a countdown it won't shoot")
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+        XCTAssertEqual(Set(captures.flatMap(\.peers)), [camA])
+    }
+
+    /// A camera that becomes ready mid-countdown is NOT pulled into the armed
+    /// shot — the set was locked when the countdown started.
+    func testLateReadyCameraIsExcludedFromArmedShot() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(2)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        // camB's capabilities arrive while the rig is counting down.
+        controller.didReceiveMessage(capsWith(full4K), from: camB)
+        await controller.waitForIdle()
+        for _ in 0..<2 {
+            await controller.advanceTimerForTesting()
+            await controller.waitForIdle()
+        }
+
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+        XCTAssertEqual(Set(captures.flatMap(\.peers)), [camA],
+                       "the shot fires on the set that was armed, nothing else")
+    }
+
+    func testNothingArmsWithoutAReadyCamera() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.setRigTimer(3)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto() // no lane is ready — no countdown, no ticks
+        await controller.waitForIdle()
+
+        let remaining = await controller.countdownRemainingForTesting()
+        XCTAssertNil(remaining)
+        XCTAssertTrue(sent(transport, RemoteCmd.TimerCountdown.self).isEmpty)
+    }
+
+    /// A target dropping mid-countdown shrinks the set; the shot still fires
+    /// on the rest.
+    func testArmedTargetDropShrinksTheShot() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(2)
+        await controller.waitForIdle()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+        for _ in 0..<2 {
+            await controller.advanceTimerForTesting()
+            await controller.waitForIdle()
+        }
+
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+        XCTAssertEqual(Set(captures.flatMap(\.peers)), [camA])
+
+        // Settle the shot, then re-arm: the last armed camera dropping cancels
+        // the countdown outright.
+        let captureID = await controller.captureStateForTesting()!.id
+        controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID), from: camA)
+        await controller.waitForIdle()
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        let armed = await controller.countdownRemainingForTesting()
+        XCTAssertNotNil(armed)
+        controller.peerDidDisconnect(camA)
+        await controller.waitForIdle()
+        let remaining = await controller.countdownRemainingForTesting()
+        XCTAssertNil(remaining, "an emptied target set cancels the countdown")
     }
 
     // MARK: - Removal

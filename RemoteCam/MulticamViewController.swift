@@ -54,7 +54,10 @@ public final class MulticamViewController: UIViewController {
             onFocusLane: { [weak self] lane in self?.controller.setFocusedPeer(lane.peerID) },
             onShutter: { [weak self] in self?.triggerShutter() },
             onToggleMode: { [weak self] in
-                guard let self, !self.viewModel.isRecording else { return }
+                // The mode is frozen while a shot is in play — recording,
+                // collecting acks, or counting down. What you armed is what fires.
+                guard let self, !self.viewModel.isRecording, !self.viewModel.isCapturing,
+                      self.viewModel.rigSettings.countdown == nil else { return }
                 self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
             },
             onAddCamera: { [weak self] in self?.handleAddCameraTapped() },
@@ -212,9 +215,10 @@ extension MulticamViewController: MulticamDisplay {
         for lane in created { wire(lane) }
     }
 
-    func applyShutterState(capturing: Bool, recording: Bool) {
+    func applyShutterState(capturing: Bool, recording: Bool, recordingStartTime: Date?) {
         viewModel.isCapturing = capturing
         viewModel.isRecording = recording
+        viewModel.recordingStartTime = recordingStartTime
     }
 
     func applyAvailablePeers(_ peers: [MCPeerID]) {

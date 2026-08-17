@@ -150,6 +150,57 @@ start and stop anchor and the lengths match. Photos come back inline in
 `TakePicResp`; video clips transfer as resources afterward (see
 [Known debts](#known-debts)).
 
+### Broadcast is locked-target; recording is all-or-nothing
+
+Two rules keep a rig shot deterministic:
+
+- **The target set is locked when the shot is armed.** The shutter tap
+  computes the ready lanes once; the countdown ticks and the scheduled
+  command go to exactly that set — the cameras that count down are the
+  cameras that shoot. Nothing arms on an empty set; a target dropping
+  mid-countdown shrinks the set, and an emptied set cancels the countdown.
+- **A recording take exists only if every target commits.** The director
+  holds `.startingRecording` (shutter shows in-flight, not REC) while start
+  acks collect; REC — and the classic recording timer, counting from the
+  shared fire instant — appear only when the last target has acked. One
+  refusal, silence past the 3 s deadline, or a target dropping voids the
+  whole take.
+
+```mermaid
+sequenceDiagram
+    participant UI as Director shutter
+    participant MC as MulticamController
+    participant A as Camera A
+    participant B as Camera B
+
+    UI->>MC: record tap
+    Note over MC: lock targets = ready lanes
+    MC->>A: ScheduledStartRecording fireAt+offsetA, id
+    MC->>B: ScheduledStartRecording fireAt+offsetB, id
+    Note over MC: .startingRecording, shutter in-flight<br/>3 s ack timeout
+
+    alt every target acks success
+        A-->>MC: Ack ok
+        B-->>MC: Ack ok
+        Note over MC: .recording, recordingStartTime = fireAt
+        MC-->>UI: REC + RecordingTimer
+        Note over A,B: both fire at the shared instant
+    else B nacks, or silent, or disconnects
+        A-->>MC: Ack ok
+        B-->>MC: nack, or nothing
+        MC->>A: ScheduledStopRecording id
+        MC->>B: ScheduledStopRecording id
+        Note over MC: stop to EVERY target, covers an<br/>ok-ack still in flight
+        Note over MC: B badged failed, .monitoring<br/>shutter back to idle
+        Note over A: short clip finalizes, auto-collects
+    end
+```
+
+Photos keep per-lane settling (`.capturingPhoto` until every ack or the
+timeout; a fired photo can't be untaken, so the badges name the failures
+instead of voiding the shot). Stop with zero rolling lanes resets to
+`.monitoring` rather than wedging. Stale acks are dropped by capture id.
+
 ## Resilient camera — a drop mid-recording
 
 The one behavior a camera changes in a director session: if the director drops

@@ -67,10 +67,15 @@ final class CameraLane: ObservableObject, Identifiable {
 final class MulticamViewModel: ObservableObject {
     @Published private(set) var lanes: [CameraLane] = []
     @Published var interfaceOrientation: UIInterfaceOrientation = .portrait
-    /// A synced photo is in flight — drives the shutter's activity ring.
+    /// A synced photo or recording start is in flight — the shutter's activity
+    /// ring, shown until every camera has answered.
     @Published var isCapturing: Bool = false
-    /// The rig is recording — the shutter becomes a stop button.
+    /// Every target camera committed and the rig is recording — the shutter
+    /// becomes a stop button and the timecode counts.
     @Published var isRecording: Bool = false
+    /// When the rig actually started rolling — drives the classic
+    /// `RecordingTimer` in the top bar. Nil unless recording.
+    @Published var recordingStartTime: Date?
     /// Photo vs video shutter mode.
     @Published var mode: MonitorMode = .photo
     /// Focus (viewfinder + strip) vs grid (monitor wall) layout.

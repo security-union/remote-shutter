@@ -122,10 +122,20 @@ struct MulticamView: View {
         .padding(.bottom, 8)
     }
 
-    /// Back (leading) · focused link + camera chip · Spacer · flash/torch/tray.
-    /// The same slots as the monitor's `topBar`; the rig tray takes the
-    /// settings glyph's place.
+    /// Back (leading) · focused link + camera chip · Spacer · flash/torch/tray,
+    /// with the recording timecode centered over it all — the same slots as
+    /// the monitor's `topBar`; the rig tray takes the settings glyph's place.
     private var topBar: some View {
+        ZStack {
+            if viewModel.isRecording {
+                RecordingTimer(startTime: viewModel.recordingStartTime,
+                               isRecording: viewModel.isRecording)
+            }
+            topBarControls
+        }
+    }
+
+    private var topBarControls: some View {
         HStack(spacing: 0) {
             GlassCircleButton(systemImage: "chevron.backward",
                               size: 44, glyphSize: 22,
