@@ -81,12 +81,12 @@ public final class MulticamViewController: UIViewController {
                     hdr: on ? .on : .off)
             },
             onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) },
-            onToggleFocusedCamera: { [weak self] in self?.controller.toggleFocusedCamera() },
-            onToggleTorch: { [weak self] in self?.controller.toggleTorch() },
-            onToggleFlash: { [weak self] in self?.controller.toggleFlash() },
+            onFlipCamera: { [weak self] lane in self?.controller.flipCamera(lane.peerID) },
+            onToggleTorch: { [weak self] lane in self?.controller.toggleTorch(on: lane.peerID) },
+            onToggleFlash: { [weak self] lane in self?.controller.toggleFlash(on: lane.peerID) },
             onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },
-            onZoomChange: { [weak self] factor in self?.handleZoomChange(factor) },
-            onFocusTap: { [weak self] point in self?.handleFocusTap(point) },
+            onZoomChange: { [weak self] lane, factor in self?.handleZoomChange(factor, on: lane.peerID) },
+            onFocusTap: { [weak self] lane, point in self?.handleFocusTap(point, on: lane.peerID) },
             onBack: { [weak self] in self?.navigationController?.popViewController(animated: true) })
         hosting = embedSwiftUIView(multicamView)
 
@@ -124,16 +124,16 @@ public final class MulticamViewController: UIViewController {
         }
     }
 
-    /// Tap-to-focus on the focused camera. Gated behind its own entitlement
-    /// (mirrors the 1:1); a locked user is routed to the paywall. The
-    /// controller additionally drops the command if the focused peer never
-    /// advertised focus support.
-    private func handleFocusTap(_ point: CGPoint) {
+    /// Tap-to-focus on the camera the tap was rendered over. Gated behind its
+    /// own entitlement (mirrors the 1:1); a locked user is routed to the
+    /// paywall. The controller additionally drops the command if that peer
+    /// never advertised focus support.
+    private func handleFocusTap(_ point: CGPoint, on peer: MCPeerID) {
         guard StoreManager.shared.hasTapToFocusFeature() else {
             showPaywall()
             return
         }
-        controller.focusFocusedCamera(x: Float(point.x), y: Float(point.y))
+        controller.focusCamera(peer, x: Float(point.x), y: Float(point.y))
     }
 
     /// Reuse the existing Settings/paywall sheet — no bespoke multicam paywall.
@@ -152,18 +152,20 @@ public final class MulticamViewController: UIViewController {
         }
     }
 
-    /// Throttled zoom to the focused camera, the same leading+trailing pattern
-    /// the 1:1 monitor uses so a drag never floods the wire.
-    private func handleZoomChange(_ factor: CGFloat) {
+    /// Throttled zoom, the same leading+trailing pattern the 1:1 monitor uses
+    /// so a drag never floods the wire. The target camera rides through the
+    /// throttle with the value — the trailing edge lands on the camera the
+    /// drag was on, whatever is focused by the time it fires.
+    private func handleZoomChange(_ factor: CGFloat, on peer: MCPeerID) {
         switch zoomThrottle.update(value: Double(factor), now: Date()) {
         case .sendNow:
-            controller.setZoom(factor)
+            controller.setZoom(factor, on: peer)
         case .scheduleTrailing:
             trailingZoomTimer?.invalidate()
             trailingZoomTimer = Timer.scheduledTimer(withTimeInterval: zoomThrottle.interval,
                                                      repeats: false) { [weak self] _ in
                 guard let self, let pending = self.zoomThrottle.fireTrailing(now: Date()) else { return }
-                self.controller.setZoom(CGFloat(pending))
+                self.controller.setZoom(CGFloat(pending), on: peer)
             }
         }
     }

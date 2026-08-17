@@ -124,19 +124,61 @@ final class MulticamControllerTests: XCTestCase {
                        "the frame ack must address only the camera that sent the frame")
     }
 
-    // MARK: - Focused-camera commands
+    // MARK: - Per-camera commands (target carried by the command)
 
-    func testPerCameraCommandTargetsOnlyTheFocusedPeer() async {
+    /// Routing is the parameter, not the focus register: a command aimed at
+    /// camB lands on camB even while camA is the focused camera.
+    func testPerCameraCommandTargetsItsParameterNotTheFocusRegister() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
-        controller.setFocusedPeer(camB)
+        controller.setFocusedPeer(camA)
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        await controller.setZoom(2.0)
+        controller.setZoom(2.0, on: camB)
         await controller.waitForIdle()
 
         let zooms = sent(transport, RemoteCmd.SetZoom.self)
         XCTAssertEqual(zooms.map(\.peers), [[camB]])
+    }
+
+    /// Dario's repro: zooming one camera must not unroute the broadcast — a
+    /// following photo AND recording still fan to every ready camera.
+    func testZoomingOneCameraNeverUnroutesTheBroadcast() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+        controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+
+        // A pinch burst on camera A, with its responses coming back.
+        for factor in [2.0, 2.5, 3.0, 3.5] {
+            controller.setZoom(CGFloat(factor), on: camA)
+        }
+        controller.didReceiveMessage(
+            RemoteCmd.SetZoomResp(zoomFactor: 3.5, currentLens: .wideAngle,
+                                  zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 8), error: nil),
+            from: camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+        XCTAssertEqual(Set(captures.flatMap(\.peers)), [camA, camB],
+                       "the photo still fans to every ready camera after zooming one")
+
+        // Settle the photo, then the same for a recording start.
+        let captureID = await controller.captureStateForTesting()!.id
+        controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID), from: camA)
+        controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let starts = sent(transport, RemoteCmd.ScheduledStartRecording.self)
+        XCTAssertEqual(Set(starts.flatMap(\.peers)), [camA, camB],
+                       "the recording start still fans to every ready camera")
     }
 
     // MARK: - Disconnect / reconnect
@@ -1221,7 +1263,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        controller.toggleFocusedCamera()
+        controller.flipCamera(camA)
         await controller.waitForIdle()
 
         let flips = sent(transport, RemoteCmd.ToggleCamera.self)
@@ -1259,7 +1301,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        controller.toggleFocusedCamera()
+        controller.flipCamera(camA)
         await controller.waitForIdle()
 
         XCTAssertEqual(sent(transport, RemoteCmd.ToggleCamera.self).map(\.peers), [[camA]],
@@ -1275,7 +1317,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        controller.toggleFocusedCamera()
+        controller.flipCamera(camA)
         await controller.waitForIdle()
 
         XCTAssertTrue(sent(transport, RemoteCmd.ToggleCamera.self).isEmpty,
@@ -1307,7 +1349,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        controller.setZoom(3.0)
+        controller.setZoom(3.0, on: camA)
         await controller.waitForIdle()
 
         let zooms = sent(transport, RemoteCmd.SetZoom.self)
@@ -1370,7 +1412,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        controller.focusFocusedCamera(x: 0.25, y: 0.75)
+        controller.focusCamera(camA, x: 0.25, y: 0.75)
         await controller.waitForIdle()
 
         let focuses = sent(transport, RemoteCmd.FocusAtPoint.self)
@@ -1388,7 +1430,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        controller.focusFocusedCamera(x: 0.5, y: 0.5)
+        controller.focusCamera(camA, x: 0.5, y: 0.5)
         await controller.waitForIdle()
 
         XCTAssertTrue(sent(transport, RemoteCmd.FocusAtPoint.self).isEmpty,
@@ -1403,7 +1445,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        controller.toggleTorch()
+        controller.toggleTorch(on: camA)
         await controller.waitForIdle()
 
         XCTAssertEqual(sent(transport, RemoteCmd.ToggleTorch.self).map(\.peers), [[camA]],

@@ -37,17 +37,19 @@ struct MulticamView: View {
     /// Retry a lane's failed footage collection.
     let onRetryCollection: (CameraLane) -> Void
     /// Flip the focused camera front/back (per-camera framing).
-    let onToggleFocusedCamera: () -> Void
-    /// Torch / flash on the focused camera (per-camera framing).
-    let onToggleTorch: () -> Void
-    let onToggleFlash: () -> Void
+    /// Per-camera commands carry the lane they were rendered for — routing is
+    /// a parameter of the command, never a stored register.
+    let onFlipCamera: (CameraLane) -> Void
+    /// Torch / flash on the named camera (per-camera framing).
+    let onToggleTorch: (CameraLane) -> Void
+    let onToggleFlash: (CameraLane) -> Void
     /// Disconnect one camera from the rig (long-press → EndSession to it).
     let onDisconnectCamera: (CameraLane) -> Void
-    /// Zoom the focused camera (per-camera framing; throttled by the host).
-    let onZoomChange: (CGFloat) -> Void
-    /// Tap-to-focus on the focused camera (normalized upright coords; the host
+    /// Zoom the named camera (per-camera framing; throttled by the host).
+    let onZoomChange: (CameraLane, CGFloat) -> Void
+    /// Tap-to-focus on the named camera (normalized upright coords; the host
     /// gates on the IAP, the controller on the peer's advertised support).
-    let onFocusTap: (CGPoint) -> Void
+    let onFocusTap: (CameraLane, CGPoint) -> Void
     /// Leave the director screen, back to the scanner (links stay up; the
     /// scanner re-arms and re-selects the still-connected cameras).
     let onBack: () -> Void
@@ -153,8 +155,8 @@ struct MulticamView: View {
                            isTorchEnabled: viewModel.focusedTorchOn,
                            isTorchButtonEnabled: viewModel.focusedTorchEnabled,
                            isTrayOpen: viewModel.showingRigTray,
-                           onToggleFlash: onToggleFlash,
-                           onToggleTorch: onToggleTorch,
+                           onToggleFlash: withFocused(onToggleFlash),
+                           onToggleTorch: withFocused(onToggleTorch),
                            onToggleTray: { viewModel.showingRigTray = true })
                 .equatable()
         }
@@ -225,7 +227,7 @@ struct MulticamView: View {
             activeDeviceID: nil,
             isEnabled: viewModel.focusedCameraCanFlip,
             isSwitching: false,
-            onToggleCamera: onToggleFocusedCamera,
+            onToggleCamera: withFocused(onFlipCamera),
             onSelectCameraDevice: { _ in })
             .equatable()
 
@@ -245,11 +247,17 @@ struct MulticamView: View {
     /// 1:1 monitor does.
     @ViewBuilder
     private var focusedZoomPill: some View {
-        if viewModel.displayMode == .focus && viewModel.showsFocusedZoomPill {
+        if viewModel.displayMode == .focus && viewModel.showsFocusedZoomPill,
+           let focused = viewModel.focusedLane {
             ZoomPill(scale: viewModel.focusedZoomScale,
                      currentZoomFactor: viewModel.focusedZoomFactor,
-                     onZoomChange: onZoomChange)
+                     onZoomChange: { onZoomChange(focused, $0) })
         }
+    }
+
+    /// Bind a per-camera action to the lane the control was rendered for.
+    private func withFocused(_ action: @escaping (CameraLane) -> Void) -> () -> Void {
+        { if let focused = viewModel.focusedLane { action(focused) } }
     }
 
     /// The grid toggle occupies the monitor's gallery slot. Shown only with
@@ -350,9 +358,9 @@ struct MulticamView: View {
                     zoomScale: { focused.zoomScale },
                     currentZoomFactor: { focused.zoomFactor },
                     focusEnabled: focused.supportsFocusPoint,
-                    onFocusTap: onFocusTap,
-                    onDoubleTap: onToggleFocusedCamera,
-                    onZoomChange: onZoomChange)
+                    onFocusTap: { onFocusTap(focused, $0) },
+                    onDoubleTap: { onFlipCamera(focused) },
+                    onZoomChange: { onZoomChange(focused, $0) })
             }
             .ignoresSafeArea()
         } else {

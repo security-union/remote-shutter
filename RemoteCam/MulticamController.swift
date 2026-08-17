@@ -411,11 +411,11 @@ public actor MulticamController {
             storePong(measured.pong, t3: measured.t3, from: measured.peer)
 
         // --- UI commands (single-entry inbox) ---
-        case is MCToggleFocusedCamera: handleToggleFocusedCamera()
-        case let m as MCFocusAtPoint: handleFocusAtPoint(x: m.x, y: m.y)
-        case is MCToggleTorch: handleToggleTorch()
-        case is MCToggleFlash: handleToggleFlash()
-        case let z as MCSetZoom: handleSetZoom(z.factor)
+        case let m as MCFlipCamera: handleFlipCamera(target: m.target)
+        case let m as MCFocusAtPoint: handleFocusAtPoint(x: m.x, y: m.y, target: m.target)
+        case let m as MCToggleTorch: handleToggleTorch(target: m.target)
+        case let m as MCToggleFlash: handleToggleFlash(target: m.target)
+        case let z as MCSetZoom: handleSetZoom(z.factor, target: z.target)
         case is MCCapturePhoto: handleCapturePhoto()
         case is MCStartRecording: handleStartRecording()
         case is MCStopRecording: handleStopRecording()
@@ -643,28 +643,36 @@ public actor MulticamController {
         sendTo(frame.peerId, RemoteCmd.RequestFrame(sender: nil))
     }
 
-    // MARK: - Per-camera controls (focused peer only)
+    // MARK: - Per-camera controls (target carried by the command)
 
-    /// Framing controls address the focused camera. Each is a message on the
-    /// single inbox, like every other UI intent.
-    public nonisolated func setZoom(_ factor: CGFloat) { tell(MCSetZoom(factor)) }
-    public nonisolated func toggleTorch() { tell(MCToggleTorch()) }
-    public nonisolated func toggleFlash() { tell(MCToggleFlash()) }
+    /// Framing controls are pure functions of their arguments: the UI names
+    /// the camera it rendered the control for, and the command carries that
+    /// target all the way to the wire. No routing register to go stale —
+    /// `focusedPeer` is presentation state (tile size, stream tier), never
+    /// command routing.
+    public nonisolated func setZoom(_ factor: CGFloat, on peer: MCPeerID) {
+        tell(MCSetZoom(factor, target: peer))
+    }
+    public nonisolated func toggleTorch(on peer: MCPeerID) { tell(MCToggleTorch(target: peer)) }
+    public nonisolated func toggleFlash(on peer: MCPeerID) { tell(MCToggleFlash(target: peer)) }
 
-    private func handleSetZoom(_ factor: CGFloat) { focusedSend(RemoteCmd.SetZoom(zoomFactor: factor)) }
+    private func handleSetZoom(_ factor: CGFloat, target: MCPeerID) {
+        guard links[target] != nil else { return }
+        sendTo(target, RemoteCmd.SetZoom(zoomFactor: factor))
+    }
 
-    private func handleToggleTorch() {
-        guard let peer = focusedPeer, let link = links[peer] else { return }
+    private func handleToggleTorch(target: MCPeerID) {
+        guard let link = links[target] else { return }
         // Optimistic: reflect the tap immediately so the glyph tints like the
         // 1:1 monitor's; the camera is the source of truth for whether it took.
         link.torchOn.toggle()
-        sendTo(peer, RemoteCmd.ToggleTorch())
+        sendTo(target, RemoteCmd.ToggleTorch())
     }
 
-    private func handleToggleFlash() {
-        guard let peer = focusedPeer, let link = links[peer] else { return }
+    private func handleToggleFlash(target: MCPeerID) {
+        guard let link = links[target] else { return }
         link.flashOn.toggle()
-        sendTo(peer, RemoteCmd.ToggleFlash())
+        sendTo(target, RemoteCmd.ToggleFlash())
     }
 
     /// Disconnect one camera from the rig: a purposeful goodbye (`EndSession`)
@@ -682,33 +690,32 @@ public actor MulticamController {
         }
     }
 
-    /// Flip the focused camera between front and back. Framing is per-camera,
-    /// so only the focused peer flips; `ToggleCameraResp` carries its refreshed
-    /// capabilities back to that lane.
-    public nonisolated func toggleFocusedCamera() { tell(MCToggleFocusedCamera()) }
+    /// Flip one camera between front and back. The camera decides whether a
+    /// flip does anything, exactly as in the 1:1 monitor; `ToggleCameraResp`
+    /// carries its refreshed capabilities back to that lane.
+    public nonisolated func flipCamera(_ peer: MCPeerID) { tell(MCFlipCamera(target: peer)) }
 
-    private func handleToggleFocusedCamera() {
-        // Sent whenever a camera is focused and linked — the camera decides
-        // whether a flip does anything, exactly as in the 1:1 monitor. Never
-        // gated on advertised positions (the payload doesn't reliably carry
-        // both), which was why the button read as disabled on device.
-        guard let peer = focusedPeer, links[peer]?.status == .linked else { return }
-        sendTo(peer, RemoteCmd.ToggleCamera())
+    private func handleFlipCamera(target: MCPeerID) {
+        guard links[target]?.status == .linked else { return }
+        sendTo(target, RemoteCmd.ToggleCamera())
     }
 
-    /// Tap-to-focus targets the focused camera only. The IAP gate lives on the
-    /// view controller (mirrors the 1:1); here we drop the command if the
-    /// focused peer never advertised focus support.
-    public nonisolated func focusFocusedCamera(x: Float, y: Float) {
-        tell(MCFocusAtPoint(x: x, y: y))
+    /// Tap-to-focus on one camera. The IAP gate lives on the view controller
+    /// (mirrors the 1:1); here the command is dropped if that camera never
+    /// advertised focus support.
+    public nonisolated func focusCamera(_ peer: MCPeerID, x: Float, y: Float) {
+        tell(MCFocusAtPoint(x: x, y: y, target: peer))
     }
 
-    private func handleFocusAtPoint(x: Float, y: Float) {
-        guard let peer = focusedPeer, links[peer]?.capabilities?.supportsFocusPoint == true else { return }
-        sendTo(peer, RemoteCmd.FocusAtPoint(x: x, y: y))
+    private func handleFocusAtPoint(x: Float, y: Float, target: MCPeerID) {
+        guard links[target]?.capabilities?.supportsFocusPoint == true else { return }
+        sendTo(target, RemoteCmd.FocusAtPoint(x: x, y: y))
     }
 
-    func switchLens(_ lens: CameraLensType) { focusedSend(RemoteCmd.SwitchLens(lensType: lens)) }
+    func switchLens(_ lens: CameraLensType, on peer: MCPeerID) {
+        guard links[peer] != nil else { return }
+        sendTo(peer, RemoteCmd.SwitchLens(lensType: lens))
+    }
 
     public nonisolated func setFocusedPeer(_ peer: MCPeerID) { tell(MCPeerCommand(.focus, peer)) }
 
@@ -753,11 +760,6 @@ public actor MulticamController {
         frameSinks[peer] = nil
         order.removeAll { $0 == peer }
         if focusedPeer == peer { focusedPeer = order.first; syncFocusFlags() }
-    }
-
-    private func focusedSend(_ msg: Message) {
-        guard let peer = focusedPeer else { return }
-        sendTo(peer, msg)
     }
 
     /// Seed a lane's zoom scale from a capabilities exchange via the shared
@@ -1576,11 +1578,18 @@ final class ResourceTransferFinished: Message, @unchecked Sendable {
 enum MulticamTimedAction { case photo, record }
 
 final class MCCapturePhoto: Message, @unchecked Sendable {}
-final class MCToggleFocusedCamera: Message, @unchecked Sendable {}
+final class MCFlipCamera: Message, @unchecked Sendable {
+    let target: MCPeerID
+    init(target: MCPeerID) { self.target = target; super.init(sender: nil) }
+}
 final class MCFocusAtPoint: Message, @unchecked Sendable {
     let x: Float
     let y: Float
-    init(x: Float, y: Float) { self.x = x; self.y = y }
+    let target: MCPeerID
+    init(x: Float, y: Float, target: MCPeerID) {
+        self.x = x; self.y = y; self.target = target
+        super.init(sender: nil)
+    }
 }
 final class MCStartRecording: Message, @unchecked Sendable {}
 final class MCStopRecording: Message, @unchecked Sendable {}
@@ -1605,11 +1614,21 @@ final class MCPeerCommand: Message, @unchecked Sendable {
     init(_ kind: Kind, _ peer: MCPeerID) { self.kind = kind; self.peer = peer; super.init(sender: nil) }
 }
 
-final class MCToggleTorch: Message, @unchecked Sendable {}
-final class MCToggleFlash: Message, @unchecked Sendable {}
+final class MCToggleTorch: Message, @unchecked Sendable {
+    let target: MCPeerID
+    init(target: MCPeerID) { self.target = target; super.init(sender: nil) }
+}
+final class MCToggleFlash: Message, @unchecked Sendable {
+    let target: MCPeerID
+    init(target: MCPeerID) { self.target = target; super.init(sender: nil) }
+}
 final class MCSetZoom: Message, @unchecked Sendable {
     let factor: CGFloat
-    init(_ factor: CGFloat) { self.factor = factor; super.init(sender: nil) }
+    let target: MCPeerID
+    init(_ factor: CGFloat, target: MCPeerID) {
+        self.factor = factor; self.target = target
+        super.init(sender: nil)
+    }
 }
 
 final class MCSetVideoQuality: Message, @unchecked Sendable {
