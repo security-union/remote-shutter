@@ -595,6 +595,45 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertNil(recording)
     }
 
+    /// All-or-nothing governs FORMING a take, never a rolling one: once every
+    /// target has committed, a camera dropping degrades its own lane and
+    /// nothing else — the rig keeps recording, and the eventual stop still
+    /// addresses the missing lane so its clip ends properly on reconnect.
+    func testEstablishedRecordingSurvivesACameraDrop() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.peerDidDisconnect(camB)
+        await controller.waitForIdle()
+
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNotNil(recording, "the rig keeps rolling through a lane drop")
+        XCTAssertTrue(sent(transport, RemoteCmd.ScheduledStopRecording.self).isEmpty,
+                      "no abort — nothing is stopped")
+        let statusB = await controller.statusForTesting(camB)
+        XCTAssertEqual(statusB, .reconnecting)
+        let recB = await controller.isRecordingForTesting(camB)
+        XCTAssertTrue(recB, "the dropped camera is still rolling on its own")
+
+        // Stop still addresses BOTH rolling lanes, present or not, so the
+        // missing camera's clip is ended the moment it can hear us.
+        controller.stopRecording()
+        await controller.waitForIdle()
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB])
+    }
+
     func testStopUnsticksWhenNothingIsRolling() async {
         let (controller, _, _) = await makeController(peers: [camA, camB])
         await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
