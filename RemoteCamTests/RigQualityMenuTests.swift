@@ -61,6 +61,67 @@ final class RigQualityMenuTests: XCTestCase {
         XCTAssertTrue(menu.blockingLanes(resolution: .uhd4k, frameRate: .fps30).isEmpty)
     }
 
+    // MARK: - Set algebra (multicam settings = camA ∩ camB ∩ camC)
+
+    /// The video options a rig of `lanes` offers, as a set for algebra.
+    private func optionSet(_ lanes: [RigQualityMenu.Lane]) -> Set<String> {
+        Set(RigQualityMenu(lanes: lanes).videoOptions()
+            .map { "\($0.resolution.rawValue):\($0.frameRate.rawValue)" })
+    }
+
+    /// The defining property: a three-camera rig's options are exactly the
+    /// set intersection of each camera's own options.
+    func testRigOptionsAreTheSetIntersectionOfEachCamerasOptions() {
+        let camA = lane("A", full4K)
+        let camB = lane("B", [.uhd4k: [.fps24, .fps30], .hd1080p: [.fps24, .fps30, .fps60]])
+        let camC = lane("C", [.hd1080p: [.fps30, .fps60]])
+
+        XCTAssertEqual(
+            optionSet([camA, camB, camC]),
+            optionSet([camA]).intersection(optionSet([camB])).intersection(optionSet([camC])))
+        // Spelled out: only the 1080p rates every camera shares survive.
+        XCTAssertEqual(optionSet([camA, camB, camC]),
+                       optionSet([lane("solo", [.hd1080p: [.fps30, .fps60]])]))
+    }
+
+    /// Intersection is order-independent: the rig's options don't depend on
+    /// which camera joined first.
+    func testIntersectionIsCommutative() {
+        let camA = lane("A", full4K)
+        let camB = lane("B", only1080)
+        let camC = lane("C", [.uhd4k: [.fps30], .hd1080p: [.fps30]])
+        XCTAssertEqual(optionSet([camA, camB, camC]), optionSet([camC, camA, camB]))
+        XCTAssertEqual(optionSet([camA, camB, camC]), optionSet([camB, camC, camA]))
+    }
+
+    /// A camera dropping can only widen (or keep) the rig's options — never
+    /// shrink them. This is what the settings tray must reflect live.
+    func testRemovingACameraNeverShrinksTheOptionSet() {
+        let camA = lane("A", full4K)
+        let camB = lane("B", only1080)
+        let camC = lane("C", [.uhd4k: [.fps30], .hd1080p: [.fps30]])
+        XCTAssertTrue(optionSet([camA, camB, camC]).isSubset(of: optionSet([camA, camB])))
+        XCTAssertTrue(optionSet([camA, camB]).isSubset(of: optionSet([camA])))
+    }
+
+    /// HEIF/HDR are conjunctions: available iff every camera supports them —
+    /// checked over every combination of three cameras.
+    func testHEIFAndHDRAreANDedAcrossThreeCameras() {
+        for mask in 0..<8 {
+            let flags = [mask & 1 != 0, mask & 2 != 0, mask & 4 != 0]
+            let lanes = flags.enumerated().map { idx, flag in
+                lane("Cam \(idx + 1)", only1080, heif: flag, hdr: flag)
+            }
+            let menu = RigQualityMenu(lanes: lanes)
+            let allSupport = flags.allSatisfy { $0 }
+            XCTAssertEqual(menu.supportsHEIF(), allSupport, "HEIF for mask \(mask)")
+            XCTAssertEqual(menu.supportsHDR(), allSupport, "HDR for mask \(mask)")
+            // The blockers are exactly the cameras that can't.
+            XCTAssertEqual(Set(menu.lanesBlockingHEIF()),
+                           Set(flags.enumerated().filter { !$0.element }.map { "Cam \($0.offset + 1)" }))
+        }
+    }
+
     // MARK: - Automatic
 
     func testAutomaticPicksHighestResThenFps() {

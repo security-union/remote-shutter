@@ -586,6 +586,63 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertFalse(camAstillOK)
     }
 
+    /// The tray is the live intersection of the cameras actually in the rig:
+    /// when the camera that was blocking an option leaves, the option unblocks
+    /// on the same pump turn — no manual refresh, no stale copy anywhere.
+    func testCameraDropRecomputesQualityIntersection() async {
+        let (controller, _, display) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(only1080, heif: false, hdr: false), from: camB)
+        await controller.waitForIdle()
+
+        var rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.videoOptions.first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled,
+                       false, "camB (1080-only) blocks 4K30")
+        XCTAssertFalse(rig.heifAvailable)
+        XCTAssertFalse(rig.hdrAvailable)
+
+        controller.disconnectCamera(camB)
+        await controller.waitForIdle()
+
+        rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.videoOptions.first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled,
+                       true, "with camB gone the intersection is camA alone — 4K30 unblocks")
+        XCTAssertTrue(rig.heifAvailable)
+        XCTAssertTrue(rig.hdrAvailable)
+
+        // And the recomputed snapshot is published to the screen, not just
+        // computable on demand.
+        await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
+        XCTAssertEqual(display.rigSettings?.videoOptions
+            .first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled, true)
+    }
+
+    /// A camera whose version handshake is refused is out of the rig's
+    /// intersection too — its constraints must not linger in the tray.
+    func testVersionRefusedCameraLeavesTheIntersection() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(only1080), from: camB)
+        await controller.waitForIdle()
+        var rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.videoOptions.first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled, false)
+
+        // camB announces an incompatible app major → refused (status .failed).
+        guard let local = PeerAppCompatibility.localVersion else {
+            return XCTFail("the test host must carry a parseable CFBundleShortVersionString")
+        }
+        controller.didReceiveMessage(
+            RemoteCmd.PeerBecameCamera(bundleVersion: 1,
+                                       shortVersion: "\(local.major + 1).0.0",
+                                       platform: "iPhone"),
+            from: camB)
+        await controller.waitForIdle()
+
+        rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.videoOptions.first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled,
+                       true, "a refused camera no longer constrains the rig")
+    }
+
     func testRigTimerCountsDownFansOutAndFiresCapture() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         // Seed offsets so the fired capture takes the scheduled path.
@@ -616,6 +673,84 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertTrue(ticks.contains { $0.value == 0 })
         XCTAssertFalse(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty,
                        "expiry fired the synced capture")
+    }
+
+    // MARK: - Countdown cancel (Dario's repro: cancel raced the timer to zero
+    // and the picture fired anyway)
+
+    /// Tapping the shutter while the rig is counting down cancels the countdown
+    /// — the 1:1 monitor's gesture — instead of restarting it or firing.
+    func testShutterTapDuringCountdownCancelsInsteadOfCapturing() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(3)
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        var remaining = await controller.countdownRemainingForTesting()
+        XCTAssertEqual(remaining, 3)
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto() // second tap = cancel
+        await controller.waitForIdle()
+
+        remaining = await controller.countdownRemainingForTesting()
+        XCTAssertNil(remaining, "the countdown is cancelled, not restarted")
+        // Every camera is told the countdown is off (negative tick clears its
+        // overlay and restores its torch)…
+        let cancels = sent(transport, RemoteCmd.TimerCountdown.self)
+            .compactMap { $0.msg as? RemoteCmd.TimerCountdown }
+            .filter { $0.value < 0 }
+        XCTAssertEqual(cancels.count, 2)
+        // …and nothing is captured, by either the scheduled or fallback path.
+        XCTAssertTrue(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty)
+        XCTAssertTrue(sent(transport, RemoteCmd.TakePic.self).isEmpty)
+        let capture = await controller.captureStateForTesting()
+        XCTAssertNil(capture)
+    }
+
+    func testShutterTapDuringRecordCountdownCancels() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(3)
+        controller.startRecording()
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.startRecording() // second tap = cancel
+        await controller.waitForIdle()
+
+        let remaining = await controller.countdownRemainingForTesting()
+        XCTAssertNil(remaining)
+        XCTAssertTrue(sent(transport, RemoteCmd.ScheduledStartRecording.self).isEmpty)
+        XCTAssertTrue(sent(transport, RemoteCmd.StartRecordingVideo.self).isEmpty)
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording)
+    }
+
+    /// The fast-count-to-zero bug: a tick that was already in flight when its
+    /// countdown was cancelled must be inert — it can neither resurrect the old
+    /// countdown nor advance a newer one.
+    func testStaleTickCannotAdvanceANewerCountdown() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.setTimerTickInterval(1000)
+        controller.setRigTimer(5)
+        controller.capturePhoto() // arm (generation 1)
+        await controller.waitForIdle()
+        controller.capturePhoto() // cancel (generation 2)
+        await controller.waitForIdle()
+        controller.capturePhoto() // re-arm (generation 3)
+        await controller.waitForIdle()
+
+        controller.tell(MCTimerAdvance(generation: 1)) // the late, stale tick
+        await controller.waitForIdle()
+
+        let remaining = await controller.countdownRemainingForTesting()
+        XCTAssertEqual(remaining, 5, "a stale tick must not advance the countdown")
+        XCTAssertTrue(sent(transport, RemoteCmd.ScheduledCapture.self).isEmpty)
     }
 
     func testSetPhotoQualityFansOut() async {
