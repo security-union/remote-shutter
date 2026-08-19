@@ -172,11 +172,17 @@ class MonitorViewModel: ObservableObject {
     func configureVideoRecording() { setUIState(.videoRecording) }
     func configureShortsMode() { setUIState(.shortsMode) }
 
+    /// Synchronous ON PURPOSE: every caller is already on main (the presenter
+    /// hops before rendering; the view controller's lifecycle is main). The
+    /// old extra `DispatchQueue.main.async` here gave mode changes a second
+    /// queue turn, so they could land AFTER a later-sent single-hop write —
+    /// a stale "back to idle" could eat a fresh recording's start time and
+    /// leave the recording screen with a dead timer. One hop everywhere on
+    /// this path ⇒ updates land in the order the coordinator sent them.
     private func setUIState(_ state: MonitorUIState) {
-        DispatchQueue.main.async {
-            self.uiState = state
-            self.buttonPrompt = Self.prompt(for: state)
-        }
+        dispatchPrecondition(condition: .onQueue(.main))
+        uiState = state
+        buttonPrompt = Self.prompt(for: state)
     }
     
     // MARK: - Update Methods (called from MonitorViewController Actor messages)

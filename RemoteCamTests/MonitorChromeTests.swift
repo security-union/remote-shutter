@@ -15,23 +15,48 @@ final class MonitorChromeTests: XCTestCase {
 
     // MARK: - Derived control state (one stored mode, no thrash)
 
-    /// The REC dot, the timer, and the back button are all lookups off
-    /// `uiState` — they CANNOT disagree. These pin the derivation (they were
-    /// 13 hand-set booleans, and paths that forgot one left the screen
-    /// self-contradicting: a ticking timer with no dot, a dead back button
-    /// in photo mode).
-    func testRecordingSurfacesDeriveTogether() {
-        let model = MonitorViewModel()
-        model.uiState = .videoRecording
-        XCTAssertTrue(model.isRecording)
-        XCTAssertTrue(model.isShowingRecordingDuration)
-        XCTAssertFalse(model.isBackEnabled)
-        XCTAssertFalse(model.isSettingsEnabled)
+    /// The REC dot, the timer, and every control enable are lookups off
+    /// `uiState` — they CANNOT disagree. This pins the WHOLE derivation
+    /// table, every flag in every mode (they were 13 hand-set booleans, and
+    /// paths that forgot one left the screen self-contradicting: a ticking
+    /// timer with no dot, a dead back button in photo mode).
+    func testControlSurfaceDerivationMatrix() {
+        // swiftlint:disable:next large_tuple
+        let expected: [(MonitorUIState, rec: Bool, timer: Bool, gallery: Bool, back: Bool,
+                        flash: Bool, torch: Bool, settings: Bool, toggle: Bool,
+                        slider: Bool, segmented: Bool, lens: Bool, zoom: Bool, quality: Bool)] = [
+            (.photoMode, rec: false, timer: false, gallery: true, back: true,
+             flash: true, torch: true, settings: true, toggle: true,
+             slider: true, segmented: true, lens: true, zoom: true, quality: true),
+            (.videoMode, rec: false, timer: false, gallery: true, back: true,
+             flash: false, torch: true, settings: true, toggle: true,
+             slider: true, segmented: true, lens: true, zoom: true, quality: true),
+            (.videoRecording, rec: true, timer: true, gallery: false, back: false,
+             flash: false, torch: true, settings: false, toggle: false,
+             slider: false, segmented: false, lens: true, zoom: true, quality: false),
+            (.shortsMode, rec: false, timer: false, gallery: true, back: true,
+             flash: false, torch: true, settings: true, toggle: true,
+             slider: false, segmented: true, lens: true, zoom: true, quality: false)
+        ]
 
-        model.uiState = .videoMode
-        XCTAssertFalse(model.isRecording)
-        XCTAssertFalse(model.isShowingRecordingDuration)
-        XCTAssertTrue(model.isBackEnabled)
+        let model = MonitorViewModel()
+        for row in expected {
+            model.uiState = row.0
+            XCTAssertEqual(model.isRecording, row.rec, "\(row.0) isRecording")
+            XCTAssertEqual(model.isShowingRecordingDuration, row.timer, "\(row.0) timer")
+            XCTAssertEqual(model.isGalleryEnabled, row.gallery, "\(row.0) gallery")
+            XCTAssertEqual(model.isBackEnabled, row.back, "\(row.0) back")
+            XCTAssertEqual(model.isFlashButtonEnabled, row.flash, "\(row.0) flash")
+            XCTAssertEqual(model.isTorchButtonEnabled, row.torch, "\(row.0) torch")
+            XCTAssertEqual(model.isSettingsEnabled, row.settings, "\(row.0) settings")
+            XCTAssertEqual(model.isToggleCameraEnabled, row.toggle, "\(row.0) toggleCamera")
+            XCTAssertEqual(model.isTimerSliderEnabled, row.slider, "\(row.0) timerSlider")
+            XCTAssertEqual(model.isSegmentedControlEnabled, row.segmented, "\(row.0) segmented")
+            XCTAssertEqual(model.isLensControlEnabled, row.lens, "\(row.0) lens")
+            XCTAssertEqual(model.isZoomSliderEnabled, row.zoom, "\(row.0) zoom")
+            XCTAssertEqual(model.isQualityControlEnabled, row.quality, "\(row.0) quality")
+            XCTAssertFalse(MonitorViewModel.prompt(for: row.0).isEmpty, "\(row.0) prompt")
+        }
     }
 
     /// Leaving the recording mode voids the timer's start instant with it —

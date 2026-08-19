@@ -487,6 +487,69 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(name, .monitorRecordingVideo)
     }
 
+    /// End to end through the presenter to a display: every coordinator
+    /// recording-state change must LAND on the screen as the matching render.
+    /// (The other coordinator tests run with no display attached, so a broken
+    /// presenter hop would leave them all green while the screen froze.)
+    func testMonitorStateChangesReachTheDisplay() async {
+        let display = FakeMonitorDisplay()
+        presenter.setDisplay(display)
+        await enterMonitor(.Video)
+        await pumpMain { display.videoModeConfigured >= 1 }
+        XCTAssertEqual(display.videoModeConfigured, 1, "entering video mode renders it")
+
+        await harness.deliver(capabilities(recordingStartedAt: Date(timeIntervalSinceNow: -5)))
+        await pumpMain { display.videoRecordingConfigured >= 1 }
+        XCTAssertEqual(display.videoRecordingConfigured, 1,
+                       "camera-reported recording renders the recording screen")
+
+        await harness.deliver(capabilities(recordingStartedAt: nil))
+        // The counter bumps one main-hop before the view model's own dispatch
+        // lands — pump on the final screen state, not the render count.
+        await pumpMain { display.viewModel.uiState == .videoMode }
+        XCTAssertEqual(display.videoModeConfigured, 2,
+                       "camera-reported idle renders video mode again")
+        XCTAssertEqual(display.viewModel.uiState, .videoMode)
+        XCTAssertNil(display.viewModel.recordingStartTime,
+                     "no timer input survives leaving the recording state")
+    }
+
+    /// The ordering race the field found: a mode change used to take TWO main
+    /// hops while the timer start took one, so a rapid stop→restart let the
+    /// STALE "back to idle" land after the new recording's start time and eat
+    /// it — recording screen, dead timer. Mode changes are now synchronous on
+    /// the render hop; updates land in coordinator order, every time.
+    func testRapidStopRestartKeepsTimerAndModeInAgreement() async {
+        let display = FakeMonitorDisplay()
+        presenter.setDisplay(display)
+        await enterMonitorRecordingVideo()
+
+        // Camera reports idle, then a NEW recording, back to back — no
+        // main-queue breathing room between them.
+        let restart = Date(timeIntervalSinceNow: -2)
+        await harness.deliver(capabilities(recordingStartedAt: nil))
+        await harness.deliver(capabilities(recordingStartedAt: restart))
+        await pumpMain { display.viewModel.uiState == .videoRecording }
+
+        XCTAssertEqual(display.viewModel.uiState, .videoRecording)
+        XCTAssertEqual(display.viewModel.recordingStartTime, restart,
+                       "the new take's start survives the stale idle render")
+        XCTAssertTrue(display.viewModel.isShowingRecordingDuration,
+                      "dot and timer agree, always")
+    }
+
+    /// Pumps the main queue until `condition` holds (the presenter hops to
+    /// main before touching the display).
+    private func pumpMain(_ condition: @escaping () -> Bool) async {
+        for _ in 0..<50 {
+            let done = await MainActor.run { () -> Bool in
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02))
+                return condition()
+            }
+            if done { return }
+        }
+    }
+
     /// The pipeline terminated a recording on its own (storage gate refusal,
     /// writer death): the error is reported through the stop-response path
     /// the monitor already handles, and the camera returns to idle.
