@@ -391,3 +391,8 @@
 "%@ can’t do %@" = "%@ 不支持 %@";
 "%@ can’t do HDR" = "%@ 不支持 HDR";
 "Couldn't switch camera" = "无法切换相机";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "存储空间不足,无法录制视频。请至少腾出 100 MB 空间后重试。";
+"recording_stopped_disk_full_error" = "录制已停止:设备存储空间已满。已录制的片段已保存到「照片」。";
+"recording_failed_error" = "录制因出错而停止。已录制的片段已保存到「照片」。";

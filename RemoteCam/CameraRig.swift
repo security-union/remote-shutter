@@ -316,7 +316,15 @@ final class CameraRig: @unchecked Sendable {
     }
 
     /// Stops the capture session (screen teardown).
+    ///
+    /// Invariant: the capture stack is never torn down with an open writer.
+    /// A recording that is still rolling here (a disconnect popped the screen)
+    /// is finalized and saved first — otherwise stopping the session starves
+    /// the writer and the clip is silently destroyed.
     func stopSession() {
+        if pipeline.isRecording {
+            pipeline.stopRecording(false)
+        }
         disarmFirstFrameWatchdog()
         engine.stopSession()
     }
@@ -509,7 +517,8 @@ extension CameraRig: CameraControlling {
     }
 
     func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
-        await engine.gatherCurrentCameraCapabilities()
+        // Composition point: engine facts + the pipeline's recording truth.
+        await engine.gatherCurrentCameraCapabilities(recordingStartedAt: pipeline.recordingStartedAt)
     }
 
     func takePicture(_ sendMediaToRemote: Bool) {

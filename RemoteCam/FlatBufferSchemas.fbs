@@ -276,6 +276,11 @@ table CameraState {
     // so the operator can see whether the camera is showing a live preview or
     // sitting in standby. Absent/Unknown => legacy peer; treat as On.
     preview_mode: CameraPreviewModeEnum;
+    // Single source of truth for recording, reported by the camera's pipeline.
+    // 0 = not recording; nonzero = recording since this Unix-epoch instant in
+    // milliseconds (the first written frame). Every v10+ camera writes it on
+    // every state report; monitors DERIVE their recording UI from it.
+    recording_start_unix_ms: uint64;
 }
 
 table CameraCapabilities {

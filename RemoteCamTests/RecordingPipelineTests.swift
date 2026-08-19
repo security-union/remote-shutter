@@ -177,7 +177,9 @@ final class RecordingPipelineTests: XCTestCase {
 
         XCTAssertTrue(pipeline.isRecording)
         XCTAssertEqual(acks.count, 1, "the ready edge must produce exactly one StartRecordingVideoAck")
-        XCTAssertTrue(acks.first is RemoteCmd.StartRecordingVideoAck)
+        let ack = try XCTUnwrap(acks.first as? RemoteCmd.StartRecordingVideoAck)
+        XCTAssertEqual(pipeline.recordingStartedAt, ack.recordingStartTime,
+                       "one stamp: the shared start instant IS the ack's start time")
     }
 
     /// No usable microphone: recording is REFUSED — no silent-video surprise
@@ -209,6 +211,76 @@ final class RecordingPipelineTests: XCTestCase {
         }
         XCTAssertFalse(pipeline.isRecording)
         XCTAssertEqual(sent.count, 1, "no ack may fire")
+    }
+
+    /// The one truth field: `recordingStartedAt` is non-nil EXACTLY while
+    /// recording (`isRecording` is computed from it), and stop clears it at
+    /// stop initiation — not when the writer eventually finishes finalizing —
+    /// so every derived surface (the wire's `recording_start_unix_ms`, REC
+    /// badges, timers) reads "not recording" the moment the stop is accepted.
+    func testStopClearsRecordingStartInstant() throws {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in true }
+        pipeline.sendMessage = { _ in }
+
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {} // drain: writer created, flags set
+
+        let videoBuffer = try makeVideoSampleBuffer(seconds: 0)
+        let audioBuffer = try makeAudioSampleBuffer()
+        engine.dataOutputQueue.sync {
+            pipeline.processFrame(engine.videoDataOutput, didOutput: videoBuffer)
+            pipeline.processFrame(engine.audioDataOutput, didOutput: audioBuffer)
+        }
+        XCTAssertNotNil(pipeline.recordingStartedAt, "armed: the start instant is set at the ready edge")
+        XCTAssertTrue(pipeline.isRecording)
+
+        pipeline.stopRecording(false)
+        engine.dataOutputQueue.sync {} // stop initiation ran on the data queue
+
+        XCTAssertNil(pipeline.recordingStartedAt)
+        XCTAssertFalse(pipeline.isRecording,
+                       "recordingStartedAt != nil ⟺ isRecording — stop clears both as one")
+    }
+
+    /// Below the 100 MB floor recording is REFUSED up front — no writer
+    /// armed, a clear localized error locally, and `RecordingTerminated` for
+    /// the coordinator to route to the remote.
+    func testRecordingRefusedWhenStorageLow() throws {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in
+            XCTFail("the storage gate must refuse before audio is configured")
+            return true
+        }
+        pipeline.freeSpaceForRecording = { RecordingStoragePolicy.minimumFreeBytesToStart - 1 }
+
+        var sent: [Message] = []
+        pipeline.sendMessage = { sent.append($0) }
+        var errors: [String] = []
+        pipeline.onError = { errors.append($0) }
+
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+
+        XCTAssertFalse(pipeline.isRecording)
+        XCTAssertFalse(pipeline.recordingWillBeStarted, "no writer may be armed")
+        XCTAssertEqual(sent.count, 1)
+        let terminated = try XCTUnwrap(sent.first as? UICmd.RecordingTerminated)
+        let expected = NSLocalizedString("insufficient_storage_error", comment: "")
+        XCTAssertEqual(terminated.error.localizedDescription, expected)
+        XCTAssertEqual(errors, [expected])
+    }
+
+    /// The single-point policy itself: 100 MB floor; an unreadable capacity
+    /// fails open (never blocks the user — the writer-death funnel is the
+    /// backstop if the disk really is full).
+    func testStoragePolicyThreshold() {
+        XCTAssertTrue(RecordingStoragePolicy.canStart(freeBytes: nil))
+        XCTAssertTrue(RecordingStoragePolicy.canStart(freeBytes: RecordingStoragePolicy.minimumFreeBytesToStart))
+        XCTAssertFalse(RecordingStoragePolicy.canStart(freeBytes: RecordingStoragePolicy.minimumFreeBytesToStart - 1))
+        XCTAssertFalse(RecordingStoragePolicy.canStart(freeBytes: 0))
     }
 
     func testStopWhileIdleSendsNothingAndStaysIdle() {

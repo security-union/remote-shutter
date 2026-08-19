@@ -185,7 +185,10 @@ class MonitorViewModel: ObservableObject {
         DispatchQueue.main.async {
             self.uiState = .videoRecording
             self.isRecording = true
-            self.recordingStartTime = Date()
+            // recordingStartTime is deliberately NOT set here: the elapsed
+            // timer runs only from the camera-reported start instant (the
+            // source of truth), which arrives via syncRecordingStartTime —
+            // never from a locally fabricated Date().
             self.isShowingRecordingDuration = true
             self.isGalleryEnabled = false
             self.isBackEnabled = false

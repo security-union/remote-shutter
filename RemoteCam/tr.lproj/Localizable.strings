@@ -391,3 +391,8 @@
 "%@ can’t do %@" = "%@ %@ yapamaz";
 "%@ can’t do HDR" = "%@ HDR yapamaz";
 "Couldn't switch camera" = "Kamera değiştirilemedi";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "Video kaydetmek için yeterli depolama alanı yok. En az 100 MB alan boşaltıp yeniden deneyin.";
+"recording_stopped_disk_full_error" = "Kayıt durduruldu: cihazınızın depolama alanı doldu. Şu ana kadar kaydedilen görüntüler Fotoğraflar'a kaydedildi.";
+"recording_failed_error" = "Kayıt bir hata nedeniyle durduruldu. Şu ana kadar kaydedilen görüntüler Fotoğraflar'a kaydedildi.";

@@ -454,6 +454,39 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.currentLens, .ultraWide)
     }
 
+    /// v10 contract: `recording_start_unix_ms` is always written; nonzero
+    /// carries the camera's real first-frame instant at ms precision.
+    func testCameraCapabilitiesResp_recordingTruthRoundTrip() throws {
+        let start = Date(timeIntervalSince1970: 1_723_000_000.5)
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil,
+            backCamera: nil,
+            currentCamera: .back,
+            currentLens: .wideAngle,
+            currentZoom: 1.0,
+            recordingStartedAt: start,
+            error: nil
+        )
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        let decodedStart = try XCTUnwrap(decoded.recordingStartedAt)
+        XCTAssertEqual(decodedStart.timeIntervalSince1970,
+                       start.timeIntervalSince1970, accuracy: 0.001)
+    }
+
+    /// The other half of the contract: 0 on the wire ⇔ not recording.
+    func testCameraCapabilitiesResp_notRecordingDecodesNil() {
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil,
+            backCamera: nil,
+            currentCamera: .back,
+            currentLens: .wideAngle,
+            currentZoom: 1.0,
+            error: nil
+        )
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertNil(decoded.recordingStartedAt)
+    }
+
     // MARK: - 13b. Camera device selection
 
     func testSelectCameraDevice_roundTrip() {

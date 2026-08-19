@@ -10,6 +10,24 @@ import AVFoundation
 import Photos
 import CoreImage
 
+/// Single-point storage policy for recording video. Pure, pinned by unit
+/// tests — the one place a free-space number becomes a go/no-go decision.
+enum RecordingStoragePolicy {
+    /// Minimum available capacity to start a video recording.
+    static let minimumFreeBytesToStart: Int64 = 100_000_000
+
+    /// `freeBytes` is `volumeAvailableCapacityForImportantUsage` — the space
+    /// the system will actually grant a user-initiated write (raw free blocks
+    /// plus purgeable space it reclaims on demand), which is also the number
+    /// Settings shows the user. nil = the capacity could not be read; that
+    /// never blocks the user (fail open — the writer-death funnel is the
+    /// backstop if the disk really is full).
+    static func canStart(freeBytes: Int64?) -> Bool {
+        guard let freeBytes else { return true }
+        return freeBytes >= minimumFreeBytesToStart
+    }
+}
+
 /**
  Owns the video-recording path: the asset writer, its inputs, the recording
  state machine, per-frame writing/cropping, and saving/sending the finished
@@ -21,7 +39,7 @@ import CoreImage
  `processFrame` is naturally serialized. Record start syncs once into the
  engine's `sessionQueue` for the audio-input configuration (one-way; the
  session queue never syncs back). The only cross-queue reads are through
- `isRecording`, a lock-mirrored Bool.
+ `recordingStartedAt`/`isRecording`, backed by one `Locked<Date?>`.
  */
 class RecordingPipeline {
 
@@ -50,13 +68,16 @@ class RecordingPipeline {
 
     // MARK: - Recording state (dataQueue-confined)
 
-    private var isRecordingStorage = false {
-        didSet { isRecordingShared.value = isRecordingStorage }
-    }
-    /// Lock-mirrored for the cross-queue readers (`shouldAutorotate` on main,
-    /// `setVideoQuality`'s guard on the actor mailbox, watch snapshots).
-    private let isRecordingShared = Locked(false)
-    var isRecording: Bool { isRecordingShared.value }
+    /// The recording's real start instant — non-nil exactly while the writer
+    /// is accepting frames, and the ONLY stored recording truth. Everything
+    /// else derives from it: `isRecording`, the wire's
+    /// `recording_start_unix_ms` (nil ⇔ 0), the cross-queue readers
+    /// (`shouldAutorotate` on main, `setVideoQuality`'s guard on the actor
+    /// mailbox, watch snapshots), and both timers. Lock-backed so those
+    /// readers never touch the data queue.
+    private let recordingStartShared = Locked<Date?>(nil)
+    var isRecording: Bool { recordingStartShared.value != nil }
+    var recordingStartedAt: Date? { recordingStartShared.value }
 
     private(set) var recordingWillBeStarted: Bool = false
     private(set) var recordingWillBeStopped: Bool = false
@@ -94,6 +115,12 @@ class RecordingPipeline {
         self?.engine.configureAudioForRecording(delegate: delegate) ?? false
     }
 
+    /// Seam for the storage gate (tests pin the refusal deterministically);
+    /// production reads the recording volume's important-usage capacity.
+    lazy var freeSpaceForRecording: () -> Int64? = {
+        RecordingPipeline.availableCapacity(at: movieUrl())
+    }
+
     // MARK: - Start / stop
 
     /// Configures the audio leg (on the engine's session queue) and starts
@@ -101,7 +128,17 @@ class RecordingPipeline {
     func startRecording(audioSampleBufferDelegate: AVCaptureAudioDataOutputSampleBufferDelegate) {
         dataQueue.async { [weak self] in
             guard let self = self else { return }
-            if self.recordingWillBeStarted || self.isRecordingStorage {
+            if self.recordingWillBeStarted || self.isRecording {
+                return
+            }
+
+            // Refuse to start on a nearly full disk — the writer would die
+            // mid-take instead of failing cleanly here. One upfront check, no
+            // polling; the writer-death funnel below covers the disk filling
+            // AFTER a legitimate start.
+            guard RecordingStoragePolicy.canStart(freeBytes: self.freeSpaceForRecording()) else {
+                self.failRecording(Self.localizedRecordingError("insufficient_storage_error"),
+                                   hasClip: false)
                 return
             }
 
@@ -127,7 +164,7 @@ class RecordingPipeline {
 
     private func startVideoRecordingProcess() {
         dispatchPrecondition(condition: .onQueue(dataQueue))
-        if self.recordingWillBeStarted || self.isRecordingStorage {
+        if self.recordingWillBeStarted || self.isRecording {
             return
         }
 
@@ -138,29 +175,55 @@ class RecordingPipeline {
         cleanupFileAt(outputFilePath)
         // Create an asset writer
         do {
-            self.assetWriter = try AVAssetWriter(outputURL: outputFilePath, fileType: .mov)
+            let writer = try AVAssetWriter(outputURL: outputFilePath, fileType: .mov)
+            // Fragmented QuickTime: without this an interrupted take (disk
+            // full, crash, kill) has no moov atom and is unplayable — with it
+            // the file stays playable up to the last written fragment, so
+            // footage that was written is never lost.
+            writer.movieFragmentInterval = CMTime(seconds: 5, preferredTimescale: 600)
             // Synced multicam: embed the shot's alignment fields in the file so
             // an editor can group and time-align the angles. The anchor rides
             // as an opaque numeric key, not a wall-clock date.
             if let metadata = pendingSyncMetadata {
-                self.assetWriter?.metadata = metadata.quickTimeMetadataItems()
+                writer.metadata = metadata.quickTimeMetadataItems()
             }
+            self.assetWriter = writer
         } catch {
-            onError?(NSLocalizedString("Unable to start recording", comment: ""))
+            failRecording(Self.localizedRecordingError("Unable to start recording"), hasClip: false)
+            return
         }
-        let idle = !self.recordingWillBeStarted && !self.isRecordingStorage
         OperationQueue.main.addOperation { [weak self] in
-            self?.onModeChanged?(idle)
+            self?.onModeChanged?(false)
         }
     }
 
     func stopRecording(_ shouldSendVideo: Bool) {
         dataQueue.async { [weak self] in
             guard let self = self else { return }
-            if self.recordingWillBeStopped || !self.isRecordingStorage {
+            if self.recordingWillBeStopped || !self.isRecording {
                 return
             }
-            self.isRecordingStorage = false
+            // A writer that already died (disk full) cannot be finalized —
+            // `finishWriting` traps on a failed writer. The funnel salvages
+            // the fragmented file instead.
+            if let writer = self.assetWriter, writer.status == .failed {
+                self.failRecording(Self.writerFailureError(writer), hasClip: true)
+                return
+            }
+            // The stop raced the ready edge: no frame was ever written, so the
+            // writer never started (`finishWriting` traps on .unknown) and
+            // there is no footage. Reset and answer the stop as an empty take.
+            if let writer = self.assetWriter, writer.status == .unknown {
+                self.resetRecordingState()
+                cleanupFileAt(movieUrl())
+                DispatchQueue.main.async { [weak self] in
+                    self?.onRecordingStopped?()
+                    self?.onModeChanged?(true)
+                }
+                self.sendMessage?(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+                return
+            }
+            self.recordingStartShared.value = nil
             self.recordingWillBeStopped = true
 
             // Stop recording timer
@@ -173,34 +236,113 @@ class RecordingPipeline {
                 guard let self = self else { return }
                 self.dataQueue.async { [weak self] in
                     guard let self = self else { return }
-                    self.assetWriter = nil
-                    self.pixelBufferAdaptor = nil
-                    self.cachedVideoCropRect = nil
-                    self.readyToRecordVideo = false
-                    self.readyToRecordAudio = false
-                    self.recordingWillBeStopped = false
-                    self.saveMovieToPhotosAppAndRemotePeer(shouldSendVideo)
+                    let finalizeError: NSError? = (self.assetWriter?.status == .completed)
+                        ? nil
+                        : Self.writerFailureError(self.assetWriter)
+                    self.resetRecordingState()
+                    if let finalizeError {
+                        // Finalize failed under the stop — the fragmented
+                        // file is still playable up to the last fragment:
+                        // save what exists and report the truth instead of
+                        // pretending the stop succeeded.
+                        self.saveMovieToPhotosApp()
+                        self.onError?(finalizeError.localizedDescription)
+                        self.sendMessage?(UICmd.RecordingTerminated(error: finalizeError))
+                    } else {
+                        self.saveMovieToPhotosAppAndRemotePeer(shouldSendVideo)
+                    }
                 }
             }
-            let idle = self.recordingWillBeStopped && !self.isRecordingStorage
             OperationQueue.main.addOperation { [weak self] in
-                self?.onModeChanged?(idle)
+                self?.onModeChanged?(true)
             }
         }
+    }
+
+    /// Tears down every piece of per-recording state — the phase flags, the
+    /// writer references, and the shared truth — leaving the pipeline idle.
+    /// The one reset used by the stop completion, the empty-take stop, and
+    /// the failure funnel, so no path can forget a field. Data queue only.
+    private func resetRecordingState() {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
+        recordingWillBeStarted = false
+        recordingWillBeStopped = false
+        readyToRecordVideo = false
+        readyToRecordAudio = false
+        assetWriter = nil
+        pixelBufferAdaptor = nil
+        cachedVideoCropRect = nil
+        recordingStartShared.value = nil
+    }
+
+    // MARK: - Failure funnel
+
+    /// Every abnormal end of a recording lands here, on the data queue: the
+    /// storage gate refusing a start, a writer that cannot start, and a
+    /// writer that dies mid-take (disk full). One funnel so no path can leave
+    /// the flags wedged or the peers believing a dead recording is rolling:
+    /// state is reset, salvageable footage is saved to Photos (`hasClip`),
+    /// the user sees the error, and the coordinator gets
+    /// `UICmd.RecordingTerminated` to route the truth to the remote.
+    private func failRecording(_ error: NSError, hasClip: Bool) {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
+        // Dropping a failed writer is safe — it is not mid-finalize (a failed
+        // writer cannot be finalized at all); the fragmented file on disk is
+        // the recording.
+        resetRecordingState()
+        DispatchQueue.main.async { [weak self] in
+            self?.onRecordingStopped?()
+            self?.onModeChanged?(true)
+        }
+        if hasClip { saveMovieToPhotosApp() }
+        onError?(error.localizedDescription)
+        sendMessage?(UICmd.RecordingTerminated(error: error))
+    }
+
+    /// A user-facing error for a dead writer: names the storage cause when
+    /// that is what killed it (the overwhelmingly common case), otherwise a
+    /// generic recording failure carrying the system's description.
+    private static func writerFailureError(_ writer: AVAssetWriter?) -> NSError {
+        let underlying = writer?.error as NSError?
+        let diskFull = underlying?.domain == AVFoundationErrorDomain
+            && underlying?.code == AVError.diskFull.rawValue
+        return localizedRecordingError(
+            diskFull ? "recording_stopped_disk_full_error" : "recording_failed_error")
+    }
+
+    /// The message rides in BOTH the domain and the localized description:
+    /// the monitor's two error-display conventions read one or the other.
+    private static func localizedRecordingError(_ key: String) -> NSError {
+        let message = NSLocalizedString(key, comment: "")
+        return NSError(domain: message, code: 0,
+                       userInfo: [NSLocalizedDescriptionKey: message])
+    }
+
+    /// `volumeAvailableCapacityForImportantUsage` for the volume holding the
+    /// recording's output file. nil when unreadable.
+    private static func availableCapacity(at url: URL) -> Int64? {
+        (try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
+            .volumeAvailableCapacityForImportantUsage
     }
 
     // MARK: - Saving / sending the finished movie
 
     private func saveMovieToPhotosAppAndRemotePeer(_ sendVideoToPeer: Bool) {
-        let outputFileURL = movieUrl()
-
         // Send video to the monitor using resource transfer if requested
         if sendVideoToPeer {
-            sendVideoAsResource(outputFileURL)
+            sendVideoAsResource(movieUrl())
         } else {
             // Send empty response when not sending video
             sendMessage?(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
         }
+        saveMovieToPhotosApp()
+    }
+
+    /// Saves the movie file to Photos. Also the salvage half of the failure
+    /// funnel: with fragmented writing, a dead writer's file is playable up to
+    /// its last fragment and is saved like any finished clip.
+    private func saveMovieToPhotosApp() {
+        let outputFileURL = movieUrl()
 
         // Check the authorization status.
         PHPhotoLibrary.requestAuthorization { [weak self] status in
@@ -217,9 +359,11 @@ class RecordingPipeline {
                     if let syncMetadata { options.originalFilename = syncMetadata.videoFilename() }
                     let creationRequest = PHAssetCreationRequest.forAsset()
                     creationRequest.addResource(with: .video, fileURL: outputFileURL, options: options)
-                }, completionHandler: { success, error in
+                }, completionHandler: { [weak self] success, error in
                     if !success {
                         logWarning("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
+                        // A failed save is a lost clip — never just a log line.
+                        self?.onError?(NSLocalizedString("Unable to save video", comment: ""))
                     }
                     if syncMetadata == nil { cleanupFileAt(outputFileURL) }
                 }
@@ -371,12 +515,16 @@ class RecordingPipeline {
             let isReadyToRecord = readyToRecordAudio && readyToRecordVideo
             if !wasReadyToRecord && isReadyToRecord {
                 recordingWillBeStarted = false
-                self.isRecordingStorage = true
+                // THE recording-started instant: everything downstream — both
+                // timers, the monitor's ack, the wire's
+                // `recording_start_unix_ms`, and `isRecording` itself —
+                // derives from this one stamp.
+                let startTime = Date()
+                self.recordingStartShared.value = startTime
 
                 // Start recording timer and notify monitor
                 DispatchQueue.main.async { [weak self] in
                     guard let self = self else { return }
-                    let startTime = Date()
                     self.onRecordingStarted?(startTime)
 
                     // Send recording start time to monitor for synchronization
@@ -389,7 +537,7 @@ class RecordingPipeline {
     private func writeSampleBuffer(sampleBuffer: CMSampleBuffer,
                                    ofType mediaType: AVMediaType) {
         dispatchPrecondition(condition: .onQueue(dataQueue))
-        if !isRecordingStorage {
+        if !isRecording {
             return
         }
         guard let assetWriter = self.assetWriter else {
@@ -399,7 +547,8 @@ class RecordingPipeline {
             if assetWriter.startWriting() {
                 assetWriter.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
             } else {
-                self.onError?(NSLocalizedString("Unable to start recording", comment: ""))
+                failRecording(Self.writerFailureError(assetWriter), hasClip: false)
+                return
             }
         }
 
@@ -414,6 +563,14 @@ class RecordingPipeline {
             if input.isReadyForMoreMediaData {
                 input.append(sampleBuffer)
             }
+        }
+
+        // Disk-full and other write failures surface HERE, not as thrown
+        // errors: appends silently no-op once the writer is `.failed`, so the
+        // status is the only signal. Without this check the app keeps showing
+        // REC while writing nothing (the shipped disk-full behavior).
+        if assetWriter.status == .failed {
+            failRecording(Self.writerFailureError(assetWriter), hasClip: true)
         }
     }
 

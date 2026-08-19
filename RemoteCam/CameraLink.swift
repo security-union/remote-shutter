@@ -63,9 +63,13 @@ final class CameraLink {
     /// first). Drives the tile's captured/failed badge.
     var captureOutcome: CaptureOutcome?
 
-    /// This camera is rolling as part of a synced recording — drives the tile's
-    /// REC badge.
-    var isRecording = false
+    /// The camera's recording truth for this lane: non-nil exactly while it is
+    /// rolling, carrying the recording's start instant. Seeded from the take
+    /// protocol when a start is acked, then overwritten by the camera's own
+    /// report (`recording_start_unix_ms`) on every capabilities exchange.
+    /// Drives the tile's REC badge and the rig shutter's union.
+    var recordingStartedAt: Date?
+    var isRecording: Bool { recordingStartedAt != nil }
 
     /// The preview profile most recently pushed to this camera, so the director
     /// only re-sends `SetStreamProfile` when the tier actually changes.

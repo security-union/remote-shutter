@@ -1270,6 +1270,18 @@ public actor SessionCoordinator {
         }
     }
 
+    /// Monitor side: absorb a camera's capabilities report — the wire-safety
+    /// gates and the presenter's picture of the camera. Shared by every
+    /// monitor state that accepts capabilities; the states layer their own
+    /// recording-truth derivation on top.
+    private func absorbCapabilities(_ capabilities: RemoteCmd.CameraCapabilitiesResp) {
+        peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
+        peerSupportsFocusPoint = capabilities.supportsFocusPoint
+        peerSupportsPreviewMode = capabilities.supportsPreviewMode
+        monitor?.updateCapabilities(capabilities)
+        monitor?.updatePreviewMode(capabilities.previewMode)
+    }
+
     /// "The switch didn't stick." The message rides in the NSError domain —
     /// the convention every monitor's error display reads (`error._domain`).
     private func couldNotSwitchCameraError() -> NSError {
@@ -1574,6 +1586,15 @@ public actor SessionCoordinator {
                 sender: nil, pic: nil, error: unableToProcessError(msg)), mode: .reliable)
             await transition(to: .camera)
 
+        case let terminated as UICmd.RecordingTerminated:
+            // The pipeline is the source of truth and has already ended the
+            // recording and saved what it could — route its error through the
+            // stop-response path the monitor already handles, and return this
+            // camera to idle.
+            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
+                sender: nil, pic: nil, error: terminated.error), mode: .reliable)
+            await transition(to: .camera)
+
         default:
             await handleRoot(msg)
         }
@@ -1601,6 +1622,14 @@ public actor SessionCoordinator {
         case let resp as RemoteCmd.StopRecordingVideoResp:
             await sendOrGoToScanning(resp)
             // Deferred so already-enqueued messages land in this state first.
+            tell(DeferredPopToCamera())
+
+        case let terminated as UICmd.RecordingTerminated:
+            // The finalize failed under a remote-initiated stop: the pipeline
+            // saved the salvageable fragments; report the truth instead of a
+            // clean stop response.
+            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
+                sender: nil, pic: nil, error: terminated.error), mode: .reliable)
             tell(DeferredPopToCamera())
 
         case is DeferredPopToCamera:
@@ -2074,11 +2103,16 @@ public actor SessionCoordinator {
             }
 
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
-            peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
-            peerSupportsFocusPoint = capabilities.supportsFocusPoint
-            peerSupportsPreviewMode = capabilities.supportsPreviewMode
-            monitor?.updateCapabilities(capabilities)
-            monitor?.updatePreviewMode(capabilities.previewMode)
+            absorbCapabilities(capabilities)
+            // The camera reports its recording truth on every capabilities
+            // exchange (v10 contract). A camera that is already rolling —
+            // it kept recording through a link drop — pulls this monitor
+            // straight into the recording state with the REAL start instant:
+            // derived from the source of truth, never assumed.
+            if let start = capabilities.recordingStartedAt {
+                await transition(to: .monitorRecordingVideo)
+                monitor?.syncRecordingStartTime(start)
+            }
 
         case let zoom as UICmd.SetZoom:
             sendMessage(RemoteCmd.SetZoom(zoomFactor: zoom.zoomFactor))
@@ -2368,6 +2402,16 @@ public actor SessionCoordinator {
         case let resp as RemoteCmd.StopRecordingVideoResp where resp.error != nil:
             saveVideoOnMonitor(resp)
             await transition(to: .monitor(mode: .video))
+
+        case let capabilities as RemoteCmd.CameraCapabilitiesResp:
+            absorbCapabilities(capabilities)
+            if let start = capabilities.recordingStartedAt {
+                monitor?.syncRecordingStartTime(start)
+            } else {
+                // The camera says it is not recording — this screen cannot
+                // stay in a recording state the source of truth isn't in.
+                await transition(to: .monitor(mode: .video))
+            }
 
         case is UICmd.UnbecomeMonitor:
             await transition(to: .connected)

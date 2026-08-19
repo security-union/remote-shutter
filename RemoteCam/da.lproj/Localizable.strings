@@ -270,3 +270,8 @@
 "%@ can’t do %@" = "%@ kan ikke %@";
 "%@ can’t do HDR" = "%@ kan ikke HDR";
 "Couldn't switch camera" = "Kunne ikke skifte kamera";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "Der er ikke nok lagerplads til at optage video. Frigør mindst 100 MB, og prøv igen.";
+"recording_stopped_disk_full_error" = "Optagelsen stoppede: din enhed er løbet tør for lagerplads. Det optagede materiale er gemt i Fotos.";
+"recording_failed_error" = "Optagelsen stoppede på grund af en fejl. Det optagede materiale er gemt i Fotos.";

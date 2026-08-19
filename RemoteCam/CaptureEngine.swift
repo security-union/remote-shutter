@@ -966,11 +966,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     // MARK: - Current Camera Capabilities for Toggle Response
-    func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
-        await onSessionQueue { self.gatherCurrentCameraCapabilitiesLocked() }
+    /// `recordingStartedAt` is the pipeline's recording truth, passed through
+    /// by the rig (the composition point) — the engine owns every other field
+    /// but has no recording state of its own.
+    func gatherCurrentCameraCapabilities(recordingStartedAt: Date?) async -> RemoteCmd.CameraCapabilitiesResp? {
+        await onSessionQueue { self.gatherCurrentCameraCapabilitiesLocked(recordingStartedAt: recordingStartedAt) }
     }
 
-    private func gatherCurrentCameraCapabilitiesLocked() -> RemoteCmd.CameraCapabilitiesResp? {
+    private func gatherCurrentCameraCapabilitiesLocked(recordingStartedAt: Date?) -> RemoteCmd.CameraCapabilitiesResp? {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         debugLog("🔍 DEBUG: gatherCurrentCameraCapabilities called")
 
@@ -1008,6 +1011,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // release the director UI ships.
             supportsMulticam: FeatureFlags.ENABLE_MULTICAM,
             previewMode: CameraPreviewModeStore().load(),
+            recordingStartedAt: recordingStartedAt,
             error: nil
         )
 
