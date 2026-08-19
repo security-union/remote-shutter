@@ -1,3 +1,9 @@
+YENİ — Multicam: dört kameraya kadar, tek yönetmen
+
+- Dört adede kadar iPhone'u kamera olarak bağlayın ve her açıyı ızgarada canlı izleyin
+- Tek senkron deklanşör tüm kameralarda aynı anda fotoğraf veya video çeker
+- Çekimler otomatik olarak yönetmende toplanır, kurgu için zaman hizalı
+
 Kumanda vizörün etrafında yeniden tasarlandı: önce görüntü, kontroller geri planda.
 
 - Tam ekran canlı önizleme: kare artık ekranı dolduruyor ve kontroller onun üzerinde süzülüyor; düğme panelinin üstüne sıkıştırılmış küçük görüntü geride kaldı

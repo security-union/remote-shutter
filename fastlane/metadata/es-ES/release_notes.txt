@@ -1,3 +1,9 @@
+NUEVO — Multicam: hasta cuatro cámaras, un director
+
+- Conecta hasta cuatro iPhones como cámaras y ve cada ángulo en vivo en una cuadrícula
+- Un obturador sincronizado dispara foto o video en todas las cámaras al mismo instante
+- El material se reúne automáticamente en el director, alineado en el tiempo para editar
+
 El control remoto se rediseñó alrededor del visor: primero la imagen, y los controles a un lado.
 
 - Vista en vivo a pantalla completa: la toma ahora llena la pantalla con los controles flotando encima, en lugar de una imagen pequeña apretada sobre un panel de botones

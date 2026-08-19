@@ -1,3 +1,9 @@
+BAHARU — Multicam: sehingga empat kamera, satu pengarah
+
+- Sambungkan sehingga empat iPhone sebagai kamera dan lihat setiap sudut secara langsung dalam grid
+- Satu pengatup segerak mengambil foto atau video pada semua kamera pada saat yang sama
+- Rakaman terkumpul secara automatik kepada pengarah, sejajar masa untuk suntingan
+
 Alat kawalan jauh direka semula mengelilingi pembidik: gambar dahulu, kawalan ke tepi.
 
 - Pratonton langsung skrin penuh: gambar kini memenuhi skrin dengan kawalan terapung di atasnya, bukan lagi gambar kecil yang tersepit di atas panel butang

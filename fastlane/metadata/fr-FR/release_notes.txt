@@ -1,3 +1,9 @@
+NOUVEAU — Multicam : jusqu'à quatre caméras, un réalisateur
+
+- Connectez jusqu'à quatre iPhone comme caméras et voyez chaque angle en direct dans une grille
+- Un déclencheur synchronisé lance photo ou vidéo sur toutes les caméras au même instant
+- Les images se rassemblent automatiquement chez le réalisateur, alignées dans le temps pour le montage
+
 La télécommande est repensée autour du viseur : l'image d'abord, les commandes s'effacent.
 
 - Aperçu en direct plein écran : la prise de vue occupe désormais tout l'écran, les commandes flottant par-dessus, au lieu d'une petite image coincée au-dessus d'un panneau de boutons
