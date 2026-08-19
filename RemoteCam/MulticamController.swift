@@ -218,6 +218,10 @@ public actor MulticamController {
     /// first-class; Automatic just recomputes best-in-intersection.
     private var activeVideoQuality: (resolution: VideoResolution, frameRate: VideoFrameRate)?
     private var activePhotoQuality: (format: PhotoFormat, hdr: HDRMode)?
+    /// The rig's aspect ratio — a crop every camera can do, so it needs no
+    /// intersection: it fans to every lane and is re-applied to late joiners.
+    /// 16:9 is the cameras' own default.
+    private var activeAspectRatio: AspectRatio = .sixteenNine
     /// The rig-wide camera-preview mode: standby blanks each camera's own
     /// on-screen preview (the director is the viewfinder; capture and the
     /// streamed frames are unaffected). Sent only to cameras that advertised
@@ -489,6 +493,9 @@ public actor MulticamController {
         case let q as MCSetPhotoQuality:
             logInfo("director: photo quality \(q.format)/\(q.hdr) → all")
             handleSetPhotoQuality(format: q.format, hdr: q.hdr)
+        case let a as MCSetAspectRatio:
+            logInfo("director: aspect \(a.ratio.displayName) → all")
+            handleSetAspectRatio(a.ratio)
         case let t as MCSetRigTimer:
             logInfo("director: timer preset \(t.seconds)s")
             handleSetRigTimer(t.seconds)
@@ -557,6 +564,11 @@ public actor MulticamController {
             // (or re-advertising) while the rig is in standby is put there too.
             if rigPreviewMode == .standby, caps.supportsPreviewMode {
                 sendTo(peer, RemoteCmd.SetCameraPreviewMode(mode: .standby))
+            }
+            // Aspect likewise: a camera arriving while the rig is off the 16:9
+            // camera default is cropped to match the rest of the shot.
+            if activeAspectRatio != .sixteenNine {
+                sendTo(peer, RemoteCmd.SetAspectRatio(aspectRatio: activeAspectRatio))
             }
 
         case let resp as RemoteCmd.ToggleCameraResp:
@@ -1123,6 +1135,17 @@ public actor MulticamController {
         }
     }
 
+    /// Rig aspect ratio — every camera crops the same way, so the shot cuts
+    /// together. No intersection needed (aspect is a crop, not a capability).
+    public nonisolated func setAspectRatio(_ ratio: AspectRatio) { tell(MCSetAspectRatio(ratio)) }
+
+    private func handleSetAspectRatio(_ ratio: AspectRatio) {
+        activeAspectRatio = ratio
+        for peer in order {
+            sendTo(peer, RemoteCmd.SetAspectRatio(aspectRatio: ratio))
+        }
+    }
+
     /// "Automatic" / re-match: recompute best-in-intersection and apply it.
     public nonisolated func applyAutomaticVideoQuality() { tell(MCAutomaticVideoQuality()) }
 
@@ -1242,6 +1265,7 @@ public actor MulticamController {
             hdrBlockedBy: menu.lanesBlockingHDR(),
             activePhotoFormat: activePhotoQuality?.format,
             activeHDR: activePhotoQuality?.hdr,
+            aspectRatio: activeAspectRatio,
             standbyAvailable: order.contains { peer in
                 guard let link = links[peer], link.status != .failed else { return false }
                 return link.capabilities?.supportsPreviewMode == true
@@ -1784,6 +1808,11 @@ final class MCSetPhotoQuality: Message, @unchecked Sendable {
     let format: PhotoFormat
     let hdr: HDRMode
     init(_ format: PhotoFormat, _ hdr: HDRMode) { self.format = format; self.hdr = hdr; super.init(sender: nil) }
+}
+
+final class MCSetAspectRatio: Message, @unchecked Sendable {
+    let ratio: AspectRatio
+    init(_ ratio: AspectRatio) { self.ratio = ratio; super.init(sender: nil) }
 }
 
 final class MCSetRigStandby: Message, @unchecked Sendable {

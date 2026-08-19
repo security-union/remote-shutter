@@ -81,10 +81,15 @@ public final class MulticamViewController: UIViewController {
                     format: self?.viewModel.rigSettings.activePhotoFormat ?? .jpeg,
                     hdr: on ? .on : .off)
             },
+            onSetAspectRatio: { [weak self] ratio in self?.controller.setAspectRatio(ratio) },
             onSetStandby: { [weak self] on in self?.controller.setRigStandby(on) },
             onOpenSettings: { [weak self] in
                 logInfo("director: settings opened")
                 self?.showPaywall()
+            },
+            onOpenHelp: { [weak self] in
+                logInfo("director: help opened")
+                self?.presentHelpSheet()
             },
             onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) },
             onFlipCamera: { [weak self] lane in self?.controller.flipCamera(lane.peerID) },

@@ -1525,6 +1525,42 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(q?.hdrMode, .on)
     }
 
+    /// Aspect is a rig setting, not an event: it fans to every lane, lands in
+    /// the tray snapshot, and a camera (re)advertising while the rig is off the
+    /// 16:9 camera default is cropped to match. At the default nothing is sent.
+    func testSetAspectRatioFansOutAndReappliesToLateJoiners() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+
+        var rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.aspectRatio, .sixteenNine, "16:9 is the cameras' own default")
+
+        transport.sentMessages.removeAll()
+        controller.setAspectRatio(.fourThree)
+        await controller.waitForIdle()
+
+        let sends = sent(transport, RemoteCmd.SetAspectRatio.self)
+        XCTAssertEqual(Set(sends.flatMap(\.peers)), [camA, camB])
+        XCTAssertTrue(sends.allSatisfy { ($0.msg as? RemoteCmd.SetAspectRatio)?.aspectRatio == .fourThree })
+        rig = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(rig.aspectRatio, .fourThree)
+
+        // camB re-advertises (device switch / rejoin) — it is re-cropped.
+        transport.sentMessages.removeAll()
+        controller.didReceiveMessage(capsWith(only1080), from: camB)
+        await controller.waitForIdle()
+        let lateSends = sent(transport, RemoteCmd.SetAspectRatio.self)
+        XCTAssertEqual(lateSends.flatMap(\.peers), [camB])
+        XCTAssertEqual((lateSends.first?.msg as? RemoteCmd.SetAspectRatio)?.aspectRatio, .fourThree)
+
+        // Back at the default, a re-advertising camera is not sent a no-op.
+        controller.setAspectRatio(.sixteenNine)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+        controller.didReceiveMessage(capsWith(only1080), from: camB)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetAspectRatio.self).isEmpty)
+    }
+
     // MARK: - Auto-collect
 
     func testVideoResourceTransferUpdatesLaneStateAndSaves() async {
