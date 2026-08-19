@@ -15,7 +15,10 @@ window.I18N = {
       "mac0": ["Your Mac is the camera.", "Your iPhone is the remote."],
       "mac2": ["Hands full?", "Camera handled."],
       "mac3": ["Direct the shot", "from the big screen."],
-      "mac1": ["See everything.", "Control everything."]
+      "mac1": ["See everything.", "Control everything."],
+      "mac4": ["NEW: Four cameras.", "One director."],
+      "6": ["NEW: Four cameras.", "One director."],
+      "mac5": ["4 cameras connected.", "One synced shutter."]
     },
     labels: {}
   },
@@ -31,10 +34,13 @@ window.I18N = {
       "mac0": ["Din Mac er kameraet.", "Din iPhone er fjernbetjeningen."],
       "mac2": ["Hænderne fulde?", "Kameraet klarer det."],
       "mac3": ["Instruér billedet", "fra den store skærm."],
-      "mac1": ["Se alt.", "Styr alt."]
+      "mac1": ["Se alt.", "Styr alt."],
+      "mac4": ["NYT: Fire kameraer.", "Én instruktør."],
+      "6": ["NYT: Fire kameraer.", "Én instruktør."],
+      "mac5": ["4 kameraer forbundet.", "Én synkron udløser."]
     },
     labels: {
-      "CAMERA": "KAMERA", "REMOTE": "FJERNBETJENING",
+      "SYNCED SHUTTER": "SYNKRON UDLØSER", "CAMERA 1": "KAMERA 1", "CAMERA 2": "KAMERA 2", "CAMERA 3": "KAMERA 3", "CAMERA 4": "KAMERA 4", "CAMERA": "KAMERA", "REMOTE": "FJERNBETJENING",
       "PHOTO & VIDEO": "FOTO & VIDEO", "TIMER": "TIMER",
       "ZOOM & LENS": "ZOOM & LINSE", "FLASH & TORCH": "BLITZ & LYS",
       "CAMERA PICKER": "KAMERAVALG", "LIVE PREVIEW": "LIVE-VISNING", "PRO CAMERA": "PROKAMERA"
@@ -52,10 +58,13 @@ window.I18N = {
       "mac0": ["Dein Mac ist die Kamera.", "Dein iPhone die Fernbedienung."],
       "mac2": ["Hände voll?", "Die Kamera läuft."],
       "mac3": ["Führ Regie", "vom großen Bildschirm."],
-      "mac1": ["Alles sehen.", "Alles steuern."]
+      "mac1": ["Alles sehen.", "Alles steuern."],
+      "mac4": ["NEU: Vier Kameras.", "Ein Regisseur."],
+      "6": ["NEU: Vier Kameras.", "Ein Regisseur."],
+      "mac5": ["4 Kameras verbunden.", "Ein synchroner Auslöser."]
     },
     labels: {
-      "CAMERA": "KAMERA", "REMOTE": "FERNBEDIENUNG",
+      "SYNCED SHUTTER": "SYNCHRONER AUSLÖSER", "CAMERA 1": "KAMERA 1", "CAMERA 2": "KAMERA 2", "CAMERA 3": "KAMERA 3", "CAMERA 4": "KAMERA 4", "CAMERA": "KAMERA", "REMOTE": "FERNBEDIENUNG",
       "PHOTO & VIDEO": "FOTO & VIDEO", "TIMER": "TIMER",
       "ZOOM & LENS": "ZOOM & OBJEKTIV", "FLASH & TORCH": "BLITZ & LICHT",
       "CAMERA PICKER": "KAMERA-AUSWAHL", "LIVE PREVIEW": "LIVE-VORSCHAU", "PRO CAMERA": "PROFIKAMERA"
@@ -73,10 +82,13 @@ window.I18N = {
       "mac0": ["Tu Mac es la cámara.", "Tu iPhone es el control."],
       "mac2": ["¿Manos ocupadas?", "La cámara se encarga."],
       "mac3": ["Dirige la toma", "desde la pantalla grande."],
-      "mac1": ["Ve todo.", "Controla todo."]
+      "mac1": ["Ve todo.", "Controla todo."],
+      "mac4": ["NUEVO: Cuatro cámaras.", "Un director."],
+      "6": ["NUEVO: Cuatro cámaras.", "Un director."],
+      "mac5": ["4 cámaras conectadas.", "Un obturador sincronizado."]
     },
     labels: {
-      "CAMERA": "CÁMARA", "REMOTE": "CONTROL",
+      "SYNCED SHUTTER": "OBTURADOR SINCRONIZADO", "CAMERA 1": "CÁMARA 1", "CAMERA 2": "CÁMARA 2", "CAMERA 3": "CÁMARA 3", "CAMERA 4": "CÁMARA 4", "CAMERA": "CÁMARA", "REMOTE": "CONTROL",
       "PHOTO & VIDEO": "FOTO Y VIDEO", "TIMER": "TEMPORIZADOR",
       "ZOOM & LENS": "ZOOM Y LENTE", "FLASH & TORCH": "FLASH Y LINTERNA",
       "CAMERA PICKER": "SELECTOR DE CÁMARA", "LIVE PREVIEW": "VISTA EN VIVO", "PRO CAMERA": "CÁMARA PRO"
@@ -94,10 +106,13 @@ window.I18N = {
       "mac0": ["Votre Mac est l'appareil photo.", "Votre iPhone, la télécommande."],
       "mac2": ["Les mains prises ?", "La caméra s'en charge."],
       "mac3": ["Dirigez la scène", "depuis le grand écran."],
-      "mac1": ["Voyez tout.", "Contrôlez tout."]
+      "mac1": ["Voyez tout.", "Contrôlez tout."],
+      "mac4": ["NOUVEAU : Quatre caméras.", "Un réalisateur."],
+      "6": ["NOUVEAU : Quatre caméras.", "Un réalisateur."],
+      "mac5": ["4 caméras connectées.", "Un déclencheur synchronisé."]
     },
     labels: {
-      "CAMERA": "CAMÉRA", "REMOTE": "TÉLÉCOMMANDE",
+      "SYNCED SHUTTER": "DÉCLENCHEUR SYNCHRONISÉ", "CAMERA 1": "CAMÉRA 1", "CAMERA 2": "CAMÉRA 2", "CAMERA 3": "CAMÉRA 3", "CAMERA 4": "CAMÉRA 4", "CAMERA": "CAMÉRA", "REMOTE": "TÉLÉCOMMANDE",
       "PHOTO & VIDEO": "PHOTO & VIDÉO", "TIMER": "RETARDATEUR",
       "ZOOM & LENS": "ZOOM & OBJECTIF", "FLASH & TORCH": "FLASH & TORCHE",
       "CAMERA PICKER": "SÉLECTEUR DE CAMÉRA", "LIVE PREVIEW": "APERÇU EN DIRECT", "PRO CAMERA": "CAMÉRA PRO"
@@ -115,10 +130,13 @@ window.I18N = {
       "mac0": ["Il tuo Mac è la fotocamera.", "Il tuo iPhone è il telecomando."],
       "mac2": ["Mani occupate?", "Ci pensa la fotocamera."],
       "mac3": ["Dirigi la scena", "dal grande schermo."],
-      "mac1": ["Vedi tutto.", "Controlli tutto."]
+      "mac1": ["Vedi tutto.", "Controlli tutto."],
+      "mac4": ["NOVITÀ: Quattro fotocamere.", "Un regista."],
+      "6": ["NOVITÀ: Quattro fotocamere.", "Un regista."],
+      "mac5": ["4 fotocamere collegate.", "Uno scatto sincronizzato."]
     },
     labels: {
-      "CAMERA": "FOTOCAMERA", "REMOTE": "TELECOMANDO",
+      "SYNCED SHUTTER": "SCATTO SINCRONIZZATO", "CAMERA 1": "FOTOCAMERA 1", "CAMERA 2": "FOTOCAMERA 2", "CAMERA 3": "FOTOCAMERA 3", "CAMERA 4": "FOTOCAMERA 4", "CAMERA": "FOTOCAMERA", "REMOTE": "TELECOMANDO",
       "PHOTO & VIDEO": "FOTO E VIDEO", "TIMER": "TIMER",
       "ZOOM & LENS": "ZOOM E OBIETTIVO", "FLASH & TORCH": "FLASH E TORCIA",
       "CAMERA PICKER": "SELEZIONE FOTOCAMERA", "LIVE PREVIEW": "ANTEPRIMA LIVE", "PRO CAMERA": "FOTOCAMERA PRO"
@@ -136,10 +154,13 @@ window.I18N = {
       "mac0": ["Macがカメラに。", "iPhoneがリモコンに。"],
       "mac2": ["手がふさがっていても、", "カメラはおまかせ。"],
       "mac3": ["大画面で", "撮影を演出。"],
-      "mac1": ["すべて見える。", "すべて操作できる。"]
+      "mac1": ["すべて見える。", "すべて操作できる。"],
+      "mac4": ["新機能: 4台のカメラ。", "監督はひとり。"],
+      "6": ["新機能: 4台のカメラ。", "監督はひとり。"],
+      "mac5": ["4台のカメラを接続。", "シャッターは同期。"]
     },
     labels: {
-      "CAMERA": "カメラ", "REMOTE": "リモコン",
+      "SYNCED SHUTTER": "同期シャッター", "CAMERA 1": "カメラ 1", "CAMERA 2": "カメラ 2", "CAMERA 3": "カメラ 3", "CAMERA 4": "カメラ 4", "CAMERA": "カメラ", "REMOTE": "リモコン",
       "PHOTO & VIDEO": "写真＆ビデオ", "TIMER": "タイマー",
       "ZOOM & LENS": "ズーム＆レンズ", "FLASH & TORCH": "フラッシュ＆ライト",
       "CAMERA PICKER": "カメラ選択", "LIVE PREVIEW": "ライブプレビュー", "PRO CAMERA": "プロ用カメラ"
@@ -157,10 +178,13 @@ window.I18N = {
       "mac0": ["Mac이 카메라,", "iPhone이 리모컨."],
       "mac2": ["손이 바빠도", "카메라는 알아서."],
       "mac3": ["큰 화면에서", "촬영을 연출하세요."],
-      "mac1": ["모두 보고,", "모두 제어하세요."]
+      "mac1": ["모두 보고,", "모두 제어하세요."],
+      "mac4": ["새 기능: 카메라 4대.", "감독은 한 명."],
+      "6": ["새 기능: 카메라 4대.", "감독은 한 명."],
+      "mac5": ["카메라 4대 연결됨.", "하나의 동기화 셔터."]
     },
     labels: {
-      "CAMERA": "카메라", "REMOTE": "리모컨",
+      "SYNCED SHUTTER": "동기화 셔터", "CAMERA 1": "카메라 1", "CAMERA 2": "카메라 2", "CAMERA 3": "카메라 3", "CAMERA 4": "카메라 4", "CAMERA": "카메라", "REMOTE": "리모컨",
       "PHOTO & VIDEO": "사진·비디오", "TIMER": "타이머",
       "ZOOM & LENS": "줌·렌즈", "FLASH & TORCH": "플래시·손전등",
       "CAMERA PICKER": "카메라 선택", "LIVE PREVIEW": "실시간 미리보기", "PRO CAMERA": "프로 카메라"
@@ -178,10 +202,13 @@ window.I18N = {
       "mac0": ["Seu Mac é a câmera.", "Seu iPhone é o controle."],
       "mac2": ["Mãos ocupadas?", "A câmera resolve."],
       "mac3": ["Dirija a cena", "pela tela grande."],
-      "mac1": ["Veja tudo.", "Controle tudo."]
+      "mac1": ["Veja tudo.", "Controle tudo."],
+      "mac4": ["NOVO: Quatro câmeras.", "Um diretor."],
+      "6": ["NOVO: Quatro câmeras.", "Um diretor."],
+      "mac5": ["4 câmeras conectadas.", "Um obturador sincronizado."]
     },
     labels: {
-      "CAMERA": "CÂMERA", "REMOTE": "CONTROLE",
+      "SYNCED SHUTTER": "OBTURADOR SINCRONIZADO", "CAMERA 1": "CÂMERA 1", "CAMERA 2": "CÂMERA 2", "CAMERA 3": "CÂMERA 3", "CAMERA 4": "CÂMERA 4", "CAMERA": "CÂMERA", "REMOTE": "CONTROLE",
       "PHOTO & VIDEO": "FOTO E VÍDEO", "TIMER": "TEMPORIZADOR",
       "ZOOM & LENS": "ZOOM E LENTE", "FLASH & TORCH": "FLASH E LANTERNA",
       "CAMERA PICKER": "SELETOR DE CÂMERA", "LIVE PREVIEW": "PRÉVIA AO VIVO", "PRO CAMERA": "CÂMERA PRO"
@@ -202,7 +229,7 @@ window.I18N = {
       "mac1": ["尽收眼底。", "尽在掌控。"]
     },
     labels: {
-      "CAMERA": "相机", "REMOTE": "遥控器",
+      "CAMERA 1": "相机 1", "CAMERA 2": "相机 2", "CAMERA 3": "相机 3", "CAMERA 4": "相机 4", "CAMERA": "相机", "REMOTE": "遥控器",
       "PHOTO & VIDEO": "照片和视频", "TIMER": "定时器",
       "ZOOM & LENS": "变焦和镜头", "FLASH & TORCH": "闪光灯和手电筒",
       "CAMERA PICKER": "相机选择", "LIVE PREVIEW": "实时预览", "PRO CAMERA": "专业相机"
@@ -219,11 +246,14 @@ window.I18N = {
       "5": ["न इंटरनेट। न अकाउंट।", "बस कनेक्ट करें।"],
       "mac0": ["आपका Mac कैमरा है।", "आपका iPhone रिमोट है।"],
       "mac1": ["सब कुछ देखें।", "सब कुछ कंट्रोल करें।"],
+      "mac4": ["नया: चार कैमरे।", "एक निर्देशक।"],
+      "6": ["नया: चार कैमरे।", "एक निर्देशक।"],
+      "mac5": ["4 कैमरे कनेक्टेड।", "एक सिंक शटर।"],
       "mac2": ["हाथ भरे हैं?", "कैमरा संभल गया।"],
       "mac3": ["बड़ी स्क्रीन से", "शॉट डायरेक्ट करें।"]
     },
     labels: {
-      "CAMERA": "कैमरा", "REMOTE": "रिमोट", "PRO CAMERA": "प्रो कैमरा",
+      "SYNCED SHUTTER": "सिंक शटर", "CAMERA 1": "कैमरा 1", "CAMERA 2": "कैमरा 2", "CAMERA 3": "कैमरा 3", "CAMERA 4": "कैमरा 4", "CAMERA": "कैमरा", "REMOTE": "रिमोट", "PRO CAMERA": "प्रो कैमरा",
       "PHOTO & VIDEO": "फ़ोटो और वीडियो", "TIMER": "टाइमर",
       "ZOOM & LENS": "ज़ूम और लेंस", "FLASH & TORCH": "फ़्लैश और टॉर्च",
       "LIVE PREVIEW": "लाइव प्रीव्यू"
@@ -240,11 +270,14 @@ window.I18N = {
       "5": ["Không internet. Không tài khoản.", "Chỉ việc kết nối."],
       "mac0": ["Mac là máy ảnh.", "iPhone là điều khiển."],
       "mac1": ["Thấy mọi thứ.", "Điều khiển mọi thứ."],
+      "mac4": ["MỚI: Bốn camera.", "Một đạo diễn."],
+      "6": ["MỚI: Bốn camera.", "Một đạo diễn."],
+      "mac5": ["4 camera đã kết nối.", "Một màn trập đồng bộ."],
       "mac2": ["Bận tay?", "Máy ảnh lo rồi."],
       "mac3": ["Đạo diễn khung hình", "từ màn hình lớn."]
     },
     labels: {
-      "CAMERA": "MÁY ẢNH", "REMOTE": "ĐIỀU KHIỂN", "PRO CAMERA": "MÁY ẢNH PRO",
+      "SYNCED SHUTTER": "MÀN TRẬP ĐỒNG BỘ", "CAMERA 1": "MÁY ẢNH 1", "CAMERA 2": "MÁY ẢNH 2", "CAMERA 3": "MÁY ẢNH 3", "CAMERA 4": "MÁY ẢNH 4", "CAMERA": "MÁY ẢNH", "REMOTE": "ĐIỀU KHIỂN", "PRO CAMERA": "MÁY ẢNH PRO",
       "PHOTO & VIDEO": "ẢNH & VIDEO", "TIMER": "HẸN GIỜ",
       "ZOOM & LENS": "THU PHÓNG & ỐNG KÍNH", "FLASH & TORCH": "ĐÈN FLASH & ĐÈN PIN",
       "LIVE PREVIEW": "XEM TRỰC TIẾP"
@@ -261,11 +294,14 @@ window.I18N = {
       "5": ["Tiada internet. Tiada akaun.", "Cuma sambung."],
       "mac0": ["Mac anda ialah kamera.", "iPhone anda alat kawalan."],
       "mac1": ["Lihat segalanya.", "Kawal segalanya."],
+      "mac4": ["BAHARU: Empat kamera.", "Satu pengarah."],
+      "6": ["BAHARU: Empat kamera.", "Satu pengarah."],
+      "mac5": ["4 kamera disambungkan.", "Satu pengatup segerak."],
       "mac2": ["Tangan penuh?", "Kamera diuruskan."],
       "mac3": ["Arahkan penggambaran", "dari skrin besar."]
     },
     labels: {
-      "CAMERA": "KAMERA", "REMOTE": "KAWALAN JAUH", "PRO CAMERA": "KAMERA PRO",
+      "SYNCED SHUTTER": "PENGATUP SEGERAK", "CAMERA 1": "KAMERA 1", "CAMERA 2": "KAMERA 2", "CAMERA 3": "KAMERA 3", "CAMERA 4": "KAMERA 4", "CAMERA": "KAMERA", "REMOTE": "KAWALAN JAUH", "PRO CAMERA": "KAMERA PRO",
       "PHOTO & VIDEO": "FOTO & VIDEO", "TIMER": "PEMASA",
       "ZOOM & LENS": "ZUM & KANTA", "FLASH & TORCH": "DENYAR & SULUH",
       "LIVE PREVIEW": "PRATONTON LANGSUNG"
@@ -282,11 +318,14 @@ window.I18N = {
       "5": ["İnternet yok. Hesap yok.", "Sadece bağlan."],
       "mac0": ["Mac'iniz kamera.", "iPhone'unuz kumanda."],
       "mac1": ["Her şeyi gör.", "Her şeyi kontrol et."],
+      "mac4": ["YENİ: Dört kamera.", "Tek yönetmen."],
+      "6": ["YENİ: Dört kamera.", "Tek yönetmen."],
+      "mac5": ["4 kamera bağlı.", "Tek senkron deklanşör."],
       "mac2": ["Elleriniz dolu mu?", "Kamera halleder."],
       "mac3": ["Çekimi büyük ekrandan", "yönetin."]
     },
     labels: {
-      "CAMERA": "KAMERA", "REMOTE": "KUMANDA", "PRO CAMERA": "PRO KAMERA",
+      "SYNCED SHUTTER": "SENKRON DEKLANŞÖR", "CAMERA 1": "KAMERA 1", "CAMERA 2": "KAMERA 2", "CAMERA 3": "KAMERA 3", "CAMERA 4": "KAMERA 4", "CAMERA": "KAMERA", "REMOTE": "KUMANDA", "PRO CAMERA": "PRO KAMERA",
       "PHOTO & VIDEO": "FOTOĞRAF VE VİDEO", "TIMER": "ZAMANLAYICI",
       "ZOOM & LENS": "ZOOM VE OBJEKTİF", "FLASH & TORCH": "FLAŞ VE EL FENERİ",
       "LIVE PREVIEW": "CANLI ÖNİZLEME"
@@ -303,11 +342,14 @@ window.I18N = {
       "5": ["Без интернета. Без аккаунта.", "Просто подключитесь."],
       "mac0": ["Ваш Mac — камера.", "Ваш iPhone — пульт."],
       "mac1": ["Всё видно.", "Всё под контролем."],
+      "mac4": ["НОВОЕ: Четыре камеры.", "Один режиссёр."],
+      "6": ["НОВОЕ: Четыре камеры.", "Один режиссёр."],
+      "mac5": ["4 камеры подключены.", "Один синхронный затвор."],
       "mac2": ["Руки заняты?", "Камера справится."],
       "mac3": ["Управляйте съёмкой", "с большого экрана."]
     },
     labels: {
-      "CAMERA": "КАМЕРА", "REMOTE": "ПУЛЬТ", "PRO CAMERA": "ПРОФ. КАМЕРА",
+      "SYNCED SHUTTER": "СИНХРОННЫЙ ЗАТВОР", "CAMERA 1": "КАМЕРА 1", "CAMERA 2": "КАМЕРА 2", "CAMERA 3": "КАМЕРА 3", "CAMERA 4": "КАМЕРА 4", "CAMERA": "КАМЕРА", "REMOTE": "ПУЛЬТ", "PRO CAMERA": "ПРОФ. КАМЕРА",
       "PHOTO & VIDEO": "ФОТО И ВИДЕО", "TIMER": "ТАЙМЕР",
       "ZOOM & LENS": "ЗУМ И ОБЪЕКТИВ", "FLASH & TORCH": "ВСПЫШКА И ФОНАРИК",
       "LIVE PREVIEW": "ЖИВОЙ ПРОСМОТР"

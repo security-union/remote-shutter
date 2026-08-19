@@ -1,3 +1,9 @@
+NYT — Multicam: op til fire kameraer, én instruktør
+
+- Forbind op til fire iPhones som kameraer og se alle vinkler live i et gitter
+- Én synkron udløser tager fotos eller video på alle kameraer i samme øjeblik
+- Optagelserne samles automatisk hos instruktøren, tidsjusteret til redigering
+
 Fjernbetjeningen er redesignet omkring søgeren: billedet først, knapperne ude af vejen.
 
 - Live-visning i fuld skærm: motivet fylder nu hele skærmen, og knapperne svæver ovenpå i stedet for et lille billede klemt inde over et panel af knapper

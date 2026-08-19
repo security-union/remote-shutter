@@ -1,3 +1,9 @@
+MỚI — Multicam: tối đa bốn camera, một đạo diễn
+
+- Kết nối tối đa bốn iPhone làm camera và xem mọi góc máy trực tiếp trong lưới
+- Một màn trập đồng bộ chụp ảnh hoặc quay video trên mọi camera cùng một khoảnh khắc
+- Cảnh quay tự động gom về đạo diễn, căn chỉnh thời gian để dựng phim
+
 Điều khiển được thiết kế lại quanh khung ngắm: hình ảnh trước, các nút điều khiển lùi lại phía sau.
 
 - Xem trực tiếp toàn màn hình: khuôn hình giờ lấp đầy màn hình với các nút nổi lên trên, thay vì một khung hình nhỏ bị kẹp phía trên bảng nút

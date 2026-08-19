@@ -1,3 +1,9 @@
+NEW — Multicam: up to four cameras, one director
+
+- Connect up to four iPhones as cameras and see every angle live in a grid
+- One synced shutter fires photos or video on every camera at the same instant
+- Footage collects automatically to the director, time-aligned for editing
+
 The remote is redesigned around the viewfinder: the picture first, the controls out of its way.
 
 - Full-screen live preview: the shot now fills the display with the controls floating over it, instead of a small picture squeezed above a panel of buttons

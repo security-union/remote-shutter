@@ -1,3 +1,9 @@
+NOVITÀ — Multicam: fino a quattro fotocamere, un regista
+
+- Collega fino a quattro iPhone come fotocamere e guarda ogni angolazione dal vivo in una griglia
+- Uno scatto sincronizzato avvia foto o video su tutte le fotocamere nello stesso istante
+- Il girato si raccoglie automaticamente sul regista, allineato nel tempo per il montaggio
+
 Il telecomando è stato ridisegnato attorno al mirino: prima l'immagine, i controlli in secondo piano.
 
 - Anteprima in diretta a tutto schermo: l'inquadratura riempie ora il display e i controlli fluttuano sopra di essa, invece di una piccola immagine schiacciata sopra un pannello di pulsanti

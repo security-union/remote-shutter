@@ -32,7 +32,7 @@ and `fastlane/metadata/` to App Store Connect.
 | `render.mjs` | Drives Chrome over the slot × device matrix (`PLANS`), crops to exact pixels |
 | `ship-locales.sh` | Renders every locale and syncs `fastlane/screenshots/<locale>/` (cleans stale files, keeps Watch captures) |
 | `generate.mjs` | Nano Banana (Gemini) scene generation/editing — needs `AI_STUDIO` env var; only used when creating **new** scenes |
-| `tools.py` | Quad helpers: `detect` (find a screen's corners), `overlay` (draw a quad to verify), `zoom`, `crop`; plus `chrome` (chrome overlays, below) |
+| `tools.py` | Quad helpers: `detect` (find a screen's corners), `overlay` (draw a quad to verify), `zoom`, `crop`; plus `chrome` (chrome overlays, below) and `grid` (multicam wall: composite N camera previews, aspect-fit, under a real window capture's keyed chrome — see `mac2_multicam_grid.png`'s recipe below) |
 | `assets/` | Chrome overlays composited onto device screens |
 | `assets/raw/` | The unmodified device captures each overlay is derived from |
 | `../ai-scenes/` | Generated scene photos + "what the camera sees" preview shots |
@@ -79,6 +79,23 @@ composited rather than baked in.
 pointed at something black (a lens cap works), so the viewfinder is empty and
 only the chrome is lit. Anything visible in the frame has to be blanked, so a
 black frame is the whole job.
+
+## The multicam grid screen
+
+`assets/raw/monitor-mac-multicam.png` is a real Catalyst window capture over a
+black viewfinder (Cmd-Shift-4 + Space). The composed 4-cam monitor is fully
+deterministic from it and the four scene-derived tile previews:
+
+```bash
+python3 tools.py grid assets/raw/monitor-mac-multicam.png ../ai-scenes/mac2_multicam_grid.png \
+  --tiles ../ai-scenes/mac2_multicam_preview_wide.jpg ../ai-scenes/mac2_multicam_preview_side.jpg \
+          ../ai-scenes/mac2_preview.jpg ../ai-scenes/mac2_multicam_preview_pan.jpg \
+  --disc 730,850,180,150 --titlebar 34
+```
+
+Tiles are aspect-fit (the app's own letterboxing — a portrait camera
+pillarboxes honestly); the chrome is value-keyed off the black capture and
+re-laid on top, same physics as the `chrome` command.
 
 ## Updating translations
 

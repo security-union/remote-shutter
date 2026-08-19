@@ -1,3 +1,9 @@
+NEU — Multicam: bis zu vier Kameras, ein Regisseur
+
+- Verbinde bis zu vier iPhones als Kameras und sieh jeden Winkel live im Raster
+- Ein synchroner Auslöser startet Foto oder Video auf allen Kameras im selben Moment
+- Aufnahmen sammeln sich automatisch beim Regisseur, zeitlich ausgerichtet für den Schnitt
+
 Die Fernbedienung ist rund um den Sucher neu gestaltet: das Bild zuerst, die Bedienelemente treten zurück.
 
 - Live-Vorschau im Vollbild: Die Aufnahme füllt jetzt den Bildschirm, die Bedienelemente schweben darüber, statt eines kleinen Bildes über einer Leiste voller Tasten
