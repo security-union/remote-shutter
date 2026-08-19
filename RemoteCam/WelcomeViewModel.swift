@@ -111,6 +111,11 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
             UpgradeItem(id: tapToFocusPID, title: "", price: "",
                         isPurchased: store.hasTapToFocusFeature(), icon: "camera.metering.spot", tint: "green"),
         ])
+        if FeatureFlags.ENABLE_MULTICAM {
+            items.append(UpgradeItem(id: maxCamerasPID, title: "", price: "",
+                                     isPurchased: store.hasMaxCamerasFeature(),
+                                     icon: "square.grid.2x2.fill", tint: "teal"))
+        }
         upgrades = items
         updateFeatureFlags()
     }
@@ -140,6 +145,8 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
                 upgrades[i].isPurchased = store.hasVideoRecordingFeature()
             case tapToFocusPID:
                 upgrades[i].isPurchased = store.hasTapToFocusFeature()
+            case maxCamerasPID:
+                upgrades[i].isPurchased = store.hasMaxCamerasFeature()
             default:
                 break
             }
@@ -152,7 +159,7 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
         hasAllFeatures = store.hasFullAccess()
         hasAnyPurchase = store.hasAdRemovalFeature() || store.hasTorchFeature()
             || store.hasVideoRecordingFeature() || store.hasFullAccess()
-            || store.hasTapToFocusFeature()
+            || store.hasTapToFocusFeature() || store.hasMaxCamerasFeature()
     }
 
 }
