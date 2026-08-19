@@ -116,3 +116,28 @@ final class CaptureSyncMetadataTests: XCTestCase {
         XCTAssertFalse(resp.supportsMulticam)
     }
 }
+
+/// The runtime-error classification: one error is transient, a repeat inside
+/// the window convicts the current device (it is then marked failed and every
+/// selection surface skips it via the descriptor's `isSuspended`).
+final class CaptureErrorStrikesTests: XCTestCase {
+
+    func testSingleErrorIsTransient() {
+        let verdict = CaptureErrorStrikes.record([], now: 100)
+        XCTAssertFalse(verdict.deterministic)
+        XCTAssertEqual(verdict.strikes, [100])
+    }
+
+    func testRepeatWithinWindowIsDeterministic() {
+        var state = CaptureErrorStrikes.record([], now: 100)
+        state = CaptureErrorStrikes.record(state.strikes, now: 100.016) // the -666 loop cadence
+        XCTAssertTrue(state.deterministic)
+    }
+
+    func testErrorsSpacedBeyondTheWindowStayTransient() {
+        var state = CaptureErrorStrikes.record([], now: 100)
+        state = CaptureErrorStrikes.record(state.strikes, now: 100 + CaptureErrorStrikes.window + 1)
+        XCTAssertFalse(state.deterministic, "isolated errors hours apart must never convict a device")
+        XCTAssertEqual(state.strikes.count, 1, "stale strikes are dropped")
+    }
+}

@@ -8,6 +8,21 @@
 import UIKit
 import AVFoundation
 
+/// Classifies capture-session runtime errors by recency. One error is
+/// transient (media services reset — resume and move on); a repeat inside the
+/// window is the graph saying the current device cannot run, ever — the
+/// signal to mark it failed instead of retrying into a start-fail loop.
+/// Pure so the rule is unit-testable without capture hardware.
+enum CaptureErrorStrikes {
+    static let window: TimeInterval = 3
+
+    static func record(_ strikes: [TimeInterval], now: TimeInterval)
+        -> (strikes: [TimeInterval], deterministic: Bool) {
+        let recent = strikes.filter { now - $0 < window } + [now]
+        return (recent, recent.count >= 2)
+    }
+}
+
 /// Owns the `AVCaptureSession` and every still-photo / configuration concern for
 /// the camera device: device selection, zoom, lens switching, torch, flash,
 /// video/photo quality, aspect ratio and photo capture. It knows nothing about
@@ -153,7 +168,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return false
         }
         refreshSuspensionObserversLocked()
-        lastNotifiedDevices = selectableDevicesLocked().map { CameraDeviceDescriptor(device: $0) }
+        lastNotifiedDevices = selectableDevicesLocked().map { self.descriptorLocked($0) }
         debugLog("🔍 SETUP CAMERA: using device=\(videoDevice.localizedName) type=\(videoDevice.deviceType.rawValue) isVirtual=\(!videoDevice.virtualDeviceSwitchOverVideoZoomFactors.isEmpty)")
 
         do {
@@ -289,7 +304,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         let available = selectableDevicesLocked()
         guard let next = CameraDeviceDescriptor.nextToggleSelection(
                 currentID: videoDeviceInput?.device.uniqueID,
-                available: available.map { CameraDeviceDescriptor(device: $0) },
+                available: available.map { self.descriptorLocked($0) },
                 flipPosition: flipPosition) else { return nil }
         return available.first { $0.uniqueID == next.uniqueID }
     }
@@ -349,7 +364,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         onDeviceSwapped?()
 
         return CameraSelectionResult(
-            device: CameraDeviceDescriptor(device: newDevice),
+            device: descriptorLocked(newDevice),
             flashMode: newFlashMode,
             availableLensTypes: availableLensTypes,
             zoomRange: RemoteCmd.ZoomRange(
@@ -589,20 +604,20 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     func availableCameraDevices() async -> [CameraDeviceDescriptor] {
         await onSessionQueue {
-            self.selectableDevicesLocked().map { CameraDeviceDescriptor(device: $0) }
+            self.selectableDevicesLocked().map { self.descriptorLocked($0) }
         }
     }
 
     func currentCameraDevice() async -> CameraDeviceDescriptor? {
         await onSessionQueue {
-            (self.videoDeviceInput?.device).map { CameraDeviceDescriptor(device: $0) }
+            (self.videoDeviceInput?.device).map { self.descriptorLocked($0) }
         }
     }
 
     func selectCameraDevice(uniqueID: String, orientation: UIInterfaceOrientation) async throws -> CameraSelectionResult {
         try await onSessionQueueThrowing {
             let available = self.selectableDevicesLocked()
-            let descriptors = available.map { CameraDeviceDescriptor(device: $0) }
+            let descriptors = available.map { self.descriptorLocked($0) }
             // Explicitly requesting a suspended camera is an error, not a
             // silent switch to some other device (pickers gray these out;
             // an old-protocol peer can still ask).
@@ -652,6 +667,16 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// for suspension; Apple documents key-value observing this property.
     private var suspensionObservations: [NSKeyValueObservation] = []
 
+    /// Devices whose capture graph deterministically fails to run this launch
+    /// (repeated session runtime errors — e.g. a virtual camera with no sensor).
+    /// Folded into every descriptor's `isSuspended`, so pickers gray them,
+    /// toggles and fallbacks skip them, and capabilities advertise them
+    /// unavailable. Cleared per device when it disconnects, so a replug gets a
+    /// fresh chance. sessionQueue-confined.
+    private var failedDeviceIDs: Set<String> = []
+    /// Recent runtime-error timestamps for `CaptureErrorStrikes`. sessionQueue-confined.
+    private var errorStrikes: [TimeInterval] = []
+
     fileprivate func observeDeviceConnections() {
         let center = NotificationCenter.default
         let handle = { [weak self] (note: Notification, disconnected: Bool) in
@@ -665,9 +690,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                                object: nil, queue: nil) { handle($0, true) },
             center.addObserver(forName: .AVCaptureSessionRuntimeError,
                                object: captureSession, queue: nil) { [weak self] note in
-                let error = note.userInfo?[AVCaptureSessionErrorKey] as? NSError
-                debugLog("CaptureEngine: session runtime error: \(error?.localizedDescription ?? "unknown")")
-                self?.resumeSessionIfNeeded()
+                self?.handleSessionRuntimeError(note.userInfo?[AVCaptureSessionErrorKey] as? NSError)
             },
             center.addObserver(forName: .AVCaptureSessionWasInterrupted,
                                object: captureSession, queue: nil) { [weak self] note in
@@ -697,10 +720,41 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
-    /// AVCam's resume pattern, shared by the runtime-error and
-    /// interruption-ended observers: both can leave the session stopped;
-    /// restart when it is supposed to be running, then run the normal
-    /// device-state refresh so both ends re-sync.
+    /// A session runtime error is the graph's own verdict, delivered within
+    /// milliseconds — long before any frame-absence timeout notices. A lone
+    /// error is transient (media services reset) and gets AVCam's resume; a
+    /// second error inside the strike window means the current device
+    /// deterministically cannot run, so it is marked failed and the session
+    /// moves to a healthy device immediately, sparing the ~10s the frame
+    /// watchdog would otherwise take to conclude the same thing. The three
+    /// session-queue blocks run FIFO: classify → move off → restart.
+    private func handleSessionRuntimeError(_ error: NSError?) {
+        sessionQueue.async {
+            let verdict = CaptureErrorStrikes.record(self.errorStrikes,
+                                                     now: Date().timeIntervalSinceReferenceDate)
+            self.errorStrikes = verdict.strikes
+            if verdict.deterministic, let dead = self.videoDeviceInput?.device {
+                self.errorStrikes = []
+                self.failedDeviceIDs.insert(dead.uniqueID)
+                logWarning("CaptureEngine: \(dead.localizedName) cannot run"
+                    + " (\(error?.localizedDescription ?? "unknown error"))"
+                    + " — marked unavailable, moving off")
+            } else {
+                debugLog("CaptureEngine: session runtime error: \(error?.localizedDescription ?? "unknown")")
+            }
+        }
+        handleDeviceStateChange()
+        sessionQueue.async {
+            if self.isExpectedToRun && !self.captureSession.isRunning {
+                self.captureSession.startRunning()
+            }
+        }
+    }
+
+    /// AVCam's resume pattern, shared by the interruption-ended observer:
+    /// an interruption can leave the session stopped; restart when it is
+    /// supposed to be running, then run the normal device-state refresh so
+    /// both ends re-sync.
     private func resumeSessionIfNeeded() {
         sessionQueue.async {
             if self.isExpectedToRun && !self.captureSession.isRunning {
@@ -721,13 +775,15 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// — but only when something observable actually changed.
     private func handleDeviceStateChange(disconnectedID: String? = nil) {
         sessionQueue.async {
+            // A failed device that unplugs gets amnesty — replugging retries it.
+            if let disconnectedID { self.failedDeviceIDs.remove(disconnectedID) }
             let active = self.videoDeviceInput?.device
             let activeIsGone = (disconnectedID != nil && active?.uniqueID == disconnectedID)
-                || (active?.isSuspended ?? false)
+                || active.map { self.descriptorLocked($0).isSuspended } ?? false
             if activeIsGone {
                 self.fallBackToHealthyDeviceLocked()
             }
-            let devices = self.selectableDevicesLocked().map { CameraDeviceDescriptor(device: $0) }
+            let devices = self.selectableDevicesLocked().map { self.descriptorLocked($0) }
             guard activeIsGone || devices != self.lastNotifiedDevices else { return }
             self.lastNotifiedDevices = devices
             self.refreshSuspensionObserversLocked()
@@ -744,13 +800,23 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
+    /// Every descriptor the engine hands out is built here: a device on the
+    /// per-launch failed list reads as suspended, so pickers gray it, toggles
+    /// and fallbacks skip it, explicit selection refuses it, and capabilities
+    /// advertise it unavailable — all derived from the one set, no other state.
+    private func descriptorLocked(_ device: AVCaptureDevice) -> CameraDeviceDescriptor {
+        var descriptor = CameraDeviceDescriptor(device: device)
+        if failedDeviceIDs.contains(device.uniqueID) { descriptor.isSuspended = true }
+        return descriptor
+    }
+
     /// The active camera was unplugged or suspended: land on the best healthy
     /// device (same position first, then first available) instead of
     /// freezing on a source that will never deliver a frame.
     private func fallBackToHealthyDeviceLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         let available = selectableDevicesLocked().filter { $0.isConnected }
-        let descriptors = available.map { CameraDeviceDescriptor(device: $0) }
+        let descriptors = available.map { self.descriptorLocked($0) }
         guard let resolved = CameraDeviceDescriptor.resolveSelection(
                 requestedID: "", available: descriptors,
                 fallbackPosition: currentPositionShared.value),
@@ -960,7 +1026,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 localizedName: device.localizedName,
                 positionRaw: device.position.rawValue,
                 isActive: device.uniqueID == activeID,
-                isSuspended: device.isSuspended,
+                isSuspended: descriptorLocked(device).isSuspended,
                 info: deviceInfoLocked(for: device))
         }
         return (entries, activeID)
