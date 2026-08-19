@@ -306,6 +306,35 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(ids.count, 1)
     }
 
+    /// Field repro: two cameras, the user never taps a strip thumbnail, then
+    /// flips the entry-focused camera. The flip must go out, and a later
+    /// shutter must still broadcast to the whole rig — not shrink to one lane.
+    func testFlipWithoutAnyFocusTapKeepsTheBroadcast() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(full4K), from: camB)
+        await controller.waitForIdle()
+
+        transport.sentMessages.removeAll()
+        controller.flipCamera(camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(sent(transport, RemoteCmd.ToggleCamera.self).map(\.peers), [[camA]],
+                       "the flip must reach the entry-focused camera")
+
+        // The camera answers with its refreshed (front-camera) capabilities.
+        controller.didReceiveMessage(
+            RemoteCmd.ToggleCameraResp(cameraCapabilities: capsWith(full4K), error: nil),
+            from: camA)
+        await controller.waitForIdle()
+
+        transport.sentMessages.removeAll()
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        let fired = sent(transport, RemoteCmd.TakePic.self).flatMap(\.peers)
+            + sent(transport, RemoteCmd.ScheduledCapture.self).flatMap(\.peers)
+        XCTAssertEqual(Set(fired), [camA, camB], "the shot must still broadcast to the rig")
+    }
+
     func testNonMulticamLaneIsExcludedFromCapture() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 10)
