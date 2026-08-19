@@ -87,9 +87,10 @@ struct CameraScreenView: View {
             }
             .allowsHitTesting(false)
 
-            // The escape hatch: with no linked remote, stopping is the
-            // operator's call — bottom center, where a shutter belongs.
-            if viewModel.isAwaitingRemoteReconnect {
+            // The escape hatch: with no linked remote AND a recording running,
+            // stopping is the operator's call — bottom center, where a shutter
+            // belongs. An idle camera awaiting its remote shows only the chip.
+            if viewModel.isAwaitingRemoteReconnect && viewModel.isRecordingIndicatorVisible {
                 VStack {
                     Spacer()
                     localStopButton

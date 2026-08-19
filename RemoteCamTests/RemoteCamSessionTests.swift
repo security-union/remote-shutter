@@ -627,6 +627,93 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(harness.fakeMP.discoveryStarts, 1)
     }
 
+    /// The unified policy, idle case: an IDLE camera also holds its post on a
+    /// drop — no `.reconnecting`, no screen pop, no rig teardown/rebuild —
+    /// with the chip up and advertising re-armed.
+    func testIdleCameraDisconnectHoldsInPlace() async {
+        await enterCamera()
+        harness.lobby.role = .camera
+        harness.fakeMP.discoveryStarts = 0
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .camera, "the idle camera holds — .reconnecting is monitor-only")
+        XCTAssertEqual(harness.lobby.returnsToLobby, 0)
+        XCTAssertEqual(harness.fakeMP.discoveryStarts, 1)
+        await MainActor.run {
+            XCTAssertTrue(camera.cameraViewModel.isAwaitingRemoteReconnect)
+        }
+    }
+
+    /// And the idle rejoin: re-bind in place, role re-announced, chip cleared.
+    func testIdleCameraRebindsOnReconnect() async {
+        await enterCamera()
+        harness.lobby.role = .camera
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+
+        harness.fakeMP.connectedPeers = [harness.peer]
+        harness.fakeMP.sendResult = true
+        harness.fakeMP.sentMessages.removeAll()
+        await harness.deliver(OnConnectToDevice(peer: harness.peer, sender: nil))
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .camera)
+        XCTAssertEqual(sent(RemoteCmd.PeerBecameCamera.self).count, 1)
+        await MainActor.run {
+            XCTAssertFalse(camera.cameraViewModel.isAwaitingRemoteReconnect)
+        }
+    }
+
+    /// Drop mid-capture: the in-flight photo completes and SAVES locally, the
+    /// unsendable responses are dropped by the role-split send policy, and the
+    /// machine settles to the idle camera — never the scanner.
+    func testTakingPicDisconnectSavesLocallyAndSettles() async {
+        var savedPics = 0
+        await harness.coordinator.setPhotoLibrarySaver { _ in savedPics += 1 }
+        await enterCamera()
+        harness.lobby.role = .camera
+        harness.fakeMP.sendResult = true
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
+        var name = await harness.stateName()
+        XCTAssertEqual(name, .cameraTakingPic)
+
+        harness.fakeMP.connectedPeers = []
+        harness.fakeMP.sendResult = false
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        name = await harness.stateName()
+        XCTAssertEqual(name, .cameraTakingPic, "the capture is still in flight")
+
+        await harness.deliver(UICmd.OnPicture(sender: nil, pic: Data([0xFF])))
+        XCTAssertEqual(savedPics, 1, "the still is saved locally regardless of the link")
+        name = await harness.stateName()
+        XCTAssertEqual(name, .camera, "settles to idle, never the scanner")
+    }
+
+    /// Drop mid-transfer: the clip is already saved locally, so the camera
+    /// holds its post and settles to idle; the director re-collects on rejoin.
+    func testTransmittingDisconnectSettlesToIdleCamera() async {
+        await enterCamera()
+        harness.lobby.role = .camera
+        harness.fakeMP.sendResult = true
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+        await harness.deliver(RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: true))
+        var name = await harness.stateName()
+        XCTAssertEqual(name, .cameraTransmittingVideo)
+
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+        await harness.coordinator.waitForIdle()
+
+        name = await harness.stateName()
+        XCTAssertEqual(name, .camera)
+        XCTAssertEqual(harness.lobby.returnsToLobby, 0)
+        await MainActor.run {
+            XCTAssertTrue(camera.cameraViewModel.isAwaitingRemoteReconnect)
+        }
+    }
+
     /// A deliberate goodbye is intent, not a drop: `EndSession` mid-recording
     /// finalizes + saves, then leaves like any deliberate end.
     func testEndSessionMidRecordingStopsAndLeaves() async {
@@ -2063,12 +2150,15 @@ class SessionReconnectTests: XCTestCase {
     /// Suspension kills the peer session within seconds, and the notice is
     /// delivered to a frozen process — it may never arrive. A camera that never
     /// learns it lost a session never advertises again, so no remote can find
-    /// it. Returning to the foreground with nothing connected is the cue to
-    /// leave the role state, which re-arms advertising on the way out.
-    func testForegroundLeavesACameraStateWithNoLiveLink() async {
+    /// it. Returning to the foreground with nothing connected re-arms
+    /// advertising — and the camera HOLDS its post (server role): a camera
+    /// state without a link is not a lie, it is a camera awaiting its remote,
+    /// and the chip says so.
+    func testForegroundHoldsACameraStateWithNoLiveLink() async {
+        let ctrl = FakeCameraControlling()
         await harness.coordinator.seed(
             state: .camera, lobby: harness.lobbyWrapper, peer: harness.peer,
-            ctrl: FakeCameraControlling())
+            ctrl: ctrl)
         harness.lobby.role = .camera
         harness.fakeMP.connectedPeers = []
         let startsBefore = harness.fakeMP.discoveryStarts
@@ -2076,9 +2166,12 @@ class SessionReconnectTests: XCTestCase {
         await harness.deliver(UICmd.AppForegrounded())
 
         let state = await harness.stateName()
-        XCTAssertEqual(state, .scanning, "a camera state with no link is a lie")
+        XCTAssertEqual(state, .camera, "the camera holds its post; .reconnecting is monitor-only")
         XCTAssertGreaterThan(harness.fakeMP.discoveryStarts, startsBefore,
-                             "leaving it re-arms advertising")
+                             "the wake re-arms advertising")
+        await MainActor.run {
+            XCTAssertTrue(ctrl.cameraViewModel.isAwaitingRemoteReconnect)
+        }
     }
 
     /// Already scanning: rebuild the radios in place. They may have died while
