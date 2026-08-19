@@ -33,10 +33,10 @@ public let enableVideoPID = "06"
 public let enableTorchPID = "07"
 public let enableVideoOnlyPID = "08"
 public let tapToFocusPID = "09"
-/// One-time cap raiser: a multicam director may connect up to 6 cameras.
+/// One-time cap raiser: multicam directing at the full paid camera cap.
 /// (Product IDs are free-form strings on ASC — the numeric 05…09 style is
 /// legacy, not a requirement.)
-public let sixCamerasPID = "six_cameras"
+public let fourCamerasPID = "four_cameras"
 // Auto-renewable "Pro" subscription (group "Pro"). Unlocks every feature for
 // the subscription period — the recurring equivalent of the one-time 06 bundle.
 public let proMonthlyPID = "pro_monthly"

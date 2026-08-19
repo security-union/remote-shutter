@@ -9,7 +9,7 @@ final class StoreManagerTests: XCTestCase {
     private let torchKey = "didBuyEnableTorchFeature"
     private let videoOnlyKey = "didBuyEnableVideoOnlyFeature"
     private let tapToFocusKey = "didBuyTapToFocusFeature"
-    private let sixCamerasKey = "didBuySixCamerasFeature"
+    private let fourCamerasKey = "didBuyFourCamerasFeature"
     private let proSubscriptionKey = "hasActiveProSubscription"
 
     private var savedValues: [String: Bool] = [:]
@@ -18,7 +18,7 @@ final class StoreManagerTests: XCTestCase {
         super.setUp()
         // Save existing values so tests don't corrupt real state
         let keys = [removeAdsKey, proModeKey, torchKey, videoOnlyKey,
-                    tapToFocusKey, sixCamerasKey, proSubscriptionKey]
+                    tapToFocusKey, fourCamerasKey, proSubscriptionKey]
         for key in keys {
             savedValues[key] = UserDefaults.standard.bool(forKey: key)
             UserDefaults.standard.removeObject(forKey: key)
@@ -45,7 +45,7 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertFalse(store.hasProSubscription())
         XCTAssertFalse(store.hasFullAccess())
         XCTAssertFalse(store.hasTapToFocusFeature())
-        XCTAssertFalse(store.hasSixCamerasFeature())
+        XCTAssertFalse(store.hasFourCamerasFeature())
     }
 
     // MARK: - Multicam camera cap
@@ -54,11 +54,11 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertEqual(StoreManager.shared.maxCameras(), 2)
     }
 
-    /// Pro unlocks everything, six-camera directing included — the one-time
+    /// Pro unlocks everything, paid-cap directing included — the one-time
     /// bundle and the subscription both land on the full paid cap.
     func testProModeUnlocksPaidCameraCap() {
         UserDefaults.standard.set(true, forKey: proModeKey)
-        XCTAssertTrue(StoreManager.shared.hasSixCamerasFeature())
+        XCTAssertTrue(StoreManager.shared.hasFourCamerasFeature())
         XCTAssertEqual(StoreManager.shared.maxCameras(), StoreManager.maxPaidCameras)
     }
 
@@ -68,15 +68,23 @@ final class StoreManagerTests: XCTestCase {
     }
 
     /// The à la carte pack reaches the same cap without Pro.
-    func testSixCameraPackAloneUnlocksPaidCameraCap() {
-        UserDefaults.standard.set(true, forKey: sixCamerasKey)
+    func testFourCameraPackAloneUnlocksPaidCameraCap() {
+        UserDefaults.standard.set(true, forKey: fourCamerasKey)
         XCTAssertEqual(StoreManager.shared.maxCameras(), StoreManager.maxPaidCameras)
     }
 
     /// The constants every gate and every piece of copy derive from.
     func testCameraCapConstants() {
         XCTAssertEqual(StoreManager.maxFreeCameras, 2)
-        XCTAssertEqual(StoreManager.maxPaidCameras, 6)
+        XCTAssertEqual(StoreManager.maxPaidCameras, 4)
+    }
+
+    /// The paywall offers the 4-camera pack whenever the cap honors what
+    /// the product sells — true today (both are 4); raising the pack's
+    /// promise past the cap withholds the row.
+    func testFourCameraPackIsOfferedWhileTheCapHonorsItsPromise() {
+        XCTAssertTrue(StoreManager.offersFourCamerasPack)
+        XCTAssertEqual(StoreManager.fourCamerasPackCameraCount, 4)
     }
 
     // MARK: - Individual Feature Flags
@@ -180,7 +188,7 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertEqual(enableTorchPID, "07")
         XCTAssertEqual(enableVideoOnlyPID, "08")
         XCTAssertEqual(tapToFocusPID, "09")
-        XCTAssertEqual(sixCamerasPID, "six_cameras")
+        XCTAssertEqual(fourCamerasPID, "four_cameras")
         XCTAssertEqual(proMonthlyPID, "pro_monthly")
         XCTAssertEqual(proYearlyPID, "pro_yearly")
     }
@@ -193,7 +201,7 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertTrue(ids.contains(enableTorchPID))
         XCTAssertTrue(ids.contains(enableVideoOnlyPID))
         XCTAssertTrue(ids.contains(tapToFocusPID))
-        XCTAssertTrue(ids.contains(sixCamerasPID))
+        XCTAssertTrue(ids.contains(fourCamerasPID))
         XCTAssertTrue(ids.contains(proMonthlyPID))
         XCTAssertTrue(ids.contains(proYearlyPID))
     }

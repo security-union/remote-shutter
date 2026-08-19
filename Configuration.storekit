@@ -95,13 +95,13 @@
       "internalID" : "F0C05003",
       "localizations" : [
         {
-          "description" : "Direct up to 6 cameras at once.",
-          "displayName" : "6-Camera Multicam",
+          "description" : "Direct up to 4 cameras at once.",
+          "displayName" : "4-Camera Multicam",
           "locale" : "en_US"
         }
       ],
-      "productID" : "six_cameras",
-      "referenceName" : "6-Camera Multicam",
+      "productID" : "four_cameras",
+      "referenceName" : "4-Camera Multicam",
       "type" : "NonConsumable"
     }
   ],
