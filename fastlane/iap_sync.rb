@@ -62,7 +62,6 @@ module IapSync
       products[sub.dig("attributes", "productId")] = { kind: :subscription, id: sub["id"] }
     end
 
-    delete_listed(products, data["delete"] || [])
     create_missing(app["id"], products, data["create"] || {})
 
     data.fetch("products").each do |product_id, locales|
@@ -81,26 +80,6 @@ module IapSync
       end
     end
     raise "sync failed for: #{failures.join(', ')}" unless failures.empty?
-  end
-
-  # The one deliberately destructive operation, and it is doubly guarded:
-  # only one-time-IAP product IDs explicitly listed under the JSON's
-  # top-level "delete" key are touched, and App Store Connect itself
-  # refuses to delete a product that has ever been approved — so this can
-  # only remove never-shipped products. Product IDs are immutable on ASC,
-  # so a pre-release rename is exactly delete-old + create-new.
-  def self.delete_listed(products, ids)
-    ids.each do |product_id|
-      product = products[product_id]
-      unless product
-        puts "SKIP delete #{product_id}: not on App Store Connect"
-        next
-      end
-      raise "refusing to delete #{product_id}: not a one-time IAP" unless product[:kind] == :iap
-      req(:delete, "/v2/inAppPurchases/#{product[:id]}")
-      products.delete(product_id)
-      puts "DELETED product #{product_id} (never shipped; ASC refuses deleting approved products)"
-    end
   end
 
   # Create each "create"-spec'd one-time IAP that is absent on ASC, price it
@@ -212,8 +191,7 @@ module IapSync
     uri = URI("#{BASE}#{path}")
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
-    klass = { get: Net::HTTP::Get, post: Net::HTTP::Post, patch: Net::HTTP::Patch,
-              delete: Net::HTTP::Delete }.fetch(method)
+    klass = { get: Net::HTTP::Get, post: Net::HTTP::Post, patch: Net::HTTP::Patch }.fetch(method)
     request = klass.new(uri)
     request["Authorization"] = "Bearer #{@bearer}"
     request["Content-Type"] = "application/json"

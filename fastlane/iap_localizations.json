@@ -504,8 +504,5 @@
       "reference_name": "4-Camera Multicam",
       "usd_price": "4.99"
     }
-  },
-  "delete": [
-    "six_cameras"
-  ]
+  }
 }
