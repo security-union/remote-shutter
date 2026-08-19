@@ -370,12 +370,17 @@ final class PeerHEVCPreviewDecoder {
             return recordFailure("could not wrap HEVC frame")
         }
 
+        // Synchronous decode, deliberately: without `.enableAsynchronousDecompression`
+        // VideoToolbox invokes the handler on this thread before the call returns,
+        // so no semaphore is needed — and none is allowed. `decodeQueue` runs at
+        // user-interactive QoS, and a semaphore wait on VT's unowned internal
+        // threads (where `._1xRealTimePlayback` pacing lands) is a priority
+        // inversion. Real-time is already requested per-session via
+        // `kVTDecompressionPropertyKey_RealTime`.
         var image: UIImage?
-        let done = DispatchSemaphore(value: 0)
         let status = VTDecompressionSessionDecodeFrame(
-            session, sampleBuffer: sampleBuffer, flags: [._1xRealTimePlayback], infoFlagsOut: nil
+            session, sampleBuffer: sampleBuffer, flags: [], infoFlagsOut: nil
         ) { [ciContext] decodeStatus, _, imageBuffer, _, _ in
-            defer { done.signal() }
             guard decodeStatus == noErr, let imageBuffer else { return }
             let ciImage = CIImage(cvPixelBuffer: imageBuffer)
             if let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) {
@@ -383,7 +388,6 @@ final class PeerHEVCPreviewDecoder {
             }
         }
         guard status == noErr else { return recordFailure("VTDecompressionSessionDecodeFrame: \(status)") }
-        done.wait()
 
         guard let image else { return recordFailure("HEVC decode produced no image") }
         failureStreak = 0
