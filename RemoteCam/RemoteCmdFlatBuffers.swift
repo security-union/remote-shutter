@@ -440,7 +440,10 @@ private func encodeCapabilitiesEnvelope(
         photoFormat: toFBPhotoFormat(c.currentPhotoFormat),
         hdrMode: toFBHDRMode(c.currentHDRMode),
         activeDeviceIdOffset: activeIDOffset,
-        previewMode: toFBPreviewMode(c.previewMode))
+        previewMode: toFBPreviewMode(c.previewMode),
+        // v10 API contract: always written. 0 = not recording; nonzero = the
+        // pipeline's real first-frame instant (Unix ms).
+        recordingStartUnixMs: c.recordingStartedAt.map { UInt64($0.timeIntervalSince1970 * 1000) } ?? 0)
 
     return (capsOffset, stateOffset)
 }
@@ -1483,6 +1486,13 @@ extension RemoteCmd {
         }
         let activeDeviceID = caps?.activeDeviceId ?? state?.activeDeviceId
 
+        // v10 API contract: every camera writes `recording_start_unix_ms`;
+        // 0 = not recording.
+        let recordingStartMs = state?.recordingStartUnixMs ?? 0
+        let recordingStartedAt = recordingStartMs == 0
+            ? nil
+            : Date(timeIntervalSince1970: TimeInterval(recordingStartMs) / 1000)
+
         return CameraCapabilitiesResp(
             frontCamera: frontCamera,
             backCamera: backCamera,
@@ -1499,6 +1509,7 @@ extension RemoteCmd {
             supportsPreviewMode: caps?.supportsPreviewMode ?? false,
             supportsMulticam: caps?.supportsMulticam ?? false,
             previewMode: state.map { fromFBPreviewMode($0.previewMode) } ?? .on,
+            recordingStartedAt: recordingStartedAt,
             error: error
         )
     }

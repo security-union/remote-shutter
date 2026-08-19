@@ -449,6 +449,90 @@ class SessionCoordinatorTests: XCTestCase {
                        "the scheduled shutter fires, saving locally AND returning the still to the director")
     }
 
+    // MARK: - Recording truth derivation (v10)
+
+    private func capabilities(recordingStartedAt: Date?) -> RemoteCmd.CameraCapabilitiesResp {
+        RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            recordingStartedAt: recordingStartedAt,
+            error: nil)
+    }
+
+    /// A camera that reports an active recording pulls a freshly connected
+    /// monitor straight into the recording state — derived from the camera's
+    /// reported truth, never assumed.
+    func testMonitorDerivesRecordingFromCapabilities() async {
+        await enterMonitor(.Video)
+        await harness.deliver(capabilities(recordingStartedAt: Date(timeIntervalSinceNow: -30)))
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .monitorRecordingVideo)
+    }
+
+    /// The reverse reconciliation: a camera that reports NOT recording
+    /// un-wedges a monitor stuck showing a recording the camera isn't making.
+    func testMonitorRecordingUnwedgedByIdleCapabilities() async {
+        await enterMonitorRecordingVideo()
+        await harness.deliver(capabilities(recordingStartedAt: nil))
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .monitor)
+    }
+
+    /// While both sides agree a recording is running, a capabilities refresh
+    /// only re-syncs the timer — no state churn.
+    func testMonitorRecordingStaysOnRecordingCapabilities() async {
+        await enterMonitorRecordingVideo()
+        await harness.deliver(capabilities(recordingStartedAt: Date()))
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .monitorRecordingVideo)
+    }
+
+    /// The pipeline terminated a recording on its own (storage gate refusal,
+    /// writer death): the error is reported through the stop-response path
+    /// the monitor already handles, and the camera returns to idle.
+    func testRecordingTerminatedReportsErrorAndReturnsToCamera() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+        var name = await harness.stateName()
+        XCTAssertEqual(name, .cameraRecordingVideo)
+        harness.fakeMP.sentMessages.removeAll()
+
+        await harness.deliver(UICmd.RecordingTerminated(
+            error: NSError(domain: "Not enough storage", code: 0)))
+
+        let resps = sent(RemoteCmd.StopRecordingVideoResp.self)
+            .compactMap { $0.msg as? RemoteCmd.StopRecordingVideoResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNotNil(resps.first?.error, "the monitor must learn WHY, not get a clean stop")
+        name = await harness.stateName()
+        XCTAssertEqual(name, .camera)
+    }
+
+    /// Writer death during the transmit phase (finalize failed under a
+    /// remote-initiated stop): same truth-routing, then back to camera via
+    /// the deferred pop.
+    func testRecordingTerminatedDuringTransmitReportsError() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+        await harness.deliver(RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: false))
+        var name = await harness.stateName()
+        XCTAssertEqual(name, .cameraTransmittingVideo)
+        harness.fakeMP.sentMessages.removeAll()
+
+        await harness.deliver(UICmd.RecordingTerminated(
+            error: NSError(domain: "disk full", code: 0)))
+        await harness.coordinator.waitForIdle()
+
+        let resps = sent(RemoteCmd.StopRecordingVideoResp.self)
+            .compactMap { $0.msg as? RemoteCmd.StopRecordingVideoResp }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNotNil(resps.first?.error)
+        name = await harness.stateName()
+        XCTAssertEqual(name, .camera)
+    }
+
     // MARK: - Resilient camera (multicam only)
 
     /// In a multicam session the camera keeps recording through a director

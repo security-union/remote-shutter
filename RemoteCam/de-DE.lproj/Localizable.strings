@@ -391,3 +391,8 @@
 "%@ can’t do %@" = "%@ kann kein %@";
 "%@ can’t do HDR" = "%@ kann kein HDR";
 "Couldn't switch camera" = "Kamera konnte nicht gewechselt werden";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "Nicht genug Speicherplatz, um ein Video aufzunehmen. Gib mindestens 100 MB frei und versuche es erneut.";
+"recording_stopped_disk_full_error" = "Aufnahme gestoppt: Der Speicher deines Geräts ist voll. Das bisher aufgenommene Video wurde in Fotos gesichert.";
+"recording_failed_error" = "Aufnahme wegen eines Fehlers gestoppt. Das bisher aufgenommene Video wurde in Fotos gesichert.";

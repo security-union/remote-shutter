@@ -127,6 +127,10 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     var chimes: [Int] = []
     var torchRestores = 0
 
+    /// The camera's reported recording truth, carried in the capabilities
+    /// response (v10 `recording_start_unix_ms`). Set before driving.
+    var reportedRecordingStartedAt: Date?
+
     var photoBytes = Data([0xFF, 0xD8, 0xFF, 0xE0])
     var torchActive = false
     var flashMode: AVCaptureDevice.FlashMode = .off
@@ -287,6 +291,7 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             supportsFocusPoint: advertisesFocusPoint,
             supportsPreviewMode: advertisesPreviewMode,
             previewMode: storedPreviewMode,
+            recordingStartedAt: reportedRecordingStartedAt,
             error: nil)
     }
 

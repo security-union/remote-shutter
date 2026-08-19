@@ -391,3 +391,8 @@
 "%@ can’t do %@" = "%@ tidak boleh %@";
 "%@ can’t do HDR" = "%@ tidak boleh HDR";
 "Couldn't switch camera" = "Tidak dapat menukar kamera";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "Storan tidak mencukupi untuk merakam video. Kosongkan sekurang-kurangnya 100 MB dan cuba lagi.";
+"recording_stopped_disk_full_error" = "Rakaman dihentikan: storan peranti anda telah penuh. Video yang dirakam setakat ini telah disimpan ke Foto.";
+"recording_failed_error" = "Rakaman dihentikan kerana ralat. Video yang dirakam setakat ini telah disimpan ke Foto.";

@@ -574,6 +574,12 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// The camera's current local-preview mode, so the monitor can reflect
         /// it from the first capabilities exchange.
         public let previewMode: CameraPreviewMode
+        /// The camera's recording truth, straight from its pipeline: non-nil
+        /// exactly while a clip is being written, carrying the real
+        /// first-frame instant. Wire: `recording_start_unix_ms` (0 ⇔ nil) —
+        /// every v10+ camera reports it on every capabilities exchange, and
+        /// monitors DERIVE their recording UI from it instead of remembering.
+        public let recordingStartedAt: Date?
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
@@ -589,6 +595,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    supportsPreviewMode: Bool = false,
                    supportsMulticam: Bool = false,
                    previewMode: CameraPreviewMode = .on,
+                   recordingStartedAt: Date? = nil,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
@@ -605,6 +612,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.supportsPreviewMode = supportsPreviewMode
             self.supportsMulticam = supportsMulticam
             self.previewMode = previewMode
+            self.recordingStartedAt = recordingStartedAt
             self.error = error
             super.init(sender: nil)
         }

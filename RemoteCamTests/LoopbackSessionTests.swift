@@ -226,6 +226,37 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
     }
 
+    /// v10 reactive contract in one round trip: the camera's recording truth
+    /// (`recording_start_unix_ms`) crosses the wire inside the capabilities
+    /// exchange, and the monitor DERIVES its recording screen from it —
+    /// landing in `.monitorRecordingVideo` without ever having sent a start.
+    func testCameraRecordingTruthDerivedByMonitorAcrossTheWire() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.coordinator = cameraCoordinator
+        fakeCamera.reportedRecordingStartedAt = Date(timeIntervalSinceNow: -42)
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await becomeMonitor(mode: .Video)
+
+        // The monitor's capabilities request arrives (the same message the
+        // real handshake sends on PeerBecameCamera); the camera answers with
+        // its recording truth through the real encode/decode path.
+        cameraCoordinator.tell(RemoteCmd.RequestCameraCapabilities())
+        await drainBothSessions()
+
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitorRecordingVideo,
+                       "the monitor derives recording from the camera's report")
+
+        // And the reconciliation in reverse: the camera now reports idle —
+        // the monitor cannot stay in a recording state the camera isn't in.
+        fakeCamera.reportedRecordingStartedAt = nil
+        cameraCoordinator.tell(RemoteCmd.RequestCameraCapabilities())
+        await drainBothSessions()
+        let settled = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(settled, .monitor)
+    }
+
     // MARK: - Take picture round trip
 
     func testTakePictureRoundTripAgainstPeerNotInCameraMode() async {

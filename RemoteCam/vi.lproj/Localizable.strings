@@ -391,3 +391,8 @@
 "%@ can’t do %@" = "%@ không thể %@";
 "%@ can’t do HDR" = "%@ không thể HDR";
 "Couldn't switch camera" = "Không thể chuyển máy ảnh";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "Không đủ dung lượng để quay video. Hãy giải phóng ít nhất 100 MB rồi thử lại.";
+"recording_stopped_disk_full_error" = "Đã dừng quay: thiết bị đã hết dung lượng. Phần video đã quay được lưu vào Ảnh.";
+"recording_failed_error" = "Đã dừng quay do lỗi. Phần video đã quay được lưu vào Ảnh.";

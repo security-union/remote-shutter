@@ -391,3 +391,8 @@
 "%@ can’t do %@" = "%@은(는) %@ 불가";
 "%@ can’t do HDR" = "%@은(는) HDR 불가";
 "Couldn't switch camera" = "카메라를 전환할 수 없습니다";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "저장 공간이 부족하여 비디오를 녹화할 수 없습니다. 100MB 이상의 공간을 확보한 후 다시 시도하세요.";
+"recording_stopped_disk_full_error" = "녹화가 중지되었습니다. 기기의 저장 공간이 가득 찼습니다. 지금까지 녹화된 영상은 사진 앱에 저장되었습니다.";
+"recording_failed_error" = "오류로 인해 녹화가 중지되었습니다. 지금까지 녹화된 영상은 사진 앱에 저장되었습니다.";

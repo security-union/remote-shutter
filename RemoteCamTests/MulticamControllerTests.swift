@@ -1052,6 +1052,91 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(focusedAfter, camB)
     }
 
+    // MARK: - Lane recording truth (v10)
+
+    /// A lane's REC badge is DERIVED from the camera's reported recording
+    /// truth in its capabilities — a rejoining camera that kept rolling shows
+    /// REC; one whose recording died while away shows the truth too.
+    func testLaneRecordingDerivedFromCapabilities() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+
+        let rolling = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true,
+            recordingStartedAt: Date(timeIntervalSinceNow: -10),
+            error: nil)
+        controller.didReceiveMessage(rolling, from: camA)
+        await controller.waitForIdle()
+        let recWhileRolling = await controller.isRecordingForTesting(camA)
+        XCTAssertTrue(recWhileRolling, "REC derives from the camera's report, not from what was commanded")
+
+        let idle = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true,
+            error: nil)
+        controller.didReceiveMessage(idle, from: camA)
+        await controller.waitForIdle()
+        let recWhenIdle = await controller.isRecordingForTesting(camA)
+        XCTAssertFalse(recWhenIdle, "a camera that reports idle clears a stale REC")
+    }
+
+    /// A camera-reported start is in the CAMERA's clock domain: the lane's
+    /// measured offset translates it into the director's, so the rig timer
+    /// never inherits cross-device wall-clock skew.
+    func testCameraReportedStartTranslatedIntoDirectorClock() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        // Camera clock runs 5s AHEAD of the director's.
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 5_000)
+
+        let cameraDomainStart = Date(timeIntervalSinceNow: -42)
+        let rolling = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true,
+            recordingStartedAt: cameraDomainStart,
+            error: nil)
+        controller.didReceiveMessage(rolling, from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { display.recording }
+
+        XCTAssertEqual(display.recordingStartTime,
+                       cameraDomainStart.addingTimeInterval(-5),
+                       "an ahead-running camera clock is subtracted out of the label")
+    }
+
+    /// The union: a camera reporting a live recording while the director's
+    /// take machine is idle (a director that rejoined mid-take) brings back
+    /// the Stop control with the camera's own start instant — and Stop
+    /// actually stops that camera, straight from `.monitoring`.
+    func testShutterUnionShowsStopForCameraReportedRecording() async {
+        let (controller, transport, display) = await makeController(peers: [camA])
+
+        let start = Date(timeIntervalSinceNow: -42)
+        let rolling = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true,
+            recordingStartedAt: start,
+            error: nil)
+        controller.didReceiveMessage(rolling, from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { display.recording }
+
+        XCTAssertTrue(display.recording, "the shutter derives from the union of lane truth")
+        XCTAssertEqual(display.recordingStartTime, start,
+                       "the rig timer counts from the camera's reported start")
+
+        transport.sentMessages.removeAll()
+        controller.stopRecording()
+        await controller.waitForIdle()
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+            + sent(transport, RemoteCmd.StopRecordingVideo.self)
+        XCTAssertEqual(stops.flatMap(\.peers), [camA],
+                       "Stop reaches the rolling camera even though no take was in flight")
+    }
+
     // MARK: - Rig quality (intersection) + timer
 
     /// Caps whose current (back) camera advertises a resolution/fps matrix.

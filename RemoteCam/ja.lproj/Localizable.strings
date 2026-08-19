@@ -391,3 +391,8 @@
 "%@ can’t do %@" = "%@は%@に非対応";
 "%@ can’t do HDR" = "%@はHDRに非対応";
 "Couldn't switch camera" = "カメラを切り替えられませんでした";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "ストレージの空き容量が足りないため、ビデオを録画できません。100 MB以上の空き容量を確保してから、もう一度お試しください。";
+"recording_stopped_disk_full_error" = "録画を停止しました:デバイスのストレージがいっぱいです。ここまでの映像は「写真」に保存されました。";
+"recording_failed_error" = "エラーが発生したため録画を停止しました。ここまでの映像は「写真」に保存されました。";
