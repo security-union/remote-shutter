@@ -57,9 +57,7 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
         let model = makeConnectedModel()
         model.currentMode = .Video
         model.uiState = .videoRecording
-        model.isRecording = true
         model.recordingStartTime = Date().addingTimeInterval(-42)
-        model.isShowingRecordingDuration = true
 
         let image = renderScreen(named: "monitor-video-recording", makeMonitorView(model))
         assertHasChrome(image)
@@ -163,9 +161,7 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
         let model = makeConnectedModel()
         model.currentMode = .Video
         model.uiState = .videoRecording
-        model.isRecording = true
         model.recordingStartTime = Date().addingTimeInterval(-42)
-        model.isShowingRecordingDuration = true
         model.interfaceOrientation = .landscapeRight
 
         let image = renderScreen(named: "monitor-landscape-recording", makeMonitorView(model))

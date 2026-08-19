@@ -467,6 +467,12 @@ public class UICmd {
     public class AppForegrounded: Message, @unchecked Sendable {
     }
 
+    /// The app is about to be suspended (lock or home). A locked camera
+    /// cannot capture, so a rolling recording is finalized and saved NOW —
+    /// under the shell's background task — instead of freezing mid-write.
+    public class AppBackgrounded: Message, @unchecked Sendable {
+    }
+
     /// The user cancelled the peer-backgrounded reconnect dialog.
     public class CancelReconnect: Message, @unchecked Sendable {
     }

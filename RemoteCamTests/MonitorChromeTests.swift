@@ -13,6 +13,40 @@ import CoreGraphics
 
 final class MonitorChromeTests: XCTestCase {
 
+    // MARK: - Derived control state (one stored mode, no thrash)
+
+    /// The REC dot, the timer, and the back button are all lookups off
+    /// `uiState` — they CANNOT disagree. These pin the derivation (they were
+    /// 13 hand-set booleans, and paths that forgot one left the screen
+    /// self-contradicting: a ticking timer with no dot, a dead back button
+    /// in photo mode).
+    func testRecordingSurfacesDeriveTogether() {
+        let model = MonitorViewModel()
+        model.uiState = .videoRecording
+        XCTAssertTrue(model.isRecording)
+        XCTAssertTrue(model.isShowingRecordingDuration)
+        XCTAssertFalse(model.isBackEnabled)
+        XCTAssertFalse(model.isSettingsEnabled)
+
+        model.uiState = .videoMode
+        XCTAssertFalse(model.isRecording)
+        XCTAssertFalse(model.isShowingRecordingDuration)
+        XCTAssertTrue(model.isBackEnabled)
+    }
+
+    /// Leaving the recording mode voids the timer's start instant with it —
+    /// the timer can never tick against a mode that isn't recording.
+    func testLeavingRecordingModeClearsTimerStart() {
+        let model = MonitorViewModel()
+        model.uiState = .videoRecording
+        model.recordingStartTime = Date(timeIntervalSinceNow: -30)
+
+        model.uiState = .photoMode
+
+        XCTAssertNil(model.recordingStartTime)
+        XCTAssertFalse(model.isShowingRecordingDuration)
+    }
+
     // MARK: - Dock
 
     private func dock(_ size: CGSize,

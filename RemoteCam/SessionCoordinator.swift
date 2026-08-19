@@ -129,6 +129,8 @@ enum SessionState: Equatable {
 final class DeferredPopToCamera: Message, @unchecked Sendable {}
 /// A deliberate exit (the scanner came on screen) observed mid-transfer.
 final class DeferredPopAndScan: Message, @unchecked Sendable {}
+/// One tick of the monitor's periodic cam-state pull.
+final class MonitorStatePullTick: Message, @unchecked Sendable {}
 /// Incompatibility detected by the transport (routed through the inbox — the
 /// old code mutated state directly on the delegate thread).
 final class IncompatibilityDetected: Message, @unchecked Sendable {}
@@ -214,8 +216,40 @@ public actor SessionCoordinator {
     /// Shuts the session down: stops the transport and closes the inbox.
     /// Callable from deinit paths (any thread).
     public nonisolated func stop() {
+        monitorPullTask.value?.cancel()
+        monitorPullTask.value = nil
         transportShared.value?.stopSession()
         inboxContinuation.value?.finish()
+    }
+
+    // MARK: - Monitor cam-state pull (level-triggered sync)
+
+    /// The 1:1 monitor's periodic cam-state pull — every tick, the monitor
+    /// states request capabilities, so any drift between what the remote
+    /// shows and what the camera IS doing heals within one interval, no
+    /// matter how the drift happened (silent link resume, a message lost to
+    /// a dead session, a camera that changed on its own). The director has
+    /// its own level-triggered contact (caps retry ladder + clock loop).
+    /// Ticks landing in non-monitor states are swallowed. Lock-boxed so
+    /// `stop()` (nonisolated, deinit paths) can cancel it.
+    private nonisolated let monitorPullTask = Locked<Task<Void, Never>?>(nil)
+    private let monitorPullInterval: TimeInterval = 10
+
+    private func armMonitorPull() {
+        guard monitorPullTask.value == nil else { return }
+        let interval = monitorPullInterval
+        monitorPullTask.value = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                guard let self, !Task.isCancelled else { return }
+                self.tell(MonitorStatePullTick())
+            }
+        }
+    }
+
+    private func cancelMonitorPull() {
+        monitorPullTask.value?.cancel()
+        monitorPullTask.value = nil
     }
 
     // MARK: State & context
@@ -569,7 +603,27 @@ public actor SessionCoordinator {
     /// Leaving that state re-arms advertising, which a camera cannot do while
     /// it still thinks it has a session.
     private func rearmAfterForeground() async {
-        guard multipeerService != nil, connectedPeers.isEmpty else { return }
+        guard multipeerService != nil else { return }
+        // Camera role first, and WITHOUT consulting `connectedPeers`:
+        // suspension kills the link every time, and its death notice can
+        // still be queued behind this very wake — the wake is the authority,
+        // not the transport's membership list. Re-arming the advertiser over
+        // a link that somehow survived is harmless; trusting a stale list
+        // left the camera invisible to a searching remote.
+        if state.isCameraRole {
+            if connectedPeers.isEmpty {
+                holdCameraRoleThroughDrop()
+            } else if let liveLobby = lobby?.value {
+                restartDiscovery(lobby: liveLobby)
+            }
+            if case .cameraTransmittingVideo = state, connectedPeers.isEmpty {
+                // The transfer died with the suspended link; the clip is
+                // already saved locally — settle to the idle camera.
+                tell(DeferredPopToCamera())
+            }
+            return
+        }
+        guard connectedPeers.isEmpty else { return }
         switch state {
         case .waitingForLobby, .lobby, .watchCamera, .watchCameraTakingPic,
              .watchCameraStartingVideo, .watchCameraRecordingVideo:
@@ -580,17 +634,6 @@ public actor SessionCoordinator {
         case .reconnecting(let awaited):
             // Still wanted; re-entering rebuilds the radios and the tick.
             await transition(to: .reconnecting(peer: awaited))
-        case _ where state.isCameraRole:
-            // The camera holds its post through a backgrounding blip the same
-            // way it holds through a drop: re-arm advertising and stay —
-            // popping to scanning would tear down the role (and a rolling
-            // take) over a suspension the peer may not even have noticed.
-            holdCameraRoleThroughDrop()
-            if case .cameraTransmittingVideo = state {
-                // The transfer died with the suspended link; the clip is
-                // already saved locally — settle to the idle camera.
-                tell(DeferredPopToCamera())
-            }
         default:
             await popToScanning()
         }
@@ -654,6 +697,7 @@ public actor SessionCoordinator {
             armReconnectRetry(lostPeer)
 
         case .connected:
+            cancelMonitorPull()
             multipeerService?.stopAdvertisingAndBrowsing()
             if let lobby = lobby?.value {
                 OperationQueue.main.addOperation {
@@ -680,11 +724,15 @@ public actor SessionCoordinator {
             // this monitor was away (it holds its post through drops); the
             // capabilities answer carries the recording truth and the
             // derivation puts this screen wherever the camera actually is.
+            // The armed tick then repeats the pull every few seconds, so
+            // drift from ANY cause heals within one interval.
             sendMessage(RemoteCmd.RequestCameraCapabilities())
+            armMonitorPull()
             await requestFrame()
 
         case .monitorRecordingVideo:
             monitor?.renderVideoModeRecording()
+            armMonitorPull()
             await requestFrame()
 
         case .monitorWaitingForVideo:
@@ -717,6 +765,7 @@ public actor SessionCoordinator {
     /// Pop to scanning (stops at the lobby floor like the old machine) and
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
+        cancelMonitorPull()
         peerAdvertisedCameraDevices = false
         peerSupportsFocusPoint = false
         peerSupportsPreviewMode = false
@@ -1649,6 +1698,14 @@ public actor SessionCoordinator {
             ctrl.stopRecordingVideo(false)
             await transition(to: .camera)
 
+        case is UICmd.AppBackgrounded:
+            // A locked/backgrounded camera cannot capture, so "recording
+            // through a lock" would be a lie: finalize + save while the
+            // shell's background task keeps the process alive, and wake up
+            // idle. The remote learns the truth through its pull.
+            ctrl.stopRecordingVideo(false)
+            await transition(to: .camera)
+
         case is UICmd.ScannerDidAppear:
             ctrl.stopRecordingVideo(false)
             await leaveSession()
@@ -1937,6 +1994,12 @@ public actor SessionCoordinator {
 
         case is UICmd.CancelReconnect, is UICmd.StopScanning:
             // Nothing is being waited on outside `.reconnecting`.
+            break
+
+        case is MonitorStatePullTick, is UICmd.AppBackgrounded:
+            // The pull tick only acts in the monitor states that can absorb
+            // the answer; backgrounding only matters to a rolling recording.
+            // Everywhere else both are quiet non-events.
             break
 
         case let become as UICmd.BecomeWatchCamera:
@@ -2299,7 +2362,8 @@ public actor SessionCoordinator {
         case let ratioResp as RemoteCmd.SetAspectRatioResp:
             monitor?.updateAspectRatio(ratioResp.aspectRatio)
 
-        case is UICmd.RequestCameraCapabilities, is RemoteCmd.PeerBecameCamera:
+        case is UICmd.RequestCameraCapabilities, is RemoteCmd.PeerBecameCamera,
+             is MonitorStatePullTick:
             sendMessage(RemoteCmd.RequestCameraCapabilities())
 
         case let become as UICmd.BecomeMonitor:
@@ -2541,11 +2605,12 @@ public actor SessionCoordinator {
                 await transition(to: .monitor(mode: .video))
             }
 
-        case is RemoteCmd.PeerBecameCamera:
+        case is RemoteCmd.PeerBecameCamera, is MonitorStatePullTick:
             // The camera's session reset while this screen shows a recording
-            // (an asymmetric drop this side never observed). Don't assume
-            // either way — PULL its state; the capabilities answer above
-            // keeps the recording or un-wedges this screen.
+            // (an asymmetric drop this side never observed) — or the periodic
+            // pull ticked. Don't assume either way — PULL its state; the
+            // capabilities answer above keeps the recording or un-wedges
+            // this screen.
             sendMessage(RemoteCmd.RequestCameraCapabilities())
 
         case is UICmd.UnbecomeMonitor:

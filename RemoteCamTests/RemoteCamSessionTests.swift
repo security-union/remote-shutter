@@ -757,6 +757,60 @@ class SessionCoordinatorTests: XCTestCase {
         }
     }
 
+    /// Locking (or backgrounding) suspends the process — a locked camera
+    /// cannot capture, so a rolling recording is finalized and SAVED at the
+    /// lock instead of freezing mid-write with its footage's fate undefined.
+    func testAppBackgroundedMidRecordingFinalizesAndSaves() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+
+        await harness.deliver(UICmd.AppBackgrounded())
+
+        XCTAssertEqual(camera.stopRecordingCalls, [false],
+                       "the clip is finalized + saved before suspension")
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .camera, "wakes up truthfully idle")
+    }
+
+    /// The wake is the authority, not the transport's membership list: even
+    /// when `connectedPeers` STILL lists the dead peer at wake (its death
+    /// notice queued behind the wake), the camera re-arms its advertiser —
+    /// trusting the stale list left the camera invisible to a searching
+    /// remote.
+    func testForegroundRearmsAdvertisingDespiteStalePeerList() async {
+        await enterCamera()
+        harness.lobby.role = .camera
+        // The list still claims the peer is connected — stale.
+        harness.fakeMP.connectedPeers = [harness.peer]
+        harness.fakeMP.discoveryStarts = 0
+
+        await harness.deliver(UICmd.AppForegrounded())
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .camera)
+        XCTAssertEqual(harness.fakeMP.discoveryStarts, 1,
+                       "advertising re-arms regardless of the stale list")
+        await MainActor.run {
+            XCTAssertFalse(camera.cameraViewModel.isAwaitingRemoteReconnect,
+                           "no disconnected chrome until the drop actually lands")
+        }
+    }
+
+    /// The level-triggered pull: a tick in either monitor state requests the
+    /// camera's state, so any drift heals within one interval.
+    func testMonitorPullTickRequestsCameraState() async {
+        await enterMonitor(.Video)
+        await harness.deliver(MonitorStatePullTick())
+        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1)
+
+        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
+        harness.fakeMP.sentMessages.removeAll()
+        await harness.deliver(MonitorStatePullTick())
+        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1,
+                       "the recording state pulls too")
+    }
+
     /// A deliberate goodbye is intent, not a drop: `EndSession` mid-recording
     /// finalizes + saves, then leaves like any deliberate end.
     func testEndSessionMidRecordingStopsAndLeaves() async {

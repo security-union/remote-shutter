@@ -96,6 +96,7 @@ public class DeviceScannerViewController: UIViewController {
     /// Injectable so the foreground re-arm can be driven in tests.
     var notificationCenter: NotificationCenter = .default
     private var foregroundTask: Task<Void, Never>?
+    private var backgroundTask: Task<Void, Never>?
 
     // MARK: - Network Browser
 
@@ -135,6 +136,31 @@ public class DeviceScannerViewController: UIViewController {
             for await _ in notifications {
                 guard let self else { return }
                 self.remoteCamSession ! UICmd.AppForegrounded()
+            }
+        }
+        observeBackground()
+    }
+
+    /// Locking or backgrounding suspends the process in seconds — a rolling
+    /// recording would be frozen mid-write and its footage's fate left to
+    /// chance. The coordinator finalizes and saves instead ("a locked camera
+    /// cannot capture, so recording through a lock would be a lie"); the
+    /// background task buys the writer the seconds it needs to finish.
+    private func observeBackground() {
+        let notifications = notificationCenter.notifications(
+            named: UIApplication.didEnterBackgroundNotification)
+        backgroundTask = Task { [weak self] in
+            for await _ in notifications {
+                guard let self else { return }
+                var token: UIBackgroundTaskIdentifier = .invalid
+                token = UIApplication.shared.beginBackgroundTask {
+                    UIApplication.shared.endBackgroundTask(token)
+                }
+                self.remoteCamSession ! UICmd.AppBackgrounded()
+                // The finalize + Photos save settle well inside this window.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                    if token != .invalid { UIApplication.shared.endBackgroundTask(token) }
+                }
             }
         }
     }
@@ -453,6 +479,7 @@ public class DeviceScannerViewController: UIViewController {
     deinit {
         logDebug("deinit DeviceScanners")
         foregroundTask?.cancel()
+        backgroundTask?.cancel()
         networkBrowser?.cancel()
         remoteCamSession.stop()
     }

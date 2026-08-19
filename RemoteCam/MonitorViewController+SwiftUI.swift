@@ -160,16 +160,7 @@ extension MonitorViewController {
     
     private func resetTimerUI() {
         viewModel.timerValue = 0
-        switch viewModel.uiState {
-        case .photoMode:
-            viewModel.buttonPrompt = NSLocalizedString("Taking photo", comment: "")
-        case .videoMode:
-            viewModel.buttonPrompt = NSLocalizedString("Starting video", comment: "")
-        case .videoRecording:
-            viewModel.buttonPrompt = NSLocalizedString("Stopping video", comment: "")
-        case .shortsMode:
-            viewModel.buttonPrompt = NSLocalizedString("Recording shorts", comment: "")
-        }
+        viewModel.buttonPrompt = MonitorViewModel.prompt(for: viewModel.uiState)
     }
     
     private func handleSelectCameraDevice(_ uniqueID: String) {
