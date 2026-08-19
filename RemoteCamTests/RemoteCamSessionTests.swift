@@ -627,6 +627,49 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(harness.fakeMP.discoveryStarts, 1)
     }
 
+    /// The monitor PULLS camera state on every entry to the monitor screen —
+    /// it never assumes. This is what keeps a rejoining remote in sync with a
+    /// camera that started or stopped on its own while unlinked.
+    func testMonitorEntryPullsCameraState() async {
+        await seedConnected()
+        harness.fakeMP.sentMessages.removeAll()
+        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Video))
+
+        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1,
+                       "entering the monitor screen requests the camera's state")
+    }
+
+    /// Asymmetric rejoin: the camera's session reset (it re-announces itself)
+    /// while this monitor still shows a recording it never saw end. The
+    /// monitor pulls instead of assuming; the caps answer reconciles it.
+    func testMonitorRecordingPullsOnCameraReannounce() async {
+        await enterMonitorRecordingVideo()
+        await harness.deliver(RemoteCmd.PeerBecameCamera.createWithDefaults())
+
+        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1)
+        var name = await harness.stateName()
+        XCTAssertEqual(name, .monitorRecordingVideo,
+                       "no assumption either way until the camera answers")
+
+        // The camera answers: it stopped on its own while unlinked.
+        await harness.deliver(capabilities(recordingStartedAt: nil))
+        name = await harness.stateName()
+        XCTAssertEqual(name, .monitor, "the answer un-wedges the stale recording screen")
+    }
+
+    /// Same reset observed while waiting for the stopped clip: the awaited
+    /// response died with the old session — return to video mode, whose entry
+    /// pulls the camera's state.
+    func testWaitingForVideoUnwedgesOnCameraReannounce() async {
+        await enterMonitorWaitingForVideo()
+        await harness.deliver(RemoteCmd.PeerBecameCamera.createWithDefaults())
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .monitor)
+        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1,
+                       "the mode entry pulls the camera's state")
+    }
+
     /// The unified policy, idle case: an IDLE camera also holds its post on a
     /// drop — no `.reconnecting`, no screen pop, no rig teardown/rebuild —
     /// with the chip up and advertising re-armed.

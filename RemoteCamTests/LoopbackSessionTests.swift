@@ -305,6 +305,46 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertTrue(fakeCamera.stopRecordingCalls.isEmpty, "still rolling after the rejoin")
     }
 
+    /// The field bug this pins: the camera STOPPED ON ITS OWN while unlinked
+    /// (operator's on-camera stop / writer death), so the response the remote
+    /// would normally learn from died with the link. The rejoin must PULL cam
+    /// state — the monitor lands on the idle video screen, not a phantom
+    /// recording.
+    func testCameraStoppedWhileUnlinkedRederivedAsIdleOnRejoin() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await becomeMonitor(mode: .Video)
+
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
+        await drainBothSessions()
+
+        // The link dies; while unlinked, the operator stops on the camera.
+        fakeCamera.reportedRecordingStartedAt = Date(timeIntervalSinceNow: -12)
+        monitorTransport.simulateRemoteDisconnected()
+        cameraTransport.simulateRemoteDisconnected()
+        await drainBothSessions()
+        cameraCoordinator.tell(UICmd.StopRecordingLocally())
+        fakeCamera.reportedRecordingStartedAt = nil
+        await drainBothSessions()
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .camera, "stopped and idle, still advertising")
+
+        // Rejoin: the monitor's pull reconciles it to the camera's truth.
+        monitorTransport.remote = cameraTransport
+        cameraTransport.remote = monitorTransport
+        cameraCoordinator.tell(OnConnectToDevice(peer: monitorTransport.localPeerID, sender: nil))
+        monitorCoordinator.tell(OnConnectToDevice(peer: cameraTransport.localPeerID, sender: nil))
+        await drainBothSessions()
+        monitorCoordinator.tell(UICmd.BecomeMonitor(presenter: monitorPresenter, mode: .Video))
+        await drainBothSessions()
+
+        let rejoined = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(rejoined, .monitor,
+                       "the remote re-derives the camera's idle truth — no phantom recording")
+    }
+
     // MARK: - Take picture round trip
 
     func testTakePictureRoundTripAgainstPeerNotInCameraMode() async {

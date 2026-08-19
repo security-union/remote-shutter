@@ -675,6 +675,12 @@ public actor SessionCoordinator {
             case .photo: monitor?.renderPhotoMode()
             case .video: monitor?.renderVideoMode()
             }
+            // PULL the camera's state on every entry — never assume it. The
+            // camera may have started, stopped, or changed on its own while
+            // this monitor was away (it holds its post through drops); the
+            // capabilities answer carries the recording truth and the
+            // derivation puts this screen wherever the camera actually is.
+            sendMessage(RemoteCmd.RequestCameraCapabilities())
             await requestFrame()
 
         case .monitorRecordingVideo:
@@ -2535,6 +2541,13 @@ public actor SessionCoordinator {
                 await transition(to: .monitor(mode: .video))
             }
 
+        case is RemoteCmd.PeerBecameCamera:
+            // The camera's session reset while this screen shows a recording
+            // (an asymmetric drop this side never observed). Don't assume
+            // either way — PULL its state; the capabilities answer above
+            // keeps the recording or un-wedges this screen.
+            sendMessage(RemoteCmd.RequestCameraCapabilities())
+
         case is UICmd.UnbecomeMonitor:
             await transition(to: .connected)
 
@@ -2555,6 +2568,13 @@ public actor SessionCoordinator {
         switch msg {
         case let resp as RemoteCmd.StopRecordingVideoResp:
             saveVideoOnMonitor(resp)
+            await transition(to: .monitor(mode: .video))
+
+        case is RemoteCmd.PeerBecameCamera:
+            // The camera's session reset: whatever response or transfer this
+            // state was awaiting died with the old link and will never come.
+            // Return to video mode; the mode entry pulls the camera's state,
+            // and the derivation re-enters recording if it still rolls.
             await transition(to: .monitor(mode: .video))
 
         case is UICmd.ScannerDidAppear:
