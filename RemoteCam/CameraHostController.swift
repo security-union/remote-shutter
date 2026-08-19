@@ -29,6 +29,9 @@ final class CameraHostController: UIHostingController<CameraScreenView> {
             onSetPreviewMode: { [weak rig] mode in
                 // Route through the session so it persists and the monitor is told.
                 rig?.session ! UICmd.SetCameraPreviewMode(mode: mode)
+            },
+            onStopRecordingLocally: { [weak rig] in
+                rig?.session ! UICmd.StopRecordingLocally()
             }))
     }
 

@@ -21,6 +21,9 @@ struct CameraScreenView: View {
     /// Sets the local preview mode (standby button / tap-to-restore). Routed
     /// through the session so the change persists and the monitor is told.
     var onSetPreviewMode: ((CameraPreviewMode) -> Void)?
+    /// The on-camera stop — the escape hatch shown only while recording with
+    /// no linked remote (nil in previews/tests).
+    var onStopRecordingLocally: (() -> Void)?
     /// The letterbox-fitted video rect (view coords), reported by the preview so
     /// the focus reticle lands on the image, not the black bars.
     @State private var videoRect: CGRect = .zero
@@ -73,9 +76,26 @@ struct CameraScreenView: View {
                         .frame(width: 45, height: 45)
                         .padding(.top, 17)
                 }
+                // Passive status chip, not a modal: the recording continues
+                // through the drop, so nothing may cover the shot or demand
+                // a decision. Its own presence (with the stop button below)
+                // is the whole message.
+                if viewModel.isAwaitingRemoteReconnect {
+                    reconnectingChip
+                }
                 Spacer()
             }
             .allowsHitTesting(false)
+
+            // The escape hatch: with no linked remote, stopping is the
+            // operator's call — bottom center, where a shutter belongs.
+            if viewModel.isAwaitingRemoteReconnect {
+                VStack {
+                    Spacer()
+                    localStopButton
+                        .padding(.bottom, 40)
+                }
+            }
 
             // Local camera-device picker, top leading — a Mac has N cameras.
             if FeatureFlags.ENABLE_LOCAL_CAMERA_PICKER,
@@ -117,6 +137,37 @@ struct CameraScreenView: View {
 
             PeerLinkOverlay(status: peerLink)
         }
+    }
+
+    private var reconnectingChip: some View {
+        HStack(spacing: 6) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.white)
+                .scaleEffect(0.7)
+            Text(NSLocalizedString("reconnecting_to_remote", comment: "camera lost its remote mid-recording"))
+                .font(.footnote)
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.black.opacity(0.55))
+        .clipShape(Capsule())
+        .padding(.top, 8)
+    }
+
+    private var localStopButton: some View {
+        Button(action: { onStopRecordingLocally?() }) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white, lineWidth: 3)
+                    .frame(width: 68, height: 68)
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.red)
+                    .frame(width: 30, height: 30)
+            }
+        }
+        .accessibilityLabel(Text(NSLocalizedString("stop_recording_button", comment: "on-camera stop while the remote is away")))
     }
 
     /// Puts the camera into standby (stops the local preview only). Frames keep

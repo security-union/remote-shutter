@@ -533,58 +533,113 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(name, .camera)
     }
 
-    // MARK: - Resilient camera (multicam only)
+    // MARK: - Keep rolling through a drop (uniform: solo and multicam)
 
-    /// In a multicam session the camera keeps recording through a director
-    /// drop — the rest of the rig is still rolling. It enters the reconnect
-    /// path without stopping the clip.
-    func testMulticamDisconnectMidRecordingKeepsRecording() async {
+    /// Drives the machine into `.cameraRecordingVideo` and drops the peer.
+    private func dropPeerMidRecording() async {
         await enterCamera()
         harness.fakeMP.sendResult = true
-
-        // A real scheduled start latches the multicam session and rolls tape.
-        await harness.deliver(RemoteCmd.ScheduledStartRecording(
-            fireAtCameraClockMillis: SyncClock.nowMillis(),
-            anchorMillis: SyncClock.nowMillis(),
-            captureId: "R", sessionId: "S", cameraIndex: 1))
-        let latched = await harness.coordinator.inMulticamSessionForTesting()
-        XCTAssertTrue(latched)
-
-        for _ in 0..<200 where camera.startRecordingCalls == 0 {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
-        XCTAssertEqual(camera.startRecordingCalls, 1)
-        await harness.coordinator.waitForIdle()
-        var name = await harness.stateName()
-        XCTAssertEqual(name, .cameraRecordingVideo)
-
-        // Director drops.
-        harness.fakeMP.connectedPeers = []
-        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-
-        XCTAssertTrue(camera.stopRecordingCalls.isEmpty,
-                      "the clip keeps rolling through a director drop in multicam")
-        name = await harness.stateName()
-        XCTAssertEqual(name, .reconnecting)
-    }
-
-    /// A single-camera session is unchanged: a disconnect mid-recording stops
-    /// the clip exactly as before (the resilient behavior must not leak here).
-    func testSingleCamDisconnectMidRecordingStops() async {
-        await enterCamera()
-        harness.fakeMP.sendResult = true
+        harness.lobby.role = .camera
 
         await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
         let name = await harness.stateName()
         XCTAssertEqual(name, .cameraRecordingVideo)
-        let latched = await harness.coordinator.inMulticamSessionForTesting()
-        XCTAssertFalse(latched, "no multicam command arrived")
 
+        harness.fakeMP.discoveryStarts = 0
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
+    }
+
+    /// A link drop is not an input to the recording state machine: the camera
+    /// keeps rolling IN PLACE — no stop, no `.reconnecting` (which would pop
+    /// the screen and starve the writer) — and re-arms its advertiser so the
+    /// remote can rejoin.
+    func testDisconnectMidRecordingKeepsRollingInPlace() async {
+        await dropPeerMidRecording()
+
+        XCTAssertTrue(camera.stopRecordingCalls.isEmpty,
+                      "the clip keeps rolling through the drop")
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .cameraRecordingVideo)
+        XCTAssertEqual(harness.lobby.returnsToLobby, 0,
+                       "the camera screen must NOT pop mid-take")
+        XCTAssertEqual(harness.fakeMP.discoveryStarts, 1,
+                       "advertising re-arms so the remote can rejoin")
+        await MainActor.run {
+            XCTAssertTrue(camera.cameraViewModel.isAwaitingRemoteReconnect,
+                          "the reconnect chip + on-camera stop appear")
+        }
+    }
+
+    /// The rejoin re-binds in place: same state, role re-announced, and the
+    /// capabilities request answered from the recording state — carrying the
+    /// live recording truth the remote derives from.
+    func testRecordingCameraRebindsOnReconnect() async {
+        await dropPeerMidRecording()
+
+        harness.fakeMP.connectedPeers = [harness.peer]
+        harness.fakeMP.sentMessages.removeAll()
+        await harness.deliver(OnConnectToDevice(peer: harness.peer, sender: nil))
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .cameraRecordingVideo, "no role re-entry, no rig rebuild")
+        XCTAssertEqual(sent(RemoteCmd.PeerBecameCamera.self).count, 1)
+        await MainActor.run {
+            XCTAssertFalse(camera.cameraViewModel.isAwaitingRemoteReconnect)
+        }
+
+        // The monitor's handshake follow-up is answered with capabilities.
+        camera.reportedRecordingStartedAt = Date(timeIntervalSinceNow: -30)
+        await harness.deliver(RemoteCmd.RequestCameraCapabilities())
+        let caps = sent(RemoteCmd.CameraCapabilitiesResp.self)
+            .compactMap { $0.msg as? RemoteCmd.CameraCapabilitiesResp }
+        XCTAssertEqual(caps.count, 1)
+        XCTAssertNotNil(caps.first?.recordingStartedAt,
+                        "the capabilities carry the live recording truth")
+    }
+
+    /// The escape hatch: the on-camera stop finalizes + saves locally and
+    /// returns to the idle camera — still advertising, never the scanner.
+    func testStopRecordingLocallyFinalizesAndReturnsToCamera() async {
+        await dropPeerMidRecording()
+
+        await harness.deliver(UICmd.StopRecordingLocally())
 
         XCTAssertEqual(camera.stopRecordingCalls, [false],
-                       "single-camera recording still stops on disconnect")
+                       "finalize + save locally, nothing sent to a dead link")
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .camera)
+        XCTAssertEqual(harness.lobby.returnsToLobby, 0)
+    }
+
+    /// A backgrounding blip while unlinked must not pop a rolling take to the
+    /// scanner: the foreground re-arm holds the recording state and re-arms
+    /// advertising instead.
+    func testForegroundRearmHoldsRecordingState() async {
+        await dropPeerMidRecording()
+
+        harness.fakeMP.discoveryStarts = 0
+        await harness.deliver(UICmd.AppForegrounded())
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .cameraRecordingVideo)
+        XCTAssertTrue(camera.stopRecordingCalls.isEmpty)
+        XCTAssertEqual(harness.fakeMP.discoveryStarts, 1)
+    }
+
+    /// A deliberate goodbye is intent, not a drop: `EndSession` mid-recording
+    /// finalizes + saves, then leaves like any deliberate end.
+    func testEndSessionMidRecordingStopsAndLeaves() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+
+        await harness.deliver(RemoteCmd.EndSession())
+
+        XCTAssertEqual(camera.stopRecordingCalls, [false],
+                       "intent stops the clip — only unintended drops keep rolling")
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .scanning)
     }
 
     /// A scheduled start latches the session and stamps the recording with sync

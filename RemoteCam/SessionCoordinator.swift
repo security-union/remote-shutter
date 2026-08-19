@@ -557,6 +557,12 @@ public actor SessionCoordinator {
         case .reconnecting(let awaited):
             // Still wanted; re-entering rebuilds the radios and the tick.
             await transition(to: .reconnecting(peer: awaited))
+        case .cameraRecordingVideo:
+            // A recording survives a backgrounding blip the same way it
+            // survives a drop: re-arm advertising and hold in place — popping
+            // to scanning would tear down a rolling take.
+            if let liveLobby = lobby?.value { restartDiscovery(lobby: liveLobby) }
+            if let ctrl { setAwaitingRemote(true, ctrl: ctrl) }
         default:
             await popToScanning()
         }
@@ -1529,8 +1535,13 @@ public actor SessionCoordinator {
 
         case let ack as RemoteCmd.StartRecordingVideoAck:
             // The pipeline's success ack, carrying the recording start time for
-            // the monitor's timer sync — forward across the wire.
-            await sendOrGoToScanning(ack, mode: .reliable)
+            // the monitor's timer sync — forward across the wire. Best-effort
+            // while unlinked: a dead link must never tear down a live
+            // recording (`sendOrGoToScanning` pops to scanning on failure),
+            // and a rejoining monitor re-derives the start from CameraState.
+            if !connectedPeers.isEmpty {
+                await sendOrGoToScanning(ack, mode: .reliable)
+            }
 
         case let stop as RemoteCmd.StopRecordingVideo:
             ctrl.stopRecordingVideo(stop.sendMediaToPeer)
@@ -1557,20 +1568,56 @@ public actor SessionCoordinator {
 
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
-                if cameraDriver == .director {
-                    // Resilient camera: the director dropped mid-recording, but
-                    // the OTHER cameras in the rig keep rolling — so must this
-                    // one. Keep recording (do NOT stop), and enter the normal
-                    // reconnect path; the clip is saved when the scheduled stop
-                    // finally fires, or when the user stops on-device. This is
-                    // the ONE behavior gated on `cameraDriver == .director`; a
-                    // single-camera session falls through to the stop below.
-                    await loseSessionPeer(lost)
-                } else {
-                    ctrl.stopRecordingVideo(false)
-                    await loseSessionPeer(lost)
-                }
+                // A link drop is NOT an input to the recording state machine —
+                // solo and multicam alike. The take keeps rolling in place:
+                // the camera stays on its screen, re-arms its advertiser, and
+                // shows the reconnect chip (with the on-camera stop as the
+                // escape hatch). A recording ends only for an explicit stop,
+                // a deliberate EndSession, leaving the screen, or capture
+                // failure; a rejoining remote re-derives the live recording
+                // from CameraState.
+                link = .none
+                if let liveLobby = lobby?.value { restartDiscovery(lobby: liveLobby) }
+                setAwaitingRemote(true, ctrl: ctrl)
             }
+
+        case let connected as OnConnectToDevice:
+            // The remote is back. Re-bind in place: the recording never
+            // stopped, so there is no role to re-enter and no rig to rebuild.
+            // Re-entering the state rebinds the frame sender to the new
+            // transport; announcing the role prompts the monitor to request
+            // capabilities, which carry the live recording truth.
+            link = .linked(connected.peer)
+            setAwaitingRemote(false, ctrl: ctrl)
+            await transition(to: .cameraRecordingVideo)
+            await sendOrGoToScanning(RemoteCmd.PeerBecameCamera.createWithDefaults())
+
+        case let became as RemoteCmd.PeerBecameMonitor:
+            // The rejoined monitor announced itself — version-gate it, then
+            // answer with capabilities unprompted, exactly like `.camera`
+            // does. The response carries the live recording truth the
+            // monitor derives its screen from.
+            guard await enforcePeerAppVersion(became) else { break }
+            await attemptToSendCapabilities(attempt: 0)
+
+        case let became as RemoteCmd.RoleAnnouncement:
+            await enforcePeerAppVersion(became)
+
+        case is RemoteCmd.RequestCameraCapabilities:
+            await attemptToSendCapabilities(attempt: 0)
+
+        case is RemoteCmd.EndSession:
+            // A deliberate goodbye is intent, not a drop: finalize + save,
+            // then leave like any deliberate end (handleRoot pops to scanning).
+            ctrl.stopRecordingVideo(false)
+            await handleRoot(msg)
+
+        case is UICmd.StopRecordingLocally:
+            // The on-camera escape hatch (shown while recording without a
+            // link): finalize + save locally, back to the idle camera —
+            // still advertising, so the remote can rejoin.
+            ctrl.stopRecordingVideo(false)
+            await transition(to: .camera)
 
         case is UICmd.ScannerDidAppear:
             ctrl.stopRecordingVideo(false)
@@ -1589,14 +1636,26 @@ public actor SessionCoordinator {
         case let terminated as UICmd.RecordingTerminated:
             // The pipeline is the source of truth and has already ended the
             // recording and saved what it could — route its error through the
-            // stop-response path the monitor already handles, and return this
-            // camera to idle.
-            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
-                sender: nil, pic: nil, error: terminated.error), mode: .reliable)
+            // stop-response path the monitor already handles (best-effort
+            // while unlinked), and return this camera to idle.
+            if !connectedPeers.isEmpty {
+                await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
+                    sender: nil, pic: nil, error: terminated.error), mode: .reliable)
+            }
             await transition(to: .camera)
 
         default:
             await handleRoot(msg)
+        }
+    }
+
+    /// The camera screen's reconnect chip + on-camera stop button are a
+    /// function of exactly one fact: "recording while the remote is gone".
+    /// Set at the drop, cleared at the rebind; every stop path clears it via
+    /// the rig's idle-mode chrome.
+    private func setAwaitingRemote(_ awaiting: Bool, ctrl: CameraControlling) {
+        OperationQueue.main.addOperation {
+            ctrl.cameraViewModel.isAwaitingRemoteReconnect = awaiting
         }
     }
 

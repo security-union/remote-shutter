@@ -27,6 +27,12 @@ class CameraViewModel: ObservableObject {
     /// operator knows who is driving the camera. Nil when no peer is connected.
     @Published var connectedPeerName: String?
 
+    /// Recording continues but the remote's link is down: shows the reconnect
+    /// chip and the on-camera stop button (the escape hatch). Set by the
+    /// coordinator at the drop, cleared at the rebind and by every path back
+    /// to idle chrome (`configureIdleMode`).
+    @Published var isAwaitingRemoteReconnect = false
+
     /// Main-thread setter for the connected peer's name (called from the rig /
     /// coordinator glue, which may be off-main).
     func setConnectedPeerName(_ name: String?) {

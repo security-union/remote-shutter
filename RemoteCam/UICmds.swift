@@ -90,6 +90,12 @@ public class UICmd {
         }
     }
 
+    /// The on-camera stop button — the escape hatch shown while recording
+    /// with no linked remote. Finalizes and saves the clip locally.
+    public class StopRecordingLocally: Message, @unchecked Sendable {
+        init() { super.init(sender: nil) }
+    }
+
     public class AddMonitor: Message, @unchecked Sendable {
 
     }

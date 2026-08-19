@@ -347,6 +347,9 @@ final class CameraRig: @unchecked Sendable {
 
     func configureIdleMode() {
         cameraViewModel.isRecordingIndicatorVisible = false
+        // Every path out of a recording lands here — the reconnect chrome
+        // (chip + on-camera stop) cannot outlive the recording it describes.
+        cameraViewModel.isAwaitingRemoteReconnect = false
         setNavigationBarHidden?(false)
         updateCameraStatus()
     }
