@@ -295,6 +295,186 @@ seed scattered around it, softly blurred green foliage and a wooden post behind.
 No devices, no window frame, no people in frame.`,
   },
 
+  // ---- 4-cam multicam scene (2026-08: "up to 4 live cams" release) ----
+  // Three-step edit chain from the committed cooking scene. Positive framing
+  // per the Nano Banana rules in CLAUDE.md; each step re-anchors what stays.
+  "mac2_multicam_e1.jpg": {
+    from: ["mac2_cook_c1.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this exact scene unchanged — the same cook garnishing the same
+charcuterie board at the same wooden counter, the same open laptop beside her
+with its dark screen facing the viewer fully visible, and the same smartphone
+on the articulated arm under the cabinet pointing straight down at the board.
+Add three more unbranded modern smartphones, every screen dark and switched
+off, each on its own visible mount and clearly separated from the others so
+each phone reads as its own camera: (1) a smartphone on a small flexible
+tripod standing on the counter at the far end of the charcuterie board, low,
+its ultra-wide back camera facing along the counter toward the food so it sees
+the entire spread edge to edge; (2) a smartphone on a slim floor stand just
+past the end of the counter at chest height, its back camera facing the cook
+from the front, framing her face and busy hands; (3) a smartphone clamped to
+the edge of the range hood behind her, angled down at a pan gently steaming on
+the stove below it. No phone overlaps the laptop screen, the cook's face, or
+another phone. All devices unbranded, no logos anywhere. Same bright modern
+kitchen, soft daylight, photorealistic commercial photography in the style of
+an Apple ad. Vertical 9:16.`,
+  },
+  "mac2_multicam_e2.jpg": {
+    from: ["mac2_multicam_e1.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with three precise changes:
+1. Her dark hair at the top right of the frame is smooth, glossy and
+continuous, falling naturally past her shoulder and catching the soft window
+light. 2. The smartphone on the stand in the right foreground now sits on a
+taller slim light stand raised to her eye level, its back camera pointed
+straight at her face, framing her face and shoulders. 3. The laptop is a plain
+unbranded aluminum laptop: bare brushed metal below the screen, and a
+switched-off glass screen in pure glossy black showing only a faint reflection
+of the window. Everything else is identical: the cook garnishing the
+charcuterie board, the overhead smartphone on the articulated arm, the
+smartphone on the small flexible tripod at the end of the counter facing the
+food, the smartphone clamped to the range hood above the steaming pan, the
+bright modern kitchen in soft daylight. Photorealistic commercial photography
+in the style of an Apple ad. Vertical 9:16.`,
+  },
+  // e3: the face-cam films with the REAR cameras (the good ones) — lens array
+  // toward her, dark screen toward the viewer.
+  "mac2_multicam_e3.jpg": {
+    from: ["mac2_multicam_e2.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with one precise change: the
+smartphone on the tall slim stand in the right foreground is turned around in
+its clamp so that its rear triple-camera array points directly at the cook's
+face — the viewer now sees the phone's front side: a dark, switched-off glass
+screen held in the stand's clamp at her eye level, in the same position.
+Everything else is identical: the cook garnishing the charcuterie board, the
+pure-black laptop on the counter, the overhead smartphone on the articulated
+arm, the smartphone on the small flexible tripod at the end of the counter
+facing the food, the smartphone clamped to the range hood above the steaming
+pan, the bright modern kitchen in soft daylight. Photorealistic commercial
+photography in the style of an Apple ad. Vertical 9:16.`,
+  },
+
+  // e4: the face-cam raised to true eye level (a face-level camera can't sit
+  // at counter height — its tile would look up her chin).
+  "mac2_multicam_e4.jpg": {
+    from: ["mac2_multicam_e3.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with one precise change: the
+tall slim stand in the right foreground is extended taller, so the smartphone
+clamped to it rises clearly to the cook's eye level, well above the
+countertop, its rear triple-camera array still pointed directly at her face
+and its dark screen still facing the viewer. Everything else is identical: the
+cook garnishing the charcuterie board, the pure-black laptop on the counter,
+the overhead smartphone on the articulated arm, the smartphone on the small
+flexible tripod at the end of the counter facing the food, the smartphone
+clamped to the range hood above the steaming pan, the bright modern kitchen in
+soft daylight. Photorealistic commercial photography in the style of an Apple
+ad. Vertical 9:16.`,
+  },
+
+  // e5: the GorillaPod phone re-aimed at the cook. Lesson pair (in CLAUDE.md):
+  // name objects plainly ("GorillaPod"), and describe the viewer-visible
+  // outcome ("screen no longer visible, lenses aim RIGHT"), not object intent.
+  "mac2_multicam_e5.jpg": {
+    from: ["mac2_multicam_e4.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with one precise change: the
+phone on the GorillaPod is rotated to point at the cook, who stands at the
+right edge of the frame. The viewer now sees the GorillaPod phone almost
+edge-on from its back-left side: its screen is no longer visible, its dark
+aluminum back and rear camera lens bump face the viewer, and its lenses aim to
+the RIGHT, up and across the charcuterie board, straight at the cook's face.
+The GorillaPod itself stays in the same spot on the counter. Everything else
+is identical: the cook garnishing the charcuterie board, the pure-black
+laptop, the overhead phone on the articulated arm, the eye-level phone on the
+tall stand in the right foreground, the phone clamped to the range hood above
+the steaming pan, the bright modern kitchen in soft daylight. Photorealistic
+commercial photography in the style of an Apple ad. Vertical 9:16.`,
+  },
+  // e6: GorillaPod swapped for a stand cloned from one already in the image —
+  // in-image reference is the strongest anchor.
+  "mac2_multicam_e6.jpg": {
+    from: ["mac2_multicam_e5.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with one precise change: the
+GorillaPod is gone. In its exact spot on the counter by the window now stands
+a second tall slim telescoping stand, identical in design and finish to the
+tall stand in the right foreground, extended so its clamp holds the same
+landscape phone well above the charcuterie board. The phone itself is
+unchanged: seen from its back-left side, dark aluminum back to the viewer,
+rear triple-camera lens array on its left end aimed to the RIGHT across the
+board at the cook's face. Everything else is identical: the cook garnishing
+the charcuterie board, the pure-black laptop, the overhead phone on the
+articulated arm, the eye-level phone on the tall stand in the right
+foreground, the phone clamped to the range hood above the steaming pan, the
+bright modern kitchen in soft daylight. Photorealistic commercial photography
+in the style of an Apple ad. Vertical 9:16.`,
+  },
+
+  // Grid-tile previews — what each of the four cameras sees. Tile 1 (overhead
+  // board) reuses mac2_preview.jpg: the board is unchanged from the base scene.
+  // The face cam is mounted portrait, so its feed is 9:16 (the monitor grid
+  // letterboxes it, matching the app's aspect-fit behavior).
+  "mac2_multicam_preview_wide.jpg": {
+    from: ["mac2_multicam_e6.jpg"],
+    aspect: "16:9",
+    // The tall stand by the window films HER across the board (e6 re-aim).
+    // Geometry from that lens: the laptop sits at the window end of the
+    // counter, directly below the camera, so the hand operating it is in the
+    // NEAR foreground; behind her is the unseen rest of the kitchen — never
+    // the stove, which stands beside the camera. Near/far hand wording on
+    // purpose: image models scramble left/right.
+    prompt: `A photograph taken from the exact point of view of the camera on
+the tall stand by the window, shot from its own lens position above the far
+end of the charcuterie board, a gentle wide angle looking across the counter
+at the cook: the same cook in a three-quarter view, dark hair past her
+shoulders, linen apron over a dark top, eyes down at her work. The loaded
+round charcuterie board fills the lower foreground — cured meats, cheeses,
+figs, grapes, nuts, olives and edible flowers — and in the nearest corner of
+the frame, closest to the lens and softly out of focus, her near hand rests
+on the open laptop's keyboard. Her far hand places a sprig of rosemary onto
+the board. Behind her, the rest of the kitchen recedes in soft blur — white
+cabinets, warm wood, open room — under bright daylight from the window beside
+the lens. The frame contains only the cook, the board and its food, the
+blurred laptop with her near hand, the wooden counter, and the softly blurred
+kitchen behind her.`,
+  },
+  // (A portrait face-tile recipe lived here; superseded when the eye-level
+  //  camera's tile became the oblique board shot below. See git history.)
+  // The eye-level stand in the right foreground, next to the cook: its
+  // natural subject is the BOARD at a steep oblique from her side of the
+  // counter — the overhead's content, with perspective.
+  "mac2_multicam_preview_side.jpg": {
+    from: ["mac2_multicam_e6.jpg"],
+    aspect: "16:9",
+    prompt: `A photograph taken from the exact point of view of the eye-level
+camera on the tall stand in the right foreground, beside the cook, looking
+down and across the counter at the charcuterie board from her side: the
+loaded round wooden board fills most of the frame at a steep oblique angle —
+cured meats, cheeses, figs, grapes, nuts, olives and edible flowers sharp in
+the foreground — her hand entering from the right edge to place a sprig of
+rosemary, the warm wooden counter receding toward soft bright window light
+beyond, gently out of focus. The frame contains only the board and its food,
+her hand, the wooden counter, and the blurred window light in the distance.`,
+  },
+  "mac2_multicam_preview_pan.jpg": {
+    from: ["mac2_multicam_e6.jpg"],
+    aspect: "16:9",
+    // High-angle oblique, NOT flat lay: matches the hood camera's real ~45°
+    // downward tilt in the scene.
+    prompt: `A photograph taken from the exact point of view of the camera
+clamped to the range hood, a high-angle shot looking down at the stove from
+roughly 45 degrees: the same wide, shallow stainless-steel sauté pan from
+this scene on the black burner grate, seen at an oblique angle so both the
+sauce surface and the pan's near rim and far rim are visible, its long metal
+handle pointing toward the right edge of the frame, a rich red tomato sauce
+gently simmering across its wide base, wisps of steam rising toward the
+lens, the stainless cooktop in the foreground and the warm wooden counter
+beyond the far edge of the pan, soft daylight. The frame contains only the
+pan, its handle, the steam, the cooktop and the surrounding counter wood.`,
+  },
+
   // ---- Deterministic crops (exact; boxes recovered from the committed files) ----
   "mac2_cook_c1_crop.jpg": {
     crop: { from: "mac2_cook_c1.jpg", box: [0, 440, 1536, 2210] },

@@ -170,6 +170,82 @@ def rect_arg(s):
     return (x, y, w, h)
 
 
+def compose_grid(im, tiles, gutter=4, blanks=(), opaques=(), disc_region=None,
+                 titlebar=None):
+    """Composite N preview images as an equal grid under a monitor capture's
+    chrome — the multicam "monitor wall" built deterministically from a real
+    window screenshot taken over a black viewfinder.
+
+    `im` is a full window capture (e.g. Cmd-Shift-4 + Space on the Catalyst
+    window): transparent surround, partial-alpha shadow, opaque window. The
+    window is found as the alpha>=250 bounding box; the title bar is the run
+    of uniform dark-gray rows at the top and is passed through untouched; the
+    content below it is chrome-keyed with `key_chrome` (same physics as the
+    `chrome` command) and re-laid over the tile grid. Rect arguments are in
+    the ORIGINAL capture's pixel coordinates.
+
+    Tiles are aspect-FIT into their cells (letterboxed on black), row-major —
+    matching the app's own viewfinder letterboxing, so a portrait camera's
+    feed honestly pillarboxes in a landscape cell.
+    """
+    a = np.array(im.convert("RGBA"))
+    solid = a[..., 3] >= 250
+    ys, xs = np.where(solid)
+    x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+    window = a[y0:y1, x0:x1]
+
+    # Title bar: pass --titlebar when known; auto-detect looks for the first
+    # row that is essentially pure black (the viewfinder), which the bar's
+    # gray, traffic lights, and window title never are.
+    if titlebar is not None:
+        bar_h = titlebar
+    else:
+        rgbw = window[..., :3].astype(int)
+        bar_h = 0
+        for row in range(min(160, window.shape[0])):
+            if (rgbw[row].max(axis=1) <= 8).mean() > 0.98:
+                bar_h = row
+                break
+    content_y = y0 + bar_h
+
+    def shift(rects):
+        return [(x - x0, y - content_y, w, h) for x, y, w, h in rects]
+
+    content = Image.fromarray(window[bar_h:], "RGBA")
+    disc = None
+    if disc_region:
+        dx, dy, dw, dh = disc_region
+        disc = (dx - x0, dy - content_y, dw, dh)
+    chrome = key_chrome(content, blanks=shift(blanks), opaques=shift(opaques),
+                        disc_region=disc)
+
+    # The grid wall: 2 columns, rows as needed, aspect-filled cells.
+    cw, ch = content.size
+    cols = 2
+    rows = (len(tiles) + cols - 1) // cols
+    cell_w = (cw - gutter * (cols - 1)) // cols
+    cell_h = (ch - gutter * (rows - 1)) // rows
+    wall = Image.new("RGBA", (cw, ch), (0, 0, 0, 255))
+    for i, path in enumerate(tiles):
+        tile = Image.open(path).convert("RGB")
+        scale = min(cell_w / tile.width, cell_h / tile.height)
+        tile = tile.resize((round(tile.width * scale), round(tile.height * scale)),
+                           Image.LANCZOS)
+        cx = (i % cols) * (cell_w + gutter) + (cell_w - tile.width) // 2
+        cy = (i // cols) * (cell_h + gutter) + (cell_h - tile.height) // 2
+        wall.paste(tile, (cx, cy))
+
+    composed = Image.alpha_composite(wall, chrome)
+
+    out = a.copy()
+    out[y0:y1, x0:x1, 3] = np.maximum(out[y0:y1, x0:x1, 3], 0)  # keep shadow
+    out_img = Image.fromarray(out, "RGBA")
+    out_img.paste(composed, (x0, content_y))
+    print(f"  window ({x0},{y0})-({x1},{y1})  titlebar {bar_h}px  "
+          f"cells {cell_w}x{cell_h}")
+    return out_img
+
+
 def main():
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -206,6 +282,21 @@ def main():
                    metavar="X,Y,W,H")
     k.add_argument("--disc", type=rect_arg, metavar="X,Y,W,H",
                    help="region to search for the shutter disc")
+
+    g = sub.add_parser("grid", help="multicam wall: tiles under a capture's chrome")
+    g.add_argument("img", help="window capture over a black viewfinder")
+    g.add_argument("out")
+    g.add_argument("--tiles", nargs="+", required=True,
+                   metavar="IMG", help="cell images, row-major, 2 columns")
+    g.add_argument("--gutter", type=int, default=4)
+    g.add_argument("--blank", type=rect_arg, action="append", default=[],
+                   metavar="X,Y,W,H")
+    g.add_argument("--opaque", type=rect_arg, action="append", default=[],
+                   metavar="X,Y,W,H")
+    g.add_argument("--disc", type=rect_arg, metavar="X,Y,W,H",
+                   help="region to search for the shutter disc (capture coords)")
+    g.add_argument("--titlebar", type=int,
+                   help="title bar height in px (default: auto-detect)")
 
     a = p.parse_args()
     if a.cmd == "detect":
@@ -252,6 +343,14 @@ def main():
         alpha = np.array(out)[..., 3]
         print(f"  -> {a.out} {out.size}  opaque {(alpha > 250).mean():.1%}  "
               f"glass {((alpha > 4) & (alpha <= 250)).mean():.1%}")
+    elif a.cmd == "grid":
+        im = Image.open(a.img)
+        print(f"{a.img} {im.size}  tiles: {len(a.tiles)}")
+        out = compose_grid(im, a.tiles, gutter=a.gutter, blanks=a.blank,
+                           opaques=a.opaque, disc_region=a.disc,
+                           titlebar=a.titlebar)
+        out.save(a.out)
+        print(f"  -> {a.out} {out.size}")
 
 
 if __name__ == "__main__":

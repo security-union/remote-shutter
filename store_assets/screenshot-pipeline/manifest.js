@@ -172,6 +172,34 @@ window.MANIFEST = {
       }
     },
 
+    // ---- Slot 6: multicam for iPhone — same content as mac4, portrait ----
+    // The scene is natively portrait, so everything (scene, quad, composed
+    // screen, callout anchors) is shared with mac4; only the layout differs.
+    // Headlines: translations copy the mac4 strings to key "6".
+    "6": {
+      headline: ["NEW: Four cameras.", "One director."],
+      accentLine: 1,
+      scene: "../ai-scenes/mac2_multicam_e6.jpg",
+      sceneSize: [1536, 2752],
+      scenePosition: "50% 30%",
+      surfaces: [
+        {
+          quad: [[-64, 1514], [417, 1397], [131, 2058], [584, 1842]],
+          size: [1512, 982],
+          bezel: 0,
+          radius: 9,
+          ui: "assets/ui-monitor-mac-multicam.png"
+        }
+      ],
+      callouts: [
+        { text: "CAMERA 3", anchor: [805, 633], dx: -150, dy: -150 },
+        { text: "CAMERA 1", anchor: [612, 860], dx: -230, dy: 130 },
+        { text: "CAMERA 4", anchor: [1218, 826], dx: 40, dy: -230 },
+        { text: "CAMERA 2", anchor: [1369, 1073], dx: -360, dy: 300 },
+        { text: "REMOTE", anchor: [300, 1620], dx: 420, dy: 160 }
+      ]
+    },
+
     // ---- iPad variants ----
     "2i": {
       headline: ["See everything.", "Control everything."],
@@ -379,6 +407,63 @@ window.MANIFEST = {
       callouts: [
         { text: "CAMERA", anchor: [800, 170], dx: -90, dy: 170 },
         { text: "REMOTE", anchor: [300, 1150], dx: 60, dy: -180 }
+      ]
+    },
+
+    // mac4: NEW multicam — the four-camera kitchen rig (scene chain
+    // mac2_multicam_e1..e6; quads inherited from mac2's base photo, +440y for
+    // the uncropped frame). Every camera gets a CAMERA pill; the Mac runs the
+    // composed grid (assets/ui-monitor-mac-multicam.png, built by
+    // `tools.py grid` — see README).
+    "mac4": {
+      layout: "landscape",
+      headline: ["NEW: Four cameras.", "One director."],
+      accentLine: 1,
+      scene: "../ai-scenes/mac2_multicam_e6.jpg",
+      sceneSize: [1536, 2752],
+      scenePosition: "50% 30%",
+      surfaces: [
+        {
+          quad: [[-64, 1514], [417, 1397], [131, 2058], [584, 1842]],
+          size: [1512, 982],
+          bezel: 0,
+          radius: 9,
+          ui: "assets/ui-monitor-mac-multicam.png"
+        }
+      ],
+      // Numbers match the grid tiles on the Mac's screen (1=TL … 4=BR), so
+      // the pills double as a legend. Spread: arm up-left, stand mid-left,
+      // hood up-right (short label fits inboard of the edge), eye-level
+      // down-left of its phone, REMOTE over the counter — nothing stacks and
+      // nothing can grow over the laptop in long locales.
+      callouts: [
+        { text: "CAMERA 3", anchor: [805, 633], dx: -150, dy: -150 },  // under-cabinet arm → tile 3
+        { text: "CAMERA 1", anchor: [612, 860], dx: -230, dy: 130 },   // stand by the window → tile 1
+        { text: "CAMERA 4", anchor: [1218, 826], dx: 40, dy: -230 },   // range-hood clamp → tile 4
+        { text: "CAMERA 2", anchor: [1369, 1073], dx: -360, dy: 300 }, // eye-level stand → tile 2
+        { text: "REMOTE", anchor: [300, 1620], dx: 420, dy: 160 }      // the Mac
+      ]
+    },
+
+    // mac5: the multicam monitor itself — four live tiles, chrome from a real
+    // window capture (see the grid recipe in the README).
+    "mac5": {
+      layout: "landscape",
+      headline: ["4 cameras connected.", "One synced shutter."],
+      accentLine: 1,
+      mockup: {
+        device: "mac",
+        ui: "assets/ui-monitor-mac-multicam.png",
+        naturalSize: [1512, 982],
+        width: 1020,
+        left: "70%",
+        top: 400
+      },
+      callouts: [
+        { text: "SYNCED SHUTTER", anchorScreen: [0.499, 0.902], dx: -430, dy: -10 },
+        { text: "PHOTO & VIDEO", anchorScreen: [0.5, 0.973], dx: 360, dy: 55 },
+        { text: "ZOOM & LENS", anchorScreen: [0.5, 0.826], dx: 340, dy: -50 },
+        { text: "FLASH & TORCH", anchorScreen: [0.929, 0.084], dx: -290, dy: -115 }
       ]
     },
 
