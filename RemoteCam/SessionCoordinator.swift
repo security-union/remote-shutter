@@ -375,17 +375,19 @@ public actor SessionCoordinator {
     /// reads this on "Start" to choose the single-camera vs director path.
     func multicamConnectedCount() -> Int { multicamCollecting ? connectedPeers.count : 0 }
 
-    /// Hand the live transport (and the ≥2 cameras it is connected to) to a
+    /// Hand the live transport (and the cameras it is connected to) to a
     /// `MulticamController`. Detaches this coordinator from the transport —
     /// nils its references without stopping the session — so the multicam
     /// controller becomes the sole delegate and this coordinator's `stop()`
     /// (on scanner teardown) cannot kill a session the director is using.
-    /// Returns nil unless collecting with two or more cameras (the single
-    /// camera case stays on the classic monitor — see below).
+    /// Returns nil unless collecting with at least one camera. Whether a
+    /// single camera goes to the director or the classic monitor is decided
+    /// in exactly one place — `MulticamHandoff.decide` — before this is
+    /// called; this seam serves whatever that decision asked for.
     func detachTransportForMulticam() -> (transport: any MultipeerServiceProtocol, peers: [MCPeerID])? {
         guard multicamCollecting, let transport = multipeerService else { return nil }
         let peers = transport.connectedPeers
-        guard peers.count >= 2 else { return nil }
+        guard !peers.isEmpty else { return nil }
         multipeerService = nil
         transportShared.value = nil
         multicamCollecting = false

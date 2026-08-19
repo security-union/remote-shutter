@@ -157,6 +157,31 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(count, 1, "collecting is armed and sees the live camera")
     }
 
+    /// The handoff seam serves whatever `MulticamHandoff.decide` asked for —
+    /// including a single camera (`MULTICAM_FOR_SINGLE_CAMERA`): one collected
+    /// camera detaches to the director. Pins the stranded-scanner bug where a
+    /// two-camera floor here silently returned nil while the camera went live.
+    func testDetachTransportHandsOffASingleCollectedCamera() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        let camA = MCPeerID(displayName: "CamA")
+        harness.fakeMP.connectedPeers = [camA]
+
+        let handoff = await harness.coordinator.detachTransportForMulticam()
+        XCTAssertEqual(handoff?.peers, [camA])
+        let stillCollecting = await harness.coordinator.multicamCollectingForTesting()
+        XCTAssertFalse(stillCollecting, "detach hands the session over and ends collecting")
+    }
+
+    /// An empty rig has nothing to hand off.
+    func testDetachTransportRefusesAnEmptyRig() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        harness.fakeMP.connectedPeers = []
+        let handoff = await harness.coordinator.detachTransportForMulticam()
+        XCTAssertNil(handoff)
+    }
+
     func testMulticamConnectInvitesEachSelectedPeer() async {
         await seedScanning()
         await harness.deliver(UICmd.SetMulticamCollecting(on: true))
