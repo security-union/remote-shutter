@@ -101,6 +101,16 @@ final class FrameStreamer {
     /// the video encoder so it is rebuilt at the new resolution on the next
     /// frame — the same rebuild path the failure fallback already uses, so the
     /// new encoder's first frame is a keyframe the monitor re-syncs on.
+    /// Capture was interrupted (backgrounding, camera claimed): the hardware
+    /// session behind the video encoder died with it. Drop the encoder — and
+    /// clear the permanent-fail latch — so the first post-wake credited frame
+    /// builds a FRESH session instead of feeding (or tearing down) a corpse
+    /// whose calls block on a recovering media daemon. Capture-queue only.
+    func dropVideoEncoder() {
+        videoEncoder = nil
+        videoFailed = false
+    }
+
     func applyProfile(_ profile: StreamProfile) {
         guard profile != activeProfile else { return }
         activeProfile = profile

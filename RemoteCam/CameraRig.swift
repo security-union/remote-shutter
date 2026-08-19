@@ -171,6 +171,31 @@ final class CameraRig: @unchecked Sendable {
         pipeline.onPhotosAccessDenied = { [weak self] in
             self?.onPhotosAccessDenied?()
         }
+        // A capture interruption (lock, home, phone call, camera stolen by
+        // another app) means the device CANNOT keep capturing — "recording
+        // through it" would freeze the file mid-write and gamble the footage.
+        // Finalize + save NOW, at the layer that owns the writer; the
+        // background task buys the writer the seconds it needs. The pipeline's
+        // stop path tells the coordinator, whose state settles to idle and
+        // reports the new truth to any linked remote.
+        engine.onSessionInterrupted = { [weak self] in
+            guard let self else { return }
+            // The hardware preview encoder dies with the capture session —
+            // drop it now so post-wake frames rebuild fresh.
+            self.streamingCoordinator.handleCaptureInterruption()
+            var token: UIBackgroundTaskIdentifier = .invalid
+            token = UIApplication.shared.beginBackgroundTask {
+                UIApplication.shared.endBackgroundTask(token)
+            }
+            // Unconditional: the pipeline no-ops when idle, CANCELS an
+            // arming start (its ready edge died with the capture session),
+            // and finalizes a rolling take. No cross-queue flag peeking.
+            self.pipeline.stopRecording(false)
+            // The finalize + Photos save settle well inside this window.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                if token != .invalid { UIApplication.shared.endBackgroundTask(token) }
+            }
+        }
         engine.onCameraDevicesChanged = { [weak self] in
             // Hot-plug (fires on the session queue): refresh the picker and,
             // when a monitor is connected, re-advertise capabilities.
@@ -519,9 +544,13 @@ extension CameraRig: CameraControlling {
         await engine.gatherAllCameraCapabilities()
     }
 
+    func currentRecordingStartedAt() -> Date? {
+        pipeline.recordingStartedAt
+    }
+
     func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
         // Composition point: engine facts + the pipeline's recording truth.
-        await engine.gatherCurrentCameraCapabilities(recordingStartedAt: pipeline.recordingStartedAt)
+        await engine.gatherCurrentCameraCapabilities()
     }
 
     func takePicture(_ sendMediaToRemote: Bool) {
@@ -538,13 +567,22 @@ extension CameraRig: CameraControlling {
 
     func startRecordingVideo() {
         // Check microphone permission before starting video recording
+        SessionDebug.pipelinePhase("start: mic permission check")
         PermissionManager.shared.requestMicrophonePermission { [weak self] granted in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                if granted {
-                    self.pipeline.startRecording(audioSampleBufferDelegate: self.streamingCoordinator)
-                } else {
-                    // Microphone denied - notify the remote and prompt the user.
+            guard let self = self else { return }
+            SessionDebug.pipelinePhase("start: mic permission answered (granted=\(granted))")
+            if granted {
+                // Straight to the pipeline's own queue — deliberately NO
+                // main-thread stop-over. Right after a backgrounding, main
+                // can be stalled for tens of seconds on audio-session work,
+                // and a stalled main must never sit between "start
+                // commanded" and the writer. `startRecording` is queue-safe
+                // from any thread; the already-granted permission path
+                // completes synchronously on the caller.
+                self.pipeline.startRecording(audioSampleBufferDelegate: self.streamingCoordinator)
+            } else {
+                // Microphone denied - notify the remote and prompt the user.
+                DispatchQueue.main.async {
                     let microphoneError = NSError(
                         domain: "RemoteShutterError",
                         code: 1001,

@@ -66,10 +66,15 @@ final class CameraLink {
     /// The camera's recording truth for this lane: non-nil exactly while it is
     /// rolling, carrying the recording's start instant. Seeded from the take
     /// protocol when a start is acked, then overwritten by the camera's own
-    /// report (`recording_start_unix_ms`) on every capabilities exchange.
-    /// Drives the tile's REC badge and the rig shutter's union.
+    /// `CameraStateReport` — the one recording-truth channel. Drives the
+    /// tile's REC badge and the rig shutter's union.
     var recordingStartedAt: Date?
     var isRecording: Bool { recordingStartedAt != nil }
+
+    /// Newest `CameraStateReport.seq` absorbed from this lane; zeroed when the
+    /// camera re-announces (its session, and seq domain, restarted). Stale
+    /// reports are dropped, so a delayed push can never outrank fresh truth.
+    var lastStateReportSeq: UInt64 = 0
 
     /// The preview profile most recently pushed to this camera, so the director
     /// only re-sends `SetStreamProfile` when the tier actually changes.

@@ -137,11 +137,9 @@ class MonitorViewModel: ObservableObject {
     
     // MARK: - Control State (derived — a lookup off `uiState`, never stored)
     //
-    // These were 13 hand-set booleans, each assigned by every configure
-    // method; any path that forgot one left the screen self-contradicting
-    // (photo mode kept a stale recording timer, shorts inherited the previous
-    // mode's quality control). As lookups they cannot disagree, and a mode's
-    // whole surface is one row read down this column.
+    // Every mode-dependent surface reads the one stored mode, so the REC dot,
+    // the timer, and the control enables cannot disagree. A mode's whole
+    // surface is one row read down this column.
     var isGalleryEnabled: Bool { uiState != .videoRecording }
     var isBackEnabled: Bool { uiState != .videoRecording }
     var isFlashButtonEnabled: Bool { uiState == .photoMode }
@@ -172,13 +170,11 @@ class MonitorViewModel: ObservableObject {
     func configureVideoRecording() { setUIState(.videoRecording) }
     func configureShortsMode() { setUIState(.shortsMode) }
 
-    /// Synchronous ON PURPOSE: every caller is already on main (the presenter
-    /// hops before rendering; the view controller's lifecycle is main). The
-    /// old extra `DispatchQueue.main.async` here gave mode changes a second
-    /// queue turn, so they could land AFTER a later-sent single-hop write —
-    /// a stale "back to idle" could eat a fresh recording's start time and
-    /// leave the recording screen with a dead timer. One hop everywhere on
-    /// this path ⇒ updates land in the order the coordinator sent them.
+    /// Synchronous on purpose: every caller is already on main (the presenter
+    /// hops before rendering; the view controller's lifecycle is main). Every
+    /// write on this path must take the SAME number of main hops — an extra
+    /// dispatch would let a stale mode change land after a later-sent write
+    /// and reorder the screen.
     private func setUIState(_ state: MonitorUIState) {
         dispatchPrecondition(condition: .onQueue(.main))
         uiState = state

@@ -21,8 +21,8 @@ struct CameraScreenView: View {
     /// Sets the local preview mode (standby button / tap-to-restore). Routed
     /// through the session so the change persists and the monitor is told.
     var onSetPreviewMode: ((CameraPreviewMode) -> Void)?
-    /// The on-camera stop — the escape hatch shown only while recording with
-    /// no linked remote (nil in previews/tests).
+    /// The on-camera stop, available whenever a recording is running
+    /// (nil in previews/tests).
     var onStopRecordingLocally: (() -> Void)?
     /// The letterbox-fitted video rect (view coords), reported by the preview so
     /// the focus reticle lands on the image, not the black bars.
@@ -78,8 +78,7 @@ struct CameraScreenView: View {
                 }
                 // Passive status chip, not a modal: the recording continues
                 // through the drop, so nothing may cover the shot or demand
-                // a decision. Its own presence (with the stop button below)
-                // is the whole message.
+                // a decision.
                 if viewModel.isAwaitingRemoteReconnect {
                     reconnectingChip
                 }
@@ -87,10 +86,14 @@ struct CameraScreenView: View {
             }
             .allowsHitTesting(false)
 
-            // The escape hatch: with no linked remote AND a recording running,
-            // stopping is the operator's call — bottom center, where a shutter
-            // belongs. An idle camera awaiting its remote shows only the chip.
-            if viewModel.isAwaitingRemoteReconnect && viewModel.isRecordingIndicatorVisible {
+            #if DEBUG
+            SessionDebugOverlay()
+            #endif
+
+            // The operator can always stop a recording from the camera —
+            // bottom center, where a shutter belongs. The remote observes
+            // the resulting state change through the camera's report.
+            if viewModel.isRecordingIndicatorVisible {
                 VStack {
                     Spacer()
                     localStopButton

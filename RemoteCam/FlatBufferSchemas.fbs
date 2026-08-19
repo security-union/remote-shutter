@@ -58,8 +58,16 @@ enum CommandAction : byte {
     SetStreamProfile = 29,     // director -> camera: reconfigure the live preview
                                // encoder (resolution/bitrate/fps) for tiered
                                // multicam previews. Only sent to multicam peers.
-    RequestVideoResend = 30    // director -> camera: re-send the last collected
+    RequestVideoResend = 30,   // director -> camera: re-send the last collected
                                // clip (auto-collect retry). Reuses capture_id.
+    CameraStateReport = 31,    // camera -> monitor/director: THE recording-truth
+                               // channel (v10). Pushed on every recording state
+                               // change and on link-up; also the answer to
+                               // RequestCameraStateReport. Payload rides in
+                               // CommandParameters (state_report_seq,
+                               // state_recording_start_unix_ms).
+    RequestCameraStateReport = 32 // monitor/director -> camera: re-push the
+                               // current CameraStateReport (e.g. on connection).
 }
 
 // Whether the camera device drives its own on-screen live preview. On is the
@@ -75,6 +83,15 @@ enum CameraPreviewModeEnum : byte {
 enum CameraPosition : byte {
     Back = 0,
     Front = 1
+}
+
+// CameraStateReport's explicit recording discriminant. Unknown (or a
+// Recording report with no start instant) is malformed and DROPPED by the
+// decoder — recording truth is never inferred from a sentinel timestamp.
+enum RecordingPhase : byte {
+    Unknown = 0,
+    Idle = 1,
+    Recording = 2
 }
 
 enum TorchMode : byte {
@@ -194,6 +211,14 @@ table CommandParameters {
     stream_max_long_edge: int;
     stream_bitrate_kbps: int;
     stream_fps: int;
+    // CameraStateReport payload: the camera's recording truth. `seq` is
+    // monotonic across camera restarts (epoch-seeded) — the ONE producer is
+    // the camera's coordinator, so a receiver drops any report older than the
+    // last it absorbed. The phase is EXPLICIT; the start instant (Unix ms,
+    // the first written frame) accompanies Recording and only Recording.
+    state_report_seq: uint64;
+    state_recording_start_unix_ms: uint64;
+    state_recording_phase: RecordingPhase;
 }
 
 // MARK: - Command Structure
@@ -276,11 +301,6 @@ table CameraState {
     // so the operator can see whether the camera is showing a live preview or
     // sitting in standby. Absent/Unknown => legacy peer; treat as On.
     preview_mode: CameraPreviewModeEnum;
-    // Single source of truth for recording, reported by the camera's pipeline.
-    // 0 = not recording; nonzero = recording since this Unix-epoch instant in
-    // milliseconds (the first written frame). Every v10+ camera writes it on
-    // every state report; monitors DERIVE their recording UI from it.
-    recording_start_unix_ms: uint64;
 }
 
 table CameraCapabilities {

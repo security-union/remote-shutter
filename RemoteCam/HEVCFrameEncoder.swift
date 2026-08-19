@@ -122,10 +122,16 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
             forceNextKeyframe = false
         }
 
-        // Bridge the async VideoToolbox callback to the synchronous protocol: the
-        // handler stashes the packaged payload; the semaphore releases when it
-        // runs. Realtime + no reordering ⇒ one output per input, promptly.
-        var result: FrameEncodeResult = .failed
+        // Bridge the async VideoToolbox callback to the synchronous protocol:
+        // the handler stashes the packaged payload in a lock-box; the
+        // semaphore releases when it runs. Realtime + no reordering ⇒ one
+        // output per input, promptly — WHEN the session is alive. The wait is
+        // BOUNDED because backgrounding revokes hardware sessions: a submit
+        // into a revoked session returns noErr and then never calls back,
+        // and an unbounded wait here froze the whole capture data queue
+        // (recording start included) for as long as the daemon took to
+        // recover — tens of seconds after a wake.
+        let box = Locked<FrameEncodeResult>(.failed)
         let done = DispatchSemaphore(value: 0)
         let status = VTCompressionSessionEncodeFrame(
             session,
@@ -135,20 +141,35 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
             frameProperties: frameProperties as CFDictionary?,
             infoFlagsOut: nil
         ) { encodeStatus, _, sampleBuffer in
-            defer { done.signal() }
-            guard encodeStatus == noErr, let sampleBuffer,
-                  let payload = Self.package(sampleBuffer) else { return }
-            result = .encoded(payload)
+            if encodeStatus == noErr, let sampleBuffer,
+               let payload = Self.package(sampleBuffer) {
+                box.value = .encoded(payload)
+            }
+            done.signal()
         }
 
         guard status == noErr else {
             StreamLog.encode.error("HEVC encode submit failed: \(status)")
             return .failed
         }
-        done.wait()
+        guard done.wait(timeout: .now() + Self.encodeCallbackTimeout) == .success else {
+            // The callback never came — the revoked-session shape. Drop the
+            // corpse (no flush: flushing waits on the same dead session) and
+            // report SKIPPED, not failed: the next frame builds a fresh
+            // session and the stream heals itself. A late callback lands in
+            // the lock-box of an abandoned frame, harmlessly.
+            StreamLog.encode.error("HEVC encode callback timed out — rebuilding the session")
+            SessionDebug.note("⚠︎ HEVC encode callback timeout — session rebuilt")
+            invalidateSession()
+            return .skipped
+        }
         pts += 1
-        return result
+        return box.value
     }
+
+    /// How long one realtime encode may take before the session is presumed
+    /// dead (a healthy one answers in milliseconds).
+    private static let encodeCallbackTimeout: TimeInterval = 1.0
 
     // MARK: - Session
 
@@ -197,9 +218,13 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
         return pixelBufferPool != nil
     }
 
+    /// Deliberately NO flush (`VTCompressionSessionCompleteFrames`): for a
+    /// realtime one-in-one-out preview stream there is never a trailing frame
+    /// worth waiting for, and the flush blocks UNBOUNDEDLY on a session that
+    /// backgrounding killed — it froze the whole capture data queue for tens
+    /// of seconds. Drop the session; the next keyframe resyncs the decoder.
     private func invalidateSession() {
         if let session {
-            VTCompressionSessionCompleteFrames(session, untilPresentationTimeStamp: .invalid)
             VTCompressionSessionInvalidate(session)
         }
         session = nil

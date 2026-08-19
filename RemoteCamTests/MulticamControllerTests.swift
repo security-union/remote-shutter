@@ -1054,32 +1054,38 @@ final class MulticamControllerTests: XCTestCase {
 
     // MARK: - Lane recording truth (v10)
 
-    /// A lane's REC badge is DERIVED from the camera's reported recording
-    /// truth in its capabilities — a rejoining camera that kept rolling shows
+    /// A lane's REC badge is DERIVED from the camera's state report — the one
+    /// recording-truth channel. A rejoining camera that kept rolling shows
     /// REC; one whose recording died while away shows the truth too.
-    func testLaneRecordingDerivedFromCapabilities() async {
+    func testLaneRecordingDerivedFromStateReport() async {
         let (controller, _, _) = await makeController(peers: [camA])
 
-        let rolling = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsMulticam: true,
-            recordingStartedAt: Date(timeIntervalSinceNow: -10),
-            error: nil)
-        controller.didReceiveMessage(rolling, from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 1, state: .recording(startedAt: Date(timeIntervalSinceNow: -10))),
+            from: camA)
         await controller.waitForIdle()
         let recWhileRolling = await controller.isRecordingForTesting(camA)
         XCTAssertTrue(recWhileRolling, "REC derives from the camera's report, not from what was commanded")
 
-        let idle = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsMulticam: true,
-            error: nil)
-        controller.didReceiveMessage(idle, from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 2, state: .idle), from: camA)
         await controller.waitForIdle()
         let recWhenIdle = await controller.isRecordingForTesting(camA)
         XCTAssertFalse(recWhenIdle, "a camera that reports idle clears a stale REC")
+    }
+
+    /// A delayed report cannot outrank fresh truth: stale seq is dropped.
+    func testStaleStateReportIsDropped() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 2, state: .idle), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 1, state: .recording(startedAt: Date(timeIntervalSinceNow: -10))),
+            from: camA)
+        await controller.waitForIdle()
+        let rec = await controller.isRecordingForTesting(camA)
+        XCTAssertFalse(rec, "the stale seq-1 report must not resurrect a dead recording")
     }
 
     /// A camera-reported start is in the CAMERA's clock domain: the lane's
@@ -1091,13 +1097,9 @@ final class MulticamControllerTests: XCTestCase {
         await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 5_000)
 
         let cameraDomainStart = Date(timeIntervalSinceNow: -42)
-        let rolling = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsMulticam: true,
-            recordingStartedAt: cameraDomainStart,
-            error: nil)
-        controller.didReceiveMessage(rolling, from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 1, state: .recording(startedAt: cameraDomainStart)),
+            from: camA)
         await controller.waitForIdle()
         await pumpMainUntil { display.recording }
 
@@ -1107,7 +1109,7 @@ final class MulticamControllerTests: XCTestCase {
     }
 
     /// The field bug this pins: mid-take the camera stopped ON ITS OWN while
-    /// unlinked; on rejoin its capabilities report idle. The director's take
+    /// unlinked; on rejoin its state report says idle. The director's take
     /// machine (intent) must yield to that unanimous fact — otherwise the
     /// rig timer keeps ticking from the LOCAL take anchor forever.
     func testTakeClearsWhenEveryLaneReportsIdle() async {
@@ -1126,11 +1128,8 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertNotNil(takeBefore)
 
         // The camera rejoins reporting idle — it stopped while we were apart.
-        let idle = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsMulticam: true, error: nil)
-        controller.didReceiveMessage(idle, from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 1, state: .idle), from: camA)
         await controller.waitForIdle()
         await pumpMainUntil { !display.recording }
 
@@ -1150,13 +1149,8 @@ final class MulticamControllerTests: XCTestCase {
         let (controller, transport, display) = await makeController(peers: [camA])
 
         let start = Date(timeIntervalSinceNow: -42)
-        let rolling = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsMulticam: true,
-            recordingStartedAt: start,
-            error: nil)
-        controller.didReceiveMessage(rolling, from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 1, state: .recording(startedAt: start)), from: camA)
         await controller.waitForIdle()
         await pumpMainUntil { display.recording }
 

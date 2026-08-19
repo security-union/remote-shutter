@@ -63,6 +63,10 @@ struct MonitorView: View {
                 }
 
                 PeerLinkOverlay(status: peerLink)
+
+                #if DEBUG
+                SessionDebugOverlay()
+                #endif
             }
         }
         // Catalyst's default style paints a bordered box behind controls that

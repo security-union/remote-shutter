@@ -76,6 +76,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
         case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
+        case let m as RemoteCmd.CameraStateReport: return m.toFlatBuffer()
+        case let m as RemoteCmd.RequestCameraStateReport: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
@@ -454,37 +456,33 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.currentLens, .ultraWide)
     }
 
-    /// v10 contract: `recording_start_unix_ms` is always written; nonzero
-    /// carries the camera's real first-frame instant at ms precision.
-    func testCameraCapabilitiesResp_recordingTruthRoundTrip() throws {
+    // MARK: - 13a. Camera state report (the recording-truth channel)
+
+    /// v10 contract: the phase is EXPLICIT on the wire; Recording carries the
+    /// camera's real first-frame instant at ms precision.
+    func testCameraStateReport_recordingRoundTrip() throws {
         let start = Date(timeIntervalSince1970: 1_723_000_000.5)
-        let original = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil,
-            backCamera: nil,
-            currentCamera: .back,
-            currentLens: .wideAngle,
-            currentZoom: 1.0,
-            recordingStartedAt: start,
-            error: nil
-        )
-        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
-        let decodedStart = try XCTUnwrap(decoded.recordingStartedAt)
+        let original = RemoteCmd.CameraStateReport(seq: 42, state: .recording(startedAt: start))
+        let decoded: RemoteCmd.CameraStateReport = roundTrip(original)
+        XCTAssertEqual(decoded.seq, 42)
+        guard case .recording(let decodedStart) = decoded.state else {
+            return XCTFail("decoded state is \(decoded.state), expected .recording")
+        }
         XCTAssertEqual(decodedStart.timeIntervalSince1970,
                        start.timeIntervalSince1970, accuracy: 0.001)
     }
 
-    /// The other half of the contract: 0 on the wire ⇔ not recording.
-    func testCameraCapabilitiesResp_notRecordingDecodesNil() {
-        let original = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil,
-            backCamera: nil,
-            currentCamera: .back,
-            currentLens: .wideAngle,
-            currentZoom: 1.0,
-            error: nil
-        )
-        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
-        XCTAssertNil(decoded.recordingStartedAt)
+    /// The other half of the contract: Idle is an explicit phase, never a
+    /// sentinel timestamp.
+    func testCameraStateReport_idleRoundTrip() {
+        let original = RemoteCmd.CameraStateReport(seq: 7, state: .idle)
+        let decoded: RemoteCmd.CameraStateReport = roundTrip(original)
+        XCTAssertEqual(decoded.seq, 7)
+        XCTAssertEqual(decoded.state, .idle)
+    }
+
+    func testRequestCameraStateReport_roundTrip() {
+        let _: RemoteCmd.RequestCameraStateReport = roundTrip(RemoteCmd.RequestCameraStateReport())
     }
 
     // MARK: - 13b. Camera device selection

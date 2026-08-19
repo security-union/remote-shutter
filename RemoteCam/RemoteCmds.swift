@@ -574,12 +574,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// The camera's current local-preview mode, so the monitor can reflect
         /// it from the first capabilities exchange.
         public let previewMode: CameraPreviewMode
-        /// The camera's recording truth, straight from its pipeline: non-nil
-        /// exactly while a clip is being written, carrying the real
-        /// first-frame instant. Wire: `recording_start_unix_ms` (0 ⇔ nil) —
-        /// every v10+ camera reports it on every capabilities exchange, and
-        /// monitors DERIVE their recording UI from it instead of remembering.
-        public let recordingStartedAt: Date?
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
@@ -595,7 +589,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    supportsPreviewMode: Bool = false,
                    supportsMulticam: Bool = false,
                    previewMode: CameraPreviewMode = .on,
-                   recordingStartedAt: Date? = nil,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
@@ -612,7 +605,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.supportsPreviewMode = supportsPreviewMode
             self.supportsMulticam = supportsMulticam
             self.previewMode = previewMode
-            self.recordingStartedAt = recordingStartedAt
             self.error = error
             super.init(sender: nil)
         }
@@ -620,6 +612,41 @@ public class RemoteCmd: Message, @unchecked Sendable {
         public func getCurrentCameraInfo() -> CameraInfo? {
             return currentCamera == .front ? frontCamera : backCamera
         }
+    }
+
+    // MARK: - Camera state report (v10)
+
+    /// THE recording-truth channel: a snapshot of the camera's recording
+    /// state, produced by exactly one site (the camera coordinator's
+    /// `sendCameraStateReport`), pushed on every recording state change and
+    /// on link-up, and re-pushed with every capabilities answer. `seq` is
+    /// monotonic per camera session; receivers drop anything older than the
+    /// last report absorbed, so pushes and requested re-pushes can never
+    /// fight. Capabilities describe hardware; THIS message says what the
+    /// camera is doing.
+    public class CameraStateReport: Message, @unchecked Sendable {
+        /// EXPLICIT recording state — never inferred from a sentinel
+        /// timestamp. Recording always carries the pipeline's real
+        /// first-written-frame instant.
+        public enum RecordingState: Equatable {
+            case idle
+            case recording(startedAt: Date)
+        }
+
+        public let seq: UInt64
+        public let state: RecordingState
+
+        public init(seq: UInt64, state: RecordingState) {
+            self.seq = seq
+            self.state = state
+            super.init(sender: nil)
+        }
+    }
+
+    /// Monitor/director → camera: re-push the current `CameraStateReport`
+    /// (used on connection and after a camera re-announce).
+    public class RequestCameraStateReport: Message, @unchecked Sendable {
+        public init() { super.init(sender: nil) }
     }
 
     // MARK: - Lens Switching Remote Commands

@@ -86,6 +86,10 @@ struct MulticamView: View {
                 countdownOverlay
                 transientErrorToast
                 if viewModel.showingRigTray { rigTrayLayer }
+
+                #if DEBUG
+                SessionDebugOverlay()
+                #endif
             }
             .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.showingRigTray)
             .sheet(isPresented: $viewModel.showingAddCamera) {

@@ -90,8 +90,9 @@ public class UICmd {
         }
     }
 
-    /// The on-camera stop button — the escape hatch shown while recording
-    /// with no linked remote. Finalizes and saves the clip locally.
+    /// The on-camera stop button, available whenever a recording is running.
+    /// Finalizes and saves the clip locally; the remote observes the state
+    /// change through the camera's report.
     public class StopRecordingLocally: Message, @unchecked Sendable {
         init() { super.init(sender: nil) }
     }
@@ -465,12 +466,6 @@ public class UICmd {
     /// within seconds and the notice lands on a frozen process, so this is the
     /// session's cue to distrust what it believes and re-arm the radios.
     public class AppForegrounded: Message, @unchecked Sendable {
-    }
-
-    /// The app is about to be suspended (lock or home). A locked camera
-    /// cannot capture, so a rolling recording is finalized and saved NOW —
-    /// under the shell's background task — instead of freezing mid-write.
-    public class AppBackgrounded: Message, @unchecked Sendable {
     }
 
     /// The user cancelled the peer-backgrounded reconnect dialog.

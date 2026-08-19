@@ -554,29 +554,35 @@ public actor MulticamController {
             if !isPeerCompatible(became) {
                 link.status = .failed
             }
+            // A re-announce means the camera's session — and its report seq
+            // domain — restarted; zero the cursor so its next report lands.
+            link.lastStateReportSeq = 0
+            // And its CLOCK samples are void: uptime clocks pause during
+            // sleep, so offsets measured before a backgrounding are wrong by
+            // the slept duration (the estimator's own contract — reset when
+            // clocks may have moved). Fresh pings repopulate within seconds.
+            link.clockEstimator.reset()
 
-        case let caps as RemoteCmd.CameraCapabilitiesResp:
-            logInfo("director: caps from \(link.displayName) — torch=\(caps.getCurrentCameraInfo()?.hasTorch ?? false), camera=\(caps.currentCamera)")
-            link.capabilities = caps
-            seedZoom(link, from: caps)
-            // v10: capabilities carry the camera's recording truth — the
-            // lane's REC badge is DERIVED from it, never remembered from what
-            // was last commanded. A camera that rejoined mid-take shows REC
-            // again; one whose recording died while away shows the truth too.
-            // The report is in the CAMERA's clock domain; translate it into
-            // ours with the lane's measured offset so the rig timer never
-            // inherits cross-device wall-clock skew. (A rejoining lane keeps
-            // its estimator, so a sample is already there; a lane probed for
-            // the first time falls back to the raw report — NTP keeps that
-            // error sub-second — until its next report.)
-            link.recordingStartedAt = directorClockDate(caps.recordingStartedAt,
-                                                        offsetMillis: link.latestOffset?.offsetMillis)
+        case let report as RemoteCmd.CameraStateReport:
+            // The lane's recording truth on its one channel — the REC badge
+            // is DERIVED from it, never remembered from what was last
+            // commanded. The instant is in the CAMERA's clock domain;
+            // translate it with the lane's measured offset so the rig timer
+            // never inherits cross-device wall-clock skew.
+            guard report.seq > link.lastStateReportSeq else { break }
+            link.lastStateReportSeq = report.seq
+            switch report.state {
+            case .recording(let startedAt):
+                link.recordingStartedAt = directorClockDate(startedAt,
+                                                            offsetMillis: link.latestOffset?.offsetMillis)
+            case .idle:
+                link.recordingStartedAt = nil
+            }
             // Intent yields to unanimous fact: if the take machine still
             // believes a recording is running but every lane now reports
-            // idle (cameras stop on their own while unlinked — operator
-            // stop, disk full), the take is factually over. Clearing it
-            // stops the rig timer (which would otherwise tick on from the
-            // LOCAL take anchor) and re-arms the shutter. A stop mid-ack
+            // idle (cameras stop on their own — operator stop, disk full,
+            // lock), the take is factually over: clear it, stop the rig
+            // timer, re-arm the shutter. A stop mid-ack
             // (`.stoppingRecording`) is left to its own ack/timeout
             // machinery.
             if case .recording(let id, _) = state,
@@ -585,6 +591,11 @@ public actor MulticamController {
                 clearRecordingTake()
                 state = .monitoring
             }
+
+        case let caps as RemoteCmd.CameraCapabilitiesResp:
+            logInfo("director: caps from \(link.displayName) — torch=\(caps.getCurrentCameraInfo()?.hasTorch ?? false), camera=\(caps.currentCamera)")
+            link.capabilities = caps
+            seedZoom(link, from: caps)
             if link.status != .failed { link.status = .linked }
             // A late joiner may not match the running rig quality: flag it (its
             // tile badges + the tray offers re-match) rather than silently

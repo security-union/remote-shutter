@@ -59,6 +59,8 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
     case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
+    case let m as RemoteCmd.CameraStateReport: return m.toFlatBuffer()
+    case let m as RemoteCmd.RequestCameraStateReport: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
@@ -440,10 +442,7 @@ private func encodeCapabilitiesEnvelope(
         photoFormat: toFBPhotoFormat(c.currentPhotoFormat),
         hdrMode: toFBHDRMode(c.currentHDRMode),
         activeDeviceIdOffset: activeIDOffset,
-        previewMode: toFBPreviewMode(c.previewMode),
-        // v10 API contract: always written. 0 = not recording; nonzero = the
-        // pipeline's real first-frame instant (Unix ms).
-        recordingStartUnixMs: c.recordingStartedAt.map { UInt64($0.timeIntervalSince1970 * 1000) } ?? 0)
+        previewMode: toFBPreviewMode(c.previewMode))
 
     return (capsOffset, stateOffset)
 }
@@ -993,6 +992,35 @@ extension RemoteCmd.RequestCameraCapabilities {
     }
 }
 
+extension RemoteCmd.CameraStateReport {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let phase: RemoteShutter_RecordingPhase
+        let startMs: UInt64
+        switch state {
+        case .idle:
+            phase = .idle
+            startMs = 0
+        case .recording(let startedAt):
+            phase = .recording
+            startMs = UInt64(startedAt.timeIntervalSince1970 * 1000)
+        }
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb,
+            stateReportSeq: seq,
+            stateRecordingStartUnixMs: startMs,
+            stateRecordingPhase: phase)
+        return buildCommand(&fbb, action: .camerastatereport, parameters: params)
+    }
+}
+
+extension RemoteCmd.RequestCameraStateReport {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        return buildCommand(&fbb, action: .requestcamerastatereport)
+    }
+}
+
 // MARK: - Video/Photo Quality toFlatBuffer() extensions
 
 extension RemoteCmd.SetVideoQuality {
@@ -1289,6 +1317,24 @@ extension RemoteCmd {
         case .requestcapabilities:
             return RequestCameraCapabilities()
 
+        case .camerastatereport:
+            // The phase is explicit; a malformed report (Unknown phase, or
+            // Recording with no start instant) is DROPPED, never guessed at.
+            let startMs = params?.stateRecordingStartUnixMs ?? 0
+            let state: CameraStateReport.RecordingState
+            switch params?.stateRecordingPhase {
+            case .idle:
+                state = .idle
+            case .recording where startMs > 0:
+                state = .recording(startedAt: Date(timeIntervalSince1970: TimeInterval(startMs) / 1000))
+            default:
+                return nil
+            }
+            return CameraStateReport(seq: params?.stateReportSeq ?? 0, state: state)
+
+        case .requestcamerastatereport:
+            return RequestCameraStateReport()
+
         case .setvideoquality:
             let resolution = fromFBResolution(params?.videoResolution ?? .hd1080p)
             let frameRate = fromFBFrameRate(params?.videoFrameRate ?? .fps30)
@@ -1486,13 +1532,6 @@ extension RemoteCmd {
         }
         let activeDeviceID = caps?.activeDeviceId ?? state?.activeDeviceId
 
-        // v10 API contract: every camera writes `recording_start_unix_ms`;
-        // 0 = not recording.
-        let recordingStartMs = state?.recordingStartUnixMs ?? 0
-        let recordingStartedAt = recordingStartMs == 0
-            ? nil
-            : Date(timeIntervalSince1970: TimeInterval(recordingStartMs) / 1000)
-
         return CameraCapabilitiesResp(
             frontCamera: frontCamera,
             backCamera: backCamera,
@@ -1509,7 +1548,6 @@ extension RemoteCmd {
             supportsPreviewMode: caps?.supportsPreviewMode ?? false,
             supportsMulticam: caps?.supportsMulticam ?? false,
             previewMode: state.map { fromFBPreviewMode($0.previewMode) } ?? .on,
-            recordingStartedAt: recordingStartedAt,
             error: error
         )
     }
