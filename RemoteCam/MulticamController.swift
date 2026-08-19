@@ -571,6 +571,20 @@ public actor MulticamController {
             // error sub-second — until its next report.)
             link.recordingStartedAt = directorClockDate(caps.recordingStartedAt,
                                                         offsetMillis: link.latestOffset?.offsetMillis)
+            // Intent yields to unanimous fact: if the take machine still
+            // believes a recording is running but every lane now reports
+            // idle (cameras stop on their own while unlinked — operator
+            // stop, disk full), the take is factually over. Clearing it
+            // stops the rig timer (which would otherwise tick on from the
+            // LOCAL take anchor) and re-arms the shutter. A stop mid-ack
+            // (`.stoppingRecording`) is left to its own ack/timeout
+            // machinery.
+            if case .recording(let id, _) = state,
+               !order.contains(where: { links[$0]?.isRecording == true }) {
+                logInfo("director: every lane reports idle — take \(shortID(id)) ended without us")
+                clearRecordingTake()
+                state = .monitoring
+            }
             if link.status != .failed { link.status = .linked }
             // A late joiner may not match the running rig quality: flag it (its
             // tile badges + the tray offers re-match) rather than silently

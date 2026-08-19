@@ -1106,6 +1106,42 @@ final class MulticamControllerTests: XCTestCase {
                        "an ahead-running camera clock is subtracted out of the label")
     }
 
+    /// The field bug this pins: mid-take the camera stopped ON ITS OWN while
+    /// unlinked; on rejoin its capabilities report idle. The director's take
+    /// machine (intent) must yield to that unanimous fact — otherwise the
+    /// rig timer keeps ticking from the LOCAL take anchor forever.
+    func testTakeClearsWhenEveryLaneReportsIdle() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+
+        // Roll a real take: start → ack → .recording with a rig timer.
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()?.id
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { display.recording }
+        let takeBefore = await controller.recordingStateForTesting()
+        XCTAssertNotNil(takeBefore)
+
+        // The camera rejoins reporting idle — it stopped while we were apart.
+        let idle = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true, error: nil)
+        controller.didReceiveMessage(idle, from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { !display.recording }
+
+        let takeAfter = await controller.recordingStateForTesting()
+        XCTAssertNil(takeAfter, "intent yields to fact: the take is over")
+        let anchorAfter = await controller.recordingStartTimeForTesting()
+        XCTAssertNil(anchorAfter, "the local timer anchor is cleared with it")
+        XCTAssertFalse(display.recording, "no Stop control for a take nobody is making")
+        XCTAssertNil(display.recordingStartTime, "the rig timer STOPS — no ticking on local memory")
+    }
+
     /// The union: a camera reporting a live recording while the director's
     /// take machine is idle (a director that rejoined mid-take) brings back
     /// the Stop control with the camera's own start instant — and Stop
