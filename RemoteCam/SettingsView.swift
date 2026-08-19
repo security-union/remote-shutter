@@ -74,7 +74,7 @@ struct SettingsView: View {
             purchaseRow(item: viewModel.enableVideo, icon: "video.fill")
             purchaseRow(item: viewModel.tapToFocus, icon: "camera.metering.spot")
             if FeatureFlags.ENABLE_MULTICAM {
-                purchaseRow(item: viewModel.sixCameras, icon: "square.grid.3x2.fill")
+                purchaseRow(item: viewModel.maxCamerasPack, icon: "square.grid.2x2.fill")
             }
 
             Button {

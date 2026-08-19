@@ -587,12 +587,24 @@ final class LocalNetworkProbeTests: XCTestCase {
             for p in connected { XCTAssertEqual(vm.multicamRowState(p), .connected) }
             XCTAssertTrue(vm.multicamConnectSettled)
 
-            switch MulticamHandoff.decide(connected: connected) {
+            switch MulticamHandoff.decide(connected: connected, directorForSingleCamera: false) {
             case .none: XCTAssertEqual(connectCount, 0)
             case .classicMonitor(let p): XCTAssertEqual(connectCount, 1); XCTAssertEqual(p, connected[0])
             case .director(let ps): XCTAssertGreaterThanOrEqual(connectCount, 2); XCTAssertEqual(ps, connected)
             }
         }
+    }
+
+    /// The single-camera director flag: on, one connected camera goes to the
+    /// director like any rig; off, it keeps the classic 1:1 monitor. Zero
+    /// cameras never hand off either way.
+    func testSingleCameraHandoffFollowsTheFlag() {
+        let (peers, _) = makeVM(discovered: 1)
+        XCTAssertEqual(MulticamHandoff.decide(connected: [peers[0]], directorForSingleCamera: true),
+                       .director([peers[0]]))
+        XCTAssertEqual(MulticamHandoff.decide(connected: [peers[0]], directorForSingleCamera: false),
+                       .classicMonitor(peers[0]))
+        XCTAssertEqual(MulticamHandoff.decide(connected: [], directorForSingleCamera: true), .none)
     }
 
     /// Cap: with 10 discovered you can select up to `cap`; the (cap+1)th row

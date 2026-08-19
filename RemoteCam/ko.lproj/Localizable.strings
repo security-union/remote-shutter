@@ -390,3 +390,4 @@
 "AUTO" = "자동";
 "%@ can’t do %@" = "%@은(는) %@ 불가";
 "%@ can’t do HDR" = "%@은(는) HDR 불가";
+"Couldn't switch camera" = "카메라를 전환할 수 없습니다";

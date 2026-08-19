@@ -18,7 +18,7 @@ extension Notification.Name {
     static let enableVideoOnly = Notification.Name("EnableVideoOnly")
     static let tapToFocusAcquired = Notification.Name("TapToFocusAcquired")
     static let proSubscriptionAcquired = Notification.Name("ProSubscriptionAcquired")
-    static let sixCamerasAcquired = Notification.Name("SixCamerasAcquired")
+    static let maxCamerasAcquired = Notification.Name("MaxCamerasAcquired")
 }
 
 // MARK: - UserDefaults Keys
@@ -29,7 +29,7 @@ private enum PurchaseKey {
     static let enableTorch = "didBuyEnableTorchFeature"
     static let enableVideoOnly = "didBuyEnableVideoOnlyFeature"
     static let tapToFocus = "didBuyTapToFocusFeature"
-    static let sixCameras = "didBuySixCamerasFeature"
+    static let maxCameras = "didBuyMaxCamerasFeature"
     // Unlike the one-time flags above, this is NOT append-only: refreshPurchaseState
     // recomputes it from Transaction.currentEntitlements so a lapsed subscription
     // is revoked. It is persisted only so the UI is correct at launch before the
@@ -45,7 +45,7 @@ final class StoreManager: ObservableObject {
 
     static let allProductIDs: Set<String> = [
         disableAdsPID, enableVideoPID, enableTorchPID, enableVideoOnlyPID,
-        tapToFocusPID, sixCamerasPID, proMonthlyPID, proYearlyPID
+        tapToFocusPID, maxCamerasPID, proMonthlyPID, proYearlyPID
     ]
 
     /// The auto-renewable subscription products (the "Pro" subscription group).
@@ -95,22 +95,25 @@ final class StoreManager: ObservableObject {
     }
 
     /// The multicam camera caps — the single source for every gate and every
-    /// piece of copy that names a number, so they can never disagree.
+    /// piece of copy that names a number, so they can never disagree. The
+    /// paid cap is held at 4 until larger rigs are validated on hardware
+    /// (N preview streams + N clip uploads per take).
     static let maxFreeCameras = 2
-    static let maxPaidCameras = 6
+    static let maxPaidCameras = 4
 
-    /// Six-camera directing: unlocked by full access (Pro unlocks everything)
-    /// or the à la carte `six_cameras` pack.
-    func hasSixCamerasFeature() -> Bool {
-        hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.sixCameras)
+    /// Directing at the paid camera cap: unlocked by full access (Pro
+    /// unlocks everything) or the à la carte `max_cameras` pack. The pack
+    /// sells the cap itself, so it grows with `maxPaidCameras`.
+    func hasMaxCamerasFeature() -> Bool {
+        hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.maxCameras)
     }
 
     /// How many cameras a multicam director may connect: a free 2-camera
-    /// teaser, or the full 6 with Pro or the 6-camera pack. The director's
+    /// teaser, or the paid cap with Pro or the max-cameras pack. The director's
     /// entitlement is what counts (matching every other gate — checked locally
     /// on this device).
     func maxCameras() -> Int {
-        hasSixCamerasFeature() ? Self.maxPaidCameras : Self.maxFreeCameras
+        hasMaxCamerasFeature() ? Self.maxPaidCameras : Self.maxFreeCameras
     }
 
     // MARK: - Init
@@ -215,8 +218,8 @@ final class StoreManager: ObservableObject {
             defaults.set(true, forKey: PurchaseKey.enableVideoOnly)
         case tapToFocusPID:
             defaults.set(true, forKey: PurchaseKey.tapToFocus)
-        case sixCamerasPID:
-            defaults.set(true, forKey: PurchaseKey.sixCameras)
+        case maxCamerasPID:
+            defaults.set(true, forKey: PurchaseKey.maxCameras)
         case proMonthlyPID, proYearlyPID:
             // Live purchase/renewal is always active; refreshPurchaseState is the
             // authority that later clears this if the subscription lapses.
@@ -236,7 +239,7 @@ final class StoreManager: ObservableObject {
         if hasVideoRecordingFeature() { post(.enableVideoOnly) }
         if hasProSubscription() { post(.proSubscriptionAcquired) }
         if hasTapToFocusFeature() { post(.tapToFocusAcquired) }
-        if hasSixCamerasFeature() { post(.sixCamerasAcquired) }
+        if hasMaxCamerasFeature() { post(.maxCamerasAcquired) }
     }
 
     enum StoreError: Error {

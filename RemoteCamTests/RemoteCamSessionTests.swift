@@ -157,6 +157,31 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(count, 1, "collecting is armed and sees the live camera")
     }
 
+    /// The handoff seam serves whatever `MulticamHandoff.decide` asked for —
+    /// including a single camera (`MULTICAM_FOR_SINGLE_CAMERA`): one collected
+    /// camera detaches to the director. Pins the stranded-scanner bug where a
+    /// two-camera floor here silently returned nil while the camera went live.
+    func testDetachTransportHandsOffASingleCollectedCamera() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        let camA = MCPeerID(displayName: "CamA")
+        harness.fakeMP.connectedPeers = [camA]
+
+        let handoff = await harness.coordinator.detachTransportForMulticam()
+        XCTAssertEqual(handoff?.peers, [camA])
+        let stillCollecting = await harness.coordinator.multicamCollectingForTesting()
+        XCTAssertFalse(stillCollecting, "detach hands the session over and ends collecting")
+    }
+
+    /// An empty rig has nothing to hand off.
+    func testDetachTransportRefusesAnEmptyRig() async {
+        await seedScanning()
+        await harness.deliver(UICmd.SetMulticamCollecting(on: true))
+        harness.fakeMP.connectedPeers = []
+        let handoff = await harness.coordinator.detachTransportForMulticam()
+        XCTAssertNil(handoff)
+    }
+
     func testMulticamConnectInvitesEachSelectedPeer() async {
         await seedScanning()
         await harness.deliver(UICmd.SetMulticamCollecting(on: true))
@@ -1508,6 +1533,35 @@ class SessionCoordinatorTests: XCTestCase {
 
         XCTAssertTrue(sender.takeKeyframeRequest(),
                       "a keyframe request must not be dropped while transmitting video")
+    }
+
+    /// The engine reverts a switch whose graph cannot start; frames then flow
+    /// from the restored device and the confirm passes. The response must
+    /// still report failure — landing back on the pre-toggle device is an
+    /// error, not a no-op success.
+    func testRevertedToggleAnswersWithAnError() async {
+        let ctrl = FakeCameraControlling()
+        ctrl.toggleSticks = false
+        await harness.coordinator.seed(state: .camera, lobby: harness.lobbyWrapper,
+                                       peer: harness.peer, ctrl: ctrl)
+        await harness.deliver(RemoteCmd.ToggleCamera())
+
+        let resp = harness.fakeMP.sentMessages.compactMap { $0.msg as? RemoteCmd.ToggleCameraResp }.last
+        XCTAssertNotNil(resp, "the toggle must be answered")
+        XCTAssertNotNil(resp?.error, "a reverted switch must not read as success")
+    }
+
+    /// The healthy path is untouched: a toggle that sticks answers with the
+    /// refreshed capabilities and no error.
+    func testStickingToggleAnswersWithCapabilities() async {
+        let ctrl = FakeCameraControlling()
+        await harness.coordinator.seed(state: .camera, lobby: harness.lobbyWrapper,
+                                       peer: harness.peer, ctrl: ctrl)
+        await harness.deliver(RemoteCmd.ToggleCamera())
+
+        let resp = harness.fakeMP.sentMessages.compactMap { $0.msg as? RemoteCmd.ToggleCameraResp }.last
+        XCTAssertNil(resp?.error)
+        XCTAssertNotNil(resp?.cameraCapabilities)
     }
 
     /// The pipeline refuses to record when audio can't be configured and

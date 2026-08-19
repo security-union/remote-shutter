@@ -250,6 +250,10 @@ extension MulticamViewController: MulticamDisplay {
         viewModel.rigSettings = settings
     }
 
+    func showTransientError(_ message: String) {
+        viewModel.transientError = .init(message: message)
+    }
+
     func exitMulticam() {
         navigationController?.popViewController(animated: true)
     }

@@ -390,3 +390,4 @@
 "AUTO" = "TỰ ĐỘNG";
 "%@ can’t do %@" = "%@ không thể %@";
 "%@ can’t do HDR" = "%@ không thể HDR";
+"Couldn't switch camera" = "Không thể chuyển máy ảnh";

@@ -284,3 +284,4 @@
 "AUTO" = "AUTO";
 "%@ can’t do %@" = "%@ ne peut pas %@";
 "%@ can’t do HDR" = "%@ ne peut pas HDR";
+"Couldn't switch camera" = "Impossible de changer de caméra";

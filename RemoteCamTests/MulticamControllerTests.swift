@@ -28,6 +28,8 @@ private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     }
     func applyAvailablePeers(_ peers: [MCPeerID]) { availablePeers = peers }
     func applyRigSettings(_ settings: RigSettingsSnapshot) { rigSettings = settings }
+    var transientErrors: [String] = []
+    func showTransientError(_ message: String) { transientErrors.append(message) }
     func exitMulticam() { didExit = true }
 }
 
@@ -304,6 +306,50 @@ final class MulticamControllerTests: XCTestCase {
         // One shared capture id across both cameras.
         let ids = Set(scheduled.compactMap { ($0.msg as? RemoteCmd.ScheduledCapture)?.captureId })
         XCTAssertEqual(ids.count, 1)
+    }
+
+    /// A refused camera switch reaches the screen as a transient error —
+    /// never silently swallowed (the classic monitor shows these; so must the
+    /// director).
+    func testRefusedCameraSwitchSurfacesATransientError() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        controller.didReceiveMessage(
+            RemoteCmd.ToggleCameraResp(
+                cameraCapabilities: nil,
+                error: NSError(domain: "Couldn't switch camera", code: 0)),
+            from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+        XCTAssertEqual(display.transientErrors, ["Couldn't switch camera"])
+    }
+
+    /// Field repro: two cameras, the user never taps a strip thumbnail, then
+    /// flips the entry-focused camera. The flip must go out, and a later
+    /// shutter must still broadcast to the whole rig — not shrink to one lane.
+    func testFlipWithoutAnyFocusTapKeepsTheBroadcast() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(capsWith(full4K), from: camA)
+        controller.didReceiveMessage(capsWith(full4K), from: camB)
+        await controller.waitForIdle()
+
+        transport.sentMessages.removeAll()
+        controller.flipCamera(camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(sent(transport, RemoteCmd.ToggleCamera.self).map(\.peers), [[camA]],
+                       "the flip must reach the entry-focused camera")
+
+        // The camera answers with its refreshed (front-camera) capabilities.
+        controller.didReceiveMessage(
+            RemoteCmd.ToggleCameraResp(cameraCapabilities: capsWith(full4K), error: nil),
+            from: camA)
+        await controller.waitForIdle()
+
+        transport.sentMessages.removeAll()
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        let fired = sent(transport, RemoteCmd.TakePic.self).flatMap(\.peers)
+            + sent(transport, RemoteCmd.ScheduledCapture.self).flatMap(\.peers)
+        XCTAssertEqual(Set(fired), [camA, camB], "the shot must still broadcast to the rig")
     }
 
     func testNonMulticamLaneIsExcludedFromCapture() async {

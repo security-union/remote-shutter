@@ -117,6 +117,31 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.error?.localizedDescription, "recording failed")
     }
 
+    /// The error message must survive the wire into BOTH fields displays
+    /// read: `_domain` (the codebase's message-in-domain convention, what
+    /// alerts and the multicam toast show) and `localizedDescription`.
+    /// Message-in-domain errors must arrive as their message — never as
+    /// NSError's synthesized "The operation couldn't be completed…" text or
+    /// a placeholder domain.
+    func testWireErrorIsReadableFromDomainAndDescription() {
+        // The codebase convention: message in the domain, nothing else.
+        let domainOnly = RemoteCmd.ToggleCameraResp(
+            cameraCapabilities: nil,
+            error: NSError(domain: "Couldn't switch camera", code: 0))
+        let decodedDomainOnly: RemoteCmd.ToggleCameraResp = roundTrip(domainOnly)
+        XCTAssertEqual(decodedDomainOnly.error?._domain, "Couldn't switch camera")
+        XCTAssertEqual(decodedDomainOnly.error?.localizedDescription, "Couldn't switch camera")
+
+        // A system-style error with an explicit description keeps it.
+        let described = RemoteCmd.ToggleCameraResp(
+            cameraCapabilities: nil,
+            error: NSError(domain: "AVFoundationErrorDomain", code: -11800,
+                           userInfo: [NSLocalizedDescriptionKey: "recording failed"]))
+        let decodedDescribed: RemoteCmd.ToggleCameraResp = roundTrip(described)
+        XCTAssertEqual(decodedDescribed.error?._domain, "recording failed")
+        XCTAssertEqual(decodedDescribed.error?.localizedDescription, "recording failed")
+    }
+
     // MARK: - 3. StopRecordingVideo
 
     func testStopRecordingVideo_roundTrip() {

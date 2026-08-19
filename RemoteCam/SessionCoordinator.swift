@@ -375,17 +375,19 @@ public actor SessionCoordinator {
     /// reads this on "Start" to choose the single-camera vs director path.
     func multicamConnectedCount() -> Int { multicamCollecting ? connectedPeers.count : 0 }
 
-    /// Hand the live transport (and the ≥2 cameras it is connected to) to a
+    /// Hand the live transport (and the cameras it is connected to) to a
     /// `MulticamController`. Detaches this coordinator from the transport —
     /// nils its references without stopping the session — so the multicam
     /// controller becomes the sole delegate and this coordinator's `stop()`
     /// (on scanner teardown) cannot kill a session the director is using.
-    /// Returns nil unless collecting with two or more cameras (the single
-    /// camera case stays on the classic monitor — see below).
+    /// Returns nil unless collecting with at least one camera. Whether a
+    /// single camera goes to the director or the classic monitor is decided
+    /// in exactly one place — `MulticamHandoff.decide` — before this is
+    /// called; this seam serves whatever that decision asked for.
     func detachTransportForMulticam() -> (transport: any MultipeerServiceProtocol, peers: [MCPeerID])? {
         guard multicamCollecting, let transport = multipeerService else { return nil }
         let peers = transport.connectedPeers
-        guard peers.count >= 2 else { return nil }
+        guard !peers.isEmpty else { return nil }
         multipeerService = nil
         transportShared.value = nil
         multicamCollecting = false
@@ -1110,12 +1112,23 @@ public actor SessionCoordinator {
 
         case is RemoteCmd.ToggleCamera:
             do {
+                let before = await ctrl.currentCameraDevice()?.uniqueID
                 _ = try await ctrl.toggleCamera()
                 try await confirmFrameDelivery(ctrl)
                 await ctrl.gatherAllCameraCapabilities()
                 let capabilities = await ctrl.gatherCurrentCameraCapabilities()
-                await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
-                    cameraCapabilities: capabilities, error: nil))
+                // A switch whose graph cannot start is reverted by the engine
+                // within milliseconds; frames then flow from the restored
+                // device and the confirm above passes. Landing back on the
+                // pre-toggle device means the switch failed — say so instead
+                // of reporting a no-op success.
+                if let before, let after = capabilities?.activeDeviceID, after == before {
+                    await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
+                        cameraCapabilities: nil, error: couldNotSwitchCameraError()))
+                } else {
+                    await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
+                        cameraCapabilities: capabilities, error: nil))
+                }
             } catch {
                 await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
                     cameraCapabilities: nil, error: error as NSError))
@@ -1127,8 +1140,15 @@ public actor SessionCoordinator {
                 try await confirmFrameDelivery(ctrl)
                 await ctrl.gatherAllCameraCapabilities()
                 let capabilities = await ctrl.gatherCurrentCameraCapabilities()
-                await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
-                    cameraCapabilities: capabilities, error: nil))
+                // Same truth check as the toggle: not on the requested device
+                // after the confirm ⇒ the engine reverted a failed switch.
+                if let after = capabilities?.activeDeviceID, after != select.uniqueID {
+                    await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
+                        cameraCapabilities: nil, error: couldNotSwitchCameraError()))
+                } else {
+                    await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
+                        cameraCapabilities: capabilities, error: nil))
+                }
             } catch {
                 await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
                     cameraCapabilities: nil, error: error as NSError))
@@ -1248,6 +1268,15 @@ public actor SessionCoordinator {
                 domain: String(format: NSLocalizedString("%@ is not delivering video", comment: "dead camera"), name),
                 code: 0, userInfo: nil)
         }
+    }
+
+    /// "The switch didn't stick." The message rides in the NSError domain —
+    /// the convention every monitor's error display reads (`error._domain`).
+    private func couldNotSwitchCameraError() -> NSError {
+        NSError(domain: NSLocalizedString(
+                    "Couldn't switch camera",
+                    comment: "a camera switch failed; the previous camera keeps running"),
+                code: 0, userInfo: nil)
     }
 
     /// Capabilities retry ladder: the capture device isn't ready right after

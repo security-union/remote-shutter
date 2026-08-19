@@ -390,3 +390,4 @@
 "AUTO" = "AUTO";
 "%@ can’t do %@" = "%@ tidak boleh %@";
 "%@ can’t do HDR" = "%@ tidak boleh HDR";
+"Couldn't switch camera" = "Tidak dapat menukar kamera";

@@ -12,10 +12,14 @@ enum MulticamHandoff: Equatable {
     case classicMonitor(MCPeerID)
     case director([MCPeerID])
 
-    static func decide(connected: [MCPeerID]) -> MulticamHandoff {
+    /// `directorForSingleCamera` defaults to the feature flag; it is a
+    /// parameter so the policy stays a pure, testable function.
+    static func decide(connected: [MCPeerID],
+                       directorForSingleCamera: Bool = FeatureFlags.MULTICAM_FOR_SINGLE_CAMERA)
+        -> MulticamHandoff {
         switch connected.count {
         case 0: return .none
-        case 1: return .classicMonitor(connected[0])
+        case 1 where !directorForSingleCamera: return .classicMonitor(connected[0])
         default: return .director(connected)
         }
     }

@@ -37,6 +37,11 @@ struct FeatureFlags {
     /// single-camera flow.
     static let ENABLE_MULTICAM = true
 
+    /// Route a single connected camera to the multicam director too, instead
+    /// of the classic 1:1 monitor — one remote surface for every rig size.
+    /// Off restores the classic screen for 1 camera (2+ always direct).
+    static let MULTICAM_FOR_SINGLE_CAMERA = true
+
     /// Show the local camera-device picker on the camera screen. On for Mac
     /// Catalyst only (a Mac has N cameras — built-in, Continuity, USB);
     /// iPhone keeps its flip button.

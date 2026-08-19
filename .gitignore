@@ -51,3 +51,6 @@ fastlane/test_output
 
 # Bundler
 vendor/bundle
+
+# Local debugging captures
+error-cam-toggle.txt

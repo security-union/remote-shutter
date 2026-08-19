@@ -311,66 +311,66 @@
         "description": "Коснитесь превью для фокуса."
       }
     },
-    "six_cameras": {
+    "max_cameras": {
       "en-US": {
-        "name": "6-Camera Multicam",
-        "description": "Direct up to 6 cameras at once."
+        "name": "4-Camera Multicam",
+        "description": "Direct up to 4 cameras at once."
       },
       "da": {
-        "name": "Multicam med 6 kameraer",
-        "description": "Styr op til 6 kameraer på én gang."
+        "name": "Multicam med 4 kameraer",
+        "description": "Styr op til 4 kameraer på én gang."
       },
       "de-DE": {
-        "name": "Multicam mit 6 Kameras",
-        "description": "Bis zu 6 Kameras gleichzeitig steuern."
+        "name": "Multicam mit 4 Kameras",
+        "description": "Bis zu 4 Kameras gleichzeitig steuern."
       },
       "es-MX": {
-        "name": "Multicámara de 6 cámaras",
-        "description": "Dirige hasta 6 cámaras a la vez."
+        "name": "Multicámara de 4 cámaras",
+        "description": "Dirige hasta 4 cámaras a la vez."
       },
       "fr-FR": {
-        "name": "Multicam à 6 caméras",
-        "description": "Dirigez jusqu'à 6 caméras à la fois."
+        "name": "Multicam à 4 caméras",
+        "description": "Dirigez jusqu'à 4 caméras à la fois."
       },
       "it": {
-        "name": "Multicam a 6 fotocamere",
-        "description": "Dirigi fino a 6 fotocamere insieme."
+        "name": "Multicam a 4 fotocamere",
+        "description": "Dirigi fino a 4 fotocamere insieme."
       },
       "ja": {
-        "name": "6台マルチカム",
-        "description": "最大6台のカメラを同時に操作。"
+        "name": "4台マルチカム",
+        "description": "最大4台のカメラを同時に操作。"
       },
       "ko": {
-        "name": "6대 멀티캠",
-        "description": "최대 6대의 카메라를 동시에 제어."
+        "name": "4대 멀티캠",
+        "description": "최대 4대의 카메라를 동시에 제어."
       },
       "pt-BR": {
-        "name": "Multicam de 6 câmeras",
-        "description": "Dirija até 6 câmeras ao mesmo tempo."
+        "name": "Multicam de 4 câmeras",
+        "description": "Dirija até 4 câmeras ao mesmo tempo."
       },
       "zh-Hans": {
-        "name": "6机位多机拍摄",
-        "description": "同时指挥最多6台相机。"
+        "name": "4机位多机拍摄",
+        "description": "同时指挥最多4台相机。"
       },
       "vi": {
-        "name": "Multicam 6 máy ảnh",
-        "description": "Điều khiển tối đa 6 máy ảnh cùng lúc."
+        "name": "Multicam 4 máy ảnh",
+        "description": "Điều khiển tối đa 4 máy ảnh cùng lúc."
       },
       "hi": {
-        "name": "6-कैमरा मल्टीकैम",
-        "description": "एक साथ 6 कैमरों तक निर्देशित करें।"
+        "name": "4-कैमरा मल्टीकैम",
+        "description": "एक साथ 4 कैमरों तक निर्देशित करें।"
       },
       "ms": {
-        "name": "Multicam 6 kamera",
-        "description": "Arahkan hingga 6 kamera serentak."
+        "name": "Multicam 4 kamera",
+        "description": "Arahkan hingga 4 kamera serentak."
       },
       "tr": {
-        "name": "6 Kameralı Multicam",
-        "description": "Aynı anda 6 kameraya kadar yönetin."
+        "name": "4 Kameralı Multicam",
+        "description": "Aynı anda 4 kameraya kadar yönetin."
       },
       "ru": {
-        "name": "Мультикам на 6 камер",
-        "description": "Управляйте до 6 камер одновременно."
+        "name": "Мультикам на 4 камер",
+        "description": "Управляйте до 4 камер одновременно."
       }
     },
     "pro_monthly": {
@@ -499,9 +499,9 @@
     }
   },
   "create": {
-    "six_cameras": {
+    "max_cameras": {
       "type": "NON_CONSUMABLE",
-      "reference_name": "6-Camera Multicam",
+      "reference_name": "Max Cameras Pack",
       "usd_price": "4.99"
     }
   }
