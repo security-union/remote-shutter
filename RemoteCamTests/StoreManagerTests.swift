@@ -9,7 +9,7 @@ final class StoreManagerTests: XCTestCase {
     private let torchKey = "didBuyEnableTorchFeature"
     private let videoOnlyKey = "didBuyEnableVideoOnlyFeature"
     private let tapToFocusKey = "didBuyTapToFocusFeature"
-    private let fourCamerasKey = "didBuyFourCamerasFeature"
+    private let maxCamerasKey = "didBuyMaxCamerasFeature"
     private let proSubscriptionKey = "hasActiveProSubscription"
 
     private var savedValues: [String: Bool] = [:]
@@ -18,7 +18,7 @@ final class StoreManagerTests: XCTestCase {
         super.setUp()
         // Save existing values so tests don't corrupt real state
         let keys = [removeAdsKey, proModeKey, torchKey, videoOnlyKey,
-                    tapToFocusKey, fourCamerasKey, proSubscriptionKey]
+                    tapToFocusKey, maxCamerasKey, proSubscriptionKey]
         for key in keys {
             savedValues[key] = UserDefaults.standard.bool(forKey: key)
             UserDefaults.standard.removeObject(forKey: key)
@@ -45,7 +45,7 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertFalse(store.hasProSubscription())
         XCTAssertFalse(store.hasFullAccess())
         XCTAssertFalse(store.hasTapToFocusFeature())
-        XCTAssertFalse(store.hasFourCamerasFeature())
+        XCTAssertFalse(store.hasMaxCamerasFeature())
     }
 
     // MARK: - Multicam camera cap
@@ -58,7 +58,7 @@ final class StoreManagerTests: XCTestCase {
     /// bundle and the subscription both land on the full paid cap.
     func testProModeUnlocksPaidCameraCap() {
         UserDefaults.standard.set(true, forKey: proModeKey)
-        XCTAssertTrue(StoreManager.shared.hasFourCamerasFeature())
+        XCTAssertTrue(StoreManager.shared.hasMaxCamerasFeature())
         XCTAssertEqual(StoreManager.shared.maxCameras(), StoreManager.maxPaidCameras)
     }
 
@@ -68,8 +68,8 @@ final class StoreManagerTests: XCTestCase {
     }
 
     /// The à la carte pack reaches the same cap without Pro.
-    func testFourCameraPackAloneUnlocksPaidCameraCap() {
-        UserDefaults.standard.set(true, forKey: fourCamerasKey)
+    func testMaxCamerasPackAloneUnlocksPaidCameraCap() {
+        UserDefaults.standard.set(true, forKey: maxCamerasKey)
         XCTAssertEqual(StoreManager.shared.maxCameras(), StoreManager.maxPaidCameras)
     }
 
@@ -77,14 +77,6 @@ final class StoreManagerTests: XCTestCase {
     func testCameraCapConstants() {
         XCTAssertEqual(StoreManager.maxFreeCameras, 2)
         XCTAssertEqual(StoreManager.maxPaidCameras, 4)
-    }
-
-    /// The paywall offers the 4-camera pack whenever the cap honors what
-    /// the product sells — true today (both are 4); raising the pack's
-    /// promise past the cap withholds the row.
-    func testFourCameraPackIsOfferedWhileTheCapHonorsItsPromise() {
-        XCTAssertTrue(StoreManager.offersFourCamerasPack)
-        XCTAssertEqual(StoreManager.fourCamerasPackCameraCount, 4)
     }
 
     // MARK: - Individual Feature Flags
@@ -188,7 +180,7 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertEqual(enableTorchPID, "07")
         XCTAssertEqual(enableVideoOnlyPID, "08")
         XCTAssertEqual(tapToFocusPID, "09")
-        XCTAssertEqual(fourCamerasPID, "four_cameras")
+        XCTAssertEqual(maxCamerasPID, "max_cameras")
         XCTAssertEqual(proMonthlyPID, "pro_monthly")
         XCTAssertEqual(proYearlyPID, "pro_yearly")
     }
@@ -201,7 +193,7 @@ final class StoreManagerTests: XCTestCase {
         XCTAssertTrue(ids.contains(enableTorchPID))
         XCTAssertTrue(ids.contains(enableVideoOnlyPID))
         XCTAssertTrue(ids.contains(tapToFocusPID))
-        XCTAssertTrue(ids.contains(fourCamerasPID))
+        XCTAssertTrue(ids.contains(maxCamerasPID))
         XCTAssertTrue(ids.contains(proMonthlyPID))
         XCTAssertTrue(ids.contains(proYearlyPID))
     }

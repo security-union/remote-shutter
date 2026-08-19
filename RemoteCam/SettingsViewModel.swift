@@ -25,7 +25,7 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
     @Published var enableTorch = PurchaseItem(id: enableTorchPID, title: "", price: "", isPurchased: false)
     @Published var enableVideo = PurchaseItem(id: enableVideoOnlyPID, title: "", price: "", isPurchased: false)
     @Published var tapToFocus = PurchaseItem(id: tapToFocusPID, title: "", price: "", isPurchased: false)
-    @Published var fourCameras = PurchaseItem(id: fourCamerasPID, title: "", price: "", isPurchased: false)
+    @Published var maxCamerasPack = PurchaseItem(id: maxCamerasPID, title: "", price: "", isPurchased: false)
     /// True once the StoreKit product fetch has completed (success or not), so
     /// the paywall can swap skeleton rows for real names/prices.
     @Published var productsLoaded = false
@@ -136,10 +136,10 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
                 tapToFocus.title = product.displayName
                 tapToFocus.price = product.displayPrice
                 tapToFocus.isPurchased = store.hasTapToFocusFeature()
-            case fourCamerasPID:
-                fourCameras.title = product.displayName
-                fourCameras.price = product.displayPrice
-                fourCameras.isPurchased = store.hasFourCamerasFeature()
+            case maxCamerasPID:
+                maxCamerasPack.title = product.displayName
+                maxCamerasPack.price = product.displayPrice
+                maxCamerasPack.isPurchased = store.hasMaxCamerasFeature()
             case proMonthlyPID:
                 proSubscriptionMonthly.title = product.displayName
                 proSubscriptionMonthly.price = product.displayPrice
@@ -165,7 +165,7 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
         enableTorch.isPurchased = store.hasTorchFeature()
         enableVideo.isPurchased = store.hasVideoRecordingFeature()
         tapToFocus.isPurchased = store.hasTapToFocusFeature()
-        fourCameras.isPurchased = store.hasFourCamerasFeature()
+        maxCamerasPack.isPurchased = store.hasMaxCamerasFeature()
     }
 
 }

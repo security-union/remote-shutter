@@ -33,10 +33,10 @@ public let enableVideoPID = "06"
 public let enableTorchPID = "07"
 public let enableVideoOnlyPID = "08"
 public let tapToFocusPID = "09"
-/// One-time cap raiser: multicam directing at the full paid camera cap.
-/// (Product IDs are free-form strings on ASC — the numeric 05…09 style is
-/// legacy, not a requirement.)
-public let fourCamerasPID = "four_cameras"
+/// One-time pack: multicam directing at the paid camera cap. The id is
+/// cap-agnostic on purpose — the same purchase grows with `maxPaidCameras`
+/// as larger rigs are validated; only the marketing copy names a number.
+public let maxCamerasPID = "max_cameras"
 // Auto-renewable "Pro" subscription (group "Pro"). Unlocks every feature for
 // the subscription period — the recurring equivalent of the one-time 06 bundle.
 public let proMonthlyPID = "pro_monthly"

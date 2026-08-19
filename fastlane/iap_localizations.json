@@ -311,7 +311,7 @@
         "description": "Коснитесь превью для фокуса."
       }
     },
-    "four_cameras": {
+    "max_cameras": {
       "en-US": {
         "name": "4-Camera Multicam",
         "description": "Direct up to 4 cameras at once."
@@ -499,9 +499,9 @@
     }
   },
   "create": {
-    "four_cameras": {
+    "max_cameras": {
       "type": "NON_CONSUMABLE",
-      "reference_name": "4-Camera Multicam",
+      "reference_name": "Max Cameras Pack",
       "usd_price": "4.99"
     }
   }
