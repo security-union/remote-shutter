@@ -1535,6 +1535,35 @@ class SessionCoordinatorTests: XCTestCase {
                       "a keyframe request must not be dropped while transmitting video")
     }
 
+    /// The engine reverts a switch whose graph cannot start; frames then flow
+    /// from the restored device and the confirm passes. The response must
+    /// still report failure — landing back on the pre-toggle device is an
+    /// error, not a no-op success.
+    func testRevertedToggleAnswersWithAnError() async {
+        let ctrl = FakeCameraControlling()
+        ctrl.toggleSticks = false
+        await harness.coordinator.seed(state: .camera, lobby: harness.lobbyWrapper,
+                                       peer: harness.peer, ctrl: ctrl)
+        await harness.deliver(RemoteCmd.ToggleCamera())
+
+        let resp = harness.fakeMP.sentMessages.compactMap { $0.msg as? RemoteCmd.ToggleCameraResp }.last
+        XCTAssertNotNil(resp, "the toggle must be answered")
+        XCTAssertNotNil(resp?.error, "a reverted switch must not read as success")
+    }
+
+    /// The healthy path is untouched: a toggle that sticks answers with the
+    /// refreshed capabilities and no error.
+    func testStickingToggleAnswersWithCapabilities() async {
+        let ctrl = FakeCameraControlling()
+        await harness.coordinator.seed(state: .camera, lobby: harness.lobbyWrapper,
+                                       peer: harness.peer, ctrl: ctrl)
+        await harness.deliver(RemoteCmd.ToggleCamera())
+
+        let resp = harness.fakeMP.sentMessages.compactMap { $0.msg as? RemoteCmd.ToggleCameraResp }.last
+        XCTAssertNil(resp?.error)
+        XCTAssertNotNil(resp?.cameraCapabilities)
+    }
+
     /// The pipeline refuses to record when audio can't be configured and
     /// reports MicrophoneAccessDenied. The recording state must answer the
     /// monitor with the stop ack + an error response, and return to camera.

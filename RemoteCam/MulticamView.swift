@@ -80,6 +80,7 @@ struct MulticamView: View {
                 // action cluster in focus mode only.
                 chrome(dock: dock)
                 countdownOverlay
+                transientErrorToast
                 if viewModel.showingRigTray { rigTrayLayer }
             }
             .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.showingRigTray)
@@ -336,6 +337,36 @@ struct MulticamView: View {
         Button(role: .destructive, action: { onDisconnectCamera(lane) }) {
             Label(NSLocalizedString("Disconnect Camera", comment: "remove one camera from the rig"),
                   systemImage: "xmark.circle")
+        }
+    }
+
+    /// How long the error toast dwells. Apple publishes no toast API or
+    /// constant; the anchors are the system notification banner's ~5s dwell
+    /// and the accessibility floor of 5 seconds minimum for reading a
+    /// sentence of transient text.
+    private static let errorToastSeconds: UInt64 = 5
+
+    /// A brief error readout (a refused camera switch, e.g.) in the chrome's
+    /// glass style, tucked under the top bar. Non-blocking — it never
+    /// hit-tests, and it fades itself out; deliberately not a modal.
+    @ViewBuilder
+    private var transientErrorToast: some View {
+        if let message = viewModel.transientError {
+            Text(message)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(.ultraThinMaterial))
+                .allowsHitTesting(false)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.top, 64)
+                .transition(.opacity)
+                .id(message)
+                .task(id: message) {
+                    try? await Task.sleep(nanoseconds: Self.errorToastSeconds * 1_000_000_000)
+                    withAnimation(.easeOut(duration: 0.3)) { viewModel.transientError = nil }
+                }
         }
     }
 

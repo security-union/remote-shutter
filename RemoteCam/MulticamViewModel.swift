@@ -89,6 +89,9 @@ final class MulticamViewModel: ObservableObject {
     @Published var rigSettings = RigSettingsSnapshot()
     /// Whether the rig settings tray is showing.
     @Published var showingRigTray: Bool = false
+    /// A brief, non-blocking error readout (a refused camera switch, e.g.).
+    /// The toast that renders it clears it after a few seconds.
+    @Published var transientError: String?
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
 

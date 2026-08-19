@@ -390,3 +390,4 @@
 "AUTO" = "OTO";
 "%@ can’t do %@" = "%@ %@ yapamaz";
 "%@ can’t do HDR" = "%@ HDR yapamaz";
+"Couldn't switch camera" = "Kamera değiştirilemedi";

@@ -28,6 +28,8 @@ private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     }
     func applyAvailablePeers(_ peers: [MCPeerID]) { availablePeers = peers }
     func applyRigSettings(_ settings: RigSettingsSnapshot) { rigSettings = settings }
+    var transientErrors: [String] = []
+    func showTransientError(_ message: String) { transientErrors.append(message) }
     func exitMulticam() { didExit = true }
 }
 
@@ -304,6 +306,21 @@ final class MulticamControllerTests: XCTestCase {
         // One shared capture id across both cameras.
         let ids = Set(scheduled.compactMap { ($0.msg as? RemoteCmd.ScheduledCapture)?.captureId })
         XCTAssertEqual(ids.count, 1)
+    }
+
+    /// A refused camera switch reaches the screen as a transient error —
+    /// never silently swallowed (the classic monitor shows these; so must the
+    /// director).
+    func testRefusedCameraSwitchSurfacesATransientError() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        controller.didReceiveMessage(
+            RemoteCmd.ToggleCameraResp(
+                cameraCapabilities: nil,
+                error: NSError(domain: "Couldn't switch camera", code: 0)),
+            from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+        XCTAssertEqual(display.transientErrors, ["Couldn't switch camera"])
     }
 
     /// Field repro: two cameras, the user never taps a strip thumbnail, then

@@ -390,3 +390,4 @@
 "AUTO" = "自动";
 "%@ can’t do %@" = "%@ 不支持 %@";
 "%@ can’t do HDR" = "%@ 不支持 HDR";
+"Couldn't switch camera" = "无法切换相机";

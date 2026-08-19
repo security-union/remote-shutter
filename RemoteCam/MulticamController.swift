@@ -103,6 +103,9 @@ protocol MulticamDisplay: AnyObject {
     func applyAvailablePeers(_ peers: [MCPeerID])
     /// The rig-wide settings (timer + quality intersection) for the tray.
     func applyRigSettings(_ settings: RigSettingsSnapshot)
+    /// A brief, non-blocking error readout (a refused camera switch, e.g.).
+    /// The screen shows it and clears it itself — the controller keeps none of it.
+    func showTransientError(_ message: String)
     func exitMulticam()
 }
 
@@ -560,6 +563,14 @@ public actor MulticamController {
             // The focused camera flipped front/back (or picked a device — the
             // response type is shared). Its refreshed capabilities carry the
             // new position, lenses and zoom, so the lane's controls reflect it.
+            // A refusal (the camera couldn't run the requested device and
+            // reverted) surfaces on screen — never silently swallowed.
+            if let error = resp.error {
+                logWarning("director: camera switch on \(link.displayName) failed — \(error._domain)")
+                let display = display
+                let message = error._domain
+                OperationQueue.main.addOperation { display?.showTransientError(message) }
+            }
             if let caps = resp.cameraCapabilities {
                 link.capabilities = caps
                 seedZoom(link, from: caps)

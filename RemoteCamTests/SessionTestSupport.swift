@@ -171,8 +171,14 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
         torchActive.toggle()
         return torchActive ? .on : .off
     }
+    /// When false, the toggle leaves the active device unchanged — the
+    /// engine's runtime-error revert restored the previous device underneath.
+    var toggleSticks = true
     func toggleCamera() async throws -> (AVCaptureDevice.FlashMode?, AVCaptureDevice.Position) {
         if let errorToThrow { throw errorToThrow }
+        if toggleSticks, let next = availableDevices.first(where: { $0.uniqueID != activeDeviceID }) {
+            activeDeviceID = next.uniqueID
+        }
         return (flashMode, .back)
     }
 
