@@ -222,11 +222,39 @@ final class RigQualityMenuTests: XCTestCase {
             option(.hd1080p, .fps30),
             option(.uhd4k, .fps60, enabled: false, blockedBy: ["iPad"]),
         ])
-        XCTAssertNotNil(snap.blockerFootnote)
-        XCTAssertTrue(snap.blockerFootnote?.contains("iPad") == true)
+        XCTAssertNotNil(snap.blockerFootnote(for: .video))
+        XCTAssertTrue(snap.blockerFootnote(for: .video)?.contains("iPad") == true)
 
         // No blockers → no footnote.
         snap = RigSettingsSnapshot(videoOptions: [option(.hd1080p, .fps30)], hdrAvailable: true)
-        XCTAssertNil(snap.blockerFootnote)
+        XCTAssertNil(snap.blockerFootnote(for: .video))
+    }
+
+    /// The footnote is scoped to the tray's mode: the photo tray never explains
+    /// a video limit, and vice versa.
+    func testFootnoteIsModeScoped() {
+        var snap = RigSettingsSnapshot(videoOptions: [
+            option(.uhd4k, .fps60, enabled: false, blockedBy: ["iPad"]),
+        ])
+        snap.heifAvailable = true
+        snap.hdrAvailable = true
+        // A video blocker exists, but the photo tray doesn't list video quality.
+        XCTAssertNotNil(snap.blockerFootnote(for: .video))
+        XCTAssertNil(snap.blockerFootnote(for: .photo))
+
+        // A HEIF blocker outranks the HDR one; neither shows in video mode.
+        snap = RigSettingsSnapshot(videoOptions: [option(.hd1080p, .fps30)])
+        snap.heifAvailable = false
+        snap.heifBlockedBy = ["iPad"]
+        snap.hdrAvailable = false
+        snap.hdrBlockedBy = ["iPhone"]
+        XCTAssertTrue(snap.blockerFootnote(for: .photo)?.contains("iPad") == true)
+        XCTAssertTrue(snap.blockerFootnote(for: .photo)?.contains("HEIF") == true)
+        XCTAssertNil(snap.blockerFootnote(for: .video))
+
+        // HDR blocker alone.
+        snap.heifAvailable = true
+        snap.heifBlockedBy = []
+        XCTAssertTrue(snap.blockerFootnote(for: .photo)?.contains("iPhone") == true)
     }
 }

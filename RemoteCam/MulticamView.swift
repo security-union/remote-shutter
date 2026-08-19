@@ -34,10 +34,14 @@ struct MulticamView: View {
     /// Rig photo format / HDR picked.
     let onSetPhotoFormat: (PhotoFormat) -> Void
     let onSetHDR: (Bool) -> Void
+    /// Rig aspect ratio picked (one crop across every camera).
+    let onSetAspectRatio: (AspectRatio) -> Void
     /// Rig standby: blank (or wake) every supporting camera's own preview.
     let onSetStandby: (Bool) -> Void
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
+    /// Open the help sheet (the shared one every screen presents).
+    let onOpenHelp: () -> Void
     /// Retry a lane's failed footage collection.
     let onRetryCollection: (CameraLane) -> Void
     /// Flip the focused camera front/back (per-camera framing).
@@ -114,17 +118,24 @@ struct MulticamView: View {
                 .ignoresSafeArea()
                 .onTapGesture { viewModel.showingRigTray = false }
             RigTrayPanel(settings: viewModel.rigSettings,
+                         mode: viewModel.mode,
+                         isRecording: viewModel.isRecording,
                          onSetTimer: onSetTimer,
                          onSelectVideoQuality: onSelectVideoQuality,
                          onAutomaticVideoQuality: onAutomaticVideoQuality,
                          onSetPhotoFormat: onSetPhotoFormat,
                          onSetHDR: onSetHDR,
+                         onSetAspectRatio: onSetAspectRatio,
                          onSetStandby: onSetStandby,
                          // Close the tray first, as the 1:1 tray does — the
                          // sheet returns to a clean viewfinder.
                          onOpenSettings: {
                              viewModel.showingRigTray = false
                              onOpenSettings()
+                         },
+                         onOpenHelp: {
+                             viewModel.showingRigTray = false
+                             onOpenHelp()
                          })
                 .transition(.move(edge: .bottom))
         }
@@ -411,7 +422,9 @@ struct MulticamView: View {
             count: MultiCamChrome.gridColumnCount(cameraCount: count))
         return LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(viewModel.lanes) { lane in
-                CameraTileView(lane: lane, isThumbnail: true, onRetry: { onRetryCollection(lane) })
+                CameraTileView(lane: lane, isThumbnail: true,
+                               aspectRatio: viewModel.rigSettings.aspectRatio,
+                               onRetry: { onRetryCollection(lane) })
                     .frame(height: cellHeight)
                     .onTapGesture {
                         onFocusLane(lane)
@@ -438,7 +451,7 @@ struct MulticamView: View {
             // the 1:1 monitor's preview layer). Gestures address the focused
             // camera; in grid mode a tile tap focuses the lane instead.
             ZStack {
-                LiveFrameView(frames: focused.frames, aspectRatio: .sixteenNine)
+                LiveFrameView(frames: focused.frames, aspectRatio: viewModel.rigSettings.aspectRatio)
                 ViewfinderGestureLayer(
                     cameraImage: { focused.frames.cameraImage },
                     zoomScale: { focused.zoomScale },
@@ -482,7 +495,9 @@ struct MulticamView: View {
     @ViewBuilder
     private func stripTiles(_ others: [CameraLane], size: CGSize) -> some View {
         ForEach(others) { lane in
-            CameraTileView(lane: lane, isThumbnail: true, onRetry: { onRetryCollection(lane) })
+            CameraTileView(lane: lane, isThumbnail: true,
+                           aspectRatio: viewModel.rigSettings.aspectRatio,
+                           onRetry: { onRetryCollection(lane) })
                 .frame(width: size.width, height: size.height)
                 .onTapGesture { onFocusLane(lane) }
                 .contextMenu { disconnectButton(for: lane) }
@@ -598,6 +613,9 @@ struct TileStatusBadge: View {
 struct CameraTileView: View {
     @ObservedObject var lane: CameraLane
     var isThumbnail: Bool = false
+    /// The rig's aspect ratio — the tile draws the same crop bars as the
+    /// focused viewfinder, so every angle is judged against the real frame.
+    var aspectRatio: AspectRatio = .sixteenNine
     /// Retry a failed footage collection for this lane (nil = not offered).
     var onRetry: (() -> Void)? = nil
 
@@ -626,7 +644,7 @@ struct CameraTileView: View {
 
     var body: some View {
         ZStack {
-            LiveFrameView(frames: lane.frames, aspectRatio: .sixteenNine)
+            LiveFrameView(frames: lane.frames, aspectRatio: aspectRatio)
                 .clipShape(RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0))
                 .saturation(lane.status == .linked ? 1 : 0)
 
@@ -741,42 +759,83 @@ struct AddCameraSheet: View {
 /// footnote names any camera that blocks an option.
 struct RigTrayPanel: View {
     let settings: RigSettingsSnapshot
+    /// Photo vs video — the tray lists only the tiles that matter to the mode,
+    /// exactly as `MonitorTray` does for the 1:1 monitor.
+    let mode: MonitorMode
+    /// Mid-recording the capture settings dim (standby and help stay live) —
+    /// the 1:1 monitor's `configureVideoRecording` rules.
+    let isRecording: Bool
     let onSetTimer: (Int) -> Void
     let onSelectVideoQuality: (VideoResolution, VideoFrameRate) -> Void
     let onAutomaticVideoQuality: () -> Void
     let onSetPhotoFormat: (PhotoFormat) -> Void
     let onSetHDR: (Bool) -> Void
+    /// Rig aspect ratio picked (one crop across every camera).
+    let onSetAspectRatio: (AspectRatio) -> Void
     /// Rig standby: blank (or wake) every supporting camera's own preview.
     let onSetStandby: (Bool) -> Void
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
+    /// Open the help sheet (the same one every screen presents).
+    let onOpenHelp: () -> Void
 
     private let timerStops = [0, 3, 5, 10, 20]
 
     var body: some View {
-        TrayPanelShell(footnote: settings.blockerFootnote) {
+        TrayPanelShell(footnote: settings.blockerFootnote(for: mode)) {
+            ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable),
+                    id: \.self) { item in
+                tile(for: item)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tile(for item: MonitorTrayItem) -> some View {
+        switch item {
+        case .timer:
             MonitorTrayTile(item: .timer, value: settings.timerSeconds > 0 ? "\(settings.timerSeconds)" : nil,
-                            isActive: settings.timerSeconds > 0, isEnabled: true,
+                            isActive: settings.timerSeconds > 0, isEnabled: !isRecording,
                             action: cycleTimer)
+        case .aspect:
+            MonitorTrayTile(item: .aspect, value: settings.aspectRatio.displayName,
+                            isActive: false, isEnabled: !isRecording,
+                            action: {
+                                onSetAspectRatio(MonitorView.cycled(settings.aspectRatio,
+                                                                    in: AspectRatio.selectableCases))
+                            })
+        case .resolution:
             MonitorTrayTile(item: .resolution, value: settings.videoTileValue,
                             isActive: settings.activeVideo != nil,
-                            isEnabled: !settings.videoOptions.filter(\.enabled).isEmpty,
+                            isEnabled: !isRecording && !settings.videoOptions.filter(\.enabled).isEmpty,
                             action: cycleQuality)
+        case .format:
             MonitorTrayTile(item: .format, value: (settings.activePhotoFormat ?? .jpeg).displayName,
                             isActive: settings.activePhotoFormat == .heif,
-                            isEnabled: settings.heifAvailable,
+                            isEnabled: !isRecording && settings.heifAvailable,
                             action: { onSetPhotoFormat(settings.activePhotoFormat == .heif ? .jpeg : .heif) })
+        case .hdr:
             MonitorTrayTile(item: .hdr, value: nil,
                             isActive: settings.activeHDR == .on,
-                            isEnabled: settings.hdrAvailable,
+                            isEnabled: !isRecording && settings.hdrAvailable,
                             action: { onSetHDR(settings.activeHDR != .on) })
+        case .cameraStandby:
             MonitorTrayTile(item: .cameraStandby, value: nil,
                             isActive: settings.standbyOn,
-                            isEnabled: settings.standbyAvailable,
+                            isEnabled: true,
                             action: { onSetStandby(!settings.standbyOn) })
+        case .settings:
             MonitorTrayTile(item: .settings, value: nil,
-                            isActive: false, isEnabled: true,
+                            isActive: false, isEnabled: !isRecording,
                             action: onOpenSettings)
+        case .help:
+            MonitorTrayTile(item: .help, value: nil,
+                            isActive: false, isEnabled: true,
+                            action: onOpenHelp)
+        case .frameRate:
+            // Not offered by `RigTray.items` — frame rate rides the single
+            // quality tile's intersection cycle.
+            EmptyView()
         }
     }
 

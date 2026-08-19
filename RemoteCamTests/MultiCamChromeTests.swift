@@ -39,6 +39,29 @@ final class MultiCamChromeTests: XCTestCase {
         XCTAssertTrue(MultiCamChrome.showsGridToggle(cameraCount: 4))
     }
 
+    // MARK: - Rig tray (mirrors MonitorTray's mode-conditioning)
+
+    /// Photo mode lists photo settings only — no video-quality tile, exactly
+    /// as the 1:1 monitor's tray behaves in photo mode.
+    func testRigTrayPhotoModeListsPhotoTilesOnly() {
+        XCTAssertEqual(RigTray.items(mode: .photo, standbyAvailable: true),
+                       [.timer, .aspect, .format, .hdr, .cameraStandby, .settings, .help])
+    }
+
+    /// Video mode lists the single rig-quality tile only — no photo format or
+    /// HDR tiles (frame rate rides the quality tile's intersection cycle).
+    func testRigTrayVideoModeListsQualityTileOnly() {
+        XCTAssertEqual(RigTray.items(mode: .video, standbyAvailable: true),
+                       [.timer, .aspect, .resolution, .cameraStandby, .settings, .help])
+    }
+
+    /// A rig with no standby-capable camera omits the tile (not dims it),
+    /// matching `MonitorTray`'s capability-driven omission.
+    func testRigTrayOmitsStandbyWhenUnavailable() {
+        XCTAssertFalse(RigTray.items(mode: .photo, standbyAvailable: false).contains(.cameraStandby))
+        XCTAssertFalse(RigTray.items(mode: .video, standbyAvailable: false).contains(.cameraStandby))
+    }
+
     func testStreamProfilePresets() {
         // The focused tier reproduces today's 1:1 peer preview.
         XCTAssertEqual(StreamProfile.focused.maxLongEdge, 1200)

@@ -175,6 +175,9 @@ struct RigSettingsSnapshot: Equatable {
     var hdrBlockedBy: [String] = []
     var activePhotoFormat: PhotoFormat?
     var activeHDR: HDRMode?
+    /// The rig's aspect ratio — one crop across every camera so the angles cut
+    /// together. 16:9 is the cameras' own default.
+    var aspectRatio: AspectRatio = .sixteenNine
     /// At least one camera in the rig can blank its own preview — offers the
     /// standby tile. Cameras that can't are simply not sent the command.
     var standbyAvailable: Bool = false
@@ -205,15 +208,24 @@ struct RigSettingsSnapshot: Equatable {
     }
 
     /// A compact footnote naming a camera that blocks an unavailable option, or
-    /// nil when every option is reachable. Video blockers first, then HDR.
-    var blockerFootnote: String? {
-        if let opt = videoOptions.first(where: { !$0.enabled }), let who = opt.blockedBy.first {
+    /// nil when everything the current mode's tray lists is reachable. Scoped to
+    /// the mode so the photo tray never explains a video limit and vice versa.
+    func blockerFootnote(for mode: MonitorMode) -> String? {
+        switch mode {
+        case .video:
+            guard let opt = videoOptions.first(where: { !$0.enabled }),
+                  let who = opt.blockedBy.first else { return nil }
             return String(format: NSLocalizedString("%@ can’t do %@", comment: "camera blocks a quality"),
                           who, opt.label)
+        case .photo:
+            if !heifAvailable, let who = heifBlockedBy.first {
+                return String(format: NSLocalizedString("%@ can’t do %@", comment: "camera blocks a quality"),
+                              who, PhotoFormat.heif.displayName)
+            }
+            if !hdrAvailable, let who = hdrBlockedBy.first {
+                return String(format: NSLocalizedString("%@ can’t do HDR", comment: "camera blocks HDR"), who)
+            }
+            return nil
         }
-        if !hdrAvailable, let who = hdrBlockedBy.first {
-            return String(format: NSLocalizedString("%@ can’t do HDR", comment: "camera blocks HDR"), who)
-        }
-        return nil
     }
 }
