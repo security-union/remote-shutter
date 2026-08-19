@@ -351,8 +351,8 @@ struct MulticamView: View {
     /// hit-tests, and it fades itself out; deliberately not a modal.
     @ViewBuilder
     private var transientErrorToast: some View {
-        if let message = viewModel.transientError {
-            Text(message)
+        if let error = viewModel.transientError {
+            Text(error.message)
                 .font(.caption.weight(.semibold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 14)
@@ -362,10 +362,17 @@ struct MulticamView: View {
                 .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.top, 64)
                 .transition(.opacity)
-                .id(message)
-                .task(id: message) {
+                .id(error.id)
+                .task(id: error.id) {
                     try? await Task.sleep(nanoseconds: Self.errorToastSeconds * 1_000_000_000)
-                    withAnimation(.easeOut(duration: 0.3)) { viewModel.transientError = nil }
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        // Clear only the toast this dwell belongs to — a
+                        // newer report keeps its own full dwell.
+                        if viewModel.transientError?.id == error.id {
+                            viewModel.transientError = nil
+                        }
+                    }
                 }
         }
     }

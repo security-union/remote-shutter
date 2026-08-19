@@ -90,8 +90,15 @@ final class MulticamViewModel: ObservableObject {
     /// Whether the rig settings tray is showing.
     @Published var showingRigTray: Bool = false
     /// A brief, non-blocking error readout (a refused camera switch, e.g.).
-    /// The toast that renders it clears it after a few seconds.
-    @Published var transientError: String?
+    /// The toast that renders it clears it after a few seconds. Each report
+    /// carries its own identity — same pattern as `FocusReticle` — so a
+    /// repeat of the same message re-instantiates the toast (restarting its
+    /// dwell) instead of reviving a view whose clear has already fired.
+    struct TransientError: Equatable {
+        let id = UUID()
+        let message: String
+    }
+    @Published var transientError: TransientError?
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
 

@@ -251,7 +251,7 @@ extension MulticamViewController: MulticamDisplay {
     }
 
     func showTransientError(_ message: String) {
-        viewModel.transientError = message
+        viewModel.transientError = .init(message: message)
     }
 
     func exitMulticam() {
