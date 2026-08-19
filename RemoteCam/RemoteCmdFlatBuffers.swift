@@ -450,7 +450,7 @@ private func encodeCapabilitiesResponse(action: RemoteShutter_CommandAction,
                                         capabilities: RemoteCmd.CameraCapabilitiesResp?,
                                         error: Error?) -> Data {
     var fbb = FlatBufferBuilder()
-    let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+    let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
     var capsOffset = Offset()
     var stateOffset = Offset()
     if let c = capabilities {
@@ -479,7 +479,7 @@ extension RemoteCmd.StartRecordingVideo {
 extension RemoteCmd.StartRecordingVideoAck {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
         let startTime: UInt64 = recordingStartTime.map { UInt64($0.timeIntervalSince1970 * 1000) } ?? 0
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
@@ -515,7 +515,7 @@ extension RemoteCmd.StopRecordingVideoAck {
 extension RemoteCmd.StopRecordingVideoResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
         let mediaOffset = video.map { fbb.createVector(bytes: $0) } ?? Offset()
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
@@ -547,7 +547,7 @@ extension RemoteCmd.TakePicAck {
 extension RemoteCmd.TakePicResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
         let mediaOffset = pic.map { fbb.createVector(bytes: $0) } ?? Offset()
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
@@ -633,7 +633,7 @@ extension RemoteCmd.CameraPreviewModeResp {
 extension RemoteCmd.SetZoomResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
 
         var stateOffset = Offset()
         if zoomFactor != nil || currentLens != nil {
@@ -678,7 +678,7 @@ extension RemoteCmd.SwitchLens {
 extension RemoteCmd.SwitchLensResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
 
         var stateOffset = Offset()
         if lensType != nil || currentZoom != nil {
@@ -792,7 +792,7 @@ extension RemoteCmd.ScheduledCaptureAck {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         let echoOffset = fbb.create(string: captureId)
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
             action: .scheduledcapture,
@@ -860,7 +860,7 @@ extension RemoteCmd.ScheduledRecordingAck {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         let echoOffset = fbb.create(string: captureId)
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
         let action: RemoteShutter_CommandAction = isStop ? .scheduledstoprecording : .scheduledstartrecording
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
@@ -882,7 +882,7 @@ extension RemoteCmd.ToggleFlash {
 extension RemoteCmd.ToggleFlashResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
 
         var stateOffset = Offset()
         if let mode = flashMode {
@@ -910,7 +910,7 @@ extension RemoteCmd.ToggleTorch {
 extension RemoteCmd.ToggleTorchResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
 
         var stateOffset = Offset()
         if let mode = torchMode {
@@ -939,7 +939,7 @@ extension RemoteCmd.SetTorch {
 extension RemoteCmd.SetTorchResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
 
         var stateOffset = Offset()
         if let mode = torchMode {
@@ -1004,7 +1004,7 @@ extension RemoteCmd.SetVideoQuality {
 extension RemoteCmd.SetVideoQualityResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
 
         var stateOffset = Offset()
         if let res = resolution, let fr = frameRate {
@@ -1035,7 +1035,7 @@ extension RemoteCmd.SetPhotoQuality {
 extension RemoteCmd.SetPhotoQualityResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
 
         var stateOffset = Offset()
         if let fmt = format, let hdr = hdrMode {
@@ -1124,7 +1124,7 @@ extension RemoteCmd.SetAspectRatio {
 extension RemoteCmd.SetAspectRatioResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: $0.localizedDescription) } ?? Offset()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
 
         var stateOffset = Offset()
         if let ratio = aspectRatio {
@@ -1321,11 +1321,24 @@ extension RemoteCmd {
         }
     }
 
+    /// The human-readable message an error contributes to the wire. Errors in
+    /// this codebase carry their message in the NSError domain (what every
+    /// monitor display shows); a bridged system error carries it in an
+    /// explicit localized description. Never the synthesized "The operation
+    /// couldn't be completed…" boilerplate a bare-domain NSError produces.
+    static func wireErrorMessage(_ error: NSError) -> String {
+        (error.userInfo[NSLocalizedDescriptionKey] as? String) ?? error.domain
+    }
+
     private static func decodeResponse(_ msg: RemoteShutter_P2PMessage) -> Message? {
         guard let resp = msg.response else { return nil }
 
+        // The message rides in BOTH the domain (the convention every monitor
+        // display reads via `error._domain`) and the localized description.
         let errorStr = resp.error
-        let nsError: Error? = errorStr.map { NSError(domain: "RemoteCmd", code: -1, userInfo: [NSLocalizedDescriptionKey: $0]) }
+        let nsError: Error? = errorStr.map {
+            NSError(domain: $0, code: -1, userInfo: [NSLocalizedDescriptionKey: $0])
+        }
 
         switch resp.action {
         case .clocksyncping:
