@@ -63,6 +63,10 @@ struct MonitorView: View {
                 }
 
                 PeerLinkOverlay(status: peerLink)
+
+                #if DEBUG
+                SessionDebugOverlay()
+                #endif
             }
         }
         // Catalyst's default style paints a bordered box behind controls that
@@ -182,7 +186,7 @@ struct MonitorView: View {
         ZStack {
             if viewModel.isShowingRecordingDuration {
                 RecordingTimer(
-                    startTime: viewModel.recordingStartTime,
+                    elapsedMillis: viewModel.recordingElapsedMillis,
                     isRecording: viewModel.isRecording
                 )
             }

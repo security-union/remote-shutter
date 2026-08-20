@@ -59,6 +59,8 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
     case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
+    case let m as RemoteCmd.CameraStateReport: return m.toFlatBuffer()
+    case let m as RemoteCmd.RequestCameraStateReport: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
@@ -990,6 +992,35 @@ extension RemoteCmd.RequestCameraCapabilities {
     }
 }
 
+extension RemoteCmd.CameraStateReport {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let phase: RemoteShutter_RecordingPhase
+        let elapsedMs: UInt64
+        switch state {
+        case .idle:
+            phase = .idle
+            elapsedMs = 0
+        case .recording(let elapsed):
+            phase = .recording
+            elapsedMs = elapsed
+        }
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb,
+            stateReportSeq: seq,
+            stateRecordingPhase: phase,
+            stateRecordingElapsedMs: elapsedMs)
+        return buildCommand(&fbb, action: .camerastatereport, parameters: params)
+    }
+}
+
+extension RemoteCmd.RequestCameraStateReport {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        return buildCommand(&fbb, action: .requestcamerastatereport)
+    }
+}
+
 // MARK: - Video/Photo Quality toFlatBuffer() extensions
 
 extension RemoteCmd.SetVideoQuality {
@@ -1285,6 +1316,23 @@ extension RemoteCmd {
 
         case .requestcapabilities:
             return RequestCameraCapabilities()
+
+        case .camerastatereport:
+            // The phase is explicit; an Unknown phase is malformed and
+            // DROPPED, never guessed at.
+            let state: CameraStateReport.RecordingState
+            switch params?.stateRecordingPhase {
+            case .idle:
+                state = .idle
+            case .recording:
+                state = .recording(elapsedMillis: params?.stateRecordingElapsedMs ?? 0)
+            default:
+                return nil
+            }
+            return CameraStateReport(seq: params?.stateReportSeq ?? 0, state: state)
+
+        case .requestcamerastatereport:
+            return RequestCameraStateReport()
 
         case .setvideoquality:
             let resolution = fromFBResolution(params?.videoResolution ?? .hd1080p)

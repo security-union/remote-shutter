@@ -391,3 +391,12 @@
 "%@ can’t do %@" = "%@ не поддерживает %@";
 "%@ can’t do HDR" = "%@ не поддерживает HDR";
 "Couldn't switch camera" = "Не удалось переключить камеру";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "Недостаточно места для записи видео. Освободите не менее 100 МБ и попробуйте снова.";
+"recording_stopped_disk_full_error" = "Запись остановлена: на устройстве закончилось место. Отснятое видео сохранено в приложении «Фото».";
+"recording_failed_error" = "Запись остановлена из-за ошибки. Отснятое видео сохранено в приложении «Фото».";
+
+// Keep rolling through a remote drop (v10)
+"reconnecting_to_remote" = "Повторное подключение к пульту…";
+"stop_recording_button" = "Остановить запись";

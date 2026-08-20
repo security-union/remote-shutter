@@ -68,6 +68,10 @@ protocol CameraControlling: AnyObject, Sendable {
     func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio
     func gatherAllCameraCapabilities() async
     func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp?
+    /// The pipeline's recording truth: non-nil exactly while a clip is being
+    /// written, carrying the first-written-frame instant. Feeds the camera's
+    /// `CameraStateReport` — the one wire channel for recording state.
+    func currentRecordingStartedAt() -> Date?
 
     func getCurrentZoomFactor() async -> CGFloat
     func getMinZoomFactor() async -> CGFloat

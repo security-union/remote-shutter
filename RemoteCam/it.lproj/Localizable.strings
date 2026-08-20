@@ -270,3 +270,12 @@
 "%@ can’t do %@" = "%@ non può %@";
 "%@ can’t do HDR" = "%@ non può HDR";
 "Couldn't switch camera" = "Impossibile cambiare fotocamera";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "Spazio di archiviazione insufficiente per registrare video. Libera almeno 100 MB e riprova.";
+"recording_stopped_disk_full_error" = "Registrazione interrotta: lo spazio di archiviazione del dispositivo è esaurito. Il video registrato finora è stato salvato in Foto.";
+"recording_failed_error" = "Registrazione interrotta a causa di un errore. Il video registrato finora è stato salvato in Foto.";
+
+// Keep rolling through a remote drop (v10)
+"reconnecting_to_remote" = "Riconnessione al telecomando…";
+"stop_recording_button" = "Interrompi registrazione";

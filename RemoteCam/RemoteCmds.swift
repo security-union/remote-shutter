@@ -614,6 +614,42 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    // MARK: - Camera state report (v10)
+
+    /// THE recording-truth channel: a snapshot of the camera's recording
+    /// state, produced by exactly one site (the camera coordinator's
+    /// `sendCameraStateReport`), pushed on every recording state change and
+    /// on link-up, and re-pushed with every capabilities answer. `seq` is
+    /// monotonic per camera session; receivers drop anything older than the
+    /// last report absorbed, so pushes and requested re-pushes can never
+    /// fight. Capabilities describe hardware; THIS message says what the
+    /// camera is doing.
+    public class CameraStateReport: Message, @unchecked Sendable {
+        /// EXPLICIT recording state — never inferred from a sentinel
+        /// timestamp. While recording, the CAMERA drives the remote's timer:
+        /// it sends elapsed-ms ticks and the remote displays exactly the last
+        /// value received. No clocks are ever compared across devices.
+        public enum RecordingState: Equatable {
+            case idle
+            case recording(elapsedMillis: UInt64)
+        }
+
+        public let seq: UInt64
+        public let state: RecordingState
+
+        public init(seq: UInt64, state: RecordingState) {
+            self.seq = seq
+            self.state = state
+            super.init(sender: nil)
+        }
+    }
+
+    /// Monitor/director → camera: re-push the current `CameraStateReport`
+    /// (used on connection and after a camera re-announce).
+    public class RequestCameraStateReport: Message, @unchecked Sendable {
+        public init() { super.init(sender: nil) }
+    }
+
     // MARK: - Lens Switching Remote Commands
 
     public class SwitchLens: Message, @unchecked Sendable {

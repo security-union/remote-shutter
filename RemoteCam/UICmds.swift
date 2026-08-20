@@ -76,6 +76,27 @@ public class UICmd {
         }
     }
 
+    /// The camera's pipeline ended a recording abnormally — storage gate
+    /// refusal, a writer that could not start, or a writer that died mid-take
+    /// (disk full). By the time this is sent the pipeline has already reset
+    /// its state and saved any salvageable footage; the coordinator's job is
+    /// to report the error to the remote and return the camera to idle.
+    public class RecordingTerminated: Message, @unchecked Sendable {
+        let error: NSError
+
+        init(error: NSError) {
+            self.error = error
+            super.init(sender: nil)
+        }
+    }
+
+    /// The on-camera stop button, available whenever a recording is running.
+    /// Finalizes and saves the clip locally; the remote observes the state
+    /// change through the camera's report.
+    public class StopRecordingLocally: Message, @unchecked Sendable {
+        init() { super.init(sender: nil) }
+    }
+
     public class AddMonitor: Message, @unchecked Sendable {
 
     }

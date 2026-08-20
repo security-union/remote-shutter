@@ -24,8 +24,14 @@ final class FrameDisplayModel: ObservableObject {
 class MonitorViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var currentMode: RecordingMode = .Photo
-    @Published var uiState: MonitorUIState = .photoMode
-    @Published var isRecording: Bool = false
+    /// THE stored screen mode — every mode-dependent surface below (REC dot,
+    /// timer visibility, control enables) is a lookup off this one fact, so
+    /// they cannot disagree. Leaving the recording mode voids the timer's
+    /// start instant with it.
+    @Published var uiState: MonitorUIState = .photoMode {
+        didSet { if uiState != .videoRecording { recordingElapsedMillis = nil } }
+    }
+    var isRecording: Bool { uiState == .videoRecording }
     /// Live frames — deliberately NOT @Published here; see FrameDisplayModel.
     let frames = FrameDisplayModel()
     @Published var flashStatus: String = ""
@@ -50,8 +56,11 @@ class MonitorViewModel: ObservableObject {
     @Published var maxTimerValue: Double = 20
     
     // MARK: - Recording Duration Properties
-    @Published var recordingStartTime: Date?
-    @Published var isShowingRecordingDuration: Bool = false
+    /// The camera-reported elapsed time (its latest tick) — displayed
+    /// VERBATIM, never advanced by a local clock; cleared automatically
+    /// whenever `uiState` leaves the recording mode.
+    @Published var recordingElapsedMillis: UInt64?
+    var isShowingRecordingDuration: Bool { uiState == .videoRecording }
     
     // MARK: - Zoom and Lens Properties
     @Published var currentZoomFactor: CGFloat = 1.0
@@ -127,97 +136,50 @@ class MonitorViewModel: ObservableObject {
         self.timerSliderValue = Double(TimerPreference.seconds)
     }
     
-    // MARK: - Control State
-    @Published var isGalleryEnabled: Bool = true
-    @Published var isBackEnabled: Bool = true
-    @Published var isFlashButtonEnabled: Bool = true
-    @Published var isTorchButtonEnabled: Bool = true
-    @Published var isSettingsEnabled: Bool = true
-    @Published var isToggleCameraEnabled: Bool = true
-    @Published var isTimerSliderEnabled: Bool = true
-    @Published var isSegmentedControlEnabled: Bool = true
-    @Published var isLensControlEnabled: Bool = true
-    @Published var isZoomSliderEnabled: Bool = true
-    @Published var isQualityControlEnabled: Bool = true
-    
+    // MARK: - Control State (derived — a lookup off `uiState`, never stored)
+    //
+    // Every mode-dependent surface reads the one stored mode, so the REC dot,
+    // the timer, and the control enables cannot disagree. A mode's whole
+    // surface is one row read down this column.
+    var isGalleryEnabled: Bool { uiState != .videoRecording }
+    var isBackEnabled: Bool { uiState != .videoRecording }
+    var isFlashButtonEnabled: Bool { uiState == .photoMode }
+    var isTorchButtonEnabled: Bool { true }
+    var isSettingsEnabled: Bool { uiState != .videoRecording }
+    var isToggleCameraEnabled: Bool { uiState != .videoRecording }
+    var isTimerSliderEnabled: Bool { uiState == .photoMode || uiState == .videoMode }
+    var isSegmentedControlEnabled: Bool { uiState != .videoRecording }
+    var isLensControlEnabled: Bool { true }
+    var isZoomSliderEnabled: Bool { true }
+    var isQualityControlEnabled: Bool { uiState == .photoMode || uiState == .videoMode }
+
+    /// The shutter's idle label for a mode. `buttonPrompt` itself stays
+    /// stored because the self-timer countdown overwrites it with the
+    /// remaining seconds, then restores it from this same lookup.
+    static func prompt(for state: MonitorUIState) -> String {
+        switch state {
+        case .photoMode: return NSLocalizedString("Taking photo", comment: "")
+        case .videoMode: return NSLocalizedString("Starting video", comment: "")
+        case .videoRecording: return NSLocalizedString("Stopping video", comment: "")
+        case .shortsMode: return NSLocalizedString("Recording shorts", comment: "")
+        }
+    }
+
     // MARK: - UI Configuration Methods
-    func configurePhotoMode() {
-        DispatchQueue.main.async {
-            self.uiState = .photoMode
-            self.isRecording = false
-            self.isGalleryEnabled = true
-            self.isBackEnabled = true
-            self.isFlashButtonEnabled = true
-            self.isTorchButtonEnabled = true
-            self.isSettingsEnabled = true
-            self.isToggleCameraEnabled = true
-            self.isTimerSliderEnabled = true
-            self.isSegmentedControlEnabled = true
-            self.isLensControlEnabled = true
-            self.isZoomSliderEnabled = true
-            self.isQualityControlEnabled = true
-            self.buttonPrompt = NSLocalizedString("Taking photo", comment: "")
-        }
-    }
+    func configurePhotoMode() { setUIState(.photoMode) }
+    func configureVideoMode() { setUIState(.videoMode) }
+    func configureVideoRecording() { setUIState(.videoRecording) }
+    func configureShortsMode() { setUIState(.shortsMode) }
 
-    func configureVideoMode() {
-        DispatchQueue.main.async {
-            self.uiState = .videoMode
-            self.isRecording = false
-            self.recordingStartTime = nil
-            self.isShowingRecordingDuration = false
-            self.isGalleryEnabled = true
-            self.isBackEnabled = true
-            self.isFlashButtonEnabled = false
-            self.isTorchButtonEnabled = true
-            self.isSettingsEnabled = true
-            self.isToggleCameraEnabled = true
-            self.isTimerSliderEnabled = true
-            self.isSegmentedControlEnabled = true
-            self.isLensControlEnabled = true
-            self.isZoomSliderEnabled = true
-            self.isQualityControlEnabled = true
-            self.buttonPrompt = NSLocalizedString("Starting video", comment: "")
-        }
-    }
-
-    func configureVideoRecording() {
-        DispatchQueue.main.async {
-            self.uiState = .videoRecording
-            self.isRecording = true
-            self.recordingStartTime = Date()
-            self.isShowingRecordingDuration = true
-            self.isGalleryEnabled = false
-            self.isBackEnabled = false
-            self.isFlashButtonEnabled = false
-            self.isTorchButtonEnabled = true
-            self.isSettingsEnabled = false
-            self.isToggleCameraEnabled = false
-            self.isTimerSliderEnabled = false
-            self.isSegmentedControlEnabled = false
-            self.isLensControlEnabled = true
-            self.isZoomSliderEnabled = true
-            self.isQualityControlEnabled = false
-            self.buttonPrompt = NSLocalizedString("Stopping video", comment: "")
-        }
-    }
-    
-    func configureShortsMode() {
-        DispatchQueue.main.async {
-            self.uiState = .shortsMode
-            self.isRecording = false
-            self.isGalleryEnabled = true
-            self.isBackEnabled = true
-            self.isFlashButtonEnabled = false
-            self.isTorchButtonEnabled = true
-            self.isSettingsEnabled = true
-            self.isToggleCameraEnabled = true
-            self.isTimerSliderEnabled = false // Shorts will have its own duration controls
-            self.isSegmentedControlEnabled = true
-            self.isLensControlEnabled = true
-            self.isZoomSliderEnabled = true
-            self.buttonPrompt = NSLocalizedString("Recording shorts", comment: "")
-        }
+    /// Synchronous on purpose: every caller is already on main (the presenter
+    /// hops before rendering; the view controller's lifecycle is main). Every
+    /// write on this path must take the SAME number of main hops — an extra
+    /// dispatch would let a stale mode change land after a later-sent write
+    /// and reorder the screen.
+    private func setUIState(_ state: MonitorUIState) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        uiState = state
+        buttonPrompt = Self.prompt(for: state)
     }
     
     // MARK: - Update Methods (called from MonitorViewController Actor messages)

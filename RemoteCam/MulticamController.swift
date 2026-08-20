@@ -53,6 +53,9 @@ struct MulticamLaneInfo: Equatable {
     let captureOutcome: CaptureOutcome?
     /// This camera is rolling as part of a synced recording (REC badge).
     let isRecording: Bool
+    /// The camera's own elapsed tick (ms) while rolling — each tile shows its
+    /// own camera-driven timer; there is no global one.
+    let recordingElapsedMillis: UInt64?
     /// This camera can't match the running rig quality — tile badge + re-match.
     let needsQualityRematch: Bool
     /// Where this lane's footage is in the post-take auto-collect.
@@ -96,8 +99,7 @@ protocol MulticamDisplay: AnyObject {
     /// Aggregate shutter state: `capturing` = a synced photo or recording
     /// start is in flight (activity ring); `recording` = every target camera
     /// committed and the rig is rolling (record/stop button + timer counting
-    /// from `recordingStartTime`, nil unless recording).
-    func applyShutterState(capturing: Bool, recording: Bool, recordingStartTime: Date?)
+    func applyShutterState(capturing: Bool, recording: Bool)
     /// Cameras the browser has found that aren't in the rig — the add-camera
     /// sheet's list.
     func applyAvailablePeers(_ peers: [MCPeerID])
@@ -197,9 +199,6 @@ public actor MulticamController {
     private var takeTargets: [MCPeerID] = []
     private var takeScheduled = false
     private var takeAnchorMillis: UInt64?
-    /// When the rig actually started rolling (every start ack in) — feeds the
-    /// classic recording timer on the director.
-    private var recordingStartedAt: Date?
     /// The most recent photo/video capture id, used to name auto-collected
     /// footage on the director under the shared `RS_<sess>_<cap>_cam<k>` group.
     private var lastCaptureID: String?
@@ -366,7 +365,6 @@ public actor MulticamController {
     private struct ShutterSnapshot: Equatable {
         let capturing: Bool
         let recording: Bool
-        let recordingStartTime: Date?
     }
 
     func handle(_ msg: Message) async {
@@ -398,8 +396,7 @@ public actor MulticamController {
         OperationQueue.main.addOperation {
             if lanesChanged { display?.applyLanes(lanes) }
             if shutterChanged {
-                display?.applyShutterState(capturing: shutter.capturing, recording: shutter.recording,
-                                           recordingStartTime: shutter.recordingStartTime)
+                display?.applyShutterState(capturing: shutter.capturing, recording: shutter.recording)
             }
             if rigChanged { display?.applyRigSettings(rig) }
             if availableChanged { display?.applyAvailablePeers(availablePeers) }
@@ -415,13 +412,18 @@ public actor MulticamController {
         case .capturingPhoto, .startingRecording: capturing = true
         default: capturing = false
         }
+        // The rig is recording iff ANY camera reports a live recording (the
+        // union of lane truth) or a take is mid-protocol — fact ∨ intent,
+        // never memory. A director that rejoined mid-take gets its Stop
+        // control back from the lanes alone. Timers live on the tiles: each
+        // camera's own tick, no rig-wide time.
+        let rolling = order.compactMap { links[$0] }.filter { $0.isRecording }
+        let inTake: Bool
         switch state {
-        case .recording, .stoppingRecording:
-            return ShutterSnapshot(capturing: capturing, recording: true,
-                                   recordingStartTime: recordingStartedAt)
-        default:
-            return ShutterSnapshot(capturing: capturing, recording: false, recordingStartTime: nil)
+        case .recording, .stoppingRecording: inTake = true
+        default: inTake = false
         }
+        return ShutterSnapshot(capturing: capturing, recording: inTake || !rolling.isEmpty)
     }
 
     private func route(_ msg: Message) async {
@@ -543,6 +545,42 @@ public actor MulticamController {
             // fully drive.
             if !isPeerCompatible(became) {
                 link.status = .failed
+            }
+            // A re-announce means the camera's session — and its report seq
+            // domain — restarted; zero the cursor so its next report lands.
+            link.lastStateReportSeq = 0
+            // And its CLOCK samples are void: uptime clocks pause during
+            // sleep, so offsets measured before a backgrounding are wrong by
+            // the slept duration (the estimator's own contract — reset when
+            // clocks may have moved). Fresh pings repopulate within seconds.
+            link.clockEstimator.reset()
+
+        case let report as RemoteCmd.CameraStateReport:
+            // The lane's recording truth on its one channel — the REC badge
+            // is DERIVED from it, never remembered from what was last
+            // commanded. The instant is in the CAMERA's clock domain;
+            // translate it with the lane's measured offset so the rig timer
+            // never inherits cross-device wall-clock skew.
+            guard report.seq > link.lastStateReportSeq else { break }
+            link.lastStateReportSeq = report.seq
+            switch report.state {
+            case .recording(let elapsedMillis):
+                link.recordingElapsedMillis = elapsedMillis
+            case .idle:
+                link.recordingElapsedMillis = nil
+            }
+            // Intent yields to unanimous fact: if the take machine still
+            // believes a recording is running but every lane now reports
+            // idle (cameras stop on their own — operator stop, disk full,
+            // lock), the take is factually over: clear it, stop the rig
+            // timer, re-arm the shutter. A stop mid-ack
+            // (`.stoppingRecording`) is left to its own ack/timeout
+            // machinery.
+            if case .recording(let id, _) = state,
+               !order.contains(where: { links[$0]?.isRecording == true }) {
+                logInfo("director: every lane reports idle — take \(shortID(id)) ended without us")
+                clearRecordingTake()
+                state = .monitoring
             }
 
         case let caps as RemoteCmd.CameraCapabilitiesResp:
@@ -690,7 +728,7 @@ public actor MulticamController {
             }
         case .stoppingRecording:
             if capturingLanes.contains(peer) {
-                links[peer]?.isRecording = false
+                links[peer]?.recordingElapsedMillis = nil
                 finishLane(peer)
             }
         case .recording, .monitoring:
@@ -898,7 +936,7 @@ public actor MulticamController {
         if case .startingRecording(let id, let remaining) = state { return (id, remaining) }
         return nil
     }
-    func recordingStartTimeForTesting() -> Date? { recordingStartedAt }
+    func recordingElapsedForTesting(_ peer: MCPeerID) -> UInt64? { links[peer]?.recordingElapsedMillis }
     func stoppingStateForTesting() -> (id: String, remaining: Int)? {
         if case .stoppingRecording(let id, let remaining) = state { return (id, remaining) }
         return nil
@@ -1050,8 +1088,19 @@ public actor MulticamController {
     public nonisolated func stopRecording() { tell(MCStopRecording()) }
 
     private func handleStopRecording() {
-        guard case .recording(_, _) = state else { return }
+        // Reachable from `.recording` (the normal take) AND from `.monitoring`
+        // when lanes report a live recording the take machine doesn't know
+        // about (a director that rejoined mid-take): the same union that
+        // shows the Stop control lets it act.
         let rolling = order.compactMap { links[$0] }.filter { $0.isRecording }
+        switch state {
+        case .recording:
+            break
+        case .monitoring where !rolling.isEmpty:
+            break
+        default:
+            return
+        }
         guard !rolling.isEmpty else {
             // Nothing is actually rolling (every rolling lane has dropped) —
             // there is no take left to stop, only a state to put right.
@@ -1072,7 +1121,7 @@ public actor MulticamController {
         // holding the rig on its timeout. The stop was still sent above, so
         // the camera ends its clip the moment it can hear us again.
         for link in rolling where link.status != .linked {
-            link.isRecording = false
+            link.recordingElapsedMillis = nil
             capturingLanes.remove(link.peerID)
         }
         if capturingLanes.isEmpty {
@@ -1302,33 +1351,25 @@ public actor MulticamController {
                 return
             }
             logInfo("director: \(peer.displayName) acked record-start \(shortID(id))")
-            links[peer]?.isRecording = true
+            // Seed at zero — the camera's first tick takes over within a
+            // second.
+            links[peer]?.recordingElapsedMillis = 0
             capturingLanes.remove(peer)
             if capturingLanes.isEmpty {
                 // Every target committed — the rig is rolling, from the shared
                 // fire instant.
                 logInfo("director: rig rolling \(shortID(id))")
                 state = .recording(captureId: id, acksRemaining: 0)
-                recordingStartedAt = recordingStartDate()
             } else {
                 state = .startingRecording(captureId: id, acksRemaining: capturingLanes.count)
             }
         case .stoppingRecording(let id, _) where isStop:
             guard capturingLanes.contains(peer), captureId == nil || captureId == id else { return }
-            links[peer]?.isRecording = false
+            links[peer]?.recordingElapsedMillis = nil
             finishLane(peer)
         default:
             break
         }
-    }
-
-    /// The take's shared fire instant as a wall-clock date (scheduled path),
-    /// or now (fallback path) — so the recording timer counts from the moment
-    /// the cameras actually rolled, not from when the last ack arrived.
-    private func recordingStartDate() -> Date {
-        guard let anchor = takeAnchorMillis else { return Date() }
-        let deltaMillis = Int64(bitPattern: anchor &- SyncClock.nowMillis())
-        return Date().addingTimeInterval(Double(deltaMillis) / 1000)
     }
 
     /// All-or-nothing abort: the take is void unless every target accepted.
@@ -1349,7 +1390,7 @@ public actor MulticamController {
             } else {
                 sendTo(peer, RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: false))
             }
-            links[peer]?.isRecording = false
+            links[peer]?.recordingElapsedMillis = nil
         }
         clearRecordingTake()
         state = .monitoring
@@ -1360,7 +1401,6 @@ public actor MulticamController {
         takeTargets = []
         takeScheduled = false
         takeAnchorMillis = nil
-        recordingStartedAt = nil
     }
 
     /// Count one lane's answer and advance the aggregate. A photo or a stop
@@ -1419,7 +1459,7 @@ public actor MulticamController {
             capturingLanes.removeAll()
             state = .monitoring
         case .stoppingRecording:
-            for peer in capturingLanes { links[peer]?.isRecording = false }
+            for peer in capturingLanes { links[peer]?.recordingElapsedMillis = nil }
             clearRecordingTake()
             state = .monitoring
         case .recording, .monitoring:

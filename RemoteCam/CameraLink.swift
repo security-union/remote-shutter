@@ -63,9 +63,19 @@ final class CameraLink {
     /// first). Drives the tile's captured/failed badge.
     var captureOutcome: CaptureOutcome?
 
-    /// This camera is rolling as part of a synced recording — drives the tile's
-    /// REC badge.
-    var isRecording = false
+    /// The camera's recording truth for this lane: non-nil exactly while it
+    /// is rolling, carrying the camera's latest elapsed tick (ms) — the
+    /// camera DRIVES the lane's timer; the director displays the last value
+    /// received, never computes one. Seeded to 0 when a start is acked, then
+    /// driven by the camera's `CameraStateReport` ticks. Drives the tile's
+    /// REC badge and the rig shutter's union.
+    var recordingElapsedMillis: UInt64?
+    var isRecording: Bool { recordingElapsedMillis != nil }
+
+    /// Newest `CameraStateReport.seq` absorbed from this lane; zeroed when the
+    /// camera re-announces (its session, and seq domain, restarted). Stale
+    /// reports are dropped, so a delayed push can never outrank fresh truth.
+    var lastStateReportSeq: UInt64 = 0
 
     /// The preview profile most recently pushed to this camera, so the director
     /// only re-sends `SetStreamProfile` when the tier actually changes.
@@ -108,6 +118,7 @@ final class CameraLink {
             clockOffsetMillis: latestOffset?.offsetMillis,
             captureOutcome: captureOutcome,
             isRecording: isRecording,
+            recordingElapsedMillis: recordingElapsedMillis,
             needsQualityRematch: needsQualityRematch,
             collection: collection,
             canFlipCamera: capabilities.map {

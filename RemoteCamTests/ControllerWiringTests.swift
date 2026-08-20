@@ -130,4 +130,74 @@ class ControllerWiringTests: XCTestCase {
             monitorVC = nil
         }
     }
+
+    /// The MonitorDisplay conformance is the last hop of "coordinator state →
+    /// screen": each swiftUIConfigure* must land the view model in the
+    /// matching uiState (and capture mode where the mode is user-facing).
+    /// Untested, a broken hop shows every upstream derivation test green
+    /// while the real screen displays the wrong mode.
+    func testMonitorDisplayConformanceDrivesViewModelState() {
+        let session = SessionCoordinator()
+        defer { session.stop() }
+        let monitorVC = MonitorViewController(session: session)
+        _ = monitorVC.view
+
+        monitorVC.swiftUIConfigureVideoMode()
+        waitUntil { monitorVC.viewModel.uiState == .videoMode }
+        XCTAssertEqual(monitorVC.viewModel.uiState, .videoMode)
+        XCTAssertEqual(monitorVC.viewModel.currentMode, .Video)
+
+        monitorVC.swiftUIConfigureVideoRecording()
+        waitUntil { monitorVC.viewModel.uiState == .videoRecording }
+        XCTAssertEqual(monitorVC.viewModel.uiState, .videoRecording)
+        XCTAssertTrue(monitorVC.viewModel.isRecording)
+
+        monitorVC.swiftUIConfigurePhotoMode()
+        waitUntil { monitorVC.viewModel.uiState == .photoMode }
+        XCTAssertEqual(monitorVC.viewModel.uiState, .photoMode)
+        XCTAssertEqual(monitorVC.viewModel.currentMode, .Photo)
+        XCTAssertFalse(monitorVC.viewModel.isRecording)
+        XCTAssertNil(monitorVC.viewModel.recordingElapsedMillis,
+                     "leaving the recording mode voids the camera-driven timer")
+    }
+
+    // MARK: - CameraRig indicator wiring
+
+    /// The camera screen's own truth chain: the pipeline's callbacks drive
+    /// the REC badge, the timer, and the recording chrome through the rig's
+    /// seams. These were previously exercised by nothing but hand-set
+    /// snapshot fixtures.
+    func testRigPipelineCallbacksDriveCameraIndicators() {
+        let session = SessionCoordinator()
+        defer { session.stop() }
+        let rig = CameraRig(session: session, frameSender: FrameSender())
+        let model = rig.cameraViewModel
+
+        // Recording chrome up (the pipeline's non-idle mode change).
+        rig.pipeline.onModeChanged?(false)
+        waitUntil { model.isRecordingIndicatorVisible }
+        XCTAssertTrue(model.isRecordingIndicatorVisible, "REC badge follows the pipeline")
+
+        // The real start instant drives the on-camera timer.
+        let start = Date(timeIntervalSinceNow: -12)
+        rig.pipeline.onRecordingStarted?(start)
+        waitUntil { model.isRecordingTimerActive }
+        XCTAssertEqual(model.recordingStartTime, start,
+                       "the camera timer runs from the pipeline's stamp, nothing local")
+
+        // Stop clears the timer, idle clears the badge…
+        rig.pipeline.onRecordingStopped?()
+        rig.pipeline.onModeChanged?(true)
+        waitUntil { !model.isRecordingIndicatorVisible && !model.isRecordingTimerActive }
+        XCTAssertNil(model.recordingStartTime)
+        XCTAssertFalse(model.isRecordingIndicatorVisible)
+
+        // …but idle chrome must NOT clear the reconnect chip: "no remote
+        // linked" survives a stop; only the coordinator's rebind clears it.
+        model.isAwaitingRemoteReconnect = true
+        rig.configureIdleMode()
+        pump()
+        XCTAssertTrue(model.isAwaitingRemoteReconnect,
+                      "the chip states a link fact, not a recording fact")
+    }
 }

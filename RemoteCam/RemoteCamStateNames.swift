@@ -21,6 +21,7 @@ enum RemoteCamState: String {
     case monitorTakingPicture
     case monitorTogglingFlash
     case monitorTogglingCamera
+    case monitorStartingVideo
     case monitorRecordingVideo
     case monitorPhotoMode
     case monitorVideoMode

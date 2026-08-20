@@ -58,8 +58,16 @@ enum CommandAction : byte {
     SetStreamProfile = 29,     // director -> camera: reconfigure the live preview
                                // encoder (resolution/bitrate/fps) for tiered
                                // multicam previews. Only sent to multicam peers.
-    RequestVideoResend = 30    // director -> camera: re-send the last collected
+    RequestVideoResend = 30,   // director -> camera: re-send the last collected
                                // clip (auto-collect retry). Reuses capture_id.
+    CameraStateReport = 31,    // camera -> monitor/director: THE recording-truth
+                               // channel (v10). Pushed on every recording state
+                               // change and on link-up; also the answer to
+                               // RequestCameraStateReport. Payload rides in
+                               // CommandParameters (state_report_seq,
+                               // state_recording_phase, elapsed ticks).
+    RequestCameraStateReport = 32 // monitor/director -> camera: re-push the
+                               // current CameraStateReport (e.g. on connection).
 }
 
 // Whether the camera device drives its own on-screen live preview. On is the
@@ -75,6 +83,14 @@ enum CameraPreviewModeEnum : byte {
 enum CameraPosition : byte {
     Back = 0,
     Front = 1
+}
+
+// CameraStateReport's explicit recording discriminant. Unknown is malformed
+// and DROPPED by the decoder — recording truth is never inferred.
+enum RecordingPhase : byte {
+    Unknown = 0,
+    Idle = 1,
+    Recording = 2
 }
 
 enum TorchMode : byte {
@@ -194,6 +210,17 @@ table CommandParameters {
     stream_max_long_edge: int;
     stream_bitrate_kbps: int;
     stream_fps: int;
+    // CameraStateReport payload: the camera's recording truth. `seq` is
+    // monotonic across camera restarts (epoch-seeded) — the ONE producer is
+    // the camera's coordinator, so a receiver drops any report older than the
+    // last it absorbed. The phase is EXPLICIT. While Recording, the camera
+    // DRIVES the remote's timer: it sends elapsed-ms ticks (~1/s) and the
+    // remote displays exactly the last value received — no clocks are ever
+    // compared across devices, so the display can neither go negative nor
+    // desync.
+    state_report_seq: uint64;
+    state_recording_phase: RecordingPhase;
+    state_recording_elapsed_ms: uint64;
 }
 
 // MARK: - Command Structure

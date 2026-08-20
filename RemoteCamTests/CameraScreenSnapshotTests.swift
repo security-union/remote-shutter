@@ -35,6 +35,27 @@ final class CameraScreenSnapshotTests: SnapshotTestCase {
         assertHasChrome(image)
     }
 
+    func testRecordingAwaitingRemoteShowsChipAndStop() {
+        let image = renderCameraScreen(named: "camera-recording-awaiting-remote") { model in
+            model.updateStatus(mode: .Video, resolution: .hd1080p, frameRate: .fps30,
+                               photoFormat: .jpeg, hdrMode: .off)
+            model.isRecordingIndicatorVisible = true
+            model.recordingStartTime = Date().addingTimeInterval(-65)
+            model.isRecordingTimerActive = true
+            model.isAwaitingRemoteReconnect = true
+        }
+        assertHasChrome(image)
+    }
+
+    func testIdleAwaitingRemoteShowsChipOnly() {
+        let image = renderCameraScreen(named: "camera-idle-awaiting-remote") { model in
+            model.updateStatus(mode: .Video, resolution: .hd1080p, frameRate: .fps30,
+                               photoFormat: .jpeg, hdrMode: .off)
+            model.isAwaitingRemoteReconnect = true
+        }
+        assertHasChrome(image)
+    }
+
     func testCountdownChrome() {
         let image = renderCameraScreen(named: "camera-countdown") { model in
             model.showCountdown(3)

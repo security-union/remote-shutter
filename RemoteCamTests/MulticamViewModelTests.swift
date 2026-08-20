@@ -23,7 +23,8 @@ final class MulticamViewModelTests: XCTestCase {
                       torchOn: Bool = false, flashOn: Bool = false) -> MulticamLaneInfo {
         MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
                          status: status, isFocused: focused, clockOffsetMillis: nil,
-                         captureOutcome: nil, isRecording: false, needsQualityRematch: false,
+                         captureOutcome: nil, isRecording: false, recordingElapsedMillis: nil,
+                         needsQualityRematch: false,
                          collection: .idle, canFlipCamera: canFlipCamera,
                          supportsFocusPoint: supportsFocusPoint, hasTorch: hasTorch,
                          zoomFactor: zoomFactor, maxZoomFactor: maxZoomFactor,

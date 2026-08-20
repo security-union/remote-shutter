@@ -285,3 +285,12 @@
 "%@ can’t do %@" = "%@ no puede %@";
 "%@ can’t do HDR" = "%@ no puede HDR";
 "Couldn't switch camera" = "No se pudo cambiar de cámara";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "No hay suficiente espacio para grabar video. Libera al menos 100 MB e inténtalo de nuevo.";
+"recording_stopped_disk_full_error" = "La grabación se detuvo: tu dispositivo se quedó sin espacio. El video grabado hasta ahora se guardó en Fotos.";
+"recording_failed_error" = "La grabación se detuvo por un error. El video grabado hasta ahora se guardó en Fotos.";
+
+// Keep rolling through a remote drop (v10)
+"reconnecting_to_remote" = "Reconectando con el control remoto…";
+"stop_recording_button" = "Detener grabación";

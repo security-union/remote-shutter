@@ -391,3 +391,12 @@
 "%@ can’t do %@" = "%@ %@ नहीं कर सकता";
 "%@ can’t do HDR" = "%@ HDR नहीं कर सकता";
 "Couldn't switch camera" = "कैमरा बदला नहीं जा सका";
+
+// Recording storage / failure (v10)
+"insufficient_storage_error" = "वीडियो रिकॉर्ड करने के लिए पर्याप्त स्टोरेज नहीं है। कम से कम 100 MB जगह खाली करके फिर से कोशिश करें।";
+"recording_stopped_disk_full_error" = "रिकॉर्डिंग रुक गई: डिवाइस का स्टोरेज भर गया है। अब तक रिकॉर्ड किया गया वीडियो Photos में सेव कर दिया गया है।";
+"recording_failed_error" = "एक त्रुटि के कारण रिकॉर्डिंग रुक गई। अब तक रिकॉर्ड किया गया वीडियो Photos में सेव कर दिया गया है।";
+
+// Keep rolling through a remote drop (v10)
+"reconnecting_to_remote" = "रिमोट से दोबारा कनेक्ट हो रहा है…";
+"stop_recording_button" = "रिकॉर्डिंग रोकें";

@@ -127,6 +127,12 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     var chimes: [Int] = []
     var torchRestores = 0
 
+    /// The camera's reported recording truth, carried in `CameraStateReport`
+    /// (the one recording-truth channel). Set before driving.
+    var reportedRecordingStartedAt: Date?
+
+    func currentRecordingStartedAt() -> Date? { reportedRecordingStartedAt }
+
     var photoBytes = Data([0xFF, 0xD8, 0xFF, 0xE0])
     var torchActive = false
     var flashMode: AVCaptureDevice.FlashMode = .off
@@ -137,8 +143,17 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
 
     func updateCameraStatus() { updateStatusCalls += 1 }
     func takePicture(_ sendMediaToRemote: Bool) { takePictureCalls.append(sendMediaToRemote) }
-    func startRecordingVideo() { startRecordingCalls += 1 }
-    func stopRecordingVideo(_ shouldSendVideo: Bool) { stopRecordingCalls.append(shouldSendVideo) }
+    // Mirrors the pipeline contract: the recording truth is set before the
+    // start ack goes out and cleared when the stop lands, so the camera's
+    // state reports (the truth channel) match what was commanded.
+    func startRecordingVideo() {
+        startRecordingCalls += 1
+        if reportedRecordingStartedAt == nil { reportedRecordingStartedAt = Date() }
+    }
+    func stopRecordingVideo(_ shouldSendVideo: Bool) {
+        stopRecordingCalls.append(shouldSendVideo)
+        reportedRecordingStartedAt = nil
+    }
     var videoSyncMetadata: CaptureSyncMetadata?
     func setVideoSyncMetadata(_ metadata: CaptureSyncMetadata?) { videoSyncMetadata = metadata }
     var appliedProfiles: [StreamProfile] = []

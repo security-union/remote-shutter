@@ -76,6 +76,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
         case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
+        case let m as RemoteCmd.CameraStateReport: return m.toFlatBuffer()
+        case let m as RemoteCmd.RequestCameraStateReport: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
@@ -452,6 +454,30 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertNil(decoded.backCamera)
         XCTAssertEqual(decoded.currentCamera, .front)
         XCTAssertEqual(decoded.currentLens, .ultraWide)
+    }
+
+    // MARK: - 13a. Camera state report (the recording-truth channel)
+
+    /// v10 contract: the phase is EXPLICIT on the wire; Recording carries the
+    /// camera's elapsed tick (ms) — the camera drives the remote's timer.
+    func testCameraStateReport_recordingRoundTrip() throws {
+        let original = RemoteCmd.CameraStateReport(seq: 42, state: .recording(elapsedMillis: 61_500))
+        let decoded: RemoteCmd.CameraStateReport = roundTrip(original)
+        XCTAssertEqual(decoded.seq, 42)
+        XCTAssertEqual(decoded.state, .recording(elapsedMillis: 61_500))
+    }
+
+    /// The other half of the contract: Idle is an explicit phase, never a
+    /// sentinel timestamp.
+    func testCameraStateReport_idleRoundTrip() {
+        let original = RemoteCmd.CameraStateReport(seq: 7, state: .idle)
+        let decoded: RemoteCmd.CameraStateReport = roundTrip(original)
+        XCTAssertEqual(decoded.seq, 7)
+        XCTAssertEqual(decoded.state, .idle)
+    }
+
+    func testRequestCameraStateReport_roundTrip() {
+        let _: RemoteCmd.RequestCameraStateReport = roundTrip(RemoteCmd.RequestCameraStateReport())
     }
 
     // MARK: - 13b. Camera device selection

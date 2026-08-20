@@ -177,7 +177,9 @@ final class RecordingPipelineTests: XCTestCase {
 
         XCTAssertTrue(pipeline.isRecording)
         XCTAssertEqual(acks.count, 1, "the ready edge must produce exactly one StartRecordingVideoAck")
-        XCTAssertTrue(acks.first is RemoteCmd.StartRecordingVideoAck)
+        let ack = try XCTUnwrap(acks.first as? RemoteCmd.StartRecordingVideoAck)
+        XCTAssertEqual(pipeline.recordingStartedAt, ack.recordingStartTime,
+                       "one stamp: the shared start instant IS the ack's start time")
     }
 
     /// No usable microphone: recording is REFUSED — no silent-video surprise
@@ -211,6 +213,76 @@ final class RecordingPipelineTests: XCTestCase {
         XCTAssertEqual(sent.count, 1, "no ack may fire")
     }
 
+    /// The one truth field: `recordingStartedAt` is non-nil EXACTLY while
+    /// recording (`isRecording` is computed from it), and stop clears it at
+    /// stop initiation — not when the writer eventually finishes finalizing —
+    /// so every derived surface (the wire's `recording_start_unix_ms`, REC
+    /// badges, timers) reads "not recording" the moment the stop is accepted.
+    func testStopClearsRecordingStartInstant() throws {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in true }
+        pipeline.sendMessage = { _ in }
+
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {} // drain: writer created, flags set
+
+        let videoBuffer = try makeVideoSampleBuffer(seconds: 0)
+        let audioBuffer = try makeAudioSampleBuffer()
+        engine.dataOutputQueue.sync {
+            pipeline.processFrame(engine.videoDataOutput, didOutput: videoBuffer)
+            pipeline.processFrame(engine.audioDataOutput, didOutput: audioBuffer)
+        }
+        XCTAssertNotNil(pipeline.recordingStartedAt, "armed: the start instant is set at the ready edge")
+        XCTAssertTrue(pipeline.isRecording)
+
+        pipeline.stopRecording(false)
+        engine.dataOutputQueue.sync {} // stop initiation ran on the data queue
+
+        XCTAssertNil(pipeline.recordingStartedAt)
+        XCTAssertFalse(pipeline.isRecording,
+                       "recordingStartedAt != nil ⟺ isRecording — stop clears both as one")
+    }
+
+    /// Below the 100 MB floor recording is REFUSED up front — no writer
+    /// armed, a clear localized error locally, and `RecordingTerminated` for
+    /// the coordinator to route to the remote.
+    func testRecordingRefusedWhenStorageLow() throws {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in
+            XCTFail("the storage gate must refuse before audio is configured")
+            return true
+        }
+        pipeline.freeSpaceForRecording = { RecordingStoragePolicy.minimumFreeBytesToStart - 1 }
+
+        var sent: [Message] = []
+        pipeline.sendMessage = { sent.append($0) }
+        var errors: [String] = []
+        pipeline.onError = { errors.append($0) }
+
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+
+        XCTAssertFalse(pipeline.isRecording)
+        XCTAssertFalse(pipeline.recordingWillBeStarted, "no writer may be armed")
+        XCTAssertEqual(sent.count, 1)
+        let terminated = try XCTUnwrap(sent.first as? UICmd.RecordingTerminated)
+        let expected = NSLocalizedString("insufficient_storage_error", comment: "")
+        XCTAssertEqual(terminated.error.localizedDescription, expected)
+        XCTAssertEqual(errors, [expected])
+    }
+
+    /// The single-point policy itself: 100 MB floor; an unreadable capacity
+    /// fails open (never blocks the user — the writer-death funnel is the
+    /// backstop if the disk really is full).
+    func testStoragePolicyThreshold() {
+        XCTAssertTrue(RecordingStoragePolicy.canStart(freeBytes: nil))
+        XCTAssertTrue(RecordingStoragePolicy.canStart(freeBytes: RecordingStoragePolicy.minimumFreeBytesToStart))
+        XCTAssertFalse(RecordingStoragePolicy.canStart(freeBytes: RecordingStoragePolicy.minimumFreeBytesToStart - 1))
+        XCTAssertFalse(RecordingStoragePolicy.canStart(freeBytes: 0))
+    }
+
     func testStopWhileIdleSendsNothingAndStaysIdle() {
         let engine = CaptureEngine()
         let pipeline = RecordingPipeline(engine: engine)
@@ -226,6 +298,112 @@ final class RecordingPipelineTests: XCTestCase {
         XCTAssertFalse(pipeline.recordingWillBeStopped)
         XCTAssertTrue(sentMessages.isEmpty)
         XCTAssertFalse(stoppedFired)
+    }
+
+    // MARK: - Dead finalize (the suspended-mid-finalize field wedge)
+
+    /// The field wedge: a finalize whose completion never returns (the app
+    /// suspended mid-finalize; the callback died with it) latched
+    /// `recordingWillBeStopped` forever. The NEXT take then recorded
+    /// normally — but its stop hit the latch and was silently swallowed:
+    /// record ran, stop did nothing, the remote waited on a response that
+    /// never came. Arming a new take must void the previous take's latch,
+    /// and the new take's stop must be answered.
+    func testNewTakeClearsStopLatchFromDeadFinalize() throws {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in true }
+        var sent: [Message] = []
+        pipeline.sendMessage = { sent.append($0) }
+        // Take 1's finalize never calls back — the suspended-finalize shape.
+        pipeline.finalizeWriter = { _, _ in }
+
+        // Take 1: start, reach the ready edge, stop into the dead finalize.
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        engine.dataOutputQueue.sync {
+            pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 0))
+            pipeline.processFrame(engine.audioDataOutput, didOutput: try! self.makeAudioSampleBuffer())
+        }
+        // Past the edge, frames must flow so the writer actually STARTS
+        // (startWriting happens on the first append after the edge) — only
+        // then does a stop reach the finalize path this test is about.
+        engine.dataOutputQueue.sync {
+            for i in 1...3 {
+                pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: Double(i) / 30.0))
+            }
+        }
+        XCTAssertTrue(pipeline.isRecording)
+        pipeline.stopRecording(false)
+        engine.dataOutputQueue.sync {}
+        XCTAssertTrue(pipeline.recordingWillBeStopped, "the dead finalize leaves the latch set")
+        XCTAssertFalse(pipeline.isRecording)
+
+        // Take 2: a real finalize again; ARMING must clear the stale latch.
+        pipeline.finalizeWriter = { writer, done in writer.finishWriting(completionHandler: done) }
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        XCTAssertFalse(pipeline.recordingWillBeStopped,
+                       "a new take voids the previous take's stop latch")
+        engine.dataOutputQueue.sync {
+            pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 10))
+            pipeline.processFrame(engine.audioDataOutput, didOutput: try! self.makeAudioSampleBuffer())
+            for i in 1...3 {
+                pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 10 + Double(i) / 30.0))
+            }
+        }
+        XCTAssertTrue(pipeline.isRecording)
+
+        // The invariant the field lost: take 2's stop gets an ANSWER.
+        let answered = expectation(description: "take 2's stop is answered")
+        pipeline.sendMessage = { message in
+            if message is RemoteCmd.StopRecordingVideoResp { answered.fulfill() }
+        }
+        pipeline.stopRecording(false)
+        wait(for: [answered], timeout: 2.0)
+    }
+
+    /// The finalize watchdog: a stop whose finalize dies must still be
+    /// answered — salvage, reset, `RecordingTerminated` — and the dead
+    /// finalize's completion, arriving after the reset, must be ignored
+    /// (identity guard), never applied to state it no longer owns.
+    func testFinalizeWatchdogAnswersWhenFinalizeDies() throws {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in true }
+        pipeline.finalizeTimeout = 0.1
+        var lateCompletion: (() -> Void)?
+        pipeline.finalizeWriter = { _, done in lateCompletion = done }
+        var sent: [Message] = []
+        let terminated = expectation(description: "watchdog reports the dead finalize")
+        pipeline.sendMessage = { message in
+            sent.append(message)
+            if message is UICmd.RecordingTerminated { terminated.fulfill() }
+        }
+
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        engine.dataOutputQueue.sync {
+            pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 0))
+            pipeline.processFrame(engine.audioDataOutput, didOutput: try! self.makeAudioSampleBuffer())
+            for i in 1...3 {
+                pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: Double(i) / 30.0))
+            }
+        }
+        pipeline.stopRecording(false)
+
+        wait(for: [terminated], timeout: 2.0)
+        engine.dataOutputQueue.sync {}
+        XCTAssertFalse(pipeline.recordingWillBeStopped, "the watchdog resets the machine")
+        XCTAssertFalse(pipeline.isRecording)
+
+        // The zombie completion fires after the reset — identity-guarded out.
+        let messagesBefore = sent.count
+        lateCompletion?()
+        engine.dataOutputQueue.sync {}
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        XCTAssertEqual(sent.count, messagesBefore,
+                       "a completion for a take that was already closed changes nothing")
     }
 
     func testDoubleStartIsIgnored() {

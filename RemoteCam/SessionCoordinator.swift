@@ -66,6 +66,12 @@ enum SessionState: Equatable {
     case monitorTogglingFlash(generation: Int)
     case monitorTogglingCamera(mode: MonitorMode, generation: Int)
     case monitorSwitchingLens(returnTo: LensSwitchReturn, generation: Int)
+    /// A recording start is requested and unconfirmed: the camera's pipeline
+    /// is arming (no frame written yet), so a cam-state report saying "not
+    /// recording" is no news here — the recording screen appears only once
+    /// the start is confirmed. Being in this state IS that knowledge; there
+    /// is no flag to keep beside it.
+    case monitorStartingVideo(generation: Int)
     case monitorRecordingVideo
     case monitorWaitingForVideo
 
@@ -92,6 +98,7 @@ enum SessionState: Equatable {
         case .monitorTogglingFlash: return .monitorTogglingFlash
         case .monitorTogglingCamera: return .monitorTogglingCamera
         case .monitorSwitchingLens: return .monitorSwitchingLens
+        case .monitorStartingVideo: return .monitorStartingVideo
         case .monitorRecordingVideo: return .monitorRecordingVideo
         case .monitorWaitingForVideo: return .monitorWaitingForVideo
         case .watchCamera: return .watchRemoteCamera
@@ -106,6 +113,19 @@ enum SessionState: Equatable {
         if case .reconnecting(let peer) = self { return peer }
         return nil
     }
+
+    /// The camera family. The camera is a SERVER: it holds its post through a
+    /// peer drop (any of these states) and merely reports its truth; only the
+    /// monitor — the dialer — treats a dead link as a reason to return to the
+    /// scanner. `.reconnecting` is therefore a monitor-only state.
+    var isCameraRole: Bool {
+        switch self {
+        case .camera, .cameraTakingPic, .cameraRecordingVideo, .cameraTransmittingVideo:
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 // MARK: - Internal messages
@@ -114,15 +134,8 @@ enum SessionState: Equatable {
 /// so already-queued messages could land in the current state first. The FIFO
 /// inbox reproduces that exactly.
 final class DeferredPopToCamera: Message, @unchecked Sendable {}
-final class DeferredPopAndScan: Message, @unchecked Sendable {
-    /// Set when a lost peer is the reason for leaving, so the deferred hop
-    /// lands in `.reconnecting` rather than treating it as a deliberate exit.
-    let lostPeer: MCPeerID?
-    init(lostPeer: MCPeerID? = nil) {
-        self.lostPeer = lostPeer
-        super.init(sender: nil)
-    }
-}
+/// A deliberate exit (the scanner came on screen) observed mid-transfer.
+final class DeferredPopAndScan: Message, @unchecked Sendable {}
 /// Incompatibility detected by the transport (routed through the inbox — the
 /// old code mutated state directly on the delegate thread).
 final class IncompatibilityDetected: Message, @unchecked Sendable {}
@@ -136,17 +149,6 @@ final class FireScheduledCapture: Message, @unchecked Sendable {
         super.init(sender: nil)
     }
 }
-/// Camera side: a scheduled multicam recording's start instant has arrived
-/// (same off-actor-delay → pump-message pattern as `FireScheduledCapture`).
-final class FireScheduledRecordingStart: Message, @unchecked Sendable {
-    let metadata: CaptureSyncMetadata
-    init(metadata: CaptureSyncMetadata) {
-        self.metadata = metadata
-        super.init(sender: nil)
-    }
-}
-/// Camera side: a scheduled multicam recording's stop instant has arrived.
-final class FireScheduledRecordingStop: Message, @unchecked Sendable {}
 /// Retry tick for the capabilities ladder.
 final class RetryCapabilities: Message, @unchecked Sendable {
     let attempt: Int
@@ -243,6 +245,7 @@ public actor SessionCoordinator {
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
 
+
     /// Camera side: the sync metadata for a scheduled multicam capture that is
     /// about to fire. Set when `FireScheduledCapture` triggers the shutter and
     /// consumed by the next `OnPicture`, so exactly that photo is stamped and
@@ -264,6 +267,25 @@ public actor SessionCoordinator {
     /// refuses it (clock error and one retransmit can nudge it slightly late;
     /// beyond this it is stale and would fire out of sync).
     private let scheduledCaptureMaxLatenessMillis: Int64 = 1000
+    /// The director schedules fires ~150ms ahead (its `captureLeadMillis`); a
+    /// computed wait beyond this bound is a CLOCK ERROR (skewed offset
+    /// estimate — asymmetric congestion, a slept uptime clock), not an
+    /// instruction. The camera never sleeps on a wrong clock: the wait is
+    /// clamped and the take fires near-now, which for a bad estimate is far
+    /// closer to the director's intent than the garbage instant.
+    private let scheduledFireMaxFutureMillis: Int64 = 2000
+
+    /// The clamped sleep for a scheduled fire, with a console note when the
+    /// clamp engages — the one place a fire instant becomes a wait.
+    private func scheduledFireDelayMillis(_ lateness: Int64) -> Int64 {
+        let delay = max(0, -lateness)
+        if delay > scheduledFireMaxFutureMillis {
+            logWarning("scheduled fire \(delay)ms in the future — clock skew; clamped to \(scheduledFireMaxFutureMillis)ms")
+            SessionDebug.note("⚠︎ scheduled fire +\(delay)ms — clock skew, clamped")
+            return scheduledFireMaxFutureMillis
+        }
+        return delay
+    }
 
     /// Camera side: who is driving this session. `.solo` is an ordinary 1:1
     /// session (or none yet); `.director` latches the first time any scheduled
@@ -435,20 +457,37 @@ public actor SessionCoordinator {
     /// the old `sendCommandOrGoToScanning`. `peers` nil = all connected
     /// (identical for this 1:1 coordinator; the param exists so per-peer
     /// sends like frame acks address only their source).
+    ///
+    /// The single point of the role-split failure policy: the camera is a
+    /// server, so with NO peer connected a failed send is the expected shape
+    /// of "the remote is away" — the message is dropped, the camera holds its
+    /// post, and the rejoin handshake re-delivers state. Every other failure
+    /// (a send that dies on a live link, or any monitor-side failure) still
+    /// tears down to scanning.
+    ///
+    /// Returns whether the session survived — false means the machine popped
+    /// to scanning, so the caller must not keep transitioning.
+    @discardableResult
     func sendOrGoToScanning(_ msg: Message, to peers: [MCPeerID]? = nil,
-                            mode: MCSessionSendDataMode = .reliable) async {
+                            mode: MCSessionSendDataMode = .reliable) async -> Bool {
         guard multipeerService != nil else {
             // Watch Remote mode: there is no peer and no scanning state to fall back to.
             debugLog("sendOrGoToScanning: no multipeer session, dropping \(type(of: msg))")
-            return
+            return true
         }
         if !sendMessage(msg, to: peers, mode: mode) {
+            if state.isCameraRole && connectedPeers.isEmpty {
+                debugLog("sendOrGoToScanning: no peer — dropped \(type(of: msg)) while the camera holds its post")
+                return true
+            }
             await popToScanning()
             let presenter = alertPresenter
             OperationQueue.main.addOperation {
                 presenter.showError(title: NSLocalizedString("Connection error", comment: ""))
             }
+            return false
         }
+        return true
     }
 
     // MARK: The peer link
@@ -521,7 +560,9 @@ public actor SessionCoordinator {
         // flight cannot survive arriving here.
         link = .none
         if multipeerService == nil {
-            let service = MultipeerService(peerID: lobby.peerID)
+            // The one transport composition root — Debug builds interpose the
+            // session console's wiretap here (identity in Release).
+            let service = SessionDebug.instrument(MultipeerService(peerID: lobby.peerID))
             service.delegate = self
             multipeerService = service
             transportShared.value = service
@@ -546,7 +587,37 @@ public actor SessionCoordinator {
     /// Leaving that state re-arms advertising, which a camera cannot do while
     /// it still thinks it has a session.
     private func rearmAfterForeground() async {
-        guard multipeerService != nil, connectedPeers.isEmpty else { return }
+        guard multipeerService != nil else { return }
+        // Camera role first, and WITHOUT consulting `connectedPeers`:
+        // suspension kills the link every time, and its death notice can
+        // still be queued behind this very wake — the wake is the authority,
+        // not the transport's membership list. Re-arming the advertiser over
+        // a link that somehow survived is harmless.
+        if state.isCameraRole {
+            if connectedPeers.isEmpty {
+                holdCameraRoleThroughDrop()
+            } else if let liveLobby = lobby?.value {
+                restartDiscovery(lobby: liveLobby)
+            }
+            if case .cameraTransmittingVideo = state, connectedPeers.isEmpty {
+                // The transfer died with the suspended link; the clip is
+                // already saved locally — settle to the idle camera.
+                tell(DeferredPopToCamera())
+            }
+            // The wake reconciles this machine against the PIPELINE — the
+            // source of truth suspension can diverge us from. A recording
+            // state whose pipeline is not recording (the interruption
+            // finalized it, or an arming start died with the suspension)
+            // is a lie: cancel any leftover arming and settle; the settle
+            // reports the idle truth. A pipeline still rolling (a blip the
+            // interruption never touched) keeps its state untouched.
+            if case .cameraRecordingVideo = state, ctrl?.currentRecordingStartedAt() == nil {
+                ctrl?.stopRecordingVideo(false)
+                await transition(to: .camera)
+            }
+            return
+        }
+        guard connectedPeers.isEmpty else { return }
         switch state {
         case .waitingForLobby, .lobby, .watchCamera, .watchCameraTakingPic,
              .watchCameraStartingVideo, .watchCameraRecordingVideo:
@@ -589,15 +660,21 @@ public actor SessionCoordinator {
             reconnectRetryTask?.cancel()
             reconnectRetryTask = nil
         }
+        let previous = state
         state = newState
+        if case .cameraRecordingVideo = newState {} else {
+            cameraTimerTickTask?.cancel()
+            cameraTimerTickTask = nil
+        }
+        SessionDebug.stateChanged(newState.name.rawValue)
         publishWaitingOverlay()
         // One write, at the one place state changes: an in-flight indicator
         // cannot outlive the command it describes.
         monitor?.setActivity(MonitorActivity.forState(newState))
-        await didEnter(newState)
+        await didEnter(newState, from: previous)
     }
 
-    private func didEnter(_ newState: SessionState) async {
+    private func didEnter(_ newState: SessionState, from previous: SessionState) async {
         switch newState {
         case .waitingForLobby, .lobby:
             break
@@ -628,9 +705,34 @@ public actor SessionCoordinator {
                 }
             }
 
-        case .camera, .cameraRecordingVideo:
+        case .camera:
             if let peer, let transport = multipeerService {
                 frameSender?.setSession(peer: peer, transport: transport)
+            }
+            // The remote is an observer of camera state: a capture phase
+            // settling back to idle — any stop path, whoever initiated it —
+            // reports the new truth on the one state channel, and the
+            // monitor's projection does the rest. Only WITHIN an established
+            // session (arriving from another camera state): the first entry's
+            // report belongs to the announcement flow, behind the version
+            // gate. Entering the RECORDING state deliberately reports
+            // nothing: the pipeline is still arming there, and the start ack
+            // triggers the report once frames flow.
+            if previous.isCameraRole {
+                sendCameraStateReport()
+            }
+
+        case .cameraRecordingVideo:
+            if let peer, let transport = multipeerService {
+                frameSender?.setSession(peer: peer, transport: transport)
+            }
+            cameraTimerTickTask?.cancel()
+            cameraTimerTickTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    guard let self, !Task.isCancelled else { return }
+                    await self.sendRecordingTick()
+                }
             }
 
         case .cameraTakingPic, .cameraTransmittingVideo:
@@ -641,7 +743,16 @@ public actor SessionCoordinator {
             case .photo: monitor?.renderPhotoMode()
             case .video: monitor?.renderVideoMode()
             }
+            // No pull here: recording truth arrives on the report channel —
+            // pushed by the camera on every change and on link-up, requested
+            // once when the camera re-announces. This screen is a projection.
             await requestFrame()
+
+        case .monitorStartingVideo:
+            // Still the video-mode screen: the recording chrome appears only
+            // once the camera confirms frames are being written. The shutter
+            // shows the in-flight activity ring meanwhile (MonitorActivity).
+            break
 
         case .monitorRecordingVideo:
             monitor?.renderVideoModeRecording()
@@ -677,6 +788,7 @@ public actor SessionCoordinator {
     /// Pop to scanning (stops at the lobby floor like the old machine) and
     /// restart discovery via `.scanning`'s entry behavior.
     func popToScanning() async {
+        lastCameraStateReportSeq = 0
         peerAdvertisedCameraDevices = false
         peerSupportsFocusPoint = false
         peerSupportsPreviewMode = false
@@ -739,6 +851,9 @@ public actor SessionCoordinator {
             await inMonitorToggling(msg, kind: .camera, mode: mode, generation: generation)
         case .monitorSwitchingLens(let returnTo, let generation):
             await inMonitorSwitchingLens(msg, returnTo: returnTo, generation: generation)
+        case .monitorStartingVideo(let generation):
+            await inMonitorStartingVideo(msg, generation: generation)
+
         case .monitorRecordingVideo:
             await inMonitorRecordingVideo(msg)
         case .monitorWaitingForVideo:
@@ -1086,17 +1201,6 @@ public actor SessionCoordinator {
                 bitrateKbps: UInt32(max(0, profile.bitrateKbps)),
                 fps: UInt32(max(0, profile.fps))))
 
-        case let fire as FireScheduledRecordingStart:
-            // The start instant arrived. Stamp the recording with its sync
-            // metadata (for the QuickTime keys + the RS_ filename), then roll.
-            cameraDriver = .director
-            pendingVideoSyncMetadata = fire.metadata
-            ctrl.setVideoSyncMetadata(fire.metadata)
-            ctrl.currentCameraMode = .Video
-            ctrl.updateCameraStatus()
-            ctrl.startRecordingVideo()
-            await transition(to: .cameraRecordingVideo)
-
         case let fire as FireScheduledCapture:
             // The fire instant arrived (enqueued by the off-actor delay task).
             // Pull the shutter through the normal photo path: save locally
@@ -1239,8 +1343,15 @@ public actor SessionCoordinator {
 
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
-                await loseSessionPeer(lost)
+                // Same policy as every camera state: hold the post. The idle
+                // camera keeps its screen and its rig (no teardown/rebuild
+                // cycle on a blip), re-arms advertising, and shows the chip;
+                // the operator's back button is the deliberate exit.
+                holdCameraRoleThroughDrop()
             }
+
+        case let connected as OnConnectToDevice:
+            await rebindCameraPeer(connected)
 
         case is UICmd.ScannerDidAppear:
             await leaveSession()
@@ -1270,6 +1381,18 @@ public actor SessionCoordinator {
         }
     }
 
+    /// Monitor side: absorb a camera's capabilities report — the wire-safety
+    /// gates and the presenter's picture of the camera. Shared by every
+    /// monitor state that accepts capabilities; the states layer their own
+    /// recording-truth derivation on top.
+    private func absorbCapabilities(_ capabilities: RemoteCmd.CameraCapabilitiesResp) {
+        peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
+        peerSupportsFocusPoint = capabilities.supportsFocusPoint
+        peerSupportsPreviewMode = capabilities.supportsPreviewMode
+        monitor?.updateCapabilities(capabilities)
+        monitor?.updatePreviewMode(capabilities.previewMode)
+    }
+
     /// "The switch didn't stick." The message rides in the NSError domain —
     /// the convention every monitor's error display reads (`error._domain`).
     private func couldNotSwitchCameraError() -> NSError {
@@ -1279,13 +1402,67 @@ public actor SessionCoordinator {
                 code: 0, userInfo: nil)
     }
 
+    // MARK: - Camera state report (the ONE recording-truth channel)
+
+    /// Monotonic ACROSS camera restarts, not just within one session: seeded
+    /// from the wall clock (Unix ms) at init and incremented per report, so a
+    /// camera that relaunches mid-session still outranks every report its
+    /// previous life sent (increments are tiny against millisecond time).
+    /// Receivers additionally zero their cursor on `PeerBecameCamera`, which
+    /// covers the one hole a wall-clock seed has — a clock set backwards.
+    private var cameraStateReportSeq = UInt64(Date().timeIntervalSince1970 * 1000)
+
+    /// THE producer of recording truth on the wire. Called on every recording
+    /// state change (start ack, settle to idle), on link-up, with every
+    /// capabilities answer, and for `RequestCameraStateReport`. Peerless sends
+    /// are simply skipped — the rejoin flow re-delivers.
+    private func sendCameraStateReport() {
+        guard !connectedPeers.isEmpty else { return }
+        // Elapsed is computed HERE, from two values on the same clock — the
+        // camera drives the remote's timer; remotes display, never compute.
+        let state: RemoteCmd.CameraStateReport.RecordingState =
+            ctrl?.currentRecordingStartedAt().map {
+                .recording(elapsedMillis: UInt64(max(0, Date().timeIntervalSince($0)) * 1000))
+            } ?? .idle
+        cameraStateReportSeq += 1
+        sendMessage(RemoteCmd.CameraStateReport(seq: cameraStateReportSeq, state: state))
+    }
+
+    /// The camera's timer tick: ~1/s while recording, a `CameraStateReport`
+    /// carrying fresh elapsed-ms. Armed on entering the recording state,
+    /// cancelled on leaving it.
+    private var cameraTimerTickTask: Task<Void, Never>?
+
+    private func sendRecordingTick() {
+        guard case .cameraRecordingVideo = state,
+              ctrl?.currentRecordingStartedAt() != nil else { return }
+        sendCameraStateReport()
+    }
+
+    /// Monitor side: the newest report seq absorbed from the camera. Zeroed
+    /// when the camera re-announces (`PeerBecameCamera` — its session, and
+    /// with it the seq domain, restarted) and when this side leaves the
+    /// session.
+    private var lastCameraStateReportSeq: UInt64 = 0
+
+    /// Monitor side: true when the report is news (fresh seq). A stale or
+    /// duplicate report advances nothing and must change no screen.
+    private func absorbCameraStateReport(_ report: RemoteCmd.CameraStateReport) -> Bool {
+        guard report.seq > lastCameraStateReportSeq else { return false }
+        lastCameraStateReportSeq = report.seq
+        return true
+    }
+
     /// Capabilities retry ladder: the capture device isn't ready right after
     /// setup, so retry with growing delays (0.2s × attempt, max 5).
+    /// Every capabilities answer is accompanied by a fresh state report:
+    /// caps say what the camera HAS, the report says what it is DOING.
     private func attemptToSendCapabilities(attempt: Int) async {
         guard let ctrl else { return }
         await ctrl.gatherAllCameraCapabilities()
         if let capabilities = await ctrl.gatherCurrentCameraCapabilities() {
             await sendOrGoToScanning(capabilities)
+            sendCameraStateReport()
         } else if attempt < 5 {
             let next = attempt + 1
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2 * Double(next)) { [weak self] in
@@ -1369,7 +1546,7 @@ public actor SessionCoordinator {
             clockOffsetMillis: 0,
             roundTripMillis: 0)
 
-        let delayMillis = max(0, -lateness)
+        let delayMillis = scheduledFireDelayMillis(lateness)
         Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
             self?.tell(FireScheduledCapture(metadata: metadata))
@@ -1381,42 +1558,46 @@ public actor SessionCoordinator {
     /// message rolls the recording through the normal pipeline.
     private func handleScheduledStartRecording(_ scheduled: RemoteCmd.ScheduledStartRecording) async {
         cameraDriver = .director
-        let lateness = Int64(SyncClock.nowMillis()) - Int64(scheduled.fireAtCameraClockMillis)
-        guard lateness <= scheduledCaptureMaxLatenessMillis else {
-            logWarning("session: ScheduledStartRecording \(scheduled.captureId.prefix(8)) NACKED — \(lateness)ms late")
-            await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
-                captureId: scheduled.captureId, isStop: false,
-                error: NSError(domain: "Scheduled recording start already passed",
-                               code: 0, userInfo: nil)))
-            return
-        }
+        // Recording obeys NO clocks: fire the moment the command arrives.
+        // Sleeping until a computed instant turned clock-offset error
+        // (congestion asymmetry, uptime clocks paused by sleep) into
+        // multi-second phantom waits on a live shutter press. Cross-camera
+        // alignment rides the anchor metadata stamped into the files — not
+        // the start instant.
         await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
             captureId: scheduled.captureId, isStop: false))
-
         let metadata = CaptureSyncMetadata(
             sessionID: scheduled.sessionId, captureID: scheduled.captureId,
             cameraIndex: scheduled.cameraIndex, anchorMillis: scheduled.anchorMillis,
             clockOffsetMillis: 0, roundTripMillis: 0)
-        let delayMillis = max(0, -lateness)
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
-            self?.tell(FireScheduledRecordingStart(metadata: metadata))
-        }
+        // Fire INLINE — no re-enqueue through the inbox (the deferred-fire
+        // indirection died with the sleep). Stamp the recording with its
+        // sync metadata (QuickTime keys + RS_ filename), then roll.
+        guard let ctrl else { return }
+        SessionDebug.pipelinePhase("start: scheduled start — firing inline")
+        cameraDriver = .director
+        pendingVideoSyncMetadata = metadata
+        ctrl.setVideoSyncMetadata(metadata)
+        ctrl.currentCameraMode = .Video
+        ctrl.updateCameraStatus()
+        ctrl.startRecordingVideo()
+        await transition(to: .cameraRecordingVideo)
     }
 
     /// Camera side of a synced recording stop — acks now, fires the stop at the
     /// instant so every camera's clip ends together.
     private func handleScheduledStopRecording(_ scheduled: RemoteCmd.ScheduledStopRecording) async {
-        let lateness = Int64(SyncClock.nowMillis()) - Int64(scheduled.fireAtCameraClockMillis)
-        // A late stop still needs to fire (a clip left rolling is worse than a
-        // slightly-long clip), so we never nack it — just clamp the delay.
+        // Same rule as the start: NO clocks. Stop the moment the command
+        // arrives — a clip a few frames long or short beats one held hostage
+        // by a skewed offset estimate.
         await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
             captureId: scheduled.captureId, isStop: true))
-        let delayMillis = max(0, -lateness)
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
-            self?.tell(FireScheduledRecordingStop())
-        }
+        // Fire INLINE: save locally AND push the clip to the director (the
+        // existing resource-transfer path; sync metadata rides in the file).
+        guard let ctrl else { return }
+        SessionDebug.pipelinePhase("stop: scheduled stop — firing inline")
+        ctrl.stopRecordingVideo(true)
+        await transition(to: .cameraTransmittingVideo)
     }
 
     private func inCameraTakingPic(_ msg: Message, sendMediaToPeer: Bool, generation: Int) async {
@@ -1431,20 +1612,19 @@ public actor SessionCoordinator {
             guard timeout.stateName == .cameraTakingPic && timeout.generation == generation else { break }
             pendingSyncMetadata = nil
             await dismissCameraAlert()
-            let sent = sendMessage(RemoteCmd.TakePicResp(
+            guard await sendOrGoToScanning(RemoteCmd.TakePicResp(
                 sender: nil,
-                error: NSError(domain: "Timed out taking picture", code: 0, userInfo: nil)))
-            if sent {
-                await transition(to: .camera)
-            } else {
-                await popToScanning()
-            }
+                error: NSError(domain: "Timed out taking picture", code: 0, userInfo: nil))) else { break }
+            await transition(to: .camera)
 
         case let picture as UICmd.OnPicture:
             // A scheduled multicam capture stamps the still with its sync
             // metadata once; that same stamped image is saved locally under the
             // shared RS_<sess>_<cap>_cam<k> name AND returned to the director so
             // it collects every angle. An ordinary capture saves as before.
+            // The saves happen unconditionally; the sends are subject to the
+            // role-split failure policy (a peerless camera keeps the still and
+            // settles to idle instead of tearing down).
             let metadata = pendingSyncMetadata
             let stampedPic = picture.pic.map { pic in metadata.map { $0.stamped(pic) } ?? pic }
             if let pic = stampedPic {
@@ -1453,25 +1633,30 @@ public actor SessionCoordinator {
             }
             pendingSyncMetadata = nil
             await dismissCameraAlert()
-            guard sendMessage(RemoteCmd.TakePicAck(sender: nil)) else {
-                await popToScanning()
-                return
-            }
+            guard await sendOrGoToScanning(RemoteCmd.TakePicAck(sender: nil)) else { break }
             let resp = RemoteCmd.TakePicResp(
                 sender: nil,
                 pic: sendMediaToPeer ? stampedPic : nil,
                 error: picture.error)
-            guard sendMessage(resp) else {
-                await popToScanning()
-                return
-            }
+            guard await sendOrGoToScanning(resp) else { break }
             await transition(to: .camera)
 
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
-                await dismissCameraAlert()
-                await loseSessionPeer(lost)
+                // Hold the post: the in-flight capture completes and saves
+                // locally, then the machine settles to the idle camera.
+                holdCameraRoleThroughDrop()
             }
+
+        case let connected as OnConnectToDevice:
+            await rebindCameraPeer(connected)
+
+        case let became as RemoteCmd.PeerBecameMonitor:
+            guard await enforcePeerAppVersion(became) else { break }
+            await attemptToSendCapabilities(attempt: 0)
+
+        case is RemoteCmd.RequestCameraCapabilities:
+            await attemptToSendCapabilities(attempt: 0)
 
         case is UICmd.ScannerDidAppear:
             await dismissCameraAlert()
@@ -1516,9 +1701,13 @@ public actor SessionCoordinator {
             frameSender?.requestKeyframe()
 
         case let ack as RemoteCmd.StartRecordingVideoAck:
-            // The pipeline's success ack, carrying the recording start time for
-            // the monitor's timer sync — forward across the wire.
-            await sendOrGoToScanning(ack, mode: .reliable)
+            // The pipeline's success ack — the start handshake's answer —
+            // forwarded across the wire, followed by the state report (the
+            // recording-truth channel). While unlinked the send helper drops
+            // them (camera holds its post); a rejoining monitor gets the
+            // truth from the link-up report.
+            guard await sendOrGoToScanning(ack, mode: .reliable) else { break }
+            sendCameraStateReport()
 
         case let stop as RemoteCmd.StopRecordingVideo:
             ctrl.stopRecordingVideo(stop.sendMediaToPeer)
@@ -1536,29 +1725,53 @@ public actor SessionCoordinator {
                 bitrateKbps: UInt32(max(0, profile.bitrateKbps)),
                 fps: UInt32(max(0, profile.fps))))
 
-        case is FireScheduledRecordingStop:
-            // The scheduled stop instant arrived. Save locally AND push the clip
-            // to the director so it auto-collects every angle (the existing
-            // resource-transfer path; QuickTime sync metadata rides in the file).
-            ctrl.stopRecordingVideo(true)
-            await transition(to: .cameraTransmittingVideo)
-
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
-                if cameraDriver == .director {
-                    // Resilient camera: the director dropped mid-recording, but
-                    // the OTHER cameras in the rig keep rolling — so must this
-                    // one. Keep recording (do NOT stop), and enter the normal
-                    // reconnect path; the clip is saved when the scheduled stop
-                    // finally fires, or when the user stops on-device. This is
-                    // the ONE behavior gated on `cameraDriver == .director`; a
-                    // single-camera session falls through to the stop below.
-                    await loseSessionPeer(lost)
-                } else {
-                    ctrl.stopRecordingVideo(false)
-                    await loseSessionPeer(lost)
-                }
+                // A link drop is NOT an input to the recording state machine —
+                // the take keeps rolling in place, with the on-camera stop as
+                // the escape hatch. A recording ends only for an explicit
+                // stop, a deliberate EndSession, leaving the screen, or
+                // capture failure; a rejoining remote re-derives the live
+                // recording from CameraState.
+                holdCameraRoleThroughDrop()
             }
+
+        case let connected as OnConnectToDevice:
+            await rebindCameraPeer(connected)
+
+        case let became as RemoteCmd.PeerBecameMonitor:
+            // The rejoined monitor announced itself — version-gate it, then
+            // answer with capabilities unprompted, exactly like `.camera`
+            // does. The response carries the live recording truth the
+            // monitor derives its screen from.
+            guard await enforcePeerAppVersion(became) else { break }
+            await attemptToSendCapabilities(attempt: 0)
+
+        case let became as RemoteCmd.RoleAnnouncement:
+            await enforcePeerAppVersion(became)
+
+        case is RemoteCmd.RequestCameraCapabilities:
+            await attemptToSendCapabilities(attempt: 0)
+
+        case is RemoteCmd.EndSession:
+            // A deliberate goodbye is intent, not a drop: finalize + save,
+            // then leave like any deliberate end (handleRoot pops to scanning).
+            ctrl.stopRecordingVideo(false)
+            await handleRoot(msg)
+
+        case is UICmd.StopRecordingLocally:
+            // The on-camera stop: finalize + save locally. The machine stays
+            // HERE until the pipeline reports the stop — the recording is a
+            // fact until the writer says otherwise — so the settle (and the
+            // state report it sends) always carries the finalized truth.
+            ctrl.stopRecordingVideo(false)
+
+        case is RemoteCmd.StopRecordingVideoResp:
+            // The pipeline finished a locally-initiated stop (on-camera stop,
+            // or a capture interruption that finalized at the capture layer)
+            // and already saved the clip. Settle to idle; entering `.camera`
+            // reports the new truth to any linked remote.
+            await transition(to: .camera)
 
         case is UICmd.ScannerDidAppear:
             ctrl.stopRecordingVideo(false)
@@ -1574,9 +1787,67 @@ public actor SessionCoordinator {
                 sender: nil, pic: nil, error: unableToProcessError(msg)), mode: .reliable)
             await transition(to: .camera)
 
+        case let terminated as UICmd.RecordingTerminated:
+            // The pipeline is the source of truth and has already ended the
+            // recording and saved what it could — route its error through the
+            // stop-response path the monitor already handles (the send helper
+            // drops it while unlinked), and return this camera to idle.
+            guard await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
+                sender: nil, pic: nil, error: terminated.error), mode: .reliable) else { break }
+            await transition(to: .camera)
+
         default:
             await handleRoot(msg)
         }
+    }
+
+    /// The camera screen's reconnect chip (and, while recording, the on-camera
+    /// stop button) are a function of exactly one fact: "on the camera screen
+    /// with the remote gone". Set at the drop, cleared at the rebind; every
+    /// path back to idle chrome also clears it via the rig.
+    private func setAwaitingRemote(_ awaiting: Bool, ctrl: CameraControlling) {
+        OperationQueue.main.addOperation {
+            ctrl.cameraViewModel.isAwaitingRemoteReconnect = awaiting
+        }
+    }
+
+    /// The one drop behavior for EVERY camera state: hold the post. The link
+    /// clears, the advertiser re-arms so the remote can rejoin, and the screen
+    /// shows the reconnect chip — no pop, no `.reconnecting` (a monitor-only
+    /// state), no rig teardown. Whatever the camera was doing (idle, taking a
+    /// picture, recording, transferring) simply continues or settles to idle.
+    private func holdCameraRoleThroughDrop() {
+        link = .none
+        // Reset the TRANSPORT while holding the ROLE: the dead link's session
+        // state must not leak into the next handshake (the scanner's own
+        // restart path has always disconnected first — a drop deserves the
+        // same hygiene, or ghost connections accumulate with every drop).
+        multipeerService?.disconnect()
+        if let liveLobby = lobby?.value { restartDiscovery(lobby: liveLobby) }
+        if let ctrl {
+            setAwaitingRemote(true, ctrl: ctrl)
+            ctrl.cameraViewModel.setConnectedPeerName(nil)
+        }
+    }
+
+    /// The one rejoin behavior for every camera state: re-bind in place — no
+    /// role re-entry, no rig rebuild. The frame sender is pointed at the new
+    /// transport and the role re-announced; the monitor's answer flow
+    /// (`PeerBecameMonitor` → capabilities carrying the recording truth) does
+    /// the rest.
+    private func rebindCameraPeer(_ connected: OnConnectToDevice) async {
+        link = .linked(connected.peer)
+        if let ctrl {
+            setAwaitingRemote(false, ctrl: ctrl)
+            ctrl.cameraViewModel.setConnectedPeerName(connected.peer.displayName)
+        }
+        if let peer, let transport = multipeerService {
+            frameSender?.setSession(peer: peer, transport: transport)
+        }
+        guard await sendOrGoToScanning(RemoteCmd.PeerBecameCamera.createWithDefaults()) else { return }
+        // Link-up truth push: the rejoining remote projects its screen from
+        // this report (and may additionally request one — idempotent).
+        sendCameraStateReport()
     }
 
     private func inCameraTransmittingVideo(_ msg: Message) async {
@@ -1599,24 +1870,37 @@ public actor SessionCoordinator {
             ctrl?.cameraViewModel.finishVideoTransfer()
 
         case let resp as RemoteCmd.StopRecordingVideoResp:
-            await sendOrGoToScanning(resp)
+            guard await sendOrGoToScanning(resp) else { break }
             // Deferred so already-enqueued messages land in this state first.
+            tell(DeferredPopToCamera())
+
+        case let terminated as UICmd.RecordingTerminated:
+            // The finalize failed under a remote-initiated stop: the pipeline
+            // saved the salvageable fragments; report the truth instead of a
+            // clean stop response.
+            guard await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
+                sender: nil, pic: nil, error: terminated.error), mode: .reliable) else { break }
             tell(DeferredPopToCamera())
 
         case is DeferredPopToCamera:
             await transition(to: .camera)
 
-        case let deferred as DeferredPopAndScan:
-            if let lost = deferred.lostPeer {
-                await loseSessionPeer(lost)
-            } else {
-                await leaveSession()
-            }
+        case is DeferredPopAndScan:
+            await leaveSession()
 
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
-                tell(DeferredPopAndScan(lostPeer: lost))
+                // Hold the post — and settle: the transfer this state exists
+                // for died with the link, and the clip is already saved
+                // locally (the multicam director re-collects it on rejoin via
+                // RequestVideoResend). Deferred so in-flight transfer events
+                // land here first.
+                holdCameraRoleThroughDrop()
+                tell(DeferredPopToCamera())
             }
+
+        case let connected as OnConnectToDevice:
+            await rebindCameraPeer(connected)
 
         case is UICmd.ScannerDidAppear:
             tell(DeferredPopAndScan())
@@ -1787,6 +2071,17 @@ public actor SessionCoordinator {
             // Nothing is being waited on outside `.reconnecting`.
             break
 
+        case is RemoteCmd.RequestCameraStateReport:
+            // Answerable from ANY camera state — the whole point of the
+            // channel is that the camera's truth is always one request away.
+            if state.isCameraRole { sendCameraStateReport() }
+
+        case let report as RemoteCmd.CameraStateReport:
+            // A report landing in a state with no screen decision to make
+            // (transient monitor states) still advances the cursor, so a
+            // stale report can never outrank it later.
+            _ = absorbCameraStateReport(report)
+
         case let become as UICmd.BecomeWatchCamera:
             ctrl = become.ctrl
             await transition(to: .watchCamera)
@@ -1877,6 +2172,11 @@ public actor SessionCoordinator {
             await showIncompatibilityMessage()
 
         case is FrameSendFailed:
+            // Same role split as the send helper: a peerless camera expects
+            // sends to fail (the remote is away) and holds its post — the
+            // disconnect event owns the hold. A failure on a live link, or on
+            // the monitor, still means the session is dead.
+            if state.isCameraRole && connectedPeers.isEmpty { break }
             await popToScanning()
             showErrorAlert(NSLocalizedString("Connection error", comment: ""))
 
@@ -2067,18 +2367,17 @@ public actor SessionCoordinator {
                 }
             case .video:
                 if sendMessage(RemoteCmd.StartRecordingVideo(sender: nil)) {
-                    await transition(to: .monitorRecordingVideo)
+                    let generation = scheduleTimeout(.monitorStartingVideo)
+                    await transition(to: .monitorStartingVideo(generation: generation))
                 } else {
                     await popToScanning()
                 }
             }
 
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
-            peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
-            peerSupportsFocusPoint = capabilities.supportsFocusPoint
-            peerSupportsPreviewMode = capabilities.supportsPreviewMode
-            monitor?.updateCapabilities(capabilities)
-            monitor?.updatePreviewMode(capabilities.previewMode)
+            // Hardware description only — recording truth rides its own
+            // channel (`CameraStateReport`, handled below).
+            absorbCapabilities(capabilities)
 
         case let zoom as UICmd.SetZoom:
             sendMessage(RemoteCmd.SetZoom(zoomFactor: zoom.zoomFactor))
@@ -2137,8 +2436,25 @@ public actor SessionCoordinator {
         case let ratioResp as RemoteCmd.SetAspectRatioResp:
             monitor?.updateAspectRatio(ratioResp.aspectRatio)
 
-        case is UICmd.RequestCameraCapabilities, is RemoteCmd.PeerBecameCamera:
+        case is UICmd.RequestCameraCapabilities:
             sendMessage(RemoteCmd.RequestCameraCapabilities())
+
+        case is RemoteCmd.PeerBecameCamera:
+            // The camera re-announced: its session — and its report seq
+            // domain — restarted. Zero the cursor and pull both channels:
+            // hardware (caps) and truth (state report).
+            lastCameraStateReportSeq = 0
+            sendMessage(RemoteCmd.RequestCameraCapabilities())
+            sendMessage(RemoteCmd.RequestCameraStateReport())
+
+        case let report as RemoteCmd.CameraStateReport:
+            // The camera is rolling — project it: enter the recording screen
+            // showing the camera's own elapsed tick. Idle reports confirm
+            // this screen and need nothing.
+            if absorbCameraStateReport(report), case .recording(let elapsed) = report.state {
+                await transition(to: .monitorRecordingVideo)
+                monitor?.syncRecordingElapsed(elapsed)
+            }
 
         case let become as UICmd.BecomeMonitor:
             // Photo↔video mode swap in place (the old discardOld become).
@@ -2306,6 +2622,87 @@ public actor SessionCoordinator {
         }
     }
 
+    /// Sleeping-actor semantics: while STARTING, a cam-state report saying
+    /// "not recording" is ignored — the pipeline is arming and hasn't written
+    /// its first frame; that is what being in this state means. The recording
+    /// screen appears only on confirmation (the ack, or a report carrying the
+    /// start instant); the timeout ends a start that never confirms.
+    private func inMonitorStartingVideo(_ msg: Message, generation: Int) async {
+        switch msg {
+        case let frame as RemoteCmd.OnFrame:
+            noteMonitorFrame(frame)
+            monitor?.show(frame: frame)
+            await requestFrame(acking: frame)
+
+        case is UICmd.StreamStalled:
+            await requestFrame()
+
+        case is UICmd.RequestVideoKeyframe:
+            requestKeyframeIfVP9()
+
+        case let ack as RemoteCmd.StartRecordingVideoAck:
+            if let error = ack.error {
+                showErrorAlert(error._domain)
+                await transition(to: .monitor(mode: .video))
+            } else {
+                await transition(to: .monitorRecordingVideo)
+                monitor?.syncRecordingElapsed(0)
+            }
+
+        case let capabilities as RemoteCmd.CameraCapabilitiesResp:
+            absorbCapabilities(capabilities)
+
+        case let report as RemoteCmd.CameraStateReport:
+            // The start confirmed through the truth channel (the ack and the
+            // report both arrive; whichever lands first wins, the other is a
+            // no-op). An idle report is NO news while starting — the pipeline
+            // is arming and hasn't written a frame; that is what this state
+            // means. The timeout ends a start that never confirms.
+            if absorbCameraStateReport(report), case .recording(let elapsed) = report.state {
+                await transition(to: .monitorRecordingVideo)
+                monitor?.syncRecordingElapsed(elapsed)
+            }
+
+        case let take as UICmd.TakePicture:
+            // Stop pressed before the start confirmed: forward the stop and
+            // settle into the recording flow, whose handlers own the stop
+            // protocol.
+            sendMessage(RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: take.sendMediaToRemote))
+            await transition(to: .monitorRecordingVideo)
+
+        case let resp as RemoteCmd.StopRecordingVideoResp where resp.error != nil:
+            // The camera's start turned into a termination (arming watchdog,
+            // writer death) — its error answer ends the wait ahead of the
+            // timeout.
+            showErrorAlert(resp.error?._domain ?? NSLocalizedString("Unable to start recording", comment: ""))
+            await transition(to: .monitor(mode: .video))
+
+        case let timeout as UICmd.StateTimeout:
+            guard timeout.stateName == .monitorStartingVideo && timeout.generation == generation else { break }
+            showErrorAlert(NSLocalizedString("Unable to start recording", comment: ""))
+            await transition(to: .monitor(mode: .video))
+
+        case is RemoteCmd.PeerBecameCamera:
+            lastCameraStateReportSeq = 0
+            sendMessage(RemoteCmd.RequestCameraCapabilities())
+            sendMessage(RemoteCmd.RequestCameraStateReport())
+
+        case is UICmd.UnbecomeMonitor:
+            await transition(to: .connected)
+
+        case is UICmd.ScannerDidAppear:
+            await leaveSession()
+
+        case let disconnected as DisconnectPeer:
+            if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
+                await loseSessionPeer(lost)
+            }
+
+        default:
+            await handleRoot(msg)
+        }
+    }
+
     private func inMonitorRecordingVideo(_ msg: Message) async {
         switch msg {
         case let frame as RemoteCmd.OnFrame:
@@ -2323,9 +2720,9 @@ public actor SessionCoordinator {
             if let error = ack.error {
                 showErrorAlert(error._domain)
                 await transition(to: .monitor(mode: .video))
-            } else if let startTime = ack.recordingStartTime {
-                monitor?.syncRecordingStartTime(startTime)
             }
+            // A duplicate success ack mid-recording carries no news: the
+            // camera's ticks drive the timer.
 
         case let take as UICmd.TakePicture:
             sendMessage(RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: take.sendMediaToRemote))
@@ -2369,6 +2766,33 @@ public actor SessionCoordinator {
             saveVideoOnMonitor(resp)
             await transition(to: .monitor(mode: .video))
 
+        case let capabilities as RemoteCmd.CameraCapabilitiesResp:
+            absorbCapabilities(capabilities)
+
+        case let report as RemoteCmd.CameraStateReport:
+            // The camera's truth, on its one channel. Still rolling →
+            // refresh the start instant. Idle → the take ended on the
+            // camera's side (on-camera stop, interruption, writer death);
+            // this screen cannot stay in a recording state the source of
+            // truth isn't in. The report is emitted AFTER any stop ack on
+            // the same ordered channel, so a normal remote-initiated stop
+            // reaches `.monitorWaitingForVideo` before its report lands.
+            guard absorbCameraStateReport(report) else { break }
+            switch report.state {
+            case .recording(let elapsed):
+                monitor?.syncRecordingElapsed(elapsed)
+            case .idle:
+                await transition(to: .monitor(mode: .video))
+            }
+
+        case is RemoteCmd.PeerBecameCamera:
+            // The camera's session reset while this screen shows a recording
+            // (an asymmetric drop this side never observed). Don't assume
+            // either way — zero the cursor and pull its truth.
+            lastCameraStateReportSeq = 0
+            sendMessage(RemoteCmd.RequestCameraCapabilities())
+            sendMessage(RemoteCmd.RequestCameraStateReport())
+
         case is UICmd.UnbecomeMonitor:
             await transition(to: .connected)
 
@@ -2390,6 +2814,16 @@ public actor SessionCoordinator {
         case let resp as RemoteCmd.StopRecordingVideoResp:
             saveVideoOnMonitor(resp)
             await transition(to: .monitor(mode: .video))
+
+        case is RemoteCmd.PeerBecameCamera:
+            // The camera's session reset: whatever response or transfer this
+            // state was awaiting died with the old link and will never come.
+            // Zero the cursor, return to video mode, and pull its truth —
+            // the report re-enters recording if the camera still rolls.
+            lastCameraStateReportSeq = 0
+            await transition(to: .monitor(mode: .video))
+            sendMessage(RemoteCmd.RequestCameraCapabilities())
+            sendMessage(RemoteCmd.RequestCameraStateReport())
 
         case is UICmd.ScannerDidAppear:
             await leaveSession()

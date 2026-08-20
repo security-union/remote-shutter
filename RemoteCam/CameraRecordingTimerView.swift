@@ -97,7 +97,7 @@ struct CameraRecordingTimerView_Previews: PreviewProvider {
 
             // Regular timer for comparison
             RecordingTimer(
-                startTime: Date().addingTimeInterval(-65),
+                elapsedMillis: 65_000,
                 isRecording: true
             )
 
