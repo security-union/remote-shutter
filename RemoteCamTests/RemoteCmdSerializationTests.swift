@@ -459,17 +459,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
     // MARK: - 13a. Camera state report (the recording-truth channel)
 
     /// v10 contract: the phase is EXPLICIT on the wire; Recording carries the
-    /// camera's real first-frame instant at ms precision.
+    /// camera's elapsed tick (ms) — the camera drives the remote's timer.
     func testCameraStateReport_recordingRoundTrip() throws {
-        let start = Date(timeIntervalSince1970: 1_723_000_000.5)
-        let original = RemoteCmd.CameraStateReport(seq: 42, state: .recording(startedAt: start))
+        let original = RemoteCmd.CameraStateReport(seq: 42, state: .recording(elapsedMillis: 61_500))
         let decoded: RemoteCmd.CameraStateReport = roundTrip(original)
         XCTAssertEqual(decoded.seq, 42)
-        guard case .recording(let decodedStart) = decoded.state else {
-            return XCTFail("decoded state is \(decoded.state), expected .recording")
-        }
-        XCTAssertEqual(decodedStart.timeIntervalSince1970,
-                       start.timeIntervalSince1970, accuracy: 0.001)
+        XCTAssertEqual(decoded.state, .recording(elapsedMillis: 61_500))
     }
 
     /// The other half of the contract: Idle is an explicit phase, never a

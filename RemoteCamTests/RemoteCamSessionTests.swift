@@ -460,11 +460,11 @@ class SessionCoordinatorTests: XCTestCase {
 
     private var reportSeq: UInt64 = 0
 
-    private func stateReport(recordingStartedAt: Date?) -> RemoteCmd.CameraStateReport {
+    private func stateReport(elapsed: UInt64?) -> RemoteCmd.CameraStateReport {
         reportSeq += 1
         return RemoteCmd.CameraStateReport(
             seq: reportSeq,
-            state: recordingStartedAt.map { .recording(startedAt: $0) } ?? .idle)
+            state: elapsed.map { .recording(elapsedMillis: $0) } ?? .idle)
     }
 
     /// A camera that reports an active recording pulls a freshly connected
@@ -472,7 +472,7 @@ class SessionCoordinatorTests: XCTestCase {
     /// reported truth, never assumed.
     func testMonitorDerivesRecordingFromStateReport() async {
         await enterMonitor(.Video)
-        await harness.deliver(stateReport(recordingStartedAt: Date(timeIntervalSinceNow: -30)))
+        await harness.deliver(stateReport(elapsed: 30_000))
         let name = await harness.stateName()
         XCTAssertEqual(name, .monitorRecordingVideo)
     }
@@ -481,7 +481,7 @@ class SessionCoordinatorTests: XCTestCase {
     /// un-wedges a monitor stuck showing a recording the camera isn't making.
     func testMonitorRecordingUnwedgedByIdleStateReport() async {
         await enterMonitorRecordingVideo()
-        await harness.deliver(stateReport(recordingStartedAt: nil))
+        await harness.deliver(stateReport(elapsed: nil))
         let name = await harness.stateName()
         XCTAssertEqual(name, .monitor)
     }
@@ -490,7 +490,7 @@ class SessionCoordinatorTests: XCTestCase {
     /// re-syncs the timer — no state churn.
     func testMonitorRecordingStaysOnRecordingStateReport() async {
         await enterMonitorRecordingVideo()
-        await harness.deliver(stateReport(recordingStartedAt: Date()))
+        await harness.deliver(stateReport(elapsed: 0))
         let name = await harness.stateName()
         XCTAssertEqual(name, .monitorRecordingVideo)
     }
@@ -506,19 +506,19 @@ class SessionCoordinatorTests: XCTestCase {
         await pumpMain { display.videoModeConfigured >= 1 }
         XCTAssertEqual(display.videoModeConfigured, 1, "entering video mode renders it")
 
-        await harness.deliver(stateReport(recordingStartedAt: Date(timeIntervalSinceNow: -5)))
+        await harness.deliver(stateReport(elapsed: 5_000))
         await pumpMain { display.videoRecordingConfigured >= 1 }
         XCTAssertEqual(display.videoRecordingConfigured, 1,
                        "camera-reported recording renders the recording screen")
 
-        await harness.deliver(stateReport(recordingStartedAt: nil))
+        await harness.deliver(stateReport(elapsed: nil))
         // The counter bumps one main-hop before the view model's own dispatch
         // lands — pump on the final screen state, not the render count.
         await pumpMain { display.viewModel.uiState == .videoMode }
         XCTAssertEqual(display.videoModeConfigured, 2,
                        "camera-reported idle renders video mode again")
         XCTAssertEqual(display.viewModel.uiState, .videoMode)
-        XCTAssertNil(display.viewModel.recordingStartTime,
+        XCTAssertNil(display.viewModel.recordingElapsedMillis,
                      "no timer input survives leaving the recording state")
     }
 
@@ -534,16 +534,14 @@ class SessionCoordinatorTests: XCTestCase {
 
         // Camera reports idle, then a NEW recording, back to back — no
         // main-queue breathing room between them.
-        let restart = Date(timeIntervalSinceNow: -2)
-        await harness.deliver(stateReport(recordingStartedAt: nil))
-        await harness.deliver(stateReport(recordingStartedAt: restart))
-        // Pump on the LAST write of the sequence — the RESTART value itself
-        // (the helper's earlier start time also satisfies a nil check).
-        await pumpMain { display.viewModel.recordingStartTime == restart }
+        await harness.deliver(stateReport(elapsed: nil))
+        await harness.deliver(stateReport(elapsed: 2_000))
+        // Pump on the LAST write of the sequence — the RESTART tick itself.
+        await pumpMain { display.viewModel.recordingElapsedMillis == 2_000 }
 
         XCTAssertEqual(display.viewModel.uiState, .videoRecording)
-        XCTAssertEqual(display.viewModel.recordingStartTime, restart,
-                       "the new take's start survives the stale idle render")
+        XCTAssertEqual(display.viewModel.recordingElapsedMillis, 2_000,
+                       "the new take's tick survives the stale idle render")
         XCTAssertTrue(display.viewModel.isShowingRecordingDuration,
                       "dot and timer agree, always")
     }
@@ -746,7 +744,7 @@ class SessionCoordinatorTests: XCTestCase {
                        "no assumption either way until the camera answers")
 
         // The camera answers: it stopped on its own while unlinked.
-        await harness.deliver(stateReport(recordingStartedAt: nil))
+        await harness.deliver(stateReport(elapsed: nil))
         name = await harness.stateName()
         XCTAssertEqual(name, .monitor, "the answer un-wedges the stale recording screen")
     }
@@ -1804,16 +1802,15 @@ class SessionCoordinatorTests: XCTestCase {
     func testStartingVideoIgnoresIdleReportsUntilConfirmed() async {
         await enterMonitorStartingVideo()
 
-        await harness.deliver(stateReport(recordingStartedAt: nil))
+        await harness.deliver(stateReport(elapsed: nil))
         var name = await harness.stateName()
         XCTAssertEqual(name, .monitorStartingVideo,
                        "an idle report during arming is what starting means — ignored")
 
-        let start = Date(timeIntervalSinceNow: -1)
-        await harness.deliver(stateReport(recordingStartedAt: start))
+        await harness.deliver(stateReport(elapsed: 1_000))
         name = await harness.stateName()
         XCTAssertEqual(name, .monitorRecordingVideo,
-                       "a report carrying the start confirms it")
+                       "a recording report confirms it")
     }
 
     func testStartingVideoTimeoutReturnsToVideoMode() async {

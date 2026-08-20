@@ -157,8 +157,8 @@ class ControllerWiringTests: XCTestCase {
         XCTAssertEqual(monitorVC.viewModel.uiState, .photoMode)
         XCTAssertEqual(monitorVC.viewModel.currentMode, .Photo)
         XCTAssertFalse(monitorVC.viewModel.isRecording)
-        XCTAssertNil(monitorVC.viewModel.recordingStartTime,
-                     "leaving the recording mode voids the timer start")
+        XCTAssertNil(monitorVC.viewModel.recordingElapsedMillis,
+                     "leaving the recording mode voids the camera-driven timer")
     }
 
     // MARK: - CameraRig indicator wiring

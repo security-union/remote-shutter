@@ -59,16 +59,16 @@ final class MonitorChromeTests: XCTestCase {
         }
     }
 
-    /// Leaving the recording mode voids the timer's start instant with it —
-    /// the timer can never tick against a mode that isn't recording.
+    /// Leaving the recording mode voids the camera-driven elapsed with it —
+    /// the timer can never show a value against a mode that isn't recording.
     func testLeavingRecordingModeClearsTimerStart() {
         let model = MonitorViewModel()
         model.uiState = .videoRecording
-        model.recordingStartTime = Date(timeIntervalSinceNow: -30)
+        model.recordingElapsedMillis = 30_000
 
         model.uiState = .photoMode
 
-        XCTAssertNil(model.recordingStartTime)
+        XCTAssertNil(model.recordingElapsedMillis)
         XCTAssertFalse(model.isShowingRecordingDuration)
     }
 
