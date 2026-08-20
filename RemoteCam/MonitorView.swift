@@ -186,7 +186,7 @@ struct MonitorView: View {
         ZStack {
             if viewModel.isShowingRecordingDuration {
                 RecordingTimer(
-                    startTime: viewModel.recordingStartTime,
+                    elapsedMillis: viewModel.recordingElapsedMillis,
                     isRecording: viewModel.isRecording
                 )
             }

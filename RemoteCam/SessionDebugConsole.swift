@@ -417,8 +417,8 @@ struct SessionDebugOverlay: View {
             Text("IDLE")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundColor(.green)
-        case .recording(let startedAt):
-            Text("REC since \(Self.clock.string(from: startedAt))")
+        case .recording(let elapsedMillis):
+            Text("REC \(RecordingTimer.format(elapsedMillis))")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundColor(.red)
         }

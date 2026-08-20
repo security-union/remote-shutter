@@ -662,6 +662,10 @@ public actor SessionCoordinator {
         }
         let previous = state
         state = newState
+        if case .cameraRecordingVideo = newState {} else {
+            cameraTimerTickTask?.cancel()
+            cameraTimerTickTask = nil
+        }
         SessionDebug.stateChanged(newState.name.rawValue)
         publishWaitingOverlay()
         // One write, at the one place state changes: an in-flight indicator
@@ -721,6 +725,14 @@ public actor SessionCoordinator {
         case .cameraRecordingVideo:
             if let peer, let transport = multipeerService {
                 frameSender?.setSession(peer: peer, transport: transport)
+            }
+            cameraTimerTickTask?.cancel()
+            cameraTimerTickTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    guard let self, !Task.isCancelled else { return }
+                    await self.sendRecordingTick()
+                }
             }
 
         case .cameraTakingPic, .cameraTransmittingVideo:
@@ -1405,17 +1417,26 @@ public actor SessionCoordinator {
     /// capabilities answer, and for `RequestCameraStateReport`. Peerless sends
     /// are simply skipped — the rejoin flow re-delivers.
     private func sendCameraStateReport() {
-        let state: RemoteCmd.CameraStateReport.RecordingState =
-            ctrl?.currentRecordingStartedAt().map { .recording(startedAt: $0) } ?? .idle
-        sendCameraStateReport(state: state)
-    }
-
-    /// The start-ack site passes the ack's own instant instead of re-reading
-    /// the pipeline — the ack IS the pipeline's truth at that moment.
-    private func sendCameraStateReport(state: RemoteCmd.CameraStateReport.RecordingState) {
         guard !connectedPeers.isEmpty else { return }
+        // Elapsed is computed HERE, from two values on the same clock — the
+        // camera drives the remote's timer; remotes display, never compute.
+        let state: RemoteCmd.CameraStateReport.RecordingState =
+            ctrl?.currentRecordingStartedAt().map {
+                .recording(elapsedMillis: UInt64(max(0, Date().timeIntervalSince($0)) * 1000))
+            } ?? .idle
         cameraStateReportSeq += 1
         sendMessage(RemoteCmd.CameraStateReport(seq: cameraStateReportSeq, state: state))
+    }
+
+    /// The camera's timer tick: ~1/s while recording, a `CameraStateReport`
+    /// carrying fresh elapsed-ms. Armed on entering the recording state,
+    /// cancelled on leaving it.
+    private var cameraTimerTickTask: Task<Void, Never>?
+
+    private func sendRecordingTick() {
+        guard case .cameraRecordingVideo = state,
+              ctrl?.currentRecordingStartedAt() != nil else { return }
+        sendCameraStateReport()
     }
 
     /// Monitor side: the newest report seq absorbed from the camera. Zeroed
@@ -1686,11 +1707,7 @@ public actor SessionCoordinator {
             // them (camera holds its post); a rejoining monitor gets the
             // truth from the link-up report.
             guard await sendOrGoToScanning(ack, mode: .reliable) else { break }
-            if let start = ack.recordingStartTime {
-                sendCameraStateReport(state: .recording(startedAt: start))
-            } else {
-                sendCameraStateReport()
-            }
+            sendCameraStateReport()
 
         case let stop as RemoteCmd.StopRecordingVideo:
             ctrl.stopRecordingVideo(stop.sendMediaToPeer)
@@ -2432,11 +2449,11 @@ public actor SessionCoordinator {
 
         case let report as RemoteCmd.CameraStateReport:
             // The camera is rolling — project it: enter the recording screen
-            // with the camera's own start instant. Idle reports confirm this
-            // screen and need nothing.
-            if absorbCameraStateReport(report), case .recording(let start) = report.state {
+            // showing the camera's own elapsed tick. Idle reports confirm
+            // this screen and need nothing.
+            if absorbCameraStateReport(report), case .recording(let elapsed) = report.state {
                 await transition(to: .monitorRecordingVideo)
-                monitor?.syncRecordingStartTime(start)
+                monitor?.syncRecordingElapsed(elapsed)
             }
 
         case let become as UICmd.BecomeMonitor:
@@ -2629,7 +2646,7 @@ public actor SessionCoordinator {
                 await transition(to: .monitor(mode: .video))
             } else {
                 await transition(to: .monitorRecordingVideo)
-                monitor?.syncRecordingStartTime(ack.recordingStartTime)
+                monitor?.syncRecordingElapsed(0)
             }
 
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
@@ -2641,9 +2658,9 @@ public actor SessionCoordinator {
             // no-op). An idle report is NO news while starting — the pipeline
             // is arming and hasn't written a frame; that is what this state
             // means. The timeout ends a start that never confirms.
-            if absorbCameraStateReport(report), case .recording(let start) = report.state {
+            if absorbCameraStateReport(report), case .recording(let elapsed) = report.state {
                 await transition(to: .monitorRecordingVideo)
-                monitor?.syncRecordingStartTime(start)
+                monitor?.syncRecordingElapsed(elapsed)
             }
 
         case let take as UICmd.TakePicture:
@@ -2703,9 +2720,9 @@ public actor SessionCoordinator {
             if let error = ack.error {
                 showErrorAlert(error._domain)
                 await transition(to: .monitor(mode: .video))
-            } else if let startTime = ack.recordingStartTime {
-                monitor?.syncRecordingStartTime(startTime)
             }
+            // A duplicate success ack mid-recording carries no news: the
+            // camera's ticks drive the timer.
 
         case let take as UICmd.TakePicture:
             sendMessage(RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: take.sendMediaToRemote))
@@ -2762,8 +2779,8 @@ public actor SessionCoordinator {
             // reaches `.monitorWaitingForVideo` before its report lands.
             guard absorbCameraStateReport(report) else { break }
             switch report.state {
-            case .recording(let start):
-                monitor?.syncRecordingStartTime(start)
+            case .recording(let elapsed):
+                monitor?.syncRecordingElapsed(elapsed)
             case .idle:
                 await transition(to: .monitor(mode: .video))
             }

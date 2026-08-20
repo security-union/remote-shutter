@@ -32,6 +32,8 @@ final class CameraLane: ObservableObject, Identifiable {
     var isFocused: Bool { info.isFocused }
     var captureOutcome: CaptureOutcome? { info.captureOutcome }
     var isRecording: Bool { info.isRecording }
+    /// This camera's own elapsed tick — the tile timer displays it verbatim.
+    var recordingElapsedMillis: UInt64? { info.recordingElapsedMillis }
     var needsQualityRematch: Bool { info.needsQualityRematch }
     var collection: CameraLink.LaneCollectionState { info.collection }
     var canFlipCamera: Bool { info.canFlipCamera }
@@ -76,7 +78,6 @@ final class MulticamViewModel: ObservableObject {
     @Published var isRecording: Bool = false
     /// When the rig actually started rolling — drives the classic
     /// `RecordingTimer` in the top bar. Nil unless recording.
-    @Published var recordingStartTime: Date?
     /// Photo vs video shutter mode.
     @Published var mode: MonitorMode = .photo
     /// Focus (viewfinder + strip) vs grid (monitor wall) layout.

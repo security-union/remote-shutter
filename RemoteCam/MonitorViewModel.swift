@@ -29,7 +29,7 @@ class MonitorViewModel: ObservableObject {
     /// they cannot disagree. Leaving the recording mode voids the timer's
     /// start instant with it.
     @Published var uiState: MonitorUIState = .photoMode {
-        didSet { if uiState != .videoRecording { recordingStartTime = nil } }
+        didSet { if uiState != .videoRecording { recordingElapsedMillis = nil } }
     }
     var isRecording: Bool { uiState == .videoRecording }
     /// Live frames — deliberately NOT @Published here; see FrameDisplayModel.
@@ -56,9 +56,10 @@ class MonitorViewModel: ObservableObject {
     @Published var maxTimerValue: Double = 20
     
     // MARK: - Recording Duration Properties
-    /// The camera-reported start instant (never locally fabricated); cleared
-    /// automatically whenever `uiState` leaves the recording mode.
-    @Published var recordingStartTime: Date?
+    /// The camera-reported elapsed time (its latest tick) — displayed
+    /// VERBATIM, never advanced by a local clock; cleared automatically
+    /// whenever `uiState` leaves the recording mode.
+    @Published var recordingElapsedMillis: UInt64?
     var isShowingRecordingDuration: Bool { uiState == .videoRecording }
     
     // MARK: - Zoom and Lens Properties

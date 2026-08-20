@@ -996,20 +996,20 @@ extension RemoteCmd.CameraStateReport {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         let phase: RemoteShutter_RecordingPhase
-        let startMs: UInt64
+        let elapsedMs: UInt64
         switch state {
         case .idle:
             phase = .idle
-            startMs = 0
-        case .recording(let startedAt):
+            elapsedMs = 0
+        case .recording(let elapsed):
             phase = .recording
-            startMs = UInt64(startedAt.timeIntervalSince1970 * 1000)
+            elapsedMs = elapsed
         }
         let params = RemoteShutter_CommandParameters.createCommandParameters(
             &fbb,
             stateReportSeq: seq,
-            stateRecordingStartUnixMs: startMs,
-            stateRecordingPhase: phase)
+            stateRecordingPhase: phase,
+            stateRecordingElapsedMs: elapsedMs)
         return buildCommand(&fbb, action: .camerastatereport, parameters: params)
     }
 }
@@ -1318,15 +1318,14 @@ extension RemoteCmd {
             return RequestCameraCapabilities()
 
         case .camerastatereport:
-            // The phase is explicit; a malformed report (Unknown phase, or
-            // Recording with no start instant) is DROPPED, never guessed at.
-            let startMs = params?.stateRecordingStartUnixMs ?? 0
+            // The phase is explicit; an Unknown phase is malformed and
+            // DROPPED, never guessed at.
             let state: CameraStateReport.RecordingState
             switch params?.stateRecordingPhase {
             case .idle:
                 state = .idle
-            case .recording where startMs > 0:
-                state = .recording(startedAt: Date(timeIntervalSince1970: TimeInterval(startMs) / 1000))
+            case .recording:
+                state = .recording(elapsedMillis: params?.stateRecordingElapsedMs ?? 0)
             default:
                 return nil
             }

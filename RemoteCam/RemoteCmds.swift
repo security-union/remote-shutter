@@ -626,11 +626,12 @@ public class RemoteCmd: Message, @unchecked Sendable {
     /// camera is doing.
     public class CameraStateReport: Message, @unchecked Sendable {
         /// EXPLICIT recording state — never inferred from a sentinel
-        /// timestamp. Recording always carries the pipeline's real
-        /// first-written-frame instant.
+        /// timestamp. While recording, the CAMERA drives the remote's timer:
+        /// it sends elapsed-ms ticks and the remote displays exactly the last
+        /// value received. No clocks are ever compared across devices.
         public enum RecordingState: Equatable {
             case idle
-            case recording(startedAt: Date)
+            case recording(elapsedMillis: UInt64)
         }
 
         public let seq: UInt64
