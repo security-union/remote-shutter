@@ -396,3 +396,7 @@
 "insufficient_storage_error" = "Espaço de armazenamento insuficiente para gravar vídeo. Libere pelo menos 100 MB e tente novamente.";
 "recording_stopped_disk_full_error" = "Gravação interrompida: o armazenamento do dispositivo acabou. O vídeo gravado até agora foi salvo no app Fotos.";
 "recording_failed_error" = "Gravação interrompida por um erro. O vídeo gravado até agora foi salvo no app Fotos.";
+
+// Keep rolling through a remote drop (v10)
+"reconnecting_to_remote" = "Reconectando ao controle remoto…";
+"stop_recording_button" = "Parar gravação";

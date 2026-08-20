@@ -165,6 +165,7 @@ enum MonitorActivity: Equatable {
             case .requesting: return .capturing
             case .receiving: return .receivingCapture
             }
+        case .monitorStartingVideo: return .capturing
         case .monitorTogglingCamera: return .switchingCamera
         case .monitorTogglingFlash: return .togglingFlash
         case .monitorSwitchingLens: return .switchingLens

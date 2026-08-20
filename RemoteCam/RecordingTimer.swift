@@ -1,14 +1,17 @@
 import SwiftUI
-import Combine
 
-// MARK: - Recording Timer Component
+/// The remote's recording timecode — CAMERA-DRIVEN, deliberately dumb.
+///
+/// The value shown is exactly the last elapsed tick the camera sent
+/// (`CameraStateReport`, ~1/s while recording). There is NO local clock, no
+/// `Timer`, and no interpolation on the remote: a display that computes time
+/// itself can disagree with the device doing the recording (negative timers,
+/// drift after rejoins); a display that only echoes the camera cannot.
 struct RecordingTimer: View {
-    @State private var recordingDuration: TimeInterval = 0
-    @State private var timer: Timer?
-    
-    let startTime: Date?
+    /// Milliseconds recorded so far, as last reported by the camera.
+    let elapsedMillis: UInt64?
     let isRecording: Bool
-    
+
     var body: some View {
         HStack(spacing: 8) {
             // Recording indicator dot
@@ -17,54 +20,34 @@ struct RecordingTimer: View {
                 .frame(width: 12, height: 12)
                 .scaleEffect(isRecording ? 1.0 : 0.8)
                 .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isRecording)
-            
-            // Recording duration text
-            Text(formattedDuration)
+
+            // Recording duration text — the camera's tick, verbatim.
+            Text(Self.format(elapsedMillis))
                 .font(.system(size: 14, weight: .bold, design: .monospaced))
                 .foregroundColor(.white)
-                .animation(.none, value: recordingDuration)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(Color.black.opacity(0.8))
         .cornerRadius(8)
-        .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
-            updateDuration()
-        }
-        .onAppear {
-            updateDuration()
-        }
-        .onChange(of: isRecording) { recording in
-            if !recording {
-                recordingDuration = 0
-            }
-        }
     }
-    
-    private var formattedDuration: String {
-        let minutes = Int(recordingDuration) / 60
-        let seconds = Int(recordingDuration) % 60
+
+    static func format(_ elapsedMillis: UInt64?) -> String {
+        guard let elapsedMillis else { return "--:--" }
+        let totalSeconds = elapsedMillis / 1000
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
-    }
-    
-    private func updateDuration() {
-        guard isRecording, let startTime = startTime else {
-            recordingDuration = 0
-            return
-        }
-        recordingDuration = Date().timeIntervalSince(startTime)
     }
 }
 
-// MARK: - Preview
 struct RecordingTimer_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 20) {
-            RecordingTimer(startTime: Date().addingTimeInterval(-65), isRecording: true)
-            RecordingTimer(startTime: Date().addingTimeInterval(-5), isRecording: true) 
-            RecordingTimer(startTime: nil, isRecording: false)
+            RecordingTimer(elapsedMillis: 65_000, isRecording: true)
+            RecordingTimer(elapsedMillis: 5_000, isRecording: true)
+            RecordingTimer(elapsedMillis: nil, isRecording: false)
         }
         .padding()
-        .background(Color.black)
     }
-} 
+}

@@ -398,3 +398,7 @@
 "insufficient_storage_error" = "Not enough storage to record video. Free up at least 100 MB and try again.";
 "recording_stopped_disk_full_error" = "Recording stopped: your device is out of storage. The footage recorded so far was saved to Photos.";
 "recording_failed_error" = "Recording stopped because of an error. The footage recorded so far was saved to Photos.";
+
+// Keep rolling through a remote drop (v10)
+"reconnecting_to_remote" = "Reconnecting to remote…";
+"stop_recording_button" = "Stop recording";

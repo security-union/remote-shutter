@@ -241,10 +241,9 @@ extension MulticamViewController: MulticamDisplay {
         for lane in created { wire(lane) }
     }
 
-    func applyShutterState(capturing: Bool, recording: Bool, recordingStartTime: Date?) {
+    func applyShutterState(capturing: Bool, recording: Bool) {
         viewModel.isCapturing = capturing
         viewModel.isRecording = recording
-        viewModel.recordingStartTime = recordingStartTime
     }
 
     func applyAvailablePeers(_ peers: [MCPeerID]) {

@@ -29,10 +29,14 @@ class FakeMonitorDisplay: MonitorDisplay {
     var zoomUpdates: [(factor: CGFloat, maxFactor: CGFloat)] = []
     var lensUpdates: [(lenses: [CameraLensType], current: CameraLensType)] = []
 
-    func swiftUIConfigurePhotoMode() { photoModeConfigured += 1 }
-    func swiftUIConfigureVideoMode() { videoModeConfigured += 1 }
-    func swiftUIConfigureVideoRecording() { videoRecordingConfigured += 1 }
-    func swiftUIConfigureShortsMode() { shortsModeConfigured += 1 }
+    // Mirrors the real MonitorViewController conformance (counter + the
+    // view-model configure), so end-to-end tests can assert the screen state
+    // a render actually produces — pinned against the real thing by
+    // ControllerWiringTests.testMonitorDisplayConformanceDrivesViewModelState.
+    func swiftUIConfigurePhotoMode() { photoModeConfigured += 1; viewModel.configurePhotoMode() }
+    func swiftUIConfigureVideoMode() { videoModeConfigured += 1; viewModel.configureVideoMode() }
+    func swiftUIConfigureVideoRecording() { videoRecordingConfigured += 1; viewModel.configureVideoRecording() }
+    func swiftUIConfigureShortsMode() { shortsModeConfigured += 1; viewModel.configureShortsMode() }
     func exitMonitor() { exits += 1 }
     func updateFlashModeInViewModel(_ flashMode: AVCaptureDevice.FlashMode) {
         flashModes.append(flashMode)

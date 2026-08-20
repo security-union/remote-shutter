@@ -396,3 +396,7 @@
 "insufficient_storage_error" = "Storan tidak mencukupi untuk merakam video. Kosongkan sekurang-kurangnya 100 MB dan cuba lagi.";
 "recording_stopped_disk_full_error" = "Rakaman dihentikan: storan peranti anda telah penuh. Video yang dirakam setakat ini telah disimpan ke Foto.";
 "recording_failed_error" = "Rakaman dihentikan kerana ralat. Video yang dirakam setakat ini telah disimpan ke Foto.";
+
+// Keep rolling through a remote drop (v10)
+"reconnecting_to_remote" = "Menyambung semula ke alat kawalan…";
+"stop_recording_button" = "Hentikan rakaman";

@@ -86,6 +86,10 @@ struct MulticamView: View {
                 countdownOverlay
                 transientErrorToast
                 if viewModel.showingRigTray { rigTrayLayer }
+
+                #if DEBUG
+                SessionDebugOverlay()
+                #endif
             }
             .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.showingRigTray)
             .sheet(isPresented: $viewModel.showingAddCamera) {
@@ -168,9 +172,13 @@ struct MulticamView: View {
     /// the monitor's `topBar`; the rig tray takes the settings glyph's place.
     private var topBar: some View {
         ZStack {
-            if viewModel.isRecording {
-                RecordingTimer(startTime: viewModel.recordingStartTime,
-                               isRecording: viewModel.isRecording)
+            // Focus mode: the focused camera fills the screen, so its tile
+            // timer sits where its tile's top edge is — top bar, centered.
+            // Grid mode draws one on each tile instead. Either way the value
+            // is that camera's own tick; no rig-wide time exists.
+            if viewModel.displayMode != .grid,
+               let focused = viewModel.focusedLane, focused.isRecording {
+                LaneRecordingTimer(elapsedMillis: focused.recordingElapsedMillis)
             }
             topBarControls
         }
@@ -610,6 +618,29 @@ struct TileStatusBadge: View {
 /// a reconnecting scrim. `Equatable` on the value inputs so a frame delivered
 /// to another lane can't invalidate this tile's chrome — only its own
 /// `LiveFrameView` (observing its own `FrameDisplayModel`) re-renders.
+/// One camera's timer capsule — its own tick, verbatim. Shared by the grid
+/// tiles and the focus-mode top bar so the timer reads identically wherever
+/// that camera is shown.
+struct LaneRecordingTimer: View {
+    let elapsedMillis: UInt64?
+    var compact = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle().fill(Color.red)
+                .frame(width: compact ? 6 : 8, height: compact ? 6 : 8)
+            Text(RecordingTimer.format(elapsedMillis))
+                .font(.system(size: compact ? 10 : 13,
+                              weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.black.opacity(0.6))
+        .clipShape(Capsule())
+    }
+}
+
 struct CameraTileView: View {
     @ObservedObject var lane: CameraLane
     var isThumbnail: Bool = false
@@ -659,11 +690,20 @@ struct CameraTileView: View {
                             .foregroundColor(.white))
             } else {
                 VStack {
-                    HStack {
-                        Spacer()
-                        TileStatusBadge(status: shownStatus, onRetry: onRetry,
-                                        diameter: isThumbnail ? 22 : 28)
-                            .transition(.opacity)
+                    ZStack {
+                        // Per-camera timer, CENTERED on the tile's top edge:
+                        // THIS camera's own tick, verbatim — four cameras
+                        // show four timers, each driven by its own device.
+                        if lane.isRecording {
+                            LaneRecordingTimer(elapsedMillis: lane.recordingElapsedMillis,
+                                               compact: isThumbnail)
+                        }
+                        HStack {
+                            Spacer()
+                            TileStatusBadge(status: shownStatus, onRetry: onRetry,
+                                            diameter: isThumbnail ? 22 : 28)
+                                .transition(.opacity)
+                        }
                     }
                     Spacer()
                 }

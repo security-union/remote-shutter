@@ -25,21 +25,30 @@ enum StreamLog {
         let logger: Logger
         init(_ logger: Logger) { self.logger = logger }
 
+        // The messages are materialized into a local before logging: os.Logger's
+        // interpolation takes ESCAPING autoclosures, which cannot capture the
+        // non-escaping `message` parameter directly.
         func debug(_ message: @autoclosure () -> String) {
             #if DEBUG
-            if AppLog.level >= .debug { logger.debug("\(message(), privacy: .public)") }
+            guard AppLog.level >= .debug else { return }
+            let text = message()
+            logger.debug("\(text, privacy: .public)")
             #endif
         }
 
         func info(_ message: @autoclosure () -> String) {
             #if DEBUG
-            if AppLog.level >= .info { logger.info("\(message(), privacy: .public)") }
+            guard AppLog.level >= .info else { return }
+            let text = message()
+            logger.info("\(text, privacy: .public)")
             #endif
         }
 
         func error(_ message: @autoclosure () -> String) {
             #if DEBUG
-            if AppLog.level >= .warning { logger.error("\(message(), privacy: .public)") }
+            guard AppLog.level >= .warning else { return }
+            let text = message()
+            logger.error("\(text, privacy: .public)")
             #endif
         }
     }

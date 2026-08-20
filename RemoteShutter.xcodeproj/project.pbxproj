@@ -202,6 +202,7 @@
 		FADEC0DE0002000000000002 /* PeerLinkStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0002000000000001 /* PeerLinkStatus.swift */; };
 		FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */; };
 		CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0120000000000002 /* MonitorChrome.swift */; };
+		CAFEBABE0177000000000001 /* SessionDebugConsole.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0177000000000002 /* SessionDebugConsole.swift */; };
 		CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */; };
 		CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */; };
 		CAFEBABE0170000000000001 /* ZoomScaleSeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0170000000000002 /* ZoomScaleSeed.swift */; };
@@ -463,6 +464,7 @@
 		FADEC0DE0002000000000001 /* PeerLinkStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerLinkStatus.swift; sourceTree = "<group>"; };
 		FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FocusPointMapping.swift; sourceTree = "<group>"; };
 		CAFEBABE0120000000000002 /* MonitorChrome.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorChrome.swift; sourceTree = "<group>"; };
+		CAFEBABE0177000000000002 /* SessionDebugConsole.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionDebugConsole.swift; sourceTree = "<group>"; };
 		CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaptureSyncMetadata.swift; sourceTree = "<group>"; };
 		CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClockOffsetEstimator.swift; sourceTree = "<group>"; };
 		CAFEBABE0170000000000002 /* ZoomScaleSeed.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZoomScaleSeed.swift; sourceTree = "<group>"; };
@@ -730,6 +732,7 @@
 				0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */,
 				FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */,
 				CAFEBABE0120000000000002 /* MonitorChrome.swift */,
+				CAFEBABE0177000000000002 /* SessionDebugConsole.swift */,
 				CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */,
 				CAFEBABE0132000000000002 /* ClockOffsetEstimator.swift */,
 				CAFEBABE0170000000000002 /* ZoomScaleSeed.swift */,
@@ -1236,6 +1239,7 @@
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
 				FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */,
 				CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */,
+				CAFEBABE0177000000000001 /* SessionDebugConsole.swift in Sources */,
 				CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */,
 				CAFEBABE0132000000000001 /* ClockOffsetEstimator.swift in Sources */,
 				CAFEBABE0170000000000001 /* ZoomScaleSeed.swift in Sources */,
@@ -1496,6 +1500,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,6";
 			};

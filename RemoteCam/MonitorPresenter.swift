@@ -65,8 +65,8 @@ public final class MonitorPresenter {
         onMain { $0.viewModel.activity = activity }
     }
 
-    func syncRecordingStartTime(_ startTime: Date?) {
-        onMain { $0.viewModel.recordingStartTime = startTime }
+    func syncRecordingElapsed(_ elapsedMillis: UInt64?) {
+        onMain { $0.viewModel.recordingElapsedMillis = elapsedMillis }
     }
 
     func becomeMonitorFailed() {

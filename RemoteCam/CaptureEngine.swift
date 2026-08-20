@@ -133,6 +133,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// (they don't on a flip: both cameras land on the same long edge), so it
     /// would otherwise encode a delta frame across the cut. Fires on `sessionQueue`.
     var onDeviceSwapped: (() -> Void)?
+    /// The system interrupted the capture session (lock, backgrounding, phone
+    /// call, camera claimed by another app) — capture has factually stopped.
+    /// The rig uses this to finalize + save any rolling recording. Fires on
+    /// the notification's delivery thread.
+    var onSessionInterrupted: (() -> Void)?
 
     // MARK: - Setup
 
@@ -216,6 +221,15 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// syncs in here once, then continues on its own queue).
     func configureAudioForRecording(delegate: AVCaptureAudioDataOutputSampleBufferDelegate) -> Bool {
         syncOnSessionQueue {
+            // Already wired from a previous take: re-adding inside a live
+            // begin/commitConfiguration is pure thrash on the record hot
+            // path (a commit can stall for seconds right after a wake).
+            // Configure once; later takes just re-point the delegate.
+            if self.captureSession.outputs.contains(self.audioDataOutput),
+               self.audioConnection != nil {
+                self.audioDataOutput.setSampleBufferDelegate(delegate, queue: self.dataOutputQueue)
+                return true
+            }
             do {
                 guard let audioDevice = AVCaptureDevice.default(for: .audio) else {
                     return false
@@ -695,6 +709,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             center.addObserver(forName: .AVCaptureSessionWasInterrupted,
                                object: captureSession, queue: nil) { [weak self] note in
                 debugLog("CaptureEngine: session interrupted (reason \(String(describing: note.userInfo?[AVCaptureSessionInterruptionReasonKey])))")
+                // The rig finalizes any rolling recording here: an interrupted
+                // session cannot capture, so the take is factually over.
+                self?.onSessionInterrupted?()
                 self?.handleDeviceStateChange()
             },
             center.addObserver(forName: .AVCaptureSessionInterruptionEnded,
@@ -786,6 +803,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             let devices = self.selectableDevicesLocked().map { self.descriptorLocked($0) }
             guard activeIsGone || devices != self.lastNotifiedDevices else { return }
             self.lastNotifiedDevices = devices
+            // The device set actually changed — the cached hardware matrix is
+            // stale; the next capabilities ask re-scans.
+            self.cameraInfoCacheValid = false
             self.refreshSuspensionObserversLocked()
             self.onCameraDevicesChanged?()
         }
@@ -855,8 +875,21 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         await onSessionQueue { self.gatherAllCameraCapabilitiesLocked() }
     }
 
+    /// The heavy hardware matrix (per-lens, per-format probing across both
+    /// positions) changes only when the DEVICE SET changes — and the engine
+    /// is the one who observes that (`handleDeviceStateChange`). So the
+    /// engine owns the decision: scan when the cache is stale, serve from
+    /// memory otherwise. Callers never trigger hardware work by asking.
+    /// sessionQueue-confined.
+    private var cameraInfoCacheValid = false
+
     private func gatherAllCameraCapabilitiesLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
+        if cameraInfoCacheValid {
+            debugLog("🔍 DEBUG: gatherAllCameraCapabilities served from cache")
+            return
+        }
+        defer { cameraInfoCacheValid = true }
         debugLog("🔍 DEBUG: gatherAllCameraCapabilities called")
 
         // Gather front camera capabilities
@@ -966,14 +999,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     // MARK: - Current Camera Capabilities for Toggle Response
-    /// `recordingStartedAt` is the pipeline's recording truth, passed through
-    /// by the rig (the composition point) — the engine owns every other field
-    /// but has no recording state of its own.
-    func gatherCurrentCameraCapabilities(recordingStartedAt: Date?) async -> RemoteCmd.CameraCapabilitiesResp? {
-        await onSessionQueue { self.gatherCurrentCameraCapabilitiesLocked(recordingStartedAt: recordingStartedAt) }
+    func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
+        await onSessionQueue { self.gatherCurrentCameraCapabilitiesLocked() }
     }
 
-    private func gatherCurrentCameraCapabilitiesLocked(recordingStartedAt: Date?) -> RemoteCmd.CameraCapabilitiesResp? {
+    private func gatherCurrentCameraCapabilitiesLocked() -> RemoteCmd.CameraCapabilitiesResp? {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         debugLog("🔍 DEBUG: gatherCurrentCameraCapabilities called")
 
@@ -1011,7 +1041,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // release the director UI ships.
             supportsMulticam: FeatureFlags.ENABLE_MULTICAM,
             previewMode: CameraPreviewModeStore().load(),
-            recordingStartedAt: recordingStartedAt,
             error: nil
         )
 

@@ -90,6 +90,13 @@ public class UICmd {
         }
     }
 
+    /// The on-camera stop button, available whenever a recording is running.
+    /// Finalizes and saves the clip locally; the remote observes the state
+    /// change through the camera's report.
+    public class StopRecordingLocally: Message, @unchecked Sendable {
+        init() { super.init(sender: nil) }
+    }
+
     public class AddMonitor: Message, @unchecked Sendable {
 
     }

@@ -127,6 +127,14 @@ final class FrameStreamingCoordinator: NSObject {
         }
     }
 
+    /// Capture interruption: drop the hardware video encoder so post-wake
+    /// frames build a fresh session — never feed a background-killed one.
+    func handleCaptureInterruption() {
+        engine.dataOutputQueue.async { [weak self] in
+            self?.frameStreamer.dropVideoEncoder()
+        }
+    }
+
     /// Wall-clock of the most recent video sample buffer, for the rig's
     /// first-frame watchdog (a suspended or stalled camera delivers nothing,
     /// forever). Written per-frame on the data queue, read from the watchdog.
