@@ -31,7 +31,18 @@ jobs:
       
     - name: Show available simulators
       run: xcrun simctl list devicetypes
-      
+
+    # Xcode 26 compilation cache (LLVM CAS). Content-addressed, so stale
+    # entries are harmless — restore-keys falls back to the newest cache on
+    # any branch when the exact-sha key misses (i.e. always, except re-runs).
+    - name: Restore compilation cache
+      uses: actions/cache@v4
+      with:
+        path: ~/compilation-cache
+        key: cas-ios-${{ github.sha }}
+        restore-keys: |
+          cas-ios-
+
     # TODO: Remove this once we have a way to install CocoaPods
     # - name: Cache CocoaPods
     #   uses: actions/cache@v4
@@ -59,8 +70,10 @@ jobs:
           -configuration Debug \
           clean build \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
-          
+          CODE_SIGNING_ALLOWED=NO \
+          COMPILATION_CACHE_ENABLE_CACHING=YES \
+          COMPILATION_CACHE_CAS_PATH="$HOME/compilation-cache"
+
     - name: Run Tests
       # xcodebuild only forwards TEST_RUNNER_-prefixed variables into the
       # test process (prefix stripped), so plain CI=true never reaches the
@@ -78,7 +91,9 @@ jobs:
           -enableCodeCoverage YES \
           -resultBundlePath TestResults.xcresult \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_ALLOWED=NO \
+          COMPILATION_CACHE_ENABLE_CACHING=YES \
+          COMPILATION_CACHE_CAS_PATH="$HOME/compilation-cache"
 
     - name: Generate Coverage Report
       if: success()
@@ -103,7 +118,9 @@ jobs:
           -archivePath RemoteShutter.xcarchive \
           archive \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_ALLOWED=NO \
+          COMPILATION_CACHE_ENABLE_CACHING=YES \
+          COMPILATION_CACHE_CAS_PATH="$HOME/compilation-cache"
           
     - name: Upload Build Artifacts
       if: failure()
@@ -129,6 +146,14 @@ jobs:
       with:
         xcode-version: '26.2'
 
+    - name: Restore compilation cache
+      uses: actions/cache@v4
+      with:
+        path: ~/compilation-cache
+        key: cas-catalyst-${{ github.sha }}
+        restore-keys: |
+          cas-catalyst-
+
     - name: Build for Mac Catalyst
       run: |
         xcodebuild \
@@ -138,4 +163,6 @@ jobs:
           -configuration Debug \
           build \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO 
+          CODE_SIGNING_ALLOWED=NO \
+          COMPILATION_CACHE_ENABLE_CACHING=YES \
+          COMPILATION_CACHE_CAS_PATH="$HOME/compilation-cache" 
