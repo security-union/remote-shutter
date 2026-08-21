@@ -122,6 +122,8 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     var gatherCapabilitiesCalls = 0
     var zoomCalls: [CGFloat] = []
     var focusCalls: [CGPoint] = []
+    var exposureCalls: [ExposureIntent] = []
+    var advertisesManualExposure = true
     var lensSwitches: [CameraLensType] = []
     var torchToggles = 0
     var chimes: [Int] = []
@@ -168,6 +170,19 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     func focusAtPoint(x: Float, y: Float) async throws {
         if let errorToThrow { throw errorToThrow }
         focusCalls.append(CGPoint(x: CGFloat(x), y: CGFloat(y)))
+    }
+    /// Echoes the intent clamped into a fixed phone-like range, like the engine.
+    func setExposure(_ intent: ExposureIntent) async throws -> ExposureState {
+        if let errorToThrow { throw errorToThrow }
+        exposureCalls.append(intent)
+        switch intent {
+        case .auto:
+            return ExposureState(mode: .auto, durationSeconds: 1.0 / 120, iso: 64,
+                                 minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0, minISO: 32, maxISO: 3200)
+        case let .manual(duration, iso):
+            return ExposureState(mode: .manual, durationSeconds: duration, iso: iso,
+                                 minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0, minISO: 32, maxISO: 3200)
+        }
     }
     // swiftlint:disable:next large_tuple
     func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
@@ -302,6 +317,7 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             supportsFocusPoint: advertisesFocusPoint,
             supportsPreviewMode: advertisesPreviewMode,
             previewMode: storedPreviewMode,
+            supportsManualExposure: advertisesManualExposure,
             error: nil)
     }
 

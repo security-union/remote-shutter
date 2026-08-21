@@ -66,9 +66,22 @@ enum CommandAction : byte {
                                // RequestCameraStateReport. Payload rides in
                                // CommandParameters (state_report_seq,
                                // state_recording_phase, elapsed ticks).
-    RequestCameraStateReport = 32 // monitor/director -> camera: re-push the
+    RequestCameraStateReport = 32, // monitor/director -> camera: re-push the
                                // current CameraStateReport (e.g. on connection).
+    SetExposure = 33           // monitor -> camera: auto / manual (shutter + ISO).
+                               // Payload in CommandParameters (exposure_*); the
+                               // camera answers with a CameraStateResponse carrying
+                               // ExposureState. Only sent to peers advertising
+                               // supports_manual_exposure.
 }
+
+// Auto vs. manual exposure. Unknown = legacy peer / field absent.
+enum ExposureMode : byte {
+    Unknown = 0,
+    Auto = 1,
+    Manual = 2
+}
+
 
 // Whether the camera device drives its own on-screen live preview. On is the
 // shipping default and preserves existing behavior; Standby stops LOCAL preview
@@ -221,6 +234,11 @@ table CommandParameters {
     state_report_seq: uint64;
     state_recording_phase: RecordingPhase;
     state_recording_elapsed_ms: uint64;
+    // SetExposure payload. Seconds, not a CMTime: the camera clamps into its
+    // own format's CMTime range. 0 = keep the device's current value.
+    exposure_mode: ExposureMode;
+    exposure_duration_seconds: double;
+    exposure_iso: float;
 }
 
 // MARK: - Command Structure
@@ -231,6 +249,19 @@ table CameraCommand {
 }
 
 // MARK: - State Structures
+
+// The camera's exposure truth: what is applied now plus the active format's
+// range, so the monitor's dials always reflect this device. Echoed on every
+// SetExposure response and carried in capabilities.
+table ExposureState {
+    mode: ExposureMode;
+    duration_seconds: double;
+    iso: float;
+    min_duration_seconds: double;
+    max_duration_seconds: double;
+    min_iso: float;
+    max_iso: float;
+}
 
 table ZoomRange {
     min_zoom: double;
@@ -325,6 +356,11 @@ table CameraCapabilities {
     // peer (they would be decoded as Unknown and dropped, silently desyncing
     // the rig).
     supports_multicam: bool;
+    // False/absent = the active device cannot do custom exposure (legacy peer,
+    // virtual multi-lens device, most Mac cameras); a monitor must not send
+    // SetExposure to such a peer and shows no exposure control.
+    supports_manual_exposure: bool;
+    exposure: ExposureState;
 }
 
 // MARK: - Response Structure
@@ -344,6 +380,7 @@ table CameraStateResponse {
     clock_sync_echo_t0_ms: uint64;    // ClockSyncPing response: echoed director t0
     clock_sync_camera_clock_ms: uint64; // ClockSyncPing response: camera clock at receipt
     capture_id_echo: string;          // ScheduledCapture ack: the accepted capture id
+    exposure: ExposureState;          // SetExposure response: applied values + ranges
 }
 
 // MARK: - Frame Data

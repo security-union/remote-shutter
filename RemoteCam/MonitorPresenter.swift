@@ -103,6 +103,11 @@ public final class MonitorPresenter {
         }
     }
 
+    func updateExposure(_ state: ExposureState?) {
+        guard let state else { return }
+        onMain { $0.viewModel.exposure = state }
+    }
+
     func updateLens(_ lensType: CameraLensType?,
                     availableLenses: [CameraLensType]?,
                     currentZoom: CGFloat?,
@@ -128,6 +133,8 @@ public final class MonitorPresenter {
             // property of the peer, not of whichever camera it has selected, so
             // a peer that reports no current camera must not lose the flag.
             display.viewModel.supportsCameraStandby = capabilities.supportsPreviewMode
+            display.viewModel.supportsManualExposure = capabilities.supportsManualExposure
+            display.viewModel.exposure = capabilities.exposure
 
             guard let cameraInfo = capabilities.getCurrentCameraInfo() else { return }
             // Update lens controls in view model

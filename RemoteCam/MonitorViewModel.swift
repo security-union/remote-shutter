@@ -260,6 +260,12 @@ class MonitorViewModel: ObservableObject {
     /// the standby tray tile — an older camera ignores the command, so offering
     /// a control that does nothing would be worse than hiding it.
     @Published var supportsCameraStandby: Bool = false
+    /// Whether the peer's ACTIVE camera can do manual exposure. Gates the
+    /// exposure control — absent, not disabled, when the camera can't.
+    @Published var supportsManualExposure: Bool = false
+    /// The camera's echoed exposure truth (mode, shutter, ISO, ranges). The
+    /// monitor renders only this, never the value it last dragged to.
+    @Published var exposure: ExposureState?
 
     // MARK: - Video Quality Update Methods
     func updateVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) {

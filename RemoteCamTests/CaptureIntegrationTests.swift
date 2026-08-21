@@ -404,4 +404,54 @@ final class CaptureIntegrationTests: XCTestCase {
         XCTAssertFalse(after?.isSuspended ?? true, "toggle must never land on a suspended device")
         print("📸 toggle \(before?.localizedName ?? "?") → \(after?.localizedName ?? "?"): frames in \(Int(latency * 1000))ms")
     }
+
+    // MARK: - Manual exposure (Docs/pro-controls.md hardware probe)
+
+    /// Probe question 1: which physical devices accept custom exposure — the
+    /// header says virtual multi-lens devices refuse it, and the lens-swap
+    /// design hinges on whether that holds on current iOS. Prints one line per
+    /// device; never fails (the answer is data, not a pass/fail).
+    func testProbeCustomExposureSupportPerDevice() async throws {
+        try await startRealRig()
+        let types: [AVCaptureDevice.DeviceType] = [
+            .builtInWideAngleCamera, .builtInUltraWideCamera, .builtInTelephotoCamera,
+            .builtInDualCamera, .builtInDualWideCamera, .builtInTripleCamera
+        ]
+        let devices = AVCaptureDevice.DiscoverySession(
+            deviceTypes: types, mediaType: .video, position: .unspecified).devices
+        for device in devices {
+            let format = device.activeFormat
+            print("🌗 PROBE \(device.localizedName) [\(device.deviceType.rawValue)] custom=\(device.isExposureModeSupported(.custom)) "
+                  + "shutter=\(CMTimeGetSeconds(format.minExposureDuration))–\(CMTimeGetSeconds(format.maxExposureDuration))s "
+                  + "ISO=\(format.minISO)–\(format.maxISO)")
+        }
+    }
+
+    /// Manual exposure applied to the active device reads back within
+    /// tolerance, and Auto restores continuous AE and the frame rate.
+    func testManualExposureAppliesAndAutoRestores() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            return XCTFail("startup never delivered frames — \(await diagnostics())")
+        }
+        guard let device = rig.engine.videoDeviceInput?.device, device.isExposureModeSupported(.custom) else {
+            throw XCTSkip("active device does not support custom exposure")
+        }
+        let fpsBefore = device.activeVideoMaxFrameDuration
+
+        let wanted = 1.0 / 250
+        let state = try await rig.setExposure(ExposureIntent.manual(durationSeconds: wanted, iso: device.activeFormat.minISO * 2))
+        XCTAssertEqual(state.mode, .manual)
+        XCTAssertEqual(state.durationSeconds, wanted, accuracy: wanted * 0.1)
+        XCTAssertEqual(device.exposureMode, .custom)
+
+        // A long shutter may legitimately stretch the frame duration in photo
+        // mode; Auto must bring the frame rate back to what quality chose.
+        _ = try await rig.setExposure(ExposureIntent.manual(durationSeconds: 0.5, iso: 0))
+        let restored = try await rig.setExposure(ExposureIntent.auto)
+        XCTAssertEqual(restored.mode, .auto)
+        XCTAssertEqual(device.exposureMode, .continuousAutoExposure)
+        XCTAssertEqual(CMTimeGetSeconds(device.activeVideoMaxFrameDuration),
+                       CMTimeGetSeconds(fpsBefore), accuracy: 0.001)
+    }
 }

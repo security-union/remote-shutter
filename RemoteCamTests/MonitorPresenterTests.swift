@@ -93,6 +93,37 @@ class MonitorPresenterTests: XCTestCase {
         XCTAssertEqual(display.videoRecordingConfigured, 1)
     }
 
+    // MARK: - Exposure echo
+
+    func testUpdateExposureLandsInViewModelOnMain() {
+        let state = ExposureState(mode: .manual, durationSeconds: 1.0 / 125, iso: 200,
+                                  minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 0.5, minISO: 50, maxISO: 1600)
+        presenter.updateExposure(state)
+        presenter.updateExposure(nil)   // an errored response carries no truth: keep the last one
+        drain()
+        XCTAssertEqual(display.viewModel.exposure, state)
+    }
+
+    func testCapabilitiesCarryExposureSupportAndTruth() {
+        let state = ExposureState(mode: .auto, durationSeconds: 1.0 / 60, iso: 100,
+                                  minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 0.5, minISO: 50, maxISO: 1600)
+        presenter.updateCapabilities(RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsManualExposure: true, exposure: state, error: nil))
+        drain()
+        XCTAssertTrue(display.viewModel.supportsManualExposure)
+        XCTAssertEqual(display.viewModel.exposure, state)
+
+        // A swap to a device that can't: the control disappears.
+        presenter.updateCapabilities(RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil))
+        drain()
+        XCTAssertFalse(display.viewModel.supportsManualExposure)
+        XCTAssertNil(display.viewModel.exposure)
+    }
+
     // MARK: - BecomeMonitorFailed
 
     func testBecomeMonitorFailedExitsMonitor() {

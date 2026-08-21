@@ -241,6 +241,16 @@ public class UICmd {
         }
     }
 
+    /// Monitor screen -> session: set auto/manual exposure on the camera peer.
+    public class SetExposure: Message, @unchecked Sendable {
+        public let intent: ExposureIntent
+
+        public init(intent: ExposureIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
     public class SetZoomResp: Message, @unchecked Sendable {
         public let zoomFactor: CGFloat?
         public let currentLens: CameraLensType?

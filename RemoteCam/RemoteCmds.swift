@@ -409,6 +409,34 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    // MARK: - Exposure Remote Commands
+
+    /// Monitor -> camera: auto or manual (shutter + ISO) exposure. The camera
+    /// clamps into its active format's range and answers with `SetExposureResp`
+    /// carrying the applied truth. Only sent to peers that advertised
+    /// `CameraCapabilitiesResp.supportsManualExposure`.
+    public class SetExposure: Message, @unchecked Sendable {
+        public let intent: ExposureIntent
+
+        public init(intent: ExposureIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
+    /// Camera -> monitor: the exposure state after a `SetExposure` (applied
+    /// mode/values plus the active format's range).
+    public class SetExposureResp: Message, @unchecked Sendable {
+        public let state: ExposureState?
+        public let error: Error?
+
+        public init(state: ExposureState?, error: Error?) {
+            self.state = state
+            self.error = error
+            super.init(sender: nil)
+        }
+    }
+
     /// "I am leaving on purpose." Sent by whichever side ends the session
     /// deliberately, so the peer stops reconnecting instead of chasing a
     /// session nobody is coming back to. Fire-and-forget: an unplanned
@@ -574,6 +602,12 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// The camera's current local-preview mode, so the monitor can reflect
         /// it from the first capabilities exchange.
         public let previewMode: CameraPreviewMode
+        /// True when the ACTIVE device can do custom exposure. The monitor's
+        /// exposure gate reads this so it never sends `SetExposure` to a peer
+        /// that cannot honor it — and shows no control at all.
+        public let supportsManualExposure: Bool
+        /// Current exposure truth + ranges, so the panel opens populated.
+        public let exposure: ExposureState?
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
@@ -589,6 +623,8 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    supportsPreviewMode: Bool = false,
                    supportsMulticam: Bool = false,
                    previewMode: CameraPreviewMode = .on,
+                   supportsManualExposure: Bool = false,
+                   exposure: ExposureState? = nil,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
@@ -605,6 +641,8 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.supportsPreviewMode = supportsPreviewMode
             self.supportsMulticam = supportsMulticam
             self.previewMode = previewMode
+            self.supportsManualExposure = supportsManualExposure
+            self.exposure = exposure
             self.error = error
             super.init(sender: nil)
         }

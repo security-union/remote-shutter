@@ -59,6 +59,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetExposureResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraPreviewModeResp: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
@@ -357,6 +359,57 @@ final class RemoteCmdSerializationTests: XCTestCase {
             supportsFocusPoint: true, error: nil)
         let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
         XCTAssertTrue(decoded.supportsFocusPoint)
+    }
+
+    // MARK: - 11c. SetExposure
+
+    private let sampleExposure = ExposureState(
+        mode: .manual, durationSeconds: 1.0 / 250, iso: 400,
+        minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0, minISO: 32, maxISO: 3200)
+
+    func testSetExposure_manualRoundTrip() {
+        let original = RemoteCmd.SetExposure(intent: .manual(durationSeconds: 1.0 / 250, iso: 400))
+        let decoded: RemoteCmd.SetExposure = roundTrip(original)
+        XCTAssertEqual(decoded.intent, .manual(durationSeconds: 1.0 / 250, iso: 400))
+    }
+
+    func testSetExposure_autoRoundTrip() {
+        let decoded: RemoteCmd.SetExposure = roundTrip(RemoteCmd.SetExposure(intent: .auto))
+        XCTAssertEqual(decoded.intent, .auto)
+    }
+
+    func testSetExposureResp_roundTrip() {
+        let decoded: RemoteCmd.SetExposureResp = roundTrip(RemoteCmd.SetExposureResp(state: sampleExposure, error: nil))
+        XCTAssertEqual(decoded.state, sampleExposure)
+        XCTAssertNil(decoded.error)
+    }
+
+    func testSetExposureResp_errorRoundTrip() {
+        let err = NSError(domain: "No camera device available", code: 0)
+        let decoded: RemoteCmd.SetExposureResp = roundTrip(RemoteCmd.SetExposureResp(state: nil, error: err))
+        XCTAssertNil(decoded.state)
+        XCTAssertEqual((decoded.error as NSError?)?.domain, "No camera device available")
+    }
+
+    func testCameraCapabilities_manualExposureRoundTrip() {
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsManualExposure: true, exposure: sampleExposure, error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertTrue(decoded.supportsManualExposure)
+        XCTAssertEqual(decoded.exposure, sampleExposure)
+    }
+
+    /// A peer that predates exposure control leaves the fields absent: the
+    /// monitor must read "no support, no truth", never a fabricated Auto.
+    func testCameraCapabilities_legacyPeerHasNoExposure() {
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertFalse(decoded.supportsManualExposure)
+        XCTAssertNil(decoded.exposure)
     }
 
     // MARK: - 12. SetZoomResp

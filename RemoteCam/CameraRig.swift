@@ -145,6 +145,9 @@ final class CameraRig: @unchecked Sendable {
         engine.onStatusChanged = { [weak self] in
             self?.updateCameraStatus()
         }
+        // The exposure policy caps a long shutter at the frame duration while
+        // a clip is rolling; recording truth lives in the pipeline.
+        engine.isRecordingProvider = { [pipeline] in pipeline.isRecording }
         // Captures the session ref (not self) so recording acks/responses still
         // reach the actor if the rig deallocates mid-recording.
         pipeline.sendMessage = { [session] msg in
@@ -514,6 +517,10 @@ extension CameraRig: CameraControlling {
 
     func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
         try await engine.setZoom(zoomFactor: zoomFactor)
+    }
+
+    func setExposure(_ intent: ExposureIntent) async throws -> ExposureState {
+        try await engine.setExposure(intent)
     }
 
     func focusAtPoint(x: Float, y: Float) async throws {

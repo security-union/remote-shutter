@@ -241,6 +241,14 @@ public actor SessionCoordinator {
     /// Test support.
     func peerSupportsPreviewModeForTesting() -> Bool { peerSupportsPreviewMode }
 
+    /// Whether the connected camera peer's ACTIVE device advertised manual
+    /// exposure — the feature gate for `RemoteCmd.SetExposure`. Re-absorbed on
+    /// every capabilities refresh because it changes with the device.
+    private var peerSupportsManualExposure = false
+
+    /// Test support.
+    func peerSupportsManualExposureForTesting() -> Bool { peerSupportsManualExposure }
+
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
@@ -792,6 +800,7 @@ public actor SessionCoordinator {
         peerAdvertisedCameraDevices = false
         peerSupportsFocusPoint = false
         peerSupportsPreviewMode = false
+        peerSupportsManualExposure = false
         monitorReceivedVP9Frame = false
         // The session is being torn down for good (deliberate leave, EndSession,
         // or a dead link) — a fresh session starts single-cam until a director
@@ -1297,6 +1306,9 @@ public actor SessionCoordinator {
             // without a focus point simply ignores it.
             try? await ctrl.focusAtPoint(x: focus.x, y: focus.y)
 
+        case let exposure as RemoteCmd.SetExposure:
+            await handleSetExposure(exposure, ctrl: ctrl)
+
         case let lens as RemoteCmd.SwitchLens:
             do {
                 let (lensType, available, zoom, range) = try await ctrl.switchLens(to: lens.lensType)
@@ -1389,8 +1401,20 @@ public actor SessionCoordinator {
         peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
         peerSupportsFocusPoint = capabilities.supportsFocusPoint
         peerSupportsPreviewMode = capabilities.supportsPreviewMode
+        peerSupportsManualExposure = capabilities.supportsManualExposure
         monitor?.updateCapabilities(capabilities)
         monitor?.updatePreviewMode(capabilities.previewMode)
+    }
+
+    /// Camera side of `SetExposure`: apply, then echo the device's truth (or
+    /// the error) so the monitor never shows a state the camera didn't confirm.
+    private func handleSetExposure(_ cmd: RemoteCmd.SetExposure, ctrl: CameraControlling) async {
+        do {
+            let state = try await ctrl.setExposure(cmd.intent)
+            await sendOrGoToScanning(RemoteCmd.SetExposureResp(state: state, error: nil))
+        } catch {
+            await sendOrGoToScanning(RemoteCmd.SetExposureResp(state: nil, error: error as NSError))
+        }
     }
 
     /// "The switch didn't stick." The message rides in the NSError domain —
@@ -1684,6 +1708,11 @@ public actor SessionCoordinator {
         case let focus as RemoteCmd.FocusAtPoint:
             // Fire-and-forget; focusing is allowed while recording too.
             try? await ctrl.focusAtPoint(x: focus.x, y: focus.y)
+
+        case let exposure as RemoteCmd.SetExposure:
+            // Allowed while recording: the policy caps the shutter at the frame
+            // duration so the clip's frame rate holds.
+            await handleSetExposure(exposure, ctrl: ctrl)
 
         case let lens as RemoteCmd.SwitchLens:
             do {
@@ -2391,6 +2420,18 @@ public actor SessionCoordinator {
             }
             sendMessage(RemoteCmd.FocusAtPoint(x: focus.x, y: focus.y))
 
+        case let exposure as UICmd.SetExposure:
+            // Wire-safety gate mirroring FocusAtPoint: never send action 33 to a
+            // peer whose active camera cannot honor it.
+            guard peerSupportsManualExposure else {
+                debugLog("SetExposure dropped: peer did not advertise manual-exposure support")
+                break
+            }
+            sendMessage(RemoteCmd.SetExposure(intent: exposure.intent))
+
+        case let exposureResp as RemoteCmd.SetExposureResp:
+            monitor?.updateExposure(exposureResp.state)
+
         case let preview as UICmd.SetCameraPreviewMode:
             // Wire-safety gate mirroring FocusAtPoint: never send action 24 to a
             // peer that predates it (it would misread the unknown action).
@@ -2736,6 +2777,18 @@ public actor SessionCoordinator {
                 break
             }
             sendMessage(RemoteCmd.FocusAtPoint(x: focus.x, y: focus.y))
+
+        case let exposure as UICmd.SetExposure:
+            // Wire-safety gate mirroring FocusAtPoint: never send action 33 to a
+            // peer whose active camera cannot honor it.
+            guard peerSupportsManualExposure else {
+                debugLog("SetExposure dropped: peer did not advertise manual-exposure support")
+                break
+            }
+            sendMessage(RemoteCmd.SetExposure(intent: exposure.intent))
+
+        case let exposureResp as RemoteCmd.SetExposureResp:
+            monitor?.updateExposure(exposureResp.state)
 
         case let preview as UICmd.SetCameraPreviewMode:
             guard peerSupportsPreviewMode else {

@@ -705,6 +705,61 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(monitorState, .monitor)
     }
 
+    // MARK: - Manual exposure
+
+    func testSetExposureHappyPathAcrossTheWire() async {
+        let fakeCamera = await connectCameraAndMonitor()
+        let gate = await monitorCoordinator.peerSupportsManualExposureForTesting()
+        XCTAssertTrue(gate, "the fake camera advertises manual exposure by default")
+        monitorTransport.sentMessages.removeAll()
+        cameraTransport.sentMessages.removeAll()
+
+        monitorCoordinator.tell(UICmd.SetExposure(intent: .manual(durationSeconds: 1.0 / 250, iso: 400)))
+        await drainBothSessions()
+
+        XCTAssertEqual(fakeCamera.exposureCalls, [.manual(durationSeconds: 1.0 / 250, iso: 400)])
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
+        // The camera echoes its truth; the monitor stays put (a setting, not a
+        // request state that could wedge the screen).
+        let resp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetExposureResp }.last
+        XCTAssertEqual(resp?.state?.mode, .manual)
+        XCTAssertEqual(resp?.state?.durationSeconds ?? 0, 1.0 / 250, accuracy: 1e-9)
+        XCTAssertEqual(resp?.state?.iso ?? 0, 400)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+
+        monitorCoordinator.tell(UICmd.SetExposure(intent: .auto))
+        await drainBothSessions()
+        XCTAssertEqual(fakeCamera.exposureCalls.last, .auto)
+        let autoResp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetExposureResp }.last
+        XCTAssertEqual(autoResp?.state?.mode, .auto)
+    }
+
+    /// Mirrors the focus gate: a camera whose active device cannot do custom
+    /// exposure (or a legacy peer) never receives action 33.
+    func testSetExposureIsNeverSentToPeerWithoutSupport() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.advertisesManualExposure = false
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Photo)
+        let gate = await monitorCoordinator.peerSupportsManualExposureForTesting()
+        XCTAssertFalse(gate)
+        monitorTransport.sentMessages.removeAll()
+
+        monitorCoordinator.tell(UICmd.SetExposure(intent: .manual(durationSeconds: 0.5, iso: 100)))
+        await drainBothSessions()
+
+        XCTAssertFalse(monitorTransport.sentMessages.contains { $0 is RemoteCmd.SetExposure },
+                       "SetExposure must be gated on advertised supports_manual_exposure")
+        XCTAssertTrue(fakeCamera.exposureCalls.isEmpty)
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+    }
+
     /// Safety gate mirroring SelectCameraDevice: old peers decode the unknown
     /// FocusAtPoint action as TakePicture, so the monitor must never send it to a
     /// peer whose capabilities did not advertise focus-point support.

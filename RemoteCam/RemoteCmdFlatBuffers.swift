@@ -41,6 +41,8 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetExposureResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraPreviewModeResp: return m.toFlatBuffer()
     case let m as RemoteCmd.EndSession: return m.toFlatBuffer()
@@ -421,6 +423,7 @@ private func encodeCapabilitiesEnvelope(
         devicesVector = fbb.createVector(ofOffsets: deviceOffsets)
     }
     let activeIDOffset = c.activeDeviceID.map { fbb.create(string: $0) } ?? Offset()
+    let exposureOffset = encodeExposureState(c.exposure, &fbb)
 
     let capsOffset = RemoteShutter_CameraCapabilities.createCameraCapabilities(
         &fbb,
@@ -430,7 +433,9 @@ private func encodeCapabilitiesEnvelope(
         activeDeviceIdOffset: activeIDOffset,
         supportsFocusPoint: c.supportsFocusPoint,
         supportsPreviewMode: c.supportsPreviewMode,
-        supportsMulticam: c.supportsMulticam)
+        supportsMulticam: c.supportsMulticam,
+        supportsManualExposure: c.supportsManualExposure,
+        exposureOffset: exposureOffset)
 
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
@@ -599,6 +604,36 @@ extension RemoteCmd.FocusAtPoint {
         var fbb = FlatBufferBuilder()
         let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, focusPointX: x, focusPointY: y)
         return buildCommand(&fbb, action: .focusatpoint, parameters: params)
+    }
+}
+
+extension RemoteCmd.SetExposure {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params: Offset
+        switch intent {
+        case .auto:
+            params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, exposureMode: .auto)
+        case let .manual(durationSeconds, iso):
+            params = RemoteShutter_CommandParameters.createCommandParameters(
+                &fbb, exposureMode: .manual, exposureDurationSeconds: durationSeconds, exposureIso: iso)
+        }
+        return buildCommand(&fbb, action: .setexposure, parameters: params)
+    }
+}
+
+extension RemoteCmd.SetExposureResp {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
+        let exposureOffset = encodeExposureState(state, &fbb)
+        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &fbb,
+            action: .setexposure,
+            success: error == nil,
+            errorOffset: errorOffset,
+            exposureOffset: exposureOffset)
+        return buildResponse(&fbb, action: .setexposure, response: resp)
     }
 }
 
@@ -1141,6 +1176,49 @@ func fromFBPreviewMode(_ mode: RemoteShutter_CameraPreviewModeEnum) -> CameraPre
     }
 }
 
+// MARK: - Exposure conversions
+
+func toFBExposureMode(_ mode: ExposureMode) -> RemoteShutter_ExposureMode {
+    switch mode {
+    case .auto: return .auto
+    case .manual: return .manual
+    }
+}
+
+/// Unknown => legacy peer or field absent: no exposure truth.
+func fromFBExposureMode(_ mode: RemoteShutter_ExposureMode) -> ExposureMode? {
+    switch mode {
+    case .auto: return .auto
+    case .manual: return .manual
+    case .unknown: return nil
+    }
+}
+
+func encodeExposureState(_ state: ExposureState?, _ fbb: inout FlatBufferBuilder) -> Offset {
+    guard let state else { return Offset() }
+    return RemoteShutter_ExposureState.createExposureState(
+        &fbb,
+        mode: toFBExposureMode(state.mode),
+        durationSeconds: state.durationSeconds,
+        iso: state.iso,
+        minDurationSeconds: state.minDurationSeconds,
+        maxDurationSeconds: state.maxDurationSeconds,
+        minIso: state.minISO,
+        maxIso: state.maxISO)
+}
+
+func decodeExposureState(_ fb: RemoteShutter_ExposureState?) -> ExposureState? {
+    guard let fb, let mode = fromFBExposureMode(fb.mode) else { return nil }
+    return ExposureState(
+        mode: mode,
+        durationSeconds: fb.durationSeconds,
+        iso: fb.iso,
+        minDurationSeconds: fb.minDurationSeconds,
+        maxDurationSeconds: fb.maxDurationSeconds,
+        minISO: fb.minIso,
+        maxISO: fb.maxIso)
+}
+
 // MARK: - SetAspectRatio toFlatBuffer()
 
 extension RemoteCmd.SetAspectRatio {
@@ -1361,6 +1439,17 @@ extension RemoteCmd {
         case .focusatpoint:
             return FocusAtPoint(x: params?.focusPointX ?? 0.5, y: params?.focusPointY ?? 0.5)
 
+        case .setexposure:
+            // Unknown mode (a malformed or future payload) is treated as Auto:
+            // the safe state, and the response tells the sender the truth.
+            switch params?.exposureMode ?? .unknown {
+            case .manual:
+                return SetExposure(intent: .manual(durationSeconds: params?.exposureDurationSeconds ?? 0,
+                                                   iso: params?.exposureIso ?? 0))
+            case .auto, .unknown:
+                return SetExposure(intent: .auto)
+            }
+
         case .setcamerapreviewmode:
             return SetCameraPreviewMode(mode: fromFBPreviewMode(params?.cameraPreviewMode ?? .unknown))
 
@@ -1433,6 +1522,9 @@ extension RemoteCmd {
 
         case .requestcapabilities:
             return decodeCameraCapabilitiesResp(resp, error: nsError)
+
+        case .setexposure:
+            return SetExposureResp(state: decodeExposureState(resp.exposure), error: nsError)
 
         case .switchlens:
             let state = resp.currentState
@@ -1547,6 +1639,8 @@ extension RemoteCmd {
             supportsPreviewMode: caps?.supportsPreviewMode ?? false,
             supportsMulticam: caps?.supportsMulticam ?? false,
             previewMode: state.map { fromFBPreviewMode($0.previewMode) } ?? .on,
+            supportsManualExposure: caps?.supportsManualExposure ?? false,
+            exposure: decodeExposureState(caps?.exposure),
             error: error
         )
     }

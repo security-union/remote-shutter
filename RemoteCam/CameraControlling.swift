@@ -46,6 +46,9 @@ protocol CameraControlling: AnyObject, Sendable {
     /// normalized (0..1) in the upright display image, origin top-left.
     /// Fire-and-forget: a no-op if the active device has no point of interest.
     func focusAtPoint(x: Float, y: Float) async throws
+    /// Auto or manual (shutter + ISO) exposure. The device clamps into its
+    /// active format's range; the returned state is the truth to echo.
+    func setExposure(_ intent: ExposureIntent) async throws -> ExposureState
     func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)
     func toggleFlash() async throws -> AVCaptureDevice.FlashMode
     func toggleTorch() async throws -> AVCaptureDevice.TorchMode

@@ -120,6 +120,15 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     // MARK: - Aspect Ratio
     var currentAspectRatio: AspectRatio = .sixteenNine
 
+    // MARK: - Manual Exposure
+    /// What the monitor asked for. The device is made to match it by exactly
+    /// one function, `applyExposureIntentLocked()`, which every path that
+    /// disturbs the device (swap, format change) calls again. sessionQueue-confined.
+    private var exposureIntent: ExposureIntent = .auto
+    /// Recording truth lives in the rig's pipeline; the policy needs it to cap
+    /// a long shutter at the frame duration while a clip is rolling.
+    var isRecordingProvider: () -> Bool = { false }
+
     // MARK: - Callbacks to the view controller
     /// Forwards a finished photo capture. `(data, nil)` on success, `(nil, error)`
     /// on failure. The VC relays this to the session actor exactly as before.
@@ -264,6 +273,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     func stopSession() {
         sessionQueue.async {
             self.isExpectedToRun = false
+            // The AVCaptureDevice outlives this session: leave it in auto so
+            // the next session (or the system Camera app) starts clean.
+            self.exposureIntent = .auto
+            _ = self.applyExposureIntentLocked()
             if self.captureSession.isRunning {
                 self.captureSession.stopRunning()
             }
@@ -368,6 +381,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         captureSession.commitConfiguration()
         applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
         resetFocusExposureToAutoLocked()   // a stale focus point must not carry across a device change
+        _ = applyExposureIntentLocked()    // the new device must match the monitor's exposure intent
         // Swapping away from a dead device must also revive a session that a
         // runtime error stopped — otherwise the new camera never delivers.
         if isExpectedToRun && !captureSession.isRunning {
@@ -923,6 +937,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         debugLog("🔍 DEBUG: - Found \(videoDevices.count) devices for \(positionName) position")
         for device in videoDevices {
             debugLog("🔍 DEBUG: - \(device.localizedName) (\(device.deviceType.rawValue))")
+            // Pro-controls hardware probe (Docs/pro-controls.md): which devices
+            // can do custom exposure, and what the format allows.
+            let format = device.activeFormat
+            debugLog("🌗 EXPOSURE PROBE: \(device.localizedName) custom=\(device.isExposureModeSupported(.custom)) "
+                     + "shutter \(CMTimeGetSeconds(format.minExposureDuration))–\(CMTimeGetSeconds(format.maxExposureDuration))s "
+                     + "ISO \(format.minISO)–\(format.maxISO)")
         }
 
         guard !videoDevices.isEmpty else {
@@ -1041,6 +1061,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // release the director UI ships.
             supportsMulticam: FeatureFlags.ENABLE_MULTICAM,
             previewMode: CameraPreviewModeStore().load(),
+            // A property of the ACTIVE device (virtual multi-lens devices and
+            // most Mac cameras refuse .custom), so it is re-advertised on every
+            // capabilities refresh after a swap.
+            supportsManualExposure: currentDevice.isExposureModeSupported(.custom),
+            exposure: exposureStateLocked(currentDevice),
             error: nil
         )
 
@@ -1126,7 +1151,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 device.focusMode = .autoFocus
             }
         }
-        if device.isExposurePointOfInterestSupported {
+        // In manual exposure a tap moves only focus: re-enabling auto exposure
+        // here would silently throw away the monitor's shutter/ISO.
+        if device.isExposurePointOfInterestSupported && exposureIntent == .auto {
             device.exposurePointOfInterest = poi
             if device.isExposureModeSupported(.continuousAutoExposure) {
                 device.exposureMode = .continuousAutoExposure
@@ -1150,10 +1177,94 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             device.focusPointOfInterest = center
             if device.isFocusModeSupported(.continuousAutoFocus) { device.focusMode = .continuousAutoFocus }
         }
-        if device.isExposurePointOfInterestSupported {
+        if device.isExposurePointOfInterestSupported && exposureIntent == .auto {
             device.exposurePointOfInterest = center
             if device.isExposureModeSupported(.continuousAutoExposure) { device.exposureMode = .continuousAutoExposure }
         }
+    }
+
+    // MARK: - Manual Exposure
+
+    /// Stores the monitor's intent and makes the device match it. Returns the
+    /// device's exposure truth afterwards (the response payload).
+    func setExposure(_ intent: ExposureIntent) async throws -> ExposureState {
+        try await onSessionQueueThrowing {
+            self.exposureIntent = intent
+            guard let state = self.applyExposureIntentLocked() else {
+                throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
+            }
+            return state
+        }
+    }
+
+    /// The ranges and booleans the policy decides on, read from the active device.
+    private func exposureFactsLocked(_ device: AVCaptureDevice) -> ExposureFacts {
+        let format = device.activeFormat
+        return ExposureFacts(
+            supportsCustom: device.isExposureModeSupported(.custom),
+            minDurationSeconds: CMTimeGetSeconds(format.minExposureDuration),
+            maxDurationSeconds: CMTimeGetSeconds(format.maxExposureDuration),
+            minISO: format.minISO,
+            maxISO: format.maxISO,
+            maxFrameDurationSeconds: CMTimeGetSeconds(device.activeVideoMaxFrameDuration),
+            currentDurationSeconds: CMTimeGetSeconds(device.exposureDuration),
+            currentISO: device.iso)
+    }
+
+    private func exposureStateLocked(_ device: AVCaptureDevice) -> ExposureState {
+        let facts = exposureFactsLocked(device)
+        return ExposureState(
+            mode: device.exposureMode == .custom ? .manual : .auto,
+            durationSeconds: facts.currentDurationSeconds,
+            iso: facts.currentISO,
+            minDurationSeconds: facts.minDurationSeconds,
+            maxDurationSeconds: facts.maxDurationSeconds,
+            minISO: facts.minISO,
+            maxISO: facts.maxISO)
+    }
+
+    /// The ONE place that sets the device's exposure mode / duration / ISO.
+    /// Called with a fresh intent from the wire, and again after every device
+    /// swap and format change so the hardware always reflects `exposureIntent`.
+    /// Returns nil only when there is no device.
+    @discardableResult
+    private func applyExposureIntentLocked() -> ExposureState? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard let device = videoDeviceInput?.device else { return nil }
+        let facts = exposureFactsLocked(device)
+        let plan = ExposurePolicy.resolve(exposureIntent, facts: facts, isRecording: isRecordingProvider())
+
+        switch plan {
+        case .unsupported:
+            debugLog("🌗 EXPOSURE: \(device.localizedName) cannot do custom exposure — staying auto")
+            exposureIntent = .auto
+            fallthrough
+        case .auto:
+            if device.exposureMode != .continuousAutoExposure,
+               device.isExposureModeSupported(.continuousAutoExposure),
+               (try? device.lockForConfiguration()) != nil {
+                device.exposureMode = .continuousAutoExposure
+                device.unlockForConfiguration()
+                // A long manual shutter may have stretched the frame duration;
+                // auto restores the frame rate the quality setting chose.
+                try? setFrameRate(framerate: fpsSetting.value, videoDevice: device)
+            }
+        case let .manual(durationSeconds, iso):
+            // Clamp into the format's OWN CMTimes (never rebuild from integers)
+            // and re-clamp ISO: out-of-range values raise an NSRangeException
+            // that Swift cannot catch.
+            let format = device.activeFormat
+            var duration = CMTimeMakeWithSeconds(durationSeconds, preferredTimescale: 1_000_000_000)
+            if CMTimeCompare(duration, format.minExposureDuration) < 0 { duration = format.minExposureDuration }
+            if CMTimeCompare(duration, format.maxExposureDuration) > 0 { duration = format.maxExposureDuration }
+            let safeISO = min(max(iso, format.minISO), format.maxISO)
+            if (try? device.lockForConfiguration()) != nil {
+                device.setExposureModeCustom(duration: duration, iso: safeISO, completionHandler: nil)
+                device.unlockForConfiguration()
+            }
+            debugLog("🌗 EXPOSURE: manual \(CMTimeGetSeconds(duration))s ISO \(safeISO) on \(device.localizedName)")
+        }
+        return exposureStateLocked(device)
     }
 
     // MARK: - Enhanced Zoom Control Methods
@@ -1472,6 +1583,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
 
         applyDesiredTorchLocked()   // changing activeFormat/preset also resets the torch
+        _ = applyExposureIntentLocked()   // ranges and the frame-rate cap changed with the format
 
         currentVideoResolution = resolution
         currentVideoFrameRate = appliedFrameRate
