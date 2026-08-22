@@ -7,6 +7,8 @@
 
 Remote Shutter is a free, open-source iOS app that turns any two Apple devices into a wireless camera system. One device (iPhone or iPad) is the **camera**; the other (iPhone, iPad, Apple Watch, or Apple-silicon Mac) is the **remote**, showing a full-screen live preview and controlling the shutter. The devices connect directly over peer-to-peer Wi-Fi — no internet, no Wi-Fi network, no account, no subscription. Photos and videos stay on the devices; nothing is uploaded anywhere.
 
+**Multicam (10.0+):** one iPhone directs up to four iPhone cameras at once — every angle live in a grid, one synced shutter that fires photos or video on all of them at the same instant, and footage that collects back to the director time-aligned for editing. Two cameras free, four with Pro.
+
 <p align="center" >
   <img src="fastlane/screenshots/en-US/0_APP_IPHONE_67_0.png" width="200" title="Screenshot 1" float=left>
   <img src="fastlane/screenshots/en-US/1_APP_IPHONE_67_1.png" width="200" title="Screenshot 2" float=left>
@@ -27,6 +29,7 @@ Remote Shutter is a free, open-source iOS app that turns any two Apple devices i
 ---
 - **Live preview on the remote** — see exactly what the camera sees before you shoot, not a postage-stamp thumbnail.
 - **Photo and video** — take photos or start/stop video recording from the remote.
+- **Multicam** — connect up to four iPhones as cameras, see every angle live in a grid, and fire a synchronized photo or video capture on all of them. Clips auto-collect to the director with alignment metadata so any editor lines them up.
 - **Full camera control** — switch lenses (wide / ultra-wide / telephoto), flip front/back, flash, torch, tap to focus, timer.
 - **Any pairing** — iPhone ↔ iPhone, iPhone ↔ iPad, iPhone ↔ Mac, iPhone ↔ Apple Watch.
 - **Range** — about 50 ft (15 m) line of sight over peer-to-peer Wi-Fi, or anywhere on the network when both devices share a Wi-Fi network.
@@ -40,6 +43,7 @@ Remote Shutter is a free, open-source iOS app that turns any two Apple devices i
 - **Overhead / product / workbench video** — mount the iPhone above the table and monitor the frame from an iPad or Mac in front of you.
 - **Vlogging and tutorials** — frame yourself from the rear camera with a live feed on the second device, and start/stop recording without touching the rig.
 - **Apple Watch as a trigger** — fire the shutter from your wrist.
+- **Multi-angle video with several iPhones** — interviews, music, sports, dance, unboxings: record the same moment from up to four phones with one button and edit the synced angles together.
 
 ### How to use
 ---

@@ -2,7 +2,13 @@ Turn any two devices into a wireless remote camera system — no internet, no ro
 
 Remote Shutter uses peer-to-peer technology to link two devices directly. One becomes the camera, the other becomes your remote control with a live monitor. Perfect for group photos, selfies, tripod shots, creative angles, and hands-free photography.
 
-NEW — FULL MAC SUPPORT
+NEW — MULTICAM: UP TO FOUR CAMERAS, ONE DIRECTOR
+- Connect up to four iPhones as cameras and see every angle live in a grid
+- One synced shutter fires photos or video on every camera at the same instant
+- Footage collects automatically to the director, time-aligned for editing
+- Interviews, music, sports, dance, unboxings — shoot every angle at once
+
+FULL MAC SUPPORT
 - Use your Mac as the camera: built-in, USB and pro webcams, even your iPhone via Continuity Camera
 - Switch between every camera connected to your Mac, live from your iPhone
 - Or flip it: use your Mac's big screen as a director's monitor for your iPhone camera
@@ -25,4 +31,4 @@ HOW TO USE
 3. Choose which device is the camera and which is the remote
 4. Start shooting from anywhere in the room!
 
-Whether you're shooting products with a pro camera on your Mac, directing from the big screen, or setting up a family photo, Remote Shutter gives you full wireless control of your camera from another device.
+Whether you're directing four iPhones on a music video, shooting products with a pro camera on your Mac, directing from the big screen, or setting up a family photo, Remote Shutter gives you full wireless control of your camera from another device.

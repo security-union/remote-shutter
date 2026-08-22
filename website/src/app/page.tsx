@@ -41,6 +41,10 @@ const FAQ = [
     a: 'Any two Apple devices: iPhone, iPad, Apple Watch, or an Apple-silicon Mac. One acts as the camera (iPhone or iPad), the other as the remote with a live preview — a spare iPhone becomes a wireless camera, or an iPad or Mac becomes a big director’s monitor.',
   },
   {
+    q: 'Can I record with multiple iPhones at the same time?',
+    a: 'Yes — Multicam. One iPhone acts as the director and connects up to four iPhones as cameras. You see every angle live in a grid, and one shutter fires photos or video on all of them at the same instant. The clips collect back to the director, time-aligned, so you can cut between angles in any editor. Two cameras are free; Pro unlocks four.',
+  },
+  {
     q: 'How far away does the remote work?',
     a: 'About 50 feet (15 m) with line of sight when the devices connect directly. On a shared Wi-Fi network, range is whatever the network covers.',
   },

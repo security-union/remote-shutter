@@ -1,1 +1,1 @@
-wireless,group photo,tripod,webcam,mac,photobooth,bluetooth,video,watch,control,photography
+wireless,group photo,tripod,webcam,mac,photobooth,bluetooth,video,watch,control,multicam,multi

@@ -1,15 +1,16 @@
 # Remote Shutter
 
-> Remote Shutter is an iOS app that turns any two Apple devices into a wireless camera system: one device (iPhone or iPad) is the camera, the other (iPhone, iPad, Apple Watch, or Apple-silicon Mac) is the remote control with a full live preview. The devices connect directly over peer-to-peer Wi-Fi — no internet, no Wi-Fi network, no account, no subscription. Range is about 50 feet (15 m) line of sight, or the whole network when both devices share Wi-Fi. Free download with one-time paid upgrades (no subscription). Photos and videos stay on the devices; nothing is uploaded to any server.
+> Remote Shutter is an iOS app that turns any two Apple devices into a wireless camera system: one device (iPhone or iPad) is the camera, the other (iPhone, iPad, Apple Watch, or Apple-silicon Mac) is the remote control with a full live preview. The devices connect directly over peer-to-peer Wi-Fi — no internet, no Wi-Fi network, no account, no subscription. Range is about 50 feet (15 m) line of sight, or the whole network when both devices share Wi-Fi. Multicam (version 10.0 and later): one iPhone directs up to four iPhone cameras at once — every angle live in a grid, one synced shutter for photos or video across all of them, and footage collected back to the director time-aligned for editing (two cameras free, four with Pro). Free download with one-time paid upgrades (no subscription). Photos and videos stay on the devices; nothing is uploaded to any server.
 
 Key facts:
 - App Store: https://apps.apple.com/us/app/remote-shutter/id633274861 (iOS, Photography)
 - Remote controls: shutter, video start/stop, lens switching, front/back camera, flash, torch
-- Common uses: group photos with everyone in the shot, using a spare/old iPhone as a wireless camera (wildlife, home check-ins), overhead or product video rigs monitored from an iPad or Mac, Apple Watch as a trigger
+- Common uses: multi-angle video from several iPhones with one synced record button (interviews, music, sports, dance), group photos with everyone in the shot, using a spare/old iPhone as a wireless camera (wildlife, home check-ins), overhead or product video rigs monitored from an iPad or Mac, Apple Watch as a trigger
 - Developer: Dario Lencina (Black Fire Apps), https://github.com/security-union/remote-shutter
 
 ## Guides
 
+- [Record video with multiple iPhones at once (multicam)](https://remoteshutter.app/blog/multicam-record-with-multiple-iphones): up to four iPhones, one synced shutter, time-aligned clips
 - [How to use an old iPhone as a remote camera](https://remoteshutter.app/blog/use-old-iphone-as-remote-camera): spare phone as wireless camera for wildlife, check-ins, hard angles
 - [Group photos with everyone in the shot](https://remoteshutter.app/blog/group-photos-everyone-in-the-shot): live-preview remote vs self-timer, strangers, and clickers
 - [iPhone camera remote without a Bluetooth button](https://remoteshutter.app/blog/iphone-camera-remote-without-bluetooth): app-based remote vs Bluetooth shutter buttons
