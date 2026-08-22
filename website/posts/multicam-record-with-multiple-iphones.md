@@ -12,6 +12,8 @@ faq:
     a: "No. The phones connect directly to each other, peer to peer, with no router or network. Keep Wi-Fi and Bluetooth turned on. A shared Wi-Fi network also works and extends the range."
   - q: "Where do the videos end up?"
     a: "Each camera records at full resolution to its own photo library, and the footage then collects automatically to the director. Nothing is uploaded to any server."
+  - q: "Can I change frame rate and resolution on all the cameras at once?"
+    a: "Yes. Frame rate (24, 30 or 60 fps), resolution (1080p or 4K), aspect ratio and HDR are set from the director and applied to the rig, and you can tap to focus on any camera's live preview."
   - q: "Can old iPhones be the cameras?"
     a: "Yes — any iPhone that runs the current version of Remote Shutter. Spare and older phones make good fixed-angle cameras; the director should be the phone you hold."
 ---
@@ -23,6 +25,7 @@ If you have more than one iPhone in the house, you already own a multi-camera ri
 - **Up to four cameras, one director.** The director connects to each camera directly over peer-to-peer Wi-Fi — no router, no account.
 - **Every angle live.** The director shows a grid of live previews, so you frame each phone before you roll, and tap any tile to see it full screen.
 - **One synced shutter.** Photo or video, the capture fires on every camera at the same instant. No more clapping for sync.
+- **Camera settings from the director.** Frame rate (24/30/60), resolution (1080p/4K), aspect ratio, HDR and tap-to-focus are set from the director, so every phone rolls at the same 24p/4K without walking around to each one.
 - **Footage comes back to you.** Each camera records at full resolution locally, then the clips collect automatically to the director, stamped with alignment metadata so any editor — iMovie, Final Cut, DaVinci Resolve, CapCut — lines the angles up.
 
 Two cameras are free; Pro unlocks four.

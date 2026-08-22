@@ -4,7 +4,7 @@
 
 Key facts:
 - App Store: https://apps.apple.com/us/app/remote-shutter/id633274861 (iOS, Photography)
-- Remote controls: shutter, video start/stop, lens switching, front/back camera, flash, torch
+- Remote controls: shutter, video start/stop, lens switching, front/back camera, flash, torch, tap to focus, frame rate (24/30/60 fps), resolution (1080p/4K), aspect ratio, HDR, JPEG/HEIF
 - Common uses: multi-angle video from several iPhones with one synced record button (interviews, music, sports, dance), group photos with everyone in the shot, using a spare/old iPhone as a wireless camera (wildlife, home check-ins), overhead or product video rigs monitored from an iPad or Mac, Apple Watch as a trigger
 - Developer: Dario Lencina (Black Fire Apps), https://github.com/security-union/remote-shutter
 

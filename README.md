@@ -30,7 +30,7 @@ Remote Shutter is a free, open-source iOS app that turns any two Apple devices i
 - **Live preview on the remote** — see exactly what the camera sees before you shoot, not a postage-stamp thumbnail.
 - **Photo and video** — take photos or start/stop video recording from the remote.
 - **Multicam** — connect up to four iPhones as cameras, see every angle live in a grid, and fire a synchronized photo or video capture on all of them. Clips auto-collect to the director with alignment metadata so any editor lines them up.
-- **Full camera control** — switch lenses (wide / ultra-wide / telephoto), flip front/back, flash, torch, tap to focus, timer.
+- **Full camera control** — switch lenses (wide / ultra-wide / telephoto), flip front/back, flash, torch, tap to focus, timer; frame rate (24/30/60), resolution (1080p/4K), aspect ratio, HDR and JPEG/HEIF, all set from the remote.
 - **Any pairing** — iPhone ↔ iPhone, iPhone ↔ iPad, iPhone ↔ Mac, iPhone ↔ Apple Watch.
 - **Range** — about 50 ft (15 m) line of sight over peer-to-peer Wi-Fi, or anywhere on the network when both devices share a Wi-Fi network.
 - **Private by design** — no accounts, no cloud, no tracking of photo content.

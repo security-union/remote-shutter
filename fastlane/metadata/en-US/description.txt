@@ -6,6 +6,7 @@ NEW — MULTICAM: UP TO FOUR CAMERAS, ONE DIRECTOR
 - Connect up to four iPhones as cameras and see every angle live in a grid
 - One synced shutter fires photos or video on every camera at the same instant
 - Footage collects automatically to the director, time-aligned for editing
+- Set frame rate, resolution, aspect ratio, HDR and focus for every camera from the director
 - Interviews, music, sports, dance, unboxings — shoot every angle at once
 
 FULL MAC SUPPORT
@@ -21,7 +22,8 @@ FEATURES
 - Switch cameras remotely — front/back on iPhone, any connected camera on Mac
 - Camera flash control
 - Adjustable photo timer
-- Record video remotely
+- Record video remotely — choose 24/30/60 fps, 1080p or 4K, aspect ratio and HDR from the remote
+- Tap to focus on the remote's live preview (Pro)
 - Works with iPhone, iPad, and Mac
 - No internet or Wi-Fi network required — direct device-to-device connection (just keep Wi-Fi and Bluetooth turned on)
 
