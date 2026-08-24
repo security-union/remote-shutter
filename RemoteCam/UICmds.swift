@@ -251,6 +251,16 @@ public class UICmd {
         }
     }
 
+    /// Monitor screen -> session: Cinematic video on/off + aperture.
+    public class SetCinematic: Message, @unchecked Sendable {
+        public let intent: CinematicIntent
+
+        public init(intent: CinematicIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
     public class SetZoomResp: Message, @unchecked Sendable {
         public let zoomFactor: CGFloat?
         public let currentLens: CameraLensType?

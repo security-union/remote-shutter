@@ -84,7 +84,13 @@ final class CameraRig: @unchecked Sendable {
     private let currentCameraModeShared = Locked(RecordingMode.Photo)
     var currentCameraMode: RecordingMode {
         get { currentCameraModeShared.value }
-        set { currentCameraModeShared.value = newValue }
+        set {
+            let leftVideoMode = currentCameraModeShared.value == .Video && newValue != .Video
+            currentCameraModeShared.value = newValue
+            // Cinematic only applies to video: leaving the mode switches the
+            // effect off (the engine is a no-op when it wasn't on).
+            if leftVideoMode { engine.disableCinematicIfActive() }
+        }
     }
 
     // MARK: - Shell seams
@@ -148,6 +154,10 @@ final class CameraRig: @unchecked Sendable {
         // The exposure policy caps a long shutter at the frame duration while
         // a clip is rolling; recording truth lives in the pipeline.
         engine.isRecordingProvider = { [pipeline] in pipeline.isRecording }
+        // Cinematic is a video-recording effect; mode truth lives here.
+        engine.isVideoModeProvider = { [currentCameraModeShared] in
+            currentCameraModeShared.value == .Video
+        }
         // Captures the session ref (not self) so recording acks/responses still
         // reach the actor if the rig deallocates mid-recording.
         pipeline.sendMessage = { [session] msg in
@@ -520,7 +530,15 @@ extension CameraRig: CameraControlling {
     }
 
     func setExposure(_ intent: ExposureIntent) async throws -> ExposureState {
-        try await engine.setExposure(intent)
+        let state = try await engine.setExposure(intent)
+        cameraViewModel.updateExposureReadout(state)
+        return state
+    }
+
+    func setCinematic(_ intent: CinematicIntent) async throws -> CinematicState {
+        let state = try await engine.setCinematic(intent)
+        cameraViewModel.updateCinematicReadout(state)
+        return state
     }
 
     func focusAtPoint(x: Float, y: Float) async throws {

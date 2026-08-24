@@ -760,6 +760,52 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(monitorState, .monitor)
     }
 
+    // MARK: - Cinematic video
+
+    func testSetCinematicHappyPathAcrossTheWire() async {
+        let fakeCamera = await connectCameraAndMonitor(monitorMode: .Video)
+        cameraTransport.sentMessages.removeAll()
+
+        monitorCoordinator.tell(UICmd.SetCinematic(intent: .on(aperture: 2.8)))
+        await drainBothSessions()
+
+        XCTAssertEqual(fakeCamera.cinematicCalls, [.on(aperture: 2.8)])
+        let resp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetCinematicResp }.last
+        XCTAssertEqual(resp?.state?.enabled, true)
+        XCTAssertEqual(resp?.state?.simulatedAperture ?? 0, 2.8)
+
+        monitorCoordinator.tell(UICmd.SetCinematic(intent: .off))
+        await drainBothSessions()
+        XCTAssertEqual(fakeCamera.cinematicCalls.last, .off)
+        let offResp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetCinematicResp }.last
+        XCTAssertEqual(offResp?.state?.enabled, false)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+    }
+
+    /// Mirrors the exposure gate: never send action 34 to a peer that did not
+    /// advertise Cinematic support.
+    func testSetCinematicIsNeverSentToPeerWithoutSupport() async {
+        await connectBothSessions()
+        let fakeCamera = LoopbackFakeCamera()
+        fakeCamera.advertisesCinematicVideo = false
+        fakeCamera.coordinator = cameraCoordinator
+        cameraCoordinator.tell(UICmd.BecomeCamera(sender: nil, ctrl: fakeCamera))
+        await drainBothSessions()
+        await becomeMonitor(mode: .Video)
+        let gate = await monitorCoordinator.peerSupportsCinematicVideoForTesting()
+        XCTAssertFalse(gate)
+        monitorTransport.sentMessages.removeAll()
+
+        monitorCoordinator.tell(UICmd.SetCinematic(intent: .on(aperture: nil)))
+        await drainBothSessions()
+
+        XCTAssertFalse(monitorTransport.sentMessages.contains { $0 is RemoteCmd.SetCinematic },
+                       "SetCinematic must be gated on advertised supports_cinematic_video")
+        XCTAssertTrue(fakeCamera.cinematicCalls.isEmpty)
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
+    }
+
     /// Safety gate mirroring SelectCameraDevice: old peers decode the unknown
     /// FocusAtPoint action as TakePicture, so the monitor must never send it to a
     /// peer whose capabilities did not advertise focus-point support.

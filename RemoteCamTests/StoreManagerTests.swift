@@ -187,12 +187,13 @@ final class StoreManagerTests: XCTestCase {
 
     func testAllProductIDsContainsEveryProduct() {
         let ids = StoreManager.allProductIDs
-        XCTAssertEqual(ids.count, 8)
+        XCTAssertEqual(ids.count, 9)
         XCTAssertTrue(ids.contains(disableAdsPID))
         XCTAssertTrue(ids.contains(enableVideoPID))
         XCTAssertTrue(ids.contains(enableTorchPID))
         XCTAssertTrue(ids.contains(enableVideoOnlyPID))
         XCTAssertTrue(ids.contains(tapToFocusPID))
+        XCTAssertTrue(ids.contains(proControlsPID))
         XCTAssertTrue(ids.contains(maxCamerasPID))
         XCTAssertTrue(ids.contains(proMonthlyPID))
         XCTAssertTrue(ids.contains(proYearlyPID))

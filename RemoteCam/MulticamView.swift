@@ -872,9 +872,10 @@ struct RigTrayPanel: View {
             MonitorTrayTile(item: .help, value: nil,
                             isActive: false, isEnabled: true,
                             action: onOpenHelp)
-        case .frameRate:
+        case .frameRate, .proControls:
             // Not offered by `RigTray.items` — frame rate rides the single
-            // quality tile's intersection cycle.
+            // quality tile's intersection cycle, and pro controls are a 1:1
+            // monitor feature (multicam broadcast is a tracked follow-up).
             EmptyView()
         }
     }

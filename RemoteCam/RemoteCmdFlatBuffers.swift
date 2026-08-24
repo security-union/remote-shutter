@@ -43,6 +43,8 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
     case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
     case let m as RemoteCmd.SetExposureResp: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetCinematic: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetCinematicResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraPreviewModeResp: return m.toFlatBuffer()
     case let m as RemoteCmd.EndSession: return m.toFlatBuffer()
@@ -424,6 +426,7 @@ private func encodeCapabilitiesEnvelope(
     }
     let activeIDOffset = c.activeDeviceID.map { fbb.create(string: $0) } ?? Offset()
     let exposureOffset = encodeExposureState(c.exposure, &fbb)
+    let cinematicOffset = encodeCinematicState(c.cinematic, &fbb)
 
     let capsOffset = RemoteShutter_CameraCapabilities.createCameraCapabilities(
         &fbb,
@@ -435,7 +438,9 @@ private func encodeCapabilitiesEnvelope(
         supportsPreviewMode: c.supportsPreviewMode,
         supportsMulticam: c.supportsMulticam,
         supportsManualExposure: c.supportsManualExposure,
-        exposureOffset: exposureOffset)
+        exposureOffset: exposureOffset,
+        supportsCinematicVideo: c.supportsCinematicVideo,
+        cinematicOffset: cinematicOffset)
 
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
@@ -634,6 +639,36 @@ extension RemoteCmd.SetExposureResp {
             errorOffset: errorOffset,
             exposureOffset: exposureOffset)
         return buildResponse(&fbb, action: .setexposure, response: resp)
+    }
+}
+
+extension RemoteCmd.SetCinematic {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params: Offset
+        switch intent {
+        case .off:
+            params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, cinematicEnabled: false)
+        case let .on(aperture):
+            params = RemoteShutter_CommandParameters.createCommandParameters(
+                &fbb, cinematicEnabled: true, simulatedAperture: aperture ?? 0)
+        }
+        return buildCommand(&fbb, action: .setcinematic, parameters: params)
+    }
+}
+
+extension RemoteCmd.SetCinematicResp {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
+        let cinematicOffset = encodeCinematicState(state, &fbb)
+        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &fbb,
+            action: .setcinematic,
+            success: error == nil,
+            errorOffset: errorOffset,
+            cinematicOffset: cinematicOffset)
+        return buildResponse(&fbb, action: .setcinematic, response: resp)
     }
 }
 
@@ -1219,6 +1254,31 @@ func decodeExposureState(_ fb: RemoteShutter_ExposureState?) -> ExposureState? {
         maxISO: fb.maxIso)
 }
 
+func encodeCinematicState(_ state: CinematicState?, _ fbb: inout FlatBufferBuilder) -> Offset {
+    guard let state else { return Offset() }
+    return RemoteShutter_CinematicState.createCinematicState(
+        &fbb,
+        enabled: state.enabled,
+        simulatedAperture: state.simulatedAperture,
+        minSimulatedAperture: state.minSimulatedAperture,
+        maxSimulatedAperture: state.maxSimulatedAperture,
+        defaultSimulatedAperture: state.defaultSimulatedAperture,
+        apertureLocked: state.apertureLocked,
+        notEnoughLight: state.notEnoughLight)
+}
+
+func decodeCinematicState(_ fb: RemoteShutter_CinematicState?) -> CinematicState? {
+    guard let fb else { return nil }
+    return CinematicState(
+        enabled: fb.enabled,
+        simulatedAperture: fb.simulatedAperture,
+        minSimulatedAperture: fb.minSimulatedAperture,
+        maxSimulatedAperture: fb.maxSimulatedAperture,
+        defaultSimulatedAperture: fb.defaultSimulatedAperture,
+        apertureLocked: fb.apertureLocked,
+        notEnoughLight: fb.notEnoughLight)
+}
+
 // MARK: - SetAspectRatio toFlatBuffer()
 
 extension RemoteCmd.SetAspectRatio {
@@ -1450,6 +1510,13 @@ extension RemoteCmd {
                 return SetExposure(intent: .auto)
             }
 
+        case .setcinematic:
+            if params?.cinematicEnabled == true {
+                let aperture = params?.simulatedAperture ?? 0
+                return SetCinematic(intent: .on(aperture: aperture > 0 ? aperture : nil))
+            }
+            return SetCinematic(intent: .off)
+
         case .setcamerapreviewmode:
             return SetCameraPreviewMode(mode: fromFBPreviewMode(params?.cameraPreviewMode ?? .unknown))
 
@@ -1525,6 +1592,9 @@ extension RemoteCmd {
 
         case .setexposure:
             return SetExposureResp(state: decodeExposureState(resp.exposure), error: nsError)
+
+        case .setcinematic:
+            return SetCinematicResp(state: decodeCinematicState(resp.cinematic), error: nsError)
 
         case .switchlens:
             let state = resp.currentState
@@ -1641,6 +1711,8 @@ extension RemoteCmd {
             previewMode: state.map { fromFBPreviewMode($0.previewMode) } ?? .on,
             supportsManualExposure: caps?.supportsManualExposure ?? false,
             exposure: decodeExposureState(caps?.exposure),
+            supportsCinematicVideo: caps?.supportsCinematicVideo ?? false,
+            cinematic: decodeCinematicState(caps?.cinematic),
             error: error
         )
     }

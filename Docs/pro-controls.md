@@ -148,9 +148,9 @@ own `CMTime` range on the camera — the wire never carries a timescale.
 `RemoteCmd.SetExposure/Resp`, `RemoteCmd.SetCinematic/Resp` in
 `RemoteCmds.swift`; encode/decode in `RemoteCmdFlatBuffers.swift` next to
 `SetZoom`. `CameraCapabilitiesResp` gains the two flags and two state tables.
-`not_enough_light` changes are pushed by the camera on the existing
-`CameraStateReport` channel (action 31) so the monitor hint is live without
-polling.
+`not_enough_light` is sampled from the device's scene-monitoring statuses
+whenever a Cinematic response or capabilities refresh is built — the hint
+updates with the next echo rather than by push.
 
 ## Monitor → camera path (both controls)
 
@@ -228,8 +228,8 @@ applyCinematicIntentLocked()
 - An `AVCaptureMetadataOutput` is added to the session only while Cinematic
   is on (the header requires its `metadataObjectTypes` be set to the Cinematic
   set); nothing else in the app consumes it.
-- KVO on `cinematicVideoCaptureSceneMonitoringStatuses` (main-hopped via the
-  rig) drives `not_enough_light` and the on-camera/monitor hint.
+- `cinematicVideoCaptureSceneMonitoringStatuses` drives `not_enough_light`,
+  sampled when each response is built.
 - Tap-to-focus while Cinematic is on routes to
   `setCinematicVideoTrackingFocus(at: poi, focusMode: .strong)` instead of
   touching `focusMode` (which would throw). The same `FocusPointMapping`

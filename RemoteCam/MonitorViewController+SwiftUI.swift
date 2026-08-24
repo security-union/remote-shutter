@@ -61,6 +61,15 @@ extension MonitorViewController {
             },
             onToggleCameraStandby: { [weak self] in
                 self?.handleToggleCameraStandby()
+            },
+            onExposureChange: { [weak self] intent in
+                self?.session ! UICmd.SetExposure(intent: intent)
+            },
+            onCinematicChange: { [weak self] intent in
+                self?.session ! UICmd.SetCinematic(intent: intent)
+            },
+            isProControlsUnlocked: {
+                StoreManager.shared.hasProControlsFeature()
             }
         )
 

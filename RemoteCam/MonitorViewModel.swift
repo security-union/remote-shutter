@@ -266,6 +266,10 @@ class MonitorViewModel: ObservableObject {
     /// The camera's echoed exposure truth (mode, shutter, ISO, ranges). The
     /// monitor renders only this, never the value it last dragged to.
     @Published var exposure: ExposureState?
+    /// Whether the peer can record Cinematic video (iOS 26+ camera).
+    @Published var supportsCinematicVideo: Bool = false
+    /// The camera's echoed Cinematic truth.
+    @Published var cinematic: CinematicState?
 
     // MARK: - Video Quality Update Methods
     func updateVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) {

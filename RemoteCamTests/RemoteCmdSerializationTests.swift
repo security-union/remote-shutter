@@ -61,6 +61,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
         case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
         case let m as RemoteCmd.SetExposureResp: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetCinematic: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetCinematicResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraPreviewModeResp: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
@@ -410,6 +412,45 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
         XCTAssertFalse(decoded.supportsManualExposure)
         XCTAssertNil(decoded.exposure)
+    }
+
+    // MARK: - 11d. SetCinematic
+
+    private let sampleCinematic = CinematicState(
+        enabled: true, simulatedAperture: 2.8,
+        minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
+        defaultSimulatedAperture: 2.0, apertureLocked: true, notEnoughLight: true)
+
+    func testSetCinematic_roundTrip() {
+        let on: RemoteCmd.SetCinematic = roundTrip(RemoteCmd.SetCinematic(intent: .on(aperture: 2.8)))
+        XCTAssertEqual(on.intent, .on(aperture: 2.8))
+        // aperture nil = "keep current"; 0 on the wire must decode back to nil.
+        let keep: RemoteCmd.SetCinematic = roundTrip(RemoteCmd.SetCinematic(intent: .on(aperture: nil)))
+        XCTAssertEqual(keep.intent, .on(aperture: nil))
+        let off: RemoteCmd.SetCinematic = roundTrip(RemoteCmd.SetCinematic(intent: .off))
+        XCTAssertEqual(off.intent, .off)
+    }
+
+    func testSetCinematicResp_roundTrip() {
+        let decoded: RemoteCmd.SetCinematicResp = roundTrip(RemoteCmd.SetCinematicResp(state: sampleCinematic, error: nil))
+        XCTAssertEqual(decoded.state, sampleCinematic)
+        XCTAssertNil(decoded.error)
+    }
+
+    func testCameraCapabilities_cinematicRoundTrip() {
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsCinematicVideo: true, cinematic: sampleCinematic, error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertTrue(decoded.supportsCinematicVideo)
+        XCTAssertEqual(decoded.cinematic, sampleCinematic)
+        // Absent on legacy peers.
+        let legacy: RemoteCmd.CameraCapabilitiesResp = roundTrip(RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil))
+        XCTAssertFalse(legacy.supportsCinematicVideo)
+        XCTAssertNil(legacy.cinematic)
     }
 
     // MARK: - 12. SetZoomResp

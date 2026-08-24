@@ -35,6 +35,11 @@ struct FeatureFlags {
     /// synced capture. Off until the feature ships (target 9.1.0); while off,
     /// cameras advertise `supports_multicam=false` and the scanner keeps its
     /// single-camera flow.
+    /// Pro controls (issue #206): manual shutter/ISO + Cinematic video from
+    /// the monitor. Gates only the monitor UI; the wire capability is always
+    /// advertised (harmless without a control).
+    static let ENABLE_PRO_CONTROLS = true
+
     static let ENABLE_MULTICAM = true
 
     /// Route a single connected camera to the multicam director too, instead

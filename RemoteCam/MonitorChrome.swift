@@ -73,6 +73,8 @@ enum MonitorTrayItem: Equatable {
     /// Puts the peer camera's *local* preview to sleep. It keeps capturing and
     /// keeps streaming here.
     case cameraStandby
+    /// Manual exposure + Cinematic video (opens the pro panel).
+    case proControls
     case settings
     case help
 }
@@ -87,7 +89,8 @@ enum MonitorTray {
                       supportsHDR: Bool,
                       supportsCameraStandby: Bool,
                       resolutionCount: Int,
-                      frameRateCount: Int) -> [MonitorTrayItem] {
+                      frameRateCount: Int,
+                      showsProControls: Bool = false) -> [MonitorTrayItem] {
         var items: [MonitorTrayItem] = []
 
         // Shorts runs to a fixed duration, so a self-timer has nothing to delay.
@@ -108,6 +111,7 @@ enum MonitorTray {
         }
 
         if supportsCameraStandby { items.append(.cameraStandby) }
+        if showsProControls { items.append(.proControls) }
 
         items.append(.settings)
         items.append(.help)

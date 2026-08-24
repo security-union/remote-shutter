@@ -69,6 +69,23 @@ struct CameraScreenView: View {
                     .overlay(focusReticleOverlay)
             }
 
+            // Pro-controls chip, top edge: the remote is driving exposure or
+            // Cinematic; the person at the camera should see what it's set to.
+            if let readout = viewModel.proReadout {
+                VStack {
+                    Text(readout)
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(.ultraThinMaterial))
+                        .padding(.top, 54)
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+                .transition(.opacity)
+            }
+
             // Animated "recording" badge, top center — visible only in video mode.
             VStack {
                 if viewModel.isRecordingIndicatorVisible {

@@ -128,6 +128,17 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// Recording truth lives in the rig's pipeline; the policy needs it to cap
     /// a long shutter at the frame duration while a clip is rolling.
     var isRecordingProvider: () -> Bool = { false }
+    /// While Manual is active on a virtual multi-lens device the engine swaps
+    /// to the physical constituent (virtual devices refuse `.custom`); this
+    /// remembers the virtual device to restore when exposure returns to Auto.
+    private var manualExposureRestoreDeviceID: String?
+
+    // MARK: - Cinematic Video (iOS 26+)
+    /// The monitor's Cinematic intent; the session is made to match by exactly
+    /// one function, `applyCinematicIntentLocked()`. sessionQueue-confined.
+    private var cinematicIntent: CinematicIntent = .off
+    /// Cinematic is a video-recording effect; mode truth lives in the rig.
+    var isVideoModeProvider: () -> Bool = { false }
 
     // MARK: - Callbacks to the view controller
     /// Forwards a finished photo capture. `(data, nil)` on success, `(nil, error)`
@@ -276,7 +287,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // The AVCaptureDevice outlives this session: leave it in auto so
             // the next session (or the system Camera app) starts clean.
             self.exposureIntent = .auto
+            self.manualExposureRestoreDeviceID = nil
             _ = self.applyExposureIntentLocked()
+            self.cinematicIntent = .off
+            _ = self.applyCinematicIntentLocked()
             if self.captureSession.isRunning {
                 self.captureSession.stopRunning()
             }
@@ -382,6 +396,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
         resetFocusExposureToAutoLocked()   // a stale focus point must not carry across a device change
         _ = applyExposureIntentLocked()    // the new device must match the monitor's exposure intent
+        _ = applyCinematicIntentLocked()   // support flips with the device; re-enable or fall off honestly
         // Swapping away from a dead device must also revive a session that a
         // runtime error stopped — otherwise the new camera never delivers.
         if isExpectedToRun && !captureSession.isRunning {
@@ -1018,6 +1033,20 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         )
     }
 
+    /// Availability bridges for capability gathering (the gather site cannot
+    /// use #available inline in an argument list).
+    private func supportsCinematicVideoLocked() -> Bool {
+        guard #available(iOS 26.0, macCatalyst 26.0, *) else { return false }
+        guard let device = videoDeviceInput?.device else { return false }
+        return cinematicRangeFormatLocked(device) != nil
+    }
+
+    private func currentCinematicStateLocked() -> CinematicState? {
+        guard #available(iOS 26.0, macCatalyst 26.0, *) else { return nil }
+        guard let input = videoDeviceInput, let device = videoDeviceInput?.device else { return nil }
+        return cinematicStateLocked(input: input, device: device)
+    }
+
     // MARK: - Current Camera Capabilities for Toggle Response
     func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
         await onSessionQueue { self.gatherCurrentCameraCapabilitiesLocked() }
@@ -1061,11 +1090,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // release the director UI ships.
             supportsMulticam: FeatureFlags.ENABLE_MULTICAM,
             previewMode: CameraPreviewModeStore().load(),
-            // A property of the ACTIVE device (virtual multi-lens devices and
-            // most Mac cameras refuse .custom), so it is re-advertised on every
-            // capabilities refresh after a swap.
-            supportsManualExposure: currentDevice.isExposureModeSupported(.custom),
+            // A property of the ACTIVE device, re-advertised on every
+            // capabilities refresh after a swap. Virtual devices qualify when
+            // their active physical lens accepts .custom (the engine hops to
+            // it when Manual is engaged).
+            supportsManualExposure: deviceSupportsManualExposureLocked(currentDevice),
             exposure: exposureStateLocked(currentDevice),
+            supportsCinematicVideo: supportsCinematicVideoLocked(),
+            cinematic: currentCinematicStateLocked(),
             error: nil
         )
 
@@ -1140,6 +1172,16 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                                                 videoOrientation: videoOrientation,
                                                 mirrored: device.position == .front)
 
+        // While Cinematic video is on, focusMode is pinned (setting it throws)
+        // and taps become Cinematic tracking focus: lock onto the subject at
+        // the tapped point until it leaves the scene.
+        if #available(iOS 26.0, macCatalyst 26.0, *),
+           videoDeviceInput?.isCinematicVideoCaptureEnabled == true {
+            device.setCinematicVideoTrackingFocus(at: poi, focusMode: .strong)
+            debugLog("🎬 CINEMATIC: tracking focus at \(poi)")
+            return
+        }
+
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
 
@@ -1190,6 +1232,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     func setExposure(_ intent: ExposureIntent) async throws -> ExposureState {
         try await onSessionQueueThrowing {
             self.exposureIntent = intent
+            self.reconcileExposureDeviceLocked()
             guard let state = self.applyExposureIntentLocked() else {
                 throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
             }
@@ -1265,6 +1308,200 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             debugLog("🌗 EXPOSURE: manual \(CMTimeGetSeconds(duration))s ISO \(safeISO) on \(device.localizedName)")
         }
         return exposureStateLocked(device)
+    }
+
+    /// True when Manual exposure is worth offering on this device: it accepts
+    /// `.custom` itself, or it is a virtual device whose active physical lens
+    /// does (the engine swaps to that lens when Manual is engaged).
+    private func deviceSupportsManualExposureLocked(_ device: AVCaptureDevice) -> Bool {
+        if device.isExposureModeSupported(.custom) { return true }
+        return device.isVirtualDevice
+            && device.activePrimaryConstituent?.isExposureModeSupported(.custom) == true
+    }
+
+    /// The ONLY place a manual-exposure lens swap happens: entering Manual on
+    /// a virtual device hops to its active physical lens; returning to Auto
+    /// hops back. Re-apply sites never swap (swapToDeviceLocked calls
+    /// applyExposureIntentLocked, so a swap from there would recurse).
+    private func reconcileExposureDeviceLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard let device = videoDeviceInput?.device else { return }
+        switch exposureIntent {
+        case .manual:
+            guard !device.isExposureModeSupported(.custom),
+                  device.isVirtualDevice,
+                  let physical = device.activePrimaryConstituent,
+                  physical.isExposureModeSupported(.custom) else { return }
+            manualExposureRestoreDeviceID = device.uniqueID
+            debugLog("🌗 EXPOSURE: manual on virtual \(device.localizedName) — hopping to \(physical.localizedName)")
+            _ = try? swapToDeviceLocked(physical, orientation: orientation)
+        case .auto:
+            guard let restoreID = manualExposureRestoreDeviceID else { return }
+            manualExposureRestoreDeviceID = nil
+            let discovered = AVCaptureDevice.DiscoverySession(
+                deviceTypes: getAllDeviceTypes(), mediaType: .video,
+                position: .unspecified).devices
+            guard let virtual = discovered.first(where: { $0.uniqueID == restoreID }) else { return }
+            debugLog("🌗 EXPOSURE: back to auto — restoring \(virtual.localizedName)")
+            _ = try? swapToDeviceLocked(virtual, orientation: orientation)
+        }
+    }
+
+    // MARK: - Cinematic Video (iOS 26+)
+
+    /// Stores the monitor's intent and makes the session match it. Returns the
+    /// camera's Cinematic truth afterwards (the response payload).
+    func setCinematic(_ intent: CinematicIntent) async throws -> CinematicState {
+        try await onSessionQueueThrowing {
+            self.cinematicIntent = intent
+            guard let state = self.applyCinematicIntentLocked() else {
+                throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
+            }
+            return state
+        }
+    }
+
+    /// Rig hook for mode changes: leaving video mode switches the effect off
+    /// (it only applies to recording). Fire-and-forget onto the sessionQueue.
+    func disableCinematicIfActive() {
+        sessionQueue.async {
+            guard case .on = self.cinematicIntent else { return }
+            self.cinematicIntent = .off
+            _ = self.applyCinematicIntentLocked()
+        }
+    }
+
+    /// The ONE place that touches `isCinematicVideoCaptureEnabled` and
+    /// `simulatedAperture`. Returns nil only when there is no device.
+    @discardableResult
+    private func applyCinematicIntentLocked() -> CinematicState? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard let input = videoDeviceInput, let device = videoDeviceInput?.device else { return nil }
+        guard #available(iOS 26.0, macCatalyst 26.0, *) else {
+            cinematicIntent = .off
+            return CinematicState(enabled: false, simulatedAperture: 0,
+                                  minSimulatedAperture: 0, maxSimulatedAperture: 0,
+                                  defaultSimulatedAperture: 0, apertureLocked: false, notEnoughLight: false)
+        }
+
+        let facts = cinematicFactsLocked(input: input, device: device)
+        let plan = CinematicPolicy.resolve(cinematicIntent, facts: facts,
+                                           isRecording: isRecordingProvider(),
+                                           isVideoMode: isVideoModeProvider())
+        switch plan {
+        case .noop:
+            break
+
+        case let .rejected(reason):
+            // The response carries the unchanged truth; the intent must not
+            // outlive a rejection or a later re-apply would spring it back.
+            debugLog("🎬 CINEMATIC: rejected (\(reason))")
+            cinematicIntent = facts.enabled ? .on(aperture: nil) : .off
+
+        case let .enable(aperture):
+            captureSession.beginConfiguration()
+            if !device.activeFormat.isCinematicVideoCaptureSupported,
+               let format = findCinematicFormatLocked(device) {
+                captureSession.sessionPreset = .inputPriority
+                if (try? device.lockForConfiguration()) != nil {
+                    device.activeFormat = format
+                    device.unlockForConfiguration()
+                }
+            }
+            if input.isCinematicVideoCaptureSupported {
+                input.isCinematicVideoCaptureEnabled = true
+            }
+            captureSession.commitConfiguration()
+
+            guard input.isCinematicVideoCaptureEnabled else {
+                debugLog("🎬 CINEMATIC: session refused to enable — reporting off")
+                cinematicIntent = .off
+                break
+            }
+            // Cinematic narrows the legal frame rates; clamp into the range's
+            // OWN CMTimes (never rebuild from integers).
+            if let range = device.activeFormat.videoFrameRateRangeForCinematicVideo,
+               (try? device.lockForConfiguration()) != nil {
+                var duration = device.activeVideoMaxFrameDuration
+                if CMTimeCompare(duration, range.minFrameDuration) < 0 { duration = range.minFrameDuration }
+                if CMTimeCompare(duration, range.maxFrameDuration) > 0 { duration = range.maxFrameDuration }
+                device.activeVideoMaxFrameDuration = duration
+                device.activeVideoMinFrameDuration = duration
+                // Zoom is narrowed too.
+                let clampedZoom = max(device.activeFormat.videoMinZoomFactorForCinematicVideo,
+                                      min(device.videoZoomFactor, device.activeFormat.videoMaxZoomFactorForCinematicVideo))
+                device.videoZoomFactor = clampedZoom
+                currentZoomFactor = clampedZoom
+                device.unlockForConfiguration()
+            }
+            if let aperture, device.activeFormat.minSimulatedAperture > 0 {
+                input.simulatedAperture = aperture
+            }
+            debugLog("🎬 CINEMATIC: enabled f/\(input.simulatedAperture) on \(device.localizedName)")
+
+        case let .apertureOnly(aperture):
+            if device.activeFormat.minSimulatedAperture > 0 {
+                input.simulatedAperture = aperture
+            }
+
+        case .disable:
+            captureSession.beginConfiguration()
+            input.isCinematicVideoCaptureEnabled = false
+            captureSession.commitConfiguration()
+            // Restore the format/frame rate the quality setting chose (this
+            // also re-applies zoom, torch and the exposure intent).
+            _ = setVideoQualityLocked(resolution: currentVideoResolution,
+                                      frameRate: currentVideoFrameRate,
+                                      isRecording: false)
+            debugLog("🎬 CINEMATIC: disabled")
+        }
+        return cinematicStateLocked(input: input, device: device)
+    }
+
+    @available(iOS 26.0, macCatalyst 26.0, *)
+    private func cinematicFactsLocked(input: AVCaptureDeviceInput, device: AVCaptureDevice) -> CinematicFacts {
+        let format = cinematicRangeFormatLocked(device)
+        return CinematicFacts(
+            supported: format != nil,
+            enabled: input.isCinematicVideoCaptureEnabled,
+            minAperture: format?.minSimulatedAperture ?? 0,
+            maxAperture: format?.maxSimulatedAperture ?? 0,
+            defaultAperture: format?.defaultSimulatedAperture ?? 0,
+            currentAperture: input.simulatedAperture)
+    }
+
+    @available(iOS 26.0, macCatalyst 26.0, *)
+    private func cinematicStateLocked(input: AVCaptureDeviceInput, device: AVCaptureDevice) -> CinematicState {
+        let facts = cinematicFactsLocked(input: input, device: device)
+        return CinematicState(
+            enabled: facts.enabled,
+            simulatedAperture: facts.currentAperture,
+            minSimulatedAperture: facts.minAperture,
+            maxSimulatedAperture: facts.maxAperture,
+            defaultSimulatedAperture: facts.defaultAperture,
+            apertureLocked: isRecordingProvider(),
+            notEnoughLight: device.cinematicVideoCaptureSceneMonitoringStatuses.contains(.notEnoughLight))
+    }
+
+    /// The format whose aperture range the truth is reported from: the active
+    /// format when it can do Cinematic, else the best candidate a switch would
+    /// land on. nil = this device cannot do Cinematic at all.
+    @available(iOS 26.0, macCatalyst 26.0, *)
+    private func cinematicRangeFormatLocked(_ device: AVCaptureDevice) -> AVCaptureDevice.Format? {
+        if device.activeFormat.isCinematicVideoCaptureSupported { return device.activeFormat }
+        return findCinematicFormatLocked(device)
+    }
+
+    /// Prefers a Cinematic-capable format at the current resolution; falls back
+    /// to the first Cinematic format of any size.
+    @available(iOS 26.0, macCatalyst 26.0, *)
+    private func findCinematicFormatLocked(_ device: AVCaptureDevice) -> AVCaptureDevice.Format? {
+        let cinematic = device.formats.filter { $0.isCinematicVideoCaptureSupported }
+        let target = currentVideoResolution.dimensions
+        return cinematic.first(where: {
+            let dims = CMVideoFormatDescriptionGetDimensions($0.formatDescription)
+            return dims.width == target.width && dims.height == target.height
+        }) ?? cinematic.first
     }
 
     // MARK: - Enhanced Zoom Control Methods
@@ -1584,6 +1821,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
         applyDesiredTorchLocked()   // changing activeFormat/preset also resets the torch
         _ = applyExposureIntentLocked()   // ranges and the frame-rate cap changed with the format
+        _ = applyCinematicIntentLocked()  // a format change silently reverts Cinematic; re-assert the intent
 
         currentVideoResolution = resolution
         currentVideoFrameRate = appliedFrameRate

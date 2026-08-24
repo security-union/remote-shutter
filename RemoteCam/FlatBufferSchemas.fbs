@@ -68,11 +68,16 @@ enum CommandAction : byte {
                                // state_recording_phase, elapsed ticks).
     RequestCameraStateReport = 32, // monitor/director -> camera: re-push the
                                // current CameraStateReport (e.g. on connection).
-    SetExposure = 33           // monitor -> camera: auto / manual (shutter + ISO).
+    SetExposure = 33,          // monitor -> camera: auto / manual (shutter + ISO).
                                // Payload in CommandParameters (exposure_*); the
                                // camera answers with a CameraStateResponse carrying
                                // ExposureState. Only sent to peers advertising
                                // supports_manual_exposure.
+    SetCinematic = 34          // monitor -> camera: Cinematic video on/off + simulated
+                               // aperture (iOS 26+). Payload in CommandParameters
+                               // (cinematic_*); answered with a CameraStateResponse
+                               // carrying CinematicState. Only sent to peers
+                               // advertising supports_cinematic_video.
 }
 
 // Auto vs. manual exposure. Unknown = legacy peer / field absent.
@@ -239,6 +244,9 @@ table CommandParameters {
     exposure_mode: ExposureMode;
     exposure_duration_seconds: double;
     exposure_iso: float;
+    // SetCinematic payload. Aperture 0 = keep the camera's current value.
+    cinematic_enabled: bool;
+    simulated_aperture: float;
 }
 
 // MARK: - Command Structure
@@ -261,6 +269,20 @@ table ExposureState {
     max_duration_seconds: double;
     min_iso: float;
     max_iso: float;
+}
+
+// The camera's Cinematic-video truth: whether the effect is on, the applied
+// simulated aperture and the active format's range (0 = aperture not
+// adjustable), whether the aperture is locked (recording in progress — Apple
+// rejects mid-take changes), and the scene-monitoring "too dark" hint.
+table CinematicState {
+    enabled: bool;
+    simulated_aperture: float;
+    min_simulated_aperture: float;
+    max_simulated_aperture: float;
+    default_simulated_aperture: float;
+    aperture_locked: bool;
+    not_enough_light: bool;
 }
 
 table ZoomRange {
@@ -361,6 +383,10 @@ table CameraCapabilities {
     // SetExposure to such a peer and shows no exposure control.
     supports_manual_exposure: bool;
     exposure: ExposureState;
+    // False/absent = the active device/OS cannot record Cinematic video; a
+    // monitor must not send SetCinematic and shows no Cinematic control.
+    supports_cinematic_video: bool;
+    cinematic: CinematicState;
 }
 
 // MARK: - Response Structure
@@ -381,6 +407,7 @@ table CameraStateResponse {
     clock_sync_camera_clock_ms: uint64; // ClockSyncPing response: camera clock at receipt
     capture_id_echo: string;          // ScheduledCapture ack: the accepted capture id
     exposure: ExposureState;          // SetExposure response: applied values + ranges
+    cinematic: CinematicState;        // SetCinematic response: applied truth + range
 }
 
 // MARK: - Frame Data

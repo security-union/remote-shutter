@@ -183,6 +183,7 @@
 		CAFEBABE0099000000000002 /* HEVCFrameEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */; };
 		CAFEBABE00F0000000000002 /* FocusPointMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */; };
 		E0E0206A0000000000000004 /* ExposurePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206A0000000000000003 /* ExposurePolicyTests.swift */; };
+		E0E0206D0000000000000002 /* CinematicPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206D0000000000000001 /* CinematicPolicyTests.swift */; };
 		CAFEBABE0121000000000002 /* MonitorChromeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0121000000000001 /* MonitorChromeTests.swift */; };
 		CAFEBABE0100000000000002 /* PeerCompatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0100000000000001 /* PeerCompatibility.swift */; };
 		CB5F78DFB9D567955BC863AF /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99FC5340BB98B2BD307FFA1A /* SoundManager.swift */; };
@@ -203,6 +204,8 @@
 		FADEC0DE0002000000000002 /* PeerLinkStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADEC0DE0002000000000001 /* PeerLinkStatus.swift */; };
 		FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */; };
 		E0E0206A0000000000000002 /* ExposurePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206A0000000000000001 /* ExposurePolicy.swift */; };
+		E0E0206B0000000000000002 /* CinematicPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206B0000000000000001 /* CinematicPolicy.swift */; };
+		E0E0206C0000000000000002 /* ProControlsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206C0000000000000001 /* ProControlsPanel.swift */; };
 		CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0120000000000002 /* MonitorChrome.swift */; };
 		CAFEBABE0177000000000001 /* SessionDebugConsole.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0177000000000002 /* SessionDebugConsole.swift */; };
 		CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */; };
@@ -452,6 +455,7 @@
 		CAFEBABE0099000000000001 /* HEVCFrameEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEVCFrameEncoder.swift; sourceTree = "<group>"; };
 		CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusPointMappingTests.swift; sourceTree = "<group>"; };
 		E0E0206A0000000000000003 /* ExposurePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposurePolicyTests.swift; sourceTree = "<group>"; };
+		E0E0206D0000000000000001 /* CinematicPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CinematicPolicyTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0121000000000001 /* MonitorChromeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorChromeTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0100000000000001 /* PeerCompatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerCompatibility.swift; sourceTree = "<group>"; };
 		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
@@ -467,6 +471,8 @@
 		FADEC0DE0002000000000001 /* PeerLinkStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerLinkStatus.swift; sourceTree = "<group>"; };
 		FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FocusPointMapping.swift; sourceTree = "<group>"; };
 		E0E0206A0000000000000001 /* ExposurePolicy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExposurePolicy.swift; sourceTree = "<group>"; };
+		E0E0206B0000000000000001 /* CinematicPolicy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CinematicPolicy.swift; sourceTree = "<group>"; };
+		E0E0206C0000000000000001 /* ProControlsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProControlsPanel.swift; sourceTree = "<group>"; };
 		CAFEBABE0120000000000002 /* MonitorChrome.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MonitorChrome.swift; sourceTree = "<group>"; };
 		CAFEBABE0177000000000002 /* SessionDebugConsole.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionDebugConsole.swift; sourceTree = "<group>"; };
 		CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaptureSyncMetadata.swift; sourceTree = "<group>"; };
@@ -637,6 +643,7 @@
 				CAFEBABE0001000000000001 /* CropRectTests.swift */,
 				CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */,
 				E0E0206A0000000000000003 /* ExposurePolicyTests.swift */,
+				E0E0206D0000000000000001 /* CinematicPolicyTests.swift */,
 				CAFEBABE0121000000000001 /* MonitorChromeTests.swift */,
 				CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */,
 				CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */,
@@ -737,6 +744,8 @@
 				0684A2D01BE65A9800F0B238 /* OrientationUtils.swift */,
 				FC0CF5A201FE65A9800F0B238 /* FocusPointMapping.swift */,
 				E0E0206A0000000000000001 /* ExposurePolicy.swift */,
+				E0E0206B0000000000000001 /* CinematicPolicy.swift */,
+				E0E0206C0000000000000001 /* ProControlsPanel.swift */,
 				CAFEBABE0120000000000002 /* MonitorChrome.swift */,
 				CAFEBABE0177000000000002 /* SessionDebugConsole.swift */,
 				CAFEBABE0130000000000002 /* CaptureSyncMetadata.swift */,
@@ -1245,6 +1254,8 @@
 				0684A2D11BE65A9800F0B238 /* OrientationUtils.swift in Sources */,
 				FC0CF5A101FE65A9800F0B238 /* FocusPointMapping.swift in Sources */,
 				E0E0206A0000000000000002 /* ExposurePolicy.swift in Sources */,
+				E0E0206B0000000000000002 /* CinematicPolicy.swift in Sources */,
+				E0E0206C0000000000000002 /* ProControlsPanel.swift in Sources */,
 				CAFEBABE0120000000000001 /* MonitorChrome.swift in Sources */,
 				CAFEBABE0177000000000001 /* SessionDebugConsole.swift in Sources */,
 				CAFEBABE0130000000000001 /* CaptureSyncMetadata.swift in Sources */,
@@ -1332,6 +1343,7 @@
 				CAFEBABE0001000000000002 /* CropRectTests.swift in Sources */,
 				CAFEBABE00F0000000000002 /* FocusPointMappingTests.swift in Sources */,
 				E0E0206A0000000000000004 /* ExposurePolicyTests.swift in Sources */,
+				E0E0206D0000000000000002 /* CinematicPolicyTests.swift in Sources */,
 				CAFEBABE0121000000000002 /* MonitorChromeTests.swift in Sources */,
 				CAFEBABE0131000000000002 /* CaptureSyncMetadataTests.swift in Sources */,
 				CAFEBABE0133000000000002 /* ClockOffsetEstimatorTests.swift in Sources */,

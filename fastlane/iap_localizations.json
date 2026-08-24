@@ -311,6 +311,68 @@
         "description": "Коснитесь превью для фокуса."
       }
     },
+    "10": {
+      "en-US": {
+        "name": "Pro Camera Controls",
+        "description": "Manual shutter, ISO & Cinematic mode."
+      },
+      "da": {
+        "name": "Pro-kamerastyring",
+        "description": "Manuel lukker, ISO og Cinematic."
+      },
+      "de-DE": {
+        "name": "Profi-Kamerasteuerung",
+        "description": "Manuelle Belichtung, ISO & Cinematic."
+      },
+      "es-MX": {
+        "name": "Controles Pro de cámara",
+        "description": "Obturador manual, ISO y modo Cinemático."
+      },
+      "fr-FR": {
+        "name": "Contrôles Pro",
+        "description": "Obturateur manuel, ISO et mode Cinématique."
+      },
+      "hi": {
+        "name": "प्रो कैमरा नियंत्रण",
+        "description": "मैनुअल शटर, ISO और सिनेमैटिक मोड।"
+      },
+      "it": {
+        "name": "Controlli Pro",
+        "description": "Otturatore manuale, ISO e modo Cinema."
+      },
+      "ja": {
+        "name": "プロカメラコントロール",
+        "description": "手動シャッター・ISO・シネマティック。"
+      },
+      "ko": {
+        "name": "프로 카메라 제어",
+        "description": "수동 셔터, ISO 및 시네마틱 모드."
+      },
+      "ms": {
+        "name": "Kawalan Kamera Pro",
+        "description": "Pengatup manual, ISO & mod Sinematik."
+      },
+      "pt-BR": {
+        "name": "Controles Pro",
+        "description": "Obturador manual, ISO e modo Cinema."
+      },
+      "ru": {
+        "name": "Проф. управление камерой",
+        "description": "Ручная выдержка, ISO и режим Синематик."
+      },
+      "tr": {
+        "name": "Pro Kamera Kontrolleri",
+        "description": "Manuel enstantane, ISO ve Sinematik mod."
+      },
+      "vi": {
+        "name": "Điều khiển máy ảnh Pro",
+        "description": "Màn trập thủ công, ISO và chế độ Điện ảnh."
+      },
+      "zh-Hans": {
+        "name": "专业相机控制",
+        "description": "手动快门、ISO 与电影效果模式。"
+      }
+    },
     "max_cameras": {
       "en-US": {
         "name": "4-Camera Multicam",

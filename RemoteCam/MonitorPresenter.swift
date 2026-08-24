@@ -108,6 +108,11 @@ public final class MonitorPresenter {
         onMain { $0.viewModel.exposure = state }
     }
 
+    func updateCinematic(_ state: CinematicState?) {
+        guard let state else { return }
+        onMain { $0.viewModel.cinematic = state }
+    }
+
     func updateLens(_ lensType: CameraLensType?,
                     availableLenses: [CameraLensType]?,
                     currentZoom: CGFloat?,
@@ -135,6 +140,8 @@ public final class MonitorPresenter {
             display.viewModel.supportsCameraStandby = capabilities.supportsPreviewMode
             display.viewModel.supportsManualExposure = capabilities.supportsManualExposure
             display.viewModel.exposure = capabilities.exposure
+            display.viewModel.supportsCinematicVideo = capabilities.supportsCinematicVideo
+            display.viewModel.cinematic = capabilities.cinematic
 
             guard let cameraInfo = capabilities.getCurrentCameraInfo() else { return }
             // Update lens controls in view model

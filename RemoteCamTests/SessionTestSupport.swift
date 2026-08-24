@@ -124,6 +124,9 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     var focusCalls: [CGPoint] = []
     var exposureCalls: [ExposureIntent] = []
     var advertisesManualExposure = true
+    var cinematicCalls: [CinematicIntent] = []
+    var advertisesCinematicVideo = true
+    var cinematicEnabled = false
     var lensSwitches: [CameraLensType] = []
     var torchToggles = 0
     var chimes: [Int] = []
@@ -171,6 +174,21 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
         if let errorToThrow { throw errorToThrow }
         focusCalls.append(CGPoint(x: CGFloat(x), y: CGFloat(y)))
     }
+    /// Echoes the intent like the engine (fixed phone-like aperture range).
+    func setCinematic(_ intent: CinematicIntent) async throws -> CinematicState {
+        if let errorToThrow { throw errorToThrow }
+        cinematicCalls.append(intent)
+        switch intent {
+        case .off: cinematicEnabled = false
+        case .on: cinematicEnabled = true
+        }
+        var aperture: Float = 2.0
+        if case let .on(requested) = intent, let requested { aperture = requested }
+        return CinematicState(enabled: cinematicEnabled, simulatedAperture: aperture,
+                              minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
+                              defaultSimulatedAperture: 2.0, apertureLocked: false, notEnoughLight: false)
+    }
+
     /// Echoes the intent clamped into a fixed phone-like range, like the engine.
     func setExposure(_ intent: ExposureIntent) async throws -> ExposureState {
         if let errorToThrow { throw errorToThrow }
@@ -318,6 +336,7 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             supportsPreviewMode: advertisesPreviewMode,
             previewMode: storedPreviewMode,
             supportsManualExposure: advertisesManualExposure,
+            supportsCinematicVideo: advertisesCinematicVideo,
             error: nil)
     }
 

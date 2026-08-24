@@ -249,6 +249,13 @@ public actor SessionCoordinator {
     /// Test support.
     func peerSupportsManualExposureForTesting() -> Bool { peerSupportsManualExposure }
 
+    /// Whether the connected camera peer advertised Cinematic-video support —
+    /// the feature gate for `RemoteCmd.SetCinematic`.
+    private var peerSupportsCinematicVideo = false
+
+    /// Test support.
+    func peerSupportsCinematicVideoForTesting() -> Bool { peerSupportsCinematicVideo }
+
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
     private var monitorReceivedVP9Frame = false
@@ -801,6 +808,7 @@ public actor SessionCoordinator {
         peerSupportsFocusPoint = false
         peerSupportsPreviewMode = false
         peerSupportsManualExposure = false
+        peerSupportsCinematicVideo = false
         monitorReceivedVP9Frame = false
         // The session is being torn down for good (deliberate leave, EndSession,
         // or a dead link) — a fresh session starts single-cam until a director
@@ -1309,6 +1317,9 @@ public actor SessionCoordinator {
         case let exposure as RemoteCmd.SetExposure:
             await handleSetExposure(exposure, ctrl: ctrl)
 
+        case let cinematic as RemoteCmd.SetCinematic:
+            await handleSetCinematic(cinematic, ctrl: ctrl)
+
         case let lens as RemoteCmd.SwitchLens:
             do {
                 let (lensType, available, zoom, range) = try await ctrl.switchLens(to: lens.lensType)
@@ -1402,6 +1413,7 @@ public actor SessionCoordinator {
         peerSupportsFocusPoint = capabilities.supportsFocusPoint
         peerSupportsPreviewMode = capabilities.supportsPreviewMode
         peerSupportsManualExposure = capabilities.supportsManualExposure
+        peerSupportsCinematicVideo = capabilities.supportsCinematicVideo
         monitor?.updateCapabilities(capabilities)
         monitor?.updatePreviewMode(capabilities.previewMode)
     }
@@ -1414,6 +1426,16 @@ public actor SessionCoordinator {
             await sendOrGoToScanning(RemoteCmd.SetExposureResp(state: state, error: nil))
         } catch {
             await sendOrGoToScanning(RemoteCmd.SetExposureResp(state: nil, error: error as NSError))
+        }
+    }
+
+    /// Camera side of `SetCinematic`, mirroring `handleSetExposure`.
+    private func handleSetCinematic(_ cmd: RemoteCmd.SetCinematic, ctrl: CameraControlling) async {
+        do {
+            let state = try await ctrl.setCinematic(cmd.intent)
+            await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: state, error: nil))
+        } catch {
+            await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: nil, error: error as NSError))
         }
     }
 
@@ -1713,6 +1735,10 @@ public actor SessionCoordinator {
             // Allowed while recording: the policy caps the shutter at the frame
             // duration so the clip's frame rate holds.
             await handleSetExposure(exposure, ctrl: ctrl)
+
+        case let cinematic as RemoteCmd.SetCinematic:
+            // The policy rejects mid-take changes; the response says so.
+            await handleSetCinematic(cinematic, ctrl: ctrl)
 
         case let lens as RemoteCmd.SwitchLens:
             do {
@@ -2432,6 +2458,16 @@ public actor SessionCoordinator {
         case let exposureResp as RemoteCmd.SetExposureResp:
             monitor?.updateExposure(exposureResp.state)
 
+        case let cinematic as UICmd.SetCinematic:
+            guard peerSupportsCinematicVideo else {
+                debugLog("SetCinematic dropped: peer did not advertise Cinematic support")
+                break
+            }
+            sendMessage(RemoteCmd.SetCinematic(intent: cinematic.intent))
+
+        case let cinematicResp as RemoteCmd.SetCinematicResp:
+            monitor?.updateCinematic(cinematicResp.state)
+
         case let preview as UICmd.SetCameraPreviewMode:
             // Wire-safety gate mirroring FocusAtPoint: never send action 24 to a
             // peer that predates it (it would misread the unknown action).
@@ -2789,6 +2825,16 @@ public actor SessionCoordinator {
 
         case let exposureResp as RemoteCmd.SetExposureResp:
             monitor?.updateExposure(exposureResp.state)
+
+        case let cinematic as UICmd.SetCinematic:
+            guard peerSupportsCinematicVideo else {
+                debugLog("SetCinematic dropped: peer did not advertise Cinematic support")
+                break
+            }
+            sendMessage(RemoteCmd.SetCinematic(intent: cinematic.intent))
+
+        case let cinematicResp as RemoteCmd.SetCinematicResp:
+            monitor?.updateCinematic(cinematicResp.state)
 
         case let preview as UICmd.SetCameraPreviewMode:
             guard peerSupportsPreviewMode else {

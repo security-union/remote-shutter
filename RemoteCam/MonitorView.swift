@@ -36,8 +36,15 @@ struct MonitorView: View {
     let onFocusTap: (CGPoint) -> Void
     /// Toggles the connected camera's local-preview mode (on ⇄ standby).
     let onToggleCameraStandby: () -> Void
+    /// Pro controls (defaulted so previews/snapshots need not wire them).
+    var onExposureChange: (ExposureIntent) -> Void = { _ in }
+    var onCinematicChange: (CinematicIntent) -> Void = { _ in }
+    /// The purchase gate, checked when opening the pro panel; a locked user is
+    /// routed to settings/paywall by `onSettingsTapped` (mirrors tap-to-focus).
+    var isProControlsUnlocked: () -> Bool = { true }
 
     @State private var isTrayOpen = false
+    @State private var isProPanelOpen = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -51,6 +58,10 @@ struct MonitorView: View {
 
                 if isTrayOpen {
                     trayLayer
+                }
+
+                if isProPanelOpen {
+                    proPanelLayer
                 }
 
                 if viewModel.isVideoTransferring {
@@ -363,7 +374,8 @@ struct MonitorView: View {
                                          supportsHDR: viewModel.supportsHDR,
                                          supportsCameraStandby: viewModel.supportsCameraStandby,
                                          resolutionCount: viewModel.supportedResolutions.count,
-                                         frameRateCount: availableFrameRates.count),
+                                         frameRateCount: availableFrameRates.count,
+                                         showsProControls: showsProControls),
                 timerValue: Int(viewModel.timerSliderValue),
                 aspectRatio: viewModel.currentAspectRatio,
                 resolution: viewModel.currentVideoResolution,
@@ -375,6 +387,32 @@ struct MonitorView: View {
                 isTimerEnabled: viewModel.isTimerSliderEnabled,
                 isSettingsEnabled: viewModel.isSettingsEnabled,
                 onTap: handleTrayTap)
+                .transition(.move(edge: .bottom))
+        }
+    }
+
+    /// The PRO tile exists only when the connected camera offers something for
+    /// it to control (manual exposure anywhere; Cinematic in video mode).
+    private var showsProControls: Bool {
+        guard FeatureFlags.ENABLE_PRO_CONTROLS else { return false }
+        let videoish = viewModel.uiState == .videoMode || viewModel.uiState == .videoRecording
+        return viewModel.supportsManualExposure
+            || (videoish && viewModel.supportsCinematicVideo)
+    }
+
+    private var proPanelLayer: some View {
+        ZStack(alignment: .bottom) {
+            Color.black.opacity(0.02)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                        isProPanelOpen = false
+                    }
+                }
+
+            ProControlsPanel(viewModel: viewModel,
+                             onExposureChange: onExposureChange,
+                             onCinematicChange: onCinematicChange)
                 .transition(.move(edge: .bottom))
         }
     }
@@ -416,6 +454,16 @@ struct MonitorView: View {
             // Stays open: the glyph reflects the camera's confirmed mode, so
             // it is worth watching settle.
             onToggleCameraStandby()
+
+        case .proControls:
+            toggleTray()
+            if isProControlsUnlocked() {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                    isProPanelOpen = true
+                }
+            } else {
+                onSettingsTapped()   // paywall, mirroring tap-to-focus
+            }
 
         case .settings:
             toggleTray()
@@ -703,7 +751,7 @@ struct MonitorTrayPanel: View {
         case .frameRate: return frameRate.displayName
         case .format: return photoFormat.displayName
         // Glyph-only: state is carried by the symbol.
-        case .hdr, .cameraStandby, .settings, .help: return nil
+        case .hdr, .cameraStandby, .proControls, .settings, .help: return nil
         }
     }
 
@@ -722,6 +770,8 @@ struct MonitorTrayPanel: View {
         case .aspect, .resolution, .frameRate, .format, .hdr: return isQualityEnabled
         // Not a capture setting: usable mid-recording.
         case .cameraStandby: return true
+        // The panel itself explains what recording locks (aperture).
+        case .proControls: return true
         case .settings: return isSettingsEnabled
         case .help: return true
         }
@@ -781,6 +831,7 @@ struct MonitorTrayTile: View {
         case .format: return "doc"
         case .hdr: return "camera.filters"
         case .cameraStandby: return isActive ? "moon.zzz.fill" : "moon.zzz"
+        case .proControls: return "camera.aperture"
         case .settings: return "gearshape.fill"
         case .help: return "questionmark"
         }
@@ -795,6 +846,7 @@ struct MonitorTrayTile: View {
         case .format: return NSLocalizedString("FORMAT", comment: "tray tile")
         case .hdr: return NSLocalizedString("HDR", comment: "tray tile")
         case .cameraStandby: return NSLocalizedString("STANDBY", comment: "tray tile")
+        case .proControls: return NSLocalizedString("PRO", comment: "tray tile")
         case .settings: return NSLocalizedString("SETTINGS", comment: "tray tile")
         case .help: return NSLocalizedString("HELP", comment: "tray tile")
         }

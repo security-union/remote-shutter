@@ -437,6 +437,30 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Monitor -> camera: Cinematic video on/off + simulated aperture (iOS
+    /// 26+). Answered with `SetCinematicResp`. Only sent to peers that
+    /// advertised `CameraCapabilitiesResp.supportsCinematicVideo`.
+    public class SetCinematic: Message, @unchecked Sendable {
+        public let intent: CinematicIntent
+
+        public init(intent: CinematicIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
+    /// Camera -> monitor: the Cinematic truth after a `SetCinematic`.
+    public class SetCinematicResp: Message, @unchecked Sendable {
+        public let state: CinematicState?
+        public let error: Error?
+
+        public init(state: CinematicState?, error: Error?) {
+            self.state = state
+            self.error = error
+            super.init(sender: nil)
+        }
+    }
+
     /// "I am leaving on purpose." Sent by whichever side ends the session
     /// deliberately, so the peer stops reconnecting instead of chasing a
     /// session nobody is coming back to. Fire-and-forget: an unplanned
@@ -608,6 +632,11 @@ public class RemoteCmd: Message, @unchecked Sendable {
         public let supportsManualExposure: Bool
         /// Current exposure truth + ranges, so the panel opens populated.
         public let exposure: ExposureState?
+        /// True when the peer's active device can record Cinematic video
+        /// (iOS 26+). Gates `RemoteCmd.SetCinematic` and the monitor control.
+        public let supportsCinematicVideo: Bool
+        /// Current Cinematic truth + aperture range.
+        public let cinematic: CinematicState?
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
@@ -625,6 +654,8 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    previewMode: CameraPreviewMode = .on,
                    supportsManualExposure: Bool = false,
                    exposure: ExposureState? = nil,
+                   supportsCinematicVideo: Bool = false,
+                   cinematic: CinematicState? = nil,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
@@ -643,6 +674,8 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.previewMode = previewMode
             self.supportsManualExposure = supportsManualExposure
             self.exposure = exposure
+            self.supportsCinematicVideo = supportsCinematicVideo
+            self.cinematic = cinematic
             self.error = error
             super.init(sender: nil)
         }
