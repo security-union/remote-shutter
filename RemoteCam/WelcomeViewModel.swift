@@ -110,8 +110,6 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
                         isPurchased: store.hasVideoRecordingFeature(), icon: "video.fill", tint: "red"),
             UpgradeItem(id: tapToFocusPID, title: "", price: "",
                         isPurchased: store.hasTapToFocusFeature(), icon: "camera.metering.spot", tint: "green"),
-            UpgradeItem(id: proControlsPID, title: "", price: "",
-                        isPurchased: store.hasProControlsFeature(), icon: "camera.aperture", tint: "indigo"),
         ])
         if FeatureFlags.ENABLE_MULTICAM {
             items.append(UpgradeItem(id: maxCamerasPID, title: "", price: "",
@@ -147,8 +145,6 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
                 upgrades[i].isPurchased = store.hasVideoRecordingFeature()
             case tapToFocusPID:
                 upgrades[i].isPurchased = store.hasTapToFocusFeature()
-            case proControlsPID:
-                upgrades[i].isPurchased = store.hasProControlsFeature()
             case maxCamerasPID:
                 upgrades[i].isPurchased = store.hasMaxCamerasFeature()
             default:

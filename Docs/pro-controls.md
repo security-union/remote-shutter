@@ -18,8 +18,7 @@ usable by a person standing across the room from the phone.
 > (`supports_manual_exposure`, `supports_cinematic_video`), so a 10.0.x camera
 > pairs exactly as before and **a button only appears when the connected camera
 > offers that feature**. The UI ships behind
-> `FeatureFlags.ENABLE_PRO_CONTROLS`; the user-facing unlock mirrors
-> tap-to-focus (`StoreManager.hasProControlsFeature()`).
+> `FeatureFlags.ENABLE_PRO_CONTROLS` and is free for every user — no IAP.
 
 ## What Apple actually lets us do
 
@@ -154,10 +153,9 @@ updates with the next echo rather than by push.
 
 ## Monitor → camera path (both controls)
 
-1. **Panel** (`ProControlsPanel` inside `MonitorChrome`). Dragging a dial emits
-   `UICmd.SetExposure` / `UICmd.SetCinematic` through the same 20 Hz
-   trailing-edge throttle `handleZoomChange` uses. Locked users are routed to
-   the paywall before anything is sent (mirrors `handleFocusTap`).
+1. **Panel** (`ProControlsPanel`, opened from the tray's PRO tile). Dial
+   detents emit `UICmd.SetExposure` / `UICmd.SetCinematic` — discrete stop
+   changes, so no throttle is needed. No purchase gate: the feature is free.
 2. **Coordinator send gate** in `.monitor` (photo and video-mode handlers):
    `guard peerSupportsManualExposure` / `guard peerSupportsCinematicVideo`
    else drop → `sendMessage(...)`. No new `SessionState`: like zoom, the
@@ -308,17 +306,9 @@ follow-up.
 
 ## Monetization
 
-One unlock for both controls — "Pro Controls" — mirroring tap-to-focus:
-product ID `"10"`, `PurchaseKey.proControls`,
-`StoreManager.hasProControlsFeature()` (`hasFullAccess() || purchased`),
-`.proControlsAcquired` notification, a `PurchaseItem` in `SettingsViewModel`
-and `WelcomeViewModel`, localized IAP strings in
-`fastlane/iap_localizations.json` (name ≤ 30, description ≤ 45 chars, 15
-locales). The ASC product is created by hand.
-
-The wire-level gate and the purchase gate stay separate and additive: the
-capability gate protects old peers and hides buttons the camera cannot honor;
-the purchase gate protects revenue.
+None — pro controls are included for every user. The only gate is the
+capability gate: it protects old peers and hides controls the connected
+camera cannot honor.
 
 ## Design rules
 

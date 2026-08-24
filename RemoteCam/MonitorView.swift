@@ -37,11 +37,9 @@ struct MonitorView: View {
     /// Toggles the connected camera's local-preview mode (on ⇄ standby).
     let onToggleCameraStandby: () -> Void
     /// Pro controls (defaulted so previews/snapshots need not wire them).
+    /// Free for every user — the only gate is the camera's capability.
     var onExposureChange: (ExposureIntent) -> Void = { _ in }
     var onCinematicChange: (CinematicIntent) -> Void = { _ in }
-    /// The purchase gate, checked when opening the pro panel; a locked user is
-    /// routed to settings/paywall by `onSettingsTapped` (mirrors tap-to-focus).
-    var isProControlsUnlocked: () -> Bool = { true }
 
     @State private var isTrayOpen = false
     @State private var isProPanelOpen = false
@@ -457,12 +455,8 @@ struct MonitorView: View {
 
         case .proControls:
             toggleTray()
-            if isProControlsUnlocked() {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
-                    isProPanelOpen = true
-                }
-            } else {
-                onSettingsTapped()   // paywall, mirroring tap-to-focus
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                isProPanelOpen = true
             }
 
         case .settings:

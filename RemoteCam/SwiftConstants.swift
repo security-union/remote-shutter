@@ -33,9 +33,6 @@ public let enableVideoPID = "06"
 public let enableTorchPID = "07"
 public let enableVideoOnlyPID = "08"
 public let tapToFocusPID = "09"
-/// Pro controls (issue #206): manual shutter/ISO + Cinematic aperture from
-/// the remote. One product covers both.
-public let proControlsPID = "10"
 /// One-time pack: multicam directing at the paid camera cap. The id is
 /// cap-agnostic on purpose — the same purchase grows with `maxPaidCameras`
 /// as larger rigs are validated; only the marketing copy names a number.

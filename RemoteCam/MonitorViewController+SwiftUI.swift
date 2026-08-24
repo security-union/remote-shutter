@@ -67,9 +67,6 @@ extension MonitorViewController {
             },
             onCinematicChange: { [weak self] intent in
                 self?.session ! UICmd.SetCinematic(intent: intent)
-            },
-            isProControlsUnlocked: {
-                StoreManager.shared.hasProControlsFeature()
             }
         )
 

@@ -17,7 +17,6 @@ extension Notification.Name {
     static let enableTorch = Notification.Name("EnableTorch")
     static let enableVideoOnly = Notification.Name("EnableVideoOnly")
     static let tapToFocusAcquired = Notification.Name("TapToFocusAcquired")
-    static let proControlsAcquired = Notification.Name("ProControlsAcquired")
     static let proSubscriptionAcquired = Notification.Name("ProSubscriptionAcquired")
     static let maxCamerasAcquired = Notification.Name("MaxCamerasAcquired")
 }
@@ -30,7 +29,6 @@ private enum PurchaseKey {
     static let enableTorch = "didBuyEnableTorchFeature"
     static let enableVideoOnly = "didBuyEnableVideoOnlyFeature"
     static let tapToFocus = "didBuyTapToFocusFeature"
-    static let proControls = "didBuyProControlsFeature"
     static let maxCameras = "didBuyMaxCamerasFeature"
     // Unlike the one-time flags above, this is NOT append-only: refreshPurchaseState
     // recomputes it from Transaction.currentEntitlements so a lapsed subscription
@@ -47,7 +45,7 @@ final class StoreManager: ObservableObject {
 
     static let allProductIDs: Set<String> = [
         disableAdsPID, enableVideoPID, enableTorchPID, enableVideoOnlyPID,
-        tapToFocusPID, proControlsPID, maxCamerasPID, proMonthlyPID, proYearlyPID
+        tapToFocusPID, maxCamerasPID, proMonthlyPID, proYearlyPID
     ]
 
     /// The auto-renewable subscription products (the "Pro" subscription group).
@@ -96,11 +94,6 @@ final class StoreManager: ObservableObject {
         hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.tapToFocus)
     }
 
-    /// Pro controls (manual shutter/ISO + Cinematic aperture). Unlocked by
-    /// full access or its own IAP (10).
-    func hasProControlsFeature() -> Bool {
-        hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.proControls)
-    }
 
     /// The multicam camera caps — the single source for every gate and every
     /// piece of copy that names a number, so they can never disagree. The
@@ -226,8 +219,6 @@ final class StoreManager: ObservableObject {
             defaults.set(true, forKey: PurchaseKey.enableVideoOnly)
         case tapToFocusPID:
             defaults.set(true, forKey: PurchaseKey.tapToFocus)
-        case proControlsPID:
-            defaults.set(true, forKey: PurchaseKey.proControls)
         case maxCamerasPID:
             defaults.set(true, forKey: PurchaseKey.maxCameras)
         case proMonthlyPID, proYearlyPID:
@@ -249,7 +240,6 @@ final class StoreManager: ObservableObject {
         if hasVideoRecordingFeature() { post(.enableVideoOnly) }
         if hasProSubscription() { post(.proSubscriptionAcquired) }
         if hasTapToFocusFeature() { post(.tapToFocusAcquired) }
-        if hasProControlsFeature() { post(.proControlsAcquired) }
         if hasMaxCamerasFeature() { post(.maxCamerasAcquired) }
     }
 
