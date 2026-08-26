@@ -194,12 +194,19 @@ applyExposureIntentLocked()
 - `isExposureModeSupported(.custom) == false` → `.unsupported`.
 
 **Virtual device → physical lens.** Entering Manual on a virtual device swaps
-the input to the physical lens currently in use
-(`device.activePrimaryConstituent`, iOS 15+), carrying zoom over by the ratio
-of the two zoom spaces; returning to Auto swaps back to
-`preferredCamera(for:)`. While Manual is on, zoom is the physical lens's own
-range (no auto lens switching); the existing `SetZoomResp` range echo already
-informs the monitor's zoom slider.
+the input to a physical lens that accepts `.custom`: the one currently in use
+(`device.activePrimaryConstituent`, iOS 15+) when the session is running, else
+the wide lens from `constituentDevices`. Returning to Auto swaps back to the
+virtual device. While Manual is on, zoom is the physical lens's own range (no
+auto lens switching); the existing `SetZoomResp` range echo already informs
+the monitor's zoom slider.
+
+`supports_manual_exposure` is decided from `constituentDevices`, never from
+`activePrimaryConstituent` alone: Apple documents that property as nil until
+the virtual device is used in a *running* session, and the first capabilities
+exchange fires before the session starts. Every modern iPhone opens on a
+virtual device (Triple/DualWide), so a check on the active constituent alone
+advertises no manual exposure and the PRO tile never appears.
 
 ### Cinematic
 

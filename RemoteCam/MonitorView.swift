@@ -389,13 +389,10 @@ struct MonitorView: View {
         }
     }
 
-    /// The PRO tile exists only when the connected camera offers something for
-    /// it to control (manual exposure anywhere; Cinematic in video mode).
     private var showsProControls: Bool {
-        guard FeatureFlags.ENABLE_PRO_CONTROLS else { return false }
-        let videoish = viewModel.uiState == .videoMode || viewModel.uiState == .videoRecording
-        return viewModel.supportsManualExposure
-            || (videoish && viewModel.supportsCinematicVideo)
+        MonitorTray.showsProControls(for: viewModel.uiState,
+                                     supportsManualExposure: viewModel.supportsManualExposure,
+                                     supportsCinematicVideo: viewModel.supportsCinematicVideo)
     }
 
     private var proPanelLayer: some View {

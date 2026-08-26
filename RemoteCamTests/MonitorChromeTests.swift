@@ -159,13 +159,15 @@ final class MonitorChromeTests: XCTestCase {
                        supportsHDR: Bool = false,
                        supportsCameraStandby: Bool = false,
                        resolutionCount: Int = 1,
-                       frameRateCount: Int = 1) -> [MonitorTrayItem] {
+                       frameRateCount: Int = 1,
+                       showsProControls: Bool = false) -> [MonitorTrayItem] {
         MonitorTray.items(for: state,
                           supportsHEIF: supportsHEIF,
                           supportsHDR: supportsHDR,
                           supportsCameraStandby: supportsCameraStandby,
                           resolutionCount: resolutionCount,
-                          frameRateCount: frameRateCount)
+                          frameRateCount: frameRateCount,
+                          showsProControls: showsProControls)
     }
 
     /// A camera with no optional capabilities gets the irreducible tray.
@@ -227,6 +229,46 @@ final class MonitorChromeTests: XCTestCase {
     func testStandbyTileSitsBeforeSettings() {
         let tiles = items(.photoMode, supportsCameraStandby: true)
         XCTAssertEqual(tiles, [.timer, .aspect, .cameraStandby, .settings, .help])
+    }
+
+    // MARK: - Pro controls
+
+    /// Same rule as standby: a peer that never advertised the capability
+    /// would ignore SetExposure/SetCinematic, so the tile is not offered.
+    func testProTileIsHiddenWhenPeerDoesNotSupportIt() {
+        for state in [MonitorUIState.photoMode, .videoMode, .videoRecording, .shortsMode] {
+            XCTAssertFalse(items(state).contains(.proControls),
+                           "\(state) offered pro controls to a peer that can't do them")
+        }
+    }
+
+    /// The tile sits between standby and Settings, in every mode, and stays
+    /// composed while recording (the panel explains what recording locks).
+    func testProTileSitsBetweenStandbyAndSettings() {
+        XCTAssertEqual(items(.photoMode, supportsCameraStandby: true, showsProControls: true),
+                       [.timer, .aspect, .cameraStandby, .proControls, .settings, .help])
+        XCTAssertEqual(items(.videoRecording, showsProControls: true),
+                       [.timer, .aspect, .proControls, .settings, .help])
+        XCTAssertEqual(items(.shortsMode, showsProControls: true),
+                       [.aspect, .proControls, .settings, .help])
+    }
+
+    /// Manual exposure earns the tile in every mode; Cinematic is a video
+    /// effect and earns it only in video modes; the flag gates everything.
+    func testProTileDerivation() {
+        func shows(_ state: MonitorUIState, manual: Bool, cinematic: Bool, flag: Bool = true) -> Bool {
+            MonitorTray.showsProControls(for: state, supportsManualExposure: manual,
+                                         supportsCinematicVideo: cinematic, flagEnabled: flag)
+        }
+        for state in [MonitorUIState.photoMode, .videoMode, .videoRecording, .shortsMode] {
+            XCTAssertTrue(shows(state, manual: true, cinematic: false), "\(state) hid manual exposure")
+            XCTAssertFalse(shows(state, manual: false, cinematic: false), "\(state) showed a tile with nothing to control")
+            XCTAssertFalse(shows(state, manual: true, cinematic: true, flag: false), "\(state) ignored the feature flag")
+        }
+        XCTAssertTrue(shows(.videoMode, manual: false, cinematic: true))
+        XCTAssertTrue(shows(.videoRecording, manual: false, cinematic: true))
+        XCTAssertFalse(shows(.photoMode, manual: false, cinematic: true), "Cinematic is not a photo control")
+        XCTAssertFalse(shows(.shortsMode, manual: false, cinematic: true))
     }
 
     /// Settings and Help are the tray's floor — they are how the viewfinder

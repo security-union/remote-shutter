@@ -111,11 +111,24 @@ enum MonitorTray {
         }
 
         if supportsCameraStandby { items.append(.cameraStandby) }
+        // Pro controls are a capability of the connected camera: a peer that
+        // never advertised them would ignore the commands, so no tile.
         if showsProControls { items.append(.proControls) }
 
         items.append(.settings)
         items.append(.help)
         return items
+    }
+
+    /// The PRO tile exists only when the connected camera offers something for
+    /// it to control: manual exposure in any mode, Cinematic in video modes.
+    static func showsProControls(for state: MonitorUIState,
+                                 supportsManualExposure: Bool,
+                                 supportsCinematicVideo: Bool,
+                                 flagEnabled: Bool = FeatureFlags.ENABLE_PRO_CONTROLS) -> Bool {
+        guard flagEnabled else { return false }
+        let videoish = state == .videoMode || state == .videoRecording
+        return supportsManualExposure || (videoish && supportsCinematicVideo)
     }
 }
 

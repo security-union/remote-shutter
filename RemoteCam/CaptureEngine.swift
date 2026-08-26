@@ -955,7 +955,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // Pro-controls hardware probe (Docs/pro-controls.md): which devices
             // can do custom exposure, and what the format allows.
             let format = device.activeFormat
+            let lenses = device.constituentDevices
+                .map { "\($0.localizedName):custom=\($0.isExposureModeSupported(.custom))" }
+                .joined(separator: ", ")
             debugLog("🌗 EXPOSURE PROBE: \(device.localizedName) custom=\(device.isExposureModeSupported(.custom)) "
+                     + "virtual=\(device.isVirtualDevice) lenses=[\(lenses)] "
                      + "shutter \(CMTimeGetSeconds(format.minExposureDuration))–\(CMTimeGetSeconds(format.maxExposureDuration))s "
                      + "ISO \(format.minISO)–\(format.maxISO)")
         }
@@ -1311,12 +1315,29 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     /// True when Manual exposure is worth offering on this device: it accepts
-    /// `.custom` itself, or it is a virtual device whose active physical lens
+    /// `.custom` itself, or it is a virtual device with a physical lens that
     /// does (the engine swaps to that lens when Manual is engaged).
     private func deviceSupportsManualExposureLocked(_ device: AVCaptureDevice) -> Bool {
-        if device.isExposureModeSupported(.custom) { return true }
-        return device.isVirtualDevice
-            && device.activePrimaryConstituent?.isExposureModeSupported(.custom) == true
+        manualExposureLensLocked(for: device) != nil
+    }
+
+    /// The lens Manual exposure runs on: the device itself when it accepts
+    /// `.custom`; for a virtual device (which refuses it), a constituent that
+    /// does — the active one while the session runs, else the wide lens.
+    ///
+    /// Decided from `constituentDevices`, never from `activePrimaryConstituent`
+    /// alone: Apple documents that property as nil until the virtual device is
+    /// used in a RUNNING session, and the first capabilities exchange happens
+    /// before the session starts — a check on it alone advertised
+    /// `supports_manual_exposure = false` from every modern iPhone.
+    private func manualExposureLensLocked(for device: AVCaptureDevice) -> AVCaptureDevice? {
+        if device.isExposureModeSupported(.custom) { return device }
+        guard device.isVirtualDevice else { return nil }
+        if let active = device.activePrimaryConstituent, active.isExposureModeSupported(.custom) {
+            return active
+        }
+        let candidates = device.constituentDevices.filter { $0.isExposureModeSupported(.custom) }
+        return candidates.first { $0.deviceType == .builtInWideAngleCamera } ?? candidates.first
     }
 
     /// The ONLY place a manual-exposure lens swap happens: entering Manual on
@@ -1329,9 +1350,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         switch exposureIntent {
         case .manual:
             guard !device.isExposureModeSupported(.custom),
-                  device.isVirtualDevice,
-                  let physical = device.activePrimaryConstituent,
-                  physical.isExposureModeSupported(.custom) else { return }
+                  let physical = manualExposureLensLocked(for: device) else { return }
             manualExposureRestoreDeviceID = device.uniqueID
             debugLog("🌗 EXPOSURE: manual on virtual \(device.localizedName) — hopping to \(physical.localizedName)")
             _ = try? swapToDeviceLocked(physical, orientation: orientation)
