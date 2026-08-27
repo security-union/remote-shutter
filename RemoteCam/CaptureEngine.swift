@@ -1222,6 +1222,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                                                 videoOrientation: videoOrientation,
                                                 mirrored: device.position == .front)
 
+        // Every focus write below — the Cinematic tracking focus included —
+        // needs exclusive ownership of the device (calling it unlocked is an
+        // uncaught NSGenericException, not an error).
+        try device.lockForConfiguration()
+        defer { device.unlockForConfiguration() }
+
         // While Cinematic video is on, focusMode is pinned (setting it throws)
         // and taps become Cinematic tracking focus: lock onto the subject at
         // the tapped point until it leaves the scene.
@@ -1231,9 +1237,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             debugLog("🎬 CINEMATIC: tracking focus at \(poi)")
             return
         }
-
-        try device.lockForConfiguration()
-        defer { device.unlockForConfiguration() }
 
         if device.isFocusPointOfInterestSupported {
             device.focusPointOfInterest = poi
@@ -1265,7 +1268,13 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
               (try? device.lockForConfiguration()) != nil else { return }
         defer { device.unlockForConfiguration() }
         let center = CGPoint(x: 0.5, y: 0.5)
-        if device.isFocusPointOfInterestSupported {
+        // focusMode is pinned while Cinematic is on (writing it throws an
+        // NSInvalidArgumentException); the effect owns focus then.
+        var cinematicOwnsFocus = false
+        if #available(iOS 26.0, macCatalyst 26.0, *) {
+            cinematicOwnsFocus = videoDeviceInput?.isCinematicVideoCaptureEnabled == true
+        }
+        if device.isFocusPointOfInterestSupported, !cinematicOwnsFocus {
             device.focusPointOfInterest = center
             if device.isFocusModeSupported(.continuousAutoFocus) { device.focusMode = .continuousAutoFocus }
         }
