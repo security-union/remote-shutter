@@ -110,4 +110,46 @@ final class ControlStateTests: XCTestCase {
         XCTAssertEqual(ControlRefusalReason.sessionRefused.message(detail: ""),
                        "The camera refused that setting", "an empty detail adds no parens")
     }
+
+    // MARK: - Cinematic never hides the zoom pill
+
+    /// Apple narrows zoom under Cinematic (videoMin/MaxZoomFactorForCinematicVideo)
+    /// but never removes it — and neither may the derivation. For every
+    /// plausible narrowed range the engine can emit (its guard ensures
+    /// max > min within the device range), the derived scale must stay
+    /// non-degenerate, because a degenerate scale is exactly what hides the
+    /// pill. This pins the field report "zoom disappears when Cinematic is on".
+    func testCinematicNarrowedRangesNeverDegenerateTheZoomScale() {
+        // (stops, wide, cineMin, cineMax) — hardware factors.
+        let cases: [(stops: [CGFloat], wide: CGFloat, min: CGFloat, max: CGFloat, label: String)] = [
+            ([1, 2], 2, 2, 6, "iPhone 14 DualWide: Cinematic pinned to the wide lens"),
+            ([1, 2], 2, 1, 3, "DualWide: narrowed from both ends"),
+            ([1, 2, 6], 2, 2, 9, "Triple: ultra-wide and tele stops dropped"),
+            ([1, 2], 2, 3, 6, "floor above every lens stop: the floor is the one detent"),
+            ([1], 1, 1, 2, "single-lens: tiny cinematic headroom"),
+        ]
+        for c in cases {
+            let state = ControlState(seq: 1, zoomFactor: c.min,
+                                     minZoom: c.min, maxZoom: c.max,
+                                     zoomStops: c.stops, wideAngleZoomFactor: c.wide)
+            let scale = state.zoomScale
+            XCTAssertFalse(scale.isDegenerate, "\(c.label): a degenerate scale hides the pill")
+            XCTAssertGreaterThanOrEqual(scale.minZoom, c.min, c.label)
+            XCTAssertFalse(scale.stops.isEmpty, "\(c.label): the ruler needs at least one detent")
+            XCTAssertTrue(scale.stops.allSatisfy { $0 >= scale.minZoom && $0 <= scale.maxZoom },
+                          "\(c.label): every offered detent must be reachable")
+        }
+    }
+
+    /// Disabling Cinematic restores the device range: the same derivation
+    /// widens back — no stored value to un-stick.
+    func testDisablingCinematicRestoresTheFullScale() {
+        let narrowed = ControlState(seq: 1, minZoom: 2, maxZoom: 6,
+                                    zoomStops: [1, 2], wideAngleZoomFactor: 2)
+        let restored = ControlState(seq: 2, minZoom: 1, maxZoom: 10,
+                                    zoomStops: [1, 2], wideAngleZoomFactor: 2)
+        XCTAssertEqual(narrowed.zoomScale.stops, [2], "ultra-wide is out of reach under Cinematic")
+        XCTAssertEqual(ControlState.absorb(narrowed, restored).zoomScale.stops, [1, 2],
+                       "the next snapshot brings the ultra-wide stop back")
+    }
 }

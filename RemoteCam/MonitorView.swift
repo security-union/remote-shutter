@@ -404,19 +404,23 @@ struct MonitorView: View {
         return kind
     }
 
-    /// The zoom pill's slot: the pro slider while one is open, else zoom.
+    /// Zoom and the pro slider are NOT rivals: Apple supports zoom while
+    /// Cinematic is on (within the narrowed range the snapshot carries), so
+    /// the zoom pill is always in its slot and an open pro slider stacks
+    /// above it — framing and exposure stay adjustable at the same time.
     @ViewBuilder
     private var zoomOrProSlider: some View {
-        if let kind = visibleProSlider, let scale = proScale(kind) {
-            ProSliderPill(scale: scale,
-                          currentValue: proValue(kind),
-                          onChange: { onProSliderChange(kind, $0) },
-                          onAuto: kind == .aperture ? nil : {
-                              onExposureChange(.auto)
-                              activeProSlider = nil
-                          },
-                          onClose: { activeProSlider = nil })
-        } else {
+        VStack(spacing: 10) {
+            if let kind = visibleProSlider, let scale = proScale(kind) {
+                ProSliderPill(scale: scale,
+                              currentValue: proValue(kind),
+                              onChange: { onProSliderChange(kind, $0) },
+                              onAuto: kind == .aperture ? nil : {
+                                  onExposureChange(.auto)
+                                  activeProSlider = nil
+                              },
+                              onClose: { activeProSlider = nil })
+            }
             ZoomPill(scale: viewModel.zoomScale,
                      currentZoomFactor: viewModel.currentZoomFactor,
                      onZoomChange: onZoomChange)

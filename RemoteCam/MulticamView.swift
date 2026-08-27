@@ -315,23 +315,28 @@ struct MulticamView: View {
     /// and hides when the focused camera has no usable zoom range (a
     /// fixed-focal-length camera, or before its first response), exactly as the
     /// 1:1 monitor does.
+    /// Zoom and the pro slider coexist (zoom stays legal under Cinematic,
+    /// just narrowed): an open pro slider stacks ABOVE the zoom pill, same
+    /// rule as the 1:1 monitor.
     @ViewBuilder
     private var focusedZoomPill: some View {
         if viewModel.displayMode == .focus, let focused = viewModel.focusedLane {
-            if let kind = viewModel.visibleProSlider, let scale = proScale(kind, focused) {
-                // The pro slider takes the zoom pill's slot, as on the 1:1 monitor.
-                ProSliderPill(scale: scale,
-                              currentValue: proValue(kind, focused),
-                              onChange: { onProSliderChange(focused, kind, $0) },
-                              onAuto: kind == .aperture ? nil : {
-                                  onExposureChange(focused, .auto)
-                                  viewModel.activeProSlider = nil
-                              },
-                              onClose: { viewModel.activeProSlider = nil })
-            } else if viewModel.showsFocusedZoomPill {
-                ZoomPill(scale: viewModel.focusedZoomScale,
-                         currentZoomFactor: viewModel.focusedZoomFactor,
-                         onZoomChange: { onZoomChange(focused, $0) })
+            VStack(spacing: 10) {
+                if let kind = viewModel.visibleProSlider, let scale = proScale(kind, focused) {
+                    ProSliderPill(scale: scale,
+                                  currentValue: proValue(kind, focused),
+                                  onChange: { onProSliderChange(focused, kind, $0) },
+                                  onAuto: kind == .aperture ? nil : {
+                                      onExposureChange(focused, .auto)
+                                      viewModel.activeProSlider = nil
+                                  },
+                                  onClose: { viewModel.activeProSlider = nil })
+                }
+                if viewModel.showsFocusedZoomPill {
+                    ZoomPill(scale: viewModel.focusedZoomScale,
+                             currentZoomFactor: viewModel.focusedZoomFactor,
+                             onZoomChange: { onZoomChange(focused, $0) })
+                }
             }
         }
     }
