@@ -77,6 +77,12 @@ struct MonitorView: View {
                 SessionDebugOverlay()
                 #endif
             }
+            // A slider whose tile vanished is closed for good, not parked.
+            .onChange(of: proTiles) { tiles in
+                if let kind = activeProSlider, !tiles.contains(kind.tile) {
+                    activeProSlider = nil
+                }
+            }
         }
         // Catalyst's default style paints a bordered box behind controls that
         // already draw their own shape. Not .plain — that also drops the
@@ -397,8 +403,10 @@ struct MonitorView: View {
                              apertureAdjustable: (viewModel.cinematic?.minSimulatedAperture ?? 0) > 0)
     }
 
-    /// The open slider, as long as its tile is still offered (the camera may
-    /// have swapped to a device without it, or left video mode).
+    /// The open slider, as long as its tile is still offered. A vanished tile
+    /// CLEARS the choice (see the onChange below) rather than parking it — a
+    /// parked slider auto-revived when the tile returned, displacing the zoom
+    /// pill with no tap.
     private var visibleProSlider: ProSliderKind? {
         guard let kind = activeProSlider, proTiles.contains(kind.tile) else { return nil }
         return kind

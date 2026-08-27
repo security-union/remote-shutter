@@ -151,10 +151,19 @@ final class MulticamViewModel: ObservableObject {
                                     apertureAdjustable: (focused.cinematic?.minSimulatedAperture ?? 0) > 0)
     }
 
-    /// The open slider, as long as the focused camera still offers its tile
-    /// (focus moved to another camera, the mode changed, the camera dropped).
+    /// The open slider, as long as the focused camera still offers its tile.
+    /// When the tile goes away the choice is CLEARED, never parked: a parked
+    /// choice resurrected the aperture slider the instant Cinematic re-enabled
+    /// — a control appearing (and displacing attention) with no tap. A slider
+    /// is on screen only because the user opened it since its tile appeared.
     var visibleProSlider: ProSliderKind? {
-        guard let kind = activeProSlider, focusedProTiles.contains(kind.tile) else { return nil }
+        guard let kind = activeProSlider else { return nil }
+        guard focusedProTiles.contains(kind.tile) else {
+            DispatchQueue.main.async { [weak self] in
+                if self?.activeProSlider == kind { self?.activeProSlider = nil }
+            }
+            return nil
+        }
         return kind
     }
 

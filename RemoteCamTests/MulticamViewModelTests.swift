@@ -72,9 +72,11 @@ final class MulticamViewModelTests: XCTestCase {
     }
 
     /// An open slider stays only while the focused camera still offers its
-    /// tile: refocusing onto a camera without manual exposure hides it (the
-    /// choice is remembered, so focusing back restores it).
-    func testOpenSliderFollowsTheFocusedCamera() {
+    /// tile — and once the tile vanishes the choice is CLEARED, never parked.
+    /// A parked choice resurrected the aperture slider the instant Cinematic
+    /// re-enabled, displacing the zoom pill with no tap (field report).
+    /// A slider is on screen only because the user opened it since.
+    func testClosedSliderNeverAutoRevives() {
         let vm = MulticamViewModel()
         vm.apply([info(camA, focused: true, supportsManualExposure: true), info(camB)])
         vm.activeProSlider = .shutter
@@ -82,9 +84,15 @@ final class MulticamViewModelTests: XCTestCase {
 
         vm.apply([info(camA, supportsManualExposure: true), info(camB, focused: true)])
         XCTAssertNil(vm.visibleProSlider, "camB has no shutter to slide")
+        // The vanished tile clears the stored choice (async main-hop).
+        let cleared = expectation(description: "choice cleared")
+        DispatchQueue.main.async { cleared.fulfill() }
+        wait(for: [cleared], timeout: 1)
+        XCTAssertNil(vm.activeProSlider, "a hidden slider must not stay armed")
 
         vm.apply([info(camA, focused: true, supportsManualExposure: true), info(camB)])
-        XCTAssertEqual(vm.visibleProSlider, .shutter)
+        XCTAssertNil(vm.visibleProSlider,
+                     "the tile returning must NOT resurrect the slider — no tap, no slider")
     }
 
     /// The shutter is a broadcast: cameras present is enough — focus is
