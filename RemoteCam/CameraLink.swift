@@ -100,6 +100,12 @@ final class CameraLink {
     var zoomStops: [CGFloat] = [1.0]
     var wideAngleZoomFactor: CGFloat = 1.0
 
+    /// This camera's exposure / Cinematic truth (issue #206): seeded from its
+    /// capabilities, replaced by every `SetExposureResp` / `SetCinematicResp`
+    /// echo. The panel shows these, never the value that was requested.
+    var exposure: ExposureState?
+    var cinematic: CinematicState?
+
     init(peerID: MCPeerID) {
         self.peerID = peerID
         self.displayName = peerID.displayName
@@ -125,6 +131,10 @@ final class CameraLink {
                 $0.frontCamera != nil && $0.backCamera != nil
             } ?? false,
             supportsFocusPoint: capabilities?.supportsFocusPoint ?? false,
+            supportsManualExposure: capabilities?.supportsManualExposure ?? false,
+            exposure: exposure,
+            supportsCinematicVideo: capabilities?.supportsCinematicVideo ?? false,
+            cinematic: cinematic,
             hasTorch: capabilities?.getCurrentCameraInfo()?.hasTorch ?? false,
             zoomFactor: zoomFactor,
             maxZoomFactor: maxZoomFactor,

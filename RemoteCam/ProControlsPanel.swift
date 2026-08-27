@@ -4,21 +4,51 @@
 //
 //  The pro-controls bottom panel on the monitor: manual exposure (shutter +
 //  ISO) and Cinematic video (iOS 26 simulated aperture). Every value shown is
-//  the CAMERA's echoed truth (`MonitorViewModel.exposure` / `.cinematic`) —
-//  the panel never displays a value the camera did not confirm. Controls are
-//  rendered only when the connected camera advertised the capability.
+//  the CAMERA's echoed truth — the panel never displays a value the camera
+//  did not confirm. Controls are rendered only when the camera advertised the
+//  capability. Pure values in, intents out: the 1:1 monitor feeds it from
+//  `MonitorViewModel`, the multicam director from the focused lane.
 //  See Docs/pro-controls.md.
 //
 
 import SwiftUI
 
 struct ProControlsPanel: View {
-    @ObservedObject var viewModel: MonitorViewModel
+    let supportsManualExposure: Bool
+    let exposure: ExposureState?
+    let supportsCinematicVideo: Bool
+    let cinematic: CinematicState?
+    /// Cinematic is a video effect: its section exists only in video modes.
+    let isVideoMode: Bool
     let onExposureChange: (ExposureIntent) -> Void
     let onCinematicChange: (CinematicIntent) -> Void
 
-    private var isVideoMode: Bool {
-        viewModel.uiState == .videoMode || viewModel.uiState == .videoRecording
+    init(supportsManualExposure: Bool, exposure: ExposureState?,
+         supportsCinematicVideo: Bool, cinematic: CinematicState?,
+         isVideoMode: Bool,
+         onExposureChange: @escaping (ExposureIntent) -> Void,
+         onCinematicChange: @escaping (CinematicIntent) -> Void) {
+        self.supportsManualExposure = supportsManualExposure
+        self.exposure = exposure
+        self.supportsCinematicVideo = supportsCinematicVideo
+        self.cinematic = cinematic
+        self.isVideoMode = isVideoMode
+        self.onExposureChange = onExposureChange
+        self.onCinematicChange = onCinematicChange
+    }
+
+    /// The 1:1 monitor's projection. `MonitorView` observes the view model,
+    /// so the panel is rebuilt with fresh values on every echo.
+    init(viewModel: MonitorViewModel,
+         onExposureChange: @escaping (ExposureIntent) -> Void,
+         onCinematicChange: @escaping (CinematicIntent) -> Void) {
+        self.init(supportsManualExposure: viewModel.supportsManualExposure,
+                  exposure: viewModel.exposure,
+                  supportsCinematicVideo: viewModel.supportsCinematicVideo,
+                  cinematic: viewModel.cinematic,
+                  isVideoMode: viewModel.uiState == .videoMode || viewModel.uiState == .videoRecording,
+                  onExposureChange: onExposureChange,
+                  onCinematicChange: onCinematicChange)
     }
 
     var body: some View {
@@ -27,12 +57,12 @@ struct ProControlsPanel: View {
                 .fill(Color.white.opacity(0.3))
                 .frame(width: 36, height: 5)
 
-            if viewModel.supportsManualExposure, let exposure = viewModel.exposure {
+            if supportsManualExposure, let exposure {
                 exposureSection(exposure)
             }
 
-            if isVideoMode, viewModel.supportsCinematicVideo, let cinematic = viewModel.cinematic {
-                if viewModel.supportsManualExposure {
+            if isVideoMode, supportsCinematicVideo, let cinematic {
+                if supportsManualExposure {
                     Divider().overlay(Color.white.opacity(0.15))
                 }
                 cinematicSection(cinematic)

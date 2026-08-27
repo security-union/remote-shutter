@@ -58,7 +58,8 @@ enum RigTray {
     /// Format/HDR stay listed when blocked: the intersection model greys them
     /// and names the blocking camera in the footnote instead. Aspect, like the
     /// 1:1 tray's, shows in both modes — every camera can crop.
-    static func items(mode: MonitorMode, standbyAvailable: Bool) -> [MonitorTrayItem] {
+    static func items(mode: MonitorMode, standbyAvailable: Bool,
+                      showsProControls: Bool = false) -> [MonitorTrayItem] {
         var items: [MonitorTrayItem] = [.timer, .aspect]
 
         switch mode {
@@ -69,8 +70,22 @@ enum RigTray {
         }
 
         if standbyAvailable { items.append(.cameraStandby) }
+        // Pro controls drive the FOCUSED camera (like torch and zoom), so the
+        // tile follows that camera's advertised capabilities — same slot as
+        // the 1:1 tray.
+        if showsProControls { items.append(.proControls) }
         items.append(.settings)
         items.append(.help)
         return items
+    }
+}
+
+extension MonitorMode {
+    /// The camera-side vocabulary for `RemoteCmd.SyncMonitorSettings`.
+    var recordingMode: RecordingMode {
+        switch self {
+        case .photo: return .Photo
+        case .video: return .Video
+        }
     }
 }

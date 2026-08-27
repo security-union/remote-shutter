@@ -62,6 +62,17 @@ final class MultiCamChromeTests: XCTestCase {
         XCTAssertFalse(RigTray.items(mode: .video, standbyAvailable: false).contains(.cameraStandby))
     }
 
+    /// The PRO tile follows the focused camera's capabilities and sits in the
+    /// 1:1 tray's slot (after standby, before Settings) in both modes; a rig
+    /// whose focused camera offers nothing lists no tile.
+    func testRigTrayProTileFollowsFocusedCamera() {
+        XCTAssertEqual(RigTray.items(mode: .photo, standbyAvailable: true, showsProControls: true),
+                       [.timer, .aspect, .format, .hdr, .cameraStandby, .proControls, .settings, .help])
+        XCTAssertEqual(RigTray.items(mode: .video, standbyAvailable: false, showsProControls: true),
+                       [.timer, .aspect, .resolution, .proControls, .settings, .help])
+        XCTAssertFalse(RigTray.items(mode: .video, standbyAvailable: true).contains(.proControls))
+    }
+
     func testStreamProfilePresets() {
         // The focused tier reproduces today's 1:1 peer preview.
         XCTAssertEqual(StreamProfile.focused.maxLongEdge, 1200)

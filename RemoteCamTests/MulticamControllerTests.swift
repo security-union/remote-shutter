@@ -148,6 +148,120 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(pings.map(\.peers), [[camA]])
     }
 
+    // MARK: - Pro controls (issue #206): per-camera, capability-gated
+
+    /// Capabilities advertising manual exposure (and optionally Cinematic),
+    /// with the exposure truth the panel seeds from.
+    private func proCaps(cinematic: Bool = false) -> RemoteCmd.CameraCapabilitiesResp {
+        RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            supportsMulticam: true,
+            supportsManualExposure: true,
+            exposure: ExposureState(mode: .auto, durationSeconds: 1.0 / 120, iso: 64,
+                                    minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 1,
+                                    minISO: 32, maxISO: 3200),
+            supportsCinematicVideo: cinematic,
+            cinematic: cinematic ? CinematicState(enabled: false, simulatedAperture: 2.0,
+                                                  minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
+                                                  defaultSimulatedAperture: 2.0,
+                                                  apertureLocked: false, notEnoughLight: false) : nil,
+            error: nil)
+    }
+
+    /// A pro-control command goes only to the camera it was rendered for,
+    /// and only if that camera advertised the capability — a peer that
+    /// would ignore (or misread) it is never sent one.
+    func testExposureAndCinematicAreSentOnlyToAdvertisingCamera() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(proCaps(cinematic: true), from: camA)
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.setExposure(.manual(durationSeconds: 1.0 / 250, iso: 400), on: camA)
+        controller.setExposure(.manual(durationSeconds: 1.0 / 250, iso: 400), on: camB)
+        controller.setCinematic(.on(aperture: 2.8), on: camA)
+        controller.setCinematic(.on(aperture: 2.8), on: camB)
+        await controller.waitForIdle()
+
+        let exposures = sent(transport, RemoteCmd.SetExposure.self)
+        XCTAssertEqual(exposures.map(\.peers), [[camA]], "camB never advertised manual exposure")
+        XCTAssertEqual((exposures.first?.msg as? RemoteCmd.SetExposure)?.intent,
+                       .manual(durationSeconds: 1.0 / 250, iso: 400))
+        let cinematics = sent(transport, RemoteCmd.SetCinematic.self)
+        XCTAssertEqual(cinematics.map(\.peers), [[camA]], "camB never advertised Cinematic")
+    }
+
+    /// The lane shows the camera's echo — seeded from capabilities, replaced
+    /// by each response — and a refusal is said out loud, never swallowed.
+    func testLaneCarriesEchoedExposureAndSurfacesRefusal() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        controller.didReceiveMessage(proCaps(), from: camA)
+        await controller.waitForIdle()
+
+        var lane = await controller.lanesForTesting().first
+        XCTAssertEqual(lane?.supportsManualExposure, true)
+        XCTAssertEqual(lane?.exposure?.mode, .auto)
+        XCTAssertEqual(lane?.exposure?.iso, 64)
+
+        let applied = ExposureState(mode: .manual, durationSeconds: 1.0 / 250, iso: 400,
+                                    minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 1,
+                                    minISO: 32, maxISO: 3200)
+        controller.didReceiveMessage(RemoteCmd.SetExposureResp(state: applied, error: nil), from: camA)
+        await controller.waitForIdle()
+        lane = await controller.lanesForTesting().first
+        XCTAssertEqual(lane?.exposure, applied)
+
+        controller.didReceiveMessage(
+            RemoteCmd.SetCinematicResp(state: nil, error: NSError(domain: "Cinematic needs video mode", code: 0)),
+            from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+        XCTAssertEqual(display.transientErrors.last, "\(camA.displayName): Cinematic needs video mode")
+    }
+
+    /// The rig's mode is a setting every camera is told about (like standby
+    /// and aspect): switching the director to video syncs the linked cameras,
+    /// and a camera joining a video rig is synced on arrival — the camera
+    /// refuses Cinematic unless it knows it is in video mode.
+    func testRigModeSyncsLinkedCamerasAndLateJoiners() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.setRigMode(.video)
+        await controller.waitForIdle()
+        var syncs = sent(transport, RemoteCmd.SyncMonitorSettings.self)
+        XCTAssertEqual(syncs.map(\.peers), [[camA]])
+        XCTAssertEqual((syncs.first?.msg as? RemoteCmd.SyncMonitorSettings)?.mode, .Video)
+
+        // Same mode again is a no-op on the wire.
+        controller.setRigMode(.video)
+        await controller.waitForIdle()
+        XCTAssertEqual(sent(transport, RemoteCmd.SyncMonitorSettings.self).count, 1)
+
+        // A camera whose capabilities arrive while the rig is in video mode
+        // is told so; one arriving in photo mode (the camera default) is not.
+        controller.inviteCamera(camB)
+        transport.connectedPeers = [camA, camB]
+        controller.peerDidConnect(camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.waitForIdle()
+        syncs = sent(transport, RemoteCmd.SyncMonitorSettings.self)
+        XCTAssertEqual(syncs.map(\.peers), [[camB]])
+
+        controller.setRigMode(.photo)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SyncMonitorSettings.self).isEmpty)
+    }
+
     // MARK: - Frame routing (Seam B)
 
     func testFrameRoutesToItsLaneAndAcksOnlyItsSource() async {

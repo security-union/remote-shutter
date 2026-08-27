@@ -184,6 +184,7 @@
 		CAFEBABE00F0000000000002 /* FocusPointMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */; };
 		E0E0206A0000000000000004 /* ExposurePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206A0000000000000003 /* ExposurePolicyTests.swift */; };
 		E0E0206D0000000000000002 /* CinematicPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206D0000000000000001 /* CinematicPolicyTests.swift */; };
+		E0E0206E0000000000000002 /* MessageDumpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206E0000000000000001 /* MessageDumpTests.swift */; };
 		CAFEBABE0121000000000002 /* MonitorChromeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0121000000000001 /* MonitorChromeTests.swift */; };
 		CAFEBABE0100000000000002 /* PeerCompatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0100000000000001 /* PeerCompatibility.swift */; };
 		CB5F78DFB9D567955BC863AF /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99FC5340BB98B2BD307FFA1A /* SoundManager.swift */; };
@@ -456,6 +457,7 @@
 		CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusPointMappingTests.swift; sourceTree = "<group>"; };
 		E0E0206A0000000000000003 /* ExposurePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposurePolicyTests.swift; sourceTree = "<group>"; };
 		E0E0206D0000000000000001 /* CinematicPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CinematicPolicyTests.swift; sourceTree = "<group>"; };
+		E0E0206E0000000000000001 /* MessageDumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageDumpTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0121000000000001 /* MonitorChromeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorChromeTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0100000000000001 /* PeerCompatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerCompatibility.swift; sourceTree = "<group>"; };
 		CD857DFD7882DAA5012B70C9 /* FlatBufferSchemas.fbs */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = FlatBufferSchemas.fbs; sourceTree = "<group>"; };
@@ -644,6 +646,7 @@
 				CAFEBABE00F0000000000001 /* FocusPointMappingTests.swift */,
 				E0E0206A0000000000000003 /* ExposurePolicyTests.swift */,
 				E0E0206D0000000000000001 /* CinematicPolicyTests.swift */,
+				E0E0206E0000000000000001 /* MessageDumpTests.swift */,
 				CAFEBABE0121000000000001 /* MonitorChromeTests.swift */,
 				CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */,
 				CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */,
@@ -1344,6 +1347,7 @@
 				CAFEBABE00F0000000000002 /* FocusPointMappingTests.swift in Sources */,
 				E0E0206A0000000000000004 /* ExposurePolicyTests.swift in Sources */,
 				E0E0206D0000000000000002 /* CinematicPolicyTests.swift in Sources */,
+				E0E0206E0000000000000002 /* MessageDumpTests.swift in Sources */,
 				CAFEBABE0121000000000002 /* MonitorChromeTests.swift in Sources */,
 				CAFEBABE0131000000000002 /* CaptureSyncMetadataTests.swift in Sources */,
 				CAFEBABE0133000000000002 /* ClockOffsetEstimatorTests.swift in Sources */,

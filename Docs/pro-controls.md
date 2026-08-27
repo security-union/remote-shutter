@@ -277,9 +277,19 @@ Follows the HIG for camera controls: values a photographer recognizes, direct
 and reversible adjustments, current state always visible on both devices.
 
 **Remote (monitor)**
-- Two chrome buttons, each shown only when its capability is advertised:
-  **Exposure** (`dial.medium`) and **Cinematic** (`camera.aperture`, video
-  mode only). Each opens the same bottom panel used for quality settings.
+- One **PRO** tray tile (`camera.aperture`), listed only when the connected
+  camera advertised something for it to control (`MonitorTray.showsProControls`:
+  manual exposure in any mode, Cinematic in video modes). It opens the
+  `ProControlsPanel`, a bottom panel in the tray's presentation.
+- The same tile and panel exist on the **multicam director** — the screen a
+  single camera lands on while `MULTICAM_FOR_SINGLE_CAMERA` is on. There the
+  controls drive the **focused** camera, like torch and zoom: the tile
+  follows that camera's flags, `CameraLink` carries its echoed
+  `ExposureState`/`CinematicState`, and the command carries the lane
+  (`MulticamController.setExposure(_:on:)` / `setCinematic(_:on:)`, gated on
+  that camera's capabilities). The director's photo/video mode is pushed to
+  every camera (`SyncMonitorSettings`, including late joiners) so a camera
+  knows it is in video mode before Cinematic is asked of it.
 - **Exposure**: segmented `Auto | Manual`. Auto shows a live readout of what
   the camera is choosing (`1/120 · ISO 64`). Manual shows two **detented
   horizontal dials** (`ProDial`): shutter at standard stops (1/8000 … ¼, ⅓,
@@ -307,9 +317,8 @@ and reversible adjustments, current state always visible on both devices.
   in `CameraViewModel` but persists until the control is off. The "too dark"
   hint also shows here, next to the chip.
 
-**Watch** — untouched. **Multicam director** — untouched; cameras simply
-advertise the flags and the 1:1 path works. Broadcasting to N cameras is a
-follow-up.
+**Watch** — untouched. **Multicam director** — per focused camera (above);
+broadcasting one setting to N cameras is a follow-up.
 
 ## Monetization
 

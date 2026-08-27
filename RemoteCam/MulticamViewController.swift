@@ -60,6 +60,7 @@ public final class MulticamViewController: UIViewController {
                       self.viewModel.rigSettings.countdown == nil else { return }
                 self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
                 logInfo("director: mode → \(self.viewModel.mode)")
+                self.controller.setRigMode(self.viewModel.mode)
             },
             onAddCamera: { [weak self] in self?.handleAddCameraTapped() },
             onInviteCamera: { [weak self] peer in
@@ -98,6 +99,8 @@ public final class MulticamViewController: UIViewController {
             onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },
             onZoomChange: { [weak self] lane, factor in self?.handleZoomChange(factor, on: lane.peerID) },
             onFocusTap: { [weak self] lane, point in self?.handleFocusTap(point, on: lane.peerID) },
+            onExposureChange: { [weak self] lane, intent in self?.controller.setExposure(intent, on: lane.peerID) },
+            onCinematicChange: { [weak self] lane, intent in self?.controller.setCinematic(intent, on: lane.peerID) },
             onBack: { [weak self] in
                 logInfo("director: back → scanner")
                 self?.navigationController?.popViewController(animated: true)

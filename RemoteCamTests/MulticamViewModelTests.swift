@@ -18,6 +18,8 @@ final class MulticamViewModelTests: XCTestCase {
     private func info(_ peer: MCPeerID, status: CameraLink.Status = .linked,
                       focused: Bool = false, canFlipCamera: Bool = false,
                       supportsFocusPoint: Bool = false, hasTorch: Bool = false,
+                      supportsManualExposure: Bool = false,
+                      supportsCinematicVideo: Bool = false,
                       zoomFactor: CGFloat = 1.0, maxZoomFactor: CGFloat = 10.0,
                       zoomStops: [CGFloat] = [1.0], wideAngleZoomFactor: CGFloat = 1.0,
                       torchOn: Bool = false, flashOn: Bool = false) -> MulticamLaneInfo {
@@ -26,10 +28,33 @@ final class MulticamViewModelTests: XCTestCase {
                          captureOutcome: nil, isRecording: false, recordingElapsedMillis: nil,
                          needsQualityRematch: false,
                          collection: .idle, canFlipCamera: canFlipCamera,
-                         supportsFocusPoint: supportsFocusPoint, hasTorch: hasTorch,
+                         supportsFocusPoint: supportsFocusPoint,
+                         supportsManualExposure: supportsManualExposure, exposure: nil,
+                         supportsCinematicVideo: supportsCinematicVideo, cinematic: nil,
+                         hasTorch: hasTorch,
                          zoomFactor: zoomFactor, maxZoomFactor: maxZoomFactor,
                          zoomStops: zoomStops, wideAngleZoomFactor: wideAngleZoomFactor,
                          torchOn: torchOn, flashOn: flashOn)
+    }
+
+    /// The PRO tile is a property of the FOCUSED camera: refocusing from a
+    /// camera without pro controls to one with them makes it appear, and
+    /// Cinematic alone earns it only once the director is in video mode.
+    func testProTileFollowsFocusedCameraCapabilities() {
+        let vm = MulticamViewModel()
+        vm.apply([info(camA, focused: true), info(camB, supportsManualExposure: true)])
+        XCTAssertFalse(vm.showsProControls, "focused camera offers nothing")
+
+        vm.apply([info(camA), info(camB, focused: true, supportsManualExposure: true)])
+        XCTAssertTrue(vm.showsProControls, "focused camera does manual exposure")
+
+        vm.apply([info(camA), info(camB, focused: true, supportsCinematicVideo: true)])
+        XCTAssertFalse(vm.showsProControls, "Cinematic is not a photo control")
+        vm.mode = .video
+        XCTAssertTrue(vm.showsProControls)
+
+        vm.apply([info(camA), info(camB, status: .reconnecting, focused: true, supportsManualExposure: true)])
+        XCTAssertFalse(vm.showsProControls, "a dropped camera cannot be driven")
     }
 
     /// The shutter is a broadcast: cameras present is enough — focus is

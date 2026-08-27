@@ -31,15 +31,16 @@ struct FeatureFlags {
     /// one-time buy, and the entitlement code stays in place for when it flips on.
     static let ENABLE_PRO_SUBSCRIPTION = false
 
-    /// Multicam director mode: one monitor controlling several cameras with
-    /// synced capture. Off until the feature ships (target 9.1.0); while off,
-    /// cameras advertise `supports_multicam=false` and the scanner keeps its
-    /// single-camera flow.
     /// Pro controls (issue #206): manual shutter/ISO + Cinematic video from
-    /// the monitor. Gates only the monitor UI; the wire capability is always
+    /// the remote — on both the 1:1 monitor and the multicam director (the
+    /// screen a single camera lands on while `MULTICAM_FOR_SINGLE_CAMERA` is
+    /// on). Gates only the remote's UI; the wire capability is always
     /// advertised (harmless without a control).
     static let ENABLE_PRO_CONTROLS = true
 
+    /// Multicam director mode: one monitor controlling several cameras with
+    /// synced capture. While off, cameras advertise `supports_multicam=false`
+    /// and the scanner keeps its single-camera flow.
     static let ENABLE_MULTICAM = true
 
     /// Route a single connected camera to the multicam director too, instead

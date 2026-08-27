@@ -58,6 +58,11 @@ struct MulticamView: View {
     /// Tap-to-focus on the named camera (normalized upright coords; the host
     /// gates on the IAP, the controller on the peer's advertised support).
     let onFocusTap: (CameraLane, CGPoint) -> Void
+    /// Pro controls on the named camera (the focused one — the panel is
+    /// rendered for it, and the command carries it, like every per-camera
+    /// control here).
+    let onExposureChange: (CameraLane, ExposureIntent) -> Void
+    let onCinematicChange: (CameraLane, CinematicIntent) -> Void
     /// Leave the director screen, back to the scanner (links stay up; the
     /// scanner re-arms and re-selects the still-connected cameras).
     let onBack: () -> Void
@@ -86,12 +91,14 @@ struct MulticamView: View {
                 countdownOverlay
                 transientErrorToast
                 if viewModel.showingRigTray { rigTrayLayer }
+                if viewModel.showingProPanel { proPanelLayer }
 
                 #if DEBUG
                 SessionDebugOverlay()
                 #endif
             }
             .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.showingRigTray)
+            .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.showingProPanel)
             .sheet(isPresented: $viewModel.showingAddCamera) {
                 AddCameraSheet(peers: viewModel.availablePeers, onInvite: onInviteCamera)
             }
@@ -131,6 +138,11 @@ struct MulticamView: View {
                          onSetHDR: onSetHDR,
                          onSetAspectRatio: onSetAspectRatio,
                          onSetStandby: onSetStandby,
+                         showsProControls: viewModel.showsProControls,
+                         onOpenProControls: {
+                             viewModel.showingRigTray = false
+                             viewModel.showingProPanel = true
+                         },
                          // Close the tray first, as the 1:1 tray does — the
                          // sheet returns to a clean viewfinder.
                          onOpenSettings: {
@@ -142,6 +154,27 @@ struct MulticamView: View {
                              onOpenHelp()
                          })
                 .transition(.move(edge: .bottom))
+        }
+    }
+
+    /// The focused camera's pro-controls panel, in the tray's presentation.
+    /// Values are that camera's echoed truth; intents carry the lane.
+    @ViewBuilder
+    private var proPanelLayer: some View {
+        if let focused = viewModel.focusedLane {
+            ZStack(alignment: .bottom) {
+                Color.black.opacity(0.02)
+                    .ignoresSafeArea()
+                    .onTapGesture { viewModel.showingProPanel = false }
+                ProControlsPanel(supportsManualExposure: focused.supportsManualExposure,
+                                 exposure: focused.exposure,
+                                 supportsCinematicVideo: focused.supportsCinematicVideo,
+                                 cinematic: focused.cinematic,
+                                 isVideoMode: viewModel.mode == .video,
+                                 onExposureChange: { onExposureChange(focused, $0) },
+                                 onCinematicChange: { onCinematicChange(focused, $0) })
+                    .transition(.move(edge: .bottom))
+            }
         }
     }
 
@@ -814,6 +847,9 @@ struct RigTrayPanel: View {
     let onSetAspectRatio: (AspectRatio) -> Void
     /// Rig standby: blank (or wake) every supporting camera's own preview.
     let onSetStandby: (Bool) -> Void
+    /// The focused camera offers pro controls; tapping the tile opens them.
+    var showsProControls: Bool = false
+    var onOpenProControls: () -> Void = {}
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
     /// Open the help sheet (the same one every screen presents).
@@ -823,7 +859,8 @@ struct RigTrayPanel: View {
 
     var body: some View {
         TrayPanelShell(footnote: settings.blockerFootnote(for: mode)) {
-            ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable),
+            ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable,
+                                  showsProControls: showsProControls),
                     id: \.self) { item in
                 tile(for: item)
             }
@@ -872,10 +909,15 @@ struct RigTrayPanel: View {
             MonitorTrayTile(item: .help, value: nil,
                             isActive: false, isEnabled: true,
                             action: onOpenHelp)
-        case .frameRate, .proControls:
+        case .proControls:
+            // Usable mid-recording: the panel itself explains what recording
+            // locks (aperture), exactly as the 1:1 tray does.
+            MonitorTrayTile(item: .proControls, value: nil,
+                            isActive: false, isEnabled: true,
+                            action: onOpenProControls)
+        case .frameRate:
             // Not offered by `RigTray.items` — frame rate rides the single
-            // quality tile's intersection cycle, and pro controls are a 1:1
-            // monitor feature (multicam broadcast is a tracked follow-up).
+            // quality tile's intersection cycle.
             EmptyView()
         }
     }

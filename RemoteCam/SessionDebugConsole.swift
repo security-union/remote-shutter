@@ -15,13 +15,96 @@
 //    handler anywhere knows it exists.
 //  - `SessionDebugOverlay` renders the collected picture: local session
 //    state, connected devices, the latest CameraStateReport per peer, and a
-//    rolling command log (frames filtered — they'd drown everything).
+//    rolling command log (frames filtered — they'd drown everything). Tap a
+//    command row to see the message's fields (`MessageDump`).
 //
 //  Copyright © 2026 Security Union LLC. All rights reserved.
 //
 
 import Combine
 import SwiftUI
+
+// MARK: - Message dump (always compiled; pure, so it is unit-tested)
+
+/// Renders any `Message` as "field: value" lines by reflection, so every
+/// command — present and future — is inspectable in the console without a
+/// per-type describer. Nested payloads (capabilities, exposure state) indent;
+/// arrays show their count then their elements; shutter durations also show
+/// as a fraction so `0.008` reads as `1/125`.
+enum MessageDump {
+    /// Nesting past this shows a one-line summary instead of more fields.
+    static let maxDepth = 4
+
+    static func describe(_ message: Message) -> String {
+        let lines = fields(of: message, indent: 0)
+        return lines.isEmpty ? "(no fields)" : lines.joined(separator: "\n")
+    }
+
+    /// One line per stored property, walking up the class chain (payloads
+    /// subclass `Message`); the `sender` plumbing is not a field of interest.
+    private static func fields(of value: Any, indent: Int) -> [String] {
+        var lines: [String] = []
+        var mirror: Mirror? = Mirror(reflecting: value)
+        while let current = mirror {
+            for child in current.children {
+                guard let label = child.label, label != "sender" else { continue }
+                lines += render(label: label, value: child.value, indent: indent)
+            }
+            mirror = current.superclassMirror
+        }
+        return lines
+    }
+
+    private static func render(label: String, value: Any, indent: Int) -> [String] {
+        let pad = String(repeating: "  ", count: indent)
+        if isScalar(value) { return ["\(pad)\(label): \(scalar(value))"] }
+
+        let mirror = Mirror(reflecting: value)
+        switch mirror.displayStyle {
+        case .optional:
+            guard let inner = mirror.children.first?.value else { return ["\(pad)\(label): nil"] }
+            return render(label: label, value: inner, indent: indent)
+        case .collection, .set:
+            let items = mirror.children.map(\.value)
+            guard !items.isEmpty else { return ["\(pad)\(label): []"] }
+            var out = ["\(pad)\(label): [\(items.count)]"]
+            guard indent < maxDepth else { return out }
+            for (index, item) in items.enumerated() {
+                out += render(label: "[\(index)]", value: item, indent: indent + 1)
+            }
+            return out
+        case .struct, .class:
+            guard indent < maxDepth else { return ["\(pad)\(label): \(scalar(value))"] }
+            let nested = fields(of: value, indent: indent + 1)
+            guard !nested.isEmpty else { return ["\(pad)\(label): \(scalar(value))"] }
+            return ["\(pad)\(label):"] + nested
+        default:
+            // Enums (associated values print via description), tuples, ObjC.
+            return ["\(pad)\(label): \(scalar(value))"]
+        }
+    }
+
+    private static func isScalar(_ value: Any) -> Bool {
+        value is any BinaryInteger || value is any BinaryFloatingPoint
+            || value is Bool || value is String || value is Date || value is UUID
+    }
+
+    private static func scalar(_ value: Any) -> String {
+        switch value {
+        case let double as Double: return number(double)
+        case let float as Float: return number(Double(float))
+        case let cgFloat as CGFloat: return number(Double(cgFloat))
+        case let error as Error: return "error(\(error._domain) \(error._code))"
+        default: return String(describing: value)
+        }
+    }
+
+    /// Sub-second values double as a shutter fraction: `0.008 (1/125)`.
+    private static func number(_ value: Double) -> String {
+        guard value > 0, value < 0.25 else { return String(describing: value) }
+        return "\(value) (1/\(Int((1 / value).rounded())))"
+    }
+}
 
 // MARK: - Facade (always compiled; free in Release)
 
@@ -205,6 +288,9 @@ final class SessionDebugLog: ObservableObject, @unchecked Sendable {
         let kind: Kind
         let label: String
         let peerName: String?
+        /// The message's fields (`MessageDump`), shown when the row is
+        /// tapped. Empty for lifecycle notes.
+        var detail: String = ""
     }
 
     private static let trafficCap = 24
@@ -235,7 +321,8 @@ final class SessionDebugLog: ObservableObject, @unchecked Sendable {
             at: Date(),
             kind: direction == .sent ? .sent(ok: ok) : .received,
             label: String(describing: type(of: message)),
-            peerName: peer)
+            peerName: peer,
+            detail: MessageDump.describe(message))
         DispatchQueue.main.async {
             self.traffic.insert(entry, at: 0)
             if self.traffic.count > Self.trafficCap { self.traffic.removeLast() }
@@ -269,6 +356,8 @@ final class SessionDebugLog: ObservableObject, @unchecked Sendable {
 struct SessionDebugOverlay: View {
     @ObservedObject private var log = SessionDebugLog.shared
     @State private var isOpen = false
+    /// The traffic row whose message fields are unfolded (one at a time).
+    @State private var expandedEntryID: UUID?
 
     private static let clock: DateFormatter = {
         let formatter = DateFormatter()
@@ -359,10 +448,26 @@ struct SessionDebugOverlay: View {
 
     private var trafficSection: some View {
         VStack(alignment: .leading, spacing: 1) {
-            header("TRAFFIC (frames hidden)")
+            header("TRAFFIC (frames hidden · tap a command for its fields)")
             if log.traffic.isEmpty { caption("quiet") }
             ForEach(log.traffic) { entry in
-                trafficRow(entry)
+                VStack(alignment: .leading, spacing: 2) {
+                    trafficRow(entry)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            guard !entry.detail.isEmpty else { return }
+                            expandedEntryID = expandedEntryID == entry.id ? nil : entry.id
+                        }
+                    if expandedEntryID == entry.id {
+                        Text(entry.detail)
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.85))
+                            .textSelection(.enabled)
+                            .padding(6)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                    }
+                }
             }
         }
     }
