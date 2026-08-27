@@ -90,6 +90,22 @@ struct ProSliderScale: Equatable {
     }
 }
 
+// MARK: - Intent
+
+/// The ONE rule for whether an opened slider stays open: it survives only
+/// while its tile is still offered (the camera swapped, left video mode, or
+/// Cinematic turned off). Pure — both remote screens apply it from their
+/// WRITE paths, so no read ever mutates, and a vanished tile clears the
+/// choice instead of parking it (a parked choice once resurrected the
+/// aperture slider the instant Cinematic re-enabled, displacing the zoom
+/// pill with no tap).
+enum ProSliderIntent {
+    static func reconcile(active: ProSliderKind?, offeredTiles: [MonitorTrayItem]) -> ProSliderKind? {
+        guard let active, offeredTiles.contains(active.tile) else { return nil }
+        return active
+    }
+}
+
 // MARK: - Pill
 
 struct ProSliderPill: View {

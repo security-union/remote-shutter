@@ -83,8 +83,11 @@ final class MulticamViewModel: ObservableObject {
     @Published var isRecording: Bool = false
     /// When the rig actually started rolling — drives the classic
     /// `RecordingTimer` in the top bar. Nil unless recording.
-    /// Photo vs video shutter mode.
-    @Published var mode: MonitorMode = .photo
+    /// Photo vs video shutter mode. Changing it can retract pro tiles
+    /// (Cinematic is video-only), so the slider intent reconciles here.
+    @Published var mode: MonitorMode = .photo {
+        didSet { if mode != oldValue { reconcileProSlider() } }
+    }
     /// Focus (viewfinder + strip) vs grid (monitor wall) layout.
     @Published var displayMode: MulticamDisplayMode = .focus
     /// Cameras discovered but not yet in the rig — the add-camera sheet's list.
@@ -151,20 +154,18 @@ final class MulticamViewModel: ObservableObject {
                                     apertureAdjustable: (focused.cinematic?.minSimulatedAperture ?? 0) > 0)
     }
 
-    /// The open slider, as long as the focused camera still offers its tile.
-    /// When the tile goes away the choice is CLEARED, never parked: a parked
-    /// choice resurrected the aperture slider the instant Cinematic re-enabled
-    /// — a control appearing (and displacing attention) with no tap. A slider
-    /// is on screen only because the user opened it since its tile appeared.
+    /// The open slider — a pure read of `ProSliderIntent.reconcile`. The
+    /// clearing itself happens at the WRITE sites (`apply`, mode changes),
+    /// never here: a getter must not mutate.
     var visibleProSlider: ProSliderKind? {
-        guard let kind = activeProSlider else { return nil }
-        guard focusedProTiles.contains(kind.tile) else {
-            DispatchQueue.main.async { [weak self] in
-                if self?.activeProSlider == kind { self?.activeProSlider = nil }
-            }
-            return nil
-        }
-        return kind
+        ProSliderIntent.reconcile(active: activeProSlider, offeredTiles: focusedProTiles)
+    }
+
+    /// Write-path reconciliation: a slider whose tile vanished is closed for
+    /// good. Called wherever the offered tiles can change.
+    private func reconcileProSlider() {
+        let resolved = ProSliderIntent.reconcile(active: activeProSlider, offeredTiles: focusedProTiles)
+        if resolved != activeProSlider { activeProSlider = resolved }
     }
 
     /// The director's mode in the 1:1 monitor's vocabulary, for shared rules.
@@ -220,6 +221,8 @@ final class MulticamViewModel: ObservableObject {
         for gone in existing.values { gone.receiver.invalidate() }
 
         lanes = next
+        // Lane churn can change the focused camera's offered tiles.
+        reconcileProSlider()
         return created
     }
 

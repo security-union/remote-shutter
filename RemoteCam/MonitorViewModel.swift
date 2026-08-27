@@ -76,8 +76,11 @@ class MonitorViewModel: ObservableObject {
     /// Fold in the latest snapshot. The stale-drop rule (`absorb`) is applied
     /// HERE, where the value lives — callers cannot hand this model a state
     /// older than the one it shows, whatever order deliveries arrive in.
+    /// Synchronous on purpose: the presenter already hops to main, and a
+    /// second enqueue would only add a reordering surface to reason about.
     func applyControlState(_ state: ControlState) {
-        DispatchQueue.main.async { self.controlState = ControlState.absorb(self.controlState, state) }
+        dispatchPrecondition(condition: .onQueue(.main))
+        controlState = ControlState.absorb(controlState, state)
     }
 
     // MARK: - Zoom and Lens Properties (derived from `controlState`)

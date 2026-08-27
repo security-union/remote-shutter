@@ -84,10 +84,7 @@ final class MulticamViewModelTests: XCTestCase {
 
         vm.apply([info(camA, supportsManualExposure: true), info(camB, focused: true)])
         XCTAssertNil(vm.visibleProSlider, "camB has no shutter to slide")
-        // The vanished tile clears the stored choice (async main-hop).
-        let cleared = expectation(description: "choice cleared")
-        DispatchQueue.main.async { cleared.fulfill() }
-        wait(for: [cleared], timeout: 1)
+        // The write path cleared the stored choice synchronously.
         XCTAssertNil(vm.activeProSlider, "a hidden slider must not stay armed")
 
         vm.apply([info(camA, focused: true, supportsManualExposure: true), info(camB)])

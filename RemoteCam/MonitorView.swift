@@ -77,11 +77,11 @@ struct MonitorView: View {
                 SessionDebugOverlay()
                 #endif
             }
-            // A slider whose tile vanished is closed for good, not parked.
+            // A slider whose tile vanished is closed for good, not parked —
+            // the write-path half of ProSliderIntent.reconcile.
             .onChange(of: proTiles) { tiles in
-                if let kind = activeProSlider, !tiles.contains(kind.tile) {
-                    activeProSlider = nil
-                }
+                let resolved = ProSliderIntent.reconcile(active: activeProSlider, offeredTiles: tiles)
+                if resolved != activeProSlider { activeProSlider = resolved }
             }
         }
         // Catalyst's default style paints a bordered box behind controls that
@@ -403,13 +403,10 @@ struct MonitorView: View {
                              apertureAdjustable: (viewModel.cinematic?.minSimulatedAperture ?? 0) > 0)
     }
 
-    /// The open slider, as long as its tile is still offered. A vanished tile
-    /// CLEARS the choice (see the onChange below) rather than parking it — a
-    /// parked slider auto-revived when the tile returned, displacing the zoom
-    /// pill with no tap.
+    /// The open slider — the same pure rule the director uses; the write
+    /// happens in the `onChange` reconciliation, never in a read.
     private var visibleProSlider: ProSliderKind? {
-        guard let kind = activeProSlider, proTiles.contains(kind.tile) else { return nil }
-        return kind
+        ProSliderIntent.reconcile(active: activeProSlider, offeredTiles: proTiles)
     }
 
     /// Zoom and the pro slider are NOT rivals: Apple supports zoom while

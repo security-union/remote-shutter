@@ -85,6 +85,26 @@ final class ProSliderScaleTests: XCTestCase {
     }
 }
 
+/// The one open-slider rule both remote screens apply from their write
+/// paths: a slider survives only while its tile is offered; a vanished tile
+/// clears the choice — it never parks and never auto-revives.
+final class ProSliderIntentTests: XCTestCase {
+
+    func testSurvivesWhileItsTileIsOffered() {
+        XCTAssertEqual(ProSliderIntent.reconcile(active: .shutter, offeredTiles: [.shutter, .iso]), .shutter)
+        XCTAssertEqual(ProSliderIntent.reconcile(active: .aperture,
+                                                 offeredTiles: [.shutter, .iso, .cinematic, .aperture]), .aperture)
+    }
+
+    func testClearsWhenTheTileVanishes() {
+        XCTAssertNil(ProSliderIntent.reconcile(active: .aperture, offeredTiles: [.shutter, .iso, .cinematic]),
+                     "Cinematic off retracts the aperture tile — the choice must die with it")
+        XCTAssertNil(ProSliderIntent.reconcile(active: .shutter, offeredTiles: []),
+                     "a camera without manual exposure offers nothing to slide")
+        XCTAssertNil(ProSliderIntent.reconcile(active: nil, offeredTiles: [.shutter]))
+    }
+}
+
 /// The slider's send throttle: leading edge for responsiveness, trailing
 /// edge so the value the finger released on always reaches the wire — the
 /// zoom pill's send pattern (`ZoomSendThrottle`), packaged per slider.
