@@ -1651,6 +1651,24 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         try await onSessionQueueThrowing { try self.setZoomLocked(zoomFactor: zoomFactor) }
     }
 
+    /// The zoom range the camera can honor right now. Cinematic Video capture
+    /// restricts zoom to its own narrower band (`videoMin/MaxZoomFactorForCinematicVideo`);
+    /// outside Cinematic it is the device's available range. Every zoom clamp,
+    /// the range advertised to the monitor, and the getters read this — so the
+    /// remote's pill can never ask for a factor Cinematic will reject.
+    private func effectiveZoomBoundsLocked(_ device: AVCaptureDevice) -> (min: CGFloat, max: CGFloat) {
+        let deviceMin = device.minAvailableVideoZoomFactor
+        let deviceMax = device.maxAvailableVideoZoomFactor
+        if #available(iOS 26.0, macCatalyst 26.0, *),
+           videoDeviceInput?.isCinematicVideoCaptureEnabled == true {
+            let format = device.activeFormat
+            let cineMin = max(deviceMin, format.videoMinZoomFactorForCinematicVideo)
+            let cineMax = min(deviceMax, format.videoMaxZoomFactorForCinematicVideo)
+            if cineMax > cineMin { return (cineMin, cineMax) }
+        }
+        return (deviceMin, deviceMax)
+    }
+
     private func setZoomLocked(zoomFactor: CGFloat) throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         debugLog("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
@@ -1660,15 +1678,15 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
         }
 
+        let bounds = effectiveZoomBoundsLocked(device)
         debugLog("🔍 DEBUG: Current device: \(device.localizedName), position: \(device.position.rawValue)")
-        debugLog("🔍 DEBUG: Zoom range: \(device.minAvailableVideoZoomFactor) - \(device.maxAvailableVideoZoomFactor)")
+        debugLog("🔍 DEBUG: Zoom range: \(bounds.min) - \(bounds.max) (cinematic-aware)")
         debugLog("🔍 DEBUG: Current zoom: \(device.videoZoomFactor)")
 
         do {
             try device.lockForConfiguration()
 
-            let clampedZoom = max(device.minAvailableVideoZoomFactor,
-                                 min(zoomFactor, device.maxAvailableVideoZoomFactor))
+            let clampedZoom = max(bounds.min, min(zoomFactor, bounds.max))
 
             debugLog("🔍 DEBUG: Setting zoom from \(device.videoZoomFactor) to \(clampedZoom)")
             device.videoZoomFactor = clampedZoom
@@ -1681,10 +1699,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
             debugLog("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor), lens: \(currentLensType.displayName)")
 
-            let zoomRange = RemoteCmd.ZoomRange(
-                minZoom: device.minAvailableVideoZoomFactor,
-                maxZoom: device.maxAvailableVideoZoomFactor
-            )
+            let zoomRange = RemoteCmd.ZoomRange(minZoom: bounds.min, maxZoom: bounds.max)
 
             return (clampedZoom, currentLensType, zoomRange)
         } catch let error as NSError {
@@ -1698,11 +1713,17 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     func getMaxZoomFactor() async -> CGFloat {
-        await onSessionQueue { self.videoDeviceInput?.device.maxAvailableVideoZoomFactor ?? 1.0 }
+        await onSessionQueue {
+            guard let device = self.videoDeviceInput?.device else { return 1.0 }
+            return self.effectiveZoomBoundsLocked(device).max
+        }
     }
 
     func getMinZoomFactor() async -> CGFloat {
-        await onSessionQueue { self.videoDeviceInput?.device.minAvailableVideoZoomFactor ?? 1.0 }
+        await onSessionQueue {
+            guard let device = self.videoDeviceInput?.device else { return 1.0 }
+            return self.effectiveZoomBoundsLocked(device).min
+        }
     }
 
     // MARK: - Enhanced Lens Switching Methods

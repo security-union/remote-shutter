@@ -773,6 +773,10 @@ class LoopbackSessionTests: XCTestCase {
         let resp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetCinematicResp }.last
         XCTAssertEqual(resp?.state?.enabled, true)
         XCTAssertEqual(resp?.state?.simulatedAperture ?? 0, 2.8)
+        // Cinematic changes the zoom range: the camera re-advertises it so the
+        // monitor's pill re-scales (Cinematic narrows zoom; disabling widens it).
+        XCTAssertNotNil(cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetZoomResp }.last,
+                        "enabling Cinematic must republish the zoom range")
 
         monitorCoordinator.tell(UICmd.SetCinematic(intent: .off))
         await drainBothSessions()

@@ -65,7 +65,7 @@ final class ProSliderScaleTests: XCTestCase {
 
     func testLabelsSpeakPhotography() {
         XCTAssertEqual(ProSliderScale.shutter(exposure).label(1.0 / 125), "1/125")
-        XCTAssertEqual(ProSliderScale.iso(exposure).label(400), "ISO 400")
+        XCTAssertEqual(ProSliderScale.iso(exposure).label(400), "400", "the pill's title already says ISO")
         let phone = CinematicState(enabled: true, simulatedAperture: 2.8, minSimulatedAperture: 1.4,
                                    maxSimulatedAperture: 16, defaultSimulatedAperture: 2,
                                    apertureLocked: false, notEnoughLight: false)

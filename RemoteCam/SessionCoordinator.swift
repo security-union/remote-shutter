@@ -1434,6 +1434,15 @@ public actor SessionCoordinator {
         do {
             let state = try await ctrl.setCinematic(cmd.intent)
             await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: state, error: nil))
+            // Cinematic narrows (or, on disable, restores) the zoom range and
+            // may have clamped the current factor — tell the monitor so its
+            // zoom pill re-scales to what the camera can now honor.
+            await sendOrGoToScanning(RemoteCmd.SetZoomResp(
+                zoomFactor: await ctrl.getCurrentZoomFactor(),
+                currentLens: nil,
+                zoomRange: RemoteCmd.ZoomRange(minZoom: await ctrl.getMinZoomFactor(),
+                                               maxZoom: await ctrl.getMaxZoomFactor()),
+                error: nil))
         } catch let refusal as CaptureEngine.CinematicRefusal {
             // A refusal is a message for the person at the remote, not a fault.
             await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: nil, error: refusal.asNSError))

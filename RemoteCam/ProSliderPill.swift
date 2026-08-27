@@ -78,10 +78,13 @@ struct ProSliderScale: Equatable {
                                        stops: ProStops.allApertures.map { Double($0) }))
     }
 
+    /// The value only — the pill's readout prefixes the control name (the
+    /// `kind.title`), so ISO must not repeat it. (`ProStops.isoLabel`, which
+    /// includes "ISO", is for the camera chip that shows the value alone.)
     func label(_ value: Double) -> String {
         switch kind {
         case .shutter: return ProStops.shutterLabel(value)
-        case .iso: return ProStops.isoLabel(Float(value))
+        case .iso: return String(Int(value.rounded()))
         case .aperture: return ProStops.apertureLabel(Float(value))
         }
     }
