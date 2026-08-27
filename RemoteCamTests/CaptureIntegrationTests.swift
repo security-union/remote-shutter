@@ -427,6 +427,33 @@ final class CaptureIntegrationTests: XCTestCase {
         }
     }
 
+    /// With Manual on, the session may be running a physical lens of the
+    /// chosen virtual camera. The flip and the advertised active device must
+    /// still speak in terms of the chosen camera: a flip goes to the other
+    /// position (this pinned a field bug — "Unable to find camera position"),
+    /// and Auto afterwards stays on the camera the flip landed on.
+    func testFlipKeepsWorkingWhileManualExposureHasHopped() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            return XCTFail("startup never delivered frames — \(await diagnostics())")
+        }
+        let devices = await rig.availableCameraDevices()
+        guard devices.count >= 2 else { throw XCTSkip("needs two selectable cameras to flip between") }
+        let before = await rig.currentCameraDevice()
+        let state = try await rig.setExposure(ExposureIntent.manual(durationSeconds: 1.0 / 250, iso: 0))
+        guard state.mode == .manual else { throw XCTSkip("no device here accepts custom exposure") }
+
+        _ = try await rig.toggleCamera()
+        let after = await rig.currentCameraDevice()
+        XCTAssertNotEqual(after?.uniqueID, before?.uniqueID, "the flip must land on the other camera")
+        XCTAssertTrue(devices.contains { $0.uniqueID == after?.uniqueID },
+                      "the reported camera is one the user can choose, never a hopped physical lens")
+
+        _ = try await rig.setExposure(ExposureIntent.auto)
+        let restored = await rig.currentCameraDevice()
+        XCTAssertEqual(restored?.uniqueID, after?.uniqueID, "Auto stays on the camera the flip chose")
+    }
+
     /// Manual exposure applied to the active device reads back within
     /// tolerance, and Auto restores continuous AE and the frame rate.
     func testManualExposureAppliesAndAutoRestores() async throws {

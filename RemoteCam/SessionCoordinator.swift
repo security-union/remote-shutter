@@ -1434,6 +1434,9 @@ public actor SessionCoordinator {
         do {
             let state = try await ctrl.setCinematic(cmd.intent)
             await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: state, error: nil))
+        } catch let refusal as CaptureEngine.CinematicRefusal {
+            // A refusal is a message for the person at the remote, not a fault.
+            await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: nil, error: refusal.asNSError))
         } catch {
             await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: nil, error: error as NSError))
         }
@@ -2457,6 +2460,7 @@ public actor SessionCoordinator {
 
         case let exposureResp as RemoteCmd.SetExposureResp:
             monitor?.updateExposure(exposureResp.state)
+            if let error = exposureResp.error { showErrorAlert(error._domain) }
 
         case let cinematic as UICmd.SetCinematic:
             guard peerSupportsCinematicVideo else {
@@ -2467,6 +2471,10 @@ public actor SessionCoordinator {
 
         case let cinematicResp as RemoteCmd.SetCinematicResp:
             monitor?.updateCinematic(cinematicResp.state)
+            // A refused toggle is said out loud (the camera-switch rule): the
+            // tile already shows the unchanged truth, so silence would read
+            // as "the button does nothing".
+            if let error = cinematicResp.error { showErrorAlert(error._domain) }
 
         case let preview as UICmd.SetCameraPreviewMode:
             // Wire-safety gate mirroring FocusAtPoint: never send action 24 to a
@@ -2825,6 +2833,7 @@ public actor SessionCoordinator {
 
         case let exposureResp as RemoteCmd.SetExposureResp:
             monitor?.updateExposure(exposureResp.state)
+            if let error = exposureResp.error { showErrorAlert(error._domain) }
 
         case let cinematic as UICmd.SetCinematic:
             guard peerSupportsCinematicVideo else {
@@ -2835,6 +2844,10 @@ public actor SessionCoordinator {
 
         case let cinematicResp as RemoteCmd.SetCinematicResp:
             monitor?.updateCinematic(cinematicResp.state)
+            // A refused toggle is said out loud (the camera-switch rule): the
+            // tile already shows the unchanged truth, so silence would read
+            // as "the button does nothing".
+            if let error = cinematicResp.error { showErrorAlert(error._domain) }
 
         case let preview as UICmd.SetCameraPreviewMode:
             guard peerSupportsPreviewMode else {
