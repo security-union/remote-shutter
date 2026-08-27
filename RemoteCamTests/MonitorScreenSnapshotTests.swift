@@ -37,10 +37,13 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
     private func makeConnectedModel() -> MonitorViewModel {
         let model = MonitorViewModel()
         model.frames.cameraImage = syntheticCameraFrame()
-        model.availableLensTypes = [.ultraWide, .wideAngle, .telephoto]
-        model.currentLensType = .wideAngle
-        model.zoomStops = [1.0, 2.0, 5.0]
-        model.currentZoomFactor = 1.0
+        // Zoom / lens are computed off the control snapshot now — seed it.
+        model.applyControlState(ControlState(
+            seq: 1,
+            currentLens: .wideAngle,
+            availableLenses: [.ultraWide, .wideAngle, .telephoto],
+            zoomFactor: 1.0, minZoom: 1.0, maxZoom: 5.0,
+            zoomStops: [1.0, 2.0, 5.0], wideAngleZoomFactor: 1.0))
         return model
     }
 

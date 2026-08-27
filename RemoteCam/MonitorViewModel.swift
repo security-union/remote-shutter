@@ -62,21 +62,36 @@ class MonitorViewModel: ObservableObject {
     @Published var recordingElapsedMillis: UInt64?
     var isShowingRecordingDuration: Bool { uiState == .videoRecording }
     
-    // MARK: - Zoom and Lens Properties
-    @Published var currentZoomFactor: CGFloat = 1.0
-    @Published var maxZoomFactor: CGFloat = 10.0
-    @Published var availableLensTypes: [CameraLensType] = [.wideAngle]
-    @Published var currentLensType: CameraLensType = .wideAngle
-    @Published var zoomStops: [CGFloat] = [1.0]
-    @Published var wideAngleZoomFactor: CGFloat = 1.0 // Hardware zoom for "1x" reference
+    // MARK: - Control Plane (the ONE stored control fact)
 
-    /// Zoom math for every control on this screen — pinch and the zoom pill. Derived
-    /// rather than stored so it can never disagree with the published values it is
-    /// built from.
+    /// The camera's whole control-plane truth, as of the last snapshot the
+    /// coordinator folded in (v11: `ControlStateChanged` / capabilities seed).
+    /// Every control the screen shows — zoom range, lens list, exposure and
+    /// Cinematic capability and values — is a PURE read of this one value
+    /// (the computed vars below). Nothing derived is ever stored, so nothing
+    /// derived can go stale: a control can only be wrong if this snapshot is,
+    /// and this snapshot is replaced wholesale, never patched field by field.
+    @Published private(set) var controlState: ControlState?
+
+    /// Fold in the latest snapshot. The stale-drop rule (`absorb`) is applied
+    /// HERE, where the value lives — callers cannot hand this model a state
+    /// older than the one it shows, whatever order deliveries arrive in.
+    func applyControlState(_ state: ControlState) {
+        DispatchQueue.main.async { self.controlState = ControlState.absorb(self.controlState, state) }
+    }
+
+    // MARK: - Zoom and Lens Properties (derived from `controlState`)
+
+    var currentZoomFactor: CGFloat { controlState?.zoomFactor ?? 1.0 }
+    var availableLensTypes: [CameraLensType] { controlState?.availableLenses ?? [.wideAngle] }
+    var currentLensType: CameraLensType { controlState?.currentLens ?? .wideAngle }
+
+    /// Zoom math for every control on this screen — pinch and the zoom pill.
+    /// Comes straight off the snapshot's own `zoomScale`, so its range is
+    /// already whatever the camera can honor right now (e.g. narrowed under
+    /// Cinematic) with no combining left to this screen.
     var zoomScale: ZoomScale {
-        ZoomScale(stops: zoomStops,
-                  maxZoomFactor: maxZoomFactor,
-                  wideAngleZoomFactor: wideAngleZoomFactor)
+        controlState?.zoomScale ?? ZoomScale(stops: [1.0], maxZoomFactor: 1.0, wideAngleZoomFactor: 1.0)
     }
 
     // MARK: - Aspect Ratio Properties
@@ -202,26 +217,9 @@ class MonitorViewModel: ObservableObject {
         }
     }
     
-    func updateZoomFactor(_ factor: CGFloat, maxFactor: CGFloat) {
-        DispatchQueue.main.async {
-            self.currentZoomFactor = factor
-            self.maxZoomFactor = ZoomScaleSeed.clampMaxZoom(maxFactor, wideAngle: self.wideAngleZoomFactor)
-        }
-    }
-    
-    func updateAvailableLenses(_ lenses: [CameraLensType], current: CameraLensType) {
-        DispatchQueue.main.async {
-            self.availableLensTypes = lenses
-            self.currentLensType = current
-        }
-    }
-
-    func updateZoomStops(_ stops: [CGFloat], wideAngleZoomFactor: CGFloat) {
-        DispatchQueue.main.async {
-            self.zoomStops = stops
-            self.wideAngleZoomFactor = wideAngleZoomFactor
-        }
-    }
+    // Zoom, lens, and stops are no longer pushed field by field: they are
+    // computed off `controlState`, updated by `applyControlState`. The old
+    // updateZoomFactor / updateAvailableLenses / updateZoomStops are gone.
 
     func updateAspectRatio(_ ratio: AspectRatio) {
         DispatchQueue.main.async {
@@ -260,16 +258,20 @@ class MonitorViewModel: ObservableObject {
     /// the standby tray tile — an older camera ignores the command, so offering
     /// a control that does nothing would be worse than hiding it.
     @Published var supportsCameraStandby: Bool = false
+
+    // Pro-controls capability and truth are pure reads of `controlState`:
+    // capability IS presence (a nil field means the active camera can't do
+    // it — no tile, no command), and the values are the camera's echo, never
+    // what the pill last dragged to.
     /// Whether the peer's ACTIVE camera can do manual exposure. Gates the
     /// exposure control — absent, not disabled, when the camera can't.
-    @Published var supportsManualExposure: Bool = false
-    /// The camera's echoed exposure truth (mode, shutter, ISO, ranges). The
-    /// monitor renders only this, never the value it last dragged to.
-    @Published var exposure: ExposureState?
+    var supportsManualExposure: Bool { controlState?.supportsManualExposure ?? false }
+    /// The camera's echoed exposure truth (mode, shutter, ISO, ranges).
+    var exposure: ExposureState? { controlState?.exposure }
     /// Whether the peer can record Cinematic video (iOS 26+ camera).
-    @Published var supportsCinematicVideo: Bool = false
+    var supportsCinematicVideo: Bool { controlState?.supportsCinematicVideo ?? false }
     /// The camera's echoed Cinematic truth.
-    @Published var cinematic: CinematicState?
+    var cinematic: CinematicState? { controlState?.cinematic }
 
     // MARK: - Video Quality Update Methods
     func updateVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) {

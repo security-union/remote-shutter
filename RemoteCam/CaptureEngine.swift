@@ -147,6 +147,16 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// Fired whenever camera status (resolution/frame rate/format/HDR) changes so
     /// the VC can refresh its status overlay.
     var onStatusChanged: (() -> Void)?
+    /// Fired whenever the control snapshot changes WITHOUT the remote asking
+    /// (device swap, quality change) — the coordinator turns it into an
+    /// unsolicited `ControlStateChanged` push. Requested mutations return
+    /// their snapshot instead.
+    var onControlStateChanged: ((ControlState) -> Void)?
+    /// The camera's photo/video mode, owned by the rig; part of the snapshot.
+    var recordingModeProvider: () -> RecordingMode = { .Photo }
+    /// Monotonic snapshot counter, epoch-seeded so it survives engine
+    /// restarts (the remote's `absorb` drops anything older).
+    private var controlSeq = UInt64(Date().timeIntervalSince1970 * 1000)
     /// The capture device was swapped underneath the running outputs — a flip, a
     /// device pick, or a lens switch. The scene cuts completely, but the preview
     /// encoder is not recreated unless the *scaled* dimensions happen to change
@@ -437,14 +447,15 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         // Every device swap funnels through here — toggle, device pick and lens
         // switch alike — so this is the one place that has to announce the cut.
         onDeviceSwapped?()
+        // A swap moves every constraint at once; the remote is told without
+        // asking (requested mutations return their own snapshot as well —
+        // `absorb` collapses the duplicate).
+        pushControlStateLocked()
 
         return CameraSelectionResult(
             device: descriptorLocked(newDevice),
             flashMode: newFlashMode,
             availableLensTypes: availableLensTypes,
-            zoomRange: RemoteCmd.ZoomRange(
-                minZoom: newDevice.minAvailableVideoZoomFactor,
-                maxZoom: newDevice.maxAvailableVideoZoomFactor),
             currentZoom: currentZoomFactor)
     }
 
@@ -1014,19 +1025,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         // Check if any camera on this position has torch
         let hasTorch = videoDevices.contains { $0.hasTorch }
 
-        // Gather zoom capabilities for each lens type
-        var zoomCapabilities: [CameraLensType: RemoteCmd.ZoomRange] = [:]
-
-        for lensType in availableLenses {
-            if let device = videoDevices.first(where: { $0.deviceType == lensType.deviceType }) {
-                let zoomRange = RemoteCmd.ZoomRange(
-                    minZoom: device.minAvailableVideoZoomFactor,
-                    maxZoom: device.maxAvailableVideoZoomFactor
-                )
-                zoomCapabilities[lensType] = zoomRange
-            }
-        }
-
         // Gather quality capabilities — probe each resolution's actual FPS limits
         let supportedResolutions = VideoResolution.selectableCases.filter { r in
             captureSession.canSetSessionPreset(r.sessionPreset)
@@ -1049,23 +1047,15 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         let supportsHEIF = photoOutput.availablePhotoCodecTypes.contains(.hevc)
         let supportsHDR = true // All iOS 15+ devices support .quality prioritization (HDR)
 
-        // Discover zoom stops from the preferred (virtual) device
-        let preferredDevice = preferredCamera(for: position)
-        let discoveredZoomStops = preferredDevice.map { discoverZoomStops(for: $0) } ?? [1.0]
-        let wideAngle = preferredDevice.map { wideAngleZoomFactor(for: $0) } ?? 1.0
-
         return RemoteCmd.CameraInfo(
             availableLenses: availableLenses,
             hasFlash: hasFlash,
             hasTorch: hasTorch,
-            zoomCapabilities: zoomCapabilities,
             supportedResolutions: supportedResolutions,
             supportedFrameRates: supportedFrameRates,
             resolutionFrameRates: resolutionFrameRates,
             supportsHEIF: supportsHEIF,
-            supportsHDR: supportsHDR,
-            zoomStops: discoveredZoomStops,
-            wideAngleZoomFactor: wideAngle
+            supportsHDR: supportsHDR
         )
     }
 
@@ -1116,23 +1106,16 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         debugLog("🔍 DEBUG: frontCameraInfo: \(frontCameraInfo != nil ? "available" : "nil")")
         debugLog("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
 
-        let (deviceEntries, activeDeviceID) = cameraDeviceEntriesLocked()
+        let (deviceEntries, _) = cameraDeviceEntriesLocked()
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo,
             backCamera: backCameraInfo,
             currentCamera: currentDevice.position,
-            currentLens: currentLensType,
-            currentZoom: currentZoomFactor,
             currentVideoResolution: currentVideoResolution,
             currentVideoFrameRate: currentVideoFrameRate,
             currentPhotoFormat: currentPhotoFormat,
             currentHDRMode: currentHDRMode,
             cameraDevices: deviceEntries,
-            activeDeviceID: activeDeviceID,
-            // Matches setFocusExposurePointLocked's apply predicate: a device that
-            // supports only exposure POI still benefits from a tap.
-            supportsFocusPoint: currentDevice.isFocusPointOfInterestSupported
-                || currentDevice.isExposurePointOfInterestSupported,
             // This build understands SetCameraPreviewMode; advertise the current
             // persisted mode so the monitor reflects it from the first exchange.
             supportsPreviewMode: true,
@@ -1140,14 +1123,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // release the director UI ships.
             supportsMulticam: FeatureFlags.ENABLE_MULTICAM,
             previewMode: CameraPreviewModeStore().load(),
-            // A property of the ACTIVE device, re-advertised on every
-            // capabilities refresh after a swap. Virtual devices qualify when
-            // their active physical lens accepts .custom (the engine hops to
-            // it when Manual is engaged).
-            supportsManualExposure: deviceSupportsManualExposureLocked(currentDevice),
-            exposure: exposureStateLocked(currentDevice),
-            supportsCinematicVideo: supportsCinematicVideoLocked(),
-            cinematic: currentCinematicStateLocked(),
+            // The control-plane seed: the same snapshot ControlStateChanged
+            // pushes, so the first exchange configures the remote completely.
+            control: controlStateLocked(),
             error: nil
         )
 
@@ -1179,10 +1157,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         return RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle],
             hasFlash: device.hasFlash,
-            hasTorch: device.hasTorch,
-            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(
-                minZoom: device.minAvailableVideoZoomFactor,
-                maxZoom: device.maxAvailableVideoZoomFactor)])
+            hasTorch: device.hasTorch)
         #else
         switch device.position {
         case .front: return frontCameraInfo
@@ -1190,6 +1165,47 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         default: return nil
         }
         #endif
+    }
+
+    // MARK: - Control snapshot (the ONE producer)
+
+    /// The camera's complete control-plane truth. This is the only function
+    /// that assembles a `ControlState`, so every range in it is effective by
+    /// construction: zoom bounds come from `effectiveZoomBoundsLocked`
+    /// (Cinematic-aware), identity from `logicalDeviceIDLocked` (the Manual
+    /// hop never leaks), capability from presence.
+    private func controlStateLocked() -> ControlState? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard let device = videoDeviceInput?.device else { return nil }
+        controlSeq += 1
+        let bounds = effectiveZoomBoundsLocked(device)
+        return ControlState(
+            seq: controlSeq,
+            mode: recordingModeProvider(),
+            activeDeviceID: logicalDeviceIDLocked(),
+            currentLens: currentLensType,
+            availableLenses: availableLensTypes.isEmpty ? [.wideAngle] : availableLensTypes,
+            zoomFactor: currentZoomFactor,
+            minZoom: bounds.min,
+            maxZoom: bounds.max,
+            zoomStops: zoomStops,
+            wideAngleZoomFactor: wideAngleZoomFactor(for: device),
+            // Matches setFocusExposurePointLocked's apply predicate: a device
+            // that supports only exposure POI still benefits from a tap.
+            supportsFocusPoint: device.isFocusPointOfInterestSupported
+                || device.isExposurePointOfInterestSupported,
+            exposure: deviceSupportsManualExposureLocked(device) ? exposureStateLocked(device) : nil,
+            cinematic: supportsCinematicVideoLocked() ? currentCinematicStateLocked() : nil)
+    }
+
+    func controlState() async -> ControlState? {
+        await onSessionQueue { self.controlStateLocked() }
+    }
+
+    /// Announce a constraint move the remote did not ask about.
+    private func pushControlStateLocked() {
+        guard let state = controlStateLocked() else { return }
+        onControlStateChanged?(state)
     }
 
     // MARK: - Focus / Exposure Point
@@ -1288,11 +1304,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     /// Stores the monitor's intent and makes the device match it. Returns the
     /// device's exposure truth afterwards (the response payload).
-    func setExposure(_ intent: ExposureIntent) async throws -> ExposureState {
+    func setExposure(_ intent: ExposureIntent) async throws -> ControlState {
         try await onSessionQueueThrowing {
             self.exposureIntent = intent
             self.reconcileExposureDeviceLocked()
-            guard let state = self.applyExposureIntentLocked() else {
+            guard self.applyExposureIntentLocked() != nil,
+                  let state = self.controlStateLocked() else {
                 throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
             }
             return state
@@ -1434,10 +1451,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     /// Stores the monitor's intent and makes the session match it. Returns the
     /// camera's Cinematic truth afterwards (the response payload).
-    func setCinematic(_ intent: CinematicIntent) async throws -> CinematicState {
+    func setCinematic(_ intent: CinematicIntent) async throws -> ControlState {
         try await onSessionQueueThrowing {
             self.cinematicIntent = intent
-            guard let state = try self.applyCinematicIntentLocked() else {
+            guard try self.applyCinematicIntentLocked() != nil,
+                  let state = self.controlStateLocked() else {
                 throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
             }
             return state
@@ -1472,7 +1490,27 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             }
         }
 
-        var asNSError: NSError { NSError(domain: message, code: 0, userInfo: nil) }
+        /// The wire-level refusal reason carried in `ControlStateChanged`, so
+        /// the remote renders one typed message (`ControlRefusalReason`) rather
+        /// than parsing this string.
+        var reason: ControlRefusalReason {
+            switch self {
+            case .photoMode: return .photoMode
+            case .recording: return .recording
+            case .unsupported: return .unsupported
+            case .sessionRefused: return .sessionRefused
+            }
+        }
+
+        /// The diagnostic suffix the remote appends to the reason's base
+        /// message. Nil where the reason alone says everything.
+        var detail: String? {
+            switch self {
+            case .photoMode, .recording: return nil
+            case let .unsupported(device): return device
+            case let .sessionRefused(device, format, outputs): return "\(device) (\(format); outputs: \(outputs))"
+            }
+        }
     }
 
     /// Rig hook for mode changes: leaving video mode switches the effect off
@@ -1647,8 +1685,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     // MARK: - Enhanced Zoom Control Methods
-    func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
-        try await onSessionQueueThrowing { try self.setZoomLocked(zoomFactor: zoomFactor) }
+    func setZoom(zoomFactor: CGFloat) async throws -> ControlState {
+        try await onSessionQueueThrowing {
+            try self.setZoomLocked(zoomFactor: zoomFactor)
+            guard let state = self.controlStateLocked() else {
+                throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
+            }
+            return state
+        }
     }
 
     /// The zoom range the camera can honor right now. Cinematic Video capture
@@ -1669,7 +1713,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         return (deviceMin, deviceMax)
     }
 
-    private func setZoomLocked(zoomFactor: CGFloat) throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
+    private func setZoomLocked(zoomFactor: CGFloat) throws {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         debugLog("🔍 DEBUG: setZoom called with factor: \(zoomFactor)")
 
@@ -1698,10 +1742,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             device.unlockForConfiguration()
 
             debugLog("✅ DEBUG: Zoom set successfully to \(device.videoZoomFactor), lens: \(currentLensType.displayName)")
-
-            let zoomRange = RemoteCmd.ZoomRange(minZoom: bounds.min, maxZoom: bounds.max)
-
-            return (clampedZoom, currentLensType, zoomRange)
         } catch let error as NSError {
             debugLog("❌ DEBUG: Error setting zoom: \(error.localizedDescription)")
             throw error
@@ -1766,11 +1806,17 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
-    func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
-        try await onSessionQueueThrowing { try self.switchLensLocked(to: lensType) }
+    func switchLens(to lensType: CameraLensType) async throws -> ControlState {
+        try await onSessionQueueThrowing {
+            try self.switchLensLocked(to: lensType)
+            guard let state = self.controlStateLocked() else {
+                throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
+            }
+            return state
+        }
     }
 
-    private func switchLensLocked(to lensType: CameraLensType) throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
+    private func switchLensLocked(to lensType: CameraLensType) throws {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard let device = self.videoDeviceInput?.device else {
             throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
@@ -1784,12 +1830,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         currentZoomFactor = clampedZoom
         currentLensType = lensType
         device.unlockForConfiguration()
-
-        let zoomRange = RemoteCmd.ZoomRange(
-            minZoom: device.minAvailableVideoZoomFactor,
-            maxZoom: device.maxAvailableVideoZoomFactor
-        )
-        return (lensType, availableLensTypes, currentZoomFactor, zoomRange)
     }
 
     func getAvailableLensTypes() async -> [CameraLensType] {
@@ -1990,6 +2030,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         currentVideoFrameRate = appliedFrameRate
         fpsSetting.value = appliedFrameRate.value
         onStatusChanged?()
+        // A format change moves the exposure ranges and frame-rate cap.
+        pushControlStateLocked()
 
         return (resolution, appliedFrameRate)
     }

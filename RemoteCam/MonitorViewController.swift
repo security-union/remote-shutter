@@ -54,8 +54,10 @@ public class MonitorViewController: UIViewController {
     private var zoomLabelTimer: Timer?
     
     // MARK: - Zoom and Lens Properties
-    var currentZoomFactor: CGFloat = 1.0
-    public var maxZoomFactor: CGFloat = 10.0
+    // Zoom factor, max zoom, and the lens list are no longer stored on the
+    // controller: they live in the one `MonitorViewModel.controlState`
+    // snapshot and are read from it. The pill's own pending value covers the
+    // in-flight echo during a drag.
 
     /// Zoom sends are throttled to 20Hz with a trailing-edge flush. A continuous drag on
     /// the Mac zoom pill emits a value per frame, which would flood the Multipeer channel;
@@ -67,7 +69,6 @@ public class MonitorViewController: UIViewController {
     /// `proSender(for:)`).
     var proSenders: [ProSliderKind: ThrottledValueSender] = [:]
     var trailingZoomTimer: Timer?
-    var availableLensTypes: [CameraLensType] = [.wideAngle]
     var currentLensType: CameraLensType = .wideAngle
 
     var buttonPrompt: String = ""

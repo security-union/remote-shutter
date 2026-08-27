@@ -227,34 +227,29 @@ public actor SessionCoordinator {
     /// Selecting a device on a peer that has none is meaningless, so don't.
     private var peerAdvertisedCameraDevices = false
 
-    /// Whether the connected camera peer advertised focus-point support in its
-    /// capabilities — the feature gate for `RemoteCmd.FocusAtPoint`.
-    private var peerSupportsFocusPoint = false
+    /// The camera peer's latest control-plane snapshot — the ONE source for
+    /// every live gate (focus / exposure / Cinematic) and range. Seeded by
+    /// capabilities, replaced by each `ControlStateChanged`; `nil` until the
+    /// first exchange. Capability IS presence: `.exposure != nil` gates
+    /// `SetExposure`, `.cinematic != nil` gates `SetCinematic`,
+    /// `.supportsFocusPoint` gates `FocusAtPoint`.
+    private var peerControl: ControlState?
 
     /// Test support.
-    func peerSupportsFocusPointForTesting() -> Bool { peerSupportsFocusPoint }
+    func peerControlForTesting() -> ControlState? { peerControl }
+    /// Derived views of the same snapshot, kept so behavior tests read the
+    /// gate exactly as the send paths do (capability = presence).
+    func peerSupportsManualExposureForTesting() -> Bool { peerControl?.exposure != nil }
+    func peerSupportsCinematicVideoForTesting() -> Bool { peerControl?.cinematic != nil }
+    func peerSupportsFocusPointForTesting() -> Bool { peerControl?.supportsFocusPoint == true }
 
     /// Whether the connected camera peer advertised preview-mode support in its
     /// capabilities — the feature gate for `RemoteCmd.SetCameraPreviewMode`.
+    /// A session-level flag, not part of the control snapshot.
     private var peerSupportsPreviewMode = false
 
     /// Test support.
     func peerSupportsPreviewModeForTesting() -> Bool { peerSupportsPreviewMode }
-
-    /// Whether the connected camera peer's ACTIVE device advertised manual
-    /// exposure — the feature gate for `RemoteCmd.SetExposure`. Re-absorbed on
-    /// every capabilities refresh because it changes with the device.
-    private var peerSupportsManualExposure = false
-
-    /// Test support.
-    func peerSupportsManualExposureForTesting() -> Bool { peerSupportsManualExposure }
-
-    /// Whether the connected camera peer advertised Cinematic-video support —
-    /// the feature gate for `RemoteCmd.SetCinematic`.
-    private var peerSupportsCinematicVideo = false
-
-    /// Test support.
-    func peerSupportsCinematicVideoForTesting() -> Bool { peerSupportsCinematicVideo }
 
     /// Monitor side: at least one VP9 preview frame has arrived. Proves the
     /// camera peer speaks VP9, which gates sending `RemoteCmd.RequestKeyframe`.
@@ -805,10 +800,8 @@ public actor SessionCoordinator {
     func popToScanning() async {
         lastCameraStateReportSeq = 0
         peerAdvertisedCameraDevices = false
-        peerSupportsFocusPoint = false
         peerSupportsPreviewMode = false
-        peerSupportsManualExposure = false
-        peerSupportsCinematicVideo = false
+        peerControl = nil
         monitorReceivedVP9Frame = false
         // The session is being torn down for good (deliberate leave, EndSession,
         // or a dead link) — a fresh session starts single-cam until a director
@@ -1243,7 +1236,7 @@ public actor SessionCoordinator {
                 // device and the confirm above passes. Landing back on the
                 // pre-toggle device means the switch failed — say so instead
                 // of reporting a no-op success.
-                if let before, let after = capabilities?.activeDeviceID, after == before {
+                if let before, let after = capabilities?.control?.activeDeviceID, after == before {
                     await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
                         cameraCapabilities: nil, error: couldNotSwitchCameraError()))
                 } else {
@@ -1263,7 +1256,7 @@ public actor SessionCoordinator {
                 let capabilities = await ctrl.gatherCurrentCameraCapabilities()
                 // Same truth check as the toggle: not on the requested device
                 // after the confirm ⇒ the engine reverted a failed switch.
-                if let after = capabilities?.activeDeviceID, after != select.uniqueID {
+                if let after = capabilities?.control?.activeDeviceID, after != select.uniqueID {
                     await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
                         cameraCapabilities: nil, error: couldNotSwitchCameraError()))
                 } else {
@@ -1300,14 +1293,7 @@ public actor SessionCoordinator {
             }
 
         case let zoom as RemoteCmd.SetZoom:
-            do {
-                let (factor, lens, range) = try await ctrl.setZoom(zoomFactor: zoom.zoomFactor)
-                await sendOrGoToScanning(RemoteCmd.SetZoomResp(
-                    zoomFactor: factor, currentLens: lens, zoomRange: range, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SetZoomResp(
-                    zoomFactor: nil, currentLens: nil, zoomRange: nil, error: error as NSError))
-            }
+            await respondWithControlState(ctrl) { try await ctrl.setZoom(zoomFactor: zoom.zoomFactor) }
 
         case let focus as RemoteCmd.FocusAtPoint:
             // Fire-and-forget: the monitor already showed its reticle. A device
@@ -1315,20 +1301,18 @@ public actor SessionCoordinator {
             try? await ctrl.focusAtPoint(x: focus.x, y: focus.y)
 
         case let exposure as RemoteCmd.SetExposure:
-            await handleSetExposure(exposure, ctrl: ctrl)
+            await respondWithControlState(ctrl) { try await ctrl.setExposure(exposure.intent) }
 
         case let cinematic as RemoteCmd.SetCinematic:
-            await handleSetCinematic(cinematic, ctrl: ctrl)
+            await respondWithControlState(ctrl) { try await ctrl.setCinematic(cinematic.intent) }
 
         case let lens as RemoteCmd.SwitchLens:
-            do {
-                let (lensType, available, zoom, range) = try await ctrl.switchLens(to: lens.lensType)
-                await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
-                    lensType: lensType, availableLenses: available, currentZoom: zoom, zoomRange: range, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
-                    lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error as NSError))
-            }
+            await respondWithControlState(ctrl) { try await ctrl.switchLens(to: lens.lensType) }
+
+        case let push as UICmd.PushControlState:
+            // A constraint moved without a remote command (device swap, mode
+            // change): forward the fresh snapshot unsolicited.
+            await sendOrGoToScanning(RemoteCmd.ControlStateChanged(state: push.state))
 
         case let sync as RemoteCmd.SyncMonitorSettings:
             let mode = sync.mode
@@ -1410,44 +1394,48 @@ public actor SessionCoordinator {
     /// recording-truth derivation on top.
     private func absorbCapabilities(_ capabilities: RemoteCmd.CameraCapabilitiesResp) {
         peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
-        peerSupportsFocusPoint = capabilities.supportsFocusPoint
         peerSupportsPreviewMode = capabilities.supportsPreviewMode
-        peerSupportsManualExposure = capabilities.supportsManualExposure
-        peerSupportsCinematicVideo = capabilities.supportsCinematicVideo
         monitor?.updateCapabilities(capabilities)
         monitor?.updatePreviewMode(capabilities.previewMode)
+        // The control-plane seed rides in capabilities; every live gate and
+        // range derives from this one snapshot (`peerControl`).
+        if let control = capabilities.control { absorbControlState(control) }
     }
 
-    /// Camera side of `SetExposure`: apply, then echo the device's truth (or
-    /// the error) so the monitor never shows a state the camera didn't confirm.
-    private func handleSetExposure(_ cmd: RemoteCmd.SetExposure, ctrl: CameraControlling) async {
-        do {
-            let state = try await ctrl.setExposure(cmd.intent)
-            await sendOrGoToScanning(RemoteCmd.SetExposureResp(state: state, error: nil))
-        } catch {
-            await sendOrGoToScanning(RemoteCmd.SetExposureResp(state: nil, error: error as NSError))
-        }
+    /// The ONE monitor-side write of camera-control truth: newer wins (stale
+    /// snapshots drop), the whole picture renders from one value, and a
+    /// refusal is said out loud. Delivery order, duplicate pushes, and races
+    /// between a request and an unsolicited push all collapse into
+    /// `ControlState.absorb`.
+    private func absorbControlState(_ state: ControlState,
+                                    refusal: ControlRefusalReason? = nil,
+                                    detail: String? = nil) {
+        let merged = ControlState.absorb(peerControl, state)
+        peerControl = merged
+        monitor?.applyControlState(merged)
+        if let refusal { showErrorAlert(refusal.message(detail: detail)) }
     }
 
-    /// Camera side of `SetCinematic`, mirroring `handleSetExposure`.
-    private func handleSetCinematic(_ cmd: RemoteCmd.SetCinematic, ctrl: CameraControlling) async {
+    /// Camera side of every control mutation: apply, then answer with the
+    /// full snapshot (`ControlStateChanged`). A `CinematicRefusal` still
+    /// answers with the unchanged snapshot plus the typed reason, so a refused
+    /// control never looks like a control that did nothing; any other error
+    /// becomes a `.sessionRefused` carrying its message. One shape replaces the
+    /// old per-control SetZoomResp / SwitchLensResp / SetExposureResp /
+    /// SetCinematicResp responses.
+    private func respondWithControlState(_ ctrl: CameraControlling,
+                                        _ mutate: () async throws -> ControlState) async {
         do {
-            let state = try await ctrl.setCinematic(cmd.intent)
-            await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: state, error: nil))
-            // Cinematic narrows (or, on disable, restores) the zoom range and
-            // may have clamped the current factor — tell the monitor so its
-            // zoom pill re-scales to what the camera can now honor.
-            await sendOrGoToScanning(RemoteCmd.SetZoomResp(
-                zoomFactor: await ctrl.getCurrentZoomFactor(),
-                currentLens: nil,
-                zoomRange: RemoteCmd.ZoomRange(minZoom: await ctrl.getMinZoomFactor(),
-                                               maxZoom: await ctrl.getMaxZoomFactor()),
-                error: nil))
+            let state = try await mutate()
+            await sendOrGoToScanning(RemoteCmd.ControlStateChanged(state: state))
         } catch let refusal as CaptureEngine.CinematicRefusal {
-            // A refusal is a message for the person at the remote, not a fault.
-            await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: nil, error: refusal.asNSError))
+            guard let state = await ctrl.controlState() else { return }
+            await sendOrGoToScanning(RemoteCmd.ControlStateChanged(
+                state: state, refusal: refusal.reason, refusalDetail: refusal.detail))
         } catch {
-            await sendOrGoToScanning(RemoteCmd.SetCinematicResp(state: nil, error: error as NSError))
+            guard let state = await ctrl.controlState() else { return }
+            await sendOrGoToScanning(RemoteCmd.ControlStateChanged(
+                state: state, refusal: .sessionRefused, refusalDetail: (error as NSError).domain))
         }
     }
 
@@ -1730,14 +1718,7 @@ public actor SessionCoordinator {
 
         switch msg {
         case let zoom as RemoteCmd.SetZoom:
-            do {
-                let (factor, lens, range) = try await ctrl.setZoom(zoomFactor: zoom.zoomFactor)
-                await sendOrGoToScanning(RemoteCmd.SetZoomResp(
-                    zoomFactor: factor, currentLens: lens, zoomRange: range, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SetZoomResp(
-                    zoomFactor: nil, currentLens: nil, zoomRange: nil, error: error as NSError))
-            }
+            await respondWithControlState(ctrl) { try await ctrl.setZoom(zoomFactor: zoom.zoomFactor) }
 
         case let focus as RemoteCmd.FocusAtPoint:
             // Fire-and-forget; focusing is allowed while recording too.
@@ -1746,21 +1727,17 @@ public actor SessionCoordinator {
         case let exposure as RemoteCmd.SetExposure:
             // Allowed while recording: the policy caps the shutter at the frame
             // duration so the clip's frame rate holds.
-            await handleSetExposure(exposure, ctrl: ctrl)
+            await respondWithControlState(ctrl) { try await ctrl.setExposure(exposure.intent) }
 
         case let cinematic as RemoteCmd.SetCinematic:
-            // The policy rejects mid-take changes; the response says so.
-            await handleSetCinematic(cinematic, ctrl: ctrl)
+            // The policy rejects mid-take changes; the snapshot carries the refusal.
+            await respondWithControlState(ctrl) { try await ctrl.setCinematic(cinematic.intent) }
 
         case let lens as RemoteCmd.SwitchLens:
-            do {
-                let (lensType, available, zoom, range) = try await ctrl.switchLens(to: lens.lensType)
-                await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
-                    lensType: lensType, availableLenses: available, currentZoom: zoom, zoomRange: range, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
-                    lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error as NSError))
-            }
+            await respondWithControlState(ctrl) { try await ctrl.switchLens(to: lens.lensType) }
+
+        case let push as UICmd.PushControlState:
+            await sendOrGoToScanning(RemoteCmd.ControlStateChanged(state: push.state))
 
         case is RemoteCmd.RequestKeyframe:
             // The preview stream keeps flowing while recording, so a desynced
@@ -2181,10 +2158,8 @@ public actor SessionCoordinator {
             await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.ToggleFlash:
             await sendOrGoToScanning(RemoteCmd.ToggleFlashResp(flashMode: nil, error: unableToProcessError(msg)))
-        case is RemoteCmd.SetZoom:
-            await sendOrGoToScanning(RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: unableToProcessError(msg)))
-        case is RemoteCmd.SwitchLens:
-            await sendOrGoToScanning(RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: unableToProcessError(msg)))
+        // SetZoom / SwitchLens need no busy-state error reply: the monitor
+        // self-heals from the next `ControlStateChanged` snapshot.
         case is RemoteCmd.SetAspectRatio:
             await sendOrGoToScanning(RemoteCmd.SetAspectRatioResp(aspectRatio: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.StartRecordingVideo:
@@ -2452,7 +2427,7 @@ public actor SessionCoordinator {
         case let focus as UICmd.FocusAtPoint:
             // Wire-safety gate: never send to a peer that would decode action 21
             // as TakePicture. Silently dropped otherwise (reticle already shown).
-            guard peerSupportsFocusPoint else {
+            guard peerControl?.supportsFocusPoint == true else {
                 debugLog("FocusAtPoint dropped: peer did not advertise focus-point support")
                 break
             }
@@ -2460,30 +2435,24 @@ public actor SessionCoordinator {
 
         case let exposure as UICmd.SetExposure:
             // Wire-safety gate mirroring FocusAtPoint: never send action 33 to a
-            // peer whose active camera cannot honor it.
-            guard peerSupportsManualExposure else {
+            // peer whose active camera cannot honor it (no exposure in the snapshot).
+            guard peerControl?.exposure != nil else {
                 debugLog("SetExposure dropped: peer did not advertise manual-exposure support")
                 break
             }
             sendMessage(RemoteCmd.SetExposure(intent: exposure.intent))
 
-        case let exposureResp as RemoteCmd.SetExposureResp:
-            monitor?.updateExposure(exposureResp.state)
-            if let error = exposureResp.error { showErrorAlert(error._domain) }
-
         case let cinematic as UICmd.SetCinematic:
-            guard peerSupportsCinematicVideo else {
+            guard peerControl?.cinematic != nil else {
                 debugLog("SetCinematic dropped: peer did not advertise Cinematic support")
                 break
             }
             sendMessage(RemoteCmd.SetCinematic(intent: cinematic.intent))
 
-        case let cinematicResp as RemoteCmd.SetCinematicResp:
-            monitor?.updateCinematic(cinematicResp.state)
-            // A refused toggle is said out loud (the camera-switch rule): the
-            // tile already shows the unchanged truth, so silence would read
-            // as "the button does nothing".
-            if let error = cinematicResp.error { showErrorAlert(error._domain) }
+        case let changed as RemoteCmd.ControlStateChanged:
+            // The one control-truth channel: the answer to every mutation and
+            // every unsolicited constraint move. A refusal is surfaced here.
+            absorbControlState(changed.state, refusal: changed.refusal, detail: changed.refusalDetail)
 
         case let preview as UICmd.SetCameraPreviewMode:
             // Wire-safety gate mirroring FocusAtPoint: never send action 24 to a
@@ -2493,9 +2462,6 @@ public actor SessionCoordinator {
                 break
             }
             sendMessage(RemoteCmd.SetCameraPreviewMode(mode: preview.mode))
-
-        case let zoomResp as RemoteCmd.SetZoomResp:
-            monitor?.updateZoom(zoomResp.zoomFactor, zoomRange: zoomResp.zoomRange, currentLens: zoomResp.currentLens)
 
         case let torchResp as RemoteCmd.ToggleTorchResp:
             monitor?.updateTorchMode(torchResp.torchMode)
@@ -2643,13 +2609,9 @@ public actor SessionCoordinator {
             // Also matches SelectCameraDeviceResp (a subclass): a completed
             // device selection re-syncs the monitor exactly like a toggle.
             // Forward the fresh capabilities so the monitor UI re-syncs to the
-            // new camera (lens list, zoom range, quality).
+            // new camera (device list, control snapshot, quality).
             if let capabilities = toggleResp.cameraCapabilities {
-                peerAdvertisedCameraDevices = !capabilities.cameraDevices.isEmpty
-                peerSupportsFocusPoint = capabilities.supportsFocusPoint
-                peerSupportsPreviewMode = capabilities.supportsPreviewMode
-                monitor?.updateCapabilities(capabilities)
-                monitor?.updatePreviewMode(capabilities.previewMode)
+                absorbCapabilities(capabilities)
             } else if let error = toggleResp.error {
                 showErrorAlert(error._domain)
             } else {
@@ -2688,16 +2650,10 @@ public actor SessionCoordinator {
         case is UICmd.SwitchLens:
             break // Already sent from parent state; ignore duplicate taps
 
-        case let lensResp as RemoteCmd.SwitchLensResp:
-            if lensResp.lensType != nil {
-                monitor?.updateLens(lensResp.lensType,
-                                    availableLenses: lensResp.availableLenses,
-                                    currentZoom: lensResp.currentZoom,
-                                    zoomRange: lensResp.zoomRange)
-            } else if let error = lensResp.error {
-                showErrorAlert(error._domain)
-            } else {
-            }
+        case let changed as RemoteCmd.ControlStateChanged:
+            // A lens switch answers with the full snapshot (lens, zoom range,
+            // exposure) — the monitor re-syncs and the transient state ends.
+            absorbControlState(changed.state, refusal: changed.refusal, detail: changed.refusalDetail)
             await transition(to: returnState())
 
         case let disconnected as DisconnectPeer:
@@ -2825,7 +2781,7 @@ public actor SessionCoordinator {
             sendMessage(RemoteCmd.SetZoom(zoomFactor: zoom.zoomFactor))
 
         case let focus as UICmd.FocusAtPoint:
-            guard peerSupportsFocusPoint else {
+            guard peerControl?.supportsFocusPoint == true else {
                 debugLog("FocusAtPoint dropped: peer did not advertise focus-point support")
                 break
             }
@@ -2833,30 +2789,22 @@ public actor SessionCoordinator {
 
         case let exposure as UICmd.SetExposure:
             // Wire-safety gate mirroring FocusAtPoint: never send action 33 to a
-            // peer whose active camera cannot honor it.
-            guard peerSupportsManualExposure else {
+            // peer whose active camera cannot honor it (no exposure in the snapshot).
+            guard peerControl?.exposure != nil else {
                 debugLog("SetExposure dropped: peer did not advertise manual-exposure support")
                 break
             }
             sendMessage(RemoteCmd.SetExposure(intent: exposure.intent))
 
-        case let exposureResp as RemoteCmd.SetExposureResp:
-            monitor?.updateExposure(exposureResp.state)
-            if let error = exposureResp.error { showErrorAlert(error._domain) }
-
         case let cinematic as UICmd.SetCinematic:
-            guard peerSupportsCinematicVideo else {
+            guard peerControl?.cinematic != nil else {
                 debugLog("SetCinematic dropped: peer did not advertise Cinematic support")
                 break
             }
             sendMessage(RemoteCmd.SetCinematic(intent: cinematic.intent))
 
-        case let cinematicResp as RemoteCmd.SetCinematicResp:
-            monitor?.updateCinematic(cinematicResp.state)
-            // A refused toggle is said out loud (the camera-switch rule): the
-            // tile already shows the unchanged truth, so silence would read
-            // as "the button does nothing".
-            if let error = cinematicResp.error { showErrorAlert(error._domain) }
+        case let changed as RemoteCmd.ControlStateChanged:
+            absorbControlState(changed.state, refusal: changed.refusal, detail: changed.refusalDetail)
 
         case let preview as UICmd.SetCameraPreviewMode:
             guard peerSupportsPreviewMode else {
@@ -2864,9 +2812,6 @@ public actor SessionCoordinator {
                 break
             }
             sendMessage(RemoteCmd.SetCameraPreviewMode(mode: preview.mode))
-
-        case let zoomResp as RemoteCmd.SetZoomResp:
-            monitor?.updateZoom(zoomResp.zoomFactor, zoomRange: zoomResp.zoomRange, currentLens: zoomResp.currentLens)
 
         case let lens as UICmd.SwitchLens:
             if sendMessage(RemoteCmd.SwitchLens(lensType: lens.lensType)) {

@@ -111,8 +111,7 @@ final class CaptureSyncMetadataTests: XCTestCase {
     func testCapabilitiesDefaultToNoMulticam() {
         let resp = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle,
-            currentZoom: 1.0, error: nil)
+            currentCamera: .back, error: nil)
         XCTAssertFalse(resp.supportsMulticam)
     }
 }

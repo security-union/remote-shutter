@@ -91,74 +91,32 @@ public final class MonitorPresenter {
         onMain { $0.updateTorchModeInViewModel(torchMode) }
     }
 
-    func updateZoom(_ zoomFactor: CGFloat?, zoomRange: RemoteCmd.ZoomRange?, currentLens: CameraLensType?) {
-        guard let zoomFactor else { return }
-        onMain { display in
-            let maxZoom = zoomRange?.maxZoom ?? display.maxZoomFactor
-            display.updateZoomInViewModel(zoomFactor, maxFactor: maxZoom)
-            // Sync lens type so zoom and lens controls stay cohesive
-            if let lens = currentLens {
-                display.viewModel.updateAvailableLenses(display.viewModel.availableLensTypes, current: lens)
-            }
-        }
-    }
-
-    func updateExposure(_ state: ExposureState?) {
-        guard let state else { return }
-        onMain { $0.viewModel.exposure = state }
-    }
-
-    func updateCinematic(_ state: CinematicState?) {
-        guard let state else { return }
-        onMain { $0.viewModel.cinematic = state }
-    }
-
-    func updateLens(_ lensType: CameraLensType?,
-                    availableLenses: [CameraLensType]?,
-                    currentZoom: CGFloat?,
-                    zoomRange: RemoteCmd.ZoomRange?) {
-        guard let lensType, let availableLenses else { return }
-        onMain { display in
-            display.updateLensTypesInViewModel(availableLenses, current: lensType)
-            if let currentZoom, let zoomRange {
-                display.updateZoomInViewModel(currentZoom, maxFactor: zoomRange.maxZoom)
-            }
-        }
+    /// The v11 control-plane channel: the whole snapshot in, stored as the one
+    /// control fact. Replaces the per-field updateZoom / updateLens /
+    /// updateExposure / updateCinematic — zoom, lens, exposure and Cinematic
+    /// are all pure reads of it now, so they can never disagree.
+    func applyControlState(_ state: ControlState) {
+        onMain { $0.applyControlState(state) }
     }
 
     func updateCapabilities(_ capabilities: RemoteCmd.CameraCapabilitiesResp) {
         onMain { display in
             // Device list first: a Mac camera has no front/back info, so the
-            // guard below would otherwise starve the device picker.
+            // guard below would otherwise starve the device picker. The active
+            // device is the LOGICAL one, carried in the control snapshot.
             display.viewModel.updateCameraDevices(
                 capabilities.cameraDevices,
-                activeID: capabilities.activeDeviceID)
+                activeID: capabilities.control?.activeDeviceID)
 
-            // Set before the cameraInfo guard below: preview-mode support is a
-            // property of the peer, not of whichever camera it has selected, so
-            // a peer that reports no current camera must not lose the flag.
+            // Preview-mode support is a property of the peer, not of whichever
+            // camera it has selected, so a peer with no current camera must not
+            // lose the flag. (Zoom / lens / exposure / Cinematic no longer live
+            // here — they arrive as `control`, absorbed via applyControlState.)
             display.viewModel.supportsCameraStandby = capabilities.supportsPreviewMode
-            display.viewModel.supportsManualExposure = capabilities.supportsManualExposure
-            display.viewModel.exposure = capabilities.exposure
-            display.viewModel.supportsCinematicVideo = capabilities.supportsCinematicVideo
-            display.viewModel.cinematic = capabilities.cinematic
 
             guard let cameraInfo = capabilities.getCurrentCameraInfo() else { return }
-            // Update lens controls in view model
-            display.updateLensTypesInViewModel(
-                cameraInfo.availableLenses,
-                current: capabilities.currentLens
-            )
 
-            // Update zoom controls in view model
-            if let zoomRange = cameraInfo.getZoomCapabilities()[capabilities.currentLens] {
-                display.updateZoomInViewModel(
-                    capabilities.currentZoom,
-                    maxFactor: zoomRange.maxZoom
-                )
-            }
-
-            // Update quality capabilities in view model
+            // Static per-position facts only: the quality menus.
             display.viewModel.updateVideoCapabilities(
                 resolutions: cameraInfo.supportedResolutions,
                 frameRates: cameraInfo.supportedFrameRates,
@@ -174,12 +132,6 @@ public final class MonitorPresenter {
             display.viewModel.updatePhotoQuality(
                 format: capabilities.currentPhotoFormat,
                 hdrMode: capabilities.currentHDRMode)
-
-            // Update zoom stops from camera capabilities
-            display.viewModel.updateZoomStops(
-                cameraInfo.zoomStops,
-                wideAngleZoomFactor: cameraInfo.wideAngleZoomFactor
-            )
         }
     }
 

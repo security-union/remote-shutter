@@ -15,7 +15,7 @@ capability-gated wire command, one `CameraControlling` method, one
 usable by a person standing across the room from the phone.
 
 > Each control is gated on its own capability flag
-> (`supports_manual_exposure`, `supports_cinematic_video`), so a 10.0.x camera
+> (the `ControlState` snapshot's `exposure`/`cinematic` presence), so a 10.0.x camera
 > pairs exactly as before and **a button only appears when the connected camera
 > offers that feature**. The UI ships behind
 > `FeatureFlags.ENABLE_PRO_CONTROLS` and is free for every user — no IAP.
@@ -94,62 +94,50 @@ flowchart LR
     SC2 == "…Resp · ExposureState / CinematicState" ==> SC1
 ```
 
-## Wire protocol (`FlatBufferSchemas.fbs`, append-only)
+## Wire protocol (v11 — see Docs/control-plane.md for the full design)
+
+Commands are small intents; every answer is the whole `ControlState` snapshot:
 
 ```
-enum ExposureMode : byte { Unknown = 0, Auto = 1, Manual = 2 }
+enum ExposureMode   : byte { Unknown = 0, Auto = 1, Manual = 2 }
+enum ControlRefusal : byte { Unknown, None, PhotoMode, Recording, Unsupported, SessionRefused }
 
 // CommandAction
-SetExposure  = 33
-SetCinematic = 34
+SetExposure         = 33      // intent in CommandParameters (exposure_*)
+SetCinematic        = 34      // intent in CommandParameters (cinematic_*)
+ControlStateChanged = 35      // camera -> remote: THE control-truth channel
 
-// CommandParameters — appended
-exposure_mode: ExposureMode;
-exposure_duration_seconds: double;   // 0 = keep current
-exposure_iso: float;                 // 0 = keep current
-cinematic_enabled: bool;
-simulated_aperture: float;           // 0 = keep current
-
-table ExposureState {
-  mode: ExposureMode;
-  duration_seconds: double;          // currently applied
-  iso: float;
-  min_duration_seconds: double;      // activeFormat range
-  max_duration_seconds: double;
-  min_iso: float;
-  max_iso: float;
+table ControlState {
+  seq: uint64;                       // monotonic; stale snapshots dropped
+  mode: RecordingModeEnum;
+  active_device_id: string;          // the LOGICAL device (Manual hop never leaks)
+  current_lens: CameraLensType;
+  available_lenses: [CameraLensType];
+  zoom_factor: double;
+  min_zoom: double;                  // EFFECTIVE range — already narrowed
+  max_zoom: double;                  //   by Cinematic when it is on
+  zoom_stops: [double];
+  wide_angle_zoom_factor: double;
+  supports_focus_point: bool;
+  exposure: ExposureState;           // ABSENT = no manual exposure (no tiles)
+  cinematic: CinematicState;         // ABSENT = no Cinematic (no tile)
 }
-
-table CinematicState {
-  enabled: bool;
-  simulated_aperture: float;         // currently applied
-  min_simulated_aperture: float;     // 0 = fixed aperture, hide the dial
-  max_simulated_aperture: float;
-  default_simulated_aperture: float;
-  aperture_locked: bool;             // true while recording — dial disabled
-  not_enough_light: bool;            // from cinematicVideoCaptureSceneMonitoringStatuses
-}
-
-// CameraCapabilities — appended
-supports_manual_exposure: bool;      // active device supports .custom
-exposure: ExposureState;             // so the panel opens populated
-supports_cinematic_video: bool;      // iOS 26+ and active format supports it
-cinematic: CinematicState;
-
-// CameraStateResponse — appended
-exposure: ExposureState;             // echoed on SetExposureResp
-cinematic: CinematicState;           // echoed on SetCinematicResp
 ```
+
+`ExposureState`/`CinematicState` keep their shapes (mode + applied values +
+active-format ranges; enabled + aperture + range + `aperture_locked` +
+`not_enough_light`). `ControlStateChanged` answers every control mutation
+(`SetZoom`, `SwitchLens`, `SetExposure`, `SetCinematic`) and is pushed
+unsolicited whenever a constraint moves (device swap, quality change, mode
+change, Cinematic toggling the zoom range). A refused mutation carries a
+typed `ControlRefusal` (+ diagnostic detail) NEXT TO the unchanged snapshot.
+`CameraCapabilities` carries `control` as the seed; per-command response
+shapes (`SetExposureResp` etc.) do not exist.
 
 Durations travel as seconds (`double`) and are clamped back into the device's
 own `CMTime` range on the camera — the wire never carries a timescale.
-
-`RemoteCmd.SetExposure/Resp`, `RemoteCmd.SetCinematic/Resp` in
-`RemoteCmds.swift`; encode/decode in `RemoteCmdFlatBuffers.swift` next to
-`SetZoom`. `CameraCapabilitiesResp` gains the two flags and two state tables.
-`not_enough_light` is sampled from the device's scene-monitoring statuses
-whenever a Cinematic response or capabilities refresh is built — the hint
-updates with the next echo rather than by push.
+`not_enough_light` is sampled whenever a snapshot is built — the hint updates
+with the next echo rather than by push.
 
 ## Monitor → camera path (both controls)
 
@@ -163,7 +151,7 @@ updates with the next echo rather than by push.
    slow or lost response can never wedge the screen.
 3. **Camera handler** (root camera state and video-mode state, next to
    `SetZoom`): `let state = try await ctrl.setExposure(intent)` →
-   `sendOrGoToScanning(RemoteCmd.SetExposureResp(state))`; same for
+   `respondWithControlState { try await ctrl.setExposure(intent) }`; same for
    cinematic.
 4. **Rig** forwards to the engine and updates `cameraViewModel.proReadout`.
 5. **Engine** (`sessionQueue`, `lockForConfiguration`) — below.
@@ -198,8 +186,8 @@ the input to a physical lens that accepts `.custom`: the one currently in use
 (`device.activePrimaryConstituent`, iOS 15+) when the session is running, else
 the wide lens from `constituentDevices`. Returning to Auto swaps back to the
 virtual device. While Manual is on, zoom is the physical lens's own range (no
-auto lens switching); the existing `SetZoomResp` range echo already informs
-the monitor's zoom slider.
+auto lens switching); the snapshot's effective zoom range keeps the
+monitor's zoom pill honest.
 
 `supports_manual_exposure` is decided from `constituentDevices`, never from
 `activePrimaryConstituent` alone: Apple documents that property as nil until

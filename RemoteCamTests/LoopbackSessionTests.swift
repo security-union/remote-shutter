@@ -410,7 +410,10 @@ class LoopbackSessionTests: XCTestCase {
         let sentZooms = monitorTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetZoom }
         XCTAssertEqual(sentZooms.count, 1)
         XCTAssertEqual(sentZooms[0].zoomFactor, 2.5, accuracy: 0.001)
-        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.SetZoomResp })
+        // A peer with no camera has no snapshot to answer with: no
+        // ControlStateChanged comes back, the monitor keeps its last truth,
+        // and nothing hangs — the next snapshot self-heals the pill.
+        XCTAssertFalse(cameraTransport.sentMessages.contains { $0 is RemoteCmd.ControlStateChanged })
         let monitorState = await monitorCoordinator.currentStateName()
         XCTAssertEqual(monitorState, .monitor)
     }
@@ -515,7 +518,8 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertNil(resps.first?.error)
         XCTAssertNotNil(resps.first?.cameraCapabilities,
                         "toggle response must carry fresh capabilities")
-        XCTAssertEqual(resps.first?.cameraCapabilities?.currentLens, .wideAngle)
+        XCTAssertNotNil(resps.first?.cameraCapabilities?.control,
+                        "the control seed rides in the refreshed capabilities")
         let monitorState = await monitorCoordinator.currentStateName()
         XCTAssertEqual(monitorState, .monitor)
     }
@@ -533,7 +537,7 @@ class LoopbackSessionTests: XCTestCase {
         let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
         XCTAssertEqual(resps.count, 1)
         XCTAssertNil(resps.first?.error)
-        XCTAssertEqual(resps.first?.cameraCapabilities?.activeDeviceID, "fake-front")
+        XCTAssertEqual(resps.first?.cameraCapabilities?.control?.activeDeviceID, "fake-front")
         XCTAssertEqual(resps.first?.cameraCapabilities?.cameraDevices.count, 2)
         XCTAssertEqual(
             resps.first?.cameraCapabilities?.cameraDevices.first { $0.isActive }?.uniqueID,
@@ -680,10 +684,13 @@ class LoopbackSessionTests: XCTestCase {
         await drainBothSessions()
 
         XCTAssertEqual(fakeCamera.zoomCalls, [2.5])
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetZoomResp }
-        XCTAssertEqual(resps.count, 1)
-        XCTAssertEqual(resps.first?.zoomFactor ?? 0, 2.5, accuracy: 0.001)
-        XCTAssertEqual(resps.first?.zoomRange?.maxZoom ?? 0, 10, accuracy: 0.001)
+        // The camera answers with the whole control snapshot, not a bespoke
+        // zoom response: the applied factor and the honorable range in one value.
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ControlStateChanged }
+        XCTAssertFalse(resps.isEmpty)
+        XCTAssertEqual(resps.last?.state.zoomFactor ?? 0, 2.5, accuracy: 0.001)
+        XCTAssertEqual(resps.last?.state.maxZoom ?? 0, 10, accuracy: 0.001)
+        XCTAssertNil(resps.last?.refusal)
         let monitorState = await monitorCoordinator.currentStateName()
         XCTAssertEqual(monitorState, .monitor)
     }
@@ -721,18 +728,18 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
         // The camera echoes its truth; the monitor stays put (a setting, not a
         // request state that could wedge the screen).
-        let resp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetExposureResp }.last
-        XCTAssertEqual(resp?.state?.mode, .manual)
-        XCTAssertEqual(resp?.state?.durationSeconds ?? 0, 1.0 / 250, accuracy: 1e-9)
-        XCTAssertEqual(resp?.state?.iso ?? 0, 400)
+        let resp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ControlStateChanged }.last
+        XCTAssertEqual(resp?.state.exposure?.mode, .manual)
+        XCTAssertEqual(resp?.state.exposure?.durationSeconds ?? 0, 1.0 / 250, accuracy: 1e-9)
+        XCTAssertEqual(resp?.state.exposure?.iso ?? 0, 400)
         let monitorState = await monitorCoordinator.currentStateName()
         XCTAssertEqual(monitorState, .monitor)
 
         monitorCoordinator.tell(UICmd.SetExposure(intent: .auto))
         await drainBothSessions()
         XCTAssertEqual(fakeCamera.exposureCalls.last, .auto)
-        let autoResp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetExposureResp }.last
-        XCTAssertEqual(autoResp?.state?.mode, .auto)
+        let autoResp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ControlStateChanged }.last
+        XCTAssertEqual(autoResp?.state.exposure?.mode, .auto)
     }
 
     /// Mirrors the focus gate: a camera whose active device cannot do custom
@@ -770,19 +777,22 @@ class LoopbackSessionTests: XCTestCase {
         await drainBothSessions()
 
         XCTAssertEqual(fakeCamera.cinematicCalls, [.on(aperture: 2.8)])
-        let resp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetCinematicResp }.last
-        XCTAssertEqual(resp?.state?.enabled, true)
-        XCTAssertEqual(resp?.state?.simulatedAperture ?? 0, 2.8)
-        // Cinematic changes the zoom range: the camera re-advertises it so the
-        // monitor's pill re-scales (Cinematic narrows zoom; disabling widens it).
-        XCTAssertNotNil(cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetZoomResp }.last,
-                        "enabling Cinematic must republish the zoom range")
+        let resp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ControlStateChanged }.last
+        XCTAssertEqual(resp?.state.cinematic?.enabled, true)
+        XCTAssertEqual(resp?.state.cinematic?.simulatedAperture ?? 0, 2.8)
+        // The regression: Cinematic narrows the zoom band, and because the
+        // range travels in the SAME snapshot, the monitor's pill re-scales
+        // with no separate republish to forget. (Fake narrows max 10 -> 3.)
+        XCTAssertEqual(resp?.state.maxZoom ?? 0, 3.0, accuracy: 0.001,
+                       "enabling Cinematic must hand the monitor the narrowed zoom range")
 
         monitorCoordinator.tell(UICmd.SetCinematic(intent: .off))
         await drainBothSessions()
         XCTAssertEqual(fakeCamera.cinematicCalls.last, .off)
-        let offResp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetCinematicResp }.last
-        XCTAssertEqual(offResp?.state?.enabled, false)
+        let offResp = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ControlStateChanged }.last
+        XCTAssertEqual(offResp?.state.cinematic?.enabled, false)
+        XCTAssertEqual(offResp?.state.maxZoom ?? 0, 10.0, accuracy: 0.001,
+                       "disabling Cinematic restores the full zoom range")
         let monitorState = await monitorCoordinator.currentStateName()
         XCTAssertEqual(monitorState, .monitor)
     }
@@ -842,10 +852,10 @@ class LoopbackSessionTests: XCTestCase {
         await drainBothSessions()
 
         XCTAssertEqual(fakeCamera.lensSwitches, [.telephoto])
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SwitchLensResp }
-        XCTAssertEqual(resps.count, 1)
-        XCTAssertEqual(resps.first?.lensType, .telephoto)
-        XCTAssertNil(resps.first?.error)
+        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ControlStateChanged }
+        XCTAssertFalse(resps.isEmpty)
+        XCTAssertEqual(resps.last?.state.currentLens, .telephoto)
+        XCTAssertNil(resps.last?.refusal)
         // Response unbecomes monitorSwitchingLens back to photo mode.
         let monitorState = await monitorCoordinator.currentStateName()
         XCTAssertEqual(monitorState, .monitor)

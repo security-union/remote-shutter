@@ -69,15 +69,24 @@ enum CommandAction : byte {
     RequestCameraStateReport = 32, // monitor/director -> camera: re-push the
                                // current CameraStateReport (e.g. on connection).
     SetExposure = 33,          // monitor -> camera: auto / manual (shutter + ISO).
-                               // Payload in CommandParameters (exposure_*); the
-                               // camera answers with a CameraStateResponse carrying
-                               // ExposureState. Only sent to peers advertising
-                               // supports_manual_exposure.
-    SetCinematic = 34          // monitor -> camera: Cinematic video on/off + simulated
+                               // Payload in CommandParameters (exposure_*).
+                               // Answered with ControlStateChanged. Only sent when
+                               // the peer's ControlState carries an ExposureState.
+    SetCinematic = 34,         // monitor -> camera: Cinematic video on/off + simulated
                                // aperture (iOS 26+). Payload in CommandParameters
-                               // (cinematic_*); answered with a CameraStateResponse
-                               // carrying CinematicState. Only sent to peers
-                               // advertising supports_cinematic_video.
+                               // (cinematic_*). Answered with ControlStateChanged.
+                               // Only sent when the peer's ControlState carries a
+                               // CinematicState.
+    ControlStateChanged = 35   // camera -> monitor/director: THE control-plane truth
+                               // channel (v11). One full ControlState snapshot,
+                               // sent as the answer to every control mutation
+                               // (SetZoom, SwitchLens, SetExposure, SetCinematic)
+                               // AND pushed unsolicited whenever a constraint moves
+                               // without the remote asking — device swap, quality
+                               // change, mode change, Cinematic toggling the zoom
+                               // range, recording locking the aperture. Constraints
+                               // travel together, so a remote can never hold a
+                               // stale range for one control while another changed.
 }
 
 // Auto vs. manual exposure. Unknown = legacy peer / field absent.
@@ -85,6 +94,18 @@ enum ExposureMode : byte {
     Unknown = 0,
     Auto = 1,
     Manual = 2
+}
+
+// Why a control mutation did not take (ControlStateChanged.refusal). A refusal
+// always reaches the user's eyes — a refused control must never look like a
+// control that did nothing. None = the mutation was applied.
+enum ControlRefusal : byte {
+    Unknown = 0,
+    None = 1,
+    PhotoMode = 2,       // Cinematic is a video effect; switch modes first
+    Recording = 3,       // this control is locked while a take is rolling
+    Unsupported = 4,     // the active device/OS cannot do this at all
+    SessionRefused = 5   // device supports it, the session configuration refuses
 }
 
 
@@ -285,14 +306,35 @@ table CinematicState {
     not_enough_light: bool;
 }
 
-table ZoomRange {
+// The camera's complete control-plane truth — the payload of
+// ControlStateChanged, and the seed carried inside CameraCapabilities.
+// Produced by exactly ONE engine function; every range in it is EFFECTIVE
+// (already narrowed by whatever is active — e.g. the zoom range under
+// Cinematic), so consumers never combine constraints themselves.
+table ControlState {
+    // Monotonic across camera restarts; a receiver drops any snapshot older
+    // than the last it absorbed (CameraStateReport's rule).
+    seq: uint64;
+    mode: RecordingModeEnum;
+    // The LOGICAL device — the camera the user chose. The Manual-exposure
+    // lens hop is an implementation detail that never appears on the wire.
+    active_device_id: string;
+    current_lens: CameraLensType;
+    available_lenses: [CameraLensType];
+    // Zoom: the factor plus the range the camera can honor RIGHT NOW.
+    zoom_factor: double;
     min_zoom: double;
     max_zoom: double;
-}
-
-table ZoomCapability {
-    lens_type: CameraLensType;
-    zoom_range: ZoomRange;
+    zoom_stops: [double];
+    wide_angle_zoom_factor: double;
+    // Tap-to-focus support is a property of the active device.
+    supports_focus_point: bool;
+    // Absent = the active device cannot do manual exposure: no SHUTTER/ISO
+    // tiles, and SetExposure must not be sent.
+    exposure: ExposureState;
+    // Absent = the active device/OS cannot record Cinematic video: no
+    // CINEMATIC tile, and SetCinematic must not be sent.
+    cinematic: CinematicState;
 }
 
 table ResolutionFrameRates {
@@ -311,15 +353,15 @@ table PhotoQualityCapabilities {
     supports_hdr: bool;
 }
 
+// Static per-position facts (quality menus, flash/torch presence). Anything
+// that changes with the session — zoom, lenses in use, exposure — lives in
+// ControlState, never here.
 table CameraInfo {
     available_lenses: [CameraLensType];
     has_flash: bool;
     has_torch: bool;
-    zoom_capabilities: [ZoomCapability];
     video_quality: VideoQualityCapabilities;
     photo_quality: PhotoQualityCapabilities;
-    zoom_stops: [double];
-    wide_angle_zoom_factor: double;
 }
 
 // One selectable physical camera on the camera peer. `position` is Back when
@@ -358,35 +400,21 @@ table CameraState {
     preview_mode: CameraPreviewModeEnum;
 }
 
+// What the camera peer HAS: static device facts and session-level features.
+// What the camera is DOING — and every live range — is `control`, the same
+// ControlState that ControlStateChanged pushes, carried here so the very
+// first exchange seeds the remote completely.
 table CameraCapabilities {
     front_camera: CameraInfo;
     back_camera: CameraInfo;
-    // Appended fields only below this line (FlatBuffers schema evolution).
-    // Empty/absent = peer predates camera-device selection; a monitor must
-    // not send SelectCameraDevice to such a peer.
+    // Empty/absent = no camera-device selection on this peer; a remote must
+    // not send SelectCameraDevice.
     camera_devices: [CameraDeviceInfo];
-    active_device_id: string;
-    // False/absent = peer predates tap-to-focus; a monitor must not send
-    // FocusAtPoint to such a peer.
-    supports_focus_point: bool;
-    // False/absent = peer predates camera preview-mode control; a monitor must
-    // not send SetCameraPreviewMode to such a peer (old decoders read the
-    // unknown action as its enum default).
+    // False = peer has no local preview-mode control (SetCameraPreviewMode).
     supports_preview_mode: bool;
-    // False/absent = peer cannot join a multicam director session; a director
-    // must not send scheduled-capture or stream-profile commands to such a
-    // peer (they would be decoded as Unknown and dropped, silently desyncing
-    // the rig).
+    // False = peer cannot join a multicam director session.
     supports_multicam: bool;
-    // False/absent = the active device cannot do custom exposure (legacy peer,
-    // virtual multi-lens device, most Mac cameras); a monitor must not send
-    // SetExposure to such a peer and shows no exposure control.
-    supports_manual_exposure: bool;
-    exposure: ExposureState;
-    // False/absent = the active device/OS cannot record Cinematic video; a
-    // monitor must not send SetCinematic and shows no Cinematic control.
-    supports_cinematic_video: bool;
-    cinematic: CinematicState;
+    control: ControlState;
 }
 
 // MARK: - Response Structure
@@ -399,15 +427,15 @@ table CameraStateResponse {
     capabilities: CameraCapabilities;
     media_data: [ubyte];
     recording_start_time: uint64;
-    available_lenses: [CameraLensType];
-    zoom_range: ZoomRange;
-    current_zoom: double;
-    // Appended fields only below this line (FlatBuffers schema evolution).
     clock_sync_echo_t0_ms: uint64;    // ClockSyncPing response: echoed director t0
     clock_sync_camera_clock_ms: uint64; // ClockSyncPing response: camera clock at receipt
     capture_id_echo: string;          // ScheduledCapture ack: the accepted capture id
-    exposure: ExposureState;          // SetExposure response: applied values + ranges
-    cinematic: CinematicState;        // SetCinematic response: applied truth + range
+    // ControlStateChanged payload: the full snapshot, plus why a requested
+    // mutation was refused (None = applied). The snapshot is present even on
+    // refusal — it is the unchanged truth the remote should show.
+    control: ControlState;
+    control_refusal: ControlRefusal;
+    control_refusal_detail: string;   // diagnostic suffix (device/format/outputs)
 }
 
 // MARK: - Frame Data

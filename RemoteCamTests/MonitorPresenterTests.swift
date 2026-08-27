@@ -17,7 +17,6 @@ import AVFoundation
 class FakeMonitorDisplay: MonitorDisplay {
     let viewModel = MonitorViewModel()
     let frameStreamReceiver = FrameStreamReceiver()
-    var maxZoomFactor: CGFloat = 10.0
 
     var photoModeConfigured = 0
     var videoModeConfigured = 0
@@ -26,8 +25,8 @@ class FakeMonitorDisplay: MonitorDisplay {
     var exits = 0
     var flashModes: [AVCaptureDevice.FlashMode] = []
     var torchModes: [AVCaptureDevice.TorchMode] = []
-    var zoomUpdates: [(factor: CGFloat, maxFactor: CGFloat)] = []
-    var lensUpdates: [(lenses: [CameraLensType], current: CameraLensType)] = []
+    /// Every control snapshot the presenter applied, in order.
+    var controlStates: [ControlState] = []
 
     // Mirrors the real MonitorViewController conformance (counter + the
     // view-model configure), so end-to-end tests can assert the screen state
@@ -44,11 +43,12 @@ class FakeMonitorDisplay: MonitorDisplay {
     func updateTorchModeInViewModel(_ torchMode: AVCaptureDevice.TorchMode) {
         torchModes.append(torchMode)
     }
-    func updateZoomInViewModel(_ factor: CGFloat, maxFactor: CGFloat) {
-        zoomUpdates.append((factor, maxFactor))
-    }
-    func updateLensTypesInViewModel(_ lenses: [CameraLensType], current: CameraLensType) {
-        lensUpdates.append((lenses, current))
+    // Mirrors the real MonitorViewController: the snapshot lands in the view
+    // model (so `exposure`, `zoomScale`, … read back), and is recorded for
+    // order/count assertions.
+    func applyControlState(_ state: ControlState) {
+        controlStates.append(state)
+        viewModel.applyControlState(state)
     }
 }
 
@@ -95,30 +95,17 @@ class MonitorPresenterTests: XCTestCase {
 
     // MARK: - Exposure echo
 
-    func testUpdateExposureLandsInViewModelOnMain() {
+    func testApplyControlStateLandsExposureInViewModelOnMain() {
         let state = ExposureState(mode: .manual, durationSeconds: 1.0 / 125, iso: 200,
                                   minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 0.5, minISO: 50, maxISO: 1600)
-        presenter.updateExposure(state)
-        presenter.updateExposure(nil)   // an errored response carries no truth: keep the last one
-        drain()
-        XCTAssertEqual(display.viewModel.exposure, state)
-    }
-
-    func testCapabilitiesCarryExposureSupportAndTruth() {
-        let state = ExposureState(mode: .auto, durationSeconds: 1.0 / 60, iso: 100,
-                                  minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 0.5, minISO: 50, maxISO: 1600)
-        presenter.updateCapabilities(RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsManualExposure: true, exposure: state, error: nil))
+        presenter.applyControlState(ControlState(seq: 1, exposure: state))
         drain()
         XCTAssertTrue(display.viewModel.supportsManualExposure)
         XCTAssertEqual(display.viewModel.exposure, state)
 
-        // A swap to a device that can't: the control disappears.
-        presenter.updateCapabilities(RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil))
+        // A swap to a device that can't do it: the snapshot omits exposure and
+        // the control disappears — capability is presence.
+        presenter.applyControlState(ControlState(seq: 2))
         drain()
         XCTAssertFalse(display.viewModel.supportsManualExposure)
         XCTAssertNil(display.viewModel.exposure)
@@ -149,41 +136,35 @@ class MonitorPresenterTests: XCTestCase {
         XCTAssertTrue(display.flashModes.isEmpty)
     }
 
-    // MARK: - Zoom responses
+    // MARK: - Control snapshot: zoom + lens are one value now
 
-    func testSetZoomRespUpdatesZoom() {
-        presenter.updateZoom(3.0,
-                             zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 12.0),
-                             currentLens: nil)
+    func testApplyControlStateDrivesZoomAndLens() {
+        presenter.applyControlState(ControlState(
+            seq: 1,
+            currentLens: .telephoto,
+            availableLenses: [.wideAngle, .telephoto],
+            zoomFactor: 3.0, minZoom: 1.0, maxZoom: 12.0,
+            zoomStops: [1.0, 3.0], wideAngleZoomFactor: 1.0))
         drain()
 
-        XCTAssertEqual(display.zoomUpdates.count, 1)
-        XCTAssertEqual(display.zoomUpdates[0].factor, 3.0, accuracy: 0.001)
-        XCTAssertEqual(display.zoomUpdates[0].maxFactor, 12.0, accuracy: 0.001)
+        XCTAssertEqual(display.controlStates.count, 1)
+        XCTAssertEqual(display.viewModel.currentZoomFactor, 3.0, accuracy: 0.001)
+        XCTAssertEqual(display.viewModel.currentLensType, .telephoto)
+        XCTAssertEqual(display.viewModel.availableLensTypes, [.wideAngle, .telephoto])
+        // The pill's ceiling is the snapshot's effective max (display-capped).
+        XCTAssertEqual(display.viewModel.zoomScale.maxZoom, 5.0, accuracy: 0.001)
     }
 
-    func testSetZoomRespWithoutRangeFallsBackToDisplayMax() {
-        presenter.updateZoom(2.0, zoomRange: nil, currentLens: nil)
+    /// The fold drops a stale snapshot: an out-of-order older seq never
+    /// overwrites fresher zoom/lens truth.
+    func testApplyControlStateDropsStaleSnapshot() {
+        presenter.applyControlState(ControlState(seq: 9, zoomFactor: 4.0, minZoom: 1.0, maxZoom: 10.0,
+                                                 zoomStops: [1.0], wideAngleZoomFactor: 1.0))
+        presenter.applyControlState(ControlState(seq: 4, zoomFactor: 1.0, minZoom: 1.0, maxZoom: 10.0,
+                                                 zoomStops: [1.0], wideAngleZoomFactor: 1.0))
         drain()
-
-        XCTAssertEqual(display.zoomUpdates.count, 1)
-        XCTAssertEqual(display.zoomUpdates[0].maxFactor, display.maxZoomFactor, accuracy: 0.001)
-    }
-
-    // MARK: - Lens responses
-
-    func testSwitchLensRespUpdatesLensesAndZoom() {
-        presenter.updateLens(.telephoto,
-                             availableLenses: [.wideAngle, .telephoto],
-                             currentZoom: 2.0,
-                             zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 8.0))
-        drain()
-
-        XCTAssertEqual(display.lensUpdates.count, 1)
-        XCTAssertEqual(display.lensUpdates[0].current, .telephoto)
-        XCTAssertEqual(display.lensUpdates[0].lenses, [.wideAngle, .telephoto])
-        XCTAssertEqual(display.zoomUpdates.count, 1)
-        XCTAssertEqual(display.zoomUpdates[0].maxFactor, 8.0, accuracy: 0.001)
+        XCTAssertEqual(display.viewModel.currentZoomFactor, 4.0, accuracy: 0.001,
+                       "the older snapshot must not clobber the newer zoom")
     }
 
     // MARK: - Camera device list
@@ -202,17 +183,15 @@ class MonitorPresenterTests: XCTestCase {
                 isActive: false, info: nil)
         ]
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            cameraDevices: devices, activeDeviceID: "facetime-0", error: nil)
+            frontCamera: nil, backCamera: nil, currentCamera: .back,
+            cameraDevices: devices,
+            control: ControlState(seq: 1, activeDeviceID: "facetime-0"), error: nil)
 
         presenter.updateCapabilities(capabilities)
         drain()
 
         XCTAssertEqual(display.viewModel.remoteCameraDevices, devices)
         XCTAssertEqual(display.viewModel.activeRemoteDeviceID, "facetime-0")
-        // No front/back info: the lens/zoom sync is skipped, not crashed.
-        XCTAssertTrue(display.lensUpdates.isEmpty)
     }
 
     func testLegacyCapabilitiesClearDeviceList() {
@@ -222,8 +201,7 @@ class MonitorPresenterTests: XCTestCase {
                 positionRaw: 0, isActive: true, info: nil)
         ]
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            frontCamera: nil, backCamera: nil, currentCamera: .back,
             error: nil)
 
         presenter.updateCapabilities(capabilities)

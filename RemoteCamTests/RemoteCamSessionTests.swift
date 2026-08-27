@@ -1477,7 +1477,7 @@ class SessionCoordinatorTests: XCTestCase {
 
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil)
+            currentCamera: .back, error: nil)
         await harness.deliver(RemoteCmd.ToggleCameraResp(cameraCapabilities: capabilities, error: nil))
 
         let name = await harness.stateName()
@@ -1542,9 +1542,9 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorSwitchingLensSuccessResponseUnbecomes() async {
         await enterMonitorSwitchingLens()
-        await harness.deliver(RemoteCmd.SwitchLensResp(
-            lensType: .telephoto, availableLenses: [.wideAngle, .telephoto],
-            currentZoom: 2.0, zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0), error: nil))
+        await harness.deliver(RemoteCmd.ControlStateChanged(state: ControlState(
+            seq: 10, currentLens: .telephoto, availableLenses: [.wideAngle, .telephoto],
+            zoomFactor: 2.0, minZoom: 1.0, maxZoom: 10.0)))
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .monitor)
@@ -1553,9 +1553,9 @@ class SessionCoordinatorTests: XCTestCase {
     func testMonitorSwitchingLensErrorResponseUnbecomes() async {
         await enterMonitorSwitchingLens()
 
-        let error = NSError(domain: "LensError", code: 1, userInfo: nil)
-        await harness.deliver(RemoteCmd.SwitchLensResp(
-            lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error))
+        // A lens switch that could not take arrives as a refusal on the snapshot.
+        await harness.deliver(RemoteCmd.ControlStateChanged(
+            state: ControlState(seq: 10, currentLens: .wideAngle), refusal: .unsupported))
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .monitor)
@@ -1563,12 +1563,11 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorSwitchingLensNilNilResponseUnbecomes() async {
         await enterMonitorSwitchingLens()
-        await harness.deliver(RemoteCmd.SwitchLensResp(
-            lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: nil))
+        await harness.deliver(RemoteCmd.ControlStateChanged(state: ControlState(seq: 10)))
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .monitor,
-                       "State should unbecome even when both lensType and error are nil")
+                       "State should unbecome when the control snapshot lands")
     }
 
     func testMonitorSwitchingLensDisconnectPeerStartsReconnecting() async {

@@ -90,6 +90,12 @@ final class CameraRig: @unchecked Sendable {
             // Cinematic only applies to video: leaving the mode switches the
             // effect off (the engine is a no-op when it wasn't on).
             if leftVideoMode { engine.disableCinematicIfActive() }
+            // Mode is part of the control snapshot; the remote learns the
+            // change (and any Cinematic fallout) without asking for it.
+            Task { [weak self] in
+                guard let self, let state = await self.engine.controlState() else { return }
+                self.session ! UICmd.PushControlState(state: state)
+            }
         }
     }
 
@@ -157,6 +163,14 @@ final class CameraRig: @unchecked Sendable {
         // Cinematic is a video-recording effect; mode truth lives here.
         engine.isVideoModeProvider = { [currentCameraModeShared] in
             currentCameraModeShared.value == .Video
+        }
+        engine.recordingModeProvider = { [currentCameraModeShared] in
+            currentCameraModeShared.value
+        }
+        // Unsolicited constraint moves (device swap, quality change) go to
+        // the session, which pushes them to the remote as ControlStateChanged.
+        engine.onControlStateChanged = { [session] state in
+            session ! UICmd.PushControlState(state: state)
         }
         // Captures the session ref (not self) so recording acks/responses still
         // reach the actor if the rig deallocates mid-recording.
@@ -525,20 +539,24 @@ extension CameraRig: CameraControlling {
         try await engine.setTorchMode(mode: mode)
     }
 
-    func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
+    func setZoom(zoomFactor: CGFloat) async throws -> ControlState {
         try await engine.setZoom(zoomFactor: zoomFactor)
     }
 
-    func setExposure(_ intent: ExposureIntent) async throws -> ExposureState {
+    func setExposure(_ intent: ExposureIntent) async throws -> ControlState {
         let state = try await engine.setExposure(intent)
-        cameraViewModel.updateExposureReadout(state)
+        cameraViewModel.updateExposureReadout(state.exposure)
         return state
     }
 
-    func setCinematic(_ intent: CinematicIntent) async throws -> CinematicState {
+    func setCinematic(_ intent: CinematicIntent) async throws -> ControlState {
         let state = try await engine.setCinematic(intent)
-        cameraViewModel.updateCinematicReadout(state)
+        cameraViewModel.updateCinematicReadout(state.cinematic)
         return state
+    }
+
+    func controlState() async -> ControlState? {
+        await engine.controlState()
     }
 
     func focusAtPoint(x: Float, y: Float) async throws {
@@ -549,7 +567,7 @@ extension CameraRig: CameraControlling {
         try await engine.setFocusExposurePoint(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y)))
     }
 
-    func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
+    func switchLens(to lensType: CameraLensType) async throws -> ControlState {
         try await engine.switchLens(to: lensType)
     }
 

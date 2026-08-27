@@ -15,6 +15,15 @@ final class MulticamViewModelTests: XCTestCase {
     private let camA = MCPeerID(displayName: "CameraA")
     private let camB = MCPeerID(displayName: "CameraB")
 
+    /// Sample states that make a capability "present" in the lane's control
+    /// snapshot — capability is presence, exactly as on the wire.
+    private static let sampleExposure = ExposureState(
+        mode: .auto, durationSeconds: 1.0 / 120, iso: 64,
+        minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0, minISO: 32, maxISO: 3200)
+    private static let sampleCinematic = CinematicState(
+        enabled: false, simulatedAperture: 2.0, minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
+        defaultSimulatedAperture: 2.0, apertureLocked: false, notEnoughLight: false)
+
     private func info(_ peer: MCPeerID, status: CameraLink.Status = .linked,
                       focused: Bool = false, canFlipCamera: Bool = false,
                       supportsFocusPoint: Bool = false, hasTorch: Bool = false,
@@ -23,18 +32,23 @@ final class MulticamViewModelTests: XCTestCase {
                       zoomFactor: CGFloat = 1.0, maxZoomFactor: CGFloat = 10.0,
                       zoomStops: [CGFloat] = [1.0], wideAngleZoomFactor: CGFloat = 1.0,
                       torchOn: Bool = false, flashOn: Bool = false) -> MulticamLaneInfo {
-        MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
-                         status: status, isFocused: focused, clockOffsetMillis: nil,
-                         captureOutcome: nil, isRecording: false, recordingElapsedMillis: nil,
-                         needsQualityRematch: false,
-                         collection: .idle, canFlipCamera: canFlipCamera,
-                         supportsFocusPoint: supportsFocusPoint,
-                         supportsManualExposure: supportsManualExposure, exposure: nil,
-                         supportsCinematicVideo: supportsCinematicVideo, cinematic: nil,
-                         hasTorch: hasTorch,
-                         zoomFactor: zoomFactor, maxZoomFactor: maxZoomFactor,
-                         zoomStops: zoomStops, wideAngleZoomFactor: wideAngleZoomFactor,
-                         torchOn: torchOn, flashOn: flashOn)
+        // v11: the lane carries ONE control snapshot; zoom / lens / exposure /
+        // Cinematic / focus all live in it (WP3's MulticamLaneInfo shape).
+        let control = ControlState(
+            seq: 1,
+            zoomFactor: zoomFactor, minZoom: 1.0, maxZoom: maxZoomFactor,
+            zoomStops: zoomStops, wideAngleZoomFactor: wideAngleZoomFactor,
+            supportsFocusPoint: supportsFocusPoint,
+            exposure: supportsManualExposure ? Self.sampleExposure : nil,
+            cinematic: supportsCinematicVideo ? Self.sampleCinematic : nil)
+        return MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
+                                status: status, isFocused: focused, clockOffsetMillis: nil,
+                                captureOutcome: nil, isRecording: false, recordingElapsedMillis: nil,
+                                needsQualityRematch: false,
+                                collection: .idle, canFlipCamera: canFlipCamera,
+                                control: control,
+                                hasTorch: hasTorch,
+                                torchOn: torchOn, flashOn: flashOn)
     }
 
     /// The pro tiles are a property of the FOCUSED camera: refocusing from a
@@ -151,7 +165,9 @@ final class MulticamViewModelTests: XCTestCase {
 
     func testFocusedZoomPillSwapsRangeWithFocusAndHidesWhenDegenerate() {
         let vm = MulticamViewModel()
-        // Camera A: real range 1–6; Camera B: a wider 2–8 on a 2× wide-angle.
+        // Camera A: hardware max 6 on a 1× wide-angle — the derivation caps
+        // display zoom at 5× the wide reference, so the pill tops out at 5.
+        // Camera B: 2–8 on a 2× wide-angle (cap 10, so 8 stands).
         vm.apply([info(camA, focused: true, zoomFactor: 3, maxZoomFactor: 6,
                        zoomStops: [1, 2], wideAngleZoomFactor: 1),
                   info(camB, zoomFactor: 4, maxZoomFactor: 8,
@@ -159,7 +175,7 @@ final class MulticamViewModelTests: XCTestCase {
 
         XCTAssertTrue(vm.showsFocusedZoomPill)
         XCTAssertEqual(vm.focusedZoomFactor, 3)
-        XCTAssertEqual(vm.focusedZoomScale.maxZoom, 6)
+        XCTAssertEqual(vm.focusedZoomScale.maxZoom, 5, "display-capped at 5× the wide reference")
 
         // Refocusing swaps the displayed range to camera B's.
         vm.apply([info(camA, zoomFactor: 3, maxZoomFactor: 6, zoomStops: [1, 2]),
@@ -263,48 +279,6 @@ final class FocusedCameraControlStateTests: XCTestCase {
         XCTAssertFalse(off.flipEnabled)
         XCTAssertFalse(off.torchEnabled)
         XCTAssertFalse(off.flashEnabled)
-    }
-}
-
-/// The shared zoom math both paths derive from.
-final class ZoomScaleSeedTests: XCTestCase {
-    func testClampCapsAtFiveTimesWideAngle() {
-        XCTAssertEqual(ZoomScaleSeed.clampMaxZoom(8, wideAngle: 1), 5)     // 5×1 ceiling
-        XCTAssertEqual(ZoomScaleSeed.clampMaxZoom(8, wideAngle: 2), 8)     // 5×2 = 10, so 8 stands
-        XCTAssertEqual(ZoomScaleSeed.clampMaxZoom(20, wideAngle: 2), 10)   // capped at 5×2
-    }
-
-    func testSeedReadsStopsWideAngleFactorAndClampedRange() {
-        let info = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
-            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 8)],
-            supportedResolutions: [.hd1080p], supportedFrameRates: [.fps30],
-            resolutionFrameRates: [.hd1080p: [.fps30]], supportsHEIF: false, supportsHDR: false,
-            zoomStops: [1, 2], wideAngleZoomFactor: 1)
-        let caps = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: info,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 3,
-            supportsMulticam: true, error: nil)
-
-        let seed = ZoomScaleSeed.seed(from: caps)
-        XCTAssertEqual(seed?.zoomFactor, 3)
-        XCTAssertEqual(seed?.zoomStops, [1, 2])
-        XCTAssertEqual(seed?.wideAngleZoomFactor, 1)
-        XCTAssertEqual(seed?.maxZoomFactor, 5, "range 1–8 clamps to the 5×wide ceiling")
-    }
-
-    func testSeedLeavesCeilingUnsetWhenNoRangeForCurrentLens() {
-        let info = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle], hasFlash: false, hasTorch: false,
-            zoomCapabilities: [:],   // no range advertised
-            supportedResolutions: [.hd1080p], supportedFrameRates: [.fps30],
-            resolutionFrameRates: [.hd1080p: [.fps30]], supportsHEIF: false, supportsHDR: false,
-            zoomStops: [1], wideAngleZoomFactor: 1)
-        let caps = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: info,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
-            supportsMulticam: true, error: nil)
-        XCTAssertNil(ZoomScaleSeed.seed(from: caps)?.maxZoomFactor)
     }
 }
 

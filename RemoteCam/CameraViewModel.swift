@@ -185,21 +185,21 @@ class CameraViewModel: ObservableObject {
     private var exposureReadoutText: String?
     private var cinematicReadoutText: String?
 
-    func updateExposureReadout(_ state: ExposureState) {
+    func updateExposureReadout(_ state: ExposureState?) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.exposureReadoutText = state.mode == .manual
-                ? "M \(ProStops.shutterLabel(state.durationSeconds)) · \(ProStops.isoLabel(state.iso))"
+            self.exposureReadoutText = (state?.mode == .manual)
+                ? state.map { "M \(ProStops.shutterLabel($0.durationSeconds)) · \(ProStops.isoLabel($0.iso))" }
                 : nil
             self.recomposeProReadout()
         }
     }
 
-    func updateCinematicReadout(_ state: CinematicState) {
+    func updateCinematicReadout(_ state: CinematicState?) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.cinematicReadoutText = state.enabled
-                ? "CINEMATIC \(ProStops.apertureLabel(state.simulatedAperture))"
+            self.cinematicReadoutText = (state?.enabled == true)
+                ? state.map { "CINEMATIC \(ProStops.apertureLabel($0.simulatedAperture))" }
                 : nil
             self.recomposeProReadout()
         }

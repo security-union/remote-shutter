@@ -37,16 +37,17 @@ final class CameraLane: ObservableObject, Identifiable {
     var needsQualityRematch: Bool { info.needsQualityRematch }
     var collection: CameraLink.LaneCollectionState { info.collection }
     var canFlipCamera: Bool { info.canFlipCamera }
-    var supportsFocusPoint: Bool { info.supportsFocusPoint }
-    var supportsManualExposure: Bool { info.supportsManualExposure }
-    var exposure: ExposureState? { info.exposure }
-    var supportsCinematicVideo: Bool { info.supportsCinematicVideo }
-    var cinematic: CinematicState? { info.cinematic }
-    var zoomFactor: CGFloat { info.zoomFactor }
+    /// This lane's control-plane truth; every pro/zoom read below is a pure
+    /// derivation of it, so they can never disagree with one another.
+    var control: ControlState? { info.control }
+    var supportsFocusPoint: Bool { info.control?.supportsFocusPoint ?? false }
+    var supportsManualExposure: Bool { info.control?.exposure != nil }
+    var exposure: ExposureState? { info.control?.exposure }
+    var supportsCinematicVideo: Bool { info.control?.cinematic != nil }
+    var cinematic: CinematicState? { info.control?.cinematic }
+    var zoomFactor: CGFloat { info.control?.zoomFactor ?? 1.0 }
     var zoomScale: ZoomScale {
-        ZoomScale(stops: info.zoomStops,
-                  maxZoomFactor: info.maxZoomFactor,
-                  wideAngleZoomFactor: info.wideAngleZoomFactor)
+        info.control?.zoomScale ?? ZoomScale(stops: [1.0], maxZoomFactor: 1.0, wideAngleZoomFactor: 1.0)
     }
     var torchOn: Bool { info.torchOn }
     var flashOn: Bool { info.flashOn }

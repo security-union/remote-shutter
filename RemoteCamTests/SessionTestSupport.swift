@@ -120,14 +120,58 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     var exitCameraCalls = 0
     var countdownTicks: [Int] = []
     var gatherCapabilitiesCalls = 0
-    var zoomCalls: [CGFloat] = []
-    var focusCalls: [CGPoint] = []
-    var exposureCalls: [ExposureIntent] = []
+    // Recorded control calls. Locked-backed because the coordinator's actor
+    // writes them while the test thread reads (a bare array races under TSan).
+    private let zoomCallsStore = Locked<[CGFloat]>([])
+    var zoomCalls: [CGFloat] { zoomCallsStore.value }
+    private let focusCallsStore = Locked<[CGPoint]>([])
+    var focusCalls: [CGPoint] { focusCallsStore.value }
+    private let exposureCallsStore = Locked<[ExposureIntent]>([])
+    var exposureCalls: [ExposureIntent] { exposureCallsStore.value }
+    private let cinematicCallsStore = Locked<[CinematicIntent]>([])
+    var cinematicCalls: [CinematicIntent] { cinematicCallsStore.value }
+    private let lensSwitchesStore = Locked<[CameraLensType]>([])
+    var lensSwitches: [CameraLensType] { lensSwitchesStore.value }
+
     var advertisesManualExposure = true
-    var cinematicCalls: [CinematicIntent] = []
     var advertisesCinematicVideo = true
     var cinematicEnabled = false
-    var lensSwitches: [CameraLensType] = []
+
+    /// The one control-plane truth the fake mutates (v11). `advertises*`
+    /// mask exposure / Cinematic out of what it hands back, so capability
+    /// is presence exactly as on the wire.
+    private let controlStore = Locked(ControlState(
+        seq: 0,
+        activeDeviceID: "fake-back",
+        zoomFactor: 1.0, minZoom: 1.0, maxZoom: 10.0,
+        zoomStops: [1.0, 2.0], wideAngleZoomFactor: 1.0,
+        exposure: ExposureState(mode: .auto, durationSeconds: 1.0 / 120, iso: 64,
+                                minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0,
+                                minISO: 32, maxISO: 3200),
+        cinematic: CinematicState(enabled: false, simulatedAperture: 2.0,
+                                  minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
+                                  defaultSimulatedAperture: 2.0, apertureLocked: false,
+                                  notEnoughLight: false)))
+
+    /// The snapshot as the remote would receive it: exposure / Cinematic
+    /// present only when advertised, focus + device identity mirrored from
+    /// the fake's knobs.
+    private func maskedControl() -> ControlState {
+        var st = controlStore.value
+        st.supportsFocusPoint = advertisesFocusPoint
+        st.activeDeviceID = advertisesCameraDevices ? activeDeviceID : nil
+        if !advertisesManualExposure { st.exposure = nil }
+        if !advertisesCinematicVideo { st.cinematic = nil }
+        return st
+    }
+
+    /// Mutate the truth (seq++) and return the masked snapshot — the value
+    /// every control mutation echoes.
+    @discardableResult
+    private func bumpControl(_ body: (inout ControlState) -> Void) -> ControlState {
+        controlStore.mutate { st in st.seq += 1; body(&st) }
+        return maskedControl()
+    }
     var torchToggles = 0
     var chimes: [Int] = []
     var torchRestores = 0
@@ -164,50 +208,66 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     var appliedProfiles: [StreamProfile] = []
     func applyStreamProfile(_ profile: StreamProfile) { appliedProfiles.append(profile) }
 
-    // swiftlint:disable:next large_tuple
-    func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
+    func setZoom(zoomFactor: CGFloat) async throws -> ControlState {
         if let errorToThrow { throw errorToThrow }
-        zoomCalls.append(zoomFactor)
-        return (zoomFactor, .wideAngle, RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 10))
+        zoomCallsStore.mutate { $0.append(zoomFactor) }
+        return bumpControl { st in
+            st.zoomFactor = max(st.minZoom, min(zoomFactor, st.maxZoom))
+        }
     }
     func focusAtPoint(x: Float, y: Float) async throws {
         if let errorToThrow { throw errorToThrow }
-        focusCalls.append(CGPoint(x: CGFloat(x), y: CGFloat(y)))
+        focusCallsStore.mutate { $0.append(CGPoint(x: CGFloat(x), y: CGFloat(y))) }
     }
-    /// Echoes the intent like the engine (fixed phone-like aperture range).
-    func setCinematic(_ intent: CinematicIntent) async throws -> CinematicState {
+    /// Echoes the intent like the engine (fixed phone-like aperture range),
+    /// and — the wire regression — narrows the zoom band while Cinematic is
+    /// on, restoring it on disable, all inside the one returned snapshot.
+    func setCinematic(_ intent: CinematicIntent) async throws -> ControlState {
         if let errorToThrow { throw errorToThrow }
-        cinematicCalls.append(intent)
+        cinematicCallsStore.mutate { $0.append(intent) }
         switch intent {
         case .off: cinematicEnabled = false
         case .on: cinematicEnabled = true
         }
+        let enabled = cinematicEnabled
         var aperture: Float = 2.0
         if case let .on(requested) = intent, let requested { aperture = requested }
-        return CinematicState(enabled: cinematicEnabled, simulatedAperture: aperture,
-                              minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
-                              defaultSimulatedAperture: 2.0, apertureLocked: false, notEnoughLight: false)
+        return bumpControl { st in
+            st.cinematic = CinematicState(enabled: enabled, simulatedAperture: aperture,
+                                          minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
+                                          defaultSimulatedAperture: 2.0, apertureLocked: false,
+                                          notEnoughLight: false)
+            st.maxZoom = enabled ? 3.0 : 10.0
+            st.zoomFactor = min(st.zoomFactor, st.maxZoom)
+        }
     }
 
     /// Echoes the intent clamped into a fixed phone-like range, like the engine.
-    func setExposure(_ intent: ExposureIntent) async throws -> ExposureState {
+    func setExposure(_ intent: ExposureIntent) async throws -> ControlState {
         if let errorToThrow { throw errorToThrow }
-        exposureCalls.append(intent)
-        switch intent {
-        case .auto:
-            return ExposureState(mode: .auto, durationSeconds: 1.0 / 120, iso: 64,
-                                 minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0, minISO: 32, maxISO: 3200)
-        case let .manual(duration, iso):
-            return ExposureState(mode: .manual, durationSeconds: duration, iso: iso,
-                                 minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0, minISO: 32, maxISO: 3200)
+        exposureCallsStore.mutate { $0.append(intent) }
+        return bumpControl { st in
+            switch intent {
+            case .auto:
+                st.exposure = ExposureState(mode: .auto, durationSeconds: 1.0 / 120, iso: 64,
+                                            minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0,
+                                            minISO: 32, maxISO: 3200)
+            case let .manual(duration, iso):
+                st.exposure = ExposureState(mode: .manual, durationSeconds: duration, iso: iso,
+                                            minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0,
+                                            minISO: 32, maxISO: 3200)
+            }
         }
     }
-    // swiftlint:disable:next large_tuple
-    func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
+    func switchLens(to lensType: CameraLensType) async throws -> ControlState {
         if let errorToThrow { throw errorToThrow }
-        lensSwitches.append(lensType)
-        return (lensType, [.wideAngle, lensType], 1.0, RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 10))
+        lensSwitchesStore.mutate { $0.append(lensType) }
+        return bumpControl { st in
+            st.currentLens = lensType
+            st.availableLenses = [.wideAngle, lensType]
+        }
     }
+    func controlState() async -> ControlState? { maskedControl() }
     func toggleFlash() async throws -> AVCaptureDevice.FlashMode {
         if let errorToThrow { throw errorToThrow }
         flashMode = flashMode == .off ? .on : .off
@@ -259,11 +319,12 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
         }
         activeDeviceID = device.uniqueID
+        // v11: live ranges ride ControlState, not the selection result. If
+        // WP1/WP2 keeps a range field on CameraSelectionResult, add it here.
         return CameraSelectionResult(
             device: device,
             flashMode: device.position == .back ? flashMode : nil,
             availableLensTypes: [.wideAngle],
-            zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 10),
             currentZoom: 1.0)
     }
     func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode {
@@ -329,14 +390,11 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             : []
         return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            currentCamera: .back,
             cameraDevices: entries,
-            activeDeviceID: advertisesCameraDevices ? activeDeviceID : nil,
-            supportsFocusPoint: advertisesFocusPoint,
             supportsPreviewMode: advertisesPreviewMode,
             previewMode: storedPreviewMode,
-            supportsManualExposure: advertisesManualExposure,
-            supportsCinematicVideo: advertisesCinematicVideo,
+            control: maskedControl(),
             error: nil)
     }
 

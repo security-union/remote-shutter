@@ -441,7 +441,7 @@ final class CaptureIntegrationTests: XCTestCase {
         guard devices.count >= 2 else { throw XCTSkip("needs two selectable cameras to flip between") }
         let before = await rig.currentCameraDevice()
         let state = try await rig.setExposure(ExposureIntent.manual(durationSeconds: 1.0 / 250, iso: 0))
-        guard state.mode == .manual else { throw XCTSkip("no device here accepts custom exposure") }
+        guard state.exposure?.mode == .manual else { throw XCTSkip("no device here accepts custom exposure") }
 
         _ = try await rig.toggleCamera()
         let after = await rig.currentCameraDevice()
@@ -468,15 +468,15 @@ final class CaptureIntegrationTests: XCTestCase {
 
         let wanted = 1.0 / 250
         let state = try await rig.setExposure(ExposureIntent.manual(durationSeconds: wanted, iso: device.activeFormat.minISO * 2))
-        XCTAssertEqual(state.mode, .manual)
-        XCTAssertEqual(state.durationSeconds, wanted, accuracy: wanted * 0.1)
+        XCTAssertEqual(state.exposure?.mode, .manual)
+        XCTAssertEqual(state.exposure?.durationSeconds ?? 0, wanted, accuracy: wanted * 0.1)
         XCTAssertEqual(device.exposureMode, .custom)
 
         // A long shutter may legitimately stretch the frame duration in photo
         // mode; Auto must bring the frame rate back to what quality chose.
         _ = try await rig.setExposure(ExposureIntent.manual(durationSeconds: 0.5, iso: 0))
         let restored = try await rig.setExposure(ExposureIntent.auto)
-        XCTAssertEqual(restored.mode, .auto)
+        XCTAssertEqual(restored.exposure?.mode, .auto)
         XCTAssertEqual(device.exposureMode, .continuousAutoExposure)
         XCTAssertEqual(CMTimeGetSeconds(device.activeVideoMaxFrameDuration),
                        CMTimeGetSeconds(fpsBefore), accuracy: 0.001)

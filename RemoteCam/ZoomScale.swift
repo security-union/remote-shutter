@@ -18,11 +18,25 @@ struct ZoomScale: Equatable {
     let minZoom: CGFloat
     let maxZoom: CGFloat
 
-    init(stops: [CGFloat], maxZoomFactor: CGFloat, wideAngleZoomFactor: CGFloat) {
+    /// Display zoom tops out at 5× the wide-angle reference, so a pill never
+    /// offers unreachable range. The one place this constant lives.
+    static let maxDisplayZoom: CGFloat = 5.0
+
+    /// Clamp a camera-reported max zoom to the display ceiling.
+    static func displayCapped(_ maxFactor: CGFloat, wideAngle: CGFloat) -> CGFloat {
+        min(maxFactor, maxDisplayZoom * wideAngle)
+    }
+
+    /// `minZoomFactor` is a hard floor below which the camera cannot go right
+    /// now (Cinematic narrows zoom from both ends); stops beneath it are not
+    /// offered. Nil/invalid = the first stop is the floor, as ever.
+    init(stops: [CGFloat], maxZoomFactor: CGFloat, wideAngleZoomFactor: CGFloat,
+         minZoomFactor: CGFloat? = nil) {
         let usable = stops.filter { $0.isFinite && $0 > 0 }.sorted()
         let safeStops = usable.isEmpty ? [1.0] : usable
-        let low = safeStops[0]
-        // `maxZoomFactor` arrives as a default (10.0) before the first SetZoomResp and can
+        let floor = minZoomFactor.flatMap { ($0.isFinite && $0 > 0) ? $0 : nil }
+        let low = max(safeStops[0], floor ?? 0)
+        // `maxZoomFactor` arrives as a default before the first snapshot and can
         // legitimately land at or below the low stop on a fixed-focal-length camera.
         let ceiling = (maxZoomFactor.isFinite && maxZoomFactor > low) ? maxZoomFactor : low
 
@@ -30,9 +44,11 @@ struct ZoomScale: Equatable {
         self.maxZoom = ceiling
         self.wideAngleZoomFactor =
             (wideAngleZoomFactor.isFinite && wideAngleZoomFactor > 0) ? wideAngleZoomFactor : 1.0
-        // A stop past the ceiling can't be reached, so it must not be offered as a detent.
-        // `low` always survives, so this can never empty the array.
-        self.stops = safeStops.filter { $0 <= ceiling }
+        // A stop outside [low, ceiling] can't be reached, so it must not be
+        // offered as a detent; if the floor swallowed every stop, the floor
+        // itself is the one detent.
+        let reachable = safeStops.filter { $0 >= low && $0 <= ceiling }
+        self.stops = reachable.isEmpty ? [low] : reachable
     }
 
     /// True when the range has collapsed and there is nothing to zoom: before the first

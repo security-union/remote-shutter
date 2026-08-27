@@ -271,8 +271,8 @@ extension MonitorViewController {
     /// Throttled to 20Hz with a trailing-edge flush so the value the user released on is
     /// always delivered, mirroring how the Watch drives crown zoom.
     private func handleZoomChange(_ factor: CGFloat) {
-        currentZoomFactor = factor
-
+        // No local zoom cache to write: the pill shows its own in-flight value
+        // until the camera's next control snapshot confirms the new factor.
         switch zoomThrottle.update(value: Double(factor), now: Date()) {
         case .sendNow:
             session ! UICmd.SetZoom(zoomFactor: factor)
@@ -375,12 +375,11 @@ extension MonitorViewController {
         viewModel.updateCameraImage(image)
     }
     
-    func updateZoomInViewModel(_ factor: CGFloat, maxFactor: CGFloat) {
-        viewModel.updateZoomFactor(factor, maxFactor: maxFactor)
-    }
-
-    func updateLensTypesInViewModel(_ lenses: [CameraLensType], current: CameraLensType) {
-        viewModel.updateAvailableLenses(lenses, current: current)
+    /// The whole control-plane snapshot (v11): the view model stores it, and
+    /// zoom / lens / exposure / Cinematic all read off it. Replaces the old
+    /// per-field zoom and lens updates.
+    func applyControlState(_ state: ControlState) {
+        viewModel.applyControlState(state)
     }
     
     // MARK: - Video Transfer Progress Methods
