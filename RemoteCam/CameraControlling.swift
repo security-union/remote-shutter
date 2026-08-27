@@ -41,12 +41,23 @@ protocol CameraControlling: AnyObject, Sendable {
     /// for tiered director previews. Never called in a single-camera session.
     func applyStreamProfile(_ profile: StreamProfile)
 
-    func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange)
+    /// Every control mutation answers with the full snapshot — the payload
+    /// of `ControlStateChanged`. There are no per-control response shapes.
+    func setZoom(zoomFactor: CGFloat) async throws -> ControlState
     /// Sets the focus/exposure point of interest from a monitor tap. `x`/`y` are
     /// normalized (0..1) in the upright display image, origin top-left.
     /// Fire-and-forget: a no-op if the active device has no point of interest.
     func focusAtPoint(x: Float, y: Float) async throws
-    func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange)
+    /// Auto or manual (shutter + ISO) exposure. The device clamps into its
+    /// active format's range.
+    func setExposure(_ intent: ExposureIntent) async throws -> ControlState
+    /// Cinematic video (iOS 26+) on/off + simulated aperture. Refusals throw
+    /// `CaptureEngine.CinematicRefusal`.
+    func setCinematic(_ intent: CinematicIntent) async throws -> ControlState
+    func switchLens(to lensType: CameraLensType) async throws -> ControlState
+    /// The current snapshot, for pushes and capability seeds. Nil before the
+    /// capture device exists.
+    func controlState() async -> ControlState?
     func toggleFlash() async throws -> AVCaptureDevice.FlashMode
     func toggleTorch() async throws -> AVCaptureDevice.TorchMode
     func toggleCamera() async throws -> (AVCaptureDevice.FlashMode?, AVCaptureDevice.Position)

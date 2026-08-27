@@ -15,7 +15,6 @@ final class RigQualityMenuTests: XCTestCase {
                       heif: Bool = true, hdr: Bool = true) -> RemoteCmd.CameraInfo {
         RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
-            zoomCapabilities: [:],
             supportedResolutions: Array(matrix.keys),
             supportedFrameRates: Array(Set(matrix.values.flatMap { $0 })),
             resolutionFrameRates: matrix,

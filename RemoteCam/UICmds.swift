@@ -12,7 +12,7 @@ import Stormo
 import UIKit
 import AVFoundation
 
-enum RecordingMode {
+public enum RecordingMode {
     case Photo
     case Video
     case Shorts
@@ -241,17 +241,34 @@ public class UICmd {
         }
     }
 
-    public class SetZoomResp: Message, @unchecked Sendable {
-        public let zoomFactor: CGFloat?
-        public let currentLens: CameraLensType?
-        public let zoomRange: ZoomRange?
-        public let error: Error?
+    /// Monitor screen -> session: set auto/manual exposure on the camera peer.
+    public class SetExposure: Message, @unchecked Sendable {
+        public let intent: ExposureIntent
 
-        public init(zoomFactor: CGFloat?, currentLens: CameraLensType?, zoomRange: ZoomRange?, error: Error?) {
-            self.zoomFactor = zoomFactor
-            self.currentLens = currentLens
-            self.zoomRange = zoomRange
-            self.error = error
+        public init(intent: ExposureIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
+    /// Monitor screen -> session: Cinematic video on/off + aperture.
+    public class SetCinematic: Message, @unchecked Sendable {
+        public let intent: CinematicIntent
+
+        public init(intent: CinematicIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
+    /// Camera screen -> session: the engine's control snapshot moved without
+    /// a remote command (device swap, quality change, mode change). The
+    /// camera states forward it as an unsolicited `ControlStateChanged`.
+    public class PushControlState: Message, @unchecked Sendable {
+        public let state: ControlState
+
+        public init(state: ControlState) {
+            self.state = state
             super.init(sender: nil)
         }
     }
@@ -262,24 +279,6 @@ public class UICmd {
         
         public init(lensType: CameraLensType) {
             self.lensType = lensType
-            super.init(sender: nil)
-        }
-    }
-
-    public class SwitchLensResp: Message, @unchecked Sendable {
-        public let lensType: CameraLensType?
-        public let availableLenses: [CameraLensType]?
-        public let currentZoom: CGFloat?
-        public let zoomRange: ZoomRange?
-        public let error: Error?
-
-        public init(lensType: CameraLensType?, availableLenses: [CameraLensType]?, 
-                   currentZoom: CGFloat?, zoomRange: ZoomRange?, error: Error?) {
-            self.lensType = lensType
-            self.availableLenses = availableLenses
-            self.currentZoom = currentZoom
-            self.zoomRange = zoomRange
-            self.error = error
             super.init(sender: nil)
         }
     }

@@ -159,13 +159,15 @@ final class MonitorChromeTests: XCTestCase {
                        supportsHDR: Bool = false,
                        supportsCameraStandby: Bool = false,
                        resolutionCount: Int = 1,
-                       frameRateCount: Int = 1) -> [MonitorTrayItem] {
+                       frameRateCount: Int = 1,
+                       proTiles: [MonitorTrayItem] = []) -> [MonitorTrayItem] {
         MonitorTray.items(for: state,
                           supportsHEIF: supportsHEIF,
                           supportsHDR: supportsHDR,
                           supportsCameraStandby: supportsCameraStandby,
                           resolutionCount: resolutionCount,
-                          frameRateCount: frameRateCount)
+                          frameRateCount: frameRateCount,
+                          proTiles: proTiles)
     }
 
     /// A camera with no optional capabilities gets the irreducible tray.
@@ -227,6 +229,59 @@ final class MonitorChromeTests: XCTestCase {
     func testStandbyTileSitsBeforeSettings() {
         let tiles = items(.photoMode, supportsCameraStandby: true)
         XCTAssertEqual(tiles, [.timer, .aspect, .cameraStandby, .settings, .help])
+    }
+
+    // MARK: - Pro controls
+
+    private let proTileStates: [MonitorUIState] = [.photoMode, .videoMode, .videoRecording, .shortsMode]
+
+    /// Same rule as standby: a peer that never advertised the capability
+    /// would ignore SetExposure/SetCinematic, so no tile is offered.
+    func testProTilesAreHiddenWhenPeerDoesNotSupportThem() {
+        for state in proTileStates {
+            XCTAssertTrue(MonitorTray.proTiles(for: state, supportsManualExposure: false,
+                                               supportsCinematicVideo: false,
+                                               cinematicOn: false, apertureAdjustable: true).isEmpty,
+                          "\(state) offered pro controls to a peer that can't do them")
+            XCTAssertTrue(items(state).allSatisfy { ![.shutter, .iso, .cinematic, .aperture].contains($0) })
+        }
+    }
+
+    /// Pro tiles sit with the capture settings — after quality, before
+    /// standby — in every mode, and stay composed while recording (the
+    /// camera caps the shutter at one frame; Cinematic dims itself).
+    func testProTilesSitBetweenQualityAndStandby() {
+        XCTAssertEqual(items(.photoMode, supportsHDR: true, supportsCameraStandby: true, proTiles: [.shutter, .iso]),
+                       [.timer, .aspect, .hdr, .shutter, .iso, .cameraStandby, .settings, .help])
+        XCTAssertEqual(items(.videoRecording, resolutionCount: 2, proTiles: [.shutter, .iso, .cinematic, .aperture]),
+                       [.timer, .aspect, .resolution, .shutter, .iso, .cinematic, .aperture, .settings, .help])
+        XCTAssertEqual(items(.shortsMode, proTiles: [.shutter, .iso]),
+                       [.aspect, .shutter, .iso, .settings, .help])
+    }
+
+    /// Manual exposure earns SHUTTER + ISO in every mode; Cinematic is a video
+    /// effect and earns its toggle only in video modes, plus APERTURE once it
+    /// is on and the device can adjust it; the flag gates everything.
+    func testProTileDerivation() {
+        func tiles(_ state: MonitorUIState, manual: Bool, cinematic: Bool,
+                   on: Bool = false, adjustable: Bool = true, flag: Bool = true) -> [MonitorTrayItem] {
+            MonitorTray.proTiles(for: state, supportsManualExposure: manual,
+                                 supportsCinematicVideo: cinematic, cinematicOn: on,
+                                 apertureAdjustable: adjustable, flagEnabled: flag)
+        }
+        for state in proTileStates {
+            XCTAssertEqual(tiles(state, manual: true, cinematic: false), [.shutter, .iso], "\(state) hid manual exposure")
+            XCTAssertTrue(tiles(state, manual: true, cinematic: true, flag: false).isEmpty, "\(state) ignored the feature flag")
+        }
+        for state in [MonitorUIState.videoMode, .videoRecording] {
+            XCTAssertEqual(tiles(state, manual: false, cinematic: true), [.cinematic])
+            XCTAssertEqual(tiles(state, manual: false, cinematic: true, on: true), [.cinematic, .aperture])
+            XCTAssertEqual(tiles(state, manual: false, cinematic: true, on: true, adjustable: false), [.cinematic],
+                           "a fixed aperture has no slider to open")
+            XCTAssertEqual(tiles(state, manual: true, cinematic: true, on: true), [.shutter, .iso, .cinematic, .aperture])
+        }
+        XCTAssertTrue(tiles(.photoMode, manual: false, cinematic: true, on: true).isEmpty, "Cinematic is not a photo control")
+        XCTAssertTrue(tiles(.shortsMode, manual: false, cinematic: true, on: true).isEmpty)
     }
 
     /// Settings and Help are the tray's floor — they are how the viewfinder

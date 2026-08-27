@@ -28,6 +28,10 @@ public final class MulticamViewController: UIViewController {
     /// value lands.
     private var zoomThrottle = ZoomSendThrottle()
     private var trailingZoomTimer: Timer?
+    /// Throttled senders for the pro sliders, one per control; the target
+    /// camera rides through with the value like zoom's does.
+    private var proSenders: [ProSliderKind: ThrottledValueSender] = [:]
+    private var proSliderTarget: MCPeerID?
 
     /// `controller` must already be `install`-ed with its transport + peers by
     /// the caller (the scanner handoff), so lanes light up immediately.
@@ -60,6 +64,7 @@ public final class MulticamViewController: UIViewController {
                       self.viewModel.rigSettings.countdown == nil else { return }
                 self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
                 logInfo("director: mode → \(self.viewModel.mode)")
+                self.controller.setRigMode(self.viewModel.mode)
             },
             onAddCamera: { [weak self] in self?.handleAddCameraTapped() },
             onInviteCamera: { [weak self] peer in
@@ -98,6 +103,12 @@ public final class MulticamViewController: UIViewController {
             onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },
             onZoomChange: { [weak self] lane, factor in self?.handleZoomChange(factor, on: lane.peerID) },
             onFocusTap: { [weak self] lane, point in self?.handleFocusTap(point, on: lane.peerID) },
+            onExposureChange: { [weak self] lane, intent in self?.controller.setExposure(intent, on: lane.peerID) },
+            onCinematicChange: { [weak self] lane, intent in self?.controller.setCinematic(intent, on: lane.peerID) },
+            onProSliderChange: { [weak self] lane, kind, value in
+                self?.proSliderTarget = lane.peerID
+                self?.proSender(for: kind).submit(value)
+            },
             onBack: { [weak self] in
                 logInfo("director: back → scanner")
                 self?.navigationController?.popViewController(animated: true)
@@ -151,6 +162,22 @@ public final class MulticamViewController: UIViewController {
             return
         }
         controller.focusCamera(peer, x: Float(point.x), y: Float(point.y))
+    }
+
+    /// One throttled sender per pro slider (the zoom pill's send pattern);
+    /// the value becomes the wire intent, addressed to the camera the slider
+    /// was rendered for, at send time.
+    private func proSender(for kind: ProSliderKind) -> ThrottledValueSender {
+        if let existing = proSenders[kind] { return existing }
+        let sender = ThrottledValueSender { [weak self] value in
+            guard let self, let target = self.proSliderTarget else { return }
+            switch kind.intent(for: value) {
+            case .exposure(let intent): self.controller.setExposure(intent, on: target)
+            case .cinematic(let intent): self.controller.setCinematic(intent, on: target)
+            }
+        }
+        proSenders[kind] = sender
+        return sender
     }
 
     /// Reuse the existing Settings/paywall sheet — no bespoke multicam paywall.

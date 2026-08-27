@@ -176,6 +176,40 @@ class CameraViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Pro-controls readout
+    /// What the remote is driving, shown as a chip on the preview so the
+    /// person holding the camera can see it ("M 1/125 · ISO 400 · f/2.8").
+    /// nil when everything is automatic.
+    @Published var proReadout: String?
+
+    private var exposureReadoutText: String?
+    private var cinematicReadoutText: String?
+
+    func updateExposureReadout(_ state: ExposureState?) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.exposureReadoutText = (state?.mode == .manual)
+                ? state.map { "M \(ProStops.shutterLabel($0.durationSeconds)) · \(ProStops.isoLabel($0.iso))" }
+                : nil
+            self.recomposeProReadout()
+        }
+    }
+
+    func updateCinematicReadout(_ state: CinematicState?) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.cinematicReadoutText = (state?.enabled == true)
+                ? state.map { "CINEMATIC \(ProStops.apertureLabel($0.simulatedAperture))" }
+                : nil
+            self.recomposeProReadout()
+        }
+    }
+
+    private func recomposeProReadout() {
+        let parts = [exposureReadoutText, cinematicReadoutText].compactMap { $0 }
+        proReadout = parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     // MARK: - Remote Focus Indicator
     /// Shown when a remote focus command arrives, so the person holding the
     /// camera sees the tap register — the same reticle the monitor draws.

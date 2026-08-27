@@ -37,10 +37,13 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
     private func makeConnectedModel() -> MonitorViewModel {
         let model = MonitorViewModel()
         model.frames.cameraImage = syntheticCameraFrame()
-        model.availableLensTypes = [.ultraWide, .wideAngle, .telephoto]
-        model.currentLensType = .wideAngle
-        model.zoomStops = [1.0, 2.0, 5.0]
-        model.currentZoomFactor = 1.0
+        // Zoom / lens are computed off the control snapshot now — seed it.
+        model.applyControlState(ControlState(
+            seq: 1,
+            currentLens: .wideAngle,
+            availableLenses: [.ultraWide, .wideAngle, .telephoto],
+            zoomFactor: 1.0, minZoom: 1.0, maxZoom: 5.0,
+            zoomStops: [1.0, 2.0, 5.0], wideAngleZoomFactor: 1.0))
         return model
     }
 
@@ -61,6 +64,19 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
 
         let image = renderScreen(named: "monitor-video-recording", makeMonitorView(model))
         assertHasChrome(image)
+    }
+
+    /// The pro panel in its richest state: Manual exposure dials + Cinematic
+    /// on with the aperture dial locked by a recording.
+    func testProSliderPillRenders() {
+        let exposure = ExposureState(
+            mode: .manual, durationSeconds: 1.0 / 125, iso: 400,
+            minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 0.5, minISO: 32, maxISO: 3200)
+        let pill = ProSliderPill(scale: .shutter(exposure),
+                                 currentValue: exposure.durationSeconds,
+                                 onChange: { _ in }, onAuto: {}, onClose: {})
+        let image = renderScreen(named: "monitor-pro-slider", pill)
+        assertRendered(image)
     }
 
     func testWaitingForFirstFrame() {

@@ -409,6 +409,53 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    // MARK: - Exposure Remote Commands
+
+    /// Monitor -> camera: auto or manual (shutter + ISO) exposure. The camera
+    /// clamps into its active format's range and answers with `SetExposureResp`
+    /// carrying the applied truth. Only sent to peers that advertised
+    /// `CameraCapabilitiesResp.supportsManualExposure`.
+    public class SetExposure: Message, @unchecked Sendable {
+        public let intent: ExposureIntent
+
+        public init(intent: ExposureIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
+    /// Monitor -> camera: Cinematic video on/off + simulated aperture (iOS
+    /// 26+). Answered with `SetCinematicResp`. Only sent to peers that
+    /// advertised `CameraCapabilitiesResp.supportsCinematicVideo`.
+    public class SetCinematic: Message, @unchecked Sendable {
+        public let intent: CinematicIntent
+
+        public init(intent: CinematicIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
+    /// Camera -> monitor/director: THE control-plane truth channel (v11).
+    /// The answer to every control mutation (SetZoom, SwitchLens, SetExposure,
+    /// SetCinematic) and an unsolicited push whenever a constraint moves
+    /// without the remote asking. The snapshot is present even on refusal —
+    /// it is the unchanged truth the remote should show.
+    public class ControlStateChanged: Message, @unchecked Sendable {
+        public let state: ControlState
+        public let refusal: ControlRefusalReason?
+        /// Camera-side diagnostic suffix (device, format, outputs).
+        public let refusalDetail: String?
+
+        public init(state: ControlState, refusal: ControlRefusalReason? = nil,
+                    refusalDetail: String? = nil) {
+            self.state = state
+            self.refusal = refusal
+            self.refusalDetail = refusalDetail
+            super.init(sender: nil)
+        }
+    }
+
     /// "I am leaving on purpose." Sent by whichever side ends the session
     /// deliberately, so the peer stops reconnecting instead of chasing a
     /// session nobody is coming back to. Fire-and-forget: an unplanned
@@ -451,46 +498,33 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     // MARK: - Camera Capabilities Structure
 
+    /// Static per-position facts (quality menus, flash/torch presence).
+    /// Anything that changes with the session — zoom, lenses in use,
+    /// exposure — lives in `ControlState`, never here.
     public struct CameraInfo: Codable, Equatable {
         public let availableLenses: [CameraLensType]
         public let hasFlash: Bool
         public let hasTorch: Bool
-        public let zoomCapabilities: [Int: ZoomRange] // CameraLensType.rawValue -> ZoomRange
         public let supportedResolutions: [VideoResolution]
         public let supportedFrameRates: [VideoFrameRate]
         public let resolutionFrameRates: [Int: [VideoFrameRate]] // VideoResolution.rawValue -> supported FPS
         public let supportsHEIF: Bool
         public let supportsHDR: Bool
-        public let zoomStops: [CGFloat] // Hardware zoom factors for each stop (e.g., [1.0, 2.0, 6.0])
-        public let wideAngleZoomFactor: CGFloat // Hardware zoom factor for the wide-angle camera (the "1x" reference)
 
         public init(availableLenses: [CameraLensType], hasFlash: Bool, hasTorch: Bool,
-                    zoomCapabilities: [CameraLensType: ZoomRange],
                     supportedResolutions: [VideoResolution] = [.hd1080p],
                     supportedFrameRates: [VideoFrameRate] = [.fps30],
                     resolutionFrameRates: [VideoResolution: [VideoFrameRate]] = [:],
                     supportsHEIF: Bool = false,
-                    supportsHDR: Bool = false,
-                    zoomStops: [CGFloat] = [1.0],
-                    wideAngleZoomFactor: CGFloat = 1.0) {
+                    supportsHDR: Bool = false) {
             self.availableLenses = availableLenses
             self.hasFlash = hasFlash
             self.hasTorch = hasTorch
-            self.zoomCapabilities = Dictionary(uniqueKeysWithValues: zoomCapabilities.map { key, value in (key.rawValue, value) })
             self.supportedResolutions = supportedResolutions
             self.supportedFrameRates = supportedFrameRates
             self.resolutionFrameRates = Dictionary(uniqueKeysWithValues: resolutionFrameRates.map { key, value in (key.rawValue, value) })
             self.supportsHEIF = supportsHEIF
             self.supportsHDR = supportsHDR
-            self.zoomStops = zoomStops
-            self.wideAngleZoomFactor = wideAngleZoomFactor
-        }
-
-        public func getZoomCapabilities() -> [CameraLensType: ZoomRange] {
-            return Dictionary(uniqueKeysWithValues: zoomCapabilities.compactMap { (rawValue, range) in
-                guard let lensType = CameraLensType(rawValue: rawValue) else { return nil }
-                return (lensType, range)
-            })
         }
 
         public func getResolutionFrameRates() -> [VideoResolution: [VideoFrameRate]] {
@@ -501,15 +535,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public struct ZoomRange: Codable, Equatable {
-        public let minZoom: CGFloat
-        public let maxZoom: CGFloat
-
-        public init(minZoom: CGFloat, maxZoom: CGFloat) {
-            self.minZoom = minZoom
-            self.maxZoom = maxZoom
-        }
-    }
 
     // MARK: - Camera Device List (N cameras; Macs have no front/back pair)
 
@@ -547,64 +572,54 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     // MARK: - Enhanced Camera Response
 
+    /// What the camera peer HAS: static device facts and session-level
+    /// features. What it is DOING — and every live range — is `control`, the
+    /// same `ControlState` that `ControlStateChanged` pushes, carried here so
+    /// the very first exchange seeds the remote completely.
     public class CameraCapabilitiesResp: Message, @unchecked Sendable {
         public let frontCamera: CameraInfo?
         public let backCamera: CameraInfo?
         public let currentCamera: AVCaptureDevice.Position
-        public let currentLens: CameraLensType
-        public let currentZoom: CGFloat
         public let currentVideoResolution: VideoResolution
         public let currentVideoFrameRate: VideoFrameRate
         public let currentPhotoFormat: PhotoFormat
         public let currentHDRMode: HDRMode
         public let cameraDevices: [CameraDeviceEntry]
-        public let activeDeviceID: String?
-        /// True when this peer's build understands `RemoteCmd.FocusAtPoint`. The
-        /// monitor's tap-to-focus gate reads this so it never sends the command
-        /// to a peer that would decode it as `TakePicture`.
-        public let supportsFocusPoint: Bool
-        /// True when this peer's build understands
-        /// `RemoteCmd.SetCameraPreviewMode`. The monitor's standby gate reads
-        /// this so it never sends the command to a peer that would misread it.
+        /// False = peer has no local preview-mode control.
         public let supportsPreviewMode: Bool
-        /// True when this peer's build can join a multicam director session
-        /// (scheduled capture, stream profiles). A director must not send
-        /// multicam commands to a peer that doesn't advertise this.
+        /// False = peer cannot join a multicam director session.
         public let supportsMulticam: Bool
-        /// The camera's current local-preview mode, so the monitor can reflect
-        /// it from the first capabilities exchange.
+        /// The camera's current local-preview mode.
         public let previewMode: CameraPreviewMode
+        /// The control-plane seed. Nil only from a malformed peer; treated as
+        /// "no controls" everywhere.
+        public let control: ControlState?
         public let error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
-                   currentCamera: AVCaptureDevice.Position, currentLens: CameraLensType,
-                   currentZoom: CGFloat,
+                   currentCamera: AVCaptureDevice.Position,
                    currentVideoResolution: VideoResolution = .hd1080p,
                    currentVideoFrameRate: VideoFrameRate = .fps30,
                    currentPhotoFormat: PhotoFormat = .jpeg,
                    currentHDRMode: HDRMode = .off,
                    cameraDevices: [CameraDeviceEntry] = [],
-                   activeDeviceID: String? = nil,
-                   supportsFocusPoint: Bool = false,
                    supportsPreviewMode: Bool = false,
                    supportsMulticam: Bool = false,
                    previewMode: CameraPreviewMode = .on,
+                   control: ControlState? = nil,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
             self.currentCamera = currentCamera
-            self.currentLens = currentLens
-            self.currentZoom = currentZoom
             self.currentVideoResolution = currentVideoResolution
             self.currentVideoFrameRate = currentVideoFrameRate
             self.currentPhotoFormat = currentPhotoFormat
             self.currentHDRMode = currentHDRMode
             self.cameraDevices = cameraDevices
-            self.activeDeviceID = activeDeviceID
-            self.supportsFocusPoint = supportsFocusPoint
             self.supportsPreviewMode = supportsPreviewMode
             self.supportsMulticam = supportsMulticam
             self.previewMode = previewMode
+            self.control = control
             self.error = error
             super.init(sender: nil)
         }
@@ -657,24 +672,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
         public init(lensType: CameraLensType) {
             self.lensType = lensType
-            super.init(sender: nil)
-        }
-    }
-
-    public class SwitchLensResp: Message, @unchecked Sendable {
-        public let lensType: CameraLensType?
-        public let availableLenses: [CameraLensType]?
-        public let currentZoom: CGFloat?
-        public let zoomRange: ZoomRange?
-        public let error: Error?
-
-        public init(lensType: CameraLensType?, availableLenses: [CameraLensType]?,
-                   currentZoom: CGFloat?, zoomRange: ZoomRange?, error: Error?) {
-            self.lensType = lensType
-            self.availableLenses = availableLenses
-            self.currentZoom = currentZoom
-            self.zoomRange = zoomRange
-            self.error = error
             super.init(sender: nil)
         }
     }
@@ -813,20 +810,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
     /// capabilities in, UI re-synced — so it shares that state's handling.
     public class SelectCameraDeviceResp: ToggleCameraResp, @unchecked Sendable {}
 
-    public class SetZoomResp: Message, @unchecked Sendable {
-        public let zoomFactor: CGFloat?
-        public let currentLens: CameraLensType?
-        public let zoomRange: ZoomRange?
-        public let error: Error?
-
-        public init(zoomFactor: CGFloat?, currentLens: CameraLensType?, zoomRange: ZoomRange?, error: Error?) {
-            self.zoomFactor = zoomFactor
-            self.currentLens = currentLens
-            self.zoomRange = zoomRange
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
 
     public class RequestCameraCapabilities: Message, @unchecked Sendable {
         public init() {

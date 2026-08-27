@@ -39,14 +39,15 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SetStreamProfile: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
-    case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetCinematic: return m.toFlatBuffer()
+    case let m as RemoteCmd.ControlStateChanged: return m.toFlatBuffer()
     case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraPreviewModeResp: return m.toFlatBuffer()
     case let m as RemoteCmd.EndSession: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SwitchLens: return m.toFlatBuffer()
-    case let m as RemoteCmd.SwitchLensResp: return m.toFlatBuffer()
     case let m as RemoteCmd.PeerBecameCamera: return m.toFlatBuffer()
     case let m as RemoteCmd.PeerBecameMonitor: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleFlash: return m.toFlatBuffer()
@@ -257,15 +258,6 @@ private func encodeCameraInfo(_ info: RemoteCmd.CameraInfo, _ fbb: inout FlatBuf
     let lenses = info.availableLenses.map { toFBLens($0) }
     let lensesVector = fbb.createVector(lenses)
 
-    let caps = info.getZoomCapabilities()
-    var zoomCapOffsets: [Offset] = []
-    for (lens, range) in caps {
-        let rangeOffset = RemoteShutter_ZoomRange.createZoomRange(&fbb, minZoom: Double(range.minZoom), maxZoom: Double(range.maxZoom))
-        let capOffset = RemoteShutter_ZoomCapability.createZoomCapability(&fbb, lensType: toFBLens(lens), zoomRangeOffset: rangeOffset)
-        zoomCapOffsets.append(capOffset)
-    }
-    let zoomCapsVector = fbb.createVector(ofOffsets: zoomCapOffsets)
-
     // Video quality capabilities
     var videoQualityOffset = Offset()
     if !info.supportedResolutions.isEmpty {
@@ -295,19 +287,13 @@ private func encodeCameraInfo(_ info: RemoteCmd.CameraInfo, _ fbb: inout FlatBuf
     let photoQualityOffset = RemoteShutter_PhotoQualityCapabilities.createPhotoQualityCapabilities(
         &fbb, supportsHeif: info.supportsHEIF, supportsHdr: info.supportsHDR)
 
-    // Zoom stops
-    let zoomStopsVector = fbb.createVector(info.zoomStops.map { Double($0) })
-
     return RemoteShutter_CameraInfo.createCameraInfo(
         &fbb,
         availableLensesVectorOffset: lensesVector,
         hasFlash: info.hasFlash,
         hasTorch: info.hasTorch,
-        zoomCapabilitiesVectorOffset: zoomCapsVector,
         videoQualityOffset: videoQualityOffset,
-        photoQualityOffset: photoQualityOffset,
-        zoomStopsVectorOffset: zoomStopsVector,
-        wideAngleZoomFactor: Double(info.wideAngleZoomFactor)
+        photoQualityOffset: photoQualityOffset
     )
 }
 
@@ -318,16 +304,6 @@ private func decodeCameraInfo(_ fb: RemoteShutter_CameraInfo) -> RemoteCmd.Camer
     for i in 0..<fb.availableLensesCount {
         if let l = fb.availableLenses(at: i) {
             lenses.append(fromFBLens(l))
-        }
-    }
-
-    var zoomCaps: [CameraLensType: RemoteCmd.ZoomRange] = [:]
-    for i in 0..<fb.zoomCapabilitiesCount {
-        if let cap = fb.zoomCapabilities(at: i), let range = cap.zoomRange {
-            zoomCaps[fromFBLens(cap.lensType)] = RemoteCmd.ZoomRange(
-                minZoom: CGFloat(range.minZoom),
-                maxZoom: CGFloat(range.maxZoom)
-            )
         }
     }
 
@@ -364,29 +340,15 @@ private func decodeCameraInfo(_ fb: RemoteShutter_CameraInfo) -> RemoteCmd.Camer
     let supportsHEIF = fb.photoQuality?.supportsHeif ?? false
     let supportsHDR = fb.photoQuality?.supportsHdr ?? false
 
-    // Decode zoom stops
-    var zoomStops: [CGFloat] = []
-    for i in 0..<fb.zoomStopsCount {
-        zoomStops.append(CGFloat(fb.zoomStops(at: i)))
-    }
-    if zoomStops.isEmpty {
-        zoomStops = [1.0] // Default for backward compat
-    }
-
-    let wideAngleZoomFactor = fb.wideAngleZoomFactor > 0 ? CGFloat(fb.wideAngleZoomFactor) : 1.0
-
     return RemoteCmd.CameraInfo(
         availableLenses: lenses,
         hasFlash: fb.hasFlash,
         hasTorch: fb.hasTorch,
-        zoomCapabilities: zoomCaps,
         supportedResolutions: supportedResolutions,
         supportedFrameRates: supportedFrameRates,
         resolutionFrameRates: resolutionFrameRates,
         supportsHEIF: supportsHEIF,
-        supportsHDR: supportsHDR,
-        zoomStops: zoomStops,
-        wideAngleZoomFactor: wideAngleZoomFactor
+        supportsHDR: supportsHDR
     )
 }
 
@@ -420,28 +382,24 @@ private func encodeCapabilitiesEnvelope(
         }
         devicesVector = fbb.createVector(ofOffsets: deviceOffsets)
     }
-    let activeIDOffset = c.activeDeviceID.map { fbb.create(string: $0) } ?? Offset()
+    let controlOffset = encodeControlState(c.control, &fbb)
 
     let capsOffset = RemoteShutter_CameraCapabilities.createCameraCapabilities(
         &fbb,
         frontCameraOffset: frontOffset,
         backCameraOffset: backOffset,
         cameraDevicesVectorOffset: devicesVector,
-        activeDeviceIdOffset: activeIDOffset,
-        supportsFocusPoint: c.supportsFocusPoint,
         supportsPreviewMode: c.supportsPreviewMode,
-        supportsMulticam: c.supportsMulticam)
+        supportsMulticam: c.supportsMulticam,
+        controlOffset: controlOffset)
 
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
         currentCamera: toFBCamPos(c.currentCamera),
-        currentLens: toFBLens(c.currentLens),
-        zoomFactor: Double(c.currentZoom),
         videoResolution: toFBResolution(c.currentVideoResolution),
         videoFrameRate: toFBFrameRate(c.currentVideoFrameRate),
         photoFormat: toFBPhotoFormat(c.currentPhotoFormat),
         hdrMode: toFBHDRMode(c.currentHDRMode),
-        activeDeviceIdOffset: activeIDOffset,
         previewMode: toFBPreviewMode(c.previewMode))
 
     return (capsOffset, stateOffset)
@@ -602,6 +560,123 @@ extension RemoteCmd.FocusAtPoint {
     }
 }
 
+extension RemoteCmd.SetExposure {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params: Offset
+        switch intent {
+        case .auto:
+            params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, exposureMode: .auto)
+        case let .manual(durationSeconds, iso):
+            params = RemoteShutter_CommandParameters.createCommandParameters(
+                &fbb, exposureMode: .manual, exposureDurationSeconds: durationSeconds, exposureIso: iso)
+        }
+        return buildCommand(&fbb, action: .setexposure, parameters: params)
+    }
+}
+
+extension RemoteCmd.ControlStateChanged {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let detailOffset = refusalDetail.map { fbb.create(string: $0) } ?? Offset()
+        let controlOffset = encodeControlState(state, &fbb)
+        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
+            &fbb,
+            action: .controlstatechanged,
+            success: refusal == nil,
+            controlOffset: controlOffset,
+            controlRefusal: toFBRefusal(refusal),
+            controlRefusalDetailOffset: detailOffset)
+        return buildResponse(&fbb, action: .controlstatechanged, response: resp)
+    }
+}
+
+func toFBRefusal(_ refusal: ControlRefusalReason?) -> RemoteShutter_ControlRefusal {
+    switch refusal {
+    case nil: return .none_
+    case .photoMode: return .photomode
+    case .recording: return .recording
+    case .unsupported: return .unsupported
+    case .sessionRefused: return .sessionrefused
+    }
+}
+
+func fromFBRefusal(_ refusal: RemoteShutter_ControlRefusal) -> ControlRefusalReason? {
+    switch refusal {
+    // Unknown (a malformed/future refusal) still surfaces as a refusal —
+    // never as silence.
+    case .unknown: return .sessionRefused
+    case .none_: return nil
+    case .photomode: return .photoMode
+    case .recording: return .recording
+    case .unsupported: return .unsupported
+    case .sessionrefused: return .sessionRefused
+    }
+}
+
+func encodeControlState(_ state: ControlState?, _ fbb: inout FlatBufferBuilder) -> Offset {
+    guard let state else { return Offset() }
+    let deviceIDOffset = state.activeDeviceID.map { fbb.create(string: $0) } ?? Offset()
+    let lensesVector = fbb.createVector(state.availableLenses.map { toFBLens($0) })
+    let stopsVector = fbb.createVector(state.zoomStops.map { Double($0) })
+    let exposureOffset = encodeExposureState(state.exposure, &fbb)
+    let cinematicOffset = encodeCinematicState(state.cinematic, &fbb)
+    return RemoteShutter_ControlState.createControlState(
+        &fbb,
+        seq: state.seq,
+        mode: toFBRecordingMode(state.mode),
+        activeDeviceIdOffset: deviceIDOffset,
+        currentLens: toFBLens(state.currentLens),
+        availableLensesVectorOffset: lensesVector,
+        zoomFactor: Double(state.zoomFactor),
+        minZoom: Double(state.minZoom),
+        maxZoom: Double(state.maxZoom),
+        zoomStopsVectorOffset: stopsVector,
+        wideAngleZoomFactor: Double(state.wideAngleZoomFactor),
+        supportsFocusPoint: state.supportsFocusPoint,
+        exposureOffset: exposureOffset,
+        cinematicOffset: cinematicOffset)
+}
+
+func decodeControlState(_ fb: RemoteShutter_ControlState?) -> ControlState? {
+    guard let fb else { return nil }
+    var lenses: [CameraLensType] = []
+    for i in 0..<fb.availableLensesCount {
+        if let l = fb.availableLenses(at: i) { lenses.append(fromFBLens(l)) }
+    }
+    let stops = fb.zoomStops.map { CGFloat($0) }
+    return ControlState(
+        seq: fb.seq,
+        mode: fromFBRecordingMode(fb.mode),
+        activeDeviceID: fb.activeDeviceId,
+        currentLens: fromFBLens(fb.currentLens),
+        availableLenses: lenses.isEmpty ? [.wideAngle] : lenses,
+        zoomFactor: CGFloat(fb.zoomFactor),
+        minZoom: CGFloat(fb.minZoom),
+        maxZoom: CGFloat(fb.maxZoom),
+        zoomStops: stops.isEmpty ? [1.0] : stops,
+        wideAngleZoomFactor: fb.wideAngleZoomFactor > 0 ? CGFloat(fb.wideAngleZoomFactor) : 1.0,
+        supportsFocusPoint: fb.supportsFocusPoint,
+        exposure: decodeExposureState(fb.exposure),
+        cinematic: decodeCinematicState(fb.cinematic))
+}
+
+extension RemoteCmd.SetCinematic {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params: Offset
+        switch intent {
+        case .off:
+            params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, cinematicEnabled: false)
+        case let .on(aperture):
+            params = RemoteShutter_CommandParameters.createCommandParameters(
+                &fbb, cinematicEnabled: true, simulatedAperture: aperture ?? 0)
+        }
+        return buildCommand(&fbb, action: .setcinematic, parameters: params)
+    }
+}
+
+
 extension RemoteCmd.EndSession {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -632,37 +707,6 @@ extension RemoteCmd.CameraPreviewModeResp {
     }
 }
 
-extension RemoteCmd.SetZoomResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if zoomFactor != nil || currentLens != nil {
-            stateOffset = RemoteShutter_CameraState.createCameraState(
-                &fbb,
-                currentLens: currentLens.map { toFBLens($0) } ?? .wideangle,
-                zoomFactor: zoomFactor.map { Double($0) } ?? 0.0
-            )
-        }
-
-        var zoomRangeOffset = Offset()
-        if let range = zoomRange {
-            zoomRangeOffset = RemoteShutter_ZoomRange.createZoomRange(&fbb, minZoom: Double(range.minZoom), maxZoom: Double(range.maxZoom))
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .setzoom,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset,
-            zoomRangeOffset: zoomRangeOffset
-        )
-        return buildResponse(&fbb, action: .setzoom, response: resp)
-    }
-}
-
 extension RemoteCmd.CameraCapabilitiesResp {
     func toFlatBuffer() -> Data {
         encodeCapabilitiesResponse(action: .requestcapabilities, capabilities: self, error: error)
@@ -674,44 +718,6 @@ extension RemoteCmd.SwitchLens {
         var fbb = FlatBufferBuilder()
         let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, lensType: toFBLens(lensType))
         return buildCommand(&fbb, action: .switchlens, parameters: params)
-    }
-}
-
-extension RemoteCmd.SwitchLensResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if lensType != nil || currentZoom != nil {
-            stateOffset = RemoteShutter_CameraState.createCameraState(
-                &fbb,
-                currentLens: lensType.map { toFBLens($0) } ?? .wideangle,
-                zoomFactor: currentZoom.map { Double($0) } ?? 0.0
-            )
-        }
-
-        var zoomRangeOffset = Offset()
-        if let range = zoomRange {
-            zoomRangeOffset = RemoteShutter_ZoomRange.createZoomRange(&fbb, minZoom: Double(range.minZoom), maxZoom: Double(range.maxZoom))
-        }
-
-        var lensesVector = Offset()
-        if let lenses = availableLenses {
-            lensesVector = fbb.createVector(lenses.map { toFBLens($0) })
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .switchlens,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset,
-            availableLensesVectorOffset: lensesVector,
-            zoomRangeOffset: zoomRangeOffset,
-            currentZoom: currentZoom.map { Double($0) } ?? 0.0
-        )
-        return buildResponse(&fbb, action: .switchlens, response: resp)
     }
 }
 
@@ -1141,6 +1147,74 @@ func fromFBPreviewMode(_ mode: RemoteShutter_CameraPreviewModeEnum) -> CameraPre
     }
 }
 
+// MARK: - Exposure conversions
+
+func toFBExposureMode(_ mode: ExposureMode) -> RemoteShutter_ExposureMode {
+    switch mode {
+    case .auto: return .auto
+    case .manual: return .manual
+    }
+}
+
+/// Unknown => legacy peer or field absent: no exposure truth.
+func fromFBExposureMode(_ mode: RemoteShutter_ExposureMode) -> ExposureMode? {
+    switch mode {
+    case .auto: return .auto
+    case .manual: return .manual
+    case .unknown: return nil
+    }
+}
+
+func encodeExposureState(_ state: ExposureState?, _ fbb: inout FlatBufferBuilder) -> Offset {
+    guard let state else { return Offset() }
+    return RemoteShutter_ExposureState.createExposureState(
+        &fbb,
+        mode: toFBExposureMode(state.mode),
+        durationSeconds: state.durationSeconds,
+        iso: state.iso,
+        minDurationSeconds: state.minDurationSeconds,
+        maxDurationSeconds: state.maxDurationSeconds,
+        minIso: state.minISO,
+        maxIso: state.maxISO)
+}
+
+func decodeExposureState(_ fb: RemoteShutter_ExposureState?) -> ExposureState? {
+    guard let fb, let mode = fromFBExposureMode(fb.mode) else { return nil }
+    return ExposureState(
+        mode: mode,
+        durationSeconds: fb.durationSeconds,
+        iso: fb.iso,
+        minDurationSeconds: fb.minDurationSeconds,
+        maxDurationSeconds: fb.maxDurationSeconds,
+        minISO: fb.minIso,
+        maxISO: fb.maxIso)
+}
+
+func encodeCinematicState(_ state: CinematicState?, _ fbb: inout FlatBufferBuilder) -> Offset {
+    guard let state else { return Offset() }
+    return RemoteShutter_CinematicState.createCinematicState(
+        &fbb,
+        enabled: state.enabled,
+        simulatedAperture: state.simulatedAperture,
+        minSimulatedAperture: state.minSimulatedAperture,
+        maxSimulatedAperture: state.maxSimulatedAperture,
+        defaultSimulatedAperture: state.defaultSimulatedAperture,
+        apertureLocked: state.apertureLocked,
+        notEnoughLight: state.notEnoughLight)
+}
+
+func decodeCinematicState(_ fb: RemoteShutter_CinematicState?) -> CinematicState? {
+    guard let fb else { return nil }
+    return CinematicState(
+        enabled: fb.enabled,
+        simulatedAperture: fb.simulatedAperture,
+        minSimulatedAperture: fb.minSimulatedAperture,
+        maxSimulatedAperture: fb.maxSimulatedAperture,
+        defaultSimulatedAperture: fb.defaultSimulatedAperture,
+        apertureLocked: fb.apertureLocked,
+        notEnoughLight: fb.notEnoughLight)
+}
+
 // MARK: - SetAspectRatio toFlatBuffer()
 
 extension RemoteCmd.SetAspectRatio {
@@ -1361,11 +1435,33 @@ extension RemoteCmd {
         case .focusatpoint:
             return FocusAtPoint(x: params?.focusPointX ?? 0.5, y: params?.focusPointY ?? 0.5)
 
+        case .setexposure:
+            // Unknown mode (a malformed or future payload) is treated as Auto:
+            // the safe state, and the response tells the sender the truth.
+            switch params?.exposureMode ?? .unknown {
+            case .manual:
+                return SetExposure(intent: .manual(durationSeconds: params?.exposureDurationSeconds ?? 0,
+                                                   iso: params?.exposureIso ?? 0))
+            case .auto, .unknown:
+                return SetExposure(intent: .auto)
+            }
+
+        case .setcinematic:
+            if params?.cinematicEnabled == true {
+                let aperture = params?.simulatedAperture ?? 0
+                return SetCinematic(intent: .on(aperture: aperture > 0 ? aperture : nil))
+            }
+            return SetCinematic(intent: .off)
+
         case .setcamerapreviewmode:
             return SetCameraPreviewMode(mode: fromFBPreviewMode(params?.cameraPreviewMode ?? .unknown))
 
         case .endsession:
             return EndSession()
+
+        case .controlstatechanged:
+            // A response-only action arriving as a command is malformed.
+            return nil
         }
     }
 
@@ -1424,34 +1520,17 @@ extension RemoteCmd {
                 return TakePicResp(sender: nil, pic: picData, error: nsError)
             }
 
-        case .setzoom:
-            let state = resp.currentState
-            let zoomFactor: CGFloat? = state != nil ? CGFloat(state!.zoomFactor) : nil
-            let currentLens: CameraLensType? = state != nil ? fromFBLens(state!.currentLens) : nil
-            let zoomRange: ZoomRange? = resp.zoomRange.map { ZoomRange(minZoom: CGFloat($0.minZoom), maxZoom: CGFloat($0.maxZoom)) }
-            return SetZoomResp(zoomFactor: zoomFactor, currentLens: currentLens, zoomRange: zoomRange, error: nsError)
+        case .controlstatechanged:
+            // The snapshot is the message; a response without one is malformed
+            // and dropped (never guessed at).
+            guard let control = decodeControlState(resp.control) else { return nil }
+            let detail = resp.controlRefusalDetail
+            return ControlStateChanged(state: control,
+                                       refusal: fromFBRefusal(resp.controlRefusal),
+                                       refusalDetail: detail)
 
         case .requestcapabilities:
             return decodeCameraCapabilitiesResp(resp, error: nsError)
-
-        case .switchlens:
-            let state = resp.currentState
-            let lensType: CameraLensType? = state != nil ? fromFBLens(state!.currentLens) : nil
-            let currentZoom: CGFloat? = state != nil ? CGFloat(state!.zoomFactor) : nil
-            let zoomRange: ZoomRange? = resp.zoomRange.map { ZoomRange(minZoom: CGFloat($0.minZoom), maxZoom: CGFloat($0.maxZoom)) }
-
-            var lenses: [CameraLensType]? = nil
-            if resp.hasAvailableLenses {
-                var arr: [CameraLensType] = []
-                for i in 0..<resp.availableLensesCount {
-                    if let l = resp.availableLenses(at: i) {
-                        arr.append(fromFBLens(l))
-                    }
-                }
-                lenses = arr
-            }
-
-            return SwitchLensResp(lensType: lensType, availableLenses: lenses, currentZoom: currentZoom, zoomRange: zoomRange, error: nsError)
 
         case .toggleflash:
             let flashMode: AVCaptureDevice.FlashMode? = resp.currentState.map { fromFBFlash($0.flashMode) }
@@ -1529,24 +1608,19 @@ extension RemoteCmd {
                     info: d.info.map { decodeCameraInfo($0) }))
             }
         }
-        let activeDeviceID = caps?.activeDeviceId ?? state?.activeDeviceId
-
         return CameraCapabilitiesResp(
             frontCamera: frontCamera,
             backCamera: backCamera,
             currentCamera: state.map { fromFBCamPos($0.currentCamera) } ?? .back,
-            currentLens: state.map { fromFBLens($0.currentLens) } ?? .wideAngle,
-            currentZoom: state.map { CGFloat($0.zoomFactor) } ?? 1.0,
             currentVideoResolution: state.map { fromFBResolution($0.videoResolution) } ?? .hd1080p,
             currentVideoFrameRate: state.map { fromFBFrameRate($0.videoFrameRate) } ?? .fps30,
             currentPhotoFormat: state.map { fromFBPhotoFormat($0.photoFormat) } ?? .jpeg,
             currentHDRMode: state.map { fromFBHDRMode($0.hdrMode) } ?? .off,
             cameraDevices: cameraDevices,
-            activeDeviceID: activeDeviceID,
-            supportsFocusPoint: caps?.supportsFocusPoint ?? false,
             supportsPreviewMode: caps?.supportsPreviewMode ?? false,
             supportsMulticam: caps?.supportsMulticam ?? false,
             previewMode: state.map { fromFBPreviewMode($0.previewMode) } ?? .on,
+            control: decodeControlState(caps?.control),
             error: error
         )
     }

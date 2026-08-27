@@ -18,11 +18,25 @@ struct ZoomScale: Equatable {
     let minZoom: CGFloat
     let maxZoom: CGFloat
 
-    init(stops: [CGFloat], maxZoomFactor: CGFloat, wideAngleZoomFactor: CGFloat) {
+    /// Display zoom tops out at 5× the wide-angle reference, so a pill never
+    /// offers unreachable range. The one place this constant lives.
+    static let maxDisplayZoom: CGFloat = 5.0
+
+    /// Clamp a camera-reported max zoom to the display ceiling.
+    static func displayCapped(_ maxFactor: CGFloat, wideAngle: CGFloat) -> CGFloat {
+        min(maxFactor, maxDisplayZoom * wideAngle)
+    }
+
+    /// `minZoomFactor` is a hard floor below which the camera cannot go right
+    /// now (Cinematic narrows zoom from both ends); stops beneath it are not
+    /// offered. Nil/invalid = the first stop is the floor, as ever.
+    init(stops: [CGFloat], maxZoomFactor: CGFloat, wideAngleZoomFactor: CGFloat,
+         minZoomFactor: CGFloat? = nil) {
         let usable = stops.filter { $0.isFinite && $0 > 0 }.sorted()
         let safeStops = usable.isEmpty ? [1.0] : usable
-        let low = safeStops[0]
-        // `maxZoomFactor` arrives as a default (10.0) before the first SetZoomResp and can
+        let floor = minZoomFactor.flatMap { ($0.isFinite && $0 > 0) ? $0 : nil }
+        let low = max(safeStops[0], floor ?? 0)
+        // `maxZoomFactor` arrives as a default before the first snapshot and can
         // legitimately land at or below the low stop on a fixed-focal-length camera.
         let ceiling = (maxZoomFactor.isFinite && maxZoomFactor > low) ? maxZoomFactor : low
 
@@ -30,9 +44,11 @@ struct ZoomScale: Equatable {
         self.maxZoom = ceiling
         self.wideAngleZoomFactor =
             (wideAngleZoomFactor.isFinite && wideAngleZoomFactor > 0) ? wideAngleZoomFactor : 1.0
-        // A stop past the ceiling can't be reached, so it must not be offered as a detent.
-        // `low` always survives, so this can never empty the array.
-        self.stops = safeStops.filter { $0 <= ceiling }
+        // A stop outside [low, ceiling] can't be reached, so it must not be
+        // offered as a detent; if the floor swallowed every stop, the floor
+        // itself is the one detent.
+        let reachable = safeStops.filter { $0 >= low && $0 <= ceiling }
+        self.stops = reachable.isEmpty ? [low] : reachable
     }
 
     /// True when the range has collapsed and there is nothing to zoom: before the first
@@ -40,12 +56,13 @@ struct ZoomScale: Equatable {
     /// check this before drawing a track — a SwiftUI `Slider` traps on an empty range.
     var isDegenerate: Bool { maxZoom <= minZoom }
 
-    private var logMin: Double { Double(log2(minZoom)) }
-    private var logSpan: Double { Double(log2(maxZoom)) - logMin }
+    /// The ruler math in hardware factors — what the pill draws and drags.
+    var track: LogTrack {
+        LogTrack(min: Double(minZoom), max: Double(maxZoom), stops: stops.map { Double($0) })
+    }
 
     func clamped(_ hardware: CGFloat) -> CGFloat {
-        guard hardware.isFinite else { return minZoom }
-        return max(minZoom, min(maxZoom, hardware))
+        CGFloat(track.clamped(Double(hardware)))
     }
 
     // MARK: - Display units
@@ -71,19 +88,11 @@ struct ZoomScale: Equatable {
     /// Where `hardware` sits on a 0…1 track. Log2 so equal travel is equal perceived
     /// change at 1× and at 5×, matching the pinch curve.
     func position(forHardware hardware: CGFloat) -> Double {
-        guard !isDegenerate else { return 0 }
-        return (Double(log2(clamped(hardware))) - logMin) / logSpan
+        track.position(for: Double(hardware))
     }
 
     func hardwareFactor(atPosition position: Double) -> CGFloat {
-        guard !isDegenerate, position.isFinite else { return minZoom }
-        let clampedPosition = max(0, min(1, position))
-        // Exact at the ends. Round-tripping through log2/pow2 leaves a max of 5.0 as
-        // 4.999999999999999, so a drag to the end of the ruler would stop a hair short
-        // of the ceiling and never compare equal to `maxZoom`.
-        if clampedPosition <= 0 { return minZoom }
-        if clampedPosition >= 1 { return maxZoom }
-        return clamped(CGFloat(pow(2, logMin + clampedPosition * logSpan)))
+        CGFloat(track.value(atPosition: position))
     }
 
     // MARK: - Detents
@@ -91,16 +100,7 @@ struct ZoomScale: Equatable {
     /// Snaps to the nearest stop when within `tolerance` of it. Tolerance is a fraction of
     /// the whole track, not a zoom delta, so the pull feels identical at 1× and at 5×.
     func snappedToStop(_ hardware: CGFloat, tolerance: Double = 0.04) -> CGFloat {
-        guard !isDegenerate else { return minZoom }
-        let target = clamped(hardware)
-        let targetPosition = position(forHardware: target)
-        let nearest = stops.min {
-            abs(position(forHardware: $0) - targetPosition)
-                < abs(position(forHardware: $1) - targetPosition)
-        }
-        guard let stop = nearest,
-              abs(position(forHardware: stop) - targetPosition) <= tolerance else { return target }
-        return stop
+        CGFloat(track.snappedToStop(Double(hardware), tolerance: tolerance))
     }
 
     // MARK: - Pinch

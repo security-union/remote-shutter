@@ -99,7 +99,7 @@ final class ZoomScaleTests: XCTestCase {
 
     func testDegenerateRangeIsFlaggedAndNeverDividesByZero() {
         // maxZoomFactor below the low stop: what the view model holds before the first
-        // SetZoomResp arrives. Must not produce NaN or trap.
+        // control snapshot arrives. Must not produce NaN or trap.
         let collapsed = ZoomScale(stops: [1.0], maxZoomFactor: 1.0, wideAngleZoomFactor: 1.0)
         XCTAssertTrue(collapsed.isDegenerate)
         XCTAssertEqual(collapsed.position(forHardware: 1.0), 0.0)

@@ -91,14 +91,12 @@ final class CameraLink {
     var torchOn = false
     var flashOn = false
 
-    /// Zoom state for the focused zoom pill, seeded from the capabilities
-    /// exchange and refined by each `SetZoomResp` — the same values the 1:1
-    /// monitor tracks (`zoomStops`/`wideAngleZoomFactor`/`maxZoomFactor` build
-    /// the `ZoomScale`; `zoomFactor` is the live hardware factor).
-    var zoomFactor: CGFloat = 1.0
-    var maxZoomFactor: CGFloat = 10.0
-    var zoomStops: [CGFloat] = [1.0]
-    var wideAngleZoomFactor: CGFloat = 1.0
+    /// This camera's complete control-plane truth — zoom range, lens, manual
+    /// exposure and Cinematic — as ONE value (v11). Seeded from the
+    /// capabilities exchange and folded forward by `ControlState.absorb` on
+    /// every `ControlStateChanged`; the lane renders `f(control)` with no
+    /// stored derivations to drift. Nil until the first snapshot lands.
+    var control: ControlState?
 
     init(peerID: MCPeerID) {
         self.peerID = peerID
@@ -124,12 +122,8 @@ final class CameraLink {
             canFlipCamera: capabilities.map {
                 $0.frontCamera != nil && $0.backCamera != nil
             } ?? false,
-            supportsFocusPoint: capabilities?.supportsFocusPoint ?? false,
+            control: control,
             hasTorch: capabilities?.getCurrentCameraInfo()?.hasTorch ?? false,
-            zoomFactor: zoomFactor,
-            maxZoomFactor: maxZoomFactor,
-            zoomStops: zoomStops,
-            wideAngleZoomFactor: wideAngleZoomFactor,
             torchOn: torchOn,
             flashOn: flashOn)
     }

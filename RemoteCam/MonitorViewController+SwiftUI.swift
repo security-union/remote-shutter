@@ -61,12 +61,35 @@ extension MonitorViewController {
             },
             onToggleCameraStandby: { [weak self] in
                 self?.handleToggleCameraStandby()
+            },
+            onExposureChange: { [weak self] intent in
+                self?.session ! UICmd.SetExposure(intent: intent)
+            },
+            onCinematicChange: { [weak self] intent in
+                self?.session ! UICmd.SetCinematic(intent: intent)
+            },
+            onProSliderChange: { [weak self] kind, value in
+                self?.proSender(for: kind).submit(value)
             }
         )
 
         self.swiftUIHostingController = embedSwiftUIView(monitorView)
     }
     
+    /// One throttled sender per pro slider (the zoom pill's send pattern):
+    /// the value becomes the wire intent at send time.
+    private func proSender(for kind: ProSliderKind) -> ThrottledValueSender {
+        if let existing = proSenders[kind] { return existing }
+        let sender = ThrottledValueSender { [weak self] value in
+            switch kind.intent(for: value) {
+            case .exposure(let intent): self?.session ! UICmd.SetExposure(intent: intent)
+            case .cinematic(let intent): self?.session ! UICmd.SetCinematic(intent: intent)
+            }
+        }
+        proSenders[kind] = sender
+        return sender
+    }
+
     // MARK: - Action Handlers
     private func handleTakePicture() {
         debugLog("🔴 DEBUG: handleTakePicture called - isRecording: \(viewModel.isRecording), uiState: \(viewModel.uiState)")
@@ -248,8 +271,8 @@ extension MonitorViewController {
     /// Throttled to 20Hz with a trailing-edge flush so the value the user released on is
     /// always delivered, mirroring how the Watch drives crown zoom.
     private func handleZoomChange(_ factor: CGFloat) {
-        currentZoomFactor = factor
-
+        // No local zoom cache to write: the pill shows its own in-flight value
+        // until the camera's next control snapshot confirms the new factor.
         switch zoomThrottle.update(value: Double(factor), now: Date()) {
         case .sendNow:
             session ! UICmd.SetZoom(zoomFactor: factor)
@@ -352,12 +375,11 @@ extension MonitorViewController {
         viewModel.updateCameraImage(image)
     }
     
-    func updateZoomInViewModel(_ factor: CGFloat, maxFactor: CGFloat) {
-        viewModel.updateZoomFactor(factor, maxFactor: maxFactor)
-    }
-
-    func updateLensTypesInViewModel(_ lenses: [CameraLensType], current: CameraLensType) {
-        viewModel.updateAvailableLenses(lenses, current: current)
+    /// The whole control-plane snapshot (v11): the view model stores it, and
+    /// zoom / lens / exposure / Cinematic all read off it. Replaces the old
+    /// per-field zoom and lens updates.
+    func applyControlState(_ state: ControlState) {
+        viewModel.applyControlState(state)
     }
     
     // MARK: - Video Transfer Progress Methods

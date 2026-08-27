@@ -36,8 +36,17 @@ struct MonitorView: View {
     let onFocusTap: (CGPoint) -> Void
     /// Toggles the connected camera's local-preview mode (on ⇄ standby).
     let onToggleCameraStandby: () -> Void
+    /// Pro controls (defaulted so previews/snapshots need not wire them).
+    /// Free for every user — the only gate is the camera's capability.
+    /// Slider values go through `onProSliderChange` so the host can throttle
+    /// them like zoom; AUTO and the Cinematic toggle are single sends.
+    var onExposureChange: (ExposureIntent) -> Void = { _ in }
+    var onCinematicChange: (CinematicIntent) -> Void = { _ in }
+    var onProSliderChange: (ProSliderKind, Double) -> Void = { _, _ in }
 
     @State private var isTrayOpen = false
+    /// The pro slider on the viewfinder, in the zoom pill's slot.
+    @State private var activeProSlider: ProSliderKind?
 
     var body: some View {
         GeometryReader { geometry in
@@ -67,6 +76,12 @@ struct MonitorView: View {
                 #if DEBUG
                 SessionDebugOverlay()
                 #endif
+            }
+            // A slider whose tile vanished is closed for good, not parked —
+            // the write-path half of ProSliderIntent.reconcile.
+            .onChange(of: proTiles) { tiles in
+                let resolved = ProSliderIntent.reconcile(active: activeProSlider, offeredTiles: tiles)
+                if resolved != activeProSlider { activeProSlider = resolved }
             }
         }
         // Catalyst's default style paints a bordered box behind controls that
@@ -229,9 +244,7 @@ struct MonitorView: View {
     /// but UIKit will not hit-test them.
     private var bottomCluster: some View {
         VStack(spacing: 14) {
-            ZoomPill(scale: viewModel.zoomScale,
-                     currentZoomFactor: viewModel.currentZoomFactor,
-                     onZoomChange: onZoomChange)
+            zoomOrProSlider
             actionCluster(axis: .horizontal)
             modeSelector
         }
@@ -248,9 +261,7 @@ struct MonitorView: View {
             // Inboard of the rail: one control zone on the docked edge.
             VStack(spacing: 10) {
                 Spacer(minLength: 0)
-                ZoomPill(scale: viewModel.zoomScale,
-                         currentZoomFactor: viewModel.currentZoomFactor,
-                         onZoomChange: onZoomChange)
+                zoomOrProSlider
                 modeSelector
             }
 
@@ -363,7 +374,8 @@ struct MonitorView: View {
                                          supportsHDR: viewModel.supportsHDR,
                                          supportsCameraStandby: viewModel.supportsCameraStandby,
                                          resolutionCount: viewModel.supportedResolutions.count,
-                                         frameRateCount: availableFrameRates.count),
+                                         frameRateCount: availableFrameRates.count,
+                                         proTiles: proTiles),
                 timerValue: Int(viewModel.timerSliderValue),
                 aspectRatio: viewModel.currentAspectRatio,
                 resolution: viewModel.currentVideoResolution,
@@ -371,11 +383,68 @@ struct MonitorView: View {
                 photoFormat: viewModel.currentPhotoFormat,
                 hdrMode: viewModel.currentHDRMode,
                 cameraPreviewMode: viewModel.cameraPreviewMode,
+                exposure: viewModel.exposure,
+                cinematic: viewModel.cinematic,
                 isQualityEnabled: viewModel.isQualityControlEnabled,
                 isTimerEnabled: viewModel.isTimerSliderEnabled,
                 isSettingsEnabled: viewModel.isSettingsEnabled,
                 onTap: handleTrayTap)
                 .transition(.move(edge: .bottom))
+        }
+    }
+
+    // MARK: - Pro controls (tray tiles + a viewfinder slider)
+
+    private var proTiles: [MonitorTrayItem] {
+        MonitorTray.proTiles(for: viewModel.uiState,
+                             supportsManualExposure: viewModel.supportsManualExposure,
+                             supportsCinematicVideo: viewModel.supportsCinematicVideo,
+                             cinematicOn: viewModel.cinematic?.enabled == true,
+                             apertureAdjustable: (viewModel.cinematic?.minSimulatedAperture ?? 0) > 0)
+    }
+
+    /// The open slider — the same pure rule the director uses; the write
+    /// happens in the `onChange` reconciliation, never in a read.
+    private var visibleProSlider: ProSliderKind? {
+        ProSliderIntent.reconcile(active: activeProSlider, offeredTiles: proTiles)
+    }
+
+    /// Zoom and the pro slider are NOT rivals: Apple supports zoom while
+    /// Cinematic is on (within the narrowed range the snapshot carries), so
+    /// the zoom pill is always in its slot and an open pro slider stacks
+    /// above it — framing and exposure stay adjustable at the same time.
+    @ViewBuilder
+    private var zoomOrProSlider: some View {
+        VStack(spacing: 10) {
+            if let kind = visibleProSlider, let scale = proScale(kind) {
+                ProSliderPill(scale: scale,
+                              currentValue: proValue(kind),
+                              onChange: { onProSliderChange(kind, $0) },
+                              onAuto: kind == .aperture ? nil : {
+                                  onExposureChange(.auto)
+                                  activeProSlider = nil
+                              },
+                              onClose: { activeProSlider = nil })
+            }
+            ZoomPill(scale: viewModel.zoomScale,
+                     currentZoomFactor: viewModel.currentZoomFactor,
+                     onZoomChange: onZoomChange)
+        }
+    }
+
+    private func proScale(_ kind: ProSliderKind) -> ProSliderScale? {
+        switch kind {
+        case .shutter: return viewModel.exposure.map(ProSliderScale.shutter)
+        case .iso: return viewModel.exposure.map(ProSliderScale.iso)
+        case .aperture: return viewModel.cinematic.map(ProSliderScale.aperture)
+        }
+    }
+
+    private func proValue(_ kind: ProSliderKind) -> Double {
+        switch kind {
+        case .shutter: return viewModel.exposure?.durationSeconds ?? 0
+        case .iso: return Double(viewModel.exposure?.iso ?? 0)
+        case .aperture: return Double(viewModel.cinematic?.simulatedAperture ?? 0)
         }
     }
 
@@ -416,6 +485,16 @@ struct MonitorView: View {
             // Stays open: the glyph reflects the camera's confirmed mode, so
             // it is worth watching settle.
             onToggleCameraStandby()
+
+        case .shutter, .iso, .aperture:
+            // The slider takes the zoom pill's slot on the viewfinder, so the
+            // tray gets out of the way of the picture being adjusted.
+            toggleTray()
+            activeProSlider = item == .shutter ? .shutter : (item == .iso ? .iso : .aperture)
+
+        case .cinematic:
+            // Toggles in place, like HDR; the glyph follows the camera's echo.
+            onCinematicChange(viewModel.cinematic?.enabled == true ? .off : .on(aperture: nil))
 
         case .settings:
             toggleTray()
@@ -676,6 +755,9 @@ struct MonitorTrayPanel: View {
     /// The camera's *confirmed* mode, not local intent — the tile only lights
     /// up once the peer has said so.
     var cameraPreviewMode: CameraPreviewMode = .on
+    /// The camera's echoed pro-control truth (nil until it advertises one).
+    var exposure: ExposureState? = nil
+    var cinematic: CinematicState? = nil
     let isQualityEnabled: Bool
     let isTimerEnabled: Bool
     let isSettingsEnabled: Bool
@@ -702,8 +784,12 @@ struct MonitorTrayPanel: View {
         case .resolution: return resolution.displayName
         case .frameRate: return frameRate.displayName
         case .format: return photoFormat.displayName
+        // The camera's current values, so the tile reads before it is opened.
+        case .shutter: return exposure.map { ProStops.shutterLabel($0.durationSeconds) }
+        case .iso: return exposure.map { String(Int($0.iso.rounded())) }
+        case .aperture: return cinematic.map { ProStops.apertureLabel($0.simulatedAperture) }
         // Glyph-only: state is carried by the symbol.
-        case .hdr, .cameraStandby, .settings, .help: return nil
+        case .hdr, .cameraStandby, .cinematic, .settings, .help: return nil
         }
     }
 
@@ -712,6 +798,8 @@ struct MonitorTrayPanel: View {
         case .timer: return timerValue > 0
         case .hdr: return hdrMode == .on
         case .cameraStandby: return cameraPreviewMode == .standby
+        case .shutter, .iso: return exposure?.mode == .manual
+        case .cinematic: return cinematic?.enabled == true
         default: return false
         }
     }
@@ -722,6 +810,10 @@ struct MonitorTrayPanel: View {
         case .aspect, .resolution, .frameRate, .format, .hdr: return isQualityEnabled
         // Not a capture setting: usable mid-recording.
         case .cameraStandby: return true
+        // Exposure is live mid-take (the camera caps the shutter at one
+        // frame); Cinematic and its aperture are set before a take.
+        case .shutter, .iso: return true
+        case .cinematic, .aperture: return cinematic?.apertureLocked != true
         case .settings: return isSettingsEnabled
         case .help: return true
         }
@@ -781,6 +873,10 @@ struct MonitorTrayTile: View {
         case .format: return "doc"
         case .hdr: return "camera.filters"
         case .cameraStandby: return isActive ? "moon.zzz.fill" : "moon.zzz"
+        case .shutter: return "camera.shutter.button"
+        case .iso: return "sun.max"
+        case .cinematic: return "camera.aperture"
+        case .aperture: return "camera.aperture"
         case .settings: return "gearshape.fill"
         case .help: return "questionmark"
         }
@@ -795,6 +891,10 @@ struct MonitorTrayTile: View {
         case .format: return NSLocalizedString("FORMAT", comment: "tray tile")
         case .hdr: return NSLocalizedString("HDR", comment: "tray tile")
         case .cameraStandby: return NSLocalizedString("STANDBY", comment: "tray tile")
+        case .shutter: return NSLocalizedString("SHUTTER", comment: "tray tile")
+        case .iso: return "ISO"
+        case .cinematic: return NSLocalizedString("CINEMATIC", comment: "tray tile")
+        case .aperture: return NSLocalizedString("APERTURE", comment: "tray tile")
         case .settings: return NSLocalizedString("SETTINGS", comment: "tray tile")
         case .help: return NSLocalizedString("HELP", comment: "tray tile")
         }

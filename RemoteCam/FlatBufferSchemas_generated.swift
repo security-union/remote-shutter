@@ -41,9 +41,41 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case requestvideoresend = 30
   case camerastatereport = 31
   case requestcamerastatereport = 32
+  case setexposure = 33
+  case setcinematic = 34
+  case controlstatechanged = 35
 
-  public static var max: RemoteShutter_CommandAction { return .requestcamerastatereport }
+  public static var max: RemoteShutter_CommandAction { return .controlstatechanged }
   public static var min: RemoteShutter_CommandAction { return .unknown }
+}
+
+
+public enum RemoteShutter_ExposureMode: Int8, Enum, Verifiable {
+  public typealias T = Int8
+  public static var byteSize: Int { return MemoryLayout<Int8>.size }
+  public var value: Int8 { return self.rawValue }
+  case unknown = 0
+  case auto = 1
+  case manual = 2
+
+  public static var max: RemoteShutter_ExposureMode { return .manual }
+  public static var min: RemoteShutter_ExposureMode { return .unknown }
+}
+
+
+public enum RemoteShutter_ControlRefusal: Int8, Enum, Verifiable {
+  public typealias T = Int8
+  public static var byteSize: Int { return MemoryLayout<Int8>.size }
+  public var value: Int8 { return self.rawValue }
+  case unknown = 0
+  case none_ = 1
+  case photomode = 2
+  case recording = 3
+  case unsupported = 4
+  case sessionrefused = 5
+
+  public static var max: RemoteShutter_ControlRefusal { return .sessionrefused }
+  public static var min: RemoteShutter_ControlRefusal { return .unknown }
 }
 
 
@@ -364,6 +396,11 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     case stateReportSeq = 60
     case stateRecordingPhase = 62
     case stateRecordingElapsedMs = 64
+    case exposureMode = 66
+    case exposureDurationSeconds = 68
+    case exposureIso = 70
+    case cinematicEnabled = 72
+    case simulatedAperture = 74
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -404,7 +441,12 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public var stateReportSeq: UInt64 { let o = _accessor.offset(VTOFFSET.stateReportSeq.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var stateRecordingPhase: RemoteShutter_RecordingPhase { let o = _accessor.offset(VTOFFSET.stateRecordingPhase.v); return o == 0 ? .unknown : RemoteShutter_RecordingPhase(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var stateRecordingElapsedMs: UInt64 { let o = _accessor.offset(VTOFFSET.stateRecordingElapsedMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
-  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 31) }
+  public var exposureMode: RemoteShutter_ExposureMode { let o = _accessor.offset(VTOFFSET.exposureMode.v); return o == 0 ? .unknown : RemoteShutter_ExposureMode(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public var exposureDurationSeconds: Double { let o = _accessor.offset(VTOFFSET.exposureDurationSeconds.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
+  public var exposureIso: Float32 { let o = _accessor.offset(VTOFFSET.exposureIso.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public var cinematicEnabled: Bool { let o = _accessor.offset(VTOFFSET.cinematicEnabled.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public var simulatedAperture: Float32 { let o = _accessor.offset(VTOFFSET.simulatedAperture.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 36) }
   public static func add(sendToRemote: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: sendToRemote, def: false,
    at: VTOFFSET.sendToRemote.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
@@ -437,6 +479,12 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public static func add(stateReportSeq: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: stateReportSeq, def: 0, at: VTOFFSET.stateReportSeq.p) }
   public static func add(stateRecordingPhase: RemoteShutter_RecordingPhase, _ fbb: inout FlatBufferBuilder) { fbb.add(element: stateRecordingPhase.rawValue, def: 0, at: VTOFFSET.stateRecordingPhase.p) }
   public static func add(stateRecordingElapsedMs: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: stateRecordingElapsedMs, def: 0, at: VTOFFSET.stateRecordingElapsedMs.p) }
+  public static func add(exposureMode: RemoteShutter_ExposureMode, _ fbb: inout FlatBufferBuilder) { fbb.add(element: exposureMode.rawValue, def: 0, at: VTOFFSET.exposureMode.p) }
+  public static func add(exposureDurationSeconds: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: exposureDurationSeconds, def: 0.0, at: VTOFFSET.exposureDurationSeconds.p) }
+  public static func add(exposureIso: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: exposureIso, def: 0.0, at: VTOFFSET.exposureIso.p) }
+  public static func add(cinematicEnabled: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: cinematicEnabled, def: false,
+   at: VTOFFSET.cinematicEnabled.p) }
+  public static func add(simulatedAperture: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: simulatedAperture, def: 0.0, at: VTOFFSET.simulatedAperture.p) }
   public static func endCommandParameters(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCommandParameters(
     _ fbb: inout FlatBufferBuilder,
@@ -470,7 +518,12 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     streamFps: Int32 = 0,
     stateReportSeq: UInt64 = 0,
     stateRecordingPhase: RemoteShutter_RecordingPhase = .unknown,
-    stateRecordingElapsedMs: UInt64 = 0
+    stateRecordingElapsedMs: UInt64 = 0,
+    exposureMode: RemoteShutter_ExposureMode = .unknown,
+    exposureDurationSeconds: Double = 0.0,
+    exposureIso: Float32 = 0.0,
+    cinematicEnabled: Bool = false,
+    simulatedAperture: Float32 = 0.0
   ) -> Offset {
     let __start = RemoteShutter_CommandParameters.startCommandParameters(&fbb)
     RemoteShutter_CommandParameters.add(sendToRemote: sendToRemote, &fbb)
@@ -504,6 +557,11 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     RemoteShutter_CommandParameters.add(stateReportSeq: stateReportSeq, &fbb)
     RemoteShutter_CommandParameters.add(stateRecordingPhase: stateRecordingPhase, &fbb)
     RemoteShutter_CommandParameters.add(stateRecordingElapsedMs: stateRecordingElapsedMs, &fbb)
+    RemoteShutter_CommandParameters.add(exposureMode: exposureMode, &fbb)
+    RemoteShutter_CommandParameters.add(exposureDurationSeconds: exposureDurationSeconds, &fbb)
+    RemoteShutter_CommandParameters.add(exposureIso: exposureIso, &fbb)
+    RemoteShutter_CommandParameters.add(cinematicEnabled: cinematicEnabled, &fbb)
+    RemoteShutter_CommandParameters.add(simulatedAperture: simulatedAperture, &fbb)
     return RemoteShutter_CommandParameters.endCommandParameters(&fbb, start: __start)
   }
 
@@ -540,6 +598,11 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.stateReportSeq.p, fieldName: "stateReportSeq", required: false, type: UInt64.self)
     try _v.visit(field: VTOFFSET.stateRecordingPhase.p, fieldName: "stateRecordingPhase", required: false, type: RemoteShutter_RecordingPhase.self)
     try _v.visit(field: VTOFFSET.stateRecordingElapsedMs.p, fieldName: "stateRecordingElapsedMs", required: false, type: UInt64.self)
+    try _v.visit(field: VTOFFSET.exposureMode.p, fieldName: "exposureMode", required: false, type: RemoteShutter_ExposureMode.self)
+    try _v.visit(field: VTOFFSET.exposureDurationSeconds.p, fieldName: "exposureDurationSeconds", required: false, type: Double.self)
+    try _v.visit(field: VTOFFSET.exposureIso.p, fieldName: "exposureIso", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.cinematicEnabled.p, fieldName: "cinematicEnabled", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.simulatedAperture.p, fieldName: "simulatedAperture", required: false, type: Float32.self)
     _v.finish()
   }
 }
@@ -587,88 +650,267 @@ public struct RemoteShutter_CameraCommand: FlatBufferObject, Verifiable {
   }
 }
 
-public struct RemoteShutter_ZoomRange: FlatBufferObject, Verifiable {
+public struct RemoteShutter_ExposureState: FlatBufferObject, Verifiable {
 
   static func validateVersion() { FlatBuffersVersion_25_2_10() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 
   public static var id: String { "RCAM" } 
-  public static func finish(_ fbb: inout FlatBufferBuilder, end: Offset, prefix: Bool = false) { fbb.finish(offset: end, fileId: RemoteShutter_ZoomRange.id, addPrefix: prefix) }
+  public static func finish(_ fbb: inout FlatBufferBuilder, end: Offset, prefix: Bool = false) { fbb.finish(offset: end, fileId: RemoteShutter_ExposureState.id, addPrefix: prefix) }
   private init(_ t: Table) { _accessor = t }
   public init(_ bb: ByteBuffer, o: Int32) { _accessor = Table(bb: bb, position: o) }
 
   private enum VTOFFSET: VOffset {
-    case minZoom = 4
-    case maxZoom = 6
+    case mode = 4
+    case durationSeconds = 6
+    case iso = 8
+    case minDurationSeconds = 10
+    case maxDurationSeconds = 12
+    case minIso = 14
+    case maxIso = 16
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
 
-  public var minZoom: Double { let o = _accessor.offset(VTOFFSET.minZoom.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
-  public var maxZoom: Double { let o = _accessor.offset(VTOFFSET.maxZoom.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
-  public static func startZoomRange(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 2) }
-  public static func add(minZoom: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: minZoom, def: 0.0, at: VTOFFSET.minZoom.p) }
-  public static func add(maxZoom: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: maxZoom, def: 0.0, at: VTOFFSET.maxZoom.p) }
-  public static func endZoomRange(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
-  public static func createZoomRange(
+  public var mode: RemoteShutter_ExposureMode { let o = _accessor.offset(VTOFFSET.mode.v); return o == 0 ? .unknown : RemoteShutter_ExposureMode(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public var durationSeconds: Double { let o = _accessor.offset(VTOFFSET.durationSeconds.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
+  public var iso: Float32 { let o = _accessor.offset(VTOFFSET.iso.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public var minDurationSeconds: Double { let o = _accessor.offset(VTOFFSET.minDurationSeconds.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
+  public var maxDurationSeconds: Double { let o = _accessor.offset(VTOFFSET.maxDurationSeconds.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
+  public var minIso: Float32 { let o = _accessor.offset(VTOFFSET.minIso.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public var maxIso: Float32 { let o = _accessor.offset(VTOFFSET.maxIso.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public static func startExposureState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 7) }
+  public static func add(mode: RemoteShutter_ExposureMode, _ fbb: inout FlatBufferBuilder) { fbb.add(element: mode.rawValue, def: 0, at: VTOFFSET.mode.p) }
+  public static func add(durationSeconds: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: durationSeconds, def: 0.0, at: VTOFFSET.durationSeconds.p) }
+  public static func add(iso: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: iso, def: 0.0, at: VTOFFSET.iso.p) }
+  public static func add(minDurationSeconds: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: minDurationSeconds, def: 0.0, at: VTOFFSET.minDurationSeconds.p) }
+  public static func add(maxDurationSeconds: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: maxDurationSeconds, def: 0.0, at: VTOFFSET.maxDurationSeconds.p) }
+  public static func add(minIso: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: minIso, def: 0.0, at: VTOFFSET.minIso.p) }
+  public static func add(maxIso: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: maxIso, def: 0.0, at: VTOFFSET.maxIso.p) }
+  public static func endExposureState(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
+  public static func createExposureState(
     _ fbb: inout FlatBufferBuilder,
-    minZoom: Double = 0.0,
-    maxZoom: Double = 0.0
+    mode: RemoteShutter_ExposureMode = .unknown,
+    durationSeconds: Double = 0.0,
+    iso: Float32 = 0.0,
+    minDurationSeconds: Double = 0.0,
+    maxDurationSeconds: Double = 0.0,
+    minIso: Float32 = 0.0,
+    maxIso: Float32 = 0.0
   ) -> Offset {
-    let __start = RemoteShutter_ZoomRange.startZoomRange(&fbb)
-    RemoteShutter_ZoomRange.add(minZoom: minZoom, &fbb)
-    RemoteShutter_ZoomRange.add(maxZoom: maxZoom, &fbb)
-    return RemoteShutter_ZoomRange.endZoomRange(&fbb, start: __start)
+    let __start = RemoteShutter_ExposureState.startExposureState(&fbb)
+    RemoteShutter_ExposureState.add(mode: mode, &fbb)
+    RemoteShutter_ExposureState.add(durationSeconds: durationSeconds, &fbb)
+    RemoteShutter_ExposureState.add(iso: iso, &fbb)
+    RemoteShutter_ExposureState.add(minDurationSeconds: minDurationSeconds, &fbb)
+    RemoteShutter_ExposureState.add(maxDurationSeconds: maxDurationSeconds, &fbb)
+    RemoteShutter_ExposureState.add(minIso: minIso, &fbb)
+    RemoteShutter_ExposureState.add(maxIso: maxIso, &fbb)
+    return RemoteShutter_ExposureState.endExposureState(&fbb, start: __start)
   }
 
   public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
     var _v = try verifier.visitTable(at: position)
-    try _v.visit(field: VTOFFSET.minZoom.p, fieldName: "minZoom", required: false, type: Double.self)
-    try _v.visit(field: VTOFFSET.maxZoom.p, fieldName: "maxZoom", required: false, type: Double.self)
+    try _v.visit(field: VTOFFSET.mode.p, fieldName: "mode", required: false, type: RemoteShutter_ExposureMode.self)
+    try _v.visit(field: VTOFFSET.durationSeconds.p, fieldName: "durationSeconds", required: false, type: Double.self)
+    try _v.visit(field: VTOFFSET.iso.p, fieldName: "iso", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.minDurationSeconds.p, fieldName: "minDurationSeconds", required: false, type: Double.self)
+    try _v.visit(field: VTOFFSET.maxDurationSeconds.p, fieldName: "maxDurationSeconds", required: false, type: Double.self)
+    try _v.visit(field: VTOFFSET.minIso.p, fieldName: "minIso", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.maxIso.p, fieldName: "maxIso", required: false, type: Float32.self)
     _v.finish()
   }
 }
 
-public struct RemoteShutter_ZoomCapability: FlatBufferObject, Verifiable {
+public struct RemoteShutter_CinematicState: FlatBufferObject, Verifiable {
 
   static func validateVersion() { FlatBuffersVersion_25_2_10() }
   public var __buffer: ByteBuffer! { return _accessor.bb }
   private var _accessor: Table
 
   public static var id: String { "RCAM" } 
-  public static func finish(_ fbb: inout FlatBufferBuilder, end: Offset, prefix: Bool = false) { fbb.finish(offset: end, fileId: RemoteShutter_ZoomCapability.id, addPrefix: prefix) }
+  public static func finish(_ fbb: inout FlatBufferBuilder, end: Offset, prefix: Bool = false) { fbb.finish(offset: end, fileId: RemoteShutter_CinematicState.id, addPrefix: prefix) }
   private init(_ t: Table) { _accessor = t }
   public init(_ bb: ByteBuffer, o: Int32) { _accessor = Table(bb: bb, position: o) }
 
   private enum VTOFFSET: VOffset {
-    case lensType = 4
-    case zoomRange = 6
+    case enabled = 4
+    case simulatedAperture = 6
+    case minSimulatedAperture = 8
+    case maxSimulatedAperture = 10
+    case defaultSimulatedAperture = 12
+    case apertureLocked = 14
+    case notEnoughLight = 16
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
 
-  public var lensType: RemoteShutter_CameraLensType { let o = _accessor.offset(VTOFFSET.lensType.v); return o == 0 ? .wideangle : RemoteShutter_CameraLensType(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .wideangle }
-  public var zoomRange: RemoteShutter_ZoomRange? { let o = _accessor.offset(VTOFFSET.zoomRange.v); return o == 0 ? nil : RemoteShutter_ZoomRange(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
-  public static func startZoomCapability(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 2) }
-  public static func add(lensType: RemoteShutter_CameraLensType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: lensType.rawValue, def: 0, at: VTOFFSET.lensType.p) }
-  public static func add(zoomRange: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: zoomRange, at: VTOFFSET.zoomRange.p) }
-  public static func endZoomCapability(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
-  public static func createZoomCapability(
+  public var enabled: Bool { let o = _accessor.offset(VTOFFSET.enabled.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public var simulatedAperture: Float32 { let o = _accessor.offset(VTOFFSET.simulatedAperture.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public var minSimulatedAperture: Float32 { let o = _accessor.offset(VTOFFSET.minSimulatedAperture.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public var maxSimulatedAperture: Float32 { let o = _accessor.offset(VTOFFSET.maxSimulatedAperture.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public var defaultSimulatedAperture: Float32 { let o = _accessor.offset(VTOFFSET.defaultSimulatedAperture.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
+  public var apertureLocked: Bool { let o = _accessor.offset(VTOFFSET.apertureLocked.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public var notEnoughLight: Bool { let o = _accessor.offset(VTOFFSET.notEnoughLight.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public static func startCinematicState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 7) }
+  public static func add(enabled: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: enabled, def: false,
+   at: VTOFFSET.enabled.p) }
+  public static func add(simulatedAperture: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: simulatedAperture, def: 0.0, at: VTOFFSET.simulatedAperture.p) }
+  public static func add(minSimulatedAperture: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: minSimulatedAperture, def: 0.0, at: VTOFFSET.minSimulatedAperture.p) }
+  public static func add(maxSimulatedAperture: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: maxSimulatedAperture, def: 0.0, at: VTOFFSET.maxSimulatedAperture.p) }
+  public static func add(defaultSimulatedAperture: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: defaultSimulatedAperture, def: 0.0, at: VTOFFSET.defaultSimulatedAperture.p) }
+  public static func add(apertureLocked: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: apertureLocked, def: false,
+   at: VTOFFSET.apertureLocked.p) }
+  public static func add(notEnoughLight: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: notEnoughLight, def: false,
+   at: VTOFFSET.notEnoughLight.p) }
+  public static func endCinematicState(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
+  public static func createCinematicState(
     _ fbb: inout FlatBufferBuilder,
-    lensType: RemoteShutter_CameraLensType = .wideangle,
-    zoomRangeOffset zoomRange: Offset = Offset()
+    enabled: Bool = false,
+    simulatedAperture: Float32 = 0.0,
+    minSimulatedAperture: Float32 = 0.0,
+    maxSimulatedAperture: Float32 = 0.0,
+    defaultSimulatedAperture: Float32 = 0.0,
+    apertureLocked: Bool = false,
+    notEnoughLight: Bool = false
   ) -> Offset {
-    let __start = RemoteShutter_ZoomCapability.startZoomCapability(&fbb)
-    RemoteShutter_ZoomCapability.add(lensType: lensType, &fbb)
-    RemoteShutter_ZoomCapability.add(zoomRange: zoomRange, &fbb)
-    return RemoteShutter_ZoomCapability.endZoomCapability(&fbb, start: __start)
+    let __start = RemoteShutter_CinematicState.startCinematicState(&fbb)
+    RemoteShutter_CinematicState.add(enabled: enabled, &fbb)
+    RemoteShutter_CinematicState.add(simulatedAperture: simulatedAperture, &fbb)
+    RemoteShutter_CinematicState.add(minSimulatedAperture: minSimulatedAperture, &fbb)
+    RemoteShutter_CinematicState.add(maxSimulatedAperture: maxSimulatedAperture, &fbb)
+    RemoteShutter_CinematicState.add(defaultSimulatedAperture: defaultSimulatedAperture, &fbb)
+    RemoteShutter_CinematicState.add(apertureLocked: apertureLocked, &fbb)
+    RemoteShutter_CinematicState.add(notEnoughLight: notEnoughLight, &fbb)
+    return RemoteShutter_CinematicState.endCinematicState(&fbb, start: __start)
   }
 
   public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
     var _v = try verifier.visitTable(at: position)
-    try _v.visit(field: VTOFFSET.lensType.p, fieldName: "lensType", required: false, type: RemoteShutter_CameraLensType.self)
-    try _v.visit(field: VTOFFSET.zoomRange.p, fieldName: "zoomRange", required: false, type: ForwardOffset<RemoteShutter_ZoomRange>.self)
+    try _v.visit(field: VTOFFSET.enabled.p, fieldName: "enabled", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.simulatedAperture.p, fieldName: "simulatedAperture", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.minSimulatedAperture.p, fieldName: "minSimulatedAperture", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.maxSimulatedAperture.p, fieldName: "maxSimulatedAperture", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.defaultSimulatedAperture.p, fieldName: "defaultSimulatedAperture", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.apertureLocked.p, fieldName: "apertureLocked", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.notEnoughLight.p, fieldName: "notEnoughLight", required: false, type: Bool.self)
+    _v.finish()
+  }
+}
+
+public struct RemoteShutter_ControlState: FlatBufferObject, Verifiable {
+
+  static func validateVersion() { FlatBuffersVersion_25_2_10() }
+  public var __buffer: ByteBuffer! { return _accessor.bb }
+  private var _accessor: Table
+
+  public static var id: String { "RCAM" } 
+  public static func finish(_ fbb: inout FlatBufferBuilder, end: Offset, prefix: Bool = false) { fbb.finish(offset: end, fileId: RemoteShutter_ControlState.id, addPrefix: prefix) }
+  private init(_ t: Table) { _accessor = t }
+  public init(_ bb: ByteBuffer, o: Int32) { _accessor = Table(bb: bb, position: o) }
+
+  private enum VTOFFSET: VOffset {
+    case seq = 4
+    case mode = 6
+    case activeDeviceId = 8
+    case currentLens = 10
+    case availableLenses = 12
+    case zoomFactor = 14
+    case minZoom = 16
+    case maxZoom = 18
+    case zoomStops = 20
+    case wideAngleZoomFactor = 22
+    case supportsFocusPoint = 24
+    case exposure = 26
+    case cinematic = 28
+    var v: Int32 { Int32(self.rawValue) }
+    var p: VOffset { self.rawValue }
+  }
+
+  public var seq: UInt64 { let o = _accessor.offset(VTOFFSET.seq.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
+  public var mode: RemoteShutter_RecordingModeEnum { let o = _accessor.offset(VTOFFSET.mode.v); return o == 0 ? .unknown : RemoteShutter_RecordingModeEnum(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public var activeDeviceId: String? { let o = _accessor.offset(VTOFFSET.activeDeviceId.v); return o == 0 ? nil : _accessor.string(at: o) }
+  public var activeDeviceIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.activeDeviceId.v) }
+  public var currentLens: RemoteShutter_CameraLensType { let o = _accessor.offset(VTOFFSET.currentLens.v); return o == 0 ? .wideangle : RemoteShutter_CameraLensType(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .wideangle }
+  public var hasAvailableLenses: Bool { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? false : true }
+  public var availableLensesCount: Int32 { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? 0 : _accessor.vector(count: o) }
+  public func availableLenses(at index: Int32) -> RemoteShutter_CameraLensType? { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? RemoteShutter_CameraLensType.wideangle : RemoteShutter_CameraLensType(rawValue: _accessor.directRead(of: Int8.self, offset: _accessor.vector(at: o) + index * 1)) }
+  public var zoomFactor: Double { let o = _accessor.offset(VTOFFSET.zoomFactor.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
+  public var minZoom: Double { let o = _accessor.offset(VTOFFSET.minZoom.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
+  public var maxZoom: Double { let o = _accessor.offset(VTOFFSET.maxZoom.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
+  public var hasZoomStops: Bool { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? false : true }
+  public var zoomStopsCount: Int32 { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? 0 : _accessor.vector(count: o) }
+  public func zoomStops(at index: Int32) -> Double { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? 0 : _accessor.directRead(of: Double.self, offset: _accessor.vector(at: o) + index * 8) }
+  public var zoomStops: [Double] { return _accessor.getVector(at: VTOFFSET.zoomStops.v) ?? [] }
+  public var wideAngleZoomFactor: Double { let o = _accessor.offset(VTOFFSET.wideAngleZoomFactor.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
+  public var supportsFocusPoint: Bool { let o = _accessor.offset(VTOFFSET.supportsFocusPoint.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public var exposure: RemoteShutter_ExposureState? { let o = _accessor.offset(VTOFFSET.exposure.v); return o == 0 ? nil : RemoteShutter_ExposureState(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
+  public var cinematic: RemoteShutter_CinematicState? { let o = _accessor.offset(VTOFFSET.cinematic.v); return o == 0 ? nil : RemoteShutter_CinematicState(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
+  public static func startControlState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 13) }
+  public static func add(seq: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: seq, def: 0, at: VTOFFSET.seq.p) }
+  public static func add(mode: RemoteShutter_RecordingModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: mode.rawValue, def: 0, at: VTOFFSET.mode.p) }
+  public static func add(activeDeviceId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: activeDeviceId, at: VTOFFSET.activeDeviceId.p) }
+  public static func add(currentLens: RemoteShutter_CameraLensType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentLens.rawValue, def: 0, at: VTOFFSET.currentLens.p) }
+  public static func addVectorOf(availableLenses: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: availableLenses, at: VTOFFSET.availableLenses.p) }
+  public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
+  public static func add(minZoom: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: minZoom, def: 0.0, at: VTOFFSET.minZoom.p) }
+  public static func add(maxZoom: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: maxZoom, def: 0.0, at: VTOFFSET.maxZoom.p) }
+  public static func addVectorOf(zoomStops: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: zoomStops, at: VTOFFSET.zoomStops.p) }
+  public static func add(wideAngleZoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: wideAngleZoomFactor, def: 0.0, at: VTOFFSET.wideAngleZoomFactor.p) }
+  public static func add(supportsFocusPoint: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsFocusPoint, def: false,
+   at: VTOFFSET.supportsFocusPoint.p) }
+  public static func add(exposure: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: exposure, at: VTOFFSET.exposure.p) }
+  public static func add(cinematic: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: cinematic, at: VTOFFSET.cinematic.p) }
+  public static func endControlState(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
+  public static func createControlState(
+    _ fbb: inout FlatBufferBuilder,
+    seq: UInt64 = 0,
+    mode: RemoteShutter_RecordingModeEnum = .unknown,
+    activeDeviceIdOffset activeDeviceId: Offset = Offset(),
+    currentLens: RemoteShutter_CameraLensType = .wideangle,
+    availableLensesVectorOffset availableLenses: Offset = Offset(),
+    zoomFactor: Double = 0.0,
+    minZoom: Double = 0.0,
+    maxZoom: Double = 0.0,
+    zoomStopsVectorOffset zoomStops: Offset = Offset(),
+    wideAngleZoomFactor: Double = 0.0,
+    supportsFocusPoint: Bool = false,
+    exposureOffset exposure: Offset = Offset(),
+    cinematicOffset cinematic: Offset = Offset()
+  ) -> Offset {
+    let __start = RemoteShutter_ControlState.startControlState(&fbb)
+    RemoteShutter_ControlState.add(seq: seq, &fbb)
+    RemoteShutter_ControlState.add(mode: mode, &fbb)
+    RemoteShutter_ControlState.add(activeDeviceId: activeDeviceId, &fbb)
+    RemoteShutter_ControlState.add(currentLens: currentLens, &fbb)
+    RemoteShutter_ControlState.addVectorOf(availableLenses: availableLenses, &fbb)
+    RemoteShutter_ControlState.add(zoomFactor: zoomFactor, &fbb)
+    RemoteShutter_ControlState.add(minZoom: minZoom, &fbb)
+    RemoteShutter_ControlState.add(maxZoom: maxZoom, &fbb)
+    RemoteShutter_ControlState.addVectorOf(zoomStops: zoomStops, &fbb)
+    RemoteShutter_ControlState.add(wideAngleZoomFactor: wideAngleZoomFactor, &fbb)
+    RemoteShutter_ControlState.add(supportsFocusPoint: supportsFocusPoint, &fbb)
+    RemoteShutter_ControlState.add(exposure: exposure, &fbb)
+    RemoteShutter_ControlState.add(cinematic: cinematic, &fbb)
+    return RemoteShutter_ControlState.endControlState(&fbb, start: __start)
+  }
+
+  public static func verify<T>(_ verifier: inout Verifier, at position: Int, of type: T.Type) throws where T: Verifiable {
+    var _v = try verifier.visitTable(at: position)
+    try _v.visit(field: VTOFFSET.seq.p, fieldName: "seq", required: false, type: UInt64.self)
+    try _v.visit(field: VTOFFSET.mode.p, fieldName: "mode", required: false, type: RemoteShutter_RecordingModeEnum.self)
+    try _v.visit(field: VTOFFSET.activeDeviceId.p, fieldName: "activeDeviceId", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.currentLens.p, fieldName: "currentLens", required: false, type: RemoteShutter_CameraLensType.self)
+    try _v.visit(field: VTOFFSET.availableLenses.p, fieldName: "availableLenses", required: false, type: ForwardOffset<Vector<RemoteShutter_CameraLensType, RemoteShutter_CameraLensType>>.self)
+    try _v.visit(field: VTOFFSET.zoomFactor.p, fieldName: "zoomFactor", required: false, type: Double.self)
+    try _v.visit(field: VTOFFSET.minZoom.p, fieldName: "minZoom", required: false, type: Double.self)
+    try _v.visit(field: VTOFFSET.maxZoom.p, fieldName: "maxZoom", required: false, type: Double.self)
+    try _v.visit(field: VTOFFSET.zoomStops.p, fieldName: "zoomStops", required: false, type: ForwardOffset<Vector<Double, Double>>.self)
+    try _v.visit(field: VTOFFSET.wideAngleZoomFactor.p, fieldName: "wideAngleZoomFactor", required: false, type: Double.self)
+    try _v.visit(field: VTOFFSET.supportsFocusPoint.p, fieldName: "supportsFocusPoint", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.exposure.p, fieldName: "exposure", required: false, type: ForwardOffset<RemoteShutter_ExposureState>.self)
+    try _v.visit(field: VTOFFSET.cinematic.p, fieldName: "cinematic", required: false, type: ForwardOffset<RemoteShutter_CinematicState>.self)
     _v.finish()
   }
 }
@@ -833,11 +1075,8 @@ public struct RemoteShutter_CameraInfo: FlatBufferObject, Verifiable {
     case availableLenses = 4
     case hasFlash = 6
     case hasTorch = 8
-    case zoomCapabilities = 10
-    case videoQuality = 12
-    case photoQuality = 14
-    case zoomStops = 16
-    case wideAngleZoomFactor = 18
+    case videoQuality = 10
+    case photoQuality = 12
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -847,48 +1086,31 @@ public struct RemoteShutter_CameraInfo: FlatBufferObject, Verifiable {
   public func availableLenses(at index: Int32) -> RemoteShutter_CameraLensType? { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? RemoteShutter_CameraLensType.wideangle : RemoteShutter_CameraLensType(rawValue: _accessor.directRead(of: Int8.self, offset: _accessor.vector(at: o) + index * 1)) }
   public var hasFlash: Bool { let o = _accessor.offset(VTOFFSET.hasFlash.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
   public var hasTorch: Bool { let o = _accessor.offset(VTOFFSET.hasTorch.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
-  public var hasZoomCapabilities: Bool { let o = _accessor.offset(VTOFFSET.zoomCapabilities.v); return o == 0 ? false : true }
-  public var zoomCapabilitiesCount: Int32 { let o = _accessor.offset(VTOFFSET.zoomCapabilities.v); return o == 0 ? 0 : _accessor.vector(count: o) }
-  public func zoomCapabilities(at index: Int32) -> RemoteShutter_ZoomCapability? { let o = _accessor.offset(VTOFFSET.zoomCapabilities.v); return o == 0 ? nil : RemoteShutter_ZoomCapability(_accessor.bb, o: _accessor.indirect(_accessor.vector(at: o) + index * 4)) }
   public var videoQuality: RemoteShutter_VideoQualityCapabilities? { let o = _accessor.offset(VTOFFSET.videoQuality.v); return o == 0 ? nil : RemoteShutter_VideoQualityCapabilities(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
   public var photoQuality: RemoteShutter_PhotoQualityCapabilities? { let o = _accessor.offset(VTOFFSET.photoQuality.v); return o == 0 ? nil : RemoteShutter_PhotoQualityCapabilities(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
-  public var hasZoomStops: Bool { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? false : true }
-  public var zoomStopsCount: Int32 { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? 0 : _accessor.vector(count: o) }
-  public func zoomStops(at index: Int32) -> Double { let o = _accessor.offset(VTOFFSET.zoomStops.v); return o == 0 ? 0 : _accessor.directRead(of: Double.self, offset: _accessor.vector(at: o) + index * 8) }
-  public var zoomStops: [Double] { return _accessor.getVector(at: VTOFFSET.zoomStops.v) ?? [] }
-  public var wideAngleZoomFactor: Double { let o = _accessor.offset(VTOFFSET.wideAngleZoomFactor.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
-  public static func startCameraInfo(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 8) }
+  public static func startCameraInfo(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 5) }
   public static func addVectorOf(availableLenses: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: availableLenses, at: VTOFFSET.availableLenses.p) }
   public static func add(hasFlash: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: hasFlash, def: false,
    at: VTOFFSET.hasFlash.p) }
   public static func add(hasTorch: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: hasTorch, def: false,
    at: VTOFFSET.hasTorch.p) }
-  public static func addVectorOf(zoomCapabilities: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: zoomCapabilities, at: VTOFFSET.zoomCapabilities.p) }
   public static func add(videoQuality: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: videoQuality, at: VTOFFSET.videoQuality.p) }
   public static func add(photoQuality: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: photoQuality, at: VTOFFSET.photoQuality.p) }
-  public static func addVectorOf(zoomStops: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: zoomStops, at: VTOFFSET.zoomStops.p) }
-  public static func add(wideAngleZoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: wideAngleZoomFactor, def: 0.0, at: VTOFFSET.wideAngleZoomFactor.p) }
   public static func endCameraInfo(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraInfo(
     _ fbb: inout FlatBufferBuilder,
     availableLensesVectorOffset availableLenses: Offset = Offset(),
     hasFlash: Bool = false,
     hasTorch: Bool = false,
-    zoomCapabilitiesVectorOffset zoomCapabilities: Offset = Offset(),
     videoQualityOffset videoQuality: Offset = Offset(),
-    photoQualityOffset photoQuality: Offset = Offset(),
-    zoomStopsVectorOffset zoomStops: Offset = Offset(),
-    wideAngleZoomFactor: Double = 0.0
+    photoQualityOffset photoQuality: Offset = Offset()
   ) -> Offset {
     let __start = RemoteShutter_CameraInfo.startCameraInfo(&fbb)
     RemoteShutter_CameraInfo.addVectorOf(availableLenses: availableLenses, &fbb)
     RemoteShutter_CameraInfo.add(hasFlash: hasFlash, &fbb)
     RemoteShutter_CameraInfo.add(hasTorch: hasTorch, &fbb)
-    RemoteShutter_CameraInfo.addVectorOf(zoomCapabilities: zoomCapabilities, &fbb)
     RemoteShutter_CameraInfo.add(videoQuality: videoQuality, &fbb)
     RemoteShutter_CameraInfo.add(photoQuality: photoQuality, &fbb)
-    RemoteShutter_CameraInfo.addVectorOf(zoomStops: zoomStops, &fbb)
-    RemoteShutter_CameraInfo.add(wideAngleZoomFactor: wideAngleZoomFactor, &fbb)
     return RemoteShutter_CameraInfo.endCameraInfo(&fbb, start: __start)
   }
 
@@ -897,11 +1119,8 @@ public struct RemoteShutter_CameraInfo: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.availableLenses.p, fieldName: "availableLenses", required: false, type: ForwardOffset<Vector<RemoteShutter_CameraLensType, RemoteShutter_CameraLensType>>.self)
     try _v.visit(field: VTOFFSET.hasFlash.p, fieldName: "hasFlash", required: false, type: Bool.self)
     try _v.visit(field: VTOFFSET.hasTorch.p, fieldName: "hasTorch", required: false, type: Bool.self)
-    try _v.visit(field: VTOFFSET.zoomCapabilities.p, fieldName: "zoomCapabilities", required: false, type: ForwardOffset<Vector<ForwardOffset<RemoteShutter_ZoomCapability>, RemoteShutter_ZoomCapability>>.self)
     try _v.visit(field: VTOFFSET.videoQuality.p, fieldName: "videoQuality", required: false, type: ForwardOffset<RemoteShutter_VideoQualityCapabilities>.self)
     try _v.visit(field: VTOFFSET.photoQuality.p, fieldName: "photoQuality", required: false, type: ForwardOffset<RemoteShutter_PhotoQualityCapabilities>.self)
-    try _v.visit(field: VTOFFSET.zoomStops.p, fieldName: "zoomStops", required: false, type: ForwardOffset<Vector<Double, Double>>.self)
-    try _v.visit(field: VTOFFSET.wideAngleZoomFactor.p, fieldName: "wideAngleZoomFactor", required: false, type: Double.self)
     _v.finish()
   }
 }
@@ -1103,10 +1322,9 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     case frontCamera = 4
     case backCamera = 6
     case cameraDevices = 8
-    case activeDeviceId = 10
-    case supportsFocusPoint = 12
-    case supportsPreviewMode = 14
-    case supportsMulticam = 16
+    case supportsPreviewMode = 10
+    case supportsMulticam = 12
+    case control = 14
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1116,41 +1334,35 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
   public var hasCameraDevices: Bool { let o = _accessor.offset(VTOFFSET.cameraDevices.v); return o == 0 ? false : true }
   public var cameraDevicesCount: Int32 { let o = _accessor.offset(VTOFFSET.cameraDevices.v); return o == 0 ? 0 : _accessor.vector(count: o) }
   public func cameraDevices(at index: Int32) -> RemoteShutter_CameraDeviceInfo? { let o = _accessor.offset(VTOFFSET.cameraDevices.v); return o == 0 ? nil : RemoteShutter_CameraDeviceInfo(_accessor.bb, o: _accessor.indirect(_accessor.vector(at: o) + index * 4)) }
-  public var activeDeviceId: String? { let o = _accessor.offset(VTOFFSET.activeDeviceId.v); return o == 0 ? nil : _accessor.string(at: o) }
-  public var activeDeviceIdSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.activeDeviceId.v) }
-  public var supportsFocusPoint: Bool { let o = _accessor.offset(VTOFFSET.supportsFocusPoint.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
   public var supportsPreviewMode: Bool { let o = _accessor.offset(VTOFFSET.supportsPreviewMode.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
   public var supportsMulticam: Bool { let o = _accessor.offset(VTOFFSET.supportsMulticam.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
-  public static func startCameraCapabilities(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 7) }
+  public var control: RemoteShutter_ControlState? { let o = _accessor.offset(VTOFFSET.control.v); return o == 0 ? nil : RemoteShutter_ControlState(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
+  public static func startCameraCapabilities(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 6) }
   public static func add(frontCamera: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: frontCamera, at: VTOFFSET.frontCamera.p) }
   public static func add(backCamera: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: backCamera, at: VTOFFSET.backCamera.p) }
   public static func addVectorOf(cameraDevices: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: cameraDevices, at: VTOFFSET.cameraDevices.p) }
-  public static func add(activeDeviceId: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: activeDeviceId, at: VTOFFSET.activeDeviceId.p) }
-  public static func add(supportsFocusPoint: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsFocusPoint, def: false,
-   at: VTOFFSET.supportsFocusPoint.p) }
   public static func add(supportsPreviewMode: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsPreviewMode, def: false,
    at: VTOFFSET.supportsPreviewMode.p) }
   public static func add(supportsMulticam: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsMulticam, def: false,
    at: VTOFFSET.supportsMulticam.p) }
+  public static func add(control: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: control, at: VTOFFSET.control.p) }
   public static func endCameraCapabilities(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraCapabilities(
     _ fbb: inout FlatBufferBuilder,
     frontCameraOffset frontCamera: Offset = Offset(),
     backCameraOffset backCamera: Offset = Offset(),
     cameraDevicesVectorOffset cameraDevices: Offset = Offset(),
-    activeDeviceIdOffset activeDeviceId: Offset = Offset(),
-    supportsFocusPoint: Bool = false,
     supportsPreviewMode: Bool = false,
-    supportsMulticam: Bool = false
+    supportsMulticam: Bool = false,
+    controlOffset control: Offset = Offset()
   ) -> Offset {
     let __start = RemoteShutter_CameraCapabilities.startCameraCapabilities(&fbb)
     RemoteShutter_CameraCapabilities.add(frontCamera: frontCamera, &fbb)
     RemoteShutter_CameraCapabilities.add(backCamera: backCamera, &fbb)
     RemoteShutter_CameraCapabilities.addVectorOf(cameraDevices: cameraDevices, &fbb)
-    RemoteShutter_CameraCapabilities.add(activeDeviceId: activeDeviceId, &fbb)
-    RemoteShutter_CameraCapabilities.add(supportsFocusPoint: supportsFocusPoint, &fbb)
     RemoteShutter_CameraCapabilities.add(supportsPreviewMode: supportsPreviewMode, &fbb)
     RemoteShutter_CameraCapabilities.add(supportsMulticam: supportsMulticam, &fbb)
+    RemoteShutter_CameraCapabilities.add(control: control, &fbb)
     return RemoteShutter_CameraCapabilities.endCameraCapabilities(&fbb, start: __start)
   }
 
@@ -1159,10 +1371,9 @@ public struct RemoteShutter_CameraCapabilities: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.frontCamera.p, fieldName: "frontCamera", required: false, type: ForwardOffset<RemoteShutter_CameraInfo>.self)
     try _v.visit(field: VTOFFSET.backCamera.p, fieldName: "backCamera", required: false, type: ForwardOffset<RemoteShutter_CameraInfo>.self)
     try _v.visit(field: VTOFFSET.cameraDevices.p, fieldName: "cameraDevices", required: false, type: ForwardOffset<Vector<ForwardOffset<RemoteShutter_CameraDeviceInfo>, RemoteShutter_CameraDeviceInfo>>.self)
-    try _v.visit(field: VTOFFSET.activeDeviceId.p, fieldName: "activeDeviceId", required: false, type: ForwardOffset<String>.self)
-    try _v.visit(field: VTOFFSET.supportsFocusPoint.p, fieldName: "supportsFocusPoint", required: false, type: Bool.self)
     try _v.visit(field: VTOFFSET.supportsPreviewMode.p, fieldName: "supportsPreviewMode", required: false, type: Bool.self)
     try _v.visit(field: VTOFFSET.supportsMulticam.p, fieldName: "supportsMulticam", required: false, type: Bool.self)
+    try _v.visit(field: VTOFFSET.control.p, fieldName: "control", required: false, type: ForwardOffset<RemoteShutter_ControlState>.self)
     _v.finish()
   }
 }
@@ -1186,12 +1397,12 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     case capabilities = 12
     case mediaData = 14
     case recordingStartTime = 16
-    case availableLenses = 18
-    case zoomRange = 20
-    case currentZoom = 22
-    case clockSyncEchoT0Ms = 24
-    case clockSyncCameraClockMs = 26
-    case captureIdEcho = 28
+    case clockSyncEchoT0Ms = 18
+    case clockSyncCameraClockMs = 20
+    case captureIdEcho = 22
+    case control = 24
+    case controlRefusal = 26
+    case controlRefusalDetail = 28
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1207,15 +1418,14 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public func mediaData(at index: Int32) -> UInt8 { let o = _accessor.offset(VTOFFSET.mediaData.v); return o == 0 ? 0 : _accessor.directRead(of: UInt8.self, offset: _accessor.vector(at: o) + index * 1) }
   public var mediaData: [UInt8] { return _accessor.getVector(at: VTOFFSET.mediaData.v) ?? [] }
   public var recordingStartTime: UInt64 { let o = _accessor.offset(VTOFFSET.recordingStartTime.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
-  public var hasAvailableLenses: Bool { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? false : true }
-  public var availableLensesCount: Int32 { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? 0 : _accessor.vector(count: o) }
-  public func availableLenses(at index: Int32) -> RemoteShutter_CameraLensType? { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? RemoteShutter_CameraLensType.wideangle : RemoteShutter_CameraLensType(rawValue: _accessor.directRead(of: Int8.self, offset: _accessor.vector(at: o) + index * 1)) }
-  public var zoomRange: RemoteShutter_ZoomRange? { let o = _accessor.offset(VTOFFSET.zoomRange.v); return o == 0 ? nil : RemoteShutter_ZoomRange(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
-  public var currentZoom: Double { let o = _accessor.offset(VTOFFSET.currentZoom.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
   public var clockSyncEchoT0Ms: UInt64 { let o = _accessor.offset(VTOFFSET.clockSyncEchoT0Ms.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var clockSyncCameraClockMs: UInt64 { let o = _accessor.offset(VTOFFSET.clockSyncCameraClockMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var captureIdEcho: String? { let o = _accessor.offset(VTOFFSET.captureIdEcho.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var captureIdEchoSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.captureIdEcho.v) }
+  public var control: RemoteShutter_ControlState? { let o = _accessor.offset(VTOFFSET.control.v); return o == 0 ? nil : RemoteShutter_ControlState(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
+  public var controlRefusal: RemoteShutter_ControlRefusal { let o = _accessor.offset(VTOFFSET.controlRefusal.v); return o == 0 ? .unknown : RemoteShutter_ControlRefusal(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public var controlRefusalDetail: String? { let o = _accessor.offset(VTOFFSET.controlRefusalDetail.v); return o == 0 ? nil : _accessor.string(at: o) }
+  public var controlRefusalDetailSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.controlRefusalDetail.v) }
   public static func startCameraStateResponse(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 13) }
   public static func add(action: RemoteShutter_CommandAction, _ fbb: inout FlatBufferBuilder) { fbb.add(element: action.rawValue, def: 0, at: VTOFFSET.action.p) }
   public static func add(success: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: success, def: false,
@@ -1225,12 +1435,12 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public static func add(capabilities: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: capabilities, at: VTOFFSET.capabilities.p) }
   public static func addVectorOf(mediaData: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: mediaData, at: VTOFFSET.mediaData.p) }
   public static func add(recordingStartTime: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: recordingStartTime, def: 0, at: VTOFFSET.recordingStartTime.p) }
-  public static func addVectorOf(availableLenses: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: availableLenses, at: VTOFFSET.availableLenses.p) }
-  public static func add(zoomRange: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: zoomRange, at: VTOFFSET.zoomRange.p) }
-  public static func add(currentZoom: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentZoom, def: 0.0, at: VTOFFSET.currentZoom.p) }
   public static func add(clockSyncEchoT0Ms: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: clockSyncEchoT0Ms, def: 0, at: VTOFFSET.clockSyncEchoT0Ms.p) }
   public static func add(clockSyncCameraClockMs: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: clockSyncCameraClockMs, def: 0, at: VTOFFSET.clockSyncCameraClockMs.p) }
   public static func add(captureIdEcho: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: captureIdEcho, at: VTOFFSET.captureIdEcho.p) }
+  public static func add(control: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: control, at: VTOFFSET.control.p) }
+  public static func add(controlRefusal: RemoteShutter_ControlRefusal, _ fbb: inout FlatBufferBuilder) { fbb.add(element: controlRefusal.rawValue, def: 0, at: VTOFFSET.controlRefusal.p) }
+  public static func add(controlRefusalDetail: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: controlRefusalDetail, at: VTOFFSET.controlRefusalDetail.p) }
   public static func endCameraStateResponse(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraStateResponse(
     _ fbb: inout FlatBufferBuilder,
@@ -1241,12 +1451,12 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     capabilitiesOffset capabilities: Offset = Offset(),
     mediaDataVectorOffset mediaData: Offset = Offset(),
     recordingStartTime: UInt64 = 0,
-    availableLensesVectorOffset availableLenses: Offset = Offset(),
-    zoomRangeOffset zoomRange: Offset = Offset(),
-    currentZoom: Double = 0.0,
     clockSyncEchoT0Ms: UInt64 = 0,
     clockSyncCameraClockMs: UInt64 = 0,
-    captureIdEchoOffset captureIdEcho: Offset = Offset()
+    captureIdEchoOffset captureIdEcho: Offset = Offset(),
+    controlOffset control: Offset = Offset(),
+    controlRefusal: RemoteShutter_ControlRefusal = .unknown,
+    controlRefusalDetailOffset controlRefusalDetail: Offset = Offset()
   ) -> Offset {
     let __start = RemoteShutter_CameraStateResponse.startCameraStateResponse(&fbb)
     RemoteShutter_CameraStateResponse.add(action: action, &fbb)
@@ -1256,12 +1466,12 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     RemoteShutter_CameraStateResponse.add(capabilities: capabilities, &fbb)
     RemoteShutter_CameraStateResponse.addVectorOf(mediaData: mediaData, &fbb)
     RemoteShutter_CameraStateResponse.add(recordingStartTime: recordingStartTime, &fbb)
-    RemoteShutter_CameraStateResponse.addVectorOf(availableLenses: availableLenses, &fbb)
-    RemoteShutter_CameraStateResponse.add(zoomRange: zoomRange, &fbb)
-    RemoteShutter_CameraStateResponse.add(currentZoom: currentZoom, &fbb)
     RemoteShutter_CameraStateResponse.add(clockSyncEchoT0Ms: clockSyncEchoT0Ms, &fbb)
     RemoteShutter_CameraStateResponse.add(clockSyncCameraClockMs: clockSyncCameraClockMs, &fbb)
     RemoteShutter_CameraStateResponse.add(captureIdEcho: captureIdEcho, &fbb)
+    RemoteShutter_CameraStateResponse.add(control: control, &fbb)
+    RemoteShutter_CameraStateResponse.add(controlRefusal: controlRefusal, &fbb)
+    RemoteShutter_CameraStateResponse.add(controlRefusalDetail: controlRefusalDetail, &fbb)
     return RemoteShutter_CameraStateResponse.endCameraStateResponse(&fbb, start: __start)
   }
 
@@ -1274,12 +1484,12 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.capabilities.p, fieldName: "capabilities", required: false, type: ForwardOffset<RemoteShutter_CameraCapabilities>.self)
     try _v.visit(field: VTOFFSET.mediaData.p, fieldName: "mediaData", required: false, type: ForwardOffset<Vector<UInt8, UInt8>>.self)
     try _v.visit(field: VTOFFSET.recordingStartTime.p, fieldName: "recordingStartTime", required: false, type: UInt64.self)
-    try _v.visit(field: VTOFFSET.availableLenses.p, fieldName: "availableLenses", required: false, type: ForwardOffset<Vector<RemoteShutter_CameraLensType, RemoteShutter_CameraLensType>>.self)
-    try _v.visit(field: VTOFFSET.zoomRange.p, fieldName: "zoomRange", required: false, type: ForwardOffset<RemoteShutter_ZoomRange>.self)
-    try _v.visit(field: VTOFFSET.currentZoom.p, fieldName: "currentZoom", required: false, type: Double.self)
     try _v.visit(field: VTOFFSET.clockSyncEchoT0Ms.p, fieldName: "clockSyncEchoT0Ms", required: false, type: UInt64.self)
     try _v.visit(field: VTOFFSET.clockSyncCameraClockMs.p, fieldName: "clockSyncCameraClockMs", required: false, type: UInt64.self)
     try _v.visit(field: VTOFFSET.captureIdEcho.p, fieldName: "captureIdEcho", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.control.p, fieldName: "control", required: false, type: ForwardOffset<RemoteShutter_ControlState>.self)
+    try _v.visit(field: VTOFFSET.controlRefusal.p, fieldName: "controlRefusal", required: false, type: RemoteShutter_ControlRefusal.self)
+    try _v.visit(field: VTOFFSET.controlRefusalDetail.p, fieldName: "controlRefusalDetail", required: false, type: ForwardOffset<String>.self)
     _v.finish()
   }
 }

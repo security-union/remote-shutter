@@ -94,6 +94,7 @@ final class StoreManager: ObservableObject {
         hasFullAccess() || UserDefaults.standard.bool(forKey: PurchaseKey.tapToFocus)
     }
 
+
     /// The multicam camera caps — the single source for every gate and every
     /// piece of copy that names a number, so they can never disagree. The
     /// paid cap is held at 4 until larger rigs are validated on hardware

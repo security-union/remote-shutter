@@ -37,12 +37,17 @@ final class CameraLane: ObservableObject, Identifiable {
     var needsQualityRematch: Bool { info.needsQualityRematch }
     var collection: CameraLink.LaneCollectionState { info.collection }
     var canFlipCamera: Bool { info.canFlipCamera }
-    var supportsFocusPoint: Bool { info.supportsFocusPoint }
-    var zoomFactor: CGFloat { info.zoomFactor }
+    /// This lane's control-plane truth; every pro/zoom read below is a pure
+    /// derivation of it, so they can never disagree with one another.
+    var control: ControlState? { info.control }
+    var supportsFocusPoint: Bool { info.control?.supportsFocusPoint ?? false }
+    var supportsManualExposure: Bool { info.control?.exposure != nil }
+    var exposure: ExposureState? { info.control?.exposure }
+    var supportsCinematicVideo: Bool { info.control?.cinematic != nil }
+    var cinematic: CinematicState? { info.control?.cinematic }
+    var zoomFactor: CGFloat { info.control?.zoomFactor ?? 1.0 }
     var zoomScale: ZoomScale {
-        ZoomScale(stops: info.zoomStops,
-                  maxZoomFactor: info.maxZoomFactor,
-                  wideAngleZoomFactor: info.wideAngleZoomFactor)
+        info.control?.zoomScale ?? ZoomScale(stops: [1.0], maxZoomFactor: 1.0, wideAngleZoomFactor: 1.0)
     }
     var torchOn: Bool { info.torchOn }
     var flashOn: Bool { info.flashOn }
@@ -78,8 +83,11 @@ final class MulticamViewModel: ObservableObject {
     @Published var isRecording: Bool = false
     /// When the rig actually started rolling — drives the classic
     /// `RecordingTimer` in the top bar. Nil unless recording.
-    /// Photo vs video shutter mode.
-    @Published var mode: MonitorMode = .photo
+    /// Photo vs video shutter mode. Changing it can retract pro tiles
+    /// (Cinematic is video-only), so the slider intent reconciles here.
+    @Published var mode: MonitorMode = .photo {
+        didSet { if mode != oldValue { reconcileProSlider() } }
+    }
     /// Focus (viewfinder + strip) vs grid (monitor wall) layout.
     @Published var displayMode: MulticamDisplayMode = .focus
     /// Cameras discovered but not yet in the rig — the add-camera sheet's list.
@@ -90,6 +98,9 @@ final class MulticamViewModel: ObservableObject {
     @Published var rigSettings = RigSettingsSnapshot()
     /// Whether the rig settings tray is showing.
     @Published var showingRigTray: Bool = false
+    /// The pro slider open on the viewfinder (the zoom pill's slot), driving
+    /// the focused camera.
+    @Published var activeProSlider: ProSliderKind?
     /// A brief, non-blocking error readout (a refused camera switch, e.g.).
     /// The toast that renders it clears it after a few seconds. Each report
     /// carries its own identity — same pattern as `FocusReticle` — so a
@@ -129,6 +140,40 @@ final class MulticamViewModel: ObservableObject {
     /// cameras don't; capabilities absent reads as no torch).
     var showsTorchButton: Bool {
         displayMode == .focus && (focusedLane?.hasTorch ?? false)
+    }
+
+    /// The pro tiles and slider drive the FOCUSED camera (like torch and
+    /// zoom), so they follow that camera's advertised capabilities, under the
+    /// 1:1 tray's rule (`MonitorTray.proTiles`).
+    var focusedProTiles: [MonitorTrayItem] {
+        guard let focused = focusedLane, focused.status == .linked else { return [] }
+        return MonitorTray.proTiles(for: monitorUIState,
+                                    supportsManualExposure: focused.supportsManualExposure,
+                                    supportsCinematicVideo: focused.supportsCinematicVideo,
+                                    cinematicOn: focused.cinematic?.enabled == true,
+                                    apertureAdjustable: (focused.cinematic?.minSimulatedAperture ?? 0) > 0)
+    }
+
+    /// The open slider — a pure read of `ProSliderIntent.reconcile`. The
+    /// clearing itself happens at the WRITE sites (`apply`, mode changes),
+    /// never here: a getter must not mutate.
+    var visibleProSlider: ProSliderKind? {
+        ProSliderIntent.reconcile(active: activeProSlider, offeredTiles: focusedProTiles)
+    }
+
+    /// Write-path reconciliation: a slider whose tile vanished is closed for
+    /// good. Called wherever the offered tiles can change.
+    private func reconcileProSlider() {
+        let resolved = ProSliderIntent.reconcile(active: activeProSlider, offeredTiles: focusedProTiles)
+        if resolved != activeProSlider { activeProSlider = resolved }
+    }
+
+    /// The director's mode in the 1:1 monitor's vocabulary, for shared rules.
+    var monitorUIState: MonitorUIState {
+        switch mode {
+        case .photo: return .photoMode
+        case .video: return isRecording ? .videoRecording : .videoMode
+        }
     }
 
     /// The focused camera's zoom scale and current factor for the pill; and
@@ -176,6 +221,8 @@ final class MulticamViewModel: ObservableObject {
         for gone in existing.values { gone.receiver.invalidate() }
 
         lanes = next
+        // Lane churn can change the focused camera's offered tiles.
+        reconcileProSlider()
         return created
     }
 

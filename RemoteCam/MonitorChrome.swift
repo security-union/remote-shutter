@@ -73,6 +73,12 @@ enum MonitorTrayItem: Equatable {
     /// Puts the peer camera's *local* preview to sleep. It keeps capturing and
     /// keeps streaming here.
     case cameraStandby
+    /// Pro controls (issue #206). Shutter / ISO / aperture open a viewfinder
+    /// slider in the zoom pill's slot; Cinematic toggles in place.
+    case shutter
+    case iso
+    case cinematic
+    case aperture
     case settings
     case help
 }
@@ -87,7 +93,8 @@ enum MonitorTray {
                       supportsHDR: Bool,
                       supportsCameraStandby: Bool,
                       resolutionCount: Int,
-                      frameRateCount: Int) -> [MonitorTrayItem] {
+                      frameRateCount: Int,
+                      proTiles: [MonitorTrayItem] = []) -> [MonitorTrayItem] {
         var items: [MonitorTrayItem] = []
 
         // Shorts runs to a fixed duration, so a self-timer has nothing to delay.
@@ -107,11 +114,36 @@ enum MonitorTray {
             break
         }
 
+        // Pro controls sit with the capture settings, ahead of the
+        // peer-device controls (standby) and the tray's floor.
+        items.append(contentsOf: proTiles)
         if supportsCameraStandby { items.append(.cameraStandby) }
 
         items.append(.settings)
         items.append(.help)
         return items
+    }
+
+    /// The pro tiles the connected camera earns (`proTiles:` above). Each is a
+    /// capability of that camera: manual exposure gives SHUTTER + ISO in any
+    /// mode; Cinematic (a video effect) gives its toggle in video modes and,
+    /// once on, APERTURE when the device can adjust it. A peer that never
+    /// advertised a capability would ignore the command, so no tile.
+    static func proTiles(for state: MonitorUIState,
+                         supportsManualExposure: Bool,
+                         supportsCinematicVideo: Bool,
+                         cinematicOn: Bool,
+                         apertureAdjustable: Bool,
+                         flagEnabled: Bool = FeatureFlags.ENABLE_PRO_CONTROLS) -> [MonitorTrayItem] {
+        guard flagEnabled else { return [] }
+        var tiles: [MonitorTrayItem] = []
+        if supportsManualExposure { tiles += [.shutter, .iso] }
+        let videoish = state == .videoMode || state == .videoRecording
+        if videoish, supportsCinematicVideo {
+            tiles.append(.cinematic)
+            if cinematicOn, apertureAdjustable { tiles.append(.aperture) }
+        }
+        return tiles
     }
 }
 

@@ -85,6 +85,7 @@ struct CameraSelectionResult {
     /// nil when the device has no flash (every Mac camera).
     let flashMode: AVCaptureDevice.FlashMode?
     let availableLensTypes: [CameraLensType]
-    let zoomRange: RemoteCmd.ZoomRange
+    /// Zoom truth lives in the `ControlState` snapshot the swap pushes;
+    /// this result only identifies the device the swap landed on.
     let currentZoom: CGFloat
 }

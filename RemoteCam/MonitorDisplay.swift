@@ -17,7 +17,6 @@ protocol MonitorDisplay: AnyObject {
 
     var viewModel: MonitorViewModel { get }
     var frameStreamReceiver: FrameStreamReceiver { get }
-    var maxZoomFactor: CGFloat { get }
 
     func swiftUIConfigurePhotoMode()
     func swiftUIConfigureVideoMode()
@@ -26,8 +25,9 @@ protocol MonitorDisplay: AnyObject {
 
     func updateFlashModeInViewModel(_ flashMode: AVCaptureDevice.FlashMode)
     func updateTorchModeInViewModel(_ torchMode: AVCaptureDevice.TorchMode)
-    func updateZoomInViewModel(_ factor: CGFloat, maxFactor: CGFloat)
-    func updateLensTypesInViewModel(_ lenses: [CameraLensType], current: CameraLensType)
+    /// The whole control-plane snapshot (v11) — zoom, lens, exposure and
+    /// Cinematic in one value. Replaces the per-field zoom/lens updates.
+    func applyControlState(_ state: ControlState)
 
     /// Leave the monitor screen (e.g. the peer refused the monitor role).
     func exitMonitor()

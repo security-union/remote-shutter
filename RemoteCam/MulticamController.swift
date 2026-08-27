@@ -64,18 +64,16 @@ struct MulticamLaneInfo: Equatable {
     /// capabilities. Not the flip-button gate (that mirrors the 1:1 monitor and
     /// stays ungated); a projection of capabilities for diagnostics/tests.
     let canFlipCamera: Bool
-    /// This camera can focus at a point — gates the viewfinder's focus tap so
-    /// the user never gets a reticle (or a paywall) for a camera that can't.
-    let supportsFocusPoint: Bool
+    /// This camera's complete control-plane truth (v11) — zoom range + factor,
+    /// lens, focus-point support, manual exposure, Cinematic — as ONE value.
+    /// Everything the tile and the focused pill/slider need is a pure
+    /// derivation of this (`control?.zoomScale`, `control?.exposure != nil`,
+    /// …), so a stale range for one control while another moved is
+    /// unrepresentable. Nil until the first snapshot lands.
+    let control: ControlState?
     /// This camera's current device has a torch (front cameras don't) — gates
     /// the torch glyph when this lane is focused.
     let hasTorch: Bool
-    /// Zoom state for the focused zoom pill (the same values the 1:1 monitor
-    /// builds its `ZoomScale` from). `zoomFactor` is the live hardware factor.
-    let zoomFactor: CGFloat
-    let maxZoomFactor: CGFloat
-    let zoomStops: [CGFloat]
-    let wideAngleZoomFactor: CGFloat
     /// Optimistic torch / flash state so the control-capsule glyphs tint like
     /// the 1:1 monitor's the instant they are tapped.
     let torchOn: Bool
@@ -221,6 +219,10 @@ public actor MulticamController {
     /// intersection: it fans to every lane and is re-applied to late joiners.
     /// 16:9 is the cameras' own default.
     private var activeAspectRatio: AspectRatio = .sixteenNine
+    /// The rig's photo/video mode as the director last set it — pushed to
+    /// every camera (and to late joiners) via `SyncMonitorSettings`.
+    private var rigMode: MonitorMode = .photo
+
     /// The rig-wide camera-preview mode: standby blanks each camera's own
     /// on-screen preview (the director is the viewfinder; capture and the
     /// streamed frames are unaffected). Sent only to cameras that advertised
@@ -472,6 +474,15 @@ public actor MulticamController {
             // A drag, not a press — firehose level.
             logDebug("director: zoom \(z.factor) → \(z.target.displayName)")
             handleSetZoom(z.factor, target: z.target)
+        case let m as MCSetExposure:
+            logInfo("director: exposure \(m.intent) → \(m.target.displayName)")
+            handleSetExposure(m.intent, target: m.target)
+        case let m as MCSetCinematic:
+            logInfo("director: cinematic \(m.intent) → \(m.target.displayName)")
+            handleSetCinematic(m.intent, target: m.target)
+        case let m as MCSetRigMode:
+            logInfo("director: mode → \(m.mode)")
+            handleSetRigMode(m.mode)
         case is MCCapturePhoto:
             logInfo("director: shutter tap (photo)")
             handleCapturePhoto()
@@ -586,7 +597,11 @@ public actor MulticamController {
         case let caps as RemoteCmd.CameraCapabilitiesResp:
             logInfo("director: caps from \(link.displayName) — torch=\(caps.getCurrentCameraInfo()?.hasTorch ?? false), camera=\(caps.currentCamera)")
             link.capabilities = caps
-            seedZoom(link, from: caps)
+            // The capabilities carry the control-plane seed; fold it in like
+            // any snapshot so the very first exchange configures the lane.
+            if let control = caps.control {
+                link.control = ControlState.absorb(link.control, control)
+            }
             if link.status != .failed { link.status = .linked }
             // A late joiner may not match the running rig quality: flag it (its
             // tile badges + the tray offers re-match) rather than silently
@@ -608,6 +623,11 @@ public actor MulticamController {
             if activeAspectRatio != .sixteenNine {
                 sendTo(peer, RemoteCmd.SetAspectRatio(aspectRatio: activeAspectRatio))
             }
+            // And the rig's mode: cameras open in photo mode; one joining a
+            // video rig is told so (Cinematic is refused in photo mode).
+            if rigMode != .photo {
+                sendTo(peer, RemoteCmd.SyncMonitorSettings(mode: rigMode.recordingMode))
+            }
 
         case let resp as RemoteCmd.ToggleCameraResp:
             // The focused camera flipped front/back (or picked a device — the
@@ -623,15 +643,26 @@ public actor MulticamController {
             }
             if let caps = resp.cameraCapabilities {
                 link.capabilities = caps
-                seedZoom(link, from: caps)
+                if let control = caps.control {
+                    link.control = ControlState.absorb(link.control, control)
+                }
             }
 
-        case let resp as RemoteCmd.SetZoomResp:
-            // The focused camera settled on a zoom; reflect its factor and range
-            // on that lane so the pill's thumb and ceiling track the hardware.
-            if let factor = resp.zoomFactor { link.zoomFactor = factor }
-            if let maxZoom = resp.zoomRange?.maxZoom {
-                link.maxZoomFactor = ZoomScaleSeed.clampMaxZoom(maxZoom, wideAngle: link.wideAngleZoomFactor)
+        case let changed as RemoteCmd.ControlStateChanged:
+            // THE control-plane channel: one fold for every mutation (zoom,
+            // lens, exposure, Cinematic) and every unsolicited constraint
+            // move. The lane renders `f(control)`, so this single write keeps
+            // every dependent control (a Cinematic-narrowed zoom range,
+            // exposure ranges after a quality change) mutually consistent.
+            link.control = ControlState.absorb(link.control, changed.state)
+            // A refused mutation is said out loud — the snapshot already
+            // reset the panel to the unchanged truth, so silence would read
+            // as "the control does nothing".
+            if let refusal = changed.refusal {
+                let message = "\(link.displayName): \(refusal.message(detail: changed.refusalDetail))"
+                logWarning("director: control refused on \(link.displayName) — \(message)")
+                let display = display
+                OperationQueue.main.addOperation { display?.showTransientError(message) }
             }
 
         case let ack as RemoteCmd.ScheduledCaptureAck:
@@ -857,13 +888,51 @@ public actor MulticamController {
     }
 
     private func handleFocusAtPoint(x: Float, y: Float, target: MCPeerID) {
-        guard links[target]?.capabilities?.supportsFocusPoint == true else { return }
+        guard links[target]?.control?.supportsFocusPoint == true else { return }
         sendTo(target, RemoteCmd.FocusAtPoint(x: x, y: y))
     }
 
     func switchLens(_ lens: CameraLensType, on peer: MCPeerID) {
         guard links[peer] != nil else { return }
         sendTo(peer, RemoteCmd.SwitchLens(lensType: lens))
+    }
+
+    // MARK: Pro controls (issue #206) — one camera at a time, like zoom
+
+    /// Manual exposure / Cinematic on one camera. Same gate as focus: the
+    /// command is dropped unless that camera advertised the capability, so a
+    /// peer that would ignore (or misread) it is never sent one.
+    public nonisolated func setExposure(_ intent: ExposureIntent, on peer: MCPeerID) {
+        tell(MCSetExposure(intent, target: peer))
+    }
+    public nonisolated func setCinematic(_ intent: CinematicIntent, on peer: MCPeerID) {
+        tell(MCSetCinematic(intent, target: peer))
+    }
+
+    private func handleSetExposure(_ intent: ExposureIntent, target: MCPeerID) {
+        // Capability IS presence: an exposure block in the snapshot means the
+        // camera can honor SetExposure. Refusals return via ControlStateChanged.
+        guard links[target]?.control?.exposure != nil else { return }
+        sendTo(target, RemoteCmd.SetExposure(intent: intent))
+    }
+
+    private func handleSetCinematic(_ intent: CinematicIntent, target: MCPeerID) {
+        guard links[target]?.control?.cinematic != nil else { return }
+        sendTo(target, RemoteCmd.SetCinematic(intent: intent))
+    }
+
+    /// The rig's photo/video mode is a setting the cameras are told about,
+    /// like standby and aspect: each camera's own screen follows the
+    /// director, and Cinematic (a video effect) is only accepted by a camera
+    /// that knows it is in video mode.
+    nonisolated func setRigMode(_ mode: MonitorMode) { tell(MCSetRigMode(mode)) }
+
+    private func handleSetRigMode(_ mode: MonitorMode) {
+        guard rigMode != mode else { return }
+        rigMode = mode
+        for peer in order where links[peer]?.status == .linked {
+            sendTo(peer, RemoteCmd.SyncMonitorSettings(mode: mode.recordingMode))
+        }
     }
 
     public nonisolated func setFocusedPeer(_ peer: MCPeerID) { tell(MCPeerCommand(.focus, peer)) }
@@ -910,16 +979,6 @@ public actor MulticamController {
         if focusedPeer == peer { focusedPeer = order.first }
     }
 
-    /// Seed a lane's zoom scale from a capabilities exchange via the shared
-    /// `ZoomScaleSeed` — the same values the 1:1 monitor derives.
-    private func seedZoom(_ link: CameraLink, from caps: RemoteCmd.CameraCapabilitiesResp) {
-        guard let seed = ZoomScaleSeed.seed(from: caps) else { return }
-        link.zoomStops = seed.zoomStops
-        link.wideAngleZoomFactor = seed.wideAngleZoomFactor
-        link.zoomFactor = seed.zoomFactor
-        if let maxZoom = seed.maxZoomFactor { link.maxZoomFactor = maxZoom }
-    }
-
     // MARK: - Synced photo capture (all cameras)
 
     /// Test seams.
@@ -955,7 +1014,6 @@ public actor MulticamController {
         link.status = .linked
         link.capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil, currentCamera: .back,
-            currentLens: .wideAngle, currentZoom: 1.0,
             supportsMulticam: supportsMulticam, error: nil)
         if let offsetMillis {
             // t0 == t3 == 0 → rtt 0, midpoint 0, so offset == cameraClock.
@@ -1834,6 +1892,26 @@ final class MCSetZoom: Message, @unchecked Sendable {
         self.factor = factor; self.target = target
         super.init(sender: nil)
     }
+}
+final class MCSetExposure: Message, @unchecked Sendable {
+    let intent: ExposureIntent
+    let target: MCPeerID
+    init(_ intent: ExposureIntent, target: MCPeerID) {
+        self.intent = intent; self.target = target
+        super.init(sender: nil)
+    }
+}
+final class MCSetCinematic: Message, @unchecked Sendable {
+    let intent: CinematicIntent
+    let target: MCPeerID
+    init(_ intent: CinematicIntent, target: MCPeerID) {
+        self.intent = intent; self.target = target
+        super.init(sender: nil)
+    }
+}
+final class MCSetRigMode: Message, @unchecked Sendable {
+    let mode: MonitorMode
+    init(_ mode: MonitorMode) { self.mode = mode; super.init(sender: nil) }
 }
 
 final class MCSetVideoQuality: Message, @unchecked Sendable {

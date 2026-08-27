@@ -404,4 +404,81 @@ final class CaptureIntegrationTests: XCTestCase {
         XCTAssertFalse(after?.isSuspended ?? true, "toggle must never land on a suspended device")
         print("📸 toggle \(before?.localizedName ?? "?") → \(after?.localizedName ?? "?"): frames in \(Int(latency * 1000))ms")
     }
+
+    // MARK: - Manual exposure (Docs/pro-controls.md hardware probe)
+
+    /// Probe question 1: which physical devices accept custom exposure — the
+    /// header says virtual multi-lens devices refuse it, and the lens-swap
+    /// design hinges on whether that holds on current iOS. Prints one line per
+    /// device; never fails (the answer is data, not a pass/fail).
+    func testProbeCustomExposureSupportPerDevice() async throws {
+        try await startRealRig()
+        let types: [AVCaptureDevice.DeviceType] = [
+            .builtInWideAngleCamera, .builtInUltraWideCamera, .builtInTelephotoCamera,
+            .builtInDualCamera, .builtInDualWideCamera, .builtInTripleCamera
+        ]
+        let devices = AVCaptureDevice.DiscoverySession(
+            deviceTypes: types, mediaType: .video, position: .unspecified).devices
+        for device in devices {
+            let format = device.activeFormat
+            print("🌗 PROBE \(device.localizedName) [\(device.deviceType.rawValue)] custom=\(device.isExposureModeSupported(.custom)) "
+                  + "shutter=\(CMTimeGetSeconds(format.minExposureDuration))–\(CMTimeGetSeconds(format.maxExposureDuration))s "
+                  + "ISO=\(format.minISO)–\(format.maxISO)")
+        }
+    }
+
+    /// With Manual on, the session may be running a physical lens of the
+    /// chosen virtual camera. The flip and the advertised active device must
+    /// still speak in terms of the chosen camera: a flip goes to the other
+    /// position (this pinned a field bug — "Unable to find camera position"),
+    /// and Auto afterwards stays on the camera the flip landed on.
+    func testFlipKeepsWorkingWhileManualExposureHasHopped() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            return XCTFail("startup never delivered frames — \(await diagnostics())")
+        }
+        let devices = await rig.availableCameraDevices()
+        guard devices.count >= 2 else { throw XCTSkip("needs two selectable cameras to flip between") }
+        let before = await rig.currentCameraDevice()
+        let state = try await rig.setExposure(ExposureIntent.manual(durationSeconds: 1.0 / 250, iso: 0))
+        guard state.exposure?.mode == .manual else { throw XCTSkip("no device here accepts custom exposure") }
+
+        _ = try await rig.toggleCamera()
+        let after = await rig.currentCameraDevice()
+        XCTAssertNotEqual(after?.uniqueID, before?.uniqueID, "the flip must land on the other camera")
+        XCTAssertTrue(devices.contains { $0.uniqueID == after?.uniqueID },
+                      "the reported camera is one the user can choose, never a hopped physical lens")
+
+        _ = try await rig.setExposure(ExposureIntent.auto)
+        let restored = await rig.currentCameraDevice()
+        XCTAssertEqual(restored?.uniqueID, after?.uniqueID, "Auto stays on the camera the flip chose")
+    }
+
+    /// Manual exposure applied to the active device reads back within
+    /// tolerance, and Auto restores continuous AE and the frame rate.
+    func testManualExposureAppliesAndAutoRestores() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            return XCTFail("startup never delivered frames — \(await diagnostics())")
+        }
+        guard let device = rig.engine.videoDeviceInput?.device, device.isExposureModeSupported(.custom) else {
+            throw XCTSkip("active device does not support custom exposure")
+        }
+        let fpsBefore = device.activeVideoMaxFrameDuration
+
+        let wanted = 1.0 / 250
+        let state = try await rig.setExposure(ExposureIntent.manual(durationSeconds: wanted, iso: device.activeFormat.minISO * 2))
+        XCTAssertEqual(state.exposure?.mode, .manual)
+        XCTAssertEqual(state.exposure?.durationSeconds ?? 0, wanted, accuracy: wanted * 0.1)
+        XCTAssertEqual(device.exposureMode, .custom)
+
+        // A long shutter may legitimately stretch the frame duration in photo
+        // mode; Auto must bring the frame rate back to what quality chose.
+        _ = try await rig.setExposure(ExposureIntent.manual(durationSeconds: 0.5, iso: 0))
+        let restored = try await rig.setExposure(ExposureIntent.auto)
+        XCTAssertEqual(restored.exposure?.mode, .auto)
+        XCTAssertEqual(device.exposureMode, .continuousAutoExposure)
+        XCTAssertEqual(CMTimeGetSeconds(device.activeVideoMaxFrameDuration),
+                       CMTimeGetSeconds(fpsBefore), accuracy: 0.001)
+    }
 }

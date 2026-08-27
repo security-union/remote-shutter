@@ -148,6 +148,126 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(pings.map(\.peers), [[camA]])
     }
 
+    // MARK: - Pro controls (issue #206): per-camera, capability-gated
+
+    /// Capabilities advertising manual exposure (and optionally Cinematic),
+    /// with the exposure truth the panel seeds from.
+    private func proCaps(cinematic: Bool = false) -> RemoteCmd.CameraCapabilitiesResp {
+        // v11: capability = presence in the control snapshot the caps carry.
+        RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back,
+            supportsMulticam: true,
+            control: ControlState(
+                seq: 1,
+                exposure: ExposureState(mode: .auto, durationSeconds: 1.0 / 120, iso: 64,
+                                        minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 1,
+                                        minISO: 32, maxISO: 3200),
+                cinematic: cinematic ? CinematicState(enabled: false, simulatedAperture: 2.0,
+                                                      minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
+                                                      defaultSimulatedAperture: 2.0,
+                                                      apertureLocked: false, notEnoughLight: false) : nil),
+            error: nil)
+    }
+
+    /// A pro-control command goes only to the camera it was rendered for,
+    /// and only if that camera advertised the capability — a peer that
+    /// would ignore (or misread) it is never sent one.
+    func testExposureAndCinematicAreSentOnlyToAdvertisingCamera() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(proCaps(cinematic: true), from: camA)
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.setExposure(.manual(durationSeconds: 1.0 / 250, iso: 400), on: camA)
+        controller.setExposure(.manual(durationSeconds: 1.0 / 250, iso: 400), on: camB)
+        controller.setCinematic(.on(aperture: 2.8), on: camA)
+        controller.setCinematic(.on(aperture: 2.8), on: camB)
+        await controller.waitForIdle()
+
+        let exposures = sent(transport, RemoteCmd.SetExposure.self)
+        XCTAssertEqual(exposures.map(\.peers), [[camA]], "camB never advertised manual exposure")
+        XCTAssertEqual((exposures.first?.msg as? RemoteCmd.SetExposure)?.intent,
+                       .manual(durationSeconds: 1.0 / 250, iso: 400))
+        let cinematics = sent(transport, RemoteCmd.SetCinematic.self)
+        XCTAssertEqual(cinematics.map(\.peers), [[camA]], "camB never advertised Cinematic")
+    }
+
+    /// The lane shows the camera's echo — seeded from capabilities, replaced
+    /// by each response — and a refusal is said out loud, never swallowed.
+    func testLaneCarriesEchoedExposureAndSurfacesRefusal() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        controller.didReceiveMessage(proCaps(), from: camA)
+        await controller.waitForIdle()
+
+        var lane = await controller.lanesForTesting().first
+        XCTAssertEqual(lane?.control?.supportsManualExposure, true)
+        XCTAssertEqual(lane?.control?.exposure?.mode, .auto)
+        XCTAssertEqual(lane?.control?.exposure?.iso, 64)
+
+        // A ControlStateChanged echo (newer seq) replaces the lane's truth.
+        let applied = ExposureState(mode: .manual, durationSeconds: 1.0 / 250, iso: 400,
+                                    minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 1,
+                                    minISO: 32, maxISO: 3200)
+        controller.didReceiveMessage(
+            RemoteCmd.ControlStateChanged(state: ControlState(seq: 10, exposure: applied)), from: camA)
+        await controller.waitForIdle()
+        lane = await controller.lanesForTesting().first
+        XCTAssertEqual(lane?.control?.exposure, applied)
+
+        // A refusal carries the unchanged snapshot AND a reason; the director
+        // says it out loud rather than letting the toggle look inert.
+        controller.didReceiveMessage(
+            RemoteCmd.ControlStateChanged(state: ControlState(seq: 11, exposure: applied),
+                                          refusal: .photoMode), from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+        XCTAssertTrue(display.transientErrors.last?.contains(
+            ControlRefusalReason.photoMode.message(detail: nil)) ?? false,
+            "a refusal must surface its reason: \(display.transientErrors)")
+    }
+
+    /// The rig's mode is a setting every camera is told about (like standby
+    /// and aspect): switching the director to video syncs the linked cameras,
+    /// and a camera joining a video rig is synced on arrival — the camera
+    /// refuses Cinematic unless it knows it is in video mode.
+    func testRigModeSyncsLinkedCamerasAndLateJoiners() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.setRigMode(.video)
+        await controller.waitForIdle()
+        var syncs = sent(transport, RemoteCmd.SyncMonitorSettings.self)
+        XCTAssertEqual(syncs.map(\.peers), [[camA]])
+        XCTAssertEqual((syncs.first?.msg as? RemoteCmd.SyncMonitorSettings)?.mode, .Video)
+
+        // Same mode again is a no-op on the wire.
+        controller.setRigMode(.video)
+        await controller.waitForIdle()
+        XCTAssertEqual(sent(transport, RemoteCmd.SyncMonitorSettings.self).count, 1)
+
+        // A camera whose capabilities arrive while the rig is in video mode
+        // is told so; one arriving in photo mode (the camera default) is not.
+        controller.inviteCamera(camB)
+        transport.connectedPeers = [camA, camB]
+        controller.peerDidConnect(camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.waitForIdle()
+        syncs = sent(transport, RemoteCmd.SyncMonitorSettings.self)
+        XCTAssertEqual(syncs.map(\.peers), [[camB]])
+
+        controller.setRigMode(.photo)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+        controller.didReceiveMessage(multicamCaps(), from: camB)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SyncMonitorSettings.self).isEmpty)
+    }
+
     // MARK: - Frame routing (Seam B)
 
     func testFrameRoutesToItsLaneAndAcksOnlyItsSource() async {
@@ -201,8 +321,9 @@ final class MulticamControllerTests: XCTestCase {
             controller.setZoom(CGFloat(factor), on: camA)
         }
         controller.didReceiveMessage(
-            RemoteCmd.SetZoomResp(zoomFactor: 3.5, currentLens: .wideAngle,
-                                  zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 8), error: nil),
+            RemoteCmd.ControlStateChanged(state: ControlState(
+                seq: 10, currentLens: .wideAngle, zoomFactor: 3.5,
+                minZoom: 1, maxZoom: 8, zoomStops: [1, 2], wideAngleZoomFactor: 1)),
             from: camA)
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
@@ -1174,13 +1295,12 @@ final class MulticamControllerTests: XCTestCase {
                           previewMode: Bool = false) -> RemoteCmd.CameraCapabilitiesResp {
         let info = RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle], hasFlash: true, hasTorch: torch,
-            zoomCapabilities: [:],
             supportedResolutions: Array(matrix.keys),
             supportedFrameRates: Array(Set(matrix.values.flatMap { $0 })),
             resolutionFrameRates: matrix, supportsHEIF: heif, supportsHDR: hdr)
         return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: info,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            currentCamera: .back,
             supportsPreviewMode: previewMode,
             supportsMulticam: true, error: nil)
     }
@@ -1763,7 +1883,7 @@ final class MulticamControllerTests: XCTestCase {
     private func multicamCaps() -> RemoteCmd.CameraCapabilitiesResp {
         RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            currentCamera: .back,
             supportsMulticam: true, error: nil)
     }
 
@@ -1771,14 +1891,13 @@ final class MulticamControllerTests: XCTestCase {
     /// back (`bothPositions: false`) — the flip button's enable condition.
     private func flipCaps(bothPositions: Bool) -> RemoteCmd.CameraCapabilitiesResp {
         let lens = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
-            zoomCapabilities: [:], supportedResolutions: [.hd1080p],
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true, supportedResolutions: [.hd1080p],
             supportedFrameRates: [.fps30],
             resolutionFrameRates: [.hd1080p: [.fps30]],
             supportsHEIF: false, supportsHDR: false)
         return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: bothPositions ? lens : nil, backCamera: lens,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            currentCamera: .back,
             supportsMulticam: true, error: nil)
     }
 
@@ -1860,14 +1979,17 @@ final class MulticamControllerTests: XCTestCase {
     private func zoomCaps(maxZoom: CGFloat, wideAngle: CGFloat = 1.0) -> RemoteCmd.CameraCapabilitiesResp {
         let info = RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
-            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: wideAngle, maxZoom: maxZoom)],
             supportedResolutions: [.hd1080p], supportedFrameRates: [.fps30],
-            resolutionFrameRates: [.hd1080p: [.fps30]], supportsHEIF: false, supportsHDR: false,
-            zoomStops: [wideAngle, wideAngle * 2], wideAngleZoomFactor: wideAngle)
+            resolutionFrameRates: [.hd1080p: [.fps30]], supportsHEIF: false, supportsHDR: false)
+        // The live zoom range rides the control snapshot, not CameraInfo.
         return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: info,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: wideAngle,
-            supportsMulticam: true, error: nil)
+            currentCamera: .back,
+            supportsMulticam: true,
+            control: ControlState(seq: 1, zoomFactor: wideAngle,
+                                  minZoom: wideAngle, maxZoom: maxZoom,
+                                  zoomStops: [wideAngle, wideAngle * 2], wideAngleZoomFactor: wideAngle),
+            error: nil)
     }
 
     func testZoomGoesOnlyToTheFocusedCamera() async {
@@ -1892,32 +2014,33 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
 
         controller.didReceiveMessage(
-            RemoteCmd.SetZoomResp(zoomFactor: 4.0, currentLens: .wideAngle,
-                                  zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 6), error: nil),
+            RemoteCmd.ControlStateChanged(state: ControlState(
+                seq: 10, currentLens: .wideAngle, zoomFactor: 4.0,
+                minZoom: 1, maxZoom: 6, zoomStops: [1, 2], wideAngleZoomFactor: 1)),
             from: camA)
         await controller.waitForIdle()
 
         let lanes = await controller.lanesForTesting()
         let a = lanes.first { $0.peerID == camA }
         let b = lanes.first { $0.peerID == camB }
-        XCTAssertEqual(a?.zoomFactor, 4.0, "the responder's lane tracks the new factor")
+        XCTAssertEqual(a?.control?.zoomFactor, 4.0, "the responder's lane tracks the new factor")
         // Range 1–6 clamps to the 5×wide-angle display ceiling, like the 1:1 monitor.
-        XCTAssertEqual(a?.maxZoomFactor, 5.0, "its ceiling is capped at 5×wide")
-        XCTAssertEqual(b?.zoomFactor, 1.0, "the other lane is untouched")
+        XCTAssertEqual(a?.control?.zoomScale.maxZoom, 5.0, "its ceiling is capped at 5×wide")
+        XCTAssertEqual(b?.control?.zoomFactor, 1.0, "the other lane is untouched")
     }
 
     // MARK: - Tap-to-focus (focused peer only)
 
     private func focusCaps(supportsFocus: Bool) -> RemoteCmd.CameraCapabilitiesResp {
         let info = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
-            zoomCapabilities: [:], supportedResolutions: [.hd1080p],
+            availableLenses: [.wideAngle], hasFlash: true, hasTorch: true, supportedResolutions: [.hd1080p],
             supportedFrameRates: [.fps30], resolutionFrameRates: [.hd1080p: [.fps30]],
             supportsHEIF: false, supportsHDR: false)
         return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: info,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsFocusPoint: supportsFocus, supportsMulticam: true, error: nil)
+            currentCamera: .back,
+            supportsMulticam: true,
+            control: ControlState(seq: 1, supportsFocusPoint: supportsFocus), error: nil)
     }
 
     /// The lane snapshot projects `supportsFocusPoint`, so the viewfinder can
@@ -1929,8 +2052,8 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
 
         let lanes = await controller.lanesForTesting()
-        XCTAssertEqual(lanes.first { $0.peerID == camA }?.supportsFocusPoint, true)
-        XCTAssertEqual(lanes.first { $0.peerID == camB }?.supportsFocusPoint, false)
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.control?.supportsFocusPoint, true)
+        XCTAssertEqual(lanes.first { $0.peerID == camB }?.control?.supportsFocusPoint, false)
     }
 
     func testFocusGoesOnlyToTheFocusedCameraWithMappedCoords() async {

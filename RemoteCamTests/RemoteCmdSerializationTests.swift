@@ -57,13 +57,14 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SetStreamProfile: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
-        case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
+        case let m as RemoteCmd.ControlStateChanged: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetCinematic: return m.toFlatBuffer()
         case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraPreviewModeResp: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SwitchLens: return m.toFlatBuffer()
-        case let m as RemoteCmd.SwitchLensResp: return m.toFlatBuffer()
         case let m as RemoteCmd.PeerBecameCamera: return m.toFlatBuffer()
         case let m as RemoteCmd.PeerBecameMonitor: return m.toFlatBuffer()
         case let m as RemoteCmd.ToggleFlash: return m.toFlatBuffer()
@@ -351,53 +352,135 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testCameraCapabilities_supportsFocusPointRoundTrip() {
+        // Focus-point support now rides the control snapshot the caps carry.
         let original = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsFocusPoint: true, error: nil)
+            frontCamera: nil, backCamera: nil, currentCamera: .back,
+            control: ControlState(seq: 1, supportsFocusPoint: true), error: nil)
         let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
-        XCTAssertTrue(decoded.supportsFocusPoint)
+        XCTAssertEqual(decoded.control?.supportsFocusPoint, true)
     }
 
-    // MARK: - 12. SetZoomResp
+    // MARK: - 11c. SetExposure
 
-    func testSetZoomResp_roundTrip() {
-        let range = RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0)
-        let original = RemoteCmd.SetZoomResp(
-            zoomFactor: 3.0,
-            currentLens: .telephoto,
-            zoomRange: range,
-            error: nil
-        )
-        let decoded: RemoteCmd.SetZoomResp = roundTrip(original)
-        XCTAssertEqual(decoded.zoomFactor!, 3.0, accuracy: 0.001)
-        XCTAssertEqual(decoded.currentLens, .telephoto)
-        XCTAssertEqual(decoded.zoomRange?.minZoom, 1.0)
-        XCTAssertEqual(decoded.zoomRange?.maxZoom, 10.0)
-        XCTAssertNil(decoded.error)
+    private let sampleExposure = ExposureState(
+        mode: .manual, durationSeconds: 1.0 / 250, iso: 400,
+        minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0, minISO: 32, maxISO: 3200)
+
+    func testSetExposure_manualRoundTrip() {
+        let original = RemoteCmd.SetExposure(intent: .manual(durationSeconds: 1.0 / 250, iso: 400))
+        let decoded: RemoteCmd.SetExposure = roundTrip(original)
+        XCTAssertEqual(decoded.intent, .manual(durationSeconds: 1.0 / 250, iso: 400))
     }
 
-    func testSetZoomResp_wideAngleLens() {
-        let original = RemoteCmd.SetZoomResp(
-            zoomFactor: 1.0,
-            currentLens: .wideAngle,
-            zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 5.0),
-            error: nil
-        )
-        let decoded: RemoteCmd.SetZoomResp = roundTrip(original)
-        XCTAssertEqual(decoded.currentLens, .wideAngle, "wideAngle (rawValue 0) must survive round-trip")
-        XCTAssertEqual(decoded.zoomFactor!, 1.0, accuracy: 0.001)
+    func testSetExposure_autoRoundTrip() {
+        let decoded: RemoteCmd.SetExposure = roundTrip(RemoteCmd.SetExposure(intent: .auto))
+        XCTAssertEqual(decoded.intent, .auto)
     }
 
-    func testSetZoomResp_withError() {
-        let error = NSError(domain: "zoom", code: 5, userInfo: [NSLocalizedDescriptionKey: "zoom failed"])
-        let original = RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: error)
-        let decoded: RemoteCmd.SetZoomResp = roundTrip(original)
-        XCTAssertNil(decoded.zoomFactor)
-        XCTAssertNil(decoded.currentLens)
-        XCTAssertNil(decoded.zoomRange)
-        XCTAssertNotNil(decoded.error)
-        XCTAssertEqual(decoded.error?.localizedDescription, "zoom failed")
+    func testCameraCapabilities_manualExposureRoundTrip() {
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back,
+            control: ControlState(seq: 1, exposure: sampleExposure), error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertEqual(decoded.control?.supportsManualExposure, true)
+        XCTAssertEqual(decoded.control?.exposure, sampleExposure)
+    }
+
+    /// A peer that predates exposure control leaves the fields absent: the
+    /// monitor must read "no support, no truth", never a fabricated Auto.
+    func testCameraCapabilities_noExposureWhenControlOmitsIt() {
+        // A device without manual exposure carries a control snapshot whose
+        // `exposure` is absent — capability is presence, never a boolean.
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back,
+            control: ControlState(seq: 1), error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertEqual(decoded.control?.supportsManualExposure, false)
+        XCTAssertNil(decoded.control?.exposure)
+    }
+
+    // MARK: - 11d. SetCinematic
+
+    private let sampleCinematic = CinematicState(
+        enabled: true, simulatedAperture: 2.8,
+        minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
+        defaultSimulatedAperture: 2.0, apertureLocked: true, notEnoughLight: true)
+
+    func testSetCinematic_roundTrip() {
+        let on: RemoteCmd.SetCinematic = roundTrip(RemoteCmd.SetCinematic(intent: .on(aperture: 2.8)))
+        XCTAssertEqual(on.intent, .on(aperture: 2.8))
+        // aperture nil = "keep current"; 0 on the wire must decode back to nil.
+        let keep: RemoteCmd.SetCinematic = roundTrip(RemoteCmd.SetCinematic(intent: .on(aperture: nil)))
+        XCTAssertEqual(keep.intent, .on(aperture: nil))
+        let off: RemoteCmd.SetCinematic = roundTrip(RemoteCmd.SetCinematic(intent: .off))
+        XCTAssertEqual(off.intent, .off)
+    }
+
+    func testCameraCapabilities_cinematicRoundTrip() {
+        let original = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back,
+            control: ControlState(seq: 1, cinematic: sampleCinematic), error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
+        XCTAssertEqual(decoded.control?.supportsCinematicVideo, true)
+        XCTAssertEqual(decoded.control?.cinematic, sampleCinematic)
+        // Absent when the control snapshot omits it.
+        let none: RemoteCmd.CameraCapabilitiesResp = roundTrip(RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back,
+            control: ControlState(seq: 1), error: nil))
+        XCTAssertEqual(none.control?.supportsCinematicVideo, false)
+        XCTAssertNil(none.control?.cinematic)
+    }
+
+    // MARK: - 12. ControlStateChanged (the control-plane truth channel)
+
+    private let fullControl = ControlState(
+        seq: 12,
+        mode: .Video,
+        activeDeviceID: "back-triple",
+        currentLens: .telephoto,
+        availableLenses: [.wideAngle, .ultraWide, .telephoto],
+        zoomFactor: 3.0, minZoom: 1.0, maxZoom: 10.0,
+        zoomStops: [1.0, 2.0, 6.0], wideAngleZoomFactor: 2.0,
+        supportsFocusPoint: true,
+        exposure: ExposureState(mode: .manual, durationSeconds: 1.0 / 250, iso: 400,
+                                minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0,
+                                minISO: 32, maxISO: 3200),
+        cinematic: CinematicState(enabled: true, simulatedAperture: 2.8,
+                                  minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
+                                  defaultSimulatedAperture: 2.0, apertureLocked: true,
+                                  notEnoughLight: true))
+
+    func testControlStateChanged_fullSnapshotRoundTrip() {
+        let decoded: RemoteCmd.ControlStateChanged = roundTrip(RemoteCmd.ControlStateChanged(state: fullControl))
+        XCTAssertEqual(decoded.state, fullControl)
+        // A clean apply carries no refusal.
+        XCTAssertNil(decoded.refusal)
+        XCTAssertNil(decoded.refusalDetail)
+    }
+
+    func testControlStateChanged_omittedCapabilitiesStayNil() {
+        // wideAngle rawValue 0 and an exposure/cinematic-free device must
+        // survive: capability is presence, so the fields decode back to nil.
+        let bare = ControlState(seq: 3, currentLens: .wideAngle,
+                                zoomFactor: 1.0, minZoom: 1.0, maxZoom: 5.0,
+                                zoomStops: [1.0], wideAngleZoomFactor: 1.0)
+        let decoded: RemoteCmd.ControlStateChanged = roundTrip(RemoteCmd.ControlStateChanged(state: bare))
+        XCTAssertEqual(decoded.state.currentLens, .wideAngle)
+        XCTAssertNil(decoded.state.exposure)
+        XCTAssertNil(decoded.state.cinematic)
+        XCTAssertFalse(decoded.state.supportsManualExposure)
+    }
+
+    func testControlStateChanged_eachRefusalReasonRoundTrips() {
+        for reason in [ControlRefusalReason.photoMode, .recording, .unsupported, .sessionRefused] {
+            let decoded: RemoteCmd.ControlStateChanged = roundTrip(
+                RemoteCmd.ControlStateChanged(state: fullControl, refusal: reason,
+                                              refusalDetail: "Back Camera; 1920x1080"))
+            XCTAssertEqual(decoded.refusal, reason, "refusal \(reason) must survive the wire")
+            XCTAssertEqual(decoded.refusalDetail, "Back Camera; 1920x1080")
+            // The snapshot is carried even on refusal — it is the truth to show.
+            XCTAssertEqual(decoded.state, fullControl)
+        }
     }
 
     // MARK: - 13. CameraCapabilitiesResp
@@ -406,24 +489,18 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let backCamera = RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle, .ultraWide, .telephoto],
             hasFlash: true,
-            hasTorch: true,
-            zoomCapabilities: [
-                .wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0),
-                .ultraWide: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 2.0)
-            ]
+            hasTorch: true
         )
         let frontCamera = RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle],
             hasFlash: false,
-            hasTorch: false,
-            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 5.0)]
+            hasTorch: false
         )
         let original = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCamera,
             backCamera: backCamera,
             currentCamera: .back,
-            currentLens: .wideAngle,
-            currentZoom: 2.5,
+            control: ControlState(seq: 1, currentLens: .wideAngle, zoomFactor: 2.5),
             error: nil
         )
         let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
@@ -435,8 +512,8 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.frontCamera?.availableLenses.count, 1)
         XCTAssertFalse(decoded.frontCamera?.hasFlash ?? true)
         XCTAssertEqual(decoded.currentCamera, .back)
-        XCTAssertEqual(decoded.currentLens, .wideAngle)
-        XCTAssertEqual(decoded.currentZoom, 2.5, accuracy: 0.001)
+        XCTAssertEqual(decoded.control?.currentLens, .wideAngle)
+        XCTAssertEqual(decoded.control?.zoomFactor ?? 0, 2.5, accuracy: 0.001)
         XCTAssertNil(decoded.error)
     }
 
@@ -445,15 +522,14 @@ final class RemoteCmdSerializationTests: XCTestCase {
             frontCamera: nil,
             backCamera: nil,
             currentCamera: .front,
-            currentLens: .ultraWide,
-            currentZoom: 1.0,
+            control: ControlState(seq: 1, currentLens: .ultraWide),
             error: nil
         )
         let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
         XCTAssertNil(decoded.frontCamera)
         XCTAssertNil(decoded.backCamera)
         XCTAssertEqual(decoded.currentCamera, .front)
-        XCTAssertEqual(decoded.currentLens, .ultraWide)
+        XCTAssertEqual(decoded.control?.currentLens, .ultraWide)
     }
 
     // MARK: - 13a. Camera state report (the recording-truth channel)
@@ -492,8 +568,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let usbInfo = RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle],
             hasFlash: false,
-            hasTorch: false,
-            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 1.0)]
+            hasTorch: false
         )
         let devices = [
             RemoteCmd.CameraDeviceEntry(
@@ -507,14 +582,14 @@ final class RemoteCmdSerializationTests: XCTestCase {
         ]
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            cameraDevices: devices, activeDeviceID: "usb-0", error: nil)
+            currentCamera: .back, cameraDevices: devices,
+            control: ControlState(seq: 1, activeDeviceID: "usb-0"), error: nil)
         let original = RemoteCmd.SelectCameraDeviceResp(cameraCapabilities: capabilities, error: nil)
 
         let decoded: RemoteCmd.SelectCameraDeviceResp = roundTrip(original)
         let decodedCaps = decoded.cameraCapabilities
         XCTAssertNil(decoded.error)
-        XCTAssertEqual(decodedCaps?.activeDeviceID, "usb-0")
+        XCTAssertEqual(decodedCaps?.control?.activeDeviceID, "usb-0")
         XCTAssertEqual(decodedCaps?.cameraDevices.count, 2)
         XCTAssertEqual(decodedCaps?.cameraDevices[0].uniqueID, "builtin-0")
         XCTAssertEqual(decodedCaps?.cameraDevices[0].localizedName, "FaceTime HD Camera")
@@ -539,8 +614,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         ]
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            cameraDevices: devices, activeDeviceID: "usb-0", error: nil)
+            currentCamera: .back, cameraDevices: devices, error: nil)
         let original = RemoteCmd.SelectCameraDeviceResp(cameraCapabilities: capabilities, error: nil)
 
         let decoded: RemoteCmd.SelectCameraDeviceResp = roundTrip(original)
@@ -562,11 +636,10 @@ final class RemoteCmdSerializationTests: XCTestCase {
         // the decoded list must be empty (the monitor's gate stays closed).
         let original = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            error: nil)
+            currentCamera: .back, error: nil)
         let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
         XCTAssertTrue(decoded.cameraDevices.isEmpty)
-        XCTAssertNil(decoded.activeDeviceID)
+        XCTAssertNil(decoded.control?.activeDeviceID)
     }
 
     func testCameraCapabilitiesResp_deviceListRoundTrip() {
@@ -578,15 +651,15 @@ final class RemoteCmdSerializationTests: XCTestCase {
         ]
         let original = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            cameraDevices: devices, activeDeviceID: "back-0", error: nil)
+            currentCamera: .back, cameraDevices: devices,
+            control: ControlState(seq: 1, activeDeviceID: "back-0"), error: nil)
         let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
         XCTAssertEqual(decoded.cameraDevices, devices.map {
             RemoteCmd.CameraDeviceEntry(
                 uniqueID: $0.uniqueID, localizedName: $0.localizedName,
                 positionRaw: $0.positionRaw, isActive: $0.isActive, info: nil)
         })
-        XCTAssertEqual(decoded.activeDeviceID, "back-0")
+        XCTAssertEqual(decoded.control?.activeDeviceID, "back-0")
     }
 
     // MARK: - 14. SwitchLens
@@ -601,57 +674,6 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let original = RemoteCmd.SwitchLens(lensType: .wideAngle)
         let decoded: RemoteCmd.SwitchLens = roundTrip(original)
         XCTAssertEqual(decoded.lensType, .wideAngle)
-    }
-
-    // MARK: - 15. SwitchLensResp
-
-    func testSwitchLensResp_roundTrip() {
-        let range = RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 8.0)
-        let original = RemoteCmd.SwitchLensResp(
-            lensType: .ultraWide,
-            availableLenses: [.wideAngle, .ultraWide, .telephoto],
-            currentZoom: 1.5,
-            zoomRange: range,
-            error: nil
-        )
-        let decoded: RemoteCmd.SwitchLensResp = roundTrip(original)
-        XCTAssertEqual(decoded.lensType, .ultraWide)
-        XCTAssertEqual(decoded.availableLenses?.count, 3)
-        XCTAssertEqual(decoded.currentZoom!, 1.5, accuracy: 0.001)
-        XCTAssertEqual(decoded.zoomRange?.minZoom, 1.0)
-        XCTAssertEqual(decoded.zoomRange?.maxZoom, 8.0)
-        XCTAssertNil(decoded.error)
-    }
-
-    func testSwitchLensResp_wideAngle() {
-        let original = RemoteCmd.SwitchLensResp(
-            lensType: .wideAngle,
-            availableLenses: [.wideAngle],
-            currentZoom: 1.0,
-            zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 5.0),
-            error: nil
-        )
-        let decoded: RemoteCmd.SwitchLensResp = roundTrip(original)
-        XCTAssertEqual(decoded.lensType, .wideAngle, "wideAngle (rawValue 0) should survive round-trip")
-        XCTAssertEqual(decoded.currentZoom!, 1.0, accuracy: 0.001)
-    }
-
-    func testSwitchLensResp_withError() {
-        let error = NSError(domain: "lens", code: 3, userInfo: [NSLocalizedDescriptionKey: "lens switch failed"])
-        let original = RemoteCmd.SwitchLensResp(
-            lensType: nil,
-            availableLenses: nil,
-            currentZoom: nil,
-            zoomRange: nil,
-            error: error
-        )
-        let decoded: RemoteCmd.SwitchLensResp = roundTrip(original)
-        XCTAssertNil(decoded.lensType)
-        XCTAssertNil(decoded.availableLenses)
-        XCTAssertNil(decoded.currentZoom)
-        XCTAssertNil(decoded.zoomRange)
-        XCTAssertNotNil(decoded.error)
-        XCTAssertEqual(decoded.error?.localizedDescription, "lens switch failed")
     }
 
     // MARK: - 16. PeerBecameCamera
@@ -796,22 +818,18 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let backCamera = RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle, .telephoto],
             hasFlash: true,
-            hasTorch: true,
-            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0)]
+            hasTorch: true
         )
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil,
             backCamera: backCamera,
             currentCamera: .back,
-            currentLens: .wideAngle,
-            currentZoom: 1.0,
             error: nil
         )
         let original = RemoteCmd.ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
         let decoded: RemoteCmd.ToggleCameraResp = roundTrip(original)
         XCTAssertNotNil(decoded.cameraCapabilities)
         XCTAssertEqual(decoded.cameraCapabilities?.currentCamera, .back)
-        XCTAssertEqual(decoded.cameraCapabilities?.currentLens, .wideAngle)
         XCTAssertEqual(decoded.cameraCapabilities?.backCamera?.availableLenses.count, 2)
         XCTAssertNil(decoded.error)
     }
@@ -834,32 +852,6 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     // MARK: - Gap coverage tests
-
-    func testCameraCapabilitiesResp_zoomCapabilitiesValues() {
-        let backCamera = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle, .ultraWide, .telephoto],
-            hasFlash: true,
-            hasTorch: true,
-            zoomCapabilities: [
-                .wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0),
-                .ultraWide: RemoteCmd.ZoomRange(minZoom: 0.5, maxZoom: 2.0),
-                .telephoto: RemoteCmd.ZoomRange(minZoom: 2.0, maxZoom: 15.0)
-            ]
-        )
-        let original = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: backCamera,
-            currentCamera: .back, currentLens: .telephoto,
-            currentZoom: 5.0, error: nil
-        )
-        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
-        let caps = decoded.backCamera!.getZoomCapabilities()
-        XCTAssertEqual(caps[.wideAngle]?.minZoom, 1.0)
-        XCTAssertEqual(caps[.wideAngle]?.maxZoom, 10.0)
-        XCTAssertEqual(caps[.ultraWide]?.minZoom, 0.5)
-        XCTAssertEqual(caps[.ultraWide]?.maxZoom, 2.0)
-        XCTAssertEqual(caps[.telephoto]?.minZoom, 2.0)
-        XCTAssertEqual(caps[.telephoto]?.maxZoom, 15.0)
-    }
 
     func testToggleTorchResp_auto() {
         let original = RemoteCmd.ToggleTorchResp(torchMode: .auto, error: nil)
@@ -908,28 +900,27 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.camPosition, .front)
     }
 
-    func testToggleCameraResp_nestedZoomCapabilities() {
-        let backCamera = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle, .telephoto],
-            hasFlash: true, hasTorch: true,
-            zoomCapabilities: [
-                .wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0),
-                .telephoto: RemoteCmd.ZoomRange(minZoom: 2.0, maxZoom: 20.0)
-            ]
-        )
+    /// The capabilities envelope carries the control seed intact — the zoom
+    /// truth a fresh monitor boots from rides inside the toggle response.
+    func testToggleCameraResp_nestedControlSeed() {
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: backCamera,
-            currentCamera: .back, currentLens: .wideAngle,
-            currentZoom: 3.0, error: nil
+            frontCamera: nil,
+            backCamera: RemoteCmd.CameraInfo(availableLenses: [.wideAngle, .telephoto],
+                                             hasFlash: true, hasTorch: true),
+            currentCamera: .back,
+            control: ControlState(seq: 7, activeDeviceID: "back-1",
+                                  zoomFactor: 3.0, minZoom: 1.0, maxZoom: 10.0,
+                                  zoomStops: [1.0, 2.0], wideAngleZoomFactor: 2.0),
+            error: nil
         )
         let original = RemoteCmd.ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
         let decoded: RemoteCmd.ToggleCameraResp = roundTrip(original)
-        let caps = decoded.cameraCapabilities!.backCamera!.getZoomCapabilities()
-        XCTAssertEqual(caps[.wideAngle]?.minZoom, 1.0)
-        XCTAssertEqual(caps[.wideAngle]?.maxZoom, 10.0)
-        XCTAssertEqual(caps[.telephoto]?.minZoom, 2.0)
-        XCTAssertEqual(caps[.telephoto]?.maxZoom, 20.0)
-        XCTAssertEqual(Double(decoded.cameraCapabilities?.currentZoom ?? 0), 3.0, accuracy: 0.001)
+        let control = decoded.cameraCapabilities?.control
+        XCTAssertEqual(control?.seq, 7)
+        XCTAssertEqual(control?.activeDeviceID, "back-1")
+        XCTAssertEqual(Double(control?.zoomFactor ?? 0), 3.0, accuracy: 0.001)
+        XCTAssertEqual(Double(control?.maxZoom ?? 0), 10.0, accuracy: 0.001)
+        XCTAssertEqual(control?.zoomStops, [1.0, 2.0])
     }
 
     // MARK: - 26. SetVideoQuality
@@ -1051,7 +1042,6 @@ final class RemoteCmdSerializationTests: XCTestCase {
             availableLenses: [.wideAngle],
             hasFlash: true,
             hasTorch: true,
-            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0)],
             supportedResolutions: [.hd1080p, .uhd4k],
             supportedFrameRates: [.fps24, .fps30, .fps60],
             resolutionFrameRates: [.uhd4k: [.fps24, .fps30]],
@@ -1060,8 +1050,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         )
         let original = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: backCamera,
-            currentCamera: .back, currentLens: .wideAngle,
-            currentZoom: 1.0, error: nil
+            currentCamera: .back, error: nil
         )
         let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
         let info = decoded.backCamera!
@@ -1111,70 +1100,6 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.error?.localizedDescription, "not supported")
     }
 
-    // MARK: - CameraInfo with Zoom Stops Round-Trip
-
-    func testCameraInfo_withZoomStops_roundTrip() {
-        let backCamera = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle, .ultraWide, .telephoto],
-            hasFlash: true,
-            hasTorch: true,
-            zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0)],
-            zoomStops: [0.5, 1.0, 2.0, 5.0]
-        )
-        let original = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: backCamera,
-            currentCamera: .back, currentLens: .wideAngle,
-            currentZoom: 1.0, error: nil
-        )
-        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
-        XCTAssertEqual(decoded.backCamera?.zoomStops, [0.5, 1.0, 2.0, 5.0])
-    }
-
-    func testCameraInfo_emptyZoomStops_defaultsToOne() {
-        let backCamera = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle],
-            hasFlash: false,
-            hasTorch: false,
-            zoomCapabilities: [:]
-            // zoomStops not provided, defaults to [1.0]
-        )
-        let original = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: backCamera,
-            currentCamera: .back, currentLens: .wideAngle,
-            currentZoom: 1.0, error: nil
-        )
-        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
-        XCTAssertEqual(decoded.backCamera?.zoomStops, [1.0])
-    }
-
-    func testCameraInfo_zoomStopsPreservedWithOtherCapabilities() {
-        let backCamera = RemoteCmd.CameraInfo(
-            availableLenses: [.wideAngle, .telephoto],
-            hasFlash: true,
-            hasTorch: true,
-            zoomCapabilities: [
-                .wideAngle: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0),
-                .telephoto: RemoteCmd.ZoomRange(minZoom: 2.0, maxZoom: 20.0)
-            ],
-            supportedResolutions: [.hd1080p, .uhd4k],
-            supportedFrameRates: [.fps30, .fps60],
-            resolutionFrameRates: [:],
-            supportsHEIF: true,
-            supportsHDR: false,
-            zoomStops: [1.0, 2.0, 5.0]
-        )
-        let original = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: backCamera,
-            currentCamera: .back, currentLens: .wideAngle,
-            currentZoom: 2.0, error: nil
-        )
-        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(original)
-        let info = decoded.backCamera!
-        XCTAssertEqual(info.zoomStops, [1.0, 2.0, 5.0])
-        XCTAssertEqual(info.supportedResolutions, [.hd1080p, .uhd4k])
-        XCTAssertTrue(info.supportsHEIF)
-        XCTAssertFalse(info.supportsHDR)
-    }
 }
 
 // MARK: - Unknown actions
@@ -1225,8 +1150,7 @@ extension RemoteCmdSerializationTests {
     func testCapabilitiesCarryPreviewModeSupportAndMode() {
         let caps = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsPreviewMode: true, previewMode: .standby, error: nil)
+            currentCamera: .back, supportsPreviewMode: true, previewMode: .standby, error: nil)
         let result = roundTrip(caps)
         XCTAssertTrue(result.supportsPreviewMode)
         XCTAssertEqual(result.previewMode, .standby)
@@ -1236,8 +1160,7 @@ extension RemoteCmdSerializationTests {
     func testCapabilitiesDefaultPreviewModeIsOnAndUnsupported() {
         let caps = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            error: nil)
+            currentCamera: .back, error: nil)
         let result = roundTrip(caps)
         XCTAssertFalse(result.supportsPreviewMode)
         XCTAssertEqual(result.previewMode, .on)
@@ -1332,14 +1255,12 @@ extension RemoteCmdSerializationTests {
     func testCapabilitiesCarryMulticamSupport() {
         let caps = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsMulticam: true, error: nil)
+            currentCamera: .back, supportsMulticam: true, error: nil)
         XCTAssertTrue(roundTrip(caps).supportsMulticam)
 
         let legacy = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            error: nil)
+            currentCamera: .back, error: nil)
         XCTAssertFalse(roundTrip(legacy).supportsMulticam)
     }
 }
