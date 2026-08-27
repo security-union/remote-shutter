@@ -58,11 +58,14 @@ struct MulticamView: View {
     /// Tap-to-focus on the named camera (normalized upright coords; the host
     /// gates on the IAP, the controller on the peer's advertised support).
     let onFocusTap: (CameraLane, CGPoint) -> Void
-    /// Pro controls on the named camera (the focused one — the panel is
+    /// Pro controls on the named camera (the focused one — the slider is
     /// rendered for it, and the command carries it, like every per-camera
-    /// control here).
+    /// control here). Slider values go through `onProSliderChange` so the
+    /// host throttles them like zoom; AUTO and the Cinematic toggle are
+    /// single sends.
     let onExposureChange: (CameraLane, ExposureIntent) -> Void
     let onCinematicChange: (CameraLane, CinematicIntent) -> Void
+    let onProSliderChange: (CameraLane, ProSliderKind, Double) -> Void
     /// Leave the director screen, back to the scanner (links stay up; the
     /// scanner re-arms and re-selects the still-connected cameras).
     let onBack: () -> Void
@@ -91,14 +94,12 @@ struct MulticamView: View {
                 countdownOverlay
                 transientErrorToast
                 if viewModel.showingRigTray { rigTrayLayer }
-                if viewModel.showingProPanel { proPanelLayer }
 
                 #if DEBUG
                 SessionDebugOverlay()
                 #endif
             }
             .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.showingRigTray)
-            .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.showingProPanel)
             .sheet(isPresented: $viewModel.showingAddCamera) {
                 AddCameraSheet(peers: viewModel.availablePeers, onInvite: onInviteCamera)
             }
@@ -138,10 +139,16 @@ struct MulticamView: View {
                          onSetHDR: onSetHDR,
                          onSetAspectRatio: onSetAspectRatio,
                          onSetStandby: onSetStandby,
-                         showsProControls: viewModel.showsProControls,
-                         onOpenProControls: {
+                         proTiles: viewModel.focusedProTiles,
+                         exposure: viewModel.focusedLane?.exposure,
+                         cinematic: viewModel.focusedLane?.cinematic,
+                         onOpenProSlider: { kind in
                              viewModel.showingRigTray = false
-                             viewModel.showingProPanel = true
+                             viewModel.activeProSlider = kind
+                         },
+                         onToggleCinematic: {
+                             guard let focused = viewModel.focusedLane else { return }
+                             onCinematicChange(focused, focused.cinematic?.enabled == true ? .off : .on(aperture: nil))
                          },
                          // Close the tray first, as the 1:1 tray does — the
                          // sheet returns to a clean viewfinder.
@@ -154,27 +161,6 @@ struct MulticamView: View {
                              onOpenHelp()
                          })
                 .transition(.move(edge: .bottom))
-        }
-    }
-
-    /// The focused camera's pro-controls panel, in the tray's presentation.
-    /// Values are that camera's echoed truth; intents carry the lane.
-    @ViewBuilder
-    private var proPanelLayer: some View {
-        if let focused = viewModel.focusedLane {
-            ZStack(alignment: .bottom) {
-                Color.black.opacity(0.02)
-                    .ignoresSafeArea()
-                    .onTapGesture { viewModel.showingProPanel = false }
-                ProControlsPanel(supportsManualExposure: focused.supportsManualExposure,
-                                 exposure: focused.exposure,
-                                 supportsCinematicVideo: focused.supportsCinematicVideo,
-                                 cinematic: focused.cinematic,
-                                 isVideoMode: viewModel.mode == .video,
-                                 onExposureChange: { onExposureChange(focused, $0) },
-                                 onCinematicChange: { onCinematicChange(focused, $0) })
-                    .transition(.move(edge: .bottom))
-            }
         }
     }
 
@@ -331,11 +317,38 @@ struct MulticamView: View {
     /// 1:1 monitor does.
     @ViewBuilder
     private var focusedZoomPill: some View {
-        if viewModel.displayMode == .focus && viewModel.showsFocusedZoomPill,
-           let focused = viewModel.focusedLane {
-            ZoomPill(scale: viewModel.focusedZoomScale,
-                     currentZoomFactor: viewModel.focusedZoomFactor,
-                     onZoomChange: { onZoomChange(focused, $0) })
+        if viewModel.displayMode == .focus, let focused = viewModel.focusedLane {
+            if let kind = viewModel.visibleProSlider, let scale = proScale(kind, focused) {
+                // The pro slider takes the zoom pill's slot, as on the 1:1 monitor.
+                ProSliderPill(scale: scale,
+                              currentValue: proValue(kind, focused),
+                              onChange: { onProSliderChange(focused, kind, $0) },
+                              onAuto: kind == .aperture ? nil : {
+                                  onExposureChange(focused, .auto)
+                                  viewModel.activeProSlider = nil
+                              },
+                              onClose: { viewModel.activeProSlider = nil })
+            } else if viewModel.showsFocusedZoomPill {
+                ZoomPill(scale: viewModel.focusedZoomScale,
+                         currentZoomFactor: viewModel.focusedZoomFactor,
+                         onZoomChange: { onZoomChange(focused, $0) })
+            }
+        }
+    }
+
+    private func proScale(_ kind: ProSliderKind, _ lane: CameraLane) -> ProSliderScale? {
+        switch kind {
+        case .shutter: return lane.exposure.map(ProSliderScale.shutter)
+        case .iso: return lane.exposure.map(ProSliderScale.iso)
+        case .aperture: return lane.cinematic.map(ProSliderScale.aperture)
+        }
+    }
+
+    private func proValue(_ kind: ProSliderKind, _ lane: CameraLane) -> Double {
+        switch kind {
+        case .shutter: return lane.exposure?.durationSeconds ?? 0
+        case .iso: return Double(lane.exposure?.iso ?? 0)
+        case .aperture: return Double(lane.cinematic?.simulatedAperture ?? 0)
         }
     }
 
@@ -847,9 +860,13 @@ struct RigTrayPanel: View {
     let onSetAspectRatio: (AspectRatio) -> Void
     /// Rig standby: blank (or wake) every supporting camera's own preview.
     let onSetStandby: (Bool) -> Void
-    /// The focused camera offers pro controls; tapping the tile opens them.
-    var showsProControls: Bool = false
-    var onOpenProControls: () -> Void = {}
+    /// The focused camera's pro tiles (`MonitorTray.proTiles`) and its echoed
+    /// values; shutter/ISO/aperture open a slider, Cinematic toggles in place.
+    var proTiles: [MonitorTrayItem] = []
+    var exposure: ExposureState? = nil
+    var cinematic: CinematicState? = nil
+    var onOpenProSlider: (ProSliderKind) -> Void = { _ in }
+    var onToggleCinematic: () -> Void = {}
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
     /// Open the help sheet (the same one every screen presents).
@@ -860,7 +877,7 @@ struct RigTrayPanel: View {
     var body: some View {
         TrayPanelShell(footnote: settings.blockerFootnote(for: mode)) {
             ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable,
-                                  showsProControls: showsProControls),
+                                  proTiles: proTiles),
                     id: \.self) { item in
                 tile(for: item)
             }
@@ -909,12 +926,27 @@ struct RigTrayPanel: View {
             MonitorTrayTile(item: .help, value: nil,
                             isActive: false, isEnabled: true,
                             action: onOpenHelp)
-        case .proControls:
-            // Usable mid-recording: the panel itself explains what recording
-            // locks (aperture), exactly as the 1:1 tray does.
-            MonitorTrayTile(item: .proControls, value: nil,
-                            isActive: false, isEnabled: true,
-                            action: onOpenProControls)
+        // Pro tiles: the 1:1 tray's values and rules, for the focused camera.
+        case .shutter:
+            MonitorTrayTile(item: .shutter,
+                            value: exposure.map { ProStops.shutterLabel($0.durationSeconds) },
+                            isActive: exposure?.mode == .manual, isEnabled: true,
+                            action: { onOpenProSlider(.shutter) })
+        case .iso:
+            MonitorTrayTile(item: .iso,
+                            value: exposure.map { String(Int($0.iso.rounded())) },
+                            isActive: exposure?.mode == .manual, isEnabled: true,
+                            action: { onOpenProSlider(.iso) })
+        case .cinematic:
+            MonitorTrayTile(item: .cinematic, value: nil,
+                            isActive: cinematic?.enabled == true,
+                            isEnabled: cinematic?.apertureLocked != true,
+                            action: onToggleCinematic)
+        case .aperture:
+            MonitorTrayTile(item: .aperture,
+                            value: cinematic.map { ProStops.apertureLabel($0.simulatedAperture) },
+                            isActive: false, isEnabled: cinematic?.apertureLocked != true,
+                            action: { onOpenProSlider(.aperture) })
         case .frameRate:
             // Not offered by `RigTray.items` — frame rate rides the single
             // quality tile's intersection cycle.

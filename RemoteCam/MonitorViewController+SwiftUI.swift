@@ -67,12 +67,29 @@ extension MonitorViewController {
             },
             onCinematicChange: { [weak self] intent in
                 self?.session ! UICmd.SetCinematic(intent: intent)
+            },
+            onProSliderChange: { [weak self] kind, value in
+                self?.proSender(for: kind).submit(value)
             }
         )
 
         self.swiftUIHostingController = embedSwiftUIView(monitorView)
     }
     
+    /// One throttled sender per pro slider (the zoom pill's send pattern):
+    /// the value becomes the wire intent at send time.
+    private func proSender(for kind: ProSliderKind) -> ThrottledValueSender {
+        if let existing = proSenders[kind] { return existing }
+        let sender = ThrottledValueSender { [weak self] value in
+            switch kind.intent(for: value) {
+            case .exposure(let intent): self?.session ! UICmd.SetExposure(intent: intent)
+            case .cinematic(let intent): self?.session ! UICmd.SetCinematic(intent: intent)
+            }
+        }
+        proSenders[kind] = sender
+        return sender
+    }
+
     // MARK: - Action Handlers
     private func handleTakePicture() {
         debugLog("🔴 DEBUG: handleTakePicture called - isRecording: \(viewModel.isRecording), uiState: \(viewModel.uiState)")

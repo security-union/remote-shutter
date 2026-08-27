@@ -70,35 +70,35 @@ final class CinematicPolicyTests: XCTestCase {
     // MARK: - Dial stops
 
     func testShutterStopsFilterToRange() {
-        let stops = ProDialStops.shutterStops(min: 1.0 / 10_000, max: 1.0 / 3)
+        let stops = ProStops.shutterStops(min: 1.0 / 10_000, max: 1.0 / 3)
         XCTAssertEqual(stops.first, 1.0 / 8000)
         XCTAssertEqual(stops.last, 1.0 / 3)
         XCTAssertFalse(stops.contains(0.5))
     }
 
     func testISOStopsFilterToRange() {
-        let stops = ProDialStops.isoStops(min: 32, max: 3200)
+        let stops = ProStops.isoStops(min: 32, max: 3200)
         XCTAssertEqual(stops.first, 32)
         XCTAssertEqual(stops.last, 3200)
     }
 
     func testApertureStopsEmptyForFixedAperture() {
-        XCTAssertTrue(ProDialStops.apertureStops(min: 0, max: 0).isEmpty)
-        XCTAssertEqual(ProDialStops.apertureStops(min: 1.4, max: 16).first, 1.4)
+        XCTAssertTrue(ProStops.apertureStops(min: 0, max: 0).isEmpty)
+        XCTAssertEqual(ProStops.apertureStops(min: 1.4, max: 16).first, 1.4)
     }
 
     func testNearestIndexSnapsToClosestDetent() {
         let stops: [Double] = [1.0 / 250, 1.0 / 125, 1.0 / 60]
-        XCTAssertEqual(ProDialStops.nearestIndex(of: 1.0 / 120, in: stops), 1)
-        XCTAssertNil(ProDialStops.nearestIndex(of: 1.0, in: [Double]()))
+        XCTAssertEqual(ProStops.nearestIndex(of: 1.0 / 120, in: stops), 1)
+        XCTAssertNil(ProStops.nearestIndex(of: 1.0, in: [Double]()))
     }
 
     func testLabels() {
-        XCTAssertEqual(ProDialStops.shutterLabel(1.0 / 125), "1/125")
-        XCTAssertEqual(ProDialStops.shutterLabel(0.5), "0.5s")
-        XCTAssertEqual(ProDialStops.shutterLabel(1.0), "1s")
-        XCTAssertEqual(ProDialStops.isoLabel(400), "ISO 400")
-        XCTAssertEqual(ProDialStops.apertureLabel(2.8), "f/2.8")
-        XCTAssertEqual(ProDialStops.apertureLabel(16), "f/16")
+        XCTAssertEqual(ProStops.shutterLabel(1.0 / 125), "1/125")
+        XCTAssertEqual(ProStops.shutterLabel(0.5), "0.5s")
+        XCTAssertEqual(ProStops.shutterLabel(1.0), "1s")
+        XCTAssertEqual(ProStops.isoLabel(400), "ISO 400")
+        XCTAssertEqual(ProStops.apertureLabel(2.8), "f/2.8")
+        XCTAssertEqual(ProStops.apertureLabel(16), "f/16")
     }
 }

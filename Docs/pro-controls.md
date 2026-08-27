@@ -276,40 +276,43 @@ the probe dictates:
 Follows the HIG for camera controls: values a photographer recognizes, direct
 and reversible adjustments, current state always visible on both devices.
 
-**Remote (monitor)**
-- One **PRO** tray tile (`camera.aperture`), listed only when the connected
-  camera advertised something for it to control (`MonitorTray.showsProControls`:
-  manual exposure in any mode, Cinematic in video modes). It opens the
-  `ProControlsPanel`, a bottom panel in the tray's presentation.
-- The same tile and panel exist on the **multicam director** — the screen a
-  single camera lands on while `MULTICAM_FOR_SINGLE_CAMERA` is on. There the
-  controls drive the **focused** camera, like torch and zoom: the tile
-  follows that camera's flags, `CameraLink` carries its echoed
-  `ExposureState`/`CinematicState`, and the command carries the lane
+**Remote (monitor)** — the controls live one tap deep, like every other
+capture setting: tray tiles, and a slider in the zoom pill's slot.
+- **Tray tiles** (`MonitorTray.proTiles`), listed only when the connected
+  camera advertised the capability: **SHUTTER** and **ISO** (manual exposure,
+  any mode), **CINEMATIC** (video modes) and **APERTURE** (once Cinematic is
+  on and `min_simulated_aperture > 0`). Each tile reads the camera's current
+  value (`1/125`, `400`, `f/2.8`); SHUTTER/ISO light up while Manual is on,
+  CINEMATIC while the effect is on. They sit with the capture settings, after
+  quality and before standby, on both the 1:1 monitor and the multicam
+  director.
+- **Sliders** (`ProSliderPill`): tapping SHUTTER, ISO or APERTURE closes the
+  tray and puts that control's slider where the zoom pill sits — the same
+  look and gestures as zoom (`ProSliderScale` is the pro analog of
+  `ZoomScale`): a log-spaced ruler over the camera's range, photographic
+  detents (1/8000 … 1 s; ISO ⅓-stops; f/1.4 … f/16), relative drag, scroll
+  wheel on the Mac, VoiceOver-adjustable. Dragging SHUTTER sends
+  `manual(duration, iso: 0)` and ISO `manual(0, iso)` — each locks only its
+  own component, so the first drag engages Manual from the values auto was
+  using. **AUTO** on the pill hands exposure back to the camera and closes
+  it; **×** just closes it. The aperture slider has no AUTO. Values are
+  throttled like zoom (`ThrottledValueSender` over `ZoomSendThrottle`).
+- **CINEMATIC** toggles in place, like HDR; the tile dims while recording
+  (Apple rejects enabling/disabling mid-take) and so does APERTURE.
+- The pill shows the in-flight value while dragging and the camera's
+  **echoed** value once it confirms — the remote never claims a state the
+  camera did not confirm. A slider stays open only while its tile is still
+  offered (the camera may swap to a device without it, or leave video mode).
+- **Multicam director** — the screen a single camera lands on while
+  `MULTICAM_FOR_SINGLE_CAMERA` is on. Same tiles and slider, driving the
+  **focused** camera like torch and zoom: `CameraLink` carries that camera's
+  echoed `ExposureState`/`CinematicState`, and the command carries the lane
   (`MulticamController.setExposure(_:on:)` / `setCinematic(_:on:)`, gated on
   that camera's capabilities). The director's photo/video mode is pushed to
   every camera (`SyncMonitorSettings`, including late joiners) so a camera
   knows it is in video mode before Cinematic is asked of it.
-- **Exposure**: segmented `Auto | Manual`. Auto shows a live readout of what
-  the camera is choosing (`1/120 · ISO 64`). Manual shows two **detented
-  horizontal dials** (`ProDial`): shutter at standard stops (1/8000 … ¼, ⅓,
-  ½, 1 s, filtered to the device range) and ISO in ⅓-stops; bold value label;
-  Reset-to-Auto.
-- **Cinematic**: an on/off toggle and, when `min_simulated_aperture > 0`, an
-  aperture dial in ⅓-stops (f/1.4, 1.6, 1.8, 2, 2.2 … 16) filtered to the
-  range, defaulting to `default_simulated_aperture`. While recording the dial
-  is disabled with the caption "Aperture is set before recording". A "Scene
-  too dark for Cinematic" hint appears when the camera reports it.
-- Dials give haptic ticks on detents (`.sensoryFeedback` on iOS 17+,
-  `UISelectionFeedbackGenerator` below) and display the **echoed** value from
-  the camera, never the dragged one — the remote never claims a state the
-  camera did not confirm.
-- Accessibility: dials are `.adjustable` elements reading "1/125 second",
-  "ISO 400", "f/2.8"; Dynamic Type labels; 44 pt targets; same dismissal
-  gesture as the quality panel.
-- Mac Catalyst: identical SwiftUI; dials take scroll-wheel/trackpad through
-  the existing gesture layer. Mac cameras generally advertise neither flag, so
-  neither button appears.
+- Mac Catalyst: identical SwiftUI. Mac cameras generally advertise neither
+  flag, so no tile appears.
 
 **Camera phone**
 - A readout chip on the preview, top edge, while a pro control is active:

@@ -37,24 +37,40 @@ final class MulticamViewModelTests: XCTestCase {
                          torchOn: torchOn, flashOn: flashOn)
     }
 
-    /// The PRO tile is a property of the FOCUSED camera: refocusing from a
-    /// camera without pro controls to one with them makes it appear, and
-    /// Cinematic alone earns it only once the director is in video mode.
-    func testProTileFollowsFocusedCameraCapabilities() {
+    /// The pro tiles are a property of the FOCUSED camera: refocusing from a
+    /// camera without pro controls to one with them makes them appear, and
+    /// Cinematic alone earns its tile only once the director is in video mode.
+    func testProTilesFollowFocusedCameraCapabilities() {
         let vm = MulticamViewModel()
         vm.apply([info(camA, focused: true), info(camB, supportsManualExposure: true)])
-        XCTAssertFalse(vm.showsProControls, "focused camera offers nothing")
+        XCTAssertTrue(vm.focusedProTiles.isEmpty, "focused camera offers nothing")
 
         vm.apply([info(camA), info(camB, focused: true, supportsManualExposure: true)])
-        XCTAssertTrue(vm.showsProControls, "focused camera does manual exposure")
+        XCTAssertEqual(vm.focusedProTiles, [.shutter, .iso], "focused camera does manual exposure")
 
         vm.apply([info(camA), info(camB, focused: true, supportsCinematicVideo: true)])
-        XCTAssertFalse(vm.showsProControls, "Cinematic is not a photo control")
+        XCTAssertTrue(vm.focusedProTiles.isEmpty, "Cinematic is not a photo control")
         vm.mode = .video
-        XCTAssertTrue(vm.showsProControls)
+        XCTAssertEqual(vm.focusedProTiles, [.cinematic])
 
         vm.apply([info(camA), info(camB, status: .reconnecting, focused: true, supportsManualExposure: true)])
-        XCTAssertFalse(vm.showsProControls, "a dropped camera cannot be driven")
+        XCTAssertTrue(vm.focusedProTiles.isEmpty, "a dropped camera cannot be driven")
+    }
+
+    /// An open slider stays only while the focused camera still offers its
+    /// tile: refocusing onto a camera without manual exposure hides it (the
+    /// choice is remembered, so focusing back restores it).
+    func testOpenSliderFollowsTheFocusedCamera() {
+        let vm = MulticamViewModel()
+        vm.apply([info(camA, focused: true, supportsManualExposure: true), info(camB)])
+        vm.activeProSlider = .shutter
+        XCTAssertEqual(vm.visibleProSlider, .shutter)
+
+        vm.apply([info(camA, supportsManualExposure: true), info(camB, focused: true)])
+        XCTAssertNil(vm.visibleProSlider, "camB has no shutter to slide")
+
+        vm.apply([info(camA, focused: true, supportsManualExposure: true), info(camB)])
+        XCTAssertEqual(vm.visibleProSlider, .shutter)
     }
 
     /// The shutter is a broadcast: cameras present is enough — focus is

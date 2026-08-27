@@ -40,12 +40,13 @@ struct ZoomScale: Equatable {
     /// check this before drawing a track — a SwiftUI `Slider` traps on an empty range.
     var isDegenerate: Bool { maxZoom <= minZoom }
 
-    private var logMin: Double { Double(log2(minZoom)) }
-    private var logSpan: Double { Double(log2(maxZoom)) - logMin }
+    /// The ruler math in hardware factors — what the pill draws and drags.
+    var track: LogTrack {
+        LogTrack(min: Double(minZoom), max: Double(maxZoom), stops: stops.map { Double($0) })
+    }
 
     func clamped(_ hardware: CGFloat) -> CGFloat {
-        guard hardware.isFinite else { return minZoom }
-        return max(minZoom, min(maxZoom, hardware))
+        CGFloat(track.clamped(Double(hardware)))
     }
 
     // MARK: - Display units
@@ -71,19 +72,11 @@ struct ZoomScale: Equatable {
     /// Where `hardware` sits on a 0…1 track. Log2 so equal travel is equal perceived
     /// change at 1× and at 5×, matching the pinch curve.
     func position(forHardware hardware: CGFloat) -> Double {
-        guard !isDegenerate else { return 0 }
-        return (Double(log2(clamped(hardware))) - logMin) / logSpan
+        track.position(for: Double(hardware))
     }
 
     func hardwareFactor(atPosition position: Double) -> CGFloat {
-        guard !isDegenerate, position.isFinite else { return minZoom }
-        let clampedPosition = max(0, min(1, position))
-        // Exact at the ends. Round-tripping through log2/pow2 leaves a max of 5.0 as
-        // 4.999999999999999, so a drag to the end of the ruler would stop a hair short
-        // of the ceiling and never compare equal to `maxZoom`.
-        if clampedPosition <= 0 { return minZoom }
-        if clampedPosition >= 1 { return maxZoom }
-        return clamped(CGFloat(pow(2, logMin + clampedPosition * logSpan)))
+        CGFloat(track.value(atPosition: position))
     }
 
     // MARK: - Detents
@@ -91,16 +84,7 @@ struct ZoomScale: Equatable {
     /// Snaps to the nearest stop when within `tolerance` of it. Tolerance is a fraction of
     /// the whole track, not a zoom delta, so the pull feels identical at 1× and at 5×.
     func snappedToStop(_ hardware: CGFloat, tolerance: Double = 0.04) -> CGFloat {
-        guard !isDegenerate else { return minZoom }
-        let target = clamped(hardware)
-        let targetPosition = position(forHardware: target)
-        let nearest = stops.min {
-            abs(position(forHardware: $0) - targetPosition)
-                < abs(position(forHardware: $1) - targetPosition)
-        }
-        guard let stop = nearest,
-              abs(position(forHardware: stop) - targetPosition) <= tolerance else { return target }
-        return stop
+        CGFloat(track.snappedToStop(Double(hardware), tolerance: tolerance))
     }
 
     // MARK: - Pinch

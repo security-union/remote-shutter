@@ -63,6 +63,9 @@ public class MonitorViewController: UIViewController {
     /// Internal rather than private: `handleZoomChange` lives in a different file's
     /// extension, and `private` is file-scoped.
     var zoomThrottle = ZoomSendThrottle()
+    /// Throttled senders for the pro sliders, one per control (see
+    /// `proSender(for:)`).
+    var proSenders: [ProSliderKind: ThrottledValueSender] = [:]
     var trailingZoomTimer: Timer?
     var availableLensTypes: [CameraLensType] = [.wideAngle]
     var currentLensType: CameraLensType = .wideAngle

@@ -65,24 +65,14 @@ final class MonitorScreenSnapshotTests: SnapshotTestCase {
 
     /// The pro panel in its richest state: Manual exposure dials + Cinematic
     /// on with the aperture dial locked by a recording.
-    func testProControlsPanelRenders() {
-        let model = makeConnectedModel()
-        model.currentMode = .Video
-        model.uiState = .videoMode
-        model.supportsManualExposure = true
-        model.exposure = ExposureState(
+    func testProSliderPillRenders() {
+        let exposure = ExposureState(
             mode: .manual, durationSeconds: 1.0 / 125, iso: 400,
             minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 0.5, minISO: 32, maxISO: 3200)
-        model.supportsCinematicVideo = true
-        model.cinematic = CinematicState(
-            enabled: true, simulatedAperture: 2.8,
-            minSimulatedAperture: 1.4, maxSimulatedAperture: 16,
-            defaultSimulatedAperture: 2.0, apertureLocked: true, notEnoughLight: true)
-
-        let panel = ProControlsPanel(viewModel: model,
-                                     onExposureChange: { _ in },
-                                     onCinematicChange: { _ in })
-        let image = renderScreen(named: "monitor-pro-panel", panel)
+        let pill = ProSliderPill(scale: .shutter(exposure),
+                                 currentValue: exposure.durationSeconds,
+                                 onChange: { _ in }, onAuto: {}, onClose: {})
+        let image = renderScreen(named: "monitor-pro-slider", pill)
         assertRendered(image)
     }
 

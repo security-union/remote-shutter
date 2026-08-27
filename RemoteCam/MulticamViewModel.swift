@@ -94,8 +94,9 @@ final class MulticamViewModel: ObservableObject {
     @Published var rigSettings = RigSettingsSnapshot()
     /// Whether the rig settings tray is showing.
     @Published var showingRigTray: Bool = false
-    /// Whether the focused camera's pro-controls panel is showing.
-    @Published var showingProPanel: Bool = false
+    /// The pro slider open on the viewfinder (the zoom pill's slot), driving
+    /// the focused camera.
+    @Published var activeProSlider: ProSliderKind?
     /// A brief, non-blocking error readout (a refused camera switch, e.g.).
     /// The toast that renders it clears it after a few seconds. Each report
     /// carries its own identity — same pattern as `FocusReticle` — so a
@@ -137,14 +138,23 @@ final class MulticamViewModel: ObservableObject {
         displayMode == .focus && (focusedLane?.hasTorch ?? false)
     }
 
-    /// The PRO tile and panel drive the FOCUSED camera (like torch and zoom),
-    /// so they follow that camera's advertised capabilities, under the 1:1
-    /// tray's rule: manual exposure in any mode, Cinematic in video only.
-    var showsProControls: Bool {
-        guard let focused = focusedLane, focused.status == .linked else { return false }
-        return MonitorTray.showsProControls(for: monitorUIState,
-                                            supportsManualExposure: focused.supportsManualExposure,
-                                            supportsCinematicVideo: focused.supportsCinematicVideo)
+    /// The pro tiles and slider drive the FOCUSED camera (like torch and
+    /// zoom), so they follow that camera's advertised capabilities, under the
+    /// 1:1 tray's rule (`MonitorTray.proTiles`).
+    var focusedProTiles: [MonitorTrayItem] {
+        guard let focused = focusedLane, focused.status == .linked else { return [] }
+        return MonitorTray.proTiles(for: monitorUIState,
+                                    supportsManualExposure: focused.supportsManualExposure,
+                                    supportsCinematicVideo: focused.supportsCinematicVideo,
+                                    cinematicOn: focused.cinematic?.enabled == true,
+                                    apertureAdjustable: (focused.cinematic?.minSimulatedAperture ?? 0) > 0)
+    }
+
+    /// The open slider, as long as the focused camera still offers its tile
+    /// (focus moved to another camera, the mode changed, the camera dropped).
+    var visibleProSlider: ProSliderKind? {
+        guard let kind = activeProSlider, focusedProTiles.contains(kind.tile) else { return nil }
+        return kind
     }
 
     /// The director's mode in the 1:1 monitor's vocabulary, for shared rules.

@@ -189,7 +189,7 @@ class CameraViewModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.exposureReadoutText = state.mode == .manual
-                ? "M \(ProDialStops.shutterLabel(state.durationSeconds)) · \(ProDialStops.isoLabel(state.iso))"
+                ? "M \(ProStops.shutterLabel(state.durationSeconds)) · \(ProStops.isoLabel(state.iso))"
                 : nil
             self.recomposeProReadout()
         }
@@ -199,7 +199,7 @@ class CameraViewModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.cinematicReadoutText = state.enabled
-                ? "CINEMATIC \(ProDialStops.apertureLabel(state.simulatedAperture))"
+                ? "CINEMATIC \(ProStops.apertureLabel(state.simulatedAperture))"
                 : nil
             self.recomposeProReadout()
         }

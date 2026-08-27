@@ -117,7 +117,7 @@ enum CinematicPolicy {
 
 /// The detents the monitor's dials snap to, in values a photographer
 /// recognizes, filtered to what the connected camera's format allows.
-enum ProDialStops {
+enum ProStops {
 
     /// Standard shutter stops from 1/8000 s up to 1 s.
     static let allShutterSeconds: [Double] = [
