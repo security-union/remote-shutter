@@ -84,3 +84,49 @@ final class ProSliderScaleTests: XCTestCase {
         XCTAssertEqual(ProSliderKind.allCases.map(\.tile), [.shutter, .iso, .aperture])
     }
 }
+
+/// The slider's send throttle: leading edge for responsiveness, trailing
+/// edge so the value the finger released on always reaches the wire — the
+/// zoom pill's send pattern (`ZoomSendThrottle`), packaged per slider.
+final class ThrottledValueSenderTests: XCTestCase {
+
+    /// Spin the main run loop until `condition` holds (or ~1s passes): the
+    /// trailing edge rides a main-queue Timer, so fixed sleeps would flake.
+    private func pumpMainUntil(_ condition: () -> Bool) {
+        for _ in 0..<100 where !condition() {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02))
+        }
+    }
+
+    func testFirstValueSendsImmediately() {
+        var sent: [Double] = []
+        let sender = ThrottledValueSender(interval: 10) { sent.append($0) }
+        sender.submit(0.5)
+        XCTAssertEqual(sent, [0.5], "the leading edge must not wait for a timer")
+    }
+
+    /// A drag emits a value per frame; only the leading value goes out now,
+    /// and the LAST value always lands when the trailing timer fires —
+    /// intermediate positions are coalesced away, never the final one.
+    func testTrailingEdgeDeliversTheLastValueOnly() {
+        var sent: [Double] = []
+        let sender = ThrottledValueSender(interval: 0.05) { sent.append($0) }
+        sender.submit(1.0)
+        sender.submit(2.0)
+        sender.submit(3.0)
+        XCTAssertEqual(sent, [1.0], "mid-drag values must be held, not sent")
+
+        pumpMainUntil { sent.count == 2 }
+        XCTAssertEqual(sent, [1.0, 3.0], "the release value must always land, intermediates never")
+    }
+
+    func testValuesAfterTheIntervalSendOnTheLeadingEdgeAgain() {
+        var sent: [Double] = []
+        let sender = ThrottledValueSender(interval: 0.05) { sent.append($0) }
+        sender.submit(1.0)
+        // Let the interval fully elapse (and any armed trailing timer drain).
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.08))
+        sender.submit(2.0)
+        XCTAssertEqual(sent, [1.0, 2.0], "a fresh adjustment after a pause is immediate again")
+    }
+}
