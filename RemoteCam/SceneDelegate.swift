@@ -39,7 +39,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
         let navigationController = UINavigationController(
             navigationBarClass: PassThroughNavigationBar.self, toolbarClass: nil)
-        navigationController.setViewControllers([WelcomeViewController()], animated: false)
+        navigationController.setViewControllers([RolePickerController()], animated: false)
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
         self.window = window

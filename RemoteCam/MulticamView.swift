@@ -196,6 +196,11 @@ struct MulticamView: View {
             focusedCameraChip
                 .padding(.leading, 8)
             Spacer(minLength: 0)
+            GlassCircleButton(systemImage: "plus",
+                              size: 44, glyphSize: 20,
+                              isEnabled: true,
+                              action: onAddCamera)
+                .padding(.trailing, 8)
             ControlCapsule(showsFlash: viewModel.mode == .photo,
                            showsTorch: viewModel.showsTorchButton,
                            isFlashEnabled: viewModel.focusedFlashOn,
@@ -483,8 +488,8 @@ struct MulticamView: View {
     }
 
     /// The camera strip — multicam's one added element. Thumbnails of the other
-    /// cameras plus the Add tile, laid out along `axis` so it tucks into the
-    /// action area on either dock. Tap a thumbnail to focus it; long-press for
+    /// cameras, laid out along `axis` so it tucks into the action area on
+    /// either dock. Tap a thumbnail to focus it; long-press for
     /// "Disconnect Camera".
     @ViewBuilder
     private func cameraStrip(axis: Axis) -> some View {
@@ -509,23 +514,6 @@ struct MulticamView: View {
                 .frame(width: size.width, height: size.height)
                 .onTapGesture { onFocusLane(lane) }
                 .contextMenu { disconnectButton(for: lane) }
-        }
-        addCameraTile.frame(width: size.width, height: size.height)
-    }
-
-    /// The "add camera" affordance at the end of the strip. The host decides
-    /// whether tapping opens the sheet or the paywall (at the tier cap).
-    private var addCameraTile: some View {
-        Button(action: onAddCamera) {
-            VStack(spacing: 6) {
-                Image(systemName: "plus.circle.fill").font(.title)
-                Text(NSLocalizedString("Add camera", comment: "add a camera to the multicam rig"))
-                    .font(.caption2)
-            }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.white.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 }

@@ -80,8 +80,8 @@ When adding new remote commands, add a table to `FlatBufferSchemas.fbs`, regener
 ### UI Architecture
 
 Every screen is a SwiftUI view hosted by a thin UIKit shell (no storyboards or xibs; the window is built programmatically in `SceneDelegate`):
-- **WelcomeViewController** — entry point (root of the nav controller), hosts `WelcomeView`
-- **RolePickerController** — role selection, hosts `RolePickerView`
+- **WelcomeViewController** — upgrade/paywall screen, hosts `WelcomeView`; no longer part of the launch flow (Settings has its own separate purchase UI); kept for its test coverage but not currently pushed anywhere in the app
+- **RolePickerController** — entry point (root of the nav controller), role selection, hosts `RolePickerView`
 - **DeviceScannerViewController** — peer discovery, hosts `DeviceScannerView`; owns the `SessionCoordinator` + `FrameSender` lifecycle
 - **MonitorViewController** — hosts `MonitorView`; implements `MonitorDisplay`, the protocol seam through which `MonitorPresenter` drives the screen
 - **CameraHostController** — hosts `CameraScreenView` (preview + chrome) and owns a `CameraRig`, which holds the capture stack (`CaptureEngine` + `RecordingPipeline` + `FrameStreamingCoordinator`)
