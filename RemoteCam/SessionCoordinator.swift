@@ -2826,10 +2826,15 @@ public actor SessionCoordinator {
     private func inMonitorWaitingForVideo(_ msg: Message) async {
         switch msg {
         case let resp as RemoteCmd.StopRecordingVideoResp:
-            // The protocol's terminal message: the take is over. The clip
-            // itself (if the camera was asked to send it) arrives separately
-            // as `UICmd.VideoResourceReceived`, handled in the root.
+            // The take is over (no clip was requested, or it failed).
             if let error = resp.error { showError(error.localizedDescription) }
+            await transition(to: .monitor(mode: .video))
+
+        case let received as UICmd.VideoResourceReceived:
+            // The requested clip landed: hand the file over and settle, the
+            // same moment this screen settled before. (A clip that lands in
+            // any other state is saved by the root handler.)
+            videoLibrarySaver(received.url)
             await transition(to: .monitor(mode: .video))
 
         case is RemoteCmd.PeerBecameCamera:
