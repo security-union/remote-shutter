@@ -658,6 +658,26 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(saved.value, [url])
     }
 
+    /// The transient monitor states drop messages they don't expect. A clip
+    /// landing while the user is mid lens-switch is still saved — and the
+    /// in-flight request is untouched.
+    func testClipLandingDuringALensSwitchIsStillSaved() async {
+        await enterMonitorSwitchingLens()
+        var name = await harness.stateName()
+        XCTAssertEqual(name, .monitorSwitchingLens)
+
+        let url = makeReceivedClip()
+        let saved = Locked<[URL]>([])
+        await harness.coordinator.setVideoLibrarySaver { received in saved.mutate { $0.append(received) } }
+        harness.coordinator.didFinishReceivingResource(
+            name: url.lastPathComponent, from: harness.peer, at: url, error: nil)
+        await harness.coordinator.waitForIdle()
+
+        XCTAssertEqual(saved.value, [url])
+        name = await harness.stateName()
+        XCTAssertEqual(name, .monitorSwitchingLens, "the landed clip does not disturb the request in flight")
+    }
+
     // MARK: - Keep rolling through a drop (uniform: solo and multicam)
 
     /// Drives the machine into `.cameraRecordingVideo` and drops the peer.

@@ -349,9 +349,9 @@ public class UICmd {
 
     /// Monitor side: the transport finished writing a peer's clip to a temp
     /// file. Whoever handles this owns `url` — the file is moved into Photos,
-    /// never read into memory. Independent of the stop protocol's state: the
-    /// camera's `StopRecordingVideoResp` and the file's arrival race on two
-    /// different streams, so the clip is saved wherever it lands.
+    /// never read into memory. Saved ahead of the state dispatch (see
+    /// `SessionCoordinator.handle`): the clip is a fact whatever the stop
+    /// protocol is doing.
     public class VideoResourceReceived: Message, @unchecked Sendable {
         public let url: URL
         public let resourceName: String

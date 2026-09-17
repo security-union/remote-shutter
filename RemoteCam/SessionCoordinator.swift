@@ -831,6 +831,20 @@ public actor SessionCoordinator {
         if !(msg is RemoteCmd.SendFrame || msg is RemoteCmd.RequestFrame) {
             logInfo("session rx \(type(of: msg)) [\(currentStateName())]")
         }
+        // A landed clip is a fact outside the protocol: the file is on disk
+        // and ours to move into Photos, whatever state the machine is in.
+        // Handled HERE, ahead of the state dispatch, because the transient
+        // monitor states deliberately drop what they don't expect — a clip
+        // arriving during a lens switch must not be lost with its temp file.
+        if let received = msg as? UICmd.VideoResourceReceived {
+            videoLibrarySaver(received.url)
+            if case .monitorWaitingForVideo = state {
+                // The requested clip landed: settle, the same moment this
+                // screen settled before.
+                await transition(to: .monitor(mode: .video))
+            }
+            return
+        }
         switch state {
         case .waitingForLobby:
             await inWaitingForLobby(msg)
@@ -2177,11 +2191,6 @@ public actor SessionCoordinator {
             monitor?.videoTransferFinished()
             await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(error: failed.error))
 
-        case let received as UICmd.VideoResourceReceived:
-            // The clip is on disk; hand the file over, whatever state the
-            // stop protocol is in.
-            videoLibrarySaver(received.url)
-
         case is IncompatibilityDetected:
             await showIncompatibilityMessage()
 
@@ -2826,15 +2835,9 @@ public actor SessionCoordinator {
     private func inMonitorWaitingForVideo(_ msg: Message) async {
         switch msg {
         case let resp as RemoteCmd.StopRecordingVideoResp:
-            // The take is over (no clip was requested, or it failed).
+            // The take is over (no clip was requested, or it failed). A
+            // requested clip that landed settles this state from `handle`.
             if let error = resp.error { showError(error.localizedDescription) }
-            await transition(to: .monitor(mode: .video))
-
-        case let received as UICmd.VideoResourceReceived:
-            // The requested clip landed: hand the file over and settle, the
-            // same moment this screen settled before. (A clip that lands in
-            // any other state is saved by the root handler.)
-            videoLibrarySaver(received.url)
             await transition(to: .monitor(mode: .video))
 
         case is RemoteCmd.PeerBecameCamera:
