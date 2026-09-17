@@ -781,12 +781,12 @@ extension RemoteCmd.ScheduledCapture {
         let sessionIdOffset = fbb.create(string: sessionId)
         let params = RemoteShutter_CommandParameters.createCommandParameters(
             &fbb,
+            sendToRemote: sendMediaToPeer,
             captureFireAtCameraClockMs: fireAtCameraClockMillis,
             captureAnchorMs: anchorMillis,
             captureIdOffset: captureIdOffset,
             captureSessionIdOffset: sessionIdOffset,
-            captureCameraIndex: Int32(cameraIndex),
-            captureSendMediaToPeer: sendMediaToPeer)
+            captureCameraIndex: Int32(cameraIndex))
         return buildCommand(&fbb, action: .scheduledcapture, parameters: params)
     }
 }
@@ -829,12 +829,12 @@ extension RemoteCmd.ScheduledStopRecording {
         let sessionIdOffset = fbb.create(string: sessionId)
         let params = RemoteShutter_CommandParameters.createCommandParameters(
             &fbb,
+            sendToRemote: sendMediaToPeer,
             captureFireAtCameraClockMs: fireAtCameraClockMillis,
             captureAnchorMs: anchorMillis,
             captureIdOffset: captureIdOffset,
             captureSessionIdOffset: sessionIdOffset,
-            captureCameraIndex: Int32(cameraIndex),
-            captureSendMediaToPeer: sendMediaToPeer)
+            captureCameraIndex: Int32(cameraIndex))
         return buildCommand(&fbb, action: .scheduledstoprecording, parameters: params)
     }
 }
@@ -1275,7 +1275,7 @@ extension RemoteCmd {
                 captureId: params?.captureId ?? "",
                 sessionId: params?.captureSessionId ?? "",
                 cameraIndex: Int(params?.captureCameraIndex ?? 0),
-                sendMediaToPeer: params?.captureSendMediaToPeer ?? true)
+                sendMediaToPeer: params?.sendToRemote ?? false)
 
         case .scheduledstartrecording:
             return ScheduledStartRecording(
@@ -1292,7 +1292,7 @@ extension RemoteCmd {
                 captureId: params?.captureId ?? "",
                 sessionId: params?.captureSessionId ?? "",
                 cameraIndex: Int(params?.captureCameraIndex ?? 0),
-                sendMediaToPeer: params?.captureSendMediaToPeer ?? true)
+                sendMediaToPeer: params?.sendToRemote ?? false)
 
         case .setstreamprofile:
             return SetStreamProfile(

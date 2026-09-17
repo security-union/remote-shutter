@@ -227,7 +227,8 @@ public class RemoteCmd: Message, @unchecked Sendable {
     /// director's clock — identical across every camera in the shot, so it is
     /// the alignment key each clip is stamped with. Only sent to peers that
     /// advertised `supportsMulticam`. `sendMediaToPeer` is the director's
-    /// "Send Media to Remote" setting: whether the camera returns the still.
+    /// "Send Media to Remote" setting (the same `send_to_remote` parameter
+    /// `TakePic` carries): whether the camera returns the still.
     public class ScheduledCapture: Message, @unchecked Sendable {
         public let fireAtCameraClockMillis: UInt64
         public let anchorMillis: UInt64
@@ -292,8 +293,9 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     /// Director → camera: stop recording at the fire instant, so clip lengths
     /// line up across the rig. Reuses the same params (index/anchor unused).
-    /// `sendMediaToPeer` is the director's "Send Media to Remote" setting:
-    /// whether the camera pushes the finished clip back.
+    /// `sendMediaToPeer` is the director's "Send Media to Remote" setting (the
+    /// same `send_to_remote` parameter `StopRecordingVideo` carries): whether
+    /// the camera pushes the finished clip back.
     public class ScheduledStopRecording: Message, @unchecked Sendable {
         public let fireAtCameraClockMillis: UInt64
         public let anchorMillis: UInt64

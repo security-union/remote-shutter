@@ -221,11 +221,6 @@ table CommandParameters {
     state_report_seq: uint64;
     state_recording_phase: RecordingPhase;
     state_recording_elapsed_ms: uint64;
-    // ScheduledCapture / ScheduledStopRecording: whether the camera returns
-    // the still / pushes the clip to the director (the "Send Media to Remote"
-    // setting). Defaults TRUE so a director that predates the field keeps
-    // auto-collecting; a director with the setting off writes false.
-    capture_send_media_to_peer: bool = true;
 }
 
 // MARK: - Command Structure

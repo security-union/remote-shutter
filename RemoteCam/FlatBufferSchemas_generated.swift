@@ -364,7 +364,6 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     case stateReportSeq = 60
     case stateRecordingPhase = 62
     case stateRecordingElapsedMs = 64
-    case captureSendMediaToPeer = 66
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -405,8 +404,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public var stateReportSeq: UInt64 { let o = _accessor.offset(VTOFFSET.stateReportSeq.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var stateRecordingPhase: RemoteShutter_RecordingPhase { let o = _accessor.offset(VTOFFSET.stateRecordingPhase.v); return o == 0 ? .unknown : RemoteShutter_RecordingPhase(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var stateRecordingElapsedMs: UInt64 { let o = _accessor.offset(VTOFFSET.stateRecordingElapsedMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
-  public var captureSendMediaToPeer: Bool { let o = _accessor.offset(VTOFFSET.captureSendMediaToPeer.v); return o == 0 ? true : _accessor.readBuffer(of: Bool.self, at: o) }
-  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 32) }
+  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 31) }
   public static func add(sendToRemote: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: sendToRemote, def: false,
    at: VTOFFSET.sendToRemote.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
@@ -439,8 +437,6 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public static func add(stateReportSeq: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: stateReportSeq, def: 0, at: VTOFFSET.stateReportSeq.p) }
   public static func add(stateRecordingPhase: RemoteShutter_RecordingPhase, _ fbb: inout FlatBufferBuilder) { fbb.add(element: stateRecordingPhase.rawValue, def: 0, at: VTOFFSET.stateRecordingPhase.p) }
   public static func add(stateRecordingElapsedMs: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: stateRecordingElapsedMs, def: 0, at: VTOFFSET.stateRecordingElapsedMs.p) }
-  public static func add(captureSendMediaToPeer: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: captureSendMediaToPeer, def: true,
-   at: VTOFFSET.captureSendMediaToPeer.p) }
   public static func endCommandParameters(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCommandParameters(
     _ fbb: inout FlatBufferBuilder,
@@ -474,8 +470,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     streamFps: Int32 = 0,
     stateReportSeq: UInt64 = 0,
     stateRecordingPhase: RemoteShutter_RecordingPhase = .unknown,
-    stateRecordingElapsedMs: UInt64 = 0,
-    captureSendMediaToPeer: Bool = true
+    stateRecordingElapsedMs: UInt64 = 0
   ) -> Offset {
     let __start = RemoteShutter_CommandParameters.startCommandParameters(&fbb)
     RemoteShutter_CommandParameters.add(sendToRemote: sendToRemote, &fbb)
@@ -509,7 +504,6 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     RemoteShutter_CommandParameters.add(stateReportSeq: stateReportSeq, &fbb)
     RemoteShutter_CommandParameters.add(stateRecordingPhase: stateRecordingPhase, &fbb)
     RemoteShutter_CommandParameters.add(stateRecordingElapsedMs: stateRecordingElapsedMs, &fbb)
-    RemoteShutter_CommandParameters.add(captureSendMediaToPeer: captureSendMediaToPeer, &fbb)
     return RemoteShutter_CommandParameters.endCommandParameters(&fbb, start: __start)
   }
 
@@ -546,7 +540,6 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.stateReportSeq.p, fieldName: "stateReportSeq", required: false, type: UInt64.self)
     try _v.visit(field: VTOFFSET.stateRecordingPhase.p, fieldName: "stateRecordingPhase", required: false, type: RemoteShutter_RecordingPhase.self)
     try _v.visit(field: VTOFFSET.stateRecordingElapsedMs.p, fieldName: "stateRecordingElapsedMs", required: false, type: UInt64.self)
-    try _v.visit(field: VTOFFSET.captureSendMediaToPeer.p, fieldName: "captureSendMediaToPeer", required: false, type: Bool.self)
     _v.finish()
   }
 }

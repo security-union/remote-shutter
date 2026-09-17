@@ -1321,31 +1321,6 @@ extension RemoteCmdSerializationTests {
         XCTAssertFalse(stopOff.sendMediaToPeer, "off: the clip stays on the camera")
     }
 
-    /// A director that predates the field never writes it. The camera must read
-    /// TRUE — the behaviour that director expects (it auto-collects everything).
-    func testScheduledCommands_withoutSendMediaField_decodeAsSendTrue() {
-        for action in [RemoteShutter_CommandAction.scheduledcapture, .scheduledstoprecording] {
-            var fbb = FlatBufferBuilder()
-            let id = fbb.create(string: "OLD")
-            let sess = fbb.create(string: "S")
-            let params = RemoteShutter_CommandParameters.createCommandParameters(
-                &fbb, captureFireAtCameraClockMs: 7, captureAnchorMs: 7,
-                captureIdOffset: id, captureSessionIdOffset: sess, captureCameraIndex: 1)
-            let cmd = RemoteShutter_CameraCommand.createCameraCommand(&fbb, action: action, parametersOffset: params)
-            let msg = RemoteShutter_P2PMessage.createP2PMessage(&fbb, type: .cameracommand, commandOffset: cmd)
-            fbb.finish(offset: msg, fileId: "RCAM")
-
-            switch RemoteCmd.fromFlatBuffer(fbb.data) {
-            case let capture as RemoteCmd.ScheduledCapture:
-                XCTAssertTrue(capture.sendMediaToPeer)
-            case let stop as RemoteCmd.ScheduledStopRecording:
-                XCTAssertTrue(stop.sendMediaToPeer)
-            default:
-                XCTFail("expected a scheduled command for \(action)")
-            }
-        }
-    }
-
     /// The start/stop distinction (`isStop`) rides the response action, so the
     /// director routes each ack to the right aggregation.
     func testScheduledRecordingAck_roundTripPreservesIsStop() {
