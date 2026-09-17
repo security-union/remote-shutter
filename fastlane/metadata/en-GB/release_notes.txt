@@ -1,3 +1,8 @@
+FIXED — "Send Media to Remote" works again
+
+- With the setting off on the remote, photos and videos stay on the camera only. The remote no longer keeps a duplicate copy
+- With it on, everything still arrives on the remote as before
+
 NEW — Multicam: up to four cameras, one director
 
 - Connect up to four iPhones as cameras and see every angle live in a grid

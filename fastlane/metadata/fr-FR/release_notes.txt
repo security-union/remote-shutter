@@ -1,3 +1,8 @@
+CORRIGÉ — « Envoyer les Médias à la Télécommande » fonctionne à nouveau
+
+- Réglage désactivé sur la télécommande : les photos et vidéos restent uniquement sur la caméra. La télécommande ne garde plus de copie en double
+- Activé, tout continue d'arriver sur la télécommande comme avant
+
 NOUVEAU — Multicam : jusqu'à quatre caméras, un réalisateur
 
 - Connectez jusqu'à quatre iPhone comme caméras et voyez chaque angle en direct dans une grille

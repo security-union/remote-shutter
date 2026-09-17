@@ -1,3 +1,8 @@
+CORRIGIDO — "Enviar Mídia ao Remoto" voltou a funcionar
+
+- Com o ajuste desativado no remoto, fotos e vídeos ficam só na câmera. O remoto não guarda mais uma cópia duplicada
+- Ativado, tudo continua chegando ao remoto como antes
+
 NOVO — Multicam: até quatro câmeras, um diretor
 
 - Conecte até quatro iPhones como câmeras e veja todos os ângulos ao vivo em uma grade

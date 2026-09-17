@@ -1,3 +1,8 @@
+BEHOBEN — „Medien an Fernbedienung senden“ funktioniert wieder
+
+- Ist die Einstellung auf der Fernbedienung ausgeschaltet, bleiben Fotos und Videos nur auf der Kamera. Die Fernbedienung speichert keine doppelte Kopie mehr
+- Eingeschaltet kommt weiterhin alles wie gewohnt auf der Fernbedienung an
+
 NEU — Multicam: bis zu vier Kameras, ein Regisseur
 
 - Verbinde bis zu vier iPhones als Kameras und sieh jeden Winkel live im Raster

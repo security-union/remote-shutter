@@ -1,3 +1,8 @@
+RETTET — "Send Medie til Fjernbetjening" virker igen
+
+- Når indstillingen er slået fra på fjernbetjeningen, bliver fotos og videoer kun på kameraet. Fjernbetjeningen gemmer ikke længere en ekstra kopi
+- Slået til sendes alt stadig til fjernbetjeningen som før
+
 NYT — Multicam: op til fire kameraer, én instruktør
 
 - Forbind op til fire iPhones som kameraer og se alle vinkler live i et gitter

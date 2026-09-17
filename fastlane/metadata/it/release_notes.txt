@@ -1,3 +1,8 @@
+RISOLTO — "Invia Media al Telecomando" funziona di nuovo
+
+- Con l'impostazione disattivata sul telecomando, foto e video restano solo sulla fotocamera. Il telecomando non salva più una copia duplicata
+- Attivata, tutto continua ad arrivare sul telecomando come prima
+
 NOVITÀ — Multicam: fino a quattro fotocamere, un regista
 
 - Collega fino a quattro iPhone come fotocamere e guarda ogni angolazione dal vivo in una griglia
