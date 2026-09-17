@@ -3,9 +3,11 @@
 One phone (the **director**) drives up to four camera phones over the existing
 Stormo/QUIC transport, showing a live preview of every angle and firing
 **synchronized** photo capture and video recording across all of them. Each
-camera saves full-resolution media locally; the footage then auto-collects to
-the director, stamped with alignment metadata so any editor can line the angles
-up.
+camera saves full-resolution media locally; with **Send Media to Remote** on
+(the Settings default) the footage then auto-collects to the director, stamped
+with alignment metadata so any editor can line the angles up. Off keeps every
+capture on its camera only — the director's setting rides each scheduled
+capture/stop command, so the camera decides per shot.
 
 The shape is deliberately lopsided: **one director actor, N unchanged 1:1
 cameras.** A camera runs the same `SessionCoordinator` it always has — it never

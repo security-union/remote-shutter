@@ -1299,6 +1299,28 @@ extension RemoteCmdSerializationTests {
         XCTAssertEqual(result.captureId, "REC-1")
     }
 
+    // MARK: "Send Media to Remote" on the scheduled commands
+
+    /// The director's setting rides both scheduled commands: on by default,
+    /// and an explicit off survives the wire.
+    func testScheduledCommands_carrySendMediaToPeer() {
+        let capOn = roundTrip(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: 1, anchorMillis: 1, captureId: "C", sessionId: "S", cameraIndex: 1))
+        XCTAssertTrue(capOn.sendMediaToPeer, "default: the director auto-collects")
+        let capOff = roundTrip(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: 1, anchorMillis: 1, captureId: "C", sessionId: "S", cameraIndex: 1,
+            sendMediaToPeer: false))
+        XCTAssertFalse(capOff.sendMediaToPeer, "off: the still stays on the camera")
+
+        let stopOn = roundTrip(RemoteCmd.ScheduledStopRecording(
+            fireAtCameraClockMillis: 1, anchorMillis: 1, captureId: "R", sessionId: "S", cameraIndex: 1))
+        XCTAssertTrue(stopOn.sendMediaToPeer)
+        let stopOff = roundTrip(RemoteCmd.ScheduledStopRecording(
+            fireAtCameraClockMillis: 1, anchorMillis: 1, captureId: "R", sessionId: "S", cameraIndex: 1,
+            sendMediaToPeer: false))
+        XCTAssertFalse(stopOff.sendMediaToPeer, "off: the clip stays on the camera")
+    }
+
     /// The start/stop distinction (`isStop`) rides the response action, so the
     /// director routes each ack to the right aggregation.
     func testScheduledRecordingAck_roundTripPreservesIsStop() {

@@ -1035,12 +1035,16 @@ public actor MulticamController {
         guard !targets.isEmpty else { return }
         for link in targets { link.captureOutcome = nil }
 
+        // The "Send Media to Remote" setting (shared with the classic remote)
+        // is read per shot: it decides whether each camera returns its still.
+        let sendMedia = SendMediaPreference.isEnabled
         let fan = fanOutScheduled(
             { fire, anchor, id, index in
                 RemoteCmd.ScheduledCapture(fireAtCameraClockMillis: fire, anchorMillis: anchor,
-                                           captureId: id, sessionId: self.sessionID, cameraIndex: index)
+                                           captureId: id, sessionId: self.sessionID, cameraIndex: index,
+                                           sendMediaToPeer: sendMedia)
             },
-            fallback: { _ in RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false) },
+            fallback: { _ in RemoteCmd.TakePic(sender: nil, sendMediaToPeer: sendMedia) },
             lanes: targets)
 
         logInfo("director: photo \(shortID(fan.captureID)) → [\(names(targets.map(\.peerID)))]")
@@ -1109,12 +1113,15 @@ public actor MulticamController {
             return
         }
 
+        // Same per-shot read as the photo: whether each camera pushes its clip.
+        let sendMedia = SendMediaPreference.isEnabled
         let fan = fanOutScheduled(
             { fire, anchor, id, index in
                 RemoteCmd.ScheduledStopRecording(fireAtCameraClockMillis: fire, anchorMillis: anchor,
-                                                 captureId: id, sessionId: self.sessionID, cameraIndex: index)
+                                                 captureId: id, sessionId: self.sessionID, cameraIndex: index,
+                                                 sendMediaToPeer: sendMedia)
             },
-            fallback: { _ in RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: false) },
+            fallback: { _ in RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: sendMedia) },
             lanes: rolling)
 
         // A lane we can't hear will never ack — settle it now instead of
@@ -1384,9 +1391,11 @@ public actor MulticamController {
             if takeScheduled {
                 let fireAt = SyncClock.nowMillis() + captureLeadMillis
                 let offset = links[peer]?.latestOffset?.offsetMillis ?? 0
+                // An aborted take is void: nothing to collect, whatever the setting.
                 sendTo(peer, RemoteCmd.ScheduledStopRecording(
                     fireAtCameraClockMillis: UInt64(Int64(fireAt) + offset), anchorMillis: fireAt,
-                    captureId: id, sessionId: sessionID, cameraIndex: cameraIndex(of: peer)))
+                    captureId: id, sessionId: sessionID, cameraIndex: cameraIndex(of: peer),
+                    sendMediaToPeer: false))
             } else {
                 sendTo(peer, RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: false))
             }

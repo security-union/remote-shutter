@@ -945,6 +945,46 @@ class SessionCoordinatorTests: XCTestCase {
                        "scheduled stop saves locally AND pushes the clip to the director")
     }
 
+    /// The director's "Send Media to Remote" setting rides the scheduled stop:
+    /// off means the clip is saved on the camera and NOT pushed — no duplicate
+    /// on the phone acting as the remote.
+    func testScheduledStopWithSendMediaOffKeepsTheClipOnTheCamera() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        await harness.deliver(RemoteCmd.ScheduledStartRecording(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: 42, captureId: "R8", sessionId: "S3", cameraIndex: 1))
+        for _ in 0..<200 where camera.startRecordingCalls == 0 {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        await harness.deliver(RemoteCmd.ScheduledStopRecording(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: 42, captureId: "R8", sessionId: "S3", cameraIndex: 1,
+            sendMediaToPeer: false))
+        for _ in 0..<200 where camera.stopRecordingCalls.isEmpty {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(camera.stopRecordingCalls, [false],
+                       "setting off: the clip is saved locally and stays here")
+    }
+
+    /// Same setting on the scheduled photo: the still is saved locally and not
+    /// returned to the director.
+    func testScheduledCaptureWithSendMediaOffKeepsTheStillOnTheCamera() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        await harness.deliver(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: SyncClock.nowMillis(), captureId: "CAP-3",
+            sessionId: "S", cameraIndex: 1, sendMediaToPeer: false))
+        for _ in 0..<200 where camera.takePictureCalls.isEmpty {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(camera.takePictureCalls, [false],
+                       "setting off: the shutter fires without returning the still")
+    }
+
     func testMonitorPhotoModeUnbecomeMonitorPopsToConnected() async {
         await enterMonitor(.Photo)
         await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))

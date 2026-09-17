@@ -2,7 +2,6 @@ import Foundation
 import StoreKit
 import Combine
 
-private let sendMediaToRemoteKey = "sendMediaToRemote"
 
 final class SettingsViewModel: ObservableObject, PurchaseManaging {
 
@@ -38,9 +37,7 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
     // MARK: - Settings
 
     @Published var sendMediaToRemote: Bool {
-        didSet {
-            UserDefaults.standard.set(sendMediaToRemote, forKey: sendMediaToRemoteKey)
-        }
+        didSet { SendMediaPreference.isEnabled = sendMediaToRemote }
     }
 
     // MARK: - App Info
@@ -59,12 +56,7 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
     // MARK: - Init
 
     init() {
-        // Read current value; default to true if key doesn't exist
-        if UserDefaults.standard.object(forKey: sendMediaToRemoteKey) != nil {
-            self.sendMediaToRemote = UserDefaults.standard.bool(forKey: sendMediaToRemoteKey)
-        } else {
-            self.sendMediaToRemote = true
-        }
+        self.sendMediaToRemote = SendMediaPreference.isEnabled
 
         observePurchaseNotifications()
         loadProducts()

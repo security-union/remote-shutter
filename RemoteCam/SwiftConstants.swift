@@ -22,6 +22,22 @@ enum TimerPreference {
     }
 }
 
+/// "Send Media to Remote" (Settings): whether the camera pushes each capture
+/// back to the remote that fired it. ONE reader for every remote surface —
+/// the classic 1:1 monitor and the multicam director both put this on the
+/// wire, and the Settings sheet edits it. Unset means on.
+enum SendMediaPreference {
+    static let key = "sendMediaToRemote"
+    static var isEnabled: Bool {
+        get {
+            UserDefaults.standard.object(forKey: key) == nil
+                ? true
+                : UserDefaults.standard.bool(forKey: key)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
+    }
+}
+
 let AppStoreURL = URL(string: "https://apps.apple.com/us/app/remote-shutter/id633274861")!
 // SKStoreReviewController is rate-limited by the system (~3/year) and can show
 // nothing at all, so it is only fit for the unsolicited prompt. A deliberate tap

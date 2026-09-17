@@ -111,11 +111,9 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
             UpgradeItem(id: tapToFocusPID, title: "", price: "",
                         isPurchased: store.hasTapToFocusFeature(), icon: "camera.metering.spot", tint: "green"),
         ])
-        if FeatureFlags.ENABLE_MULTICAM {
-            items.append(UpgradeItem(id: maxCamerasPID, title: "", price: "",
-                                     isPurchased: store.hasMaxCamerasFeature(),
-                                     icon: "square.grid.2x2.fill", tint: "teal"))
-        }
+        // The multicam pack is deliberately NOT offered here: the welcome
+        // screen carries enough upsells, and the pack sells itself at the
+        // point of use (the scanner's over-cap row → paywall).
         upgrades = items
         updateFeatureFlags()
     }
@@ -145,8 +143,6 @@ final class WelcomeViewModel: ObservableObject, PurchaseManaging {
                 upgrades[i].isPurchased = store.hasVideoRecordingFeature()
             case tapToFocusPID:
                 upgrades[i].isPurchased = store.hasTapToFocusFeature()
-            case maxCamerasPID:
-                upgrades[i].isPurchased = store.hasMaxCamerasFeature()
             default:
                 break
             }

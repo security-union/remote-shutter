@@ -781,6 +781,7 @@ extension RemoteCmd.ScheduledCapture {
         let sessionIdOffset = fbb.create(string: sessionId)
         let params = RemoteShutter_CommandParameters.createCommandParameters(
             &fbb,
+            sendToRemote: sendMediaToPeer,
             captureFireAtCameraClockMs: fireAtCameraClockMillis,
             captureAnchorMs: anchorMillis,
             captureIdOffset: captureIdOffset,
@@ -828,6 +829,7 @@ extension RemoteCmd.ScheduledStopRecording {
         let sessionIdOffset = fbb.create(string: sessionId)
         let params = RemoteShutter_CommandParameters.createCommandParameters(
             &fbb,
+            sendToRemote: sendMediaToPeer,
             captureFireAtCameraClockMs: fireAtCameraClockMillis,
             captureAnchorMs: anchorMillis,
             captureIdOffset: captureIdOffset,
@@ -1272,7 +1274,8 @@ extension RemoteCmd {
                 anchorMillis: params?.captureAnchorMs ?? 0,
                 captureId: params?.captureId ?? "",
                 sessionId: params?.captureSessionId ?? "",
-                cameraIndex: Int(params?.captureCameraIndex ?? 0))
+                cameraIndex: Int(params?.captureCameraIndex ?? 0),
+                sendMediaToPeer: params?.sendToRemote ?? false)
 
         case .scheduledstartrecording:
             return ScheduledStartRecording(
@@ -1288,7 +1291,8 @@ extension RemoteCmd {
                 anchorMillis: params?.captureAnchorMs ?? 0,
                 captureId: params?.captureId ?? "",
                 sessionId: params?.captureSessionId ?? "",
-                cameraIndex: Int(params?.captureCameraIndex ?? 0))
+                cameraIndex: Int(params?.captureCameraIndex ?? 0),
+                sendMediaToPeer: params?.sendToRemote ?? false)
 
         case .setstreamprofile:
             return SetStreamProfile(

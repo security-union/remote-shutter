@@ -51,6 +51,13 @@ final class MulticamControllerTests: XCTestCase {
         super.setUp()
         // The rig timer seeds from the shared preference; tests start from off.
         UserDefaults.standard.removeObject(forKey: TimerPreference.key)
+        // "Send Media to Remote" is read per shot; tests start from the default (on).
+        UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
+    }
+
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
+        super.tearDown()
     }
 
     private func makeController(peers: [MCPeerID])
@@ -130,6 +137,61 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         XCTAssertEqual(TimerPreference.seconds, 10,
                        "changing it in multicam persists the one shared preference")
+    }
+
+    // MARK: - "Send Media to Remote" (shared with the classic remote)
+
+    /// The setting rides every scheduled capture and stop, so each camera
+    /// decides per shot whether to push its still/clip back. Off keeps footage
+    /// on the cameras only — no duplicate on the director.
+    func testSendMediaOffRidesTheScheduledCapture() async {
+        SendMediaPreference.isEnabled = false
+        let (controller, transport, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledCapture }
+        XCTAssertEqual(captures.map(\.sendMediaToPeer), [false],
+                       "the director's setting travels with the shot")
+    }
+
+    func testSendMediaOffRidesTheScheduledStop() async {
+        SendMediaPreference.isEnabled = false
+        let (controller, transport, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()?.id
+        controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.stopRecording()
+        await controller.waitForIdle()
+
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledStopRecording }
+        XCTAssertEqual(stops.map(\.sendMediaToPeer), [false],
+                       "setting off: the camera keeps the clip, the director gets none")
+    }
+
+    /// Unset (the default) auto-collects, as the director always has.
+    func testSendMediaDefaultsOnSoTheDirectorAutoCollects() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        transport.sentMessages.removeAll()
+
+        controller.capturePhoto()
+        await controller.waitForIdle()
+
+        let captures = sent(transport, RemoteCmd.ScheduledCapture.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledCapture }
+        XCTAssertEqual(captures.map(\.sendMediaToPeer), [true])
     }
 
     // MARK: - Capabilities → live
