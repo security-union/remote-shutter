@@ -1,3 +1,8 @@
+DÜZELTİLDİ — "Medyayı Kumandaya Gönder" yeniden çalışıyor
+
+- Kumandada bu ayar kapalıyken fotoğraf ve videolar yalnızca kamerada kalır. Kumanda artık yinelenen bir kopya kaydetmez
+- Açıkken her şey eskisi gibi kumandaya ulaşmaya devam eder
+
 YENİ — Multicam: dört kameraya kadar, tek yönetmen
 
 - Dört adede kadar iPhone'u kamera olarak bağlayın ve her açıyı ızgarada canlı izleyin

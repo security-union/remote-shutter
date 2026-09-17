@@ -1,3 +1,8 @@
+ĐÃ SỬA — "Gửi ảnh & video đến điều khiển" hoạt động trở lại
+
+- Khi tắt cài đặt này trên điều khiển, ảnh và video chỉ lưu trên camera. Điều khiển không còn giữ bản sao trùng lặp
+- Khi bật, mọi thứ vẫn được gửi đến điều khiển như trước
+
 MỚI — Multicam: tối đa bốn camera, một đạo diễn
 
 - Kết nối tối đa bốn iPhone làm camera và xem mọi góc máy trực tiếp trong lưới

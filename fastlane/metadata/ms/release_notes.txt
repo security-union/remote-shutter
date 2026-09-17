@@ -1,3 +1,8 @@
+DIBAIKI — "Hantar Media ke Kawalan Jauh" berfungsi semula
+
+- Apabila tetapan ini dimatikan pada kawalan jauh, foto dan video kekal pada kamera sahaja. Kawalan jauh tidak lagi menyimpan salinan pendua
+- Apabila dihidupkan, semuanya tetap sampai ke kawalan jauh seperti sebelum ini
+
 BAHARU — Multicam: sehingga empat kamera, satu pengarah
 
 - Sambungkan sehingga empat iPhone sebagai kamera dan lihat setiap sudut secara langsung dalam grid
