@@ -142,6 +142,8 @@ final class LoopbackFakeCamera: FakeCameraControlling, @unchecked Sendable {
     let clipBytes = Data(repeating: 0xC1, count: 128)
     private(set) var clipURL: URL?
 
+    deinit { clipURL.map { try? FileManager.default.removeItem(at: $0) } }
+
     /// Mirrors `RecordingPipeline.saveMovieToPhotosAppAndRemotePeer`: with
     /// send-media on, the finished file goes out as a resource and the stop
     /// reply follows the transfer; with it off, the reply goes out at once.
@@ -1041,7 +1043,6 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(cameraState, .camera)
         let monitorState = await monitorCoordinator.currentStateName()
         XCTAssertEqual(monitorState, .monitor)
-        XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
         XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
         XCTAssertTrue(cameraAlerts.shownErrors.isEmpty)
     }
