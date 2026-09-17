@@ -518,15 +518,13 @@ extension RemoteCmd.StopRecordingVideoResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-        let mediaOffset = video.map { fbb.createVector(bytes: $0) } ?? Offset()
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
-            action: .stoprecording,
-            success: error == nil && video != nil,
-            errorOffset: errorOffset,
-            mediaDataVectorOffset: mediaOffset
+            action: .stoprecordingfinished,
+            success: error == nil,
+            errorOffset: errorOffset
         )
-        return buildResponse(&fbb, action: .stoprecording, response: resp)
+        return buildResponse(&fbb, action: .stoprecordingfinished, response: resp)
     }
 }
 
@@ -1338,6 +1336,14 @@ extension RemoteCmd {
         case .requestcamerastatereport:
             return RequestCameraStateReport()
 
+        case .stoprecordingfinished:
+            // `CommandAction` is ONE enum shared by commands and responses, and
+            // this switch must be exhaustive. StopRecordingFinished only ever
+            // travels as a response (see `decodeResponse`); a peer sending it
+            // as a command is malformed, so it is ignored like `.unknown`.
+            logWarning("RemoteCmd: StopRecordingFinished is not a command")
+            return nil
+
         case .setvideoquality:
             let resolution = fromFBResolution(params?.videoResolution ?? .hd1080p)
             let frameRate = fromFBFrameRate(params?.videoFrameRate ?? .fps30)
@@ -1410,14 +1416,19 @@ extension RemoteCmd {
             let startTime: Date? = resp.recordingStartTime > 0 ? Date(timeIntervalSince1970: Double(resp.recordingStartTime) / 1000.0) : nil
             return StartRecordingVideoAck(sender: nil, recordingStartTime: startTime, error: nsError)
 
+        // The stop protocol's two replies ride two DISTINCT actions:
+        //   .stoprecording         → StopRecordingVideoAck  ("stop received")
+        //   .stoprecordingfinished → StopRecordingVideoResp ("take over" + error?)
+        // Before this split both rode `.stoprecording`, told apart by sniffing
+        // `success` and `media_data` — and a successful "stopped, nothing to
+        // send" had to be encoded as success=false to land in the right
+        // branch. The clip never travels in either message: it streams as a
+        // resource transfer, so neither reply reads or writes `media_data`.
         case .stoprecording:
-            // Ack: success=true, no media, no error
-            if resp.success && !resp.hasMediaData && nsError == nil {
-                return StopRecordingVideoAck()
-            } else {
-                let videoData: Data? = resp.mediaDataCount > 0 ? Data(resp.mediaData) : nil
-                return StopRecordingVideoResp(sender: nil, pic: videoData, error: nsError)
-            }
+            return StopRecordingVideoAck()
+
+        case .stoprecordingfinished:
+            return StopRecordingVideoResp(error: nsError)
 
         case .takepicture:
             // Ack: success=true, no media, no error

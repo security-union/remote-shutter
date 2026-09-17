@@ -58,9 +58,30 @@ class LoopbackMultipeerService: MultipeerServiceProtocol {
     func disconnect() {}
     func stopSession() {}
     func invitePeer(_ peer: MCPeerID, timeout: TimeInterval) {}
+    /// Resources sent from this side: (source file, wire name).
+    let sentResources = Locked<[(url: URL, name: String)]>([])
+
+    /// Mirrors Stormo's resource transfer: the file is copied to a fresh temp
+    /// URL on the receiving side and handed to its delegate, exactly as
+    /// `didFinishReceivingResource` sees it in production.
     func sendResource(at url: URL, withName name: String,
                       toPeer peer: MCPeerID,
-                      completion: @escaping (Error?) -> Void) -> Progress? { nil }
+                      completion: @escaping (Error?) -> Void) -> Progress? {
+        sentResources.mutate { $0.append((url, name)) }
+        guard let remote, let remoteDelegate = remote.delegate else {
+            completion(NSError(domain: "loopback", code: 1)); return nil
+        }
+        let landed = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString)-\(name)")
+        do {
+            try FileManager.default.copyItem(at: url, to: landed)
+        } catch {
+            completion(error); return nil
+        }
+        remoteDelegate.didFinishReceivingResource(name: name, from: localPeerID, at: landed, error: nil)
+        completion(nil)
+        return nil
+    }
 
     func send(_ msg: Message, to peers: [MCPeerID],
               mode: MCSessionSendDataMode) -> Bool {
@@ -116,9 +137,27 @@ final class LoopbackFakeCamera: FakeCameraControlling, @unchecked Sendable {
         coordinator?.tell(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date()))
     }
 
+    /// The clip this camera "recorded"; written on demand so a test can
+    /// compare bytes across the transfer.
+    let clipBytes = Data(repeating: 0xC1, count: 128)
+    private(set) var clipURL: URL?
+
+    deinit { clipURL.map { try? FileManager.default.removeItem(at: $0) } }
+
+    /// Mirrors `RecordingPipeline.saveMovieToPhotosAppAndRemotePeer`: with
+    /// send-media on, the finished file goes out as a resource and the stop
+    /// reply follows the transfer; with it off, the reply goes out at once.
     override func stopRecordingVideo(_ shouldSendVideo: Bool) {
         super.stopRecordingVideo(shouldSendVideo)
-        coordinator?.tell(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+        guard shouldSendVideo else {
+            coordinator?.tell(RemoteCmd.StopRecordingVideoResp())
+            return
+        }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("loopback_\(UUID().uuidString).mov")
+        try? clipBytes.write(to: url)
+        clipURL = url
+        coordinator?.tell(UICmd.SendVideoResource(videoURL: url, peers: [], shouldSendToPeer: true, sender: nil))
     }
 }
 
@@ -133,6 +172,8 @@ class LoopbackSessionTests: XCTestCase {
 
     private var cameraCoordinator: SessionCoordinator!
     private var cameraTransport: LoopbackMultipeerService!
+    /// Clips the monitor handed to its photo library, by URL.
+    private var monitorVideoSaves: Locked<[URL]>!
     private var cameraAlerts: FakeAlertPresenter!
 
     private var lobby: FakeScannerLobby!
@@ -158,6 +199,10 @@ class LoopbackSessionTests: XCTestCase {
         await monitorCoordinator.setAlertPresenter(monitorAlerts)
         await cameraCoordinator.setAlertPresenter(cameraAlerts)
 
+        monitorVideoSaves = Locked<[URL]>([])
+        let saves = monitorVideoSaves!
+        await monitorCoordinator.setVideoLibrarySaver { url in saves.mutate { $0.append(url) } }
+
         monitorPresenter = MonitorPresenter()
         lobby = FakeScannerLobby()
         lobbyWrapper = WeakScannerLobby(lobby)
@@ -175,6 +220,8 @@ class LoopbackSessionTests: XCTestCase {
         cameraTransport = nil
         monitorAlerts = nil
         cameraAlerts = nil
+        monitorVideoSaves?.value.forEach { try? FileManager.default.removeItem(at: $0) }
+        monitorVideoSaves = nil
         monitorPresenter = nil
         lobby = nil
         lobbyWrapper = nil
@@ -950,15 +997,48 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(startAcks.count, 1, "camera must forward the success StartRecordingVideoAck to the monitor")
         XCTAssertNotNil(startAcks.first?.recordingStartTime)
 
-        // Stop: the same shutter now sends StopRecordingVideo.
+        // Stop: the same shutter now sends StopRecordingVideo, with "Send
+        // Media to Remote" ON.
         monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
         await drainBothSessions()
 
         XCTAssertEqual(fakeCamera.stopRecordingCalls, [true])
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.StopRecordingVideoAck })
         XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.StopRecordingVideoResp })
+        // The clip went out as ONE resource transfer, never inside a message.
+        XCTAssertEqual(cameraTransport.sentResources.value.map(\.url), [fakeCamera.clipURL])
+        XCTAssertFalse(cameraTransport.sentMessages.contains { $0 is UICmd.SendVideoResource })
+        // The monitor handed its library the landed file — a different file
+        // from the camera's, with the same bytes — by URL.
+        let landed = monitorVideoSaves.value
+        XCTAssertEqual(landed.count, 1)
+        XCTAssertNotEqual(landed.first, fakeCamera.clipURL)
+        XCTAssertEqual(landed.first.flatMap { try? Data(contentsOf: $0) }, fakeCamera.clipBytes)
         // Camera popped back to .camera after transmitting; monitor walked
         // monitorRecordingVideo → monitorWaitingForVideo → .monitor.
+        let cameraState = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(cameraState, .camera)
+        let monitorState = await monitorCoordinator.currentStateName()
+        XCTAssertEqual(monitorState, .monitor)
+        XCTAssertTrue(monitorAlerts.shownErrors.isEmpty)
+    }
+
+    /// "Send Media to Remote" OFF: the remote's stop carries the preference,
+    /// the camera keeps the clip to itself, and the remote's library never
+    /// hears about it. Both machines still settle.
+    func testStopWithSendMediaOffTransfersNothing() async {
+        let fakeCamera = await connectCameraAndMonitor(monitorMode: .Video)
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: false))
+        await drainBothSessions()
+
+        monitorCoordinator.tell(UICmd.TakePicture(sender: nil, sendMediaToRemote: false))
+        await drainBothSessions()
+
+        XCTAssertEqual(fakeCamera.stopRecordingCalls, [false])
+        XCTAssertNil(fakeCamera.clipURL, "no clip is even offered for transfer")
+        XCTAssertTrue(cameraTransport.sentResources.value.isEmpty)
+        XCTAssertTrue(monitorVideoSaves.value.isEmpty)
+        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.StopRecordingVideoResp })
         let cameraState = await cameraCoordinator.currentStateName()
         XCTAssertEqual(cameraState, .camera)
         let monitorState = await monitorCoordinator.currentStateName()

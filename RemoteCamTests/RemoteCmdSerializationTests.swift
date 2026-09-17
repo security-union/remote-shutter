@@ -168,19 +168,24 @@ final class RemoteCmdSerializationTests: XCTestCase {
 
     // MARK: - 5. StopRecordingVideoResp
 
-    func testStopRecordingVideoResp_withVideo() {
-        let videoData = Data(repeating: 0xAB, count: 256)
-        let original = RemoteCmd.StopRecordingVideoResp(sender: nil, video: videoData)
-        let decoded: RemoteCmd.StopRecordingVideoResp = roundTrip(original)
-        XCTAssertEqual(decoded.video, videoData)
+    /// A successful terminal message is NOT the ack: the two ride distinct
+    /// actions, so neither `success` nor a media payload is needed to tell
+    /// them apart (the clip never travels in a message).
+    func testStopRecordingVideoResp_successIsDistinctFromAck() {
+        let decoded: RemoteCmd.StopRecordingVideoResp = roundTrip(RemoteCmd.StopRecordingVideoResp())
         XCTAssertNil(decoded.error)
+
+        var buffer = ByteBuffer(bytes: [UInt8](toFlatBufferData(RemoteCmd.StopRecordingVideoResp())))
+        let msg: RemoteShutter_P2PMessage? = try? getCheckedRoot(byteBuffer: &buffer)
+        XCTAssertEqual(msg?.response?.action, .stoprecordingfinished)
+        XCTAssertEqual(msg?.response?.success, true)
+        XCTAssertFalse(msg?.response?.hasMediaData ?? true, "video never rides in the message")
     }
 
     func testStopRecordingVideoResp_withError() {
         let error = NSError(domain: "test", code: 99, userInfo: [NSLocalizedDescriptionKey: "stop recording failed"])
         let original = RemoteCmd.StopRecordingVideoResp(sender: nil, error: error)
         let decoded: RemoteCmd.StopRecordingVideoResp = roundTrip(original)
-        XCTAssertNil(decoded.video)
         XCTAssertNotNil(decoded.error)
         XCTAssertEqual(decoded.error?.localizedDescription, "stop recording failed")
     }
@@ -873,10 +878,9 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.torchMode, .off, "TorchMode.off (rawValue 0) must survive round-trip")
     }
 
-    func testStopRecordingVideoResp_nilVideoNilError() {
-        let original = RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil)
+    func testStopRecordingVideoResp_successRoundTrip() {
+        let original = RemoteCmd.StopRecordingVideoResp()
         let decoded: RemoteCmd.StopRecordingVideoResp = roundTrip(original)
-        XCTAssertNil(decoded.video)
         XCTAssertNil(decoded.error)
     }
 

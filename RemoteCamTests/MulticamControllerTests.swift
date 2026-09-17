@@ -68,6 +68,8 @@ final class MulticamControllerTests: XCTestCase {
         transport.connectedPeers = peers
         let display = FakeMulticamDisplay()
         await controller.setDisplay(display)
+        // Never touch the real Photos library from a test: clips "import" fine.
+        await controller.setVideoImporter { _, _, completion in completion(.saved) }
         await controller.install(transport: transport, initialPeers: peers)
         await controller.waitForIdle()
         return (controller, transport, display)
@@ -1807,6 +1809,24 @@ final class MulticamControllerTests: XCTestCase {
         echoes = sent(transport, RemoteCmd.StopRecordingVideoResp.self)
         XCTAssertEqual(echoes.map(\.peers), [[camB]])
         XCTAssertNotNil((echoes.first?.msg as? RemoteCmd.StopRecordingVideoResp)?.error)
+    }
+
+    /// A collected clip the director cannot move into Photos is a FAILED
+    /// collection — the lane's tile shows it and offers the retry (the camera
+    /// still holds the file) instead of a silent log line.
+    func testClipThatFailsToImportMarksTheLaneFailed() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+        await controller.setVideoImporter { _, _, completion in completion(.failed(nil)) }
+        let clip = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RS_test_\(UUID().uuidString)_cam1.mov")
+        try? Data([0x00]).write(to: clip)
+        addTeardownBlock { try? FileManager.default.removeItem(at: clip) }
+
+        controller.didFinishReceivingResource(name: "RS_a_b_cam1.mov", from: camA, at: clip, error: nil)
+        await controller.waitForIdle()
+
+        let state = await controller.collectionStateForTesting(camA)
+        XCTAssertEqual(state, .failed)
     }
 
     func testReturnedPhotoMarksLaneCollected() async {

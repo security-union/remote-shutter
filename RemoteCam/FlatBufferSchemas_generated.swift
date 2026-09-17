@@ -41,8 +41,9 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case requestvideoresend = 30
   case camerastatereport = 31
   case requestcamerastatereport = 32
+  case stoprecordingfinished = 33
 
-  public static var max: RemoteShutter_CommandAction { return .requestcamerastatereport }
+  public static var max: RemoteShutter_CommandAction { return .stoprecordingfinished }
   public static var min: RemoteShutter_CommandAction { return .unknown }
 }
 

@@ -452,6 +452,9 @@ public actor MulticamController {
         case let finished as ResourceTransferFinished:
             handleResourceFinished(finished)
 
+        case let failed as ClipImportFailed:
+            handleClipImportFailed(failed.peer)
+
         case let measured as ClockPongMeasured:
             storePong(measured.pong, t3: measured.t3, from: measured.peer)
 
@@ -1520,8 +1523,7 @@ public actor MulticamController {
         // this echo (the 1:1 monitor's contract). Sent on failure too: the
         // camera returns to `.camera`, where the collection retry
         // (`RequestVideoResend`) is still answered.
-        sendTo(finished.peer, RemoteCmd.StopRecordingVideoResp(
-            sender: nil, pic: nil, error: finished.error.map { $0 as NSError }))
+        sendTo(finished.peer, RemoteCmd.StopRecordingVideoResp(error: finished.error.map { $0 as NSError }))
         guard finished.error == nil, let localURL = finished.localURL else {
             // Footage is still safe on the camera; the tile offers a retry. Any
             // partial temp file is ours to clean up.
@@ -1534,7 +1536,25 @@ public actor MulticamController {
         // under that; QuickTime sync metadata rides inside the .mov itself. The
         // controller owns `localURL` until `saveVideoToLibrary` either moves it
         // into the library or deletes it.
-        Self.saveVideoToLibrary(at: localURL, originalFilename: finished.name)
+        saveVideoToLibrary(at: localURL, originalFilename: finished.name, from: finished.peer)
+    }
+
+    /// Seam: moves a landed clip into Photos (`VideoLibraryImport.move`);
+    /// tests substitute an importer that reports an outcome without Photos.
+    var videoImporter: (URL, String, @escaping (VideoLibraryImport.Outcome) -> Void) -> Void = {
+        VideoLibraryImport.move($0, originalFilename: $1, completion: $2)
+    }
+    func setVideoImporter(_ importer: @escaping (URL, String, @escaping (VideoLibraryImport.Outcome) -> Void) -> Void) {
+        videoImporter = importer
+    }
+
+    /// A clip that reached the director but could not be moved into Photos
+    /// is a FAILED collection: the lane's tile shows it and offers the retry
+    /// (the camera still holds the file — multicam clips are copied, not
+    /// moved, on the camera).
+    private func handleClipImportFailed(_ peer: MCPeerID) {
+        guard let link = links[peer], link.collection == .collected else { return }
+        link.collection = .failed
     }
 
     /// The transport hands the director a temp file per received clip; the
@@ -1570,23 +1590,18 @@ public actor MulticamController {
         }
     }
 
-    private static func saveVideoToLibrary(at url: URL, originalFilename: String) {
-        PHPhotoLibrary.requestAuthorization { status in
-            guard status == .authorized else {
-                discardTempFile(url) // never authorized to import — don't leak it
-                return
+    private func saveVideoToLibrary(at url: URL, originalFilename: String, from peer: MCPeerID) {
+        videoImporter(url, originalFilename) { [weak self] outcome in
+            switch outcome {
+            case .saved:
+                break
+            case .accessDenied:
+                DispatchQueue.main.async { showPhotosAccessDeniedModal(for: .video) }
+                self?.tell(ClipImportFailed(peer: peer))
+            case .failed(let error):
+                logWarning("Director could not save clip \(originalFilename): \(String(describing: error))")
+                self?.tell(ClipImportFailed(peer: peer))
             }
-            PHPhotoLibrary.shared().performChanges({
-                let options = PHAssetResourceCreationOptions()
-                options.shouldMoveFile = true
-                options.originalFilename = originalFilename
-                PHAssetCreationRequest.forAsset().addResource(with: .video, fileURL: url, options: options)
-            }, completionHandler: { ok, _ in
-                // `shouldMoveFile` consumes the file only on success; on failure
-                // it stays behind, so the owner removes it.
-                if !ok { discardTempFile(url) }
-                print(ok ? "Director collected clip \(originalFilename)" : "collect clip failed")
-            })
         }
     }
 
@@ -1781,6 +1796,13 @@ final class ResourceTransferFinished: Message, @unchecked Sendable {
         self.peer = peer; self.name = name; self.localURL = localURL; self.error = error
         super.init(sender: nil)
     }
+}
+
+/// The Photos import of a collected clip failed (inbox message so the lane
+/// state changes on the pump, like every other state change).
+final class ClipImportFailed: Message, @unchecked Sendable {
+    let peer: MCPeerID
+    init(peer: MCPeerID) { self.peer = peer; super.init(sender: nil) }
 }
 
 // MARK: - Director UI-command messages (single-entry inbox)

@@ -269,7 +269,7 @@ class RecordingPipeline {
                     self?.onRecordingStopped?()
                     self?.onModeChanged?(true)
                 }
-                self.sendMessage?(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+                self.sendMessage?(RemoteCmd.StopRecordingVideoResp())
                 return
             }
             if !self.isRecording {
@@ -293,14 +293,14 @@ class RecordingPipeline {
                     self?.onRecordingStopped?()
                     self?.onModeChanged?(true)
                 }
-                self.sendMessage?(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+                self.sendMessage?(RemoteCmd.StopRecordingVideoResp())
                 return
             }
             guard let writer = self.assetWriter else {
                 // isRecording without a writer is unreachable by construction;
                 // if it ever happens, answer rather than wedge.
                 self.resetRecordingState()
-                self.sendMessage?(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+                self.sendMessage?(RemoteCmd.StopRecordingVideoResp())
                 return
             }
             self.recordingStartShared.value = nil
@@ -433,7 +433,7 @@ class RecordingPipeline {
             sendVideoAsResource(movieUrl())
         } else {
             // Send empty response when not sending video
-            sendMessage?(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+            sendMessage?(RemoteCmd.StopRecordingVideoResp())
         }
         saveMovieToPhotosApp()
     }

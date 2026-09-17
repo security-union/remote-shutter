@@ -66,8 +66,16 @@ enum CommandAction : byte {
                                // RequestCameraStateReport. Payload rides in
                                // CommandParameters (state_report_seq,
                                // state_recording_phase, elapsed ticks).
-    RequestCameraStateReport = 32 // monitor/director -> camera: re-push the
+    RequestCameraStateReport = 32, // monitor/director -> camera: re-push the
                                // current CameraStateReport (e.g. on connection).
+    StopRecordingFinished = 33 // The stop protocol's terminal message
+                               // (StopRecording -> its ack -> this). Carries
+                               // success/error ONLY: the clip never rides in a
+                               // message — it streams disk-to-disk as a
+                               // resource transfer. When a clip was sent, the
+                               // RECEIVER sends this first, as its "clip
+                               // landed / failed" confirmation; the camera
+                               // then forwards it to close the protocol.
 }
 
 // Whether the camera device drives its own on-screen live preview. On is the
@@ -335,7 +343,8 @@ table CameraStateResponse {
     error: string;
     current_state: CameraState;
     capabilities: CameraCapabilities;
-    media_data: [ubyte];
+    media_data: [ubyte];              // TakePicture response only: the still's bytes.
+                                      // Video never travels here (see StopRecordingFinished).
     recording_start_time: uint64;
     available_lenses: [CameraLensType];
     zoom_range: ZoomRange;

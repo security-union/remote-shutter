@@ -138,7 +138,10 @@ values are a handful of `Locked<T>` boxes on the per-frame hot path.
 FlatBuffers table (`FlatBufferSchemas.fbs`). Control messages ship reliable,
 preview frames unreliable with credit-window back-pressure (the camera only sends
 when the remote has acked), and finished videos transfer as resources with
-progress reporting.
+progress reporting — disk-to-disk, in chunks; the receiver moves the landed
+temp file into Photos (`VideoLibraryImport`), so a clip never passes through
+memory on either device. `StopRecordingVideoResp` is the stop protocol's
+terminal "the take is over" message and carries only success/error.
 
 ## The screens
 

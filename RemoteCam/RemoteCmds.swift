@@ -73,24 +73,16 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// The stop protocol's terminal message (StopRecordingVideo → Ack →
+    /// this): "the take is over", with the failure if there was one. It never
+    /// carries the clip — a finished movie streams disk-to-disk as a resource
+    /// transfer (`UICmd.SendVideoResource` on the camera,
+    /// `UICmd.VideoResourceReceived` on the monitor) — so a multi-gigabyte 4K
+    /// take never passes through memory on either device.
     public class StopRecordingVideoResp: Message, @unchecked Sendable {
-        let video: Data?
         let error: Error?
 
-        public init(sender: AnyObject?, video: Data) {
-            self.video = video
-            self.error = nil
-            super.init(sender: sender)
-        }
-
-        public init(sender: AnyObject?, pic: Data?, error: Error?) {
-            self.video = pic
-            self.error = error
-            super.init(sender: sender)
-        }
-
-        public init(sender: AnyObject?, error: Error) {
-            self.video = nil
+        public init(sender: AnyObject? = nil, error: Error? = nil) {
             self.error = error
             super.init(sender: sender)
         }
