@@ -151,11 +151,7 @@ extension MonitorViewController {
     }
     
     private func executeAction() {
-        let defaults = UserDefaults.standard
-        let shouldSendMedia = defaults.object(forKey: "sendMediaToRemote") == nil
-            ? true
-            : defaults.bool(forKey: "sendMediaToRemote")
-        session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: shouldSendMedia)
+        session ! UICmd.TakePicture(sender: nil, sendMediaToRemote: SendMediaPreference.isEnabled)
     }
     
     private func resetTimerUI() {

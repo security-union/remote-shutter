@@ -144,8 +144,11 @@ final class IncompatibilityDetected: Message, @unchecked Sendable {}
 /// in order with every other state transition — never racing it.
 final class FireScheduledCapture: Message, @unchecked Sendable {
     let metadata: CaptureSyncMetadata
-    init(metadata: CaptureSyncMetadata) {
+    /// The director's "Send Media to Remote" setting for this shot.
+    let sendMediaToPeer: Bool
+    init(metadata: CaptureSyncMetadata, sendMediaToPeer: Bool) {
         self.metadata = metadata
+        self.sendMediaToPeer = sendMediaToPeer
         super.init(sender: nil)
     }
 }
@@ -1204,15 +1207,16 @@ public actor SessionCoordinator {
         case let fire as FireScheduledCapture:
             // The fire instant arrived (enqueued by the off-actor delay task).
             // Pull the shutter through the normal photo path: save locally
-            // stamped, AND return the (stamped) still to the director so it
-            // auto-collects every angle.
+            // stamped, and return the (stamped) still to the director so it
+            // auto-collects every angle — unless the director's "Send Media
+            // to Remote" setting is off, in which case the still stays here.
             pendingSyncMetadata = fire.metadata
             ctrl.currentCameraMode = .Photo
             ctrl.updateCameraStatus()
-            ctrl.takePicture(true)
+            ctrl.takePicture(fire.sendMediaToPeer)
             let generation = scheduleTimeout(.cameraTakingPic)
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
-            await transition(to: .cameraTakingPic(sendMediaToPeer: true, generation: generation))
+            await transition(to: .cameraTakingPic(sendMediaToPeer: fire.sendMediaToPeer, generation: generation))
 
         case is RemoteCmd.ToggleCamera:
             do {
@@ -1549,7 +1553,8 @@ public actor SessionCoordinator {
         let delayMillis = scheduledFireDelayMillis(lateness)
         Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(delayMillis) * 1_000_000)
-            self?.tell(FireScheduledCapture(metadata: metadata))
+            self?.tell(FireScheduledCapture(metadata: metadata,
+                                            sendMediaToPeer: scheduled.sendMediaToPeer))
         }
     }
 
@@ -1592,11 +1597,13 @@ public actor SessionCoordinator {
         // by a skewed offset estimate.
         await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
             captureId: scheduled.captureId, isStop: true))
-        // Fire INLINE: save locally AND push the clip to the director (the
-        // existing resource-transfer path; sync metadata rides in the file).
+        // Fire INLINE: save locally and — if the director's "Send Media to
+        // Remote" setting is on — push the clip to it (the existing
+        // resource-transfer path; sync metadata rides in the file). Off keeps
+        // the clip on this camera only.
         guard let ctrl else { return }
         SessionDebug.pipelinePhase("stop: scheduled stop — firing inline")
-        ctrl.stopRecordingVideo(true)
+        ctrl.stopRecordingVideo(scheduled.sendMediaToPeer)
         await transition(to: .cameraTransmittingVideo)
     }
 

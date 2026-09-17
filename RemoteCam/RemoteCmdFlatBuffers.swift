@@ -785,7 +785,8 @@ extension RemoteCmd.ScheduledCapture {
             captureAnchorMs: anchorMillis,
             captureIdOffset: captureIdOffset,
             captureSessionIdOffset: sessionIdOffset,
-            captureCameraIndex: Int32(cameraIndex))
+            captureCameraIndex: Int32(cameraIndex),
+            captureSendMediaToPeer: sendMediaToPeer)
         return buildCommand(&fbb, action: .scheduledcapture, parameters: params)
     }
 }
@@ -832,7 +833,8 @@ extension RemoteCmd.ScheduledStopRecording {
             captureAnchorMs: anchorMillis,
             captureIdOffset: captureIdOffset,
             captureSessionIdOffset: sessionIdOffset,
-            captureCameraIndex: Int32(cameraIndex))
+            captureCameraIndex: Int32(cameraIndex),
+            captureSendMediaToPeer: sendMediaToPeer)
         return buildCommand(&fbb, action: .scheduledstoprecording, parameters: params)
     }
 }
@@ -1272,7 +1274,8 @@ extension RemoteCmd {
                 anchorMillis: params?.captureAnchorMs ?? 0,
                 captureId: params?.captureId ?? "",
                 sessionId: params?.captureSessionId ?? "",
-                cameraIndex: Int(params?.captureCameraIndex ?? 0))
+                cameraIndex: Int(params?.captureCameraIndex ?? 0),
+                sendMediaToPeer: params?.captureSendMediaToPeer ?? true)
 
         case .scheduledstartrecording:
             return ScheduledStartRecording(
@@ -1288,7 +1291,8 @@ extension RemoteCmd {
                 anchorMillis: params?.captureAnchorMs ?? 0,
                 captureId: params?.captureId ?? "",
                 sessionId: params?.captureSessionId ?? "",
-                cameraIndex: Int(params?.captureCameraIndex ?? 0))
+                cameraIndex: Int(params?.captureCameraIndex ?? 0),
+                sendMediaToPeer: params?.captureSendMediaToPeer ?? true)
 
         case .setstreamprofile:
             return SetStreamProfile(
