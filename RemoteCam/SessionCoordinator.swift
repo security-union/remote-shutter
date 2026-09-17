@@ -831,6 +831,8 @@ public actor SessionCoordinator {
         if !(msg is RemoteCmd.SendFrame || msg is RemoteCmd.RequestFrame) {
             logInfo("session rx \(type(of: msg)) [\(currentStateName())]")
         }
+        // 1:1 monitor only — a multicam director is the transport delegate
+        // itself and collects N clips per lane in `MulticamController`.
         // A landed clip is a fact outside the protocol: the file is on disk
         // and ours to move into Photos, whatever state the machine is in.
         // Handled HERE, ahead of the state dispatch, because the transient
@@ -3298,8 +3300,10 @@ public actor SessionCoordinator {
                 DispatchQueue.main.async {
                     showPhotosAccessDeniedModal(for: .video)
                 }
-            case .failed:
-                showError(NSLocalizedString("Unable to save video to Photos app", comment: ""))
+            case .failed(let error):
+                // Localized headline plus the system's own reason.
+                let headline = NSLocalizedString("Unable to save video to Photos app", comment: "")
+                showError(error.map { "\(headline): \($0.localizedDescription)" } ?? headline)
             }
         }
     }

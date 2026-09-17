@@ -452,6 +452,9 @@ public actor MulticamController {
         case let finished as ResourceTransferFinished:
             handleResourceFinished(finished)
 
+        case let failed as ClipImportFailed:
+            handleClipImportFailed(failed.peer)
+
         case let measured as ClockPongMeasured:
             storePong(measured.pong, t3: measured.t3, from: measured.peer)
 
@@ -1533,7 +1536,25 @@ public actor MulticamController {
         // under that; QuickTime sync metadata rides inside the .mov itself. The
         // controller owns `localURL` until `saveVideoToLibrary` either moves it
         // into the library or deletes it.
-        Self.saveVideoToLibrary(at: localURL, originalFilename: finished.name)
+        saveVideoToLibrary(at: localURL, originalFilename: finished.name, from: finished.peer)
+    }
+
+    /// Seam: moves a landed clip into Photos (`VideoLibraryImport.move`);
+    /// tests substitute an importer that reports an outcome without Photos.
+    var videoImporter: (URL, String, @escaping (VideoLibraryImport.Outcome) -> Void) -> Void = {
+        VideoLibraryImport.move($0, originalFilename: $1, completion: $2)
+    }
+    func setVideoImporter(_ importer: @escaping (URL, String, @escaping (VideoLibraryImport.Outcome) -> Void) -> Void) {
+        videoImporter = importer
+    }
+
+    /// A clip that reached the director but could not be moved into Photos
+    /// is a FAILED collection: the lane's tile shows it and offers the retry
+    /// (the camera still holds the file — multicam clips are copied, not
+    /// moved, on the camera).
+    private func handleClipImportFailed(_ peer: MCPeerID) {
+        guard let link = links[peer], link.collection == .collected else { return }
+        link.collection = .failed
     }
 
     /// The transport hands the director a temp file per received clip; the
@@ -1569,12 +1590,17 @@ public actor MulticamController {
         }
     }
 
-    private static func saveVideoToLibrary(at url: URL, originalFilename: String) {
-        VideoLibraryImport.move(url, originalFilename: originalFilename) { outcome in
-            if case .saved = outcome {
-                print("Director collected clip \(originalFilename)")
-            } else {
-                logWarning("Director could not save clip \(originalFilename): \(outcome)")
+    private func saveVideoToLibrary(at url: URL, originalFilename: String, from peer: MCPeerID) {
+        videoImporter(url, originalFilename) { [weak self] outcome in
+            switch outcome {
+            case .saved:
+                break
+            case .accessDenied:
+                DispatchQueue.main.async { showPhotosAccessDeniedModal(for: .video) }
+                self?.tell(ClipImportFailed(peer: peer))
+            case .failed(let error):
+                logWarning("Director could not save clip \(originalFilename): \(String(describing: error))")
+                self?.tell(ClipImportFailed(peer: peer))
             }
         }
     }
@@ -1770,6 +1796,13 @@ final class ResourceTransferFinished: Message, @unchecked Sendable {
         self.peer = peer; self.name = name; self.localURL = localURL; self.error = error
         super.init(sender: nil)
     }
+}
+
+/// The Photos import of a collected clip failed (inbox message so the lane
+/// state changes on the pump, like every other state change).
+final class ClipImportFailed: Message, @unchecked Sendable {
+    let peer: MCPeerID
+    init(peer: MCPeerID) { self.peer = peer; super.init(sender: nil) }
 }
 
 // MARK: - Director UI-command messages (single-entry inbox)

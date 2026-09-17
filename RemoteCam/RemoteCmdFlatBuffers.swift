@@ -1337,7 +1337,10 @@ extension RemoteCmd {
             return RequestCameraStateReport()
 
         case .stoprecordingfinished:
-            // Response-only action; as a command it is malformed.
+            // `CommandAction` is ONE enum shared by commands and responses, and
+            // this switch must be exhaustive. StopRecordingFinished only ever
+            // travels as a response (see `decodeResponse`); a peer sending it
+            // as a command is malformed, so it is ignored like `.unknown`.
             logWarning("RemoteCmd: StopRecordingFinished is not a command")
             return nil
 
@@ -1413,6 +1416,14 @@ extension RemoteCmd {
             let startTime: Date? = resp.recordingStartTime > 0 ? Date(timeIntervalSince1970: Double(resp.recordingStartTime) / 1000.0) : nil
             return StartRecordingVideoAck(sender: nil, recordingStartTime: startTime, error: nsError)
 
+        // The stop protocol's two replies ride two DISTINCT actions:
+        //   .stoprecording         → StopRecordingVideoAck  ("stop received")
+        //   .stoprecordingfinished → StopRecordingVideoResp ("take over" + error?)
+        // Before this split both rode `.stoprecording`, told apart by sniffing
+        // `success` and `media_data` — and a successful "stopped, nothing to
+        // send" had to be encoded as success=false to land in the right
+        // branch. The clip never travels in either message: it streams as a
+        // resource transfer, so neither reply reads or writes `media_data`.
         case .stoprecording:
             return StopRecordingVideoAck()
 
