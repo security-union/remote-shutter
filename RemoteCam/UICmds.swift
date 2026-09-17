@@ -346,7 +346,23 @@ public class UICmd {
     }
 
     // MARK: - Video Resource Transfer Messages
-    
+
+    /// Monitor side: the transport finished writing a peer's clip to a temp
+    /// file. Whoever handles this owns `url` — the file is moved into Photos,
+    /// never read into memory. Independent of the stop protocol's state: the
+    /// camera's `StopRecordingVideoResp` and the file's arrival race on two
+    /// different streams, so the clip is saved wherever it lands.
+    public class VideoResourceReceived: Message, @unchecked Sendable {
+        public let url: URL
+        public let resourceName: String
+
+        public init(url: URL, resourceName: String) {
+            self.url = url
+            self.resourceName = resourceName
+            super.init(sender: nil)
+        }
+    }
+
     public class SendVideoResource: Message, @unchecked Sendable {
         public let videoURL: URL
         public let peers: [MCPeerID]

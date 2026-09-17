@@ -1520,8 +1520,7 @@ public actor MulticamController {
         // this echo (the 1:1 monitor's contract). Sent on failure too: the
         // camera returns to `.camera`, where the collection retry
         // (`RequestVideoResend`) is still answered.
-        sendTo(finished.peer, RemoteCmd.StopRecordingVideoResp(
-            sender: nil, pic: nil, error: finished.error.map { $0 as NSError }))
+        sendTo(finished.peer, RemoteCmd.StopRecordingVideoResp(error: finished.error.map { $0 as NSError }))
         guard finished.error == nil, let localURL = finished.localURL else {
             // Footage is still safe on the camera; the tile offers a retry. Any
             // partial temp file is ours to clean up.
@@ -1571,22 +1570,12 @@ public actor MulticamController {
     }
 
     private static func saveVideoToLibrary(at url: URL, originalFilename: String) {
-        PHPhotoLibrary.requestAuthorization { status in
-            guard status == .authorized else {
-                discardTempFile(url) // never authorized to import — don't leak it
-                return
+        VideoLibraryImport.move(url, originalFilename: originalFilename) { outcome in
+            if case .saved = outcome {
+                print("Director collected clip \(originalFilename)")
+            } else {
+                logWarning("Director could not save clip \(originalFilename): \(outcome)")
             }
-            PHPhotoLibrary.shared().performChanges({
-                let options = PHAssetResourceCreationOptions()
-                options.shouldMoveFile = true
-                options.originalFilename = originalFilename
-                PHAssetCreationRequest.forAsset().addResource(with: .video, fileURL: url, options: options)
-            }, completionHandler: { ok, _ in
-                // `shouldMoveFile` consumes the file only on success; on failure
-                // it stays behind, so the owner removes it.
-                if !ok { discardTempFile(url) }
-                print(ok ? "Director collected clip \(originalFilename)" : "collect clip failed")
-            })
         }
     }
 

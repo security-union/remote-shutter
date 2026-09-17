@@ -364,6 +364,11 @@ public actor SessionCoordinator {
     lazy var photoLibrarySaver: (Data) -> Void = { [weak self] data in
         self?.savePictureToLibrary(data)
     }
+    /// Monitor side: a received clip's temp file → Photos. Takes ownership of
+    /// the URL (see `VideoLibraryImport`).
+    lazy var videoLibrarySaver: (URL) -> Void = { [weak self] url in
+        self?.importReceivedVideo(at: url)
+    }
     /// Seconds left on a Watch-initiated self-timer (0 = none). Mirrored from
     /// `TimerCountdown` ticks so every watch push carries the live countdown.
     var watchCountdownRemaining: Int32 = 0
@@ -374,6 +379,7 @@ public actor SessionCoordinator {
     func setWatchStatePusher(_ pusher: WatchStatePushing) { watchStatePusher = pusher }
     func setIsPhoneBackgrounded(_ provider: @escaping () -> Bool) { isPhoneBackgrounded = provider }
     func setPhotoLibrarySaver(_ saver: @escaping (Data) -> Void) { photoLibrarySaver = saver }
+    func setVideoLibrarySaver(_ saver: @escaping (URL) -> Void) { videoLibrarySaver = saver }
     func setMultipeerService(_ service: any MultipeerServiceProtocol) {
         multipeerService = service
         transportShared.value = service
@@ -1181,8 +1187,7 @@ public actor SessionCoordinator {
 
         case is UICmd.MicrophoneAccessDenied:
             await sendOrGoToScanning(RemoteCmd.StopRecordingVideoAck(sender: nil), mode: .reliable)
-            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
-                sender: nil, pic: nil, error: unableToProcessError(msg)), mode: .reliable)
+            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(error: unableToProcessError(msg)), mode: .reliable)
 
         case let pic as RemoteCmd.TakePic:
             ctrl.currentCameraMode = .Photo
@@ -1790,8 +1795,7 @@ public actor SessionCoordinator {
 
         case is UICmd.MicrophoneAccessDenied:
             await sendOrGoToScanning(RemoteCmd.StopRecordingVideoAck(sender: nil), mode: .reliable)
-            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
-                sender: nil, pic: nil, error: unableToProcessError(msg)), mode: .reliable)
+            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(error: unableToProcessError(msg)), mode: .reliable)
             await transition(to: .camera)
 
         case let terminated as UICmd.RecordingTerminated:
@@ -1799,8 +1803,7 @@ public actor SessionCoordinator {
             // recording and saved what it could — route its error through the
             // stop-response path the monitor already handles (the send helper
             // drops it while unlinked), and return this camera to idle.
-            guard await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
-                sender: nil, pic: nil, error: terminated.error), mode: .reliable) else { break }
+            guard await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(error: terminated.error), mode: .reliable) else { break }
             await transition(to: .camera)
 
         default:
@@ -1885,8 +1888,7 @@ public actor SessionCoordinator {
             // The finalize failed under a remote-initiated stop: the pipeline
             // saved the salvageable fragments; report the truth instead of a
             // clean stop response.
-            guard await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(
-                sender: nil, pic: nil, error: terminated.error), mode: .reliable) else { break }
+            guard await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(error: terminated.error), mode: .reliable) else { break }
             tell(DeferredPopToCamera())
 
         case is DeferredPopToCamera:
@@ -2130,7 +2132,7 @@ public actor SessionCoordinator {
         case is RemoteCmd.StartRecordingVideo:
             await sendOrGoToScanning(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.StopRecordingVideo:
-            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: unableToProcessError(msg)))
+            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(error: unableToProcessError(msg)))
 
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
             // Forward capabilities to the connected monitor.
@@ -2168,12 +2170,17 @@ public actor SessionCoordinator {
         case let completed as UICmd.VideoResourceTransferCompleted:
             monitor?.videoTransferFinished()
             if completed.success {
-                await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+                await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp())
             }
 
         case let failed as UICmd.VideoResourceTransferFailed:
             monitor?.videoTransferFinished()
-            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: failed.error))
+            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(error: failed.error))
+
+        case let received as UICmd.VideoResourceReceived:
+            // The clip is on disk; hand the file over, whatever state the
+            // stop protocol is in.
+            videoLibrarySaver(received.url)
 
         case is IncompatibilityDetected:
             await showIncompatibilityMessage()
@@ -2209,7 +2216,7 @@ public actor SessionCoordinator {
 
     private func handleSendVideoResource(_ sendVideo: UICmd.SendVideoResource) async {
         guard sendVideo.shouldSendToPeer else {
-            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+            await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp())
             return
         }
 
@@ -2770,7 +2777,7 @@ public actor SessionCoordinator {
             await transition(to: .monitorWaitingForVideo)
 
         case let resp as RemoteCmd.StopRecordingVideoResp where resp.error != nil:
-            saveVideoOnMonitor(resp)
+            if let error = resp.error { showError(error.localizedDescription) }
             await transition(to: .monitor(mode: .video))
 
         case let capabilities as RemoteCmd.CameraCapabilitiesResp:
@@ -2819,7 +2826,10 @@ public actor SessionCoordinator {
     private func inMonitorWaitingForVideo(_ msg: Message) async {
         switch msg {
         case let resp as RemoteCmd.StopRecordingVideoResp:
-            saveVideoOnMonitor(resp)
+            // The protocol's terminal message: the take is over. The clip
+            // itself (if the camera was asked to send it) arrives separately
+            // as `UICmd.VideoResourceReceived`, handled in the root.
+            if let error = resp.error { showError(error.localizedDescription) }
             await transition(to: .monitor(mode: .video))
 
         case is RemoteCmd.PeerBecameCamera:
@@ -3267,45 +3277,21 @@ public actor SessionCoordinator {
         }
     }
 
-    /// Monitor-side video save (inbound data → temp file → camera roll).
-    private nonisolated func saveVideoOnMonitor(_ videoResp: RemoteCmd.StopRecordingVideoResp) {
-        if let error = videoResp.error {
-            showError(error.localizedDescription)
-        }
-        guard let video = videoResp.video else {
-            return
-        }
-        PHPhotoLibrary.requestAuthorization { status in
-            if status == .authorized {
-                let fileURL = URL(fileURLWithPath: NSTemporaryDirectory(),
-                        isDirectory: true).appendingPathComponent(tempFile)
-                cleanupFileAt(fileURL)
-                do {
-                    _ = try video.write(to: fileURL, options: .atomic)
-                } catch {
-                    showError(NSLocalizedString("Unable to save video", comment: ""))
-                    return
+    /// Monitor-side video save: the transport's temp file is MOVED into the
+    /// camera roll. No copy in memory, no second temp file.
+    private nonisolated func importReceivedVideo(at url: URL) {
+        VideoLibraryImport.move(url) { outcome in
+            switch outcome {
+            case .saved:
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    showReviewPromptIfAppropriate()
                 }
-
-                PHPhotoLibrary.shared().performChanges({
-                    let options = PHAssetResourceCreationOptions()
-                    options.shouldMoveFile = true
-                    PHAssetCreationRequest.forAsset()
-                        .addResource(with: .video, fileURL: fileURL, options: options)
-                }, completionHandler: { success, _ in
-                    if !success {
-                        showError(NSLocalizedString("Unable to save video to Photos app", comment: ""))
-                    } else {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            showReviewPromptIfAppropriate()
-                        }
-                    }
-                    cleanupFileAt(fileURL)
-                })
-            } else {
+            case .accessDenied:
                 DispatchQueue.main.async {
                     showPhotosAccessDeniedModal(for: .video)
                 }
+            case .failed:
+                showError(NSLocalizedString("Unable to save video to Photos app", comment: ""))
             }
         }
     }
@@ -3453,15 +3439,9 @@ extension SessionCoordinator: MultipeerServiceDelegate {
         guard resourceName.hasPrefix("video_") else { return }
         tell(UICmd.VideoResourceTransferCompleted(resourceName: resourceName, success: true, sender: nil))
 
+        // The clip is already on disk; pass the file along by reference.
         if let localURL {
-            do {
-                let videoData = try Data(contentsOf: localURL)
-                tell(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: videoData, error: nil))
-                try FileManager.default.removeItem(at: localURL)
-            } catch {
-                debugLog("❌ DEBUG: Error processing received video: \(error.localizedDescription)")
-                tell(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: error))
-            }
+            tell(UICmd.VideoResourceReceived(url: localURL, resourceName: resourceName))
         }
     }
 }

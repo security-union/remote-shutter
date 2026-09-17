@@ -604,6 +604,60 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(name, .camera)
     }
 
+    // MARK: - Received clip → Photos by URL
+
+    private func makeReceivedClip() -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("video_\(UUID().uuidString).mov")
+        try? Data(repeating: 0xAB, count: 64).write(to: url)
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        return url
+    }
+
+    /// The transport hands the monitor a finished clip as a temp file. The
+    /// session passes that file to the library BY URL — it never reads it
+    /// into memory (a 4K take is gigabytes) and never deletes it itself.
+    func testReceivedVideoIsHandedToTheLibraryByURL() async {
+        await enterMonitor(.Video)
+        let url = makeReceivedClip()
+        let saved = Locked<[URL]>([])
+        await harness.coordinator.setVideoLibrarySaver { received in saved.mutate { $0.append(received) } }
+
+        harness.coordinator.didFinishReceivingResource(
+            name: url.lastPathComponent, from: harness.peer, at: url, error: nil)
+        await harness.coordinator.waitForIdle()
+
+        XCTAssertEqual(saved.value, [url])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path),
+                      "the saver owns the file; the session must not consume it")
+    }
+
+    /// The camera's terminal stop reply and the file's arrival race on two
+    /// different streams. When the reply lands first and settles the screen,
+    /// the clip that arrives afterwards is still saved.
+    func testClipArrivingAfterTheStopReplyIsStillSaved() async {
+        await enterMonitor(.Video)
+        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
+        await harness.deliver(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date()))
+        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
+        await harness.deliver(RemoteCmd.StopRecordingVideoAck())
+        var name = await harness.stateName()
+        XCTAssertEqual(name, .monitorWaitingForVideo)
+
+        await harness.deliver(RemoteCmd.StopRecordingVideoResp())
+        name = await harness.stateName()
+        XCTAssertEqual(name, .monitor)
+
+        let url = makeReceivedClip()
+        let saved = Locked<[URL]>([])
+        await harness.coordinator.setVideoLibrarySaver { received in saved.mutate { $0.append(received) } }
+        harness.coordinator.didFinishReceivingResource(
+            name: url.lastPathComponent, from: harness.peer, at: url, error: nil)
+        await harness.coordinator.waitForIdle()
+
+        XCTAssertEqual(saved.value, [url])
+    }
+
     // MARK: - Keep rolling through a drop (uniform: solo and multicam)
 
     /// Drives the machine into `.cameraRecordingVideo` and drops the peer.
@@ -686,7 +740,7 @@ class SessionCoordinatorTests: XCTestCase {
                        "the recording is a fact until the writer reports the stop")
 
         // The pipeline reports the finalized stop; the machine settles.
-        await harness.deliver(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+        await harness.deliver(RemoteCmd.StopRecordingVideoResp())
         name = await harness.stateName()
         XCTAssertEqual(name, .camera)
         XCTAssertEqual(harness.lobby.returnsToLobby, 0)
@@ -702,7 +756,7 @@ class SessionCoordinatorTests: XCTestCase {
         harness.fakeMP.sentMessages.removeAll()
 
         await harness.deliver(UICmd.StopRecordingLocally())
-        await harness.deliver(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+        await harness.deliver(RemoteCmd.StopRecordingVideoResp())
 
         XCTAssertEqual(camera.stopRecordingCalls, [false])
         let name = await harness.stateName()
@@ -862,7 +916,7 @@ class SessionCoordinatorTests: XCTestCase {
         // The pipeline clears its truth BEFORE emitting the stop response
         // (resetRecordingState precedes the sendMessage) — model that order.
         camera.reportedRecordingStartedAt = nil
-        await harness.deliver(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+        await harness.deliver(RemoteCmd.StopRecordingVideoResp())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .camera, "wakes up truthfully idle")
@@ -1359,7 +1413,7 @@ class SessionCoordinatorTests: XCTestCase {
         await enterMonitorRecordingVideo()
 
         let error = NSError(domain: "TestError", code: 2, userInfo: nil)
-        await harness.deliver(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: error))
+        await harness.deliver(RemoteCmd.StopRecordingVideoResp(error: error))
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .monitor)
@@ -1405,7 +1459,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     func testMonitorWaitingForVideoStopRespPopsToVideoMode() async {
         await enterMonitorWaitingForVideo()
-        await harness.deliver(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+        await harness.deliver(RemoteCmd.StopRecordingVideoResp())
 
         let name = await harness.stateName()
         XCTAssertEqual(name, .monitor)

@@ -518,15 +518,13 @@ extension RemoteCmd.StopRecordingVideoResp {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-        let mediaOffset = video.map { fbb.createVector(bytes: $0) } ?? Offset()
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
-            action: .stoprecording,
-            success: error == nil && video != nil,
-            errorOffset: errorOffset,
-            mediaDataVectorOffset: mediaOffset
+            action: .stoprecordingfinished,
+            success: error == nil,
+            errorOffset: errorOffset
         )
-        return buildResponse(&fbb, action: .stoprecording, response: resp)
+        return buildResponse(&fbb, action: .stoprecordingfinished, response: resp)
     }
 }
 
@@ -1338,6 +1336,11 @@ extension RemoteCmd {
         case .requestcamerastatereport:
             return RequestCameraStateReport()
 
+        case .stoprecordingfinished:
+            // Response-only action; as a command it is malformed.
+            logWarning("RemoteCmd: StopRecordingFinished is not a command")
+            return nil
+
         case .setvideoquality:
             let resolution = fromFBResolution(params?.videoResolution ?? .hd1080p)
             let frameRate = fromFBFrameRate(params?.videoFrameRate ?? .fps30)
@@ -1411,13 +1414,10 @@ extension RemoteCmd {
             return StartRecordingVideoAck(sender: nil, recordingStartTime: startTime, error: nsError)
 
         case .stoprecording:
-            // Ack: success=true, no media, no error
-            if resp.success && !resp.hasMediaData && nsError == nil {
-                return StopRecordingVideoAck()
-            } else {
-                let videoData: Data? = resp.mediaDataCount > 0 ? Data(resp.mediaData) : nil
-                return StopRecordingVideoResp(sender: nil, pic: videoData, error: nsError)
-            }
+            return StopRecordingVideoAck()
+
+        case .stoprecordingfinished:
+            return StopRecordingVideoResp(error: nsError)
 
         case .takepicture:
             // Ack: success=true, no media, no error

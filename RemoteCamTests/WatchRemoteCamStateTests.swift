@@ -239,7 +239,7 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertEqual(ctrl.stopRecordingCalls, [false])
 
         ctrl.isRecording = false
-        await deliver(RemoteCmd.StopRecordingVideoResp(sender: nil, pic: nil, error: nil))
+        await deliver(RemoteCmd.StopRecordingVideoResp())
 
         let name = await stateName()
         XCTAssertEqual(name, .watchRemoteCamera)
