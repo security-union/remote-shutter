@@ -46,10 +46,8 @@ enum MultiCamChrome {
 
 // MARK: - Rig tray
 
-/// Which tiles the rig settings tray shows — the multicam mirror of
-/// `MonitorTray.items`, so the director offers the same settings per capture
-/// mode as the 1:1 monitor: photo settings never show in video mode and vice
-/// versa. Rig quality stays one tile (the intersection cycle carries both
+/// Which tiles the rig settings tray shows per capture mode: photo settings
+/// never show in video mode and vice versa. Rig quality stays one tile (the intersection cycle carries both
 /// resolution and frame rate), so video mode has no separate frame-rate tile.
 enum RigTray {
 

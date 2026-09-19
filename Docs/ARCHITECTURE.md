@@ -1,7 +1,7 @@
 # Remote Shutter — Architecture
 
 Two Apple devices, one photo shoot: one phone is the **camera**, the other is the
-**remote** (monitor). They find each other over peer-to-peer Wi-Fi/Bluetooth
+**remote** (the director, which drives one camera or a whole rig). They find each other over peer-to-peer Wi-Fi/Bluetooth
 (MultipeerConnectivity), the remote sees a live preview, and every camera control —
 shutter, video, zoom, lens, flash, torch, quality — works from across the room.
 An Apple Watch can also drive the camera directly (no second phone needed).
@@ -17,18 +17,16 @@ flowchart TB
     classDef plain fill:#e5e7eb,color:#111827,stroke:#6b7280
     classDef transport fill:#4ade80,color:#14532d,stroke:#166534
 
-    subgraph Remote["📱 REMOTE (monitor)"]
-        MView["MonitorView"]:::swiftui
-        MVM["MonitorViewModel"]:::viewmodel
-        MPres["MonitorPresenter"]:::plain
-        SC1{{"SessionCoordinator"}}:::actor
+    subgraph Remote["📱 REMOTE (director)"]
+        MView["MulticamView"]:::swiftui
+        MVM["MulticamViewModel"]:::viewmodel
+        MC{{"MulticamController"}}:::actor
         MPS1["MultipeerService"]:::transport
 
-        MView -. "taps → UICmd (tell)" .-> SC1
-        SC1 -- "method calls" --> MPres
-        MPres -- "main-thread updates" --> MVM
+        MView -. "taps → controller API (tell)" .-> MC
+        MC -- "lane / shutter / rig snapshots (main)" --> MVM
         MVM -- "@Published" --> MView
-        SC1 --- MPS1
+        MC --- MPS1
     end
 
     subgraph Camera["📱 CAMERA"]
@@ -83,48 +81,51 @@ whole suite runs clean under Thread Sanitizer.
 ```mermaid
 sequenceDiagram
     actor U as You
-    participant MV as MonitorView<br/>(SwiftUI)
-    participant SCR as SessionCoordinator<br/>(remote · actor)
-    participant MP as MonitorPresenter
+    participant MV as MulticamView<br/>(SwiftUI)
+    participant MC as MulticamController<br/>(remote · actor)
     participant W as MultipeerConnectivity<br/>(FlatBuffers)
     participant SCC as SessionCoordinator<br/>(camera · actor)
     participant RIG as CameraRig
     participant ENG as CaptureEngine<br/>(AVFoundation)
 
     U->>MV: tap shutter
-    MV->>SCR: UICmd.TakePicture (tell)
-    Note over SCR: state → monitorTakingPicture<br/>alert "Requesting picture"<br/>10s timeout armed
-    SCR->>W: RemoteCmd.TakePic (reliable)
+    MV->>MC: capturePhoto() (tell)
+    Note over MC: state → capturingPhoto<br/>ack timeout armed
+    MC->>W: RemoteCmd.ScheduledCapture (reliable)<br/>fire time in the camera's clock
     W->>SCC: didReceiveMessage → tell
+    SCC->>W: ScheduledCaptureAck (reliable)
+    W->>MC: tell — lane acked
+    Note over SCC: sleeps until the fire time
     SCC->>RIG: takePicture()
     Note over SCC: state → cameraTakingPic<br/>alert "Taking picture"<br/>10s timeout armed
     RIG->>ENG: capturePhoto (sessionQueue → main)
     ENG-->>RIG: onPicture(bytes) — cropped to aspect
     RIG->>SCC: UICmd.OnPicture (tell)
-    Note over SCC: save to camera roll (Photos)<br/>dismiss alert
+    Note over SCC: stamp sync metadata<br/>save to camera roll (Photos)<br/>dismiss alert
     SCC->>W: TakePicAck (reliable)
-    W->>SCR: tell
-    Note over SCR: alert → "Receiving picture"
     SCC->>W: TakePicResp + photo bytes (reliable)
     Note over SCC: state → camera<br/>re-binds FrameSender
-    W->>SCR: tell
-    Note over SCR: save to camera roll (Photos)<br/>dismiss alert · state → monitor
-    SCR->>MP: renderPhotoMode()
-    MP->>MV: view model update (main thread)
-    SCR->>W: RequestFrame — preview resumes
+    W->>MC: tell
+    Note over MC: save to camera roll (Photos)<br/>lane → collected · state → monitoring
+    MC->>MV: lane snapshot (main thread)
 ```
 
-Every command follows this shape: a `UICmd` from the screen, a `RemoteCmd` across
-the wire, a state transition on both sides, and a response that pops the transient
-state (or a 10-second timeout that pops it anyway).
+Every command follows this shape: a tap becomes a controller message, a `RemoteCmd`
+crosses the wire, both sides transition, and a response (or a timeout) pops the
+transient state. With several cameras the director fans the same message out to
+every lane and settles when the last one answers.
 
 ## The three load-bearing pieces
 
 **`SessionCoordinator`** — a Swift `actor` holding the session state machine as an
-enum (~20 states: scanning, connected, camera/monitor families, watch family).
-Messages enter a FIFO inbox and are processed one at a time; adding an event the
-compiler can't match against every state is a build error. One instance per device;
-it owns the transport and routes everything.
+enum (scanning/connected, the camera family, the watch family). Messages enter a
+FIFO inbox and are processed one at a time; adding an event the compiler can't
+match against every state is a build error. It runs discovery on both devices and
+the whole camera role; on the remote it hands the connected transport to
+**`MulticamController`**, a sibling actor with the same inbox shape that keeps one
+`CameraLink` lane per camera, runs the capability handshake and clock sync, fans
+captures out as synced `ScheduledCapture`s, and publishes lane/shutter/rig
+snapshots to the director screen.
 
 **The capture stack** — `CameraRig` bundles three non-UI workers around
 `AVCaptureSession`: `CaptureEngine` (configuration + stills, confined to its
@@ -147,7 +148,7 @@ terminal "the take is over" message and carries only success/error.
 
 Every screen is SwiftUI hosted by a thin `UIViewController` shell (navigation,
 permissions, lifecycle only): Welcome → Role picker → Device scanner → then
-`MonitorView` or `CameraScreenView`. View models are `@MainActor`-fed
+`MulticamView` or `CameraScreenView`. View models are `@MainActor`-fed
 `ObservableObject`s; the camera preview is an `AVCaptureVideoPreviewLayer` backing
 a `UIViewRepresentable`.
 

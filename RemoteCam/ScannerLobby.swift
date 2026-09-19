@@ -28,7 +28,7 @@ protocol ScannerLobby: AnyObject, Sendable {
 
     /// Multicam "Connect (N)": the set of connected cameras changed (a selected
     /// camera established). Default no-op — only the production scanner
-    /// implements it, and only when `ENABLE_MULTICAM`.
+    /// implements it.
     func didCollectMulticamCameras(_ peers: [MCPeerID])
 
     /// Multicam "Connect (N)": a selected camera's invite failed for good, so

@@ -20,7 +20,7 @@ struct DeviceScannerView: View {
 
     /// The scanner is in multicam edit-mode selection (monitor role, flag on).
     private var isMulticamScanner: Bool {
-        FeatureFlags.ENABLE_MULTICAM && viewModel.role == .monitor
+        viewModel.role == .monitor
     }
 
     /// Peer-link state; the reconnect overlay is a function of it.

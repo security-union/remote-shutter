@@ -7,10 +7,9 @@
 
 import CoreGraphics
 
-/// The single home for the zoom-range math both camera-control paths share:
-/// the 1:1 monitor (`MonitorViewModel`/`MonitorPresenter`) and the multicam
-/// director (`MulticamController`). Pure — no view, no isolation — so both
-/// derive identical values from the same capabilities.
+/// The single home for the zoom-range math: the director (`MulticamController`)
+/// seeds every lane from it. Pure — no view, no isolation — so every consumer
+/// derives identical values from the same capabilities.
 enum ZoomScaleSeed {
 
     /// Display zoom tops out at 5× the wide-angle reference, so a pill never

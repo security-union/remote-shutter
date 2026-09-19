@@ -1039,7 +1039,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             supportsPreviewMode: true,
             // Tied to the flag so cameras start advertising multicam the same
             // release the director UI ships.
-            supportsMulticam: FeatureFlags.ENABLE_MULTICAM,
+            supportsMulticam: true,
             previewMode: CameraPreviewModeStore().load(),
             error: nil
         )

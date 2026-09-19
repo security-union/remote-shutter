@@ -42,22 +42,6 @@ enum MonitorChromeLayout {
     }
 }
 
-// MARK: - Self-timer
-
-/// The self-timer's detented values.
-enum MonitorTimer {
-
-    /// Ascending, starting at "off".
-    static let stops: [Int] = [0, 3, 5, 10, 20]
-
-    /// The next stop strictly above `value`, wrapping to off at the end.
-    /// Non-stop values round *up*, so a delay persisted as any integer 0...20
-    /// under `timerDefault` lands on a real stop rather than being stranded.
-    static func next(after value: Int) -> Int {
-        stops.first { $0 > value } ?? stops[0]
-    }
-}
-
 // MARK: - Tray
 
 /// One tile in the capture tray. Each tile's glyph carries its own current
@@ -75,44 +59,6 @@ enum MonitorTrayItem: Equatable {
     case cameraStandby
     case settings
     case help
-}
-
-enum MonitorTray {
-
-    /// Capability-driven tiles are omitted, not disabled: a camera that cannot
-    /// do HDR shows no HDR tile. Tiles that merely aren't available right now
-    /// (quality mid-recording) stay and are dimmed by the view.
-    static func items(for state: MonitorUIState,
-                      supportsHEIF: Bool,
-                      supportsHDR: Bool,
-                      supportsCameraStandby: Bool,
-                      resolutionCount: Int,
-                      frameRateCount: Int) -> [MonitorTrayItem] {
-        var items: [MonitorTrayItem] = []
-
-        // Shorts runs to a fixed duration, so a self-timer has nothing to delay.
-        if state != .shortsMode {
-            items.append(.timer)
-        }
-        items.append(.aspect)
-
-        switch state {
-        case .videoMode, .videoRecording:
-            if resolutionCount > 1 { items.append(.resolution) }
-            if frameRateCount > 1 { items.append(.frameRate) }
-        case .photoMode:
-            if supportsHEIF { items.append(.format) }
-            if supportsHDR { items.append(.hdr) }
-        case .shortsMode:
-            break
-        }
-
-        if supportsCameraStandby { items.append(.cameraStandby) }
-
-        items.append(.settings)
-        items.append(.help)
-        return items
-    }
 }
 
 // MARK: - Link health
@@ -157,19 +103,4 @@ enum MonitorActivity: Equatable {
     case togglingFlash
     case switchingLens
 
-    /// The activity a state implies, or `nil` when nothing is in flight.
-    static func forState(_ state: SessionState) -> MonitorActivity? {
-        switch state {
-        case .monitorTakingPicture(_, let phase):
-            switch phase {
-            case .requesting: return .capturing
-            case .receiving: return .receivingCapture
-            }
-        case .monitorStartingVideo: return .capturing
-        case .monitorTogglingCamera: return .switchingCamera
-        case .monitorTogglingFlash: return .togglingFlash
-        case .monitorSwitchingLens: return .switchingLens
-        default: return nil
-        }
-    }
 }

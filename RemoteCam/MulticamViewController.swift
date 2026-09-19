@@ -15,8 +15,7 @@ import UIKit
 /// lane updates, and per-lane preview frames are routed to exactly one lane's
 /// decoder (the rendering-isolation contract).
 ///
-/// The 1:1 `MonitorViewController` is untouched; this is a parallel screen
-/// reached only from a multicam session.
+/// Reached from the scanner's multicam handoff for any rig size.
 public final class MulticamViewController: UIViewController {
 
     private let controller: MulticamController
