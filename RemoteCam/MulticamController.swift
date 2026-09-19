@@ -89,8 +89,8 @@ struct MulticamLaneInfo: Equatable {
 /// never reaching into a `UIViewController` from the actor.
 typealias MulticamFrameSink = @Sendable (RemoteCmd.OnFrame) -> Void
 
-/// The main-actor bridge from the controller to the multicam screen — the
-/// multicam analog of `MonitorDisplay`. Low-frequency lane changes go through
+/// The main-actor bridge from the controller to the director screen.
+/// Low-frequency lane changes go through
 /// `applyLanes`; the ~20fps preview stream goes through per-lane frame sinks
 /// (see `MulticamFrameSink`), each routing to exactly one lane's decoder so a
 /// frame from camera B never re-renders camera A.
@@ -114,11 +114,9 @@ protocol MulticamDisplay: AnyObject {
 /// Director side of a multicam session: one controller, several cameras.
 ///
 /// A sibling of `SessionCoordinator`, not a replacement — `SessionCoordinator`
-/// stays the sole brain for the camera role and for 1:1 monitoring, both
-/// byte-identical to before. This actor is reached only when the director
-/// starts a multicam session (≥2 cameras, behind `ENABLE_MULTICAM`). The
-/// camera side is unchanged: a camera cannot tell a multicam director from a
-/// single monitor.
+/// runs discovery and the whole camera role; this actor takes over the
+/// connected transport for the remote role, for one camera as much as for a
+/// rig. A camera cannot tell how many lanes its director has.
 ///
 /// Mirrors `SessionCoordinator`'s concurrency shape: a FIFO inbox fed by
 /// `tell(_:)`, nonisolated transport-delegate callbacks that enqueue, and a

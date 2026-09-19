@@ -5,21 +5,18 @@ import Network
 import dnssd
 
 /// Where a settled multicam connect hands off to, decided purely by how many
-/// cameras actually connected: none → stay (error), one → the classic 1:1
-/// monitor (unchanged), two or more → the director screen.
+/// cameras actually connected: none → stay (error), one or more → the
+/// director screen.
 enum MulticamHandoff: Equatable {
     case none
-    case classicMonitor(MCPeerID)
     case director([MCPeerID])
 
     /// `directorForSingleCamera` defaults to the feature flag; it is a
     /// parameter so the policy stays a pure, testable function.
-    static func decide(connected: [MCPeerID],
-                       directorForSingleCamera: Bool = FeatureFlags.MULTICAM_FOR_SINGLE_CAMERA)
+    static func decide(connected: [MCPeerID])
         -> MulticamHandoff {
         switch connected.count {
         case 0: return .none
-        case 1 where !directorForSingleCamera: return .classicMonitor(connected[0])
         default: return .director(connected)
         }
     }

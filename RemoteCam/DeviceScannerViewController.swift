@@ -111,7 +111,7 @@ public class DeviceScannerViewController: UIViewController {
         scannerViewModel.role = role
         // Multicam director collecting: only the monitor role, only behind the
         // flag. Off, the coordinator's scanning path is byte-identical.
-        if FeatureFlags.ENABLE_MULTICAM && role == .monitor {
+        if role == .monitor {
             remoteCamSession ! UICmd.SetMulticamCollecting(on: true)
         }
         // The reconnect overlay's only action, routed like every other UI
@@ -165,7 +165,7 @@ public class DeviceScannerViewController: UIViewController {
         // Sent AFTER ScannerDidAppear so the coordinator has settled into
         // scanning; the re-arm reports the live set and the scanner resyncs
         // (see rearmMulticamScanner).
-        if FeatureFlags.ENABLE_MULTICAM && role == .monitor {
+        if role == .monitor {
             remoteCamSession ! UICmd.SetMulticamCollecting(on: true)
         }
 
@@ -188,7 +188,7 @@ public class DeviceScannerViewController: UIViewController {
             },
             onSelectPeer: { [weak self] peer in
                 guard let self = self else { return }
-                if FeatureFlags.ENABLE_MULTICAM && self.role == .monitor {
+                if self.role == .monitor {
                     self.handleMulticamRowTap(peer)
                 } else {
                     self.remoteCamSession ! ConnectToDevice(peer: peer, sender: nil)
@@ -207,7 +207,7 @@ public class DeviceScannerViewController: UIViewController {
             onHelp: { [weak self] in
                 self?.showHelpModal()
             },
-            onConnectSelected: (FeatureFlags.ENABLE_MULTICAM && role == .monitor)
+            onConnectSelected: (role == .monitor)
                 ? { [weak self] in self?.handleConnectSelected() }
                 : nil
         )
@@ -341,20 +341,22 @@ public class DeviceScannerViewController: UIViewController {
         backItem.title = NSLocalizedString("Disconnect", comment: "")
         navigationItem.backBarButtonItem = backItem
 
-        switch role {
-        case .camera:
-            let rig = CameraRig(session: remoteCamSession, frameSender: frameSender)
-            let camera = CameraHostController(rig: rig)
-            navigationController?.pushViewController(camera, animated: true)
-        case .monitor:
-            let monitor = MonitorViewController(session: remoteCamSession)
-            navigationController?.pushViewController(monitor, animated: true)
+        // Only the camera role arrives here. The monitor role is armed as
+        // collecting (viewDidLoad / viewWillAppear) before it can invite
+        // anyone, so its connects accumulate and hand the transport to the
+        // director instead of settling into `.connected`. Reaching this with
+        // the monitor role means that arming was skipped — say so loudly
+        // rather than leave the user connected on a scanner with no screen.
+        guard role == .camera else {
+            logWarning("scanner: goToRole for the monitor role — collecting was not armed")
+            assertionFailure("monitor role must hand off to the director, never goToRole")
+            return
         }
+        let rig = CameraRig(session: remoteCamSession, frameSender: frameSender)
+        let camera = CameraHostController(rig: rig)
+        navigationController?.pushViewController(camera, animated: true)
     }
 
-    /// Multicam "Start (N)": one camera runs the classic 1:1 monitor
-    /// (unchanged); two or more hands the live transport to a
-    /// `MulticamController` and pushes the director screen.
     /// A tap on a discovered-camera row while SELECTING. Pure — it toggles the
     /// checkmark and fires zero network. An over-cap unselected row is locked
     /// and routes to the paywall instead.
@@ -392,10 +394,6 @@ public class DeviceScannerViewController: UIViewController {
         case .none:
             vm.resetMulticamCycle()
             presentScanningError()
-        case .classicMonitor:
-            Task { @MainActor in
-                if await remoteCamSession.promoteSingleCollectedToConnected() { goToRole() }
-            }
         case .director:
             Task { @MainActor in
                 guard let handoff = await remoteCamSession.detachTransportForMulticam() else { return }

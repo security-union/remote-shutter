@@ -17,8 +17,7 @@ scanner hands off to `MulticamController` only when two or more cameras connect,
 and every wire message here is gated on a `supports_multicam` capability flag,
 so a 9.0.x phone pairs as an ordinary single camera.
 
-> Free tier = 2 cameras, Pro = 4. The whole feature is behind
-> `FeatureFlags.ENABLE_MULTICAM`.
+> Free tier = 2 cameras, Pro = 4.
 
 ## Components & connections
 
@@ -249,7 +248,7 @@ These are the invariants worth preserving through future changes.
   camera only. Rig controls (shutter, record, timer, quality/HDR) fan out to
   all. Nothing per-camera ever broadcasts. The viewfinder gestures (tap to
   focus, double-tap flip, pinch zoom) live in the shared
-  `ViewfinderGestureLayer` — the same component the 1:1 monitor uses — with the
+  `ViewfinderGestureLayer` — the same component the camera screen uses — with the
   director supplying focused-camera routing through its callbacks.
 - **Rendering isolation per lane.** One decoder and one published image per
   camera; a frame from one camera can only touch its own tile.
@@ -273,49 +272,22 @@ Honest list of what is deliberately first-draft, for whoever picks this up next.
   holds only the *last* clip; it reuses `capture_id` loosely and depends on the
   file still existing. Fine for one-clip-at-a-time retry; it would need a real
   per-capture store to retry an older clip.
-## Shared vs duplicated (DRY state)
+## Shared pieces
 
-Extracted and shared by both the 1:1 and multicam paths:
+The director is the only remote screen, so there is no parallel implementation to
+keep in step with. What it composes from shared files:
 
-- View atoms: `GlassCircleButton`, `ControlCapsule`, `ShutterButton`,
-  `CameraSwitchControlView`, `LinkChip`, `ZoomPill`, `MonitorChromeLayout`,
-  `MonitorLinkState`.
+- View atoms in `MonitorView.swift`: `GlassCircleButton`, `ControlCapsule`,
+  `ShutterButton`, `MonitorTrayTile`, `LiveFrameView` (with
+  `AspectRatioCropOverlay`), `CameraSwitchControlView`, `CaptureModeSelector`,
+  `TrayPanelShell`; plus `ZoomPill` and the layout enums in `MonitorChrome.swift`
+  (`MonitorChromeLayout`, `MonitorLinkState`, `MonitorActivity`).
 - `ZoomScaleSeed` — the zoom clamp (the single home of the 5×-wide
-  `maxDisplayZoom`) and the capabilities→zoom seed, used by both
-  `MonitorViewModel.updateZoomFactor` and `MulticamController.seedZoom`.
-- `FocusedCameraControlState` — the flip/torch/flash enablement rules.
-  Consumed by `MulticamViewModel` now; the 1:1 `MonitorViewModel` still sets
-  its per-mode `@Published` flags imperatively (adopting it there is a
-  `configure{Photo,Video,Recording}Mode` restructure, part of the post-9.1
-  pass below).
-
-Remaining duplication, by size and disposition:
-
-- **`CaptureModeSelector` (~25 verbatim lines).** The PHOTO/VIDEO capsule
-  (`modeSelector`/`modeButton`) is copied byte-for-byte between `MonitorView`
-  and `MulticamView`. Extract to one component — its own snapshot-guarded PR
-  after this one, because it swaps into `MonitorView`.
-- **`PeerSessionCore` (done — small by nature).** `PeerSessionCore.swift` now
-  holds the genuinely-identical mechanics both actors share, adopted
-  behavior-identical (full suite unchanged): `RemoteCmd.OnFrame(forwarding:from:)`
-  (the one duplicated frame-construction block), `PeerAppCompatibility.isCompatible`
-  (the director's version gate; the 1:1 keeps `decide` for its verdict-driven
-  UI), and `PeerReconnect.scheduleTick` (the delay→tick timer both reconnect
-  paths use). What stayed local is **role-specialization, not duplication** —
-  the two coordinators are different roles: the camera answers clock pings and
-  runs a frame sender; the director measures pongs and routes by peer. Left
-  local, by design: the clock role in `didReceiveMessage`, the frame-request
-  handler (sender vs no-op), resource transfer (1:1's rich progress + video
-  assembly vs the director's per-lane messages), the incompatibility /
-  browser-fail presentation policy, the 1:1 datagram warm-up on connect, and
-  the reconnect *find/invite/overlay/state* policy (single-peer `.reconnecting`
-  state + overlay vs per-lane status). `CameraCapabilityParse` was skipped —
-  it drags in `MonitorPresenter`'s view-model writes.
-- **`MonitorChromeScaffold` generic.** The chrome arrangement
-  (`chrome`/`topBar`/`bottomCluster`/`sideCluster`/`actionCluster`) is mirrored
-  structurally. Fold into a slot-closure scaffold in the post-9.1 pass
-  (rewrites `MonitorView`'s chrome; needs pixel-identical proof).
-- **`CameraCapabilityParse`.** The capabilities read-shape
-  (`getCurrentCameraInfo` → lenses/zoom/quality) is duplicated between
-  `MonitorPresenter` and `MulticamController`; fold into the same post-9.1
-  pass.
+  `maxDisplayZoom`) and the capabilities→zoom seed behind `MulticamController.seedZoom`.
+- `FocusedCameraControlState` — the flip/torch/flash enablement rules, consumed
+  by `MulticamViewModel`.
+- `PeerSessionCore` — the mechanics both actors share: `RemoteCmd.OnFrame(forwarding:from:)`,
+  `PeerAppCompatibility.isCompatible` (the version gate), and
+  `PeerReconnect.scheduleTick`. What stays local to each actor is role, not
+  duplication: the camera answers clock pings and runs a frame sender; the
+  director measures pongs and routes by peer.

@@ -54,9 +54,8 @@ final class CameraLink {
     var clockEstimator = ClockOffsetEstimator()
     var latestOffset: ClockOffsetSample? { clockEstimator.best }
 
-    /// Monitor side: this lane has produced at least one VP9 frame, proving the
-    /// camera speaks VP9 — the gate for sending it `RequestKeyframe` (mirrors
-    /// `SessionCoordinator.monitorReceivedVP9Frame`, but per camera).
+    /// Director side: this lane has produced at least one VP9 frame, proving the
+    /// camera speaks VP9 — the gate for sending it `RequestKeyframe`.
     var sawVP9 = false
 
     /// How this camera answered the most recent synced capture (nil before the

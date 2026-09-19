@@ -11,28 +11,6 @@ import XCTest
 @testable import RemoteShutter
 
 /// Captures what the controller pushes to the screen.
-private final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
-    var lastLanes: [MulticamLaneInfo] = []
-    var capturing = false
-    var recording = false
-
-    var availablePeers: [MCPeerID] = []
-    var rigSettings: RigSettingsSnapshot?
-    var didExit = false
-
-    func applyLanes(_ lanes: [MulticamLaneInfo]) { lastLanes = lanes }
-    func applyShutterState(capturing: Bool, recording: Bool) {
-        self.capturing = capturing
-        self.recording = recording
-
-    }
-    func applyAvailablePeers(_ peers: [MCPeerID]) { availablePeers = peers }
-    func applyRigSettings(_ settings: RigSettingsSnapshot) { rigSettings = settings }
-    var transientErrors: [String] = []
-    func showTransientError(_ message: String) { transientErrors.append(message) }
-    func exitMulticam() { didExit = true }
-}
-
 /// Records which peers' frame sinks fired — the test stand-in for the view
 /// controller's per-lane decoders. Reads happen after `waitForIdle`.
 private final class FrameSinkCollector: @unchecked Sendable {
@@ -2149,5 +2127,113 @@ final class MulticamControllerTests: XCTestCase {
         RemoteCmd.SendFrame(data: Data([1, 2, 3]), sender: nil,
                             fps: 30, camPosition: .back, camOrientation: .portrait,
                             codec: .vp9, sequenceNumber: 1)
+    }
+
+    // MARK: - Recording truth and clip arrival (the 1:1 monitor's invariants, on the director)
+
+    /// A clip is a fact outside the protocol: one that lands after the take
+    /// has already settled to monitoring is still imported.
+    func testClipArrivingAfterTheTakeSettledIsStillImported() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+        let imported = Locked<[URL]>([])
+        await controller.setVideoImporter { url, _, completion in
+            imported.mutate { $0.append(url) }
+            completion(.saved)
+        }
+        let settled = await controller.recordingStateForTesting()
+        XCTAssertNil(settled)
+
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("late-clip.mov")
+        controller.didFinishReceivingResource(name: "RS_a_b_cam1.mov", from: camA, at: url, error: nil)
+        await controller.waitForIdle()
+
+        XCTAssertEqual(imported.value, [url])
+        let state = await controller.collectionStateForTesting(camA)
+        XCTAssertEqual(state, .collected)
+    }
+
+    /// A clip landing while a photo ack window is open is imported, and the
+    /// shot in flight is untouched.
+    func testClipLandingDuringAPhotoWindowIsStillImported() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        let imported = Locked<[URL]>([])
+        await controller.setVideoImporter { url, _, completion in
+            imported.mutate { $0.append(url) }
+            completion(.saved)
+        }
+        controller.capturePhoto()
+        await controller.waitForIdle()
+        let inFlight = await controller.captureStateForTesting()
+        XCTAssertNotNil(inFlight)
+
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("mid-shot-clip.mov")
+        controller.didFinishReceivingResource(name: "RS_a_b_cam1.mov", from: camA, at: url, error: nil)
+        await controller.waitForIdle()
+
+        XCTAssertEqual(imported.value, [url])
+        let stillInFlight = await controller.captureStateForTesting()
+        XCTAssertEqual(stillInFlight?.id, inFlight?.id, "the landed clip does not disturb the shot in flight")
+    }
+
+    /// The arming window is a state, not a flag: a camera reporting idle while
+    /// its pipeline arms is what starting means. The take is not aborted, and
+    /// the ack still confirms it.
+    func testIdleReportDuringStartWindowDoesNotAbortTheTake() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()?.id
+        XCTAssertNotNil(recID)
+
+        controller.didReceiveMessage(RemoteCmd.CameraStateReport(seq: 1, state: .idle), from: camA)
+        await controller.waitForIdle()
+        let stillStarting = await controller.startingStateForTesting()?.id
+        XCTAssertEqual(stillStarting, recID, "an idle report during arming is no news")
+
+        controller.didReceiveMessage(RemoteCmd.ScheduledRecordingAck(captureId: recID!, isStop: false), from: camA)
+        await controller.waitForIdle()
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNotNil(recording, "the ack confirms the take")
+    }
+
+    /// Stop → restart back to back: the stale idle must not eat the new take's
+    /// tick. The lane shows the restart's elapsed time and the shutter agrees.
+    func testRapidStopRestartKeepsTimerAndShutterInAgreement() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 1, state: .recording(elapsedMillis: 10_000)), from: camA)
+        controller.didReceiveMessage(RemoteCmd.CameraStateReport(seq: 2, state: .idle), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 3, state: .recording(elapsedMillis: 2_000)), from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { display.lastLanes.first?.recordingElapsedMillis == 2_000 }
+
+        XCTAssertEqual(display.lastLanes.first?.recordingElapsedMillis, 2_000,
+                       "the new take's tick survives the stale idle")
+        XCTAssertEqual(display.lastLanes.first?.isRecording, true)
+        XCTAssertTrue(display.recording, "dot and timer agree, always")
+    }
+
+    /// A camera that re-announces restarted its session and its report
+    /// sequence: the cursor is zeroed so its next report — seq 1 again —
+    /// lands, and the lane re-derives the camera's truth instead of dropping
+    /// it as stale.
+    func testReannounceResetsTheReportCursorSoTruthIsRePulled() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        controller.didReceiveMessage(
+            RemoteCmd.CameraStateReport(seq: 7, state: .recording(elapsedMillis: 5_000)), from: camA)
+        await controller.waitForIdle()
+        var recording = await controller.isRecordingForTesting(camA)
+        XCTAssertTrue(recording)
+
+        controller.didReceiveMessage(RemoteCmd.PeerBecameCamera.createWithDefaults(), from: camA)
+        controller.didReceiveMessage(RemoteCmd.CameraStateReport(seq: 1, state: .idle), from: camA)
+        await controller.waitForIdle()
+        recording = await controller.isRecordingForTesting(camA)
+        XCTAssertFalse(recording, "the fresh session's first report lands")
     }
 }
