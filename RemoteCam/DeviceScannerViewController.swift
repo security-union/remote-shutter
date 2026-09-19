@@ -341,9 +341,17 @@ public class DeviceScannerViewController: UIViewController {
         backItem.title = NSLocalizedString("Disconnect", comment: "")
         navigationItem.backBarButtonItem = backItem
 
-        // Only the camera role arrives here: the monitor role hands its
-        // transport to the director in the multicam handoff.
-        guard role == .camera else { return }
+        // Only the camera role arrives here. The monitor role is armed as
+        // collecting (viewDidLoad / viewWillAppear) before it can invite
+        // anyone, so its connects accumulate and hand the transport to the
+        // director instead of settling into `.connected`. Reaching this with
+        // the monitor role means that arming was skipped — say so loudly
+        // rather than leave the user connected on a scanner with no screen.
+        guard role == .camera else {
+            logWarning("scanner: goToRole for the monitor role — collecting was not armed")
+            assertionFailure("monitor role must hand off to the director, never goToRole")
+            return
+        }
         let rig = CameraRig(session: remoteCamSession, frameSender: frameSender)
         let camera = CameraHostController(rig: rig)
         navigationController?.pushViewController(camera, animated: true)

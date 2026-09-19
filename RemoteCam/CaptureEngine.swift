@@ -1037,8 +1037,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // This build understands SetCameraPreviewMode; advertise the current
             // persisted mode so the monitor reflects it from the first exchange.
             supportsPreviewMode: true,
-            // Tied to the flag so cameras start advertising multicam the same
-            // release the director UI ships.
+            // Every remote is a director now, so every camera takes synced shots.
             supportsMulticam: true,
             previewMode: CameraPreviewModeStore().load(),
             error: nil
