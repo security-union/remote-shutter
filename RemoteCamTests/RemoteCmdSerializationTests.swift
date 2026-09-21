@@ -668,6 +668,35 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.platform, "iPad")
     }
 
+    // MARK: - Version handshake wire shape (cross-major)
+
+    /// The role announcements carry the app version that `PeerAppCompatibility`
+    /// compares, and that exchange happens BEFORE the gate can refuse anyone —
+    /// so every major must decode every other major's announcement. These pin
+    /// the exact bytes a build produces: the action numbers and the
+    /// CommandParameters slots for bundle_version / short_version / platform.
+    /// If this fails, a schema edit moved the handshake and older builds will
+    /// pair silently with garbage instead of showing the update prompt.
+    func testHandshakeActionNumbersNeverMove() {
+        XCTAssertEqual(RemoteShutter_CommandAction.peerbecamecamera.rawValue, 13)
+        XCTAssertEqual(RemoteShutter_CommandAction.peerbecamemonitor.rawValue, 14)
+    }
+
+    func testPeerBecameCamera_wireBytesArePinned() {
+        let bytes = RemoteCmd.PeerBecameCamera(bundleVersion: 118, shortVersion: "11.0.0", platform: "iPhone").toFlatBuffer()
+        XCTAssertEqual(bytes.map { String(format: "%02x", $0) }.joined(), goldenPeerBecameCameraHex)
+    }
+
+    func testPeerBecameMonitor_wireBytesArePinned() {
+        let bytes = RemoteCmd.PeerBecameMonitor(bundleVersion: 118, shortVersion: "11.0.0", platform: "iPhone").toFlatBuffer()
+        XCTAssertEqual(bytes.map { String(format: "%02x", $0) }.joined(), goldenPeerBecameMonitorHex)
+    }
+
+    /// The bytes an 11.0.0 build emits for these announcements. Captured once;
+    /// never regenerate them from the current encoder to make a red test pass.
+    private let goldenPeerBecameCameraHex = "100000005243414d0800080000000400080000000c00000008000c000b000400080000001c0000000000000d14001000000000000000000000000c0008000400140000000c0000001400000076000000060000006950686f6e6500000600000031312e302e300000"
+    private let goldenPeerBecameMonitorHex = "100000005243414d0800080000000400080000000c00000008000c000b000400080000001c0000000000000e14001000000000000000000000000c0008000400140000000c0000001400000076000000060000006950686f6e6500000600000031312e302e300000"
+
     func testRequestKeyframe_roundTrip() {
         let original = RemoteCmd.RequestKeyframe(sender: nil)
         let decoded: RemoteCmd.RequestKeyframe = roundTrip(original)

@@ -1155,6 +1155,13 @@ extension RemoteCmd {
             logWarning("RemoteCmd: ignoring unknown command action")
             return nil
 
+        case .settorchmode, .setflashmode, .syncmonitorsettings, .requestcamerastatereport:
+            // Retired actions. Their numbers stay in the enum so the version
+            // handshake's numbers never move (see FlatBufferSchemas.fbs); a
+            // peer old enough to send one is refused by the version gate.
+            logWarning("RemoteCmd: ignoring deprecated command action \(cmd.action)")
+            return nil
+
         case .startrecording:
             return StartRecordingVideo(sender: nil)
 

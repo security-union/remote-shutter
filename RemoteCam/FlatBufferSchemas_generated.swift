@@ -18,26 +18,30 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case startrecording = 7
   case stoprecording = 8
   case requestcapabilities = 9
-  case requestframe = 10
-  case peerbecamecamera = 11
-  case peerbecamemonitor = 12
-  case setvideoquality = 13
-  case setphotoquality = 14
-  case timercountdown = 15
-  case setaspectratio = 16
-  case selectcameradevice = 17
-  case requestkeyframe = 18
-  case focusatpoint = 19
-  case endsession = 20
-  case setcamerapreviewmode = 21
-  case clocksyncping = 22
-  case scheduledcapture = 23
-  case scheduledstartrecording = 24
-  case scheduledstoprecording = 25
-  case setstreamprofile = 26
-  case requestvideoresend = 27
-  case camerastatereport = 28
-  case stoprecordingfinished = 29
+  case settorchmode = 10
+  case setflashmode = 11
+  case requestframe = 12
+  case peerbecamecamera = 13
+  case peerbecamemonitor = 14
+  case setvideoquality = 15
+  case setphotoquality = 16
+  case timercountdown = 17
+  case syncmonitorsettings = 18
+  case setaspectratio = 19
+  case selectcameradevice = 20
+  case requestkeyframe = 21
+  case focusatpoint = 22
+  case endsession = 23
+  case setcamerapreviewmode = 24
+  case clocksyncping = 25
+  case scheduledcapture = 26
+  case scheduledstartrecording = 27
+  case scheduledstoprecording = 28
+  case setstreamprofile = 29
+  case requestvideoresend = 30
+  case camerastatereport = 31
+  case requestcamerastatereport = 32
+  case stoprecordingfinished = 33
 
   public static var max: RemoteShutter_CommandAction { return .stoprecordingfinished }
   public static var min: RemoteShutter_CommandAction { return .unknown }
@@ -333,31 +337,31 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     case sendToRemote = 4
     case zoomFactor = 6
     case lensType = 8
-    case bundleVersion = 10
-    case shortVersion = 12
-    case platform = 14
-    case videoResolution = 16
-    case videoFrameRate = 18
-    case photoFormat = 20
-    case hdrMode = 22
-    case countdownValue = 24
-    case aspectRatio = 26
-    case deviceUniqueId = 28
-    case focusPointX = 30
-    case focusPointY = 32
-    case cameraPreviewMode = 34
-    case clockSyncT0Ms = 36
-    case captureFireAtCameraClockMs = 38
-    case captureAnchorMs = 40
-    case captureId = 42
-    case captureSessionId = 44
-    case captureCameraIndex = 46
-    case streamMaxLongEdge = 48
-    case streamBitrateKbps = 50
-    case streamFps = 52
-    case stateReportSeq = 54
-    case stateRecordingPhase = 56
-    case stateRecordingElapsedMs = 58
+    case bundleVersion = 14
+    case shortVersion = 16
+    case platform = 18
+    case videoResolution = 20
+    case videoFrameRate = 22
+    case photoFormat = 24
+    case hdrMode = 26
+    case countdownValue = 28
+    case aspectRatio = 32
+    case deviceUniqueId = 34
+    case focusPointX = 36
+    case focusPointY = 38
+    case cameraPreviewMode = 40
+    case clockSyncT0Ms = 42
+    case captureFireAtCameraClockMs = 44
+    case captureAnchorMs = 46
+    case captureId = 48
+    case captureSessionId = 50
+    case captureCameraIndex = 52
+    case streamMaxLongEdge = 54
+    case streamBitrateKbps = 56
+    case streamFps = 58
+    case stateReportSeq = 60
+    case stateRecordingPhase = 62
+    case stateRecordingElapsedMs = 64
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -395,7 +399,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public var stateReportSeq: UInt64 { let o = _accessor.offset(VTOFFSET.stateReportSeq.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var stateRecordingPhase: RemoteShutter_RecordingPhase { let o = _accessor.offset(VTOFFSET.stateRecordingPhase.v); return o == 0 ? .unknown : RemoteShutter_RecordingPhase(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var stateRecordingElapsedMs: UInt64 { let o = _accessor.offset(VTOFFSET.stateRecordingElapsedMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
-  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 28) }
+  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 31) }
   public static func add(sendToRemote: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: sendToRemote, def: false,
    at: VTOFFSET.sendToRemote.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
@@ -1164,12 +1168,12 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     case currentState = 10
     case capabilities = 12
     case mediaData = 14
-    case availableLenses = 16
-    case zoomRange = 18
-    case currentZoom = 20
-    case clockSyncEchoT0Ms = 22
-    case clockSyncCameraClockMs = 24
-    case captureIdEcho = 26
+    case availableLenses = 18
+    case zoomRange = 20
+    case currentZoom = 22
+    case clockSyncEchoT0Ms = 24
+    case clockSyncCameraClockMs = 26
+    case captureIdEcho = 28
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1193,7 +1197,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public var clockSyncCameraClockMs: UInt64 { let o = _accessor.offset(VTOFFSET.clockSyncCameraClockMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var captureIdEcho: String? { let o = _accessor.offset(VTOFFSET.captureIdEcho.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var captureIdEchoSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.captureIdEcho.v) }
-  public static func startCameraStateResponse(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 12) }
+  public static func startCameraStateResponse(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 13) }
   public static func add(action: RemoteShutter_CommandAction, _ fbb: inout FlatBufferBuilder) { fbb.add(element: action.rawValue, def: 0, at: VTOFFSET.action.p) }
   public static func add(success: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: success, def: false,
    at: VTOFFSET.success.p) }
