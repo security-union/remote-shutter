@@ -30,24 +30,17 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    /// Camera -> remote: recording started (or failed to). Success/error
+    /// only — the running timer is driven by `CameraStateReport` ticks.
     public class StartRecordingVideoAck: RemoteCmd, @unchecked Sendable {
-        let recordingStartTime: Date?
         let error: Error?
 
         public override init(sender: AnyObject?) {
-            self.recordingStartTime = nil
             self.error = nil
             super.init(sender: sender)
         }
 
-        public init(sender: AnyObject?, recordingStartTime: Date?) {
-            self.recordingStartTime = recordingStartTime
-            self.error = nil
-            super.init(sender: sender)
-        }
-
-        public init(sender: AnyObject?, recordingStartTime: Date?, error: Error?) {
-            self.recordingStartTime = recordingStartTime
+        public init(sender: AnyObject?, error: Error?) {
             self.error = error
             super.init(sender: sender)
         }
@@ -624,9 +617,9 @@ public class RemoteCmd: Message, @unchecked Sendable {
     /// `sendCameraStateReport`), pushed on every recording state change and
     /// on link-up, and re-pushed with every capabilities answer. `seq` is
     /// monotonic per camera session; receivers drop anything older than the
-    /// last report absorbed, so pushes and requested re-pushes can never
-    /// fight. Capabilities describe hardware; THIS message says what the
-    /// camera is doing.
+    /// last report absorbed, so a re-push can never fight a live push.
+    /// Capabilities describe hardware; THIS message says what the camera is
+    /// doing.
     public class CameraStateReport: Message, @unchecked Sendable {
         /// EXPLICIT recording state — never inferred from a sentinel
         /// timestamp. While recording, the CAMERA drives the remote's timer:
@@ -645,12 +638,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.state = state
             super.init(sender: nil)
         }
-    }
-
-    /// Monitor/director → camera: re-push the current `CameraStateReport`
-    /// (used on connection and after a camera re-announce).
-    public class RequestCameraStateReport: Message, @unchecked Sendable {
-        public init() { super.init(sender: nil) }
     }
 
     // MARK: - Lens Switching Remote Commands
@@ -750,26 +737,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
     }
 
     public class ToggleTorchResp: Message, @unchecked Sendable {
-        public let error: Error?
-        public let torchMode: AVCaptureDevice.TorchMode?
-
-        public init(torchMode: AVCaptureDevice.TorchMode?, error: Error?) {
-            self.torchMode = torchMode
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
-
-    public class SetTorch: Message, @unchecked Sendable {
-        public let torchMode: AVCaptureDevice.TorchMode
-
-        public init(torchMode: AVCaptureDevice.TorchMode) {
-            self.torchMode = torchMode
-            super.init(sender: nil)
-        }
-    }
-
-    public class SetTorchResp: Message, @unchecked Sendable {
         public let error: Error?
         public let torchMode: AVCaptureDevice.TorchMode?
 
@@ -896,17 +863,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
         public init(value: Int) {
             self.value = value
-            super.init(sender: nil)
-        }
-    }
-
-    // MARK: - Sync Monitor Settings Command
-
-    public class SyncMonitorSettings: Message, @unchecked Sendable {
-        let mode: RecordingMode
-
-        init(mode: RecordingMode) {
-            self.mode = mode
             super.init(sender: nil)
         }
     }

@@ -8,11 +8,14 @@ namespace RemoteShutter;
 
 // MARK: - Enums
 
-// Renumbered in the transport-change release so Unknown = 0 (project
-// convention for all enums): an action this build does not know decodes as
-// Unknown and is ignored, instead of silently becoming TakePicture — which is
-// what the 0 slot used to mean. Wire-incompatible with pre-Stormo builds by
-// design; they cannot connect at all.
+// Unknown = 0 (project convention for all enums): an action this build does
+// not know decodes as Unknown and is ignored.
+//
+// NUMBERS NEVER MOVE. PeerBecameCamera/PeerBecameMonitor carry the app
+// version that the pairing gate compares, and that exchange happens BEFORE
+// any gate can refuse a peer — so a build on any major must decode it from a
+// build on any other major. A retired action keeps its slot, marked
+// deprecated: the decoder drops it, and nothing may ever reuse the number.
 enum CommandAction : byte {
     Unknown = 0,
     TakePicture = 1,
@@ -24,15 +27,15 @@ enum CommandAction : byte {
     StartRecording = 7,
     StopRecording = 8,
     RequestCapabilities = 9,
-    SetTorchMode = 10,
-    SetFlashMode = 11,
+    SetTorchMode = 10,         // deprecated (no sender since 12.0): slot retained
+    SetFlashMode = 11,         // deprecated (never had a command): slot retained
     RequestFrame = 12,
-    PeerBecameCamera = 13,
-    PeerBecameMonitor = 14,
+    PeerBecameCamera = 13,     // version handshake — see the note above
+    PeerBecameMonitor = 14,    // version handshake — see the note above
     SetVideoQuality = 15,
     SetPhotoQuality = 16,
     TimerCountdown = 17,
-    SyncMonitorSettings = 18,
+    SyncMonitorSettings = 18,  // deprecated (no sender since 12.0): slot retained
     SetAspectRatio = 19,
     SelectCameraDevice = 20,   // only sent to peers advertising camera_devices
     RequestKeyframe = 21,      // monitor -> camera: force a VP9 keyframe
@@ -61,13 +64,11 @@ enum CommandAction : byte {
     RequestVideoResend = 30,   // director -> camera: re-send the last collected
                                // clip (auto-collect retry). Reuses capture_id.
     CameraStateReport = 31,    // camera -> monitor/director: THE recording-truth
-                               // channel (v10). Pushed on every recording state
-                               // change and on link-up; also the answer to
-                               // RequestCameraStateReport. Payload rides in
+                               // channel. Pushed on every recording state change
+                               // and on link-up. Payload rides in
                                // CommandParameters (state_report_seq,
                                // state_recording_phase, elapsed ticks).
-    RequestCameraStateReport = 32, // monitor/director -> camera: re-push the
-                               // current CameraStateReport (e.g. on connection).
+    RequestCameraStateReport = 32, // deprecated (no sender since 12.0): slot retained
     StopRecordingFinished = 33 // The stop protocol's terminal message
                                // (StopRecording -> its ack -> this). Carries
                                // success/error ONLY: the clip never rides in a
@@ -181,12 +182,16 @@ enum StreamCodec : byte {
 
 // MARK: - Command Parameters
 
+// Field slots are positional and the version handshake (PeerBecameCamera/
+// PeerBecameMonitor) rides in this table, so a retired field is marked
+// `(deprecated)` — flatc keeps its slot and drops the accessor — and never
+// removed. The same rule protects every other table a handshake touches.
 table CommandParameters {
     send_to_remote: bool;
     zoom_factor: double;
     lens_type: CameraLensType;
-    torch_mode: TorchMode;
-    flash_mode: FlashMode;
+    torch_mode: TorchMode (deprecated);
+    flash_mode: FlashMode (deprecated);
     bundle_version: int;
     short_version: string;
     platform: string;
@@ -195,7 +200,7 @@ table CommandParameters {
     photo_format: PhotoFormat;
     hdr_mode: HDRMode;
     countdown_value: int;
-    recording_mode: RecordingModeEnum;
+    recording_mode: RecordingModeEnum (deprecated);
     aspect_ratio: AspectRatioEnum;
     // Appended fields only below this line (FlatBuffers schema evolution).
     device_unique_id: string;        // payload for SelectCameraDevice
@@ -345,7 +350,7 @@ table CameraStateResponse {
     capabilities: CameraCapabilities;
     media_data: [ubyte];              // TakePicture response only: the still's bytes.
                                       // Video never travels here (see StopRecordingFinished).
-    recording_start_time: uint64;
+    recording_start_time: uint64 (deprecated);
     available_lenses: [CameraLensType];
     zoom_range: ZoomRange;
     current_zoom: double;

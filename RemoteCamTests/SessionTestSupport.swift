@@ -233,11 +233,6 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 10),
             currentZoom: 1.0)
     }
-    func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode {
-        if let errorToThrow { throw errorToThrow }
-        torchActive = mode == .on
-        return mode
-    }
     func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) async -> (VideoResolution, VideoFrameRate)? {
         (resolution, frameRate)
     }

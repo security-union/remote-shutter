@@ -62,7 +62,6 @@ protocol CameraControlling: AnyObject, Sendable {
     /// accept the input swap and still never deliver (a wedged virtual
     /// camera) — switch responses are only successful once this confirms.
     func awaitFrameDelivery(timeout: TimeInterval) async -> Bool
-    func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode
     func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) async -> (VideoResolution, VideoFrameRate)?
     func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) async -> (PhotoFormat, HDRMode)?
     func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio

@@ -178,8 +178,8 @@ final class RecordingPipelineTests: XCTestCase {
         XCTAssertTrue(pipeline.isRecording)
         XCTAssertEqual(acks.count, 1, "the ready edge must produce exactly one StartRecordingVideoAck")
         let ack = try XCTUnwrap(acks.first as? RemoteCmd.StartRecordingVideoAck)
-        XCTAssertEqual(pipeline.recordingStartedAt, ack.recordingStartTime,
-                       "one stamp: the shared start instant IS the ack's start time")
+        XCTAssertNil(ack.error, "the ready edge acks success")
+        XCTAssertNotNil(pipeline.recordingStartedAt, "the shared start instant is stamped on the ready edge")
     }
 
     /// No usable microphone: recording is REFUSED — no silent-video surprise

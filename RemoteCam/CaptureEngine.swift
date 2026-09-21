@@ -453,24 +453,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
-    func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode {
-        try await onSessionQueueThrowing {
-            let device = self.videoDeviceInput?.device
-            guard let hasTorch = device?.hasTorch, hasTorch else {
-                throw NSError(domain: "Current camera does not support torch.", code: 0, userInfo: nil)
-            }
-            try device?.lockForConfiguration()
-            device?.torchMode = mode
-            device?.unlockForConfiguration()
-            self.desiredTorchOnStorage = mode == .on
-            return mode
-        }
-    }
-
     // MARK: - Torch Intent
 
     /// The single source of truth for whether the user wants the torch on. Set only by the
-    /// user-facing torch controls (`toggleTorch` / `setTorchMode`); the countdown strobe
+    /// user-facing torch control (`toggleTorch`); the countdown strobe
     /// drives the hardware directly and never touches this, so it survives a countdown.
     /// sessionQueue-confined storage; the public getter hops for outside readers.
     private var desiredTorchOnStorage = false
