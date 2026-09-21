@@ -1118,14 +1118,6 @@ public actor SessionCoordinator {
                 await sendOrGoToScanning(RemoteCmd.ToggleTorchResp(torchMode: nil, error: error as NSError))
             }
 
-        case let torch as RemoteCmd.SetTorch:
-            do {
-                let torchMode = try await ctrl.setTorchMode(mode: torch.torchMode)
-                await sendOrGoToScanning(RemoteCmd.SetTorchResp(torchMode: torchMode, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SetTorchResp(torchMode: nil, error: error as NSError))
-            }
-
         case let zoom as RemoteCmd.SetZoom:
             do {
                 let (factor, lens, range) = try await ctrl.setZoom(zoomFactor: zoom.zoomFactor)
@@ -1149,13 +1141,6 @@ public actor SessionCoordinator {
             } catch {
                 await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
                     lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error as NSError))
-            }
-
-        case let sync as RemoteCmd.SyncMonitorSettings:
-            let mode = sync.mode
-            OperationQueue.main.addOperation {
-                ctrl.currentCameraMode = mode
-                ctrl.updateCameraStatus()
             }
 
         case let countdown as RemoteCmd.TimerCountdown:
@@ -1246,8 +1231,8 @@ public actor SessionCoordinator {
 
     /// THE producer of recording truth on the wire. Called on every recording
     /// state change (start ack, settle to idle), on link-up, with every
-    /// capabilities answer, and for `RequestCameraStateReport`. Peerless sends
-    /// are simply skipped — the rejoin flow re-delivers.
+    /// capabilities answer. Peerless sends are simply skipped — the rejoin
+    /// flow re-delivers.
     private func sendCameraStateReport() {
         guard !connectedPeers.isEmpty else { return }
         // Elapsed is computed HERE, from two values on the same clock — the
@@ -1872,11 +1857,6 @@ public actor SessionCoordinator {
             // Nothing is being waited on outside `.reconnecting`.
             break
 
-        case is RemoteCmd.RequestCameraStateReport:
-            // Answerable from ANY camera state — the whole point of the
-            // channel is that the camera's truth is always one request away.
-            if state.isCameraRole { sendCameraStateReport() }
-
         case let become as UICmd.BecomeWatchCamera:
             ctrl = become.ctrl
             await transition(to: .watchCamera)
@@ -1913,7 +1893,7 @@ public actor SessionCoordinator {
         case is RemoteCmd.SetAspectRatio:
             await sendOrGoToScanning(RemoteCmd.SetAspectRatioResp(aspectRatio: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.StartRecordingVideo:
-            await sendOrGoToScanning(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil, error: unableToProcessError(msg)))
+            await sendOrGoToScanning(RemoteCmd.StartRecordingVideoAck(sender: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.StopRecordingVideo:
             await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(error: unableToProcessError(msg)))
 

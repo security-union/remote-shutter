@@ -70,20 +70,16 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.ToggleFlashResp: return m.toFlatBuffer()
         case let m as RemoteCmd.ToggleTorch: return m.toFlatBuffer()
         case let m as RemoteCmd.ToggleTorchResp: return m.toFlatBuffer()
-        case let m as RemoteCmd.SetTorch: return m.toFlatBuffer()
-        case let m as RemoteCmd.SetTorchResp: return m.toFlatBuffer()
         case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
         case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
         case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraStateReport: return m.toFlatBuffer()
-        case let m as RemoteCmd.RequestCameraStateReport: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
         case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
         case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
         case let m as RemoteCmd.SetPhotoQualityResp: return m.toFlatBuffer()
         case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
-        case let m as RemoteCmd.SyncMonitorSettings: return m.toFlatBuffer()
         case let m as RemoteCmd.SetAspectRatio: return m.toFlatBuffer()
         case let m as RemoteCmd.SetAspectRatioResp: return m.toFlatBuffer()
         default:
@@ -103,18 +99,15 @@ final class RemoteCmdSerializationTests: XCTestCase {
     // MARK: - 2. StartRecordingVideoAck
 
     func testStartRecordingVideoAck_roundTrip() {
-        let date = Date(timeIntervalSince1970: 1700000000)
-        let original = RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: date)
+        let original = RemoteCmd.StartRecordingVideoAck(sender: nil)
         let decoded: RemoteCmd.StartRecordingVideoAck = roundTrip(original)
-        XCTAssertEqual(decoded.recordingStartTime?.timeIntervalSince1970, date.timeIntervalSince1970)
         XCTAssertNil(decoded.error)
     }
 
     func testStartRecordingVideoAck_withError() {
         let error = NSError(domain: "test", code: 42, userInfo: [NSLocalizedDescriptionKey: "recording failed"])
-        let original = RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil, error: error)
+        let original = RemoteCmd.StartRecordingVideoAck(sender: nil, error: error)
         let decoded: RemoteCmd.StartRecordingVideoAck = roundTrip(original)
-        XCTAssertNil(decoded.recordingStartTime)
         XCTAssertNotNil(decoded.error)
         XCTAssertEqual(decoded.error?.localizedDescription, "recording failed")
     }
@@ -481,10 +474,6 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.state, .idle)
     }
 
-    func testRequestCameraStateReport_roundTrip() {
-        let _: RemoteCmd.RequestCameraStateReport = roundTrip(RemoteCmd.RequestCameraStateReport())
-    }
-
     // MARK: - 13b. Camera device selection
 
     func testSelectCameraDevice_roundTrip() {
@@ -755,38 +744,6 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.error?.localizedDescription, "torch toggle failed")
     }
 
-    // MARK: - 22. SetTorch
-
-    func testSetTorch_on() {
-        let original = RemoteCmd.SetTorch(torchMode: .on)
-        let decoded: RemoteCmd.SetTorch = roundTrip(original)
-        XCTAssertEqual(decoded.torchMode, .on)
-    }
-
-    func testSetTorch_off() {
-        let original = RemoteCmd.SetTorch(torchMode: .off)
-        let decoded: RemoteCmd.SetTorch = roundTrip(original)
-        XCTAssertEqual(decoded.torchMode, .off)
-    }
-
-    // MARK: - 23. SetTorchResp
-
-    func testSetTorchResp_on() {
-        let original = RemoteCmd.SetTorchResp(torchMode: .on, error: nil)
-        let decoded: RemoteCmd.SetTorchResp = roundTrip(original)
-        XCTAssertEqual(decoded.torchMode, .on)
-        XCTAssertNil(decoded.error)
-    }
-
-    func testSetTorchResp_withError() {
-        let error = NSError(domain: "torch", code: 9, userInfo: [NSLocalizedDescriptionKey: "set torch failed"])
-        let original = RemoteCmd.SetTorchResp(torchMode: nil, error: error)
-        let decoded: RemoteCmd.SetTorchResp = roundTrip(original)
-        XCTAssertNil(decoded.torchMode)
-        XCTAssertNotNil(decoded.error)
-        XCTAssertEqual(decoded.error?.localizedDescription, "set torch failed")
-    }
-
     // MARK: - 24. ToggleCamera
 
     func testToggleCamera_roundTrip() {
@@ -870,12 +827,6 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let original = RemoteCmd.ToggleTorchResp(torchMode: .auto, error: nil)
         let decoded: RemoteCmd.ToggleTorchResp = roundTrip(original)
         XCTAssertEqual(decoded.torchMode, .auto, "TorchMode.auto (rawValue 2) must survive round-trip")
-    }
-
-    func testSetTorchResp_off_rawValueZero() {
-        let original = RemoteCmd.SetTorchResp(torchMode: .off, error: nil)
-        let decoded: RemoteCmd.SetTorchResp = roundTrip(original)
-        XCTAssertEqual(decoded.torchMode, .off, "TorchMode.off (rawValue 0) must survive round-trip")
     }
 
     func testStopRecordingVideoResp_successRoundTrip() {
@@ -1026,26 +977,6 @@ final class RemoteCmdSerializationTests: XCTestCase {
         let original = RemoteCmd.TimerCountdown(value: -1)
         let decoded: RemoteCmd.TimerCountdown = roundTrip(original)
         XCTAssertEqual(decoded.value, -1)
-    }
-
-    // MARK: - 32. SyncMonitorSettings
-
-    func testSyncMonitorSettings_photoMode() {
-        let original = RemoteCmd.SyncMonitorSettings(mode: .Photo)
-        let decoded: RemoteCmd.SyncMonitorSettings = roundTrip(original)
-        XCTAssertEqual(decoded.mode, .Photo)
-    }
-
-    func testSyncMonitorSettings_videoMode() {
-        let original = RemoteCmd.SyncMonitorSettings(mode: .Video)
-        let decoded: RemoteCmd.SyncMonitorSettings = roundTrip(original)
-        XCTAssertEqual(decoded.mode, .Video)
-    }
-
-    func testSyncMonitorSettings_shortsMode() {
-        let original = RemoteCmd.SyncMonitorSettings(mode: .Shorts)
-        let decoded: RemoteCmd.SyncMonitorSettings = roundTrip(original)
-        XCTAssertEqual(decoded.mode, .Shorts)
     }
 
     // MARK: - 30. CameraInfo with Quality Capabilities

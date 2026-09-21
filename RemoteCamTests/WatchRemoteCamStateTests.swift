@@ -75,7 +75,7 @@ class WatchRemoteCamStateTests: XCTestCase {
     private func enterRecording() async {
         await enterStartingVideo()
         ctrl.isRecording = true
-        await deliver(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date()))
+        await deliver(RemoteCmd.StartRecordingVideoAck(sender: nil))
     }
 
     // MARK: - Entry
@@ -195,7 +195,7 @@ class WatchRemoteCamStateTests: XCTestCase {
 
     func testStartAckWithErrorReturnsToCameraWithRecordingFailed() async {
         await enterStartingVideo()
-        await deliver(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil,
+        await deliver(RemoteCmd.StartRecordingVideoAck(sender: nil,
                                                        error: NSError(domain: "av", code: 1)))
 
         let name = await stateName()

@@ -630,8 +630,8 @@ class RecordingPipeline {
                     guard let self = self else { return }
                     self.onRecordingStarted?(startTime)
 
-                    // Send recording start time to monitor for synchronization
-                    self.sendMessage?(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: startTime))
+                    // Tell the remote the recording is rolling.
+                    self.sendMessage?(RemoteCmd.StartRecordingVideoAck(sender: nil))
                 }
             }
         }

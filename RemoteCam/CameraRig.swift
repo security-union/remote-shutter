@@ -508,9 +508,6 @@ extension CameraRig: CameraControlling {
         try await engine.toggleTorch()
     }
 
-    func setTorchMode(mode: AVCaptureDevice.TorchMode) async throws -> AVCaptureDevice.TorchMode {
-        try await engine.setTorchMode(mode: mode)
-    }
 
     func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
         try await engine.setZoom(zoomFactor: zoomFactor)

@@ -8,11 +8,9 @@ namespace RemoteShutter;
 
 // MARK: - Enums
 
-// Renumbered in the transport-change release so Unknown = 0 (project
-// convention for all enums): an action this build does not know decodes as
-// Unknown and is ignored, instead of silently becoming TakePicture — which is
-// what the 0 slot used to mean. Wire-incompatible with pre-Stormo builds by
-// design; they cannot connect at all.
+// Unknown = 0 (project convention for all enums): an action this build does
+// not know decodes as Unknown and is ignored. Values are contiguous — the app
+// major is the only wire gate, so removing an action renumbers the rest.
 enum CommandAction : byte {
     Unknown = 0,
     TakePicture = 1,
@@ -24,51 +22,45 @@ enum CommandAction : byte {
     StartRecording = 7,
     StopRecording = 8,
     RequestCapabilities = 9,
-    SetTorchMode = 10,
-    SetFlashMode = 11,
-    RequestFrame = 12,
-    PeerBecameCamera = 13,
-    PeerBecameMonitor = 14,
-    SetVideoQuality = 15,
-    SetPhotoQuality = 16,
-    TimerCountdown = 17,
-    SyncMonitorSettings = 18,
-    SetAspectRatio = 19,
-    SelectCameraDevice = 20,   // only sent to peers advertising camera_devices
-    RequestKeyframe = 21,      // monitor -> camera: force a VP9 keyframe
-    FocusAtPoint = 22,         // monitor -> camera: focus/exposure point
-    EndSession = 23,           // either side: "I am leaving on purpose"
-    SetCameraPreviewMode = 24, // monitor -> camera: local preview on/standby;
+    RequestFrame = 10,
+    PeerBecameCamera = 11,
+    PeerBecameMonitor = 12,
+    SetVideoQuality = 13,
+    SetPhotoQuality = 14,
+    TimerCountdown = 15,
+    SetAspectRatio = 16,
+    SelectCameraDevice = 17,   // only sent to peers advertising camera_devices
+    RequestKeyframe = 18,      // monitor -> camera: force a VP9 keyframe
+    FocusAtPoint = 19,         // monitor -> camera: focus/exposure point
+    EndSession = 20,           // either side: "I am leaving on purpose"
+    SetCameraPreviewMode = 21, // monitor -> camera: local preview on/standby;
                                // only sent to peers advertising supports_preview_mode
-    ClockSyncPing = 25,        // director -> camera: clock-offset probe carrying the
+    ClockSyncPing = 22,        // director -> camera: clock-offset probe carrying the
                                // director's send time; the camera answers with a
                                // ClockSyncPing response echoing it plus its own clock.
                                // Only sent to peers advertising supports_multicam.
-    ScheduledCapture = 26,     // director -> camera: take a photo at a wall-clock
+    ScheduledCapture = 23,     // director -> camera: take a photo at a wall-clock
                                // instant expressed in the camera's own clock domain
                                // (the director already applied the per-camera offset),
                                // so N cameras fire together. Only sent to peers
                                // advertising supports_multicam; the camera acks with a
                                // CameraStateResponse echoing the capture id.
-    ScheduledStartRecording = 27, // director -> camera: start recording at the fire
+    ScheduledStartRecording = 24, // director -> camera: start recording at the fire
                                // instant. Reuses the ScheduledCapture params; acks by
                                // echoing the capture id. Only sent to multicam peers.
-    ScheduledStopRecording = 28,  // director -> camera: stop recording at the fire
+    ScheduledStopRecording = 25,  // director -> camera: stop recording at the fire
                                // instant, so clip lengths match across the rig.
-    SetStreamProfile = 29,     // director -> camera: reconfigure the live preview
+    SetStreamProfile = 26,     // director -> camera: reconfigure the live preview
                                // encoder (resolution/bitrate/fps) for tiered
                                // multicam previews. Only sent to multicam peers.
-    RequestVideoResend = 30,   // director -> camera: re-send the last collected
+    RequestVideoResend = 27,   // director -> camera: re-send the last collected
                                // clip (auto-collect retry). Reuses capture_id.
-    CameraStateReport = 31,    // camera -> monitor/director: THE recording-truth
-                               // channel (v10). Pushed on every recording state
-                               // change and on link-up; also the answer to
-                               // RequestCameraStateReport. Payload rides in
+    CameraStateReport = 28,    // camera -> monitor/director: THE recording-truth
+                               // channel. Pushed on every recording state change
+                               // and on link-up. Payload rides in
                                // CommandParameters (state_report_seq,
                                // state_recording_phase, elapsed ticks).
-    RequestCameraStateReport = 32, // monitor/director -> camera: re-push the
-                               // current CameraStateReport (e.g. on connection).
-    StopRecordingFinished = 33 // The stop protocol's terminal message
+    StopRecordingFinished = 29 // The stop protocol's terminal message
                                // (StopRecording -> its ack -> this). Carries
                                // success/error ONLY: the clip never rides in a
                                // message — it streams disk-to-disk as a
@@ -185,8 +177,6 @@ table CommandParameters {
     send_to_remote: bool;
     zoom_factor: double;
     lens_type: CameraLensType;
-    torch_mode: TorchMode;
-    flash_mode: FlashMode;
     bundle_version: int;
     short_version: string;
     platform: string;
@@ -195,7 +185,6 @@ table CommandParameters {
     photo_format: PhotoFormat;
     hdr_mode: HDRMode;
     countdown_value: int;
-    recording_mode: RecordingModeEnum;
     aspect_ratio: AspectRatioEnum;
     // Appended fields only below this line (FlatBuffers schema evolution).
     device_unique_id: string;        // payload for SelectCameraDevice
@@ -345,7 +334,6 @@ table CameraStateResponse {
     capabilities: CameraCapabilities;
     media_data: [ubyte];              // TakePicture response only: the still's bytes.
                                       // Video never travels here (see StopRecordingFinished).
-    recording_start_time: uint64;
     available_lenses: [CameraLensType];
     zoom_range: ZoomRange;
     current_zoom: double;

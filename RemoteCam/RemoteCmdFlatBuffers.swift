@@ -53,20 +53,16 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.ToggleFlashResp: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleTorch: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleTorchResp: return m.toFlatBuffer()
-    case let m as RemoteCmd.SetTorch: return m.toFlatBuffer()
-    case let m as RemoteCmd.SetTorchResp: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
     case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraStateReport: return m.toFlatBuffer()
-    case let m as RemoteCmd.RequestCameraStateReport: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
     case let m as RemoteCmd.SetPhotoQualityResp: return m.toFlatBuffer()
     case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
-    case let m as RemoteCmd.SyncMonitorSettings: return m.toFlatBuffer()
     case let m as RemoteCmd.SetAspectRatio: return m.toFlatBuffer()
     case let m as RemoteCmd.SetAspectRatioResp: return m.toFlatBuffer()
     default: return nil
@@ -482,13 +478,11 @@ extension RemoteCmd.StartRecordingVideoAck {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-        let startTime: UInt64 = recordingStartTime.map { UInt64($0.timeIntervalSince1970 * 1000) } ?? 0
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
             action: .startrecording,
             success: error == nil,
-            errorOffset: errorOffset,
-            recordingStartTime: startTime
+            errorOffset: errorOffset
         )
         return buildResponse(&fbb, action: .startrecording, response: resp)
     }
@@ -930,35 +924,6 @@ extension RemoteCmd.ToggleTorchResp {
     }
 }
 
-extension RemoteCmd.SetTorch {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, torchMode: toFBTorch(torchMode))
-        return buildCommand(&fbb, action: .settorchmode, parameters: params)
-    }
-}
-
-extension RemoteCmd.SetTorchResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if let mode = torchMode {
-            stateOffset = RemoteShutter_CameraState.createCameraState(&fbb, torchMode: toFBTorch(mode))
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .settorchmode,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset
-        )
-        return buildResponse(&fbb, action: .settorchmode, response: resp)
-    }
-}
-
 extension RemoteCmd.ToggleCamera {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1011,13 +976,6 @@ extension RemoteCmd.CameraStateReport {
             stateRecordingPhase: phase,
             stateRecordingElapsedMs: elapsedMs)
         return buildCommand(&fbb, action: .camerastatereport, parameters: params)
-    }
-}
-
-extension RemoteCmd.RequestCameraStateReport {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        return buildCommand(&fbb, action: .requestcamerastatereport)
     }
 }
 
@@ -1082,25 +1040,6 @@ extension RemoteCmd.SetPhotoQualityResp {
             currentStateOffset: stateOffset
         )
         return buildResponse(&fbb, action: .setphotoquality, response: resp)
-    }
-}
-
-// MARK: - RecordingMode enum conversions
-
-private func toFBRecordingMode(_ m: RecordingMode) -> RemoteShutter_RecordingModeEnum {
-    switch m {
-    case .Photo: return .photo
-    case .Video: return .video
-    case .Shorts: return .shorts
-    }
-}
-
-private func fromFBRecordingMode(_ m: RemoteShutter_RecordingModeEnum) -> RecordingMode {
-    switch m {
-    case .photo: return .Photo
-    case .video: return .Video
-    case .shorts: return .Shorts
-    case .unknown: return .Photo
     }
 }
 
@@ -1171,18 +1110,6 @@ extension RemoteCmd.SetAspectRatioResp {
             currentStateOffset: stateOffset
         )
         return buildResponse(&fbb, action: .setaspectratio, response: resp)
-    }
-}
-
-// MARK: - SyncMonitorSettings toFlatBuffer()
-
-extension RemoteCmd.SyncMonitorSettings {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let params = RemoteShutter_CommandParameters.createCommandParameters(
-            &fbb,
-            recordingMode: toFBRecordingMode(mode))
-        return buildCommand(&fbb, action: .syncmonitorsettings, parameters: params)
     }
 }
 
@@ -1307,12 +1234,6 @@ extension RemoteCmd {
         case .toggletorch:
             return ToggleTorch()
 
-        case .settorchmode:
-            return SetTorch(torchMode: fromFBTorch(params?.torchMode ?? .off))
-
-        case .setflashmode:
-            return ToggleFlash() // No SetFlash command exists
-
         case .togglecamera:
             return ToggleCamera()
 
@@ -1332,9 +1253,6 @@ extension RemoteCmd {
                 return nil
             }
             return CameraStateReport(seq: params?.stateReportSeq ?? 0, state: state)
-
-        case .requestcamerastatereport:
-            return RequestCameraStateReport()
 
         case .stoprecordingfinished:
             // `CommandAction` is ONE enum shared by commands and responses, and
@@ -1356,10 +1274,6 @@ extension RemoteCmd {
 
         case .timercountdown:
             return TimerCountdown(value: Int(params?.countdownValue ?? 0))
-
-        case .syncmonitorsettings:
-            let mode = fromFBRecordingMode(params?.recordingMode ?? .photo)
-            return SyncMonitorSettings(mode: mode)
 
         case .setaspectratio:
             let ratio = fromFBAspectRatio(params?.aspectRatio ?? .unknown)
@@ -1413,8 +1327,7 @@ extension RemoteCmd {
             return ScheduledRecordingAck(captureId: resp.captureIdEcho ?? "", isStop: true, error: nsError)
 
         case .startrecording:
-            let startTime: Date? = resp.recordingStartTime > 0 ? Date(timeIntervalSince1970: Double(resp.recordingStartTime) / 1000.0) : nil
-            return StartRecordingVideoAck(sender: nil, recordingStartTime: startTime, error: nsError)
+            return StartRecordingVideoAck(sender: nil, error: nsError)
 
         // The stop protocol's two replies ride two DISTINCT actions:
         //   .stoprecording         → StopRecordingVideoAck  ("stop received")
@@ -1475,10 +1388,6 @@ extension RemoteCmd {
         case .toggletorch:
             let torchMode: AVCaptureDevice.TorchMode? = resp.currentState.map { fromFBTorch($0.torchMode) }
             return ToggleTorchResp(torchMode: torchMode, error: nsError)
-
-        case .settorchmode:
-            let torchMode: AVCaptureDevice.TorchMode? = resp.currentState.map { fromFBTorch($0.torchMode) }
-            return SetTorchResp(torchMode: torchMode, error: nsError)
 
         case .togglecamera:
             if nsError != nil {

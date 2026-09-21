@@ -129,7 +129,7 @@ final class LoopbackFakeCamera: FakeCameraControlling, @unchecked Sendable {
         super.startRecordingVideo()
         // The real pipeline sends this to the local session once the writer
         // produces its first frames (RecordingPipeline.processFrame).
-        coordinator?.tell(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date()))
+        coordinator?.tell(RemoteCmd.StartRecordingVideoAck(sender: nil))
     }
 
     /// The clip this camera "recorded"; written on demand so a test can
@@ -944,11 +944,10 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(fakeCamera.startRecordingCalls, 1)
         let cameraStateRecording = await cameraCoordinator.currentStateName()
         XCTAssertEqual(cameraStateRecording, .cameraRecordingVideo)
-        // The success ack (recording start time, used for the timer sync)
-        // must be forwarded to the peer, not just the error ack.
+        // The success ack must be forwarded to the peer, not just the error ack.
         let startAcks = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.StartRecordingVideoAck }
         XCTAssertEqual(startAcks.count, 1, "camera must forward the success StartRecordingVideoAck to the director")
-        XCTAssertNotNil(startAcks.first?.recordingStartTime)
+        XCTAssertNil(startAcks.first?.error)
 
         // Stop: the same shutter now stops, with "Send Media to Remote" ON.
         director.stopRecording()
