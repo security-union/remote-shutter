@@ -2236,4 +2236,93 @@ final class MulticamControllerTests: XCTestCase {
         recording = await controller.isRecordingForTesting(camA)
         XCTAssertFalse(recording, "the fresh session's first report lands")
     }
+
+    // MARK: - Camera device selection (a Mac's several cameras)
+
+    private func deviceCaps(_ ids: [String], active: String) -> RemoteCmd.CameraCapabilitiesResp {
+        let lens = RemoteCmd.CameraInfo(
+            availableLenses: [.wideAngle], hasFlash: false, hasTorch: false,
+            zoomCapabilities: [:], supportedResolutions: [.hd1080p],
+            supportedFrameRates: [.fps30],
+            resolutionFrameRates: [.hd1080p: [.fps30]],
+            supportsHEIF: false, supportsHDR: false)
+        return RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: lens,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            cameraDevices: ids.map {
+                RemoteCmd.CameraDeviceEntry(uniqueID: $0, localizedName: $0, positionRaw: 0,
+                                            isActive: $0 == active, isSuspended: false, info: nil)
+            },
+            activeDeviceID: active, supportsMulticam: true, error: nil)
+    }
+
+    func testSelectCameraDeviceGoesOnlyToThatPeer() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(deviceCaps(["builtin", "usb"], active: "builtin"), from: camA)
+        controller.didReceiveMessage(deviceCaps(["builtin", "usb"], active: "builtin"), from: camB)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.selectCameraDevice("usb", on: camA)
+        await controller.waitForIdle()
+
+        let sends = sent(transport, RemoteCmd.SelectCameraDevice.self)
+        XCTAssertEqual(sends.map(\.peers), [[camA]], "routing is a parameter of the command")
+        XCTAssertEqual((sends.first?.msg as? RemoteCmd.SelectCameraDevice)?.uniqueID, "usb")
+    }
+
+    /// The gate: a peer that advertised no device list (a phone) is never sent
+    /// a device selection — there is nothing on it to select.
+    func testSelectCameraDeviceIsDroppedWhenThePeerAdvertisedNoDevices() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        controller.didReceiveMessage(flipCaps(bothPositions: true), from: camA)
+        await controller.waitForIdle()
+        transport.sentMessages.removeAll()
+
+        controller.selectCameraDevice("usb", on: camA)
+        await controller.waitForIdle()
+
+        XCTAssertTrue(sent(transport, RemoteCmd.SelectCameraDevice.self).isEmpty)
+    }
+
+    /// The camera answers with its refreshed capabilities; only that lane's
+    /// device list and active device move.
+    func testSelectDeviceResponseUpdatesOnlyThatLane() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(deviceCaps(["builtin", "usb", "continuity"], active: "builtin"), from: camA)
+        controller.didReceiveMessage(deviceCaps(["builtin", "usb"], active: "builtin"), from: camB)
+        await controller.waitForIdle()
+
+        controller.didReceiveMessage(
+            RemoteCmd.SelectCameraDeviceResp(
+                cameraCapabilities: deviceCaps(["builtin", "usb", "continuity"], active: "usb"), error: nil),
+            from: camA)
+        await controller.waitForIdle()
+
+        let lanes = await controller.lanesForTesting()
+        let laneA = lanes.first { $0.peerID == camA }
+        let laneB = lanes.first { $0.peerID == camB }
+        XCTAssertEqual(laneA?.activeDeviceID, "usb")
+        XCTAssertEqual(laneA?.switchControl, .deviceMenu, "three cameras: a menu")
+        XCTAssertEqual(laneB?.activeDeviceID, "builtin")
+        XCTAssertEqual(laneB?.switchControl, .flipButton, "two cameras: a flip")
+    }
+
+    func testSelectDeviceErrorSurfacesATransientError() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        controller.didReceiveMessage(deviceCaps(["builtin", "usb", "obs"], active: "builtin"), from: camA)
+        await controller.waitForIdle()
+
+        controller.didReceiveMessage(
+            RemoteCmd.SelectCameraDeviceResp(
+                cameraCapabilities: nil,
+                error: NSError(domain: "OBS Virtual Camera delivers no frames", code: 0)),
+            from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+
+        XCTAssertEqual(display.transientErrors, ["OBS Virtual Camera delivers no frames"])
+        let lane = await controller.lanesForTesting().first { $0.peerID == camA }
+        XCTAssertEqual(lane?.activeDeviceID, "builtin", "a refused switch leaves the device alone")
+    }
 }

@@ -37,6 +37,9 @@ final class CameraLane: ObservableObject, Identifiable {
     var needsQualityRematch: Bool { info.needsQualityRematch }
     var collection: CameraLink.LaneCollectionState { info.collection }
     var canFlipCamera: Bool { info.canFlipCamera }
+    var switchControl: CameraSwitchControl { info.switchControl }
+    var cameraDevices: [RemoteCmd.CameraDeviceEntry] { info.cameraDevices }
+    var activeDeviceID: String? { info.activeDeviceID }
     var supportsFocusPoint: Bool { info.supportsFocusPoint }
     var zoomFactor: CGFloat { info.zoomFactor }
     var zoomScale: ZoomScale {
@@ -117,6 +120,11 @@ final class MulticamViewModel: ObservableObject {
                                   isRecording: isRecording)
     }
     var focusedCameraCanFlip: Bool { focusedControlState.flipEnabled }
+    /// The switch control for the focused camera: a flip button for a phone,
+    /// a device menu for a Mac with several cameras, nothing for one camera.
+    var focusedSwitchControl: CameraSwitchControl { focusedLane?.switchControl ?? .flipButton }
+    var focusedCameraDevices: [RemoteCmd.CameraDeviceEntry] { focusedLane?.cameraDevices ?? [] }
+    var focusedActiveDeviceID: String? { focusedLane?.activeDeviceID }
     var focusedControlsEnabled: Bool { focusedControlState.isLinked }
     var focusedTorchEnabled: Bool { focusedControlState.torchEnabled }
     var focusedFlashEnabled: Bool { focusedControlState.flashEnabled }

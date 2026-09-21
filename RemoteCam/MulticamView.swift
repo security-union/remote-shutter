@@ -48,6 +48,8 @@ struct MulticamView: View {
     /// Per-camera commands carry the lane they were rendered for — routing is
     /// a parameter of the command, never a stored register.
     let onFlipCamera: (CameraLane) -> Void
+    /// Switch the focused camera to a specific device by ID (a Mac's menu).
+    let onSelectCameraDevice: (CameraLane, String) -> Void
     /// Torch / flash on the named camera (per-camera framing).
     let onToggleTorch: (CameraLane) -> Void
     let onToggleFlash: (CameraLane) -> Void
@@ -273,13 +275,15 @@ struct MulticamView: View {
             action: onShutter)
             .equatable()
         let flip = CameraSwitchControlView(
-            control: .flipButton,
-            devices: [],
-            activeDeviceID: nil,
+            control: viewModel.focusedSwitchControl,
+            devices: viewModel.focusedCameraDevices,
+            activeDeviceID: viewModel.focusedActiveDeviceID,
             isEnabled: viewModel.focusedCameraCanFlip,
             isSwitching: false,
             onToggleCamera: withFocused(onFlipCamera),
-            onSelectCameraDevice: { _ in })
+            onSelectCameraDevice: { id in
+                if let focused = viewModel.focusedLane { onSelectCameraDevice(focused, id) }
+            })
             .equatable()
 
         return Group {

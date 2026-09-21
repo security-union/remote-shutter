@@ -61,9 +61,16 @@ struct MulticamLaneInfo: Equatable {
     /// Where this lane's footage is in the post-take auto-collect.
     let collection: CameraLink.LaneCollectionState
     /// This camera advertised both a front and a back camera in its last
-    /// capabilities. Not the flip-button gate (that mirrors the 1:1 monitor and
-    /// stays ungated); a projection of capabilities for diagnostics/tests.
+    /// capabilities. Not the flip-button gate (that stays ungated); a
+    /// projection of capabilities for diagnostics/tests.
     let canFlipCamera: Bool
+    /// The camera devices this peer advertised (a Mac: built-in, Continuity,
+    /// USB…), and which one is active. Empty for a peer that advertises none.
+    let cameraDevices: [RemoteCmd.CameraDeviceEntry]
+    let activeDeviceID: String?
+    /// Which switch control the focused chrome shows for this camera: flip
+    /// button, a device menu, or nothing — one rule, from the device list.
+    var switchControl: CameraSwitchControl { .forDevices(cameraDevices) }
     /// This camera can focus at a point — gates the viewfinder's focus tap so
     /// the user never gets a reticle (or a paywall) for a camera that can't.
     let supportsFocusPoint: Bool
@@ -460,6 +467,9 @@ public actor MulticamController {
         case let m as MCFlipCamera:
             logInfo("director: flip → \(m.target.displayName)")
             handleFlipCamera(target: m.target)
+        case let m as MCSelectCameraDevice:
+            logInfo("director: select device \(m.uniqueID) → \(m.target.displayName)")
+            handleSelectCameraDevice(m.uniqueID, target: m.target)
         case let m as MCFocusAtPoint:
             logInfo("director: focus tap (\(m.x), \(m.y)) → \(m.target.displayName)")
             handleFocusAtPoint(x: m.x, y: m.y, target: m.target)
@@ -611,6 +621,8 @@ public actor MulticamController {
             }
 
         case let resp as RemoteCmd.ToggleCameraResp:
+            // Also `SelectCameraDeviceResp`, a subclass: a device switch
+            // answers with the same shape and lands on the lane the same way.
             // The focused camera flipped front/back (or picked a device — the
             // response type is shared). Its refreshed capabilities carry the
             // new position, lenses and zoom, so the lane's controls reflect it.
@@ -848,6 +860,19 @@ public actor MulticamController {
     private func handleFlipCamera(target: MCPeerID) {
         guard links[target]?.status == .linked else { return }
         sendTo(target, RemoteCmd.ToggleCamera())
+    }
+    /// Switch one camera to a specific device by ID (a Mac with several
+    /// cameras). Only sent to a peer whose capabilities carried a device list:
+    /// selecting a device on a peer that has none is meaningless. The camera
+    /// answers with `SelectCameraDeviceResp` (a `ToggleCameraResp`), so the
+    /// refreshed capabilities land on that lane through the same handler.
+    public nonisolated func selectCameraDevice(_ uniqueID: String, on peer: MCPeerID) {
+        tell(MCSelectCameraDevice(uniqueID: uniqueID, target: peer))
+    }
+    private func handleSelectCameraDevice(_ uniqueID: String, target: MCPeerID) {
+        guard let link = links[target], link.status == .linked,
+              link.capabilities?.cameraDevices.isEmpty == false else { return }
+        sendTo(target, RemoteCmd.SelectCameraDevice(uniqueID: uniqueID))
     }
 
     /// Tap-to-focus on one camera. The IAP gate lives on the view controller
@@ -1815,6 +1840,14 @@ final class MCCapturePhoto: Message, @unchecked Sendable {}
 final class MCFlipCamera: Message, @unchecked Sendable {
     let target: MCPeerID
     init(target: MCPeerID) { self.target = target; super.init(sender: nil) }
+}
+final class MCSelectCameraDevice: Message, @unchecked Sendable {
+    let uniqueID: String
+    let target: MCPeerID
+    init(uniqueID: String, target: MCPeerID) {
+        self.uniqueID = uniqueID; self.target = target
+        super.init(sender: nil)
+    }
 }
 final class MCFocusAtPoint: Message, @unchecked Sendable {
     let x: Float

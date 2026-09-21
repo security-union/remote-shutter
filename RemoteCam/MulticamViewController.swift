@@ -92,6 +92,7 @@ public final class MulticamViewController: UIViewController {
             },
             onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) },
             onFlipCamera: { [weak self] lane in self?.controller.flipCamera(lane.peerID) },
+            onSelectCameraDevice: { [weak self] lane, id in self?.controller.selectCameraDevice(id, on: lane.peerID) },
             onToggleTorch: { [weak self] lane in self?.controller.toggleTorch(on: lane.peerID) },
             onToggleFlash: { [weak self] lane in self?.controller.toggleFlash(on: lane.peerID) },
             onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },

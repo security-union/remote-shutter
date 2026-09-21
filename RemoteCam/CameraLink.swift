@@ -123,6 +123,8 @@ final class CameraLink {
             canFlipCamera: capabilities.map {
                 $0.frontCamera != nil && $0.backCamera != nil
             } ?? false,
+            cameraDevices: capabilities?.cameraDevices ?? [],
+            activeDeviceID: capabilities?.activeDeviceID,
             supportsFocusPoint: capabilities?.supportsFocusPoint ?? false,
             hasTorch: capabilities?.getCurrentCameraInfo()?.hasTorch ?? false,
             zoomFactor: zoomFactor,

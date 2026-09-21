@@ -32,4 +32,16 @@ enum CameraSwitchControl {
     /// Three or more cameras — or a suspended one worth *seeing* grayed
     /// out: a menu, tap opens the device list.
     case deviceMenu
+
+    /// The one rule for which control a camera's advertised device list earns.
+    /// A peer that advertised no list (an iPhone) keeps the flip button.
+    static func forDevices(_ devices: [RemoteCmd.CameraDeviceEntry]) -> CameraSwitchControl {
+        guard !devices.isEmpty else { return .flipButton }
+        let healthy = devices.filter { !$0.isSuspended }
+        switch (devices.count, healthy.count) {
+        case (1, _): return .hidden
+        case (2, 2): return .flipButton
+        default: return .deviceMenu
+        }
+    }
 }

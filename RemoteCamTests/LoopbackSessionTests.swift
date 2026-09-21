@@ -579,14 +579,17 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertTrue(directorDisplay.transientErrors.isEmpty)
     }
 
-    // MARK: - Camera device selection (camera side)
-
-    /// The director issues no device selection of its own, so these pin the
-    /// camera's answer to `SelectCameraDevice` arriving over the wire.
+    // MARK: - Camera device selection (a Mac's several cameras)
 
     func testSelectCameraDeviceHappyPathAcrossTheWire() async {
         let fakeCamera = await connectCameraAndDirector()
-        sendFromDirector(RemoteCmd.SelectCameraDevice(uniqueID: "fake-front"))
+        // Two advertised devices: the focused chrome shows a flip button, and
+        // the menu's selection still routes by ID.
+        let before = await lane()
+        XCTAssertEqual(before?.switchControl, .flipButton)
+        XCTAssertEqual(before?.activeDeviceID, "fake-back")
+
+        director.selectCameraDevice("fake-front", on: cameraPeer)
         await drainBoth()
 
         // The camera switched devices and answered with fresh capabilities.
@@ -599,6 +602,27 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(
             resps.first?.cameraCapabilities?.cameraDevices.first { $0.isActive }?.uniqueID,
             "fake-front")
+        // The refreshed capabilities landed on the lane.
+        let after = await lane()
+        XCTAssertEqual(after?.activeDeviceID, "fake-front")
+        XCTAssertTrue(directorDisplay.transientErrors.isEmpty)
+    }
+
+    /// The safety gate: a peer that advertised no device list is never sent a
+    /// device selection — there is nothing on it to select.
+    func testSelectCameraDeviceIsNeverSentToLegacyPeer() async {
+        let fakeCamera = await connectCameraAndDirector { fake in
+            fake.advertisesCameraDevices = false   // an iPhone: no device list
+        }
+        director.selectCameraDevice("fake-front", on: cameraPeer)
+        await drainBoth()
+
+        XCTAssertFalse(directorTransport.sentMessages.contains { $0 is RemoteCmd.SelectCameraDevice },
+                       "SelectCameraDevice must be gated on advertised camera_devices")
+        XCTAssertTrue(fakeCamera.deviceSelections.isEmpty)
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
+        let control = await lane()?.switchControl
+        XCTAssertEqual(control, .flipButton, "a phone keeps its flip button")
     }
 
     /// A suspended camera (clamshell built-in: connected, zero frames) is
@@ -612,18 +636,23 @@ class LoopbackSessionTests: XCTestCase {
                 position: .unspecified, deviceType: .builtInWideAngleCamera,
                 isSuspended: true))
         }
-        let advertised = await lane().map { _ in true } ?? false
-        XCTAssertTrue(advertised)
+        // Advertised with its flag: the focused chrome shows a menu that can
+        // gray it out.
+        let control = await lane()?.switchControl
+        XCTAssertEqual(control, .deviceMenu)
 
-        sendFromDirector(RemoteCmd.SelectCameraDevice(uniqueID: "builtin-lid-closed"))
+        director.selectCameraDevice("builtin-lid-closed", on: cameraPeer)
         await drainBoth()
 
         let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
         XCTAssertEqual(resps.count, 1)
         XCTAssertNotNil(resps.first?.error, "selecting a suspended camera must fail loudly")
-        // The camera did not switch away from its healthy device.
+        // The camera did not switch away from its healthy device, and the
+        // director said why.
         let current = await fakeCamera.currentCameraDevice()
         XCTAssertEqual(current?.uniqueID, "fake-back")
+        await waitUntil { !self.directorDisplay.transientErrors.isEmpty }
+        XCTAssertFalse(directorDisplay.transientErrors.isEmpty)
     }
 
     /// Hot-plug contract: when a camera appears or vanishes, the rig tells its
@@ -658,7 +687,7 @@ class LoopbackSessionTests: XCTestCase {
                 position: .unspecified, deviceType: .builtInWideAngleCamera))
             fake.stalledDeviceIDs = ["obs-0"]
         }
-        sendFromDirector(RemoteCmd.SelectCameraDevice(uniqueID: "obs-0"))
+        director.selectCameraDevice("obs-0", on: cameraPeer)
         await drainBoth()
 
         let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
@@ -666,6 +695,9 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertNotNil(resps.first?.error, "a no-frames camera must fail the selection")
         XCTAssertTrue(resps.first?.error?._domain.contains("OBS Virtual Camera") ?? false,
                       "the error must name the dead device")
+        // The director surfaced it, naming the device.
+        await waitUntil { !self.directorDisplay.transientErrors.isEmpty }
+        XCTAssertTrue(directorDisplay.transientErrors.first?.contains("OBS Virtual Camera") ?? false)
     }
 
     func testSelectCameraDeviceWhileRecordingIsRejected() async {
@@ -676,7 +708,7 @@ class LoopbackSessionTests: XCTestCase {
         await waitUntil { await self.cameraCoordinator.currentStateName() == .cameraRecordingVideo }
         cameraTransport.sentMessages.removeAll()
 
-        sendFromDirector(RemoteCmd.SelectCameraDevice(uniqueID: "fake-front"))
+        director.selectCameraDevice("fake-front", on: cameraPeer)
         await drainBoth()
 
         let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
