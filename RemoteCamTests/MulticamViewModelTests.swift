@@ -20,12 +20,15 @@ final class MulticamViewModelTests: XCTestCase {
                       supportsFocusPoint: Bool = false, hasTorch: Bool = false,
                       zoomFactor: CGFloat = 1.0, maxZoomFactor: CGFloat = 10.0,
                       zoomStops: [CGFloat] = [1.0], wideAngleZoomFactor: CGFloat = 1.0,
-                      torchOn: Bool = false, flashOn: Bool = false) -> MulticamLaneInfo {
+                      torchOn: Bool = false, flashOn: Bool = false,
+                      cameraDevices: [RemoteCmd.CameraDeviceEntry] = [],
+                      activeDeviceID: String? = nil) -> MulticamLaneInfo {
         MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
                          status: status, isFocused: focused, clockOffsetMillis: nil,
                          captureOutcome: nil, isRecording: false, recordingElapsedMillis: nil,
                          needsQualityRematch: false,
                          collection: .idle, canFlipCamera: canFlipCamera,
+                         cameraDevices: cameraDevices, activeDeviceID: activeDeviceID,
                          supportsFocusPoint: supportsFocusPoint, hasTorch: hasTorch,
                          zoomFactor: zoomFactor, maxZoomFactor: maxZoomFactor,
                          zoomStops: zoomStops, wideAngleZoomFactor: wideAngleZoomFactor,
@@ -193,6 +196,41 @@ final class MulticamViewModelTests: XCTestCase {
         vm.apply([info(camA, status: .reconnecting, focused: true)])
         XCTAssertFalse(vm.focusedControlsEnabled)
         XCTAssertEqual(vm.focusedLinkState, .reconnecting)
+    }
+
+    // MARK: - Camera switch control (a phone flips, a Mac picks a device)
+
+    private func device(_ id: String, suspended: Bool = false, active: Bool = false) -> RemoteCmd.CameraDeviceEntry {
+        RemoteCmd.CameraDeviceEntry(uniqueID: id, localizedName: id, positionRaw: 0,
+                                    isActive: active, isSuspended: suspended, info: nil)
+    }
+
+    /// The one rule: no list → flip (a phone); one camera → nothing to switch;
+    /// two healthy → flip; three, or any suspended → a menu that can show it.
+    func testSwitchControlDerivesFromTheAdvertisedDeviceList() {
+        XCTAssertEqual(CameraSwitchControl.forDevices([]), .flipButton)
+        XCTAssertEqual(CameraSwitchControl.forDevices([device("a")]), .hidden)
+        XCTAssertEqual(CameraSwitchControl.forDevices([device("a"), device("b")]), .flipButton)
+        XCTAssertEqual(CameraSwitchControl.forDevices([device("a"), device("b", suspended: true)]), .deviceMenu)
+        XCTAssertEqual(CameraSwitchControl.forDevices([device("a"), device("b"), device("c")]), .deviceMenu)
+    }
+
+    /// The focused chrome shows the focused lane's control and its devices.
+    func testFocusedSwitchControlFollowsTheFocusedLane() {
+        let vm = MulticamViewModel()
+        XCTAssertEqual(vm.focusedSwitchControl, .flipButton, "no lane: the phone default")
+
+        let mac = [device("builtin", active: true), device("continuity"), device("usb")]
+        _ = vm.apply([info(camA, focused: true, cameraDevices: mac, activeDeviceID: "builtin"),
+                      info(camB, cameraDevices: [device("back"), device("front")], activeDeviceID: "back")])
+        XCTAssertEqual(vm.focusedSwitchControl, .deviceMenu)
+        XCTAssertEqual(vm.focusedCameraDevices.map(\.uniqueID), ["builtin", "continuity", "usb"])
+        XCTAssertEqual(vm.focusedActiveDeviceID, "builtin")
+
+        _ = vm.apply([info(camA, cameraDevices: mac, activeDeviceID: "builtin"),
+                      info(camB, focused: true, cameraDevices: [device("back"), device("front")], activeDeviceID: "back")])
+        XCTAssertEqual(vm.focusedSwitchControl, .flipButton)
+        XCTAssertEqual(vm.focusedActiveDeviceID, "back")
     }
 }
 

@@ -59,11 +59,9 @@ struct SettingsView: View {
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("Pro unlocks every feature, including future ones.", comment: ""))
-                if FeatureFlags.ENABLE_MULTICAM {
-                    Text(String(format: NSLocalizedString("Direct up to %d cameras at once",
-                                                          comment: "Pro multicam feature"),
-                                StoreManager.maxPaidCameras))
-                }
+                Text(String(format: NSLocalizedString("Direct up to %d cameras at once",
+                                                      comment: "Pro multicam feature"),
+                            StoreManager.maxPaidCameras))
             }
         }
 
@@ -73,9 +71,7 @@ struct SettingsView: View {
             purchaseRow(item: viewModel.enableTorch, icon: "flashlight.on.fill")
             purchaseRow(item: viewModel.enableVideo, icon: "video.fill")
             purchaseRow(item: viewModel.tapToFocus, icon: "camera.metering.spot")
-            if FeatureFlags.ENABLE_MULTICAM {
-                purchaseRow(item: viewModel.maxCamerasPack, icon: "square.grid.2x2.fill")
-            }
+            purchaseRow(item: viewModel.maxCamerasPack, icon: "square.grid.2x2.fill")
 
             Button {
                 viewModel.restorePurchases()

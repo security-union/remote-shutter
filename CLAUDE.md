@@ -48,16 +48,21 @@ Never attempt to run `fastlane release` locally — it requires CI environment v
 
 See `Docs/ARCHITECTURE.md` for the readable overview. The session is a Swift
 `actor` — **`SessionCoordinator`** (SessionCoordinator.swift) — holding the
-complete state space as the `SessionState` enum (~20 states across the
-scanning/connected, camera, monitor, and watch families) plus all per-state
-message handlers in the same file. Messages enter through `tell(_:)` (or the
-`coordinator ! msg` operator sugar) into a FIFO `AsyncStream` inbox and are
-processed one at a time; state context (peer, lobby, `CameraControlling` ctrl,
-`MonitorPresenter`) lives in actor-isolated properties.
+complete state space as the `SessionState` enum (scanning/connected, camera,
+and watch families) plus all per-state message handlers in the same file.
+Messages enter through `tell(_:)` (or the `coordinator ! msg` operator sugar)
+into a FIFO `AsyncStream` inbox and are processed one at a time; state context
+(peer, lobby, `CameraControlling` ctrl) lives in actor-isolated properties.
+The remote role never lives in the coordinator: once the scanner has connected
+the selected cameras it detaches the transport (`detachTransportForMulticam`)
+and hands it to **`MulticamController`** (MulticamController.swift), a sibling
+actor with the same inbox shape that owns one `CameraLink` lane per camera —
+for a single camera as much as for a rig.
 
 Key collaborators (plain objects, injected by the screen that owns the session):
-- **`MonitorPresenter`** — routes session results to the monitor screen's
-  `MonitorDisplay`/view model, hopping to main internally.
+- **`MulticamController`** — the director: handshake + clock sync per lane,
+  synced fan-out capture, lane/shutter/rig snapshots published to
+  `MulticamDisplay` (the director screen's view model) on main.
 - **`FrameSender`** — queue-confined preview-frame streamer with credit-window
   back-pressure (only sends when the monitor has acked).
 - **`CameraRig`** — the camera device as one non-UI object; the production
@@ -83,10 +88,9 @@ Every screen is a SwiftUI view hosted by a thin UIKit shell (no storyboards or x
 - **WelcomeViewController** — entry point (root of the nav controller), hosts `WelcomeView`
 - **RolePickerController** — role selection, hosts `RolePickerView`
 - **DeviceScannerViewController** — peer discovery, hosts `DeviceScannerView`; owns the `SessionCoordinator` + `FrameSender` lifecycle
-- **MonitorViewController** — hosts `MonitorView`; implements `MonitorDisplay`, the protocol seam through which `MonitorPresenter` drives the screen
 - **CameraHostController** — hosts `CameraScreenView` (preview + chrome) and owns a `CameraRig`, which holds the capture stack (`CaptureEngine` + `RecordingPipeline` + `FrameStreamingCoordinator`)
 - **WatchRemoteCameraController** — Watch-remote mode, embeds the camera screen and bridges `WCSession` commands into the coordinator
-- View models (`WelcomeViewModel`, `DeviceScannerViewModel`, `MonitorViewModel`, `CameraViewModel`) are ObservableObjects; all `@Published` writes happen on main
+- View models (`WelcomeViewModel`, `DeviceScannerViewModel`, `MulticamViewModel`, `CameraViewModel`) are ObservableObjects; all `@Published` writes happen on main
 
 Threading: the coordinator serializes via its actor inbox; `CaptureEngine` state is confined to its `sessionQueue`; recording state to the single `dataOutputQueue` (which delivers both video and audio frames); the few per-frame cross-domain values use `Locked<T>`. The full test suite runs clean under Thread Sanitizer — keep it that way.
 
@@ -105,7 +109,7 @@ The session uses Swift's native `actor` for concurrency (see `Docs/ARCHITECTURE.
 
 The Mac build is the same app target. Rules that matter when touching platform-y code:
 - Camera identity is `uniqueID`-based (`CameraDeviceDescriptor`, `CameraControlling.selectCameraDevice`); Mac cameras report `.unspecified` position, which serializes as `Back + has_unspecified_position` on the wire.
-- A monitor may only send `RemoteCmd.SelectCameraDevice` to a peer whose capabilities carried a non-empty `camera_devices` list. The gate lives in `SessionCoordinator` and is pinned by a loopback test. (`CommandAction.Unknown = 0`, so an action a peer doesn't know is ignored, not misread — the gate is about not sending meaningless commands.)
+- The director may only send `RemoteCmd.SelectCameraDevice` to a peer whose capabilities carried a non-empty `camera_devices` list. The gate lives in `MulticamController.handleSelectCameraDevice` and is pinned by a director test and a loopback test; the focused chrome's control (flip button / device menu / hidden) derives from that same list via `CameraSwitchControl.forDevices`. (`CommandAction.Unknown = 0`, so an action a peer doesn't know is ignored, not misread — the gate is about not sending meaningless commands.)
 - WatchConnectivity does not exist on Catalyst: `WatchSessionManager` has a stub branch; keep new Watch code behind it.
 - Macs don't rotate: `getOrientation()` returns `.landscapeRight` on Catalyst; don't add rotation handling outside the `#if !targetEnvironment(macCatalyst)` paths.
 - Platform shims (sleep, System Settings deep links) use `#if targetEnvironment(macCatalyst)` — extend those branches rather than adding UIKit-only calls.

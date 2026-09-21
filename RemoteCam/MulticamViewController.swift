@@ -15,8 +15,7 @@ import UIKit
 /// lane updates, and per-lane preview frames are routed to exactly one lane's
 /// decoder (the rendering-isolation contract).
 ///
-/// The 1:1 `MonitorViewController` is untouched; this is a parallel screen
-/// reached only from a multicam session.
+/// Reached from the scanner's multicam handoff for any rig size.
 public final class MulticamViewController: UIViewController {
 
     private let controller: MulticamController
@@ -93,6 +92,7 @@ public final class MulticamViewController: UIViewController {
             },
             onRetryCollection: { [weak self] lane in self?.controller.retryCollection(for: lane.peerID) },
             onFlipCamera: { [weak self] lane in self?.controller.flipCamera(lane.peerID) },
+            onSelectCameraDevice: { [weak self] lane, id in self?.controller.selectCameraDevice(id, on: lane.peerID) },
             onToggleTorch: { [weak self] lane in self?.controller.toggleTorch(on: lane.peerID) },
             onToggleFlash: { [weak self] lane in self?.controller.toggleFlash(on: lane.peerID) },
             onDisconnectCamera: { [weak self] lane in self?.controller.disconnectCamera(lane.peerID) },

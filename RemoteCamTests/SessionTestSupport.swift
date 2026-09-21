@@ -257,6 +257,10 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     /// monitor must never send SetCameraPreviewMode to it.
     var advertisesPreviewMode = true
 
+    /// False simulates a peer that predates synced capture — the director
+    /// leaves it out of every shot.
+    var advertisesMulticam = true
+
     /// Records every applied preview mode. Lock-backed: `setPreviewMode` is
     /// called from the coordinator's actor context while the test body reads
     /// this from the test thread (a bare array races under TSan).
@@ -301,6 +305,7 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             activeDeviceID: advertisesCameraDevices ? activeDeviceID : nil,
             supportsFocusPoint: advertisesFocusPoint,
             supportsPreviewMode: advertisesPreviewMode,
+            supportsMulticam: advertisesMulticam,
             previewMode: storedPreviewMode,
             error: nil)
     }
@@ -384,4 +389,30 @@ func makeCoordinatorHarness() async -> CoordinatorHarness {
         lobby: lobby,
         lobbyWrapper: WeakScannerLobby(lobby),
         peer: peer)
+}
+
+// MARK: - Director display
+
+/// Records what the director publishes; shared by the director unit tests and
+/// the loopback suite.
+final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
+    var lastLanes: [MulticamLaneInfo] = []
+    var capturing = false
+    var recording = false
+
+    var availablePeers: [MCPeerID] = []
+    var rigSettings: RigSettingsSnapshot?
+    var didExit = false
+
+    func applyLanes(_ lanes: [MulticamLaneInfo]) { lastLanes = lanes }
+    func applyShutterState(capturing: Bool, recording: Bool) {
+        self.capturing = capturing
+        self.recording = recording
+
+    }
+    func applyAvailablePeers(_ peers: [MCPeerID]) { availablePeers = peers }
+    func applyRigSettings(_ settings: RigSettingsSnapshot) { rigSettings = settings }
+    var transientErrors: [String] = []
+    func showTransientError(_ message: String) { transientErrors.append(message) }
+    func exitMulticam() { didExit = true }
 }

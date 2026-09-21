@@ -48,6 +48,8 @@ struct MulticamView: View {
     /// Per-camera commands carry the lane they were rendered for — routing is
     /// a parameter of the command, never a stored register.
     let onFlipCamera: (CameraLane) -> Void
+    /// Switch the focused camera to a specific device by ID (a Mac's menu).
+    let onSelectCameraDevice: (CameraLane, String) -> Void
     /// Torch / flash on the named camera (per-camera framing).
     let onToggleTorch: (CameraLane) -> Void
     let onToggleFlash: (CameraLane) -> Void
@@ -273,13 +275,15 @@ struct MulticamView: View {
             action: onShutter)
             .equatable()
         let flip = CameraSwitchControlView(
-            control: .flipButton,
-            devices: [],
-            activeDeviceID: nil,
+            control: viewModel.focusedSwitchControl,
+            devices: viewModel.focusedCameraDevices,
+            activeDeviceID: viewModel.focusedActiveDeviceID,
             isEnabled: viewModel.focusedCameraCanFlip,
             isSwitching: false,
             onToggleCamera: withFocused(onFlipCamera),
-            onSelectCameraDevice: { _ in })
+            onSelectCameraDevice: { id in
+                if let focused = viewModel.focusedLane { onSelectCameraDevice(focused, id) }
+            })
             .equatable()
 
         return Group {
@@ -799,11 +803,9 @@ struct AddCameraSheet: View {
 /// footnote names any camera that blocks an option.
 struct RigTrayPanel: View {
     let settings: RigSettingsSnapshot
-    /// Photo vs video — the tray lists only the tiles that matter to the mode,
-    /// exactly as `MonitorTray` does for the 1:1 monitor.
+    /// Photo vs video — the tray lists only the tiles that matter to the mode.
     let mode: MonitorMode
-    /// Mid-recording the capture settings dim (standby and help stay live) —
-    /// the 1:1 monitor's `configureVideoRecording` rules.
+    /// Mid-recording the capture settings dim (standby and help stay live).
     let isRecording: Bool
     let onSetTimer: (Int) -> Void
     let onSelectVideoQuality: (VideoResolution, VideoFrameRate) -> Void
@@ -841,8 +843,8 @@ struct RigTrayPanel: View {
             MonitorTrayTile(item: .aspect, value: settings.aspectRatio.displayName,
                             isActive: false, isEnabled: !isRecording,
                             action: {
-                                onSetAspectRatio(MonitorView.cycled(settings.aspectRatio,
-                                                                    in: AspectRatio.selectableCases))
+                                onSetAspectRatio(cycled(settings.aspectRatio,
+                                                        in: AspectRatio.selectableCases))
                             })
         case .resolution:
             MonitorTrayTile(item: .resolution, value: settings.videoTileValue,

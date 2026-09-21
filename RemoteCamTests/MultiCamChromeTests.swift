@@ -39,7 +39,7 @@ final class MultiCamChromeTests: XCTestCase {
         XCTAssertTrue(MultiCamChrome.showsGridToggle(cameraCount: 4))
     }
 
-    // MARK: - Rig tray (mirrors MonitorTray's mode-conditioning)
+    // MARK: - Rig tray mode-conditioning
 
     /// Photo mode lists photo settings only — no video-quality tile, exactly
     /// as the 1:1 monitor's tray behaves in photo mode.
@@ -55,8 +55,7 @@ final class MultiCamChromeTests: XCTestCase {
                        [.timer, .aspect, .resolution, .cameraStandby, .settings, .help])
     }
 
-    /// A rig with no standby-capable camera omits the tile (not dims it),
-    /// matching `MonitorTray`'s capability-driven omission.
+    /// A rig with no standby-capable camera omits the tile (not dims it).
     func testRigTrayOmitsStandbyWhenUnavailable() {
         XCTAssertFalse(RigTray.items(mode: .photo, standbyAvailable: false).contains(.cameraStandby))
         XCTAssertFalse(RigTray.items(mode: .video, standbyAvailable: false).contains(.cameraStandby))

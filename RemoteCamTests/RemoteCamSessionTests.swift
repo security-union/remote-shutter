@@ -4,8 +4,8 @@
 //
 //  State-machine tests for SessionCoordinator — every behavioral assertion
 //  carried over from the Theater-era RemoteCamSession tests, now driving the
-//  enum machine through its real transitions (BecomeMonitor/BecomeCamera and
-//  friends) instead of seeding closure states.
+//  enum machine through its real transitions (BecomeCamera and friends)
+//  instead of seeding closure states.
 //
 
 // swiftlint:disable file_length type_body_length
@@ -19,20 +19,17 @@ import Stormo
 class SessionCoordinatorTests: XCTestCase {
 
     private var harness: CoordinatorHarness!
-    private var presenter: MonitorPresenter!
     private var camera: FakeCameraControlling!
 
     override func setUp() async throws {
         try await super.setUp()
         harness = await makeCoordinatorHarness()
-        presenter = MonitorPresenter()
         camera = FakeCameraControlling()
     }
 
     override func tearDown() async throws {
         harness.coordinator.stop()
         harness = nil
-        presenter = nil
         camera = nil
         try await super.tearDown()
     }
@@ -43,66 +40,9 @@ class SessionCoordinatorTests: XCTestCase {
         await harness.coordinator.seed(state: .connected, lobby: harness.lobbyWrapper, peer: harness.peer)
     }
 
-    private func enterMonitor(_ mode: RecordingMode = .Photo) async {
-        await seedConnected()
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: mode))
-        harness.fakeMP.sentMessages.removeAll()
-    }
-
     private func enterCamera() async {
         await seedConnected()
         await harness.deliver(UICmd.BecomeCamera(sender: nil, ctrl: camera))
-        harness.fakeMP.sentMessages.removeAll()
-    }
-
-    private func enterMonitorTakingPicture() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        harness.fakeMP.sentMessages.removeAll()
-        harness.alerts.shownAlerts.removeAll()
-        harness.alerts.shownErrors.removeAll()
-    }
-
-    private func enterMonitorTogglingFlash() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.ToggleFlash())
-        harness.fakeMP.sentMessages.removeAll()
-        harness.alerts.shownAlerts.removeAll()
-        harness.alerts.shownErrors.removeAll()
-    }
-
-    private func enterMonitorTogglingCamera() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.ToggleCamera())
-        harness.fakeMP.sentMessages.removeAll()
-        harness.alerts.shownAlerts.removeAll()
-        harness.alerts.shownErrors.removeAll()
-    }
-
-    private func enterMonitorSwitchingLens() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.SwitchLens(lensType: .telephoto))
-        harness.fakeMP.sentMessages.removeAll()
-        harness.alerts.shownAlerts.removeAll()
-        harness.alerts.shownErrors.removeAll()
-    }
-
-    private func enterMonitorStartingVideo() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        harness.fakeMP.sentMessages.removeAll()
-    }
-
-    private func enterMonitorRecordingVideo() async {
-        await enterMonitorStartingVideo()
-        await harness.deliver(RemoteCmd.StartRecordingVideoAck(
-            sender: nil, recordingStartTime: Date(timeIntervalSinceNow: -1)))
-        harness.fakeMP.sentMessages.removeAll()
-    }
-
-    private func enterMonitorWaitingForVideo() async {
-        await enterMonitorRecordingVideo()
-        await harness.deliver(RemoteCmd.StopRecordingVideoAck())
         harness.fakeMP.sentMessages.removeAll()
     }
 
@@ -165,7 +105,7 @@ class SessionCoordinatorTests: XCTestCase {
     }
 
     /// The handoff seam serves whatever `MulticamHandoff.decide` asked for —
-    /// including a single camera (`MULTICAM_FOR_SINGLE_CAMERA`): one collected
+    /// including a single camera: one collected
     /// camera detaches to the director. Pins the stranded-scanner bug where a
     /// two-camera floor here silently returned nil while the camera went live.
     func testDetachTransportHandsOffASingleCollectedCamera() async {
@@ -299,25 +239,6 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertTrue(harness.fakeMP.sentMessages.first?.msg is RemoteCmd.EndSession)
     }
 
-    func testConnectedStateBecomeMonitorPhoto() async {
-        await seedConnected()
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertGreaterThanOrEqual(sent(RemoteCmd.PeerBecameMonitor.self).count, 1)
-        XCTAssertEqual(sent(RemoteCmd.PeerBecameMonitor.self)[0].peers, [harness.peer])
-    }
-
-    func testConnectedStateBecomeMonitorVideo() async {
-        await seedConnected()
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Video))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertGreaterThanOrEqual(sent(RemoteCmd.PeerBecameMonitor.self).count, 1)
-    }
-
     func testConnectedStateNilLobbyPopsToScanning() async {
         let deadLobby = FakeScannerLobby()
         var wrapper: WeakScannerLobby? = WeakScannerLobby(deadLobby)
@@ -341,64 +262,7 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
     }
 
-    func testConnectedStateBecomeMonitorSendsPeerBecameMonitor() async {
-        await seedConnected()
-        harness.fakeMP.sentMessages.removeAll()
-
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
-
-        let becameMonitor = sent(RemoteCmd.PeerBecameMonitor.self)
-        XCTAssertEqual(becameMonitor.count, 1)
-        XCTAssertEqual(becameMonitor[0].peers, [harness.peer])
-        XCTAssertEqual(becameMonitor[0].mode, .reliable)
-    }
-
-    // MARK: - Monitor photo mode
-
-    func testMonitorPhotoModeOnEnterRequestsFrame() async {
-        await seedConnected()
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
-
-        let frameRequests = sent(RemoteCmd.RequestFrame.self)
-        XCTAssertEqual(frameRequests.count, 1)
-        XCTAssertEqual(frameRequests[0].peers, [harness.peer])
-    }
-
-    func testMonitorPhotoModeRequestFrameUsesReliableMode() async {
-        await seedConnected()
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
-
-        let frameRequests = sent(RemoteCmd.RequestFrame.self)
-        XCTAssertEqual(frameRequests.count, 1)
-        XCTAssertEqual(frameRequests[0].mode, .reliable)
-    }
-
-    /// Seam B: a frame's ack goes only to the camera that sent it. With two
-    /// peers connected, a broadcast ack would advance the credit window of a
-    /// camera whose frame was never consumed.
-    func testFrameAckTargetsOnlyTheSendingPeer() async {
-        let secondCamera = MCPeerID(displayName: "SecondCamera")
-        await enterMonitor(.Photo)
-        harness.fakeMP.connectedPeers.append(secondCamera)
-        harness.fakeMP.sendResult = true
-
-        await harness.deliver(RemoteCmd.OnFrame(
-            data: Data([1, 2, 3]), sender: nil, peerId: secondCamera,
-            fps: 30, camPosition: .back, camOrientation: .portrait,
-            codec: .jpeg, sequenceNumber: 1))
-
-        let acks = sent(RemoteCmd.RequestFrame.self)
-        XCTAssertEqual(acks.count, 1)
-        XCTAssertEqual(acks[0].peers, [secondCamera],
-                       "ack must address the frame's source, not all connected peers")
-
-        harness.fakeMP.sentMessages.removeAll()
-        await harness.deliver(RemoteCmd.OnFrame(
-            data: Data([4, 5, 6]), sender: nil, peerId: harness.peer,
-            fps: 30, camPosition: .back, camOrientation: .portrait,
-            codec: .jpeg, sequenceNumber: 2))
-        XCTAssertEqual(sent(RemoteCmd.RequestFrame.self).map(\.peers), [[harness.peer]])
-    }
+    // MARK: - Clock sync, camera side
 
     /// A camera answers a clock-sync ping immediately, from any state, with
     /// the pong addressed to the pinging peer — off the actor inbox so the
@@ -467,87 +331,7 @@ class SessionCoordinatorTests: XCTestCase {
             state: elapsed.map { .recording(elapsedMillis: $0) } ?? .idle)
     }
 
-    /// A camera that reports an active recording pulls a freshly connected
-    /// monitor straight into the recording state — derived from the camera's
-    /// reported truth, never assumed.
-    func testMonitorDerivesRecordingFromStateReport() async {
-        await enterMonitor(.Video)
-        await harness.deliver(stateReport(elapsed: 30_000))
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorRecordingVideo)
-    }
-
-    /// The reverse reconciliation: a camera that reports NOT recording
-    /// un-wedges a monitor stuck showing a recording the camera isn't making.
-    func testMonitorRecordingUnwedgedByIdleStateReport() async {
-        await enterMonitorRecordingVideo()
-        await harness.deliver(stateReport(elapsed: nil))
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    /// While both sides agree a recording is running, a report refresh only
-    /// re-syncs the timer — no state churn.
-    func testMonitorRecordingStaysOnRecordingStateReport() async {
-        await enterMonitorRecordingVideo()
-        await harness.deliver(stateReport(elapsed: 0))
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorRecordingVideo)
-    }
-
-    /// End to end through the presenter to a display: every coordinator
-    /// recording-state change must LAND on the screen as the matching render.
-    /// (The other coordinator tests run with no display attached, so a broken
-    /// presenter hop would leave them all green while the screen froze.)
-    func testMonitorStateChangesReachTheDisplay() async {
-        let display = FakeMonitorDisplay()
-        presenter.setDisplay(display)
-        await enterMonitor(.Video)
-        await pumpMain { display.videoModeConfigured >= 1 }
-        XCTAssertEqual(display.videoModeConfigured, 1, "entering video mode renders it")
-
-        await harness.deliver(stateReport(elapsed: 5_000))
-        await pumpMain { display.videoRecordingConfigured >= 1 }
-        XCTAssertEqual(display.videoRecordingConfigured, 1,
-                       "camera-reported recording renders the recording screen")
-
-        await harness.deliver(stateReport(elapsed: nil))
-        // The counter bumps one main-hop before the view model's own dispatch
-        // lands — pump on the final screen state, not the render count.
-        await pumpMain { display.viewModel.uiState == .videoMode }
-        XCTAssertEqual(display.videoModeConfigured, 2,
-                       "camera-reported idle renders video mode again")
-        XCTAssertEqual(display.viewModel.uiState, .videoMode)
-        XCTAssertNil(display.viewModel.recordingElapsedMillis,
-                     "no timer input survives leaving the recording state")
-    }
-
-    /// The ordering race the field found: a mode change used to take TWO main
-    /// hops while the timer start took one, so a rapid stop→restart let the
-    /// STALE "back to idle" land after the new recording's start time and eat
-    /// it — recording screen, dead timer. Mode changes are now synchronous on
-    /// the render hop; updates land in coordinator order, every time.
-    func testRapidStopRestartKeepsTimerAndModeInAgreement() async {
-        let display = FakeMonitorDisplay()
-        presenter.setDisplay(display)
-        await enterMonitorRecordingVideo()
-
-        // Camera reports idle, then a NEW recording, back to back — no
-        // main-queue breathing room between them.
-        await harness.deliver(stateReport(elapsed: nil))
-        await harness.deliver(stateReport(elapsed: 2_000))
-        // Pump on the LAST write of the sequence — the RESTART tick itself.
-        await pumpMain { display.viewModel.recordingElapsedMillis == 2_000 }
-
-        XCTAssertEqual(display.viewModel.uiState, .videoRecording)
-        XCTAssertEqual(display.viewModel.recordingElapsedMillis, 2_000,
-                       "the new take's tick survives the stale idle render")
-        XCTAssertTrue(display.viewModel.isShowingRecordingDuration,
-                      "dot and timer agree, always")
-    }
-
-    /// Pumps the main queue until `condition` holds (the presenter hops to
-    /// main before touching the display).
+    /// Pumps the main queue until `condition` holds.
     private func pumpMain(_ condition: @escaping () -> Bool) async {
         for _ in 0..<50 {
             let done = await MainActor.run { () -> Bool in
@@ -602,80 +386,6 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertNotNil(resps.first?.error)
         name = await harness.stateName()
         XCTAssertEqual(name, .camera)
-    }
-
-    // MARK: - Received clip → Photos by URL
-
-    private func makeReceivedClip() -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("video_\(UUID().uuidString).mov")
-        try? Data(repeating: 0xAB, count: 64).write(to: url)
-        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
-        return url
-    }
-
-    /// The transport hands the monitor a finished clip as a temp file. The
-    /// session passes that file to the library BY URL — it never reads it
-    /// into memory (a 4K take is gigabytes) and never deletes it itself.
-    func testReceivedVideoIsHandedToTheLibraryByURL() async {
-        await enterMonitor(.Video)
-        let url = makeReceivedClip()
-        let saved = Locked<[URL]>([])
-        await harness.coordinator.setVideoLibrarySaver { received in saved.mutate { $0.append(received) } }
-
-        harness.coordinator.didFinishReceivingResource(
-            name: url.lastPathComponent, from: harness.peer, at: url, error: nil)
-        await harness.coordinator.waitForIdle()
-
-        XCTAssertEqual(saved.value, [url])
-        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path),
-                      "the saver owns the file; the session must not consume it")
-    }
-
-    /// The camera's terminal stop reply and the file's arrival race on two
-    /// different streams. When the reply lands first and settles the screen,
-    /// the clip that arrives afterwards is still saved.
-    func testClipArrivingAfterTheStopReplyIsStillSaved() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        await harness.deliver(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: Date()))
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        await harness.deliver(RemoteCmd.StopRecordingVideoAck())
-        var name = await harness.stateName()
-        XCTAssertEqual(name, .monitorWaitingForVideo)
-
-        await harness.deliver(RemoteCmd.StopRecordingVideoResp())
-        name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-
-        let url = makeReceivedClip()
-        let saved = Locked<[URL]>([])
-        await harness.coordinator.setVideoLibrarySaver { received in saved.mutate { $0.append(received) } }
-        harness.coordinator.didFinishReceivingResource(
-            name: url.lastPathComponent, from: harness.peer, at: url, error: nil)
-        await harness.coordinator.waitForIdle()
-
-        XCTAssertEqual(saved.value, [url])
-    }
-
-    /// The transient monitor states drop messages they don't expect. A clip
-    /// landing while the user is mid lens-switch is still saved — and the
-    /// in-flight request is untouched.
-    func testClipLandingDuringALensSwitchIsStillSaved() async {
-        await enterMonitorSwitchingLens()
-        var name = await harness.stateName()
-        XCTAssertEqual(name, .monitorSwitchingLens)
-
-        let url = makeReceivedClip()
-        let saved = Locked<[URL]>([])
-        await harness.coordinator.setVideoLibrarySaver { received in saved.mutate { $0.append(received) } }
-        harness.coordinator.didFinishReceivingResource(
-            name: url.lastPathComponent, from: harness.peer, at: url, error: nil)
-        await harness.coordinator.waitForIdle()
-
-        XCTAssertEqual(saved.value, [url])
-        name = await harness.stateName()
-        XCTAssertEqual(name, .monitorSwitchingLens, "the landed clip does not disturb the request in flight")
     }
 
     // MARK: - Keep rolling through a drop (uniform: solo and multicam)
@@ -801,39 +511,6 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(name, .cameraRecordingVideo)
         XCTAssertTrue(camera.stopRecordingCalls.isEmpty)
         XCTAssertEqual(harness.fakeMP.discoveryStarts, 1)
-    }
-
-    /// Asymmetric rejoin: the camera's session reset (it re-announces itself)
-    /// while this monitor still shows a recording it never saw end. The
-    /// monitor pulls instead of assuming; the report answer reconciles it.
-    func testMonitorRecordingPullsOnCameraReannounce() async {
-        await enterMonitorRecordingVideo()
-        await harness.deliver(RemoteCmd.PeerBecameCamera.createWithDefaults())
-
-        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1)
-        XCTAssertEqual(sent(RemoteCmd.RequestCameraStateReport.self).count, 1,
-                       "the truth channel is pulled alongside hardware caps")
-        var name = await harness.stateName()
-        XCTAssertEqual(name, .monitorRecordingVideo,
-                       "no assumption either way until the camera answers")
-
-        // The camera answers: it stopped on its own while unlinked.
-        await harness.deliver(stateReport(elapsed: nil))
-        name = await harness.stateName()
-        XCTAssertEqual(name, .monitor, "the answer un-wedges the stale recording screen")
-    }
-
-    /// Same reset observed while waiting for the stopped clip: the awaited
-    /// response died with the old session — return to video mode and pull
-    /// the camera's truth.
-    func testWaitingForVideoUnwedgesOnCameraReannounce() async {
-        await enterMonitorWaitingForVideo()
-        await harness.deliver(RemoteCmd.PeerBecameCamera.createWithDefaults())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertEqual(sent(RemoteCmd.RequestCameraStateReport.self).count, 1,
-                       "the truth channel is pulled after the un-wedge")
     }
 
     /// The unified policy, idle case: an IDLE camera also holds its post on a
@@ -1059,906 +736,6 @@ class SessionCoordinatorTests: XCTestCase {
                        "setting off: the shutter fires without returning the still")
     }
 
-    func testMonitorPhotoModeUnbecomeMonitorPopsToConnected() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .connected)
-    }
-
-    func testMonitorPhotoModeDisconnectPopsToScanning() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.ScannerDidAppear())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorPhotoModeTakePictureTransitions() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTakingPicture)
-    }
-
-    func testMonitorPhotoModeToggleFlashTransitions() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.ToggleFlash())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTogglingFlash)
-    }
-
-    func testMonitorPhotoModeToggleCameraTransitions() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.ToggleCamera())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTogglingCamera)
-    }
-
-    func testMonitorPhotoModeSwitchToVideoMode() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Video))
-
-        // Mode swap replaces the state in place — still .monitor.
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorPhotoModeToggleTorchSendsCommand() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.ToggleTorch())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertEqual(sent(RemoteCmd.ToggleTorch.self).count, 1)
-    }
-
-    func testMonitorPhotoModeRequestCameraCapabilities() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.RequestCameraCapabilities())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1)
-    }
-
-    func testMonitorPhotoModeSwitchLensTransitions() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.SwitchLens(lensType: .telephoto))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorSwitchingLens)
-    }
-
-    func testMonitorPhotoModeSetZoomSendsCommand() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.SetZoom(zoomFactor: 2.0))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertEqual(sent(RemoteCmd.SetZoom.self).count, 1)
-    }
-
-    func testMonitorPhotoModePeerBecameCameraRequestsCapabilities() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(RemoteCmd.PeerBecameCamera.createWithDefaults())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1)
-    }
-
-    func testMonitorPhotoModeDisconnectPeerStartsReconnecting() async {
-        await enterMonitor(.Photo)
-
-        harness.fakeMP.connectedPeers = []
-        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
-    }
-
-    func testMonitorPhotoModeSetAspectRatioSendsCommand() async throws {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.SetAspectRatio(aspectRatio: .fourThree))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        let ratioMessages = sent(RemoteCmd.SetAspectRatio.self)
-        XCTAssertEqual(ratioMessages.count, 1)
-        let msg = try XCTUnwrap(ratioMessages[0].msg as? RemoteCmd.SetAspectRatio)
-        XCTAssertEqual(msg.aspectRatio, .fourThree)
-    }
-
-    // MARK: - Monitor video mode
-
-    func testMonitorVideoModeOnEnterRequestsFrame() async {
-        await seedConnected()
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Video))
-
-        XCTAssertEqual(sent(RemoteCmd.RequestFrame.self).count, 1)
-    }
-
-    func testMonitorVideoModeSwitchToPhotoMode() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorVideoModeDisconnectPopsToScanning() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.ScannerDidAppear())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorVideoModeUnbecomeMonitorPopsToConnected() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .connected)
-    }
-
-    func testMonitorVideoModeTakePictureRequestsRecording() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-
-        XCTAssertEqual(sent(RemoteCmd.StartRecordingVideo.self).count, 1)
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorStartingVideo,
-                       "requested is a state of its own; recording appears on confirmation")
-    }
-
-    func testMonitorVideoModeToggleCameraTransitions() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.ToggleCamera())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTogglingCamera)
-    }
-
-    func testMonitorVideoModeToggleTorchSendsCommand() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.ToggleTorch())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertEqual(sent(RemoteCmd.ToggleTorch.self).count, 1)
-    }
-
-    func testMonitorVideoModeSwitchLensTransitions() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.SwitchLens(lensType: .ultraWide))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorSwitchingLens)
-    }
-
-    func testMonitorVideoModeSetZoomSendsCommand() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.SetZoom(zoomFactor: 3.0))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertEqual(sent(RemoteCmd.SetZoom.self).count, 1)
-    }
-
-    func testMonitorVideoModeRequestCameraCapabilities() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.RequestCameraCapabilities())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1)
-    }
-
-    func testMonitorVideoModePeerBecameCameraRequestsCapabilities() async {
-        await enterMonitor(.Video)
-        await harness.deliver(RemoteCmd.PeerBecameCamera.createWithDefaults())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertEqual(sent(RemoteCmd.RequestCameraCapabilities.self).count, 1)
-    }
-
-    func testMonitorVideoModeDisconnectPeerStartsReconnecting() async {
-        await enterMonitor(.Video)
-
-        harness.fakeMP.connectedPeers = []
-        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
-    }
-
-    func testMonitorVideoModeStartRecordingVideoSentToPeer() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-
-        let startMsgs = sent(RemoteCmd.StartRecordingVideo.self)
-        XCTAssertEqual(startMsgs.count, 1)
-        XCTAssertEqual(startMsgs[0].peers, [harness.peer])
-        XCTAssertEqual(startMsgs[0].mode, .reliable)
-    }
-
-    func testMonitorVideoModeSetAspectRatioSendsCommand() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.SetAspectRatio(aspectRatio: .sixteenNine))
-
-        XCTAssertEqual(sent(RemoteCmd.SetAspectRatio.self).count, 1)
-    }
-
-    // MARK: - Monitor taking picture
-
-    func testMonitorTakingPictureTakePicRespWithErrorUnbecomes() async {
-        await enterMonitorTakingPicture()
-
-        let error = NSError(domain: "TestError", code: 42, userInfo: nil)
-        await harness.deliver(RemoteCmd.TakePicResp(sender: nil, error: error))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorTakingPictureTakePicRespWithPicUnbecomes() async {
-        await enterMonitorTakingPicture()
-        // Route the save through a recorder instead of PHPhotoLibrary.
-        await harness.coordinator.setPhotoLibrarySaver { _ in }
-
-        let imageData = Data([0xFF, 0xD8, 0xFF, 0xE0]) // minimal JPEG header
-        await harness.deliver(RemoteCmd.TakePicResp(sender: nil, pic: imageData))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorTakingPictureTakePicAckForwardsToPeer() async {
-        await enterMonitorTakingPicture()
-        await harness.deliver(RemoteCmd.TakePicAck(sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTakingPicture)
-        let ackMessages = sent(RemoteCmd.TakePicAck.self)
-        XCTAssertEqual(ackMessages.count, 1)
-        XCTAssertEqual(ackMessages[0].peers, [harness.peer])
-    }
-
-    func testMonitorTakingPictureTakePictureSendsCommand() async {
-        await enterMonitorTakingPicture()
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-
-        XCTAssertEqual(sent(RemoteCmd.TakePic.self).count, 1)
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTakingPicture)
-    }
-
-    /// The ack advances the capture to `.receiving` — the moment the shot is
-    /// taken and the subject can stop holding the pose — without raising a
-    /// modal. The monitor's in-flight feedback is derived from this phase and
-    /// drawn on the shutter; a modal here covered the live preview.
-    func testMonitorTakingPictureTakePicAckAdvancesToReceivingWithoutAlert() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        let requesting = await harness.currentState()
-        XCTAssertEqual(MonitorActivity.forState(requesting), .capturing)
-
-        let armed = await harness.coordinator.currentTimeoutGeneration()
-        await harness.deliver(RemoteCmd.TakePicAck(sender: nil))
-
-        let receiving = await harness.currentState()
-        let generationAfterAck = await harness.coordinator.currentTimeoutGeneration()
-        XCTAssertEqual(MonitorActivity.forState(receiving), .receivingCapture)
-        XCTAssertEqual(generationAfterAck, armed,
-                       "the ack swaps the phase in place — it must not re-arm the watchdog")
-        XCTAssertTrue(harness.alerts.shownAlerts.isEmpty,
-                      "the monitor must not raise a modal over the preview for a capture")
-    }
-
-    func testMonitorTakingPictureTakePicRespErrorShowsErrorAlert() async {
-        await enterMonitorTakingPicture()
-
-        let error = NSError(domain: "PicError", code: 1, userInfo: nil)
-        await harness.deliver(RemoteCmd.TakePicResp(sender: nil, error: error))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-        XCTAssertTrue(harness.alerts.shownErrors.contains("PicError"))
-    }
-
-    func testMonitorTakingPictureDisconnectPopsToScanning() async {
-        await enterMonitorTakingPicture()
-        await harness.deliver(UICmd.ScannerDidAppear())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorTakingPictureUnbecomeMonitorPopsToConnected() async {
-        await enterMonitorTakingPicture()
-        await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .connected)
-    }
-
-    // MARK: - Monitor recording video
-
-    func testMonitorRecordingVideoOnEnter() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        await harness.deliver(RemoteCmd.StartRecordingVideoAck(
-            sender: nil, recordingStartTime: Date(timeIntervalSinceNow: -1)))
-
-        let frameRequests = sent(RemoteCmd.RequestFrame.self)
-        XCTAssertEqual(frameRequests.count, 1,
-                       "the confirmed recording entry re-primes the stream")
-    }
-
-    func testMonitorRecordingVideoStartAckWithErrorPopsToVideoMode() async {
-        await enterMonitorRecordingVideo()
-
-        let error = NSError(domain: "TestError", code: 1, userInfo: nil)
-        await harness.deliver(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil, error: error))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorRecordingVideoTakePictureSendsStopRecording() async {
-        await enterMonitorRecordingVideo()
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-
-        XCTAssertEqual(sent(RemoteCmd.StopRecordingVideo.self).count, 1)
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorRecordingVideo)
-    }
-
-    func testMonitorRecordingVideoStopAckTransitionsToWaiting() async {
-        await enterMonitorRecordingVideo()
-        await harness.deliver(RemoteCmd.StopRecordingVideoAck())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorWaitingForVideo)
-    }
-
-    func testMonitorRecordingVideoStopRespWithErrorPopsToVideoMode() async {
-        await enterMonitorRecordingVideo()
-
-        let error = NSError(domain: "TestError", code: 2, userInfo: nil)
-        await harness.deliver(RemoteCmd.StopRecordingVideoResp(error: error))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorRecordingVideoDisconnectPopsToScanning() async {
-        await enterMonitorRecordingVideo()
-        await harness.deliver(UICmd.ScannerDidAppear())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorRecordingVideoDisconnectPeerStartsReconnecting() async {
-        await enterMonitorRecordingVideo()
-
-        harness.fakeMP.connectedPeers = []
-        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
-    }
-
-    func testMonitorRecordingVideoUnbecomeMonitorPopsToConnected() async {
-        await enterMonitorRecordingVideo()
-        await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .connected)
-    }
-
-    func testMonitorRecordingVideoStopRecordingVideoSentToPeer() async {
-        await enterMonitorRecordingVideo()
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: false))
-
-        let stopMsgs = sent(RemoteCmd.StopRecordingVideo.self)
-        XCTAssertEqual(stopMsgs.count, 1)
-        XCTAssertEqual(stopMsgs[0].peers, [harness.peer])
-        XCTAssertEqual(stopMsgs[0].mode, .reliable)
-    }
-
-    // MARK: - Monitor waiting for video
-
-    func testMonitorWaitingForVideoStopRespPopsToVideoMode() async {
-        await enterMonitorWaitingForVideo()
-        await harness.deliver(RemoteCmd.StopRecordingVideoResp())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorWaitingForVideoDisconnectPopsToScanning() async {
-        await enterMonitorWaitingForVideo()
-        await harness.deliver(UICmd.ScannerDidAppear())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorWaitingForVideoDisconnectPeerStartsReconnecting() async {
-        await enterMonitorWaitingForVideo()
-
-        harness.fakeMP.connectedPeers = []
-        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
-    }
-
-    func testMonitorWaitingForVideoUnbecomeMonitorPopsToConnected() async {
-        await enterMonitorWaitingForVideo()
-        await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .connected)
-    }
-
-    // MARK: - Toggling flash transient
-
-    func testMonitorTogglingFlashIgnoresDuplicateTap() async {
-        await enterMonitorTogglingFlash()
-        await harness.deliver(UICmd.ToggleFlash())
-
-        XCTAssertEqual(sent(RemoteCmd.ToggleFlash.self).count, 0)
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTogglingFlash)
-    }
-
-    func testMonitorTogglingFlashSuccessResponseUnbecomes() async {
-        await enterMonitorTogglingFlash()
-        await harness.deliver(RemoteCmd.ToggleFlashResp(flashMode: .on, error: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorTogglingFlashErrorResponseUnbecomes() async {
-        await enterMonitorTogglingFlash()
-
-        let error = NSError(domain: "FlashError", code: 1, userInfo: nil)
-        await harness.deliver(RemoteCmd.ToggleFlashResp(flashMode: nil, error: error))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorTogglingFlashNilNilResponseUnbecomes() async {
-        await enterMonitorTogglingFlash()
-        await harness.deliver(RemoteCmd.ToggleFlashResp(flashMode: nil, error: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor,
-                       "State should unbecome even when both flashMode and error are nil")
-    }
-
-    func testMonitorTogglingFlashDisconnectPopsToScanning() async {
-        await enterMonitorTogglingFlash()
-        await harness.deliver(UICmd.ScannerDidAppear())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorTogglingFlashDisconnectPeerStartsReconnecting() async {
-        await enterMonitorTogglingFlash()
-
-        harness.fakeMP.connectedPeers = []
-        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
-    }
-
-    func testMonitorTogglingFlashUnbecomeMonitorPopsToConnected() async {
-        await enterMonitorTogglingFlash()
-        await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .connected)
-    }
-
-    // MARK: - Toggling camera transient
-
-    func testMonitorTogglingCameraIgnoresDuplicateTap() async {
-        await enterMonitorTogglingCamera()
-        await harness.deliver(UICmd.ToggleCamera())
-
-        XCTAssertEqual(sent(RemoteCmd.ToggleCamera.self).count, 0)
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTogglingCamera)
-    }
-
-    func testMonitorTogglingCameraSuccessResponseUnbecomes() async {
-        await enterMonitorTogglingCamera()
-
-        let capabilities = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil)
-        await harness.deliver(RemoteCmd.ToggleCameraResp(cameraCapabilities: capabilities, error: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorTogglingCameraErrorResponseUnbecomes() async {
-        await enterMonitorTogglingCamera()
-
-        let error = NSError(domain: "CameraError", code: 1, userInfo: nil)
-        await harness.deliver(RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: error))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorTogglingCameraNilNilResponseUnbecomes() async {
-        await enterMonitorTogglingCamera()
-        await harness.deliver(RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor,
-                       "State should unbecome even when both capabilities and error are nil")
-    }
-
-    func testMonitorTogglingCameraDisconnectPopsToScanning() async {
-        await enterMonitorTogglingCamera()
-        await harness.deliver(UICmd.ScannerDidAppear())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorTogglingCameraDisconnectPeerStartsReconnecting() async {
-        await enterMonitorTogglingCamera()
-
-        harness.fakeMP.connectedPeers = []
-        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
-    }
-
-    func testMonitorTogglingCameraUnbecomeMonitorPopsToConnected() async {
-        await enterMonitorTogglingCamera()
-        await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .connected)
-    }
-
-    // MARK: - Switching lens transient
-
-    func testMonitorSwitchingLensIgnoresDuplicateTap() async {
-        await enterMonitorSwitchingLens()
-        await harness.deliver(UICmd.SwitchLens(lensType: .telephoto))
-
-        XCTAssertEqual(sent(RemoteCmd.SwitchLens.self).count, 0)
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorSwitchingLens)
-    }
-
-    func testMonitorSwitchingLensSuccessResponseUnbecomes() async {
-        await enterMonitorSwitchingLens()
-        await harness.deliver(RemoteCmd.SwitchLensResp(
-            lensType: .telephoto, availableLenses: [.wideAngle, .telephoto],
-            currentZoom: 2.0, zoomRange: RemoteCmd.ZoomRange(minZoom: 1.0, maxZoom: 10.0), error: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorSwitchingLensErrorResponseUnbecomes() async {
-        await enterMonitorSwitchingLens()
-
-        let error = NSError(domain: "LensError", code: 1, userInfo: nil)
-        await harness.deliver(RemoteCmd.SwitchLensResp(
-            lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorSwitchingLensNilNilResponseUnbecomes() async {
-        await enterMonitorSwitchingLens()
-        await harness.deliver(RemoteCmd.SwitchLensResp(
-            lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor,
-                       "State should unbecome even when both lensType and error are nil")
-    }
-
-    func testMonitorSwitchingLensDisconnectPeerStartsReconnecting() async {
-        await enterMonitorSwitchingLens()
-
-        harness.fakeMP.connectedPeers = []
-        await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .reconnecting, "a lost peer starts the wait")
-    }
-
-    func testMonitorSwitchingLensDisconnectPopsToScanning() async {
-        await enterMonitorSwitchingLens()
-        await harness.deliver(UICmd.ScannerDidAppear())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorSwitchingLensUnbecomeMonitorPopsToConnected() async {
-        await enterMonitorSwitchingLens()
-        await harness.deliver(UICmd.UnbecomeMonitor(sender: nil))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .connected)
-    }
-
-    // MARK: - Recording transitions
-
-    func testMonitorVideoModeTransitionsToRecordingOnConfirmedStart() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        XCTAssertEqual(sent(RemoteCmd.StartRecordingVideo.self).count, 1)
-
-        await harness.deliver(RemoteCmd.StartRecordingVideoAck(
-            sender: nil, recordingStartTime: Date(timeIntervalSinceNow: -1)))
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorRecordingVideo)
-    }
-
-    func testMonitorRecordingVideoErrorAckPopsToMonitor() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        var name = await harness.stateName()
-        XCTAssertEqual(name, .monitorStartingVideo)
-
-        let error = NSError(domain: "MicrophoneDenied", code: 1, userInfo: nil)
-        await harness.deliver(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil, error: error))
-
-        name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testVideoModePushedWithMonitorStateName() async {
-        await enterMonitor(.Video)
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testPopToMonitorWorksAfterModeSwitch() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Video))
-        var name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-        harness.fakeMP.sentMessages.removeAll()
-
-        let error = NSError(domain: "TestError", code: 1, userInfo: nil)
-        await harness.deliver(RemoteCmd.StartRecordingVideoAck(sender: nil, recordingStartTime: nil, error: error))
-
-        name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    // MARK: - Send-before-become
-
-    func testMonitorPhotoModeToggleCameraSendsBeforeTransition() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.ToggleCamera())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTogglingCamera)
-        XCTAssertEqual(sent(RemoteCmd.ToggleCamera.self).count, 1)
-    }
-
-    func testMonitorVideoModeToggleCameraSendsBeforeTransition() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.ToggleCamera())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTogglingCamera)
-        XCTAssertEqual(sent(RemoteCmd.ToggleCamera.self).count, 1)
-    }
-
-    func testMonitorPhotoModeToggleFlashSendsBeforeTransition() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.ToggleFlash())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTogglingFlash)
-        XCTAssertEqual(sent(RemoteCmd.ToggleFlash.self).count, 1)
-    }
-
-    func testMonitorPhotoModeTakePictureSendsBeforeTransition() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTakingPicture)
-        XCTAssertEqual(sent(RemoteCmd.TakePic.self).count, 1)
-    }
-
-    func testMonitorPhotoModeSwitchLensSendsBeforeTransition() async {
-        await enterMonitor(.Photo)
-        await harness.deliver(UICmd.SwitchLens(lensType: .telephoto))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorSwitchingLens)
-        XCTAssertEqual(sent(RemoteCmd.SwitchLens.self).count, 1)
-    }
-
-    func testMonitorVideoModeSwitchLensSendsBeforeTransition() async {
-        await enterMonitor(.Video)
-        await harness.deliver(UICmd.SwitchLens(lensType: .ultraWide))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorSwitchingLens)
-        XCTAssertEqual(sent(RemoteCmd.SwitchLens.self).count, 1)
-    }
-
-    // MARK: - Timeouts
-
-    func testTimeout_monitorTogglingFlash_unbecomes() async {
-        await enterMonitorTogglingFlash()
-
-        let generation = await harness.coordinator.currentTimeoutGeneration()
-        await harness.deliver(UICmd.StateTimeout(stateName: .monitorTogglingFlash, generation: generation))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor, "Timeout should unbecome back to photo mode")
-    }
-
-    func testTimeout_staleGeneration_ignored() async {
-        await enterMonitorTogglingFlash()
-
-        let generation = await harness.coordinator.currentTimeoutGeneration()
-        await harness.deliver(UICmd.StateTimeout(stateName: .monitorTogglingFlash, generation: generation - 1))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitorTogglingFlash, "Stale timeout should be ignored")
-    }
-
-    func testTimeout_monitorTogglingCamera_unbecomes() async {
-        await enterMonitorTogglingCamera()
-
-        let generation = await harness.coordinator.currentTimeoutGeneration()
-        await harness.deliver(UICmd.StateTimeout(stateName: .monitorTogglingCamera, generation: generation))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testTimeout_monitorSwitchingLens_unbecomes() async {
-        await enterMonitorSwitchingLens()
-
-        let generation = await harness.coordinator.currentTimeoutGeneration()
-        await harness.deliver(UICmd.StateTimeout(stateName: .monitorSwitchingLens, generation: generation))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testTimeout_monitorTakingPicture_unbecomes() async {
-        await enterMonitorTakingPicture()
-
-        let generation = await harness.coordinator.currentTimeoutGeneration()
-        await harness.deliver(UICmd.StateTimeout(stateName: .monitorTakingPicture, generation: generation))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    // MARK: - Send failure recovery
-
-    func testMonitorPhotoModeToggleFlashSendFailurePopsToScanning() async {
-        await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = false
-
-        await harness.deliver(UICmd.ToggleFlash())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorPhotoModeToggleCameraSendFailurePopsToScanning() async {
-        await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = false
-
-        await harness.deliver(UICmd.ToggleCamera())
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorPhotoModeSwitchLensSendFailurePopsToScanning() async {
-        await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = false
-
-        await harness.deliver(UICmd.SwitchLens(lensType: .telephoto))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testMonitorVideoModeStartRecordingSendFailurePopsToScanning() async {
-        await enterMonitor(.Video)
-        harness.fakeMP.sendResult = false
-
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    /// The arming window is a state, not a flag: a cam-state report saying
-    /// "not recording" is no news while the pipeline arms, and the recording
-    /// screen appears only on confirmation. A start that never confirms ends
-    /// through the state's own timeout.
-    func testStartingVideoIgnoresIdleReportsUntilConfirmed() async {
-        await enterMonitorStartingVideo()
-
-        await harness.deliver(stateReport(elapsed: nil))
-        var name = await harness.stateName()
-        XCTAssertEqual(name, .monitorStartingVideo,
-                       "an idle report during arming is what starting means — ignored")
-
-        await harness.deliver(stateReport(elapsed: 1_000))
-        name = await harness.stateName()
-        XCTAssertEqual(name, .monitorRecordingVideo,
-                       "a recording report confirms it")
-    }
-
-    func testStartingVideoTimeoutReturnsToVideoMode() async {
-        await enterMonitorStartingVideo()
-        let generation = await harness.coordinator.currentTimeoutGeneration()
-
-        await harness.deliver(UICmd.StateTimeout(stateName: .monitorStartingVideo, generation: generation))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .monitor)
-    }
-
-    func testMonitorPhotoModeTakePictureSendFailurePopsToScanning() async {
-        await enterMonitor(.Photo)
-        harness.fakeMP.sendResult = false
-
-        await harness.deliver(UICmd.TakePicture(sender: nil, sendMediaToRemote: true))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
-    func testSendFailureTriggersPopToScanning() async {
-        await seedConnected()
-        harness.fakeMP.sentMessages.removeAll()
-        harness.fakeMP.sendResult = false
-
-        // OnEnter's RequestFrame send fails → pop to scanning.
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
-
-        let name = await harness.stateName()
-        XCTAssertEqual(name, .scanning)
-    }
-
     // MARK: - Camera taking pic: timeout with send failure
 
     func testCameraTakingPicTimeoutSendFailurePopsToScanning() async {
@@ -1973,6 +750,45 @@ class SessionCoordinatorTests: XCTestCase {
 
         name = await harness.stateName()
         XCTAssertEqual(name, .scanning)
+    }
+
+    // MARK: - Camera family: failed sends and stale timeouts
+
+    /// A send that fails is a link that is gone: the camera answers a command,
+    /// the answer cannot leave, and the session pops to scanning.
+    func testCameraSendFailurePopsToScanning() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = false
+        await harness.deliver(RemoteCmd.ToggleFlash())
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .scanning)
+    }
+
+    /// A peer disconnect leaves stragglers in flight, and every one of them
+    /// fails to send. Discovery must restart exactly once — not once per
+    /// failed straggler (re-entering scanning per failure reset the lobby UI
+    /// and re-armed the connection-error alert).
+    func testFailedSendStormRestartsScanningOnce() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = false
+        for _ in 0..<5 {
+            await harness.deliver(RemoteCmd.ToggleFlash())
+        }
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .scanning)
+        XCTAssertEqual(harness.lobby.returnsToLobby, 1,
+                       "straggler failures after the pop must not restart discovery again")
+    }
+
+    /// Timeouts are generation-counted: one armed for an earlier transient
+    /// state cannot pop the state that replaced it.
+    func testStaleGenerationTimeoutIsIgnored() async {
+        await enterCamera()
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
+        let generation = await harness.coordinator.currentTimeoutGeneration()
+        await harness.deliver(UICmd.StateTimeout(stateName: .cameraTakingPic, generation: generation - 1))
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .cameraTakingPic, "a stale timeout is ignored")
     }
 
     // MARK: - Watch Remote crash guard (nil multipeerService)
@@ -2019,28 +835,6 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(name, .watchRemoteCamera)
         XCTAssertTrue(alerts.shownErrors.isEmpty)
         coordinator.stop()
-    }
-
-    /// A peer disconnect leaves stragglers in flight, and every one of them
-    /// fails to send. Discovery must restart exactly once — not once per
-    /// failed straggler (the old behavior re-entered scanning per failure,
-    /// resetting the lobby UI and re-arming the connection-error alert).
-    func testFailedSendStormRestartsScanningOnce() async {
-        await harness.coordinator.seed(state: .monitor(mode: .photo),
-                                       lobby: harness.lobbyWrapper,
-                                       peer: harness.peer)
-
-        // The peer is gone: every send fails. Each straggler command reaches
-        // the root handler, synthesizes an error response, and fails to send it.
-        harness.fakeMP.sendResult = false
-        for _ in 0..<5 {
-            await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
-        }
-
-        let state = await harness.stateName()
-        XCTAssertEqual(state, .scanning)
-        XCTAssertEqual(harness.lobby.returnsToLobby, 1,
-                       "straggler failures after the pop must not restart discovery again")
     }
 
     // MARK: - Keyframe requests across camera states
@@ -2411,22 +1205,6 @@ class SessionReconnectTests: XCTestCase {
 
         let announced = harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.EndSession }
         XCTAssertTrue(announced, "the peer must be told before we tear down")
-    }
-
-    /// The back button's real path: the monitor screen pops, the scanner's
-    /// viewDidAppear sends Disconnect, and the camera must hear about it from
-    /// whatever state the user was in.
-    func testBackButtonFromMonitorAnnouncesTheExit() async {
-        let presenter = MonitorPresenter()
-        await harness.deliver(UICmd.BecomeMonitor(presenter: presenter, mode: .Photo))
-        harness.fakeMP.sentMessages.removeAll()
-
-        await harness.deliver(UICmd.ScannerDidAppear())
-
-        let announced = harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.EndSession }
-        XCTAssertTrue(announced, "leaving the monitor screen must tell the camera")
-        let state = await harness.stateName()
-        XCTAssertEqual(state, .scanning)
     }
 
     /// An incompatible peer is left the way a deliberate exit leaves one: it is
