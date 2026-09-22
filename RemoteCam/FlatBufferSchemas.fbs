@@ -342,6 +342,19 @@ table CameraCapabilities {
 
 // MARK: - Response Structure
 
+// One response table, told apart by `action`:
+// - capture protocol replies (TakePicture, StartRecording, StopRecording,
+//   StopRecordingFinished, ScheduledCapture/Start/Stop, ClockSyncPing) carry
+//   only their own fields;
+// - every CONTROL command (SetZoom, SwitchLens, ToggleFlash, ToggleTorch,
+//   ToggleCamera, SelectCameraDevice, SetVideoQuality, SetPhotoQuality,
+//   SetAspectRatio, SetCameraPreviewMode) is answered by exactly one response
+//   echoing its action with `current_state` + `capabilities`: the camera's
+//   complete state after the command, whether it was applied (`success`) or
+//   refused (`error` says why; the state is the unchanged truth). The same
+//   shape, under RequestCapabilities, is pushed unsolicited on link-up and
+//   whenever the camera changes something on its own (hotplug, watchdog
+//   fallback, local device pick). See Docs/control-plane.md.
 table CameraStateResponse {
     action: CommandAction;
     success: bool;
@@ -351,10 +364,9 @@ table CameraStateResponse {
     media_data: [ubyte];              // TakePicture response only: the still's bytes.
                                       // Video never travels here (see StopRecordingFinished).
     recording_start_time: uint64 (deprecated);
-    available_lenses: [CameraLensType];
-    zoom_range: ZoomRange;
-    current_zoom: double;
-    // Appended fields only below this line (FlatBuffers schema evolution).
+    available_lenses: [CameraLensType] (deprecated);
+    zoom_range: ZoomRange (deprecated);
+    current_zoom: double (deprecated);
     clock_sync_echo_t0_ms: uint64;    // ClockSyncPing response: echoed director t0
     clock_sync_camera_clock_ms: uint64; // ClockSyncPing response: camera clock at receipt
     capture_id_echo: string;          // ScheduledCapture ack: the accepted capture id

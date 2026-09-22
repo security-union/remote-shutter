@@ -58,6 +58,15 @@ final class MulticamControllerTests: XCTestCase {
         transport.sentMessages.filter { $0.msg is T }
     }
 
+    /// The camera's answer to one control command: its state, tagged with the
+    /// action (and why it was refused, if it was).
+    private func reply(_ caps: RemoteCmd.CameraCapabilitiesResp, to action: RemoteShutter_CommandAction,
+                       error: Error? = nil) -> RemoteCmd.CameraCapabilitiesResp {
+        caps.inReplyTo = action
+        caps.error = error
+        return caps
+    }
+
     /// Pump the main run loop until `condition` holds (or ~1s passes) — the
     /// controller publishes to the display via a main-queue hop whose timing
     /// varies under suite load, so fixed sleeps flake.
@@ -242,10 +251,7 @@ final class MulticamControllerTests: XCTestCase {
         for factor in [2.0, 2.5, 3.0, 3.5] {
             controller.setZoom(CGFloat(factor), on: camA)
         }
-        controller.didReceiveMessage(
-            RemoteCmd.SetZoomResp(zoomFactor: 3.5, currentLens: .wideAngle,
-                                  zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 8), error: nil),
-            from: camA)
+        controller.didReceiveMessage(reply(zoomCaps(maxZoom: 8, currentZoom: 3.5), to: .setzoom), from: camA)
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
@@ -356,13 +362,14 @@ final class MulticamControllerTests: XCTestCase {
     func testRefusedCameraSwitchSurfacesATransientError() async {
         let (controller, _, display) = await makeController(peers: [camA])
         controller.didReceiveMessage(
-            RemoteCmd.ToggleCameraResp(
-                cameraCapabilities: nil,
-                error: NSError(domain: "Couldn't switch camera", code: 0)),
+            reply(multicamCaps(), to: .togglecamera,
+                  error: NSError(domain: "Couldn't switch camera", code: 0)),
             from: camA)
         await controller.waitForIdle()
         await pumpMainUntil { !display.transientErrors.isEmpty }
-        XCTAssertEqual(display.transientErrors, ["Couldn't switch camera"])
+        XCTAssertEqual(display.transientErrors.count, 1)
+        XCTAssertTrue(display.transientErrors[0].hasSuffix("Couldn't switch camera"),
+                      "the toast names the camera and carries the camera's reason")
     }
 
     /// Field repro: two cameras, the user never taps a strip thumbnail, then
@@ -381,9 +388,7 @@ final class MulticamControllerTests: XCTestCase {
                        "the flip must reach the entry-focused camera")
 
         // The camera answers with its refreshed (front-camera) capabilities.
-        controller.didReceiveMessage(
-            RemoteCmd.ToggleCameraResp(cameraCapabilities: capsWith(full4K), error: nil),
-            from: camA)
+        controller.didReceiveMessage(reply(capsWith(full4K), to: .togglecamera), from: camA)
         await controller.waitForIdle()
 
         transport.sentMessages.removeAll()
@@ -1868,9 +1873,7 @@ final class MulticamControllerTests: XCTestCase {
 
         // The camera flipped to a body that exposes only its back camera; its
         // refreshed capabilities ride the response.
-        controller.didReceiveMessage(
-            RemoteCmd.ToggleCameraResp(cameraCapabilities: flipCaps(bothPositions: false),
-                                       error: nil), from: camA)
+        controller.didReceiveMessage(reply(flipCaps(bothPositions: false), to: .togglecamera), from: camA)
         await controller.waitForIdle()
 
         let lanes = await controller.lanesForTesting()
@@ -1917,7 +1920,8 @@ final class MulticamControllerTests: XCTestCase {
 
     /// Capabilities whose back camera carries a real zoom range, so the lane's
     /// pill has something to draw.
-    private func zoomCaps(maxZoom: CGFloat, wideAngle: CGFloat = 1.0) -> RemoteCmd.CameraCapabilitiesResp {
+    private func zoomCaps(maxZoom: CGFloat, wideAngle: CGFloat = 1.0,
+                          currentZoom: CGFloat? = nil) -> RemoteCmd.CameraCapabilitiesResp {
         let info = RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle], hasFlash: true, hasTorch: true,
             zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(minZoom: wideAngle, maxZoom: maxZoom)],
@@ -1926,7 +1930,7 @@ final class MulticamControllerTests: XCTestCase {
             zoomStops: [wideAngle, wideAngle * 2], wideAngleZoomFactor: wideAngle)
         return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: info,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: wideAngle,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: currentZoom ?? wideAngle,
             supportsMulticam: true, error: nil)
     }
 
@@ -1951,10 +1955,7 @@ final class MulticamControllerTests: XCTestCase {
         controller.didReceiveMessage(zoomCaps(maxZoom: 8, wideAngle: 1.0), from: camB)
         await controller.waitForIdle()
 
-        controller.didReceiveMessage(
-            RemoteCmd.SetZoomResp(zoomFactor: 4.0, currentLens: .wideAngle,
-                                  zoomRange: RemoteCmd.ZoomRange(minZoom: 1, maxZoom: 6), error: nil),
-            from: camA)
+        controller.didReceiveMessage(reply(zoomCaps(maxZoom: 6, currentZoom: 4.0), to: .setzoom), from: camA)
         await controller.waitForIdle()
 
         let lanes = await controller.lanesForTesting()
@@ -2026,7 +2027,9 @@ final class MulticamControllerTests: XCTestCase {
                       "a peer that never advertised focus support is never sent the command")
     }
 
-    func testTorchTogglesOnlyTheFocusedLaneOptimistically() async {
+    /// A tap is a request, not a fact: the glyph waits for the camera's
+    /// answer, and the control counts as in flight until it lands.
+    func testTorchWaitsForTheCamerasAnswer() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         controller.didReceiveMessage(multicamCaps(), from: camA)
         controller.didReceiveMessage(multicamCaps(), from: camB)
@@ -2039,11 +2042,88 @@ final class MulticamControllerTests: XCTestCase {
 
         XCTAssertEqual(sent(transport, RemoteCmd.ToggleTorch.self).map(\.peers), [[camA]],
                        "torch drives only the focused camera")
-        let lanes = await controller.lanesForTesting()
-        XCTAssertEqual(lanes.first { $0.peerID == camA }?.torchOn, true,
-                       "the focused lane reflects the tap immediately")
-        XCTAssertEqual(lanes.first { $0.peerID == camB }?.torchOn, false,
-                       "no other lane is touched")
+        var lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.torchOn, false, "nothing is guessed from the tap")
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.inFlight, [.toggletorch])
+        let pending = await controller.pendingForTesting(camA, .toggletorch)
+        XCTAssertEqual(pending, 1)
+
+        let answer = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+            supportsMulticam: true, torchOn: true, inReplyTo: .toggletorch, error: nil)
+        controller.didReceiveMessage(answer, from: camA)
+        await controller.waitForIdle()
+
+        lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.torchOn, true, "the camera said so")
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.inFlight, [])
+        XCTAssertEqual(lanes.first { $0.peerID == camB }?.torchOn, false, "no other lane is touched")
+    }
+
+    /// A send the transport refuses is settled on the spot: not in flight,
+    /// and the operator is told.
+    func testControlSendFailureIsReportedAndNotLeftInFlight() async {
+        let (controller, transport, display) = await makeController(peers: [camA])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.waitForIdle()
+        transport.sendResult = false
+
+        controller.setZoom(2.0, on: camA)
+        await controller.waitForIdle()
+
+        let pending = await controller.pendingForTesting(camA, .setzoom)
+        XCTAssertEqual(pending, 0)
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+        XCTAssertEqual(display.transientErrors.count, 1)
+    }
+
+    /// A camera that never answers is not waited on forever: the deadline
+    /// clears the in-flight count and reports it, leaving the last reported
+    /// state untouched.
+    func testUnansweredControlExpiresWithAnError() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.setControlReplyTimeout(0.05)
+        await controller.waitForIdle()
+
+        controller.toggleFlash(on: camA)
+        await controller.waitForIdle()
+        var pending = await controller.pendingForTesting(camA, .toggleflash)
+        XCTAssertEqual(pending, 1)
+
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+        await controller.waitForIdle()
+        pending = await controller.pendingForTesting(camA, .toggleflash)
+        XCTAssertEqual(pending, 0)
+        XCTAssertEqual(display.transientErrors.count, 1)
+        let lane = await controller.lanesForTesting().first { $0.peerID == camA }
+        XCTAssertEqual(lane?.flashOn, false, "no answer, no change")
+    }
+
+    /// Rig settings are re-applied from what the camera REPORTS, so a reply
+    /// that confirms the setting never triggers the command again (no
+    /// request/reply loop), while a camera that reports otherwise is brought
+    /// back in line.
+    func testRigSettingIsReappliedOnlyWhenTheCameraReportsOtherwise() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.waitForIdle()
+        controller.setAspectRatio(.fourThree)
+        await controller.waitForIdle()
+        XCTAssertEqual(sent(transport, RemoteCmd.SetAspectRatio.self).count, 1)
+
+        func caps(_ aspect: AspectRatio) -> RemoteCmd.CameraCapabilitiesResp {
+            RemoteCmd.CameraCapabilitiesResp(
+                frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+                supportsMulticam: true, aspectRatio: aspect, error: nil)
+        }
+        controller.didReceiveMessage(reply(caps(.fourThree), to: .setaspectratio), from: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(sent(transport, RemoteCmd.SetAspectRatio.self).count, 1, "confirmed: nothing to re-send")
+
+        controller.didReceiveMessage(caps(.sixteenNine), from: camA)   // the camera reset on its own
+        await controller.waitForIdle()
+        XCTAssertEqual(sent(transport, RemoteCmd.SetAspectRatio.self).count, 2, "brought back in line once")
     }
 
     // MARK: - Add-camera list name resolution (shared with the scanner)
@@ -2294,8 +2374,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
 
         controller.didReceiveMessage(
-            RemoteCmd.SelectCameraDeviceResp(
-                cameraCapabilities: deviceCaps(["builtin", "usb", "continuity"], active: "usb"), error: nil),
+            reply(deviceCaps(["builtin", "usb", "continuity"], active: "usb"), to: .selectcameradevice),
             from: camA)
         await controller.waitForIdle()
 
@@ -2314,14 +2393,13 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
 
         controller.didReceiveMessage(
-            RemoteCmd.SelectCameraDeviceResp(
-                cameraCapabilities: nil,
-                error: NSError(domain: "OBS Virtual Camera delivers no frames", code: 0)),
+            reply(deviceCaps(["builtin", "usb", "obs"], active: "builtin"), to: .selectcameradevice,
+                  error: NSError(domain: "OBS Virtual Camera delivers no frames", code: 0)),
             from: camA)
         await controller.waitForIdle()
         await pumpMainUntil { !display.transientErrors.isEmpty }
 
-        XCTAssertEqual(display.transientErrors, ["OBS Virtual Camera delivers no frames"])
+        XCTAssertTrue(display.transientErrors.first?.hasSuffix("OBS Virtual Camera delivers no frames") ?? false)
         let lane = await controller.lanesForTesting().first { $0.peerID == camA }
         XCTAssertEqual(lane?.activeDeviceID, "builtin", "a refused switch leaves the device alone")
     }

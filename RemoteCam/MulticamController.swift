@@ -83,10 +83,12 @@ struct MulticamLaneInfo: Equatable {
     let maxZoomFactor: CGFloat
     let zoomStops: [CGFloat]
     let wideAngleZoomFactor: CGFloat
-    /// Optimistic torch / flash state so the control-capsule glyphs tint like
-    /// the 1:1 monitor's the instant they are tapped.
+    /// Torch / flash as the camera last reported them — never from the tap.
     let torchOn: Bool
     let flashOn: Bool
+    /// Controls with a command in flight to this camera (sent, not yet
+    /// answered): the chrome dims them instead of guessing the result.
+    let inFlight: Set<RemoteShutter_CommandAction>
 }
 
 /// A Sendable pipe that carries one lane's decoded-preview frames from the
@@ -214,6 +216,11 @@ public actor MulticamController {
     private let captureLeadMillis: UInt64 = 150
     /// How long a camera has to answer before it is counted as failed.
     private var captureAckTimeout: TimeInterval = 3
+    /// How long a control command may go unanswered before the lane stops
+    /// counting it as in flight and the operator is told. Matches the
+    /// coordinator's state-timeout convention and clears the 4 s frame
+    /// confirm a device switch can take.
+    private var controlReplyTimeout: TimeInterval = 10
 
     // MARK: Rig-wide settings ("the shot belongs to the rig")
 
@@ -500,6 +507,7 @@ public actor MulticamController {
             handleAutomaticPhotoQuality()
         case let tick as MCTimerAdvance: advanceCountdown(generation: tick.generation)
         case let expired as MCAckTimeout: expireAcks(expired.captureID)
+        case let expired as MCControlTimeout: expireControl(expired.peer, expired.action)
         case let q as MCSetVideoQuality:
             logInfo("director: video quality \(q.resolution)/\(q.frameRate) → all")
             handleSetVideoQuality(resolution: q.resolution, frameRate: q.frameRate)
@@ -595,56 +603,37 @@ public actor MulticamController {
             }
 
         case let caps as RemoteCmd.CameraCapabilitiesResp:
-            logInfo("director: caps from \(link.displayName) — torch=\(caps.getCurrentCameraInfo()?.hasTorch ?? false), camera=\(caps.currentCamera)")
+            // THE control-plane answer: the camera's full state, either the
+            // reply to one of our control commands (`inReplyTo` names it) or
+            // an unsolicited push (link-up, hotplug, a change the camera made
+            // itself). One absorb serves both; the lane renders from it.
+            logInfo("director: state from \(link.displayName) (\(caps.inReplyTo)) — torch=\(caps.torchOn), camera=\(caps.currentCamera)")
             link.capabilities = caps
-            seedZoom(link, from: caps)
+            if let n = link.pending[caps.inReplyTo], n > 0 { link.pending[caps.inReplyTo] = n - 1 }
+            if let error = caps.error {
+                // A refusal is said out loud — the state already reset the
+                // control to the truth, so silence would read as "the
+                // button does nothing".
+                logWarning("director: \(caps.inReplyTo) refused by \(link.displayName) — \(error._domain)")
+                showError("\(link.displayName): \(error._domain)")
+            }
             if link.status != .failed { link.status = .linked }
-            // A late joiner may not match the running rig quality: flag it (its
-            // tile badges + the tray offers re-match) rather than silently
-            // changing the rig. Also refreshes the intersection menu.
             // A multicam-capable camera gets an immediate clock probe so its
-            // offset is ready well before the first synced capture (PR4), and
-            // its preview tier (full if focused, else thumbnail).
-            if link.supportsMulticam {
+            // offset is ready well before the first synced capture, and its
+            // preview tier (full if focused, else thumbnail).
+            if caps.inReplyTo == .requestcapabilities, link.supportsMulticam {
                 sendTo(peer, RemoteCmd.ClockSyncPing(t0Millis: SyncClock.nowMillis()))
                 pushProfile(to: peer)
             }
-            // The rig's standby is a setting, not an event: a camera joining
-            // (or re-advertising) while the rig is in standby is put there too.
-            if rigPreviewMode == .standby, caps.supportsPreviewMode {
-                sendTo(peer, RemoteCmd.SetCameraPreviewMode(mode: .standby))
+            // The rig's standby and aspect are settings, not events: a camera
+            // whose reported state differs (joining, re-advertising, or reset
+            // on its own) is brought back in line. Gated on the REPORTED
+            // value, so a reply can never trigger the command that caused it.
+            if rigPreviewMode == .standby, caps.supportsPreviewMode, caps.previewMode != .standby {
+                sendControl(.setcamerapreviewmode, RemoteCmd.SetCameraPreviewMode(mode: .standby), to: peer)
             }
-            // Aspect likewise: a camera arriving while the rig is off the 16:9
-            // camera default is cropped to match the rest of the shot.
-            if activeAspectRatio != .sixteenNine {
-                sendTo(peer, RemoteCmd.SetAspectRatio(aspectRatio: activeAspectRatio))
-            }
-
-        case let resp as RemoteCmd.ToggleCameraResp:
-            // Also `SelectCameraDeviceResp`, a subclass: a device switch
-            // answers with the same shape and lands on the lane the same way.
-            // The focused camera flipped front/back (or picked a device — the
-            // response type is shared). Its refreshed capabilities carry the
-            // new position, lenses and zoom, so the lane's controls reflect it.
-            // A refusal (the camera couldn't run the requested device and
-            // reverted) surfaces on screen — never silently swallowed.
-            if let error = resp.error {
-                logWarning("director: camera switch on \(link.displayName) failed — \(error._domain)")
-                let display = display
-                let message = error._domain
-                OperationQueue.main.addOperation { display?.showTransientError(message) }
-            }
-            if let caps = resp.cameraCapabilities {
-                link.capabilities = caps
-                seedZoom(link, from: caps)
-            }
-
-        case let resp as RemoteCmd.SetZoomResp:
-            // The focused camera settled on a zoom; reflect its factor and range
-            // on that lane so the pill's thumb and ceiling track the hardware.
-            if let factor = resp.zoomFactor { link.zoomFactor = factor }
-            if let maxZoom = resp.zoomRange?.maxZoom {
-                link.maxZoomFactor = ZoomScaleSeed.clampMaxZoom(maxZoom, wideAngle: link.wideAngleZoomFactor)
+            if caps.aspectRatio != activeAspectRatio {
+                sendControl(.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: activeAspectRatio), to: peer)
             }
 
         case let ack as RemoteCmd.ScheduledCaptureAck:
@@ -684,11 +673,42 @@ public actor MulticamController {
             }
 
         default:
-            // Per-camera command responses (zoom/lens/flash/torch acks) update
-            // only the focused lane's controls, wired to the UI in a later PR;
-            // PR3 surfaces frames + status, so these are accepted and ignored.
             break
         }
+    }
+
+    // MARK: - Control commands: one gate, one deadline
+
+    /// Every control command leaves through here. The lane counts it as in
+    /// flight until the camera's state reply for that action lands, the send
+    /// fails outright, or `controlReplyTimeout` passes — so the operator
+    /// always learns what became of a tap. Never blocks: the rig's capture
+    /// machine is untouched by control traffic.
+    private func sendControl(_ action: RemoteShutter_CommandAction, _ msg: Message, to peer: MCPeerID) {
+        guard let link = links[peer] else { return }
+        guard sendTo(peer, msg) else {
+            showError("\(link.displayName): \(NSLocalizedString("couldn't reach the camera", comment: "control send failed"))")
+            return
+        }
+        link.pending[action, default: 0] += 1
+        let timeout = controlReplyTimeout
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            self?.tell(MCControlTimeout(peer: peer, action: action))
+        }
+    }
+
+    private func expireControl(_ peer: MCPeerID, _ action: RemoteShutter_CommandAction) {
+        guard let link = links[peer], let n = link.pending[action], n > 0 else { return }
+        link.pending[action] = n - 1
+        logWarning("director: \(action) to \(link.displayName) unanswered after \(controlReplyTimeout)s")
+        showError("\(link.displayName): \(NSLocalizedString("didn't answer", comment: "control reply deadline passed"))")
+    }
+
+    /// A brief, non-blocking readout on the director screen.
+    private func showError(_ message: String) {
+        let display = display
+        OperationQueue.main.addOperation { display?.showTransientError(message) }
     }
 
     private func handlePeerConnected(_ peer: MCPeerID) {
@@ -819,22 +839,15 @@ public actor MulticamController {
     public nonisolated func toggleFlash(on peer: MCPeerID) { tell(MCToggleFlash(target: peer)) }
 
     private func handleSetZoom(_ factor: CGFloat, target: MCPeerID) {
-        guard links[target] != nil else { return }
-        sendTo(target, RemoteCmd.SetZoom(zoomFactor: factor))
+        sendControl(.setzoom, RemoteCmd.SetZoom(zoomFactor: factor), to: target)
     }
 
     private func handleToggleTorch(target: MCPeerID) {
-        guard let link = links[target] else { return }
-        // Optimistic: reflect the tap immediately so the glyph tints like the
-        // 1:1 monitor's; the camera is the source of truth for whether it took.
-        link.torchOn.toggle()
-        sendTo(target, RemoteCmd.ToggleTorch())
+        sendControl(.toggletorch, RemoteCmd.ToggleTorch(), to: target)
     }
 
     private func handleToggleFlash(target: MCPeerID) {
-        guard let link = links[target] else { return }
-        link.flashOn.toggle()
-        sendTo(target, RemoteCmd.ToggleFlash())
+        sendControl(.toggleflash, RemoteCmd.ToggleFlash(), to: target)
     }
 
     /// Disconnect one camera from the rig: a purposeful goodbye (`EndSession`)
@@ -853,26 +866,24 @@ public actor MulticamController {
     }
 
     /// Flip one camera between front and back. The camera decides whether a
-    /// flip does anything, exactly as in the 1:1 monitor; `ToggleCameraResp`
-    /// carries its refreshed capabilities back to that lane.
+    /// flip does anything; its state reply carries the refreshed
+    /// capabilities back to that lane.
     public nonisolated func flipCamera(_ peer: MCPeerID) { tell(MCFlipCamera(target: peer)) }
 
     private func handleFlipCamera(target: MCPeerID) {
         guard links[target]?.status == .linked else { return }
-        sendTo(target, RemoteCmd.ToggleCamera())
+        sendControl(.togglecamera, RemoteCmd.ToggleCamera(), to: target)
     }
     /// Switch one camera to a specific device by ID (a Mac with several
     /// cameras). Only sent to a peer whose capabilities carried a device list:
-    /// selecting a device on a peer that has none is meaningless. The camera
-    /// answers with `SelectCameraDeviceResp` (a `ToggleCameraResp`), so the
-    /// refreshed capabilities land on that lane through the same handler.
+    /// selecting a device on a peer that has none is meaningless.
     public nonisolated func selectCameraDevice(_ uniqueID: String, on peer: MCPeerID) {
         tell(MCSelectCameraDevice(uniqueID: uniqueID, target: peer))
     }
     private func handleSelectCameraDevice(_ uniqueID: String, target: MCPeerID) {
         guard let link = links[target], link.status == .linked,
               link.capabilities?.cameraDevices.isEmpty == false else { return }
-        sendTo(target, RemoteCmd.SelectCameraDevice(uniqueID: uniqueID))
+        sendControl(.selectcameradevice, RemoteCmd.SelectCameraDevice(uniqueID: uniqueID), to: target)
     }
 
     /// Tap-to-focus on one camera. The IAP gate lives on the view controller
@@ -888,8 +899,7 @@ public actor MulticamController {
     }
 
     func switchLens(_ lens: CameraLensType, on peer: MCPeerID) {
-        guard links[peer] != nil else { return }
-        sendTo(peer, RemoteCmd.SwitchLens(lensType: lens))
+        sendControl(.switchlens, RemoteCmd.SwitchLens(lensType: lens), to: peer)
     }
 
     public nonisolated func setFocusedPeer(_ peer: MCPeerID) { tell(MCPeerCommand(.focus, peer)) }
@@ -936,20 +946,12 @@ public actor MulticamController {
         if focusedPeer == peer { focusedPeer = order.first }
     }
 
-    /// Seed a lane's zoom scale from a capabilities exchange via the shared
-    /// `ZoomScaleSeed` — the same values the 1:1 monitor derives.
-    private func seedZoom(_ link: CameraLink, from caps: RemoteCmd.CameraCapabilitiesResp) {
-        guard let seed = ZoomScaleSeed.seed(from: caps) else { return }
-        link.zoomStops = seed.zoomStops
-        link.wideAngleZoomFactor = seed.wideAngleZoomFactor
-        link.zoomFactor = seed.zoomFactor
-        if let maxZoom = seed.maxZoomFactor { link.maxZoomFactor = maxZoom }
-    }
-
     // MARK: - Synced photo capture (all cameras)
 
     /// Test seams.
     func setCaptureAckTimeout(_ t: TimeInterval) { captureAckTimeout = t }
+    func setControlReplyTimeout(_ t: TimeInterval) { controlReplyTimeout = t }
+    func pendingForTesting(_ peer: MCPeerID, _ action: RemoteShutter_CommandAction) -> Int { links[peer]?.pending[action] ?? 0 }
     func captureStateForTesting() -> (id: String, remaining: Int)? {
         if case .capturingPhoto(let id, let remaining) = state { return (id, remaining) }
         return nil
@@ -1202,7 +1204,7 @@ public actor MulticamController {
     private func handleSetVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) {
         activeVideoQuality = (resolution, frameRate)
         for peer in order {
-            sendTo(peer, RemoteCmd.SetVideoQuality(resolution: resolution, frameRate: frameRate))
+            sendControl(.setvideoquality, RemoteCmd.SetVideoQuality(resolution: resolution, frameRate: frameRate), to: peer)
         }
     }
 
@@ -1213,7 +1215,7 @@ public actor MulticamController {
     private func handleSetPhotoQuality(format: PhotoFormat, hdr: HDRMode) {
         activePhotoQuality = (format, hdr)
         for peer in order {
-            sendTo(peer, RemoteCmd.SetPhotoQuality(format: format, hdrMode: hdr))
+            sendControl(.setphotoquality, RemoteCmd.SetPhotoQuality(format: format, hdrMode: hdr), to: peer)
         }
     }
 
@@ -1224,7 +1226,7 @@ public actor MulticamController {
     private func handleSetAspectRatio(_ ratio: AspectRatio) {
         activeAspectRatio = ratio
         for peer in order {
-            sendTo(peer, RemoteCmd.SetAspectRatio(aspectRatio: ratio))
+            sendControl(.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: ratio), to: peer)
         }
     }
 
@@ -1260,7 +1262,7 @@ public actor MulticamController {
     private func handleSetRigStandby(_ on: Bool) {
         rigPreviewMode = on ? .standby : .on
         for (peer, link) in links where link.capabilities?.supportsPreviewMode == true {
-            sendTo(peer, RemoteCmd.SetCameraPreviewMode(mode: rigPreviewMode))
+            sendControl(.setcamerapreviewmode, RemoteCmd.SetCameraPreviewMode(mode: rigPreviewMode), to: peer)
         }
     }
 
@@ -1872,6 +1874,16 @@ final class MCTimerAdvance: Message, @unchecked Sendable {
 final class MCAckTimeout: Message, @unchecked Sendable {
     let captureID: String
     init(captureID: String) { self.captureID = captureID; super.init(sender: nil) }
+}
+
+/// The reply deadline for one control command passed.
+final class MCControlTimeout: Message, @unchecked Sendable {
+    let peer: MCPeerID
+    let action: RemoteShutter_CommandAction
+    init(peer: MCPeerID, action: RemoteShutter_CommandAction) {
+        self.peer = peer; self.action = action
+        super.init(sender: nil)
+    }
 }
 
 final class MCPeerCommand: Message, @unchecked Sendable {

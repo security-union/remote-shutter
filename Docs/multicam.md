@@ -243,6 +243,16 @@ These are the invariants worth preserving through future changes.
   cannot fail loudly — it enqueues. Outcomes (captured / failed / reconnecting /
   transferring) arrive later as published `CameraLink` state and render as tile
   badges. The UI is a pure function of that state, not of any command's return.
+- **Every control command is answered, and nothing is guessed from a tap.**
+  Zoom, lens, flash, torch, flip, device select, quality, aspect and standby
+  all leave through one gate (`sendControl`) and are answered by one message,
+  the camera's full state tagged with the command it answers. The lane counts
+  each send as in flight until that reply, a failed send, or the 10 s deadline
+  (`MCControlTimeout`), and the focused chrome disables the control meanwhile.
+  Torch, flash and zoom glyphs read the camera's report. A refusal is shown as
+  a transient error naming the camera. Rig settings (standby, aspect) are
+  re-applied from what a camera *reports*, so a confirming reply never
+  re-triggers the command. See `Docs/control-plane.md`.
 - **Framing belongs to a camera; the shot belongs to the rig.** Per-camera
   controls (zoom, focus, flash, torch, lens, camera flip) address the *focused*
   camera only. Rig controls (shutter, record, timer, quality/HDR) fan out to
@@ -283,7 +293,8 @@ keep in step with. What it composes from shared files:
   `TrayPanelShell`; plus `ZoomPill` and the layout enums in `MonitorChrome.swift`
   (`MonitorChromeLayout`, `MonitorLinkState`, `MonitorActivity`).
 - `ZoomScaleSeed` — the zoom clamp (the single home of the 5×-wide
-  `maxDisplayZoom`) and the capabilities→zoom seed behind `MulticamController.seedZoom`.
+  `maxDisplayZoom`) and the capabilities→zoom derivation every `CameraLink`
+  snapshot reads.
 - `FocusedCameraControlState` — the flip/torch/flash enablement rules, consumed
   by `MulticamViewModel`.
 - `PeerSessionCore` — the mechanics both actors share: `RemoteCmd.OnFrame(forwarding:from:)`,

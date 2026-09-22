@@ -276,7 +276,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 throw NSError(domain: "Unable to find camera position", code: 0, userInfo: nil)
             }
             let result = try self.swapToDeviceLocked(newDevice, orientation: orientation)
-            // Camera capabilities are sent via RemoteCmd.ToggleCameraResp in the camera state.
             return (result.flashMode, result.device.position)
         }
     }
@@ -1026,6 +1025,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // Every remote is a director now, so every camera takes synced shots.
             supportsMulticam: true,
             previewMode: CameraPreviewModeStore().load(),
+            torchOn: currentDevice.hasTorch && currentDevice.torchMode == .on,
+            flashMode: cameraSettings.flashMode,
+            aspectRatio: currentAspectRatio,
             error: nil
         )
 

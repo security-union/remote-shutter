@@ -22,7 +22,7 @@ struct ZoomScale: Equatable {
         let usable = stops.filter { $0.isFinite && $0 > 0 }.sorted()
         let safeStops = usable.isEmpty ? [1.0] : usable
         let low = safeStops[0]
-        // `maxZoomFactor` arrives as a default (10.0) before the first SetZoomResp and can
+        // `maxZoomFactor` arrives as a default (10.0) before the camera's first state reply and can
         // legitimately land at or below the low stop on a fixed-focal-length camera.
         let ceiling = (maxZoomFactor.isFinite && maxZoomFactor > low) ? maxZoomFactor : low
 
@@ -36,7 +36,7 @@ struct ZoomScale: Equatable {
     }
 
     /// True when the range has collapsed and there is nothing to zoom: before the first
-    /// `SetZoomResp` lands, or on a camera with a single fixed focal length. Callers must
+    /// the camera's state reply lands, or on a camera with a single fixed focal length. Callers must
     /// check this before drawing a track — a SwiftUI `Slider` traps on an empty range.
     var isDegenerate: Bool { maxZoom <= minZoom }
 

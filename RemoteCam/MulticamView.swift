@@ -279,7 +279,7 @@ struct MulticamView: View {
             devices: viewModel.focusedCameraDevices,
             activeDeviceID: viewModel.focusedActiveDeviceID,
             isEnabled: viewModel.focusedCameraCanFlip,
-            isSwitching: false,
+            isSwitching: viewModel.focusedIsSwitching,
             onToggleCamera: withFocused(onFlipCamera),
             onSelectCameraDevice: { id in
                 if let focused = viewModel.focusedLane { onSelectCameraDevice(focused, id) }

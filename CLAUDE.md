@@ -80,6 +80,15 @@ Messages.swift) handle communication:
 - **`RemoteCmd`** (RemoteCmds.swift) — Messages sent between devices over the peer session, serialized as **FlatBuffers** (`RemoteCmdFlatBuffers.swift` + schemas in `FlatBufferSchemas.fbs`).
 - **`UICmd`** (UICmds.swift) — Local messages from screens into the session coordinator within a single device.
 
+Control commands (zoom, lens, flash, torch, flip, device select, quality,
+aspect, preview mode) are all answered the same way: one
+`CameraCapabilitiesResp` — the camera's full state — tagged with the command's
+action (`inReplyTo`) and, if refused, why (`error`). The camera answers in
+every phase (busy phases refuse, never drop); the director counts each send as
+in flight until that reply, a failed send, or a 10 s deadline. Torch, flash and
+zoom on the director are read from the camera's report, never from the tap.
+See `Docs/control-plane.md`.
+
 When adding new remote commands, add a table to `FlatBufferSchemas.fbs`, regenerate `FlatBufferSchemas_generated.swift` with `flatc`, and wire the encode/decode paths in `RemoteCmdFlatBuffers.swift`. All FlatBuffer enums must have `Unknown = 0` as the default.
 
 ### UI Architecture

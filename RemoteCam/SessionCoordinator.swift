@@ -1058,117 +1058,13 @@ public actor SessionCoordinator {
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
             await transition(to: .cameraTakingPic(sendMediaToPeer: fire.sendMediaToPeer, generation: generation))
 
-        case is RemoteCmd.ToggleCamera:
-            do {
-                let before = await ctrl.currentCameraDevice()?.uniqueID
-                _ = try await ctrl.toggleCamera()
-                try await confirmFrameDelivery(ctrl)
-                await ctrl.gatherAllCameraCapabilities()
-                let capabilities = await ctrl.gatherCurrentCameraCapabilities()
-                // A switch whose graph cannot start is reverted by the engine
-                // within milliseconds; frames then flow from the restored
-                // device and the confirm above passes. Landing back on the
-                // pre-toggle device means the switch failed — say so instead
-                // of reporting a no-op success.
-                if let before, let after = capabilities?.activeDeviceID, after == before {
-                    await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
-                        cameraCapabilities: nil, error: couldNotSwitchCameraError()))
-                } else {
-                    await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
-                        cameraCapabilities: capabilities, error: nil))
-                }
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(
-                    cameraCapabilities: nil, error: error as NSError))
-            }
-
-        case let select as RemoteCmd.SelectCameraDevice:
-            do {
-                _ = try await ctrl.selectCameraDevice(uniqueID: select.uniqueID)
-                try await confirmFrameDelivery(ctrl)
-                await ctrl.gatherAllCameraCapabilities()
-                let capabilities = await ctrl.gatherCurrentCameraCapabilities()
-                // Same truth check as the toggle: not on the requested device
-                // after the confirm ⇒ the engine reverted a failed switch.
-                if let after = capabilities?.activeDeviceID, after != select.uniqueID {
-                    await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
-                        cameraCapabilities: nil, error: couldNotSwitchCameraError()))
-                } else {
-                    await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
-                        cameraCapabilities: capabilities, error: nil))
-                }
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(
-                    cameraCapabilities: nil, error: error as NSError))
-            }
-
-        case is RemoteCmd.ToggleFlash:
-            do {
-                let flashMode = try await ctrl.toggleFlash()
-                await sendOrGoToScanning(RemoteCmd.ToggleFlashResp(flashMode: flashMode, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.ToggleFlashResp(flashMode: nil, error: error as NSError))
-            }
-
-        case is RemoteCmd.ToggleTorch:
-            do {
-                let torchMode = try await ctrl.toggleTorch()
-                await sendOrGoToScanning(RemoteCmd.ToggleTorchResp(torchMode: torchMode, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.ToggleTorchResp(torchMode: nil, error: error as NSError))
-            }
-
-        case let zoom as RemoteCmd.SetZoom:
-            do {
-                let (factor, lens, range) = try await ctrl.setZoom(zoomFactor: zoom.zoomFactor)
-                await sendOrGoToScanning(RemoteCmd.SetZoomResp(
-                    zoomFactor: factor, currentLens: lens, zoomRange: range, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SetZoomResp(
-                    zoomFactor: nil, currentLens: nil, zoomRange: nil, error: error as NSError))
-            }
+        case let countdown as RemoteCmd.TimerCountdown:
+            ctrl.updateTimerCountdown(value: countdown.value)
 
         case let focus as RemoteCmd.FocusAtPoint:
             // Fire-and-forget: the monitor already showed its reticle. A device
             // without a focus point simply ignores it.
             try? await ctrl.focusAtPoint(x: focus.x, y: focus.y)
-
-        case let lens as RemoteCmd.SwitchLens:
-            do {
-                let (lensType, available, zoom, range) = try await ctrl.switchLens(to: lens.lensType)
-                await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
-                    lensType: lensType, availableLenses: available, currentZoom: zoom, zoomRange: range, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
-                    lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error as NSError))
-            }
-
-        case let countdown as RemoteCmd.TimerCountdown:
-            ctrl.updateTimerCountdown(value: countdown.value)
-
-        case let quality as RemoteCmd.SetVideoQuality:
-            if let (resolution, frameRate) = await ctrl.setVideoQuality(
-                resolution: quality.resolution, frameRate: quality.frameRate) {
-                await sendOrGoToScanning(RemoteCmd.SetVideoQualityResp(
-                    resolution: resolution, frameRate: frameRate, error: nil))
-            } else {
-                await sendOrGoToScanning(RemoteCmd.SetVideoQualityResp(
-                    resolution: nil, frameRate: nil, error: unableToProcessError(msg)))
-            }
-
-        case let quality as RemoteCmd.SetPhotoQuality:
-            if let (format, hdrMode) = await ctrl.setPhotoQuality(
-                format: quality.format, hdrMode: quality.hdrMode) {
-                await sendOrGoToScanning(RemoteCmd.SetPhotoQualityResp(
-                    format: format, hdrMode: hdrMode, error: nil))
-            } else {
-                await sendOrGoToScanning(RemoteCmd.SetPhotoQualityResp(
-                    format: nil, hdrMode: nil, error: unableToProcessError(msg)))
-            }
-
-        case let ratio as RemoteCmd.SetAspectRatio:
-            let applied = await ctrl.setAspectRatio(ratio.aspectRatio)
-            await sendOrGoToScanning(RemoteCmd.SetAspectRatioResp(aspectRatio: applied, error: nil))
 
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
@@ -1189,8 +1085,134 @@ public actor SessionCoordinator {
             await transition(to: .connected)
 
         default:
+            if await handleControl(msg, phase: .idle) { return }
             await handleRoot(msg)
         }
+    }
+
+    // MARK: - Control commands (one handler, every camera state)
+
+    /// What the camera is doing, as far as control commands care. Decides,
+    /// with `ControlPolicy`, whether a command is applied or refused — a
+    /// command is never dropped in silence on the camera screen.
+    enum ControlPhase { case idle, takingPicture, recording, transmittingVideo, notCamera }
+
+    /// Why a control command cannot be applied in this phase (nil = go ahead).
+    /// Pure and table-shaped so the loopback reply matrix can pin it.
+    static func controlRefusal(_ msg: Message, phase: ControlPhase) -> String? {
+        let busy = NSLocalizedString("Camera is busy", comment: "control refused mid-capture")
+        let recording = NSLocalizedString("Locked while recording", comment: "control refused while rolling")
+        switch (msg, phase) {
+        case (_, .idle):
+            return nil
+        case (_, .notCamera):
+            return NSLocalizedString("Not on the camera screen", comment: "control refused: peer is not a camera")
+        case (_, .takingPicture):
+            return busy
+        case (is RemoteCmd.SetZoom, _), (is RemoteCmd.SwitchLens, _), (is RemoteCmd.ToggleTorch, _),
+             (is RemoteCmd.SetPhotoQuality, _), (is RemoteCmd.SetAspectRatio, _),
+             (is RemoteCmd.SetCameraPreviewMode, _):
+            return nil
+        case (is RemoteCmd.ToggleFlash, _), (is RemoteCmd.SetVideoQuality, _):
+            return recording
+        case (is RemoteCmd.ToggleCamera, .recording), (is RemoteCmd.SelectCameraDevice, .recording):
+            return recording
+        default:
+            return busy
+        }
+    }
+
+    /// Handles a control command if `msg` is one: applies it (or refuses it
+    /// per the phase policy) and answers with the camera's full state under
+    /// the command's own action — the ONE reply shape every control command
+    /// gets (Docs/control-plane.md). Returns false for anything else so the
+    /// caller falls through to `handleRoot`.
+    private func handleControl(_ msg: Message, phase: ControlPhase) async -> Bool {
+        let action: RemoteShutter_CommandAction
+        switch msg {
+        case is RemoteCmd.SetZoom: action = .setzoom
+        case is RemoteCmd.SwitchLens: action = .switchlens
+        case is RemoteCmd.ToggleFlash: action = .toggleflash
+        case is RemoteCmd.ToggleTorch: action = .toggletorch
+        case is RemoteCmd.ToggleCamera: action = .togglecamera
+        case is RemoteCmd.SelectCameraDevice: action = .selectcameradevice
+        case is RemoteCmd.SetVideoQuality: action = .setvideoquality
+        case is RemoteCmd.SetPhotoQuality: action = .setphotoquality
+        case is RemoteCmd.SetAspectRatio: action = .setaspectratio
+        case is RemoteCmd.SetCameraPreviewMode: action = .setcamerapreviewmode
+        default: return false
+        }
+        if let refusal = Self.controlRefusal(msg, phase: phase) {
+            logWarning("session: \(type(of: msg)) REFUSED in \(currentStateName()) — \(refusal)")
+            await replyWithState(action, error: NSError(domain: refusal, code: 0, userInfo: nil))
+            return true
+        }
+        guard let ctrl else { return false }
+        do {
+            switch msg {
+            case let zoom as RemoteCmd.SetZoom:
+                _ = try await ctrl.setZoom(zoomFactor: zoom.zoomFactor)
+            case let lens as RemoteCmd.SwitchLens:
+                _ = try await ctrl.switchLens(to: lens.lensType)
+            case is RemoteCmd.ToggleFlash:
+                _ = try await ctrl.toggleFlash()
+            case is RemoteCmd.ToggleTorch:
+                _ = try await ctrl.toggleTorch()
+            case is RemoteCmd.ToggleCamera:
+                let before = await ctrl.currentCameraDevice()?.uniqueID
+                _ = try await ctrl.toggleCamera()
+                try await confirmFrameDelivery(ctrl)
+                // A switch whose graph cannot start is reverted by the engine
+                // within milliseconds; frames then flow from the restored
+                // device and the confirm above passes. Landing back on the
+                // pre-toggle device means the switch failed — say so instead
+                // of reporting a no-op success.
+                if let before, await ctrl.currentCameraDevice()?.uniqueID == before {
+                    throw couldNotSwitchCameraError()
+                }
+            case let select as RemoteCmd.SelectCameraDevice:
+                _ = try await ctrl.selectCameraDevice(uniqueID: select.uniqueID)
+                try await confirmFrameDelivery(ctrl)
+                // Same truth check as the toggle: not on the requested device
+                // after the confirm ⇒ the engine reverted a failed switch.
+                if await ctrl.currentCameraDevice()?.uniqueID != select.uniqueID {
+                    throw couldNotSwitchCameraError()
+                }
+            case let quality as RemoteCmd.SetVideoQuality:
+                guard await ctrl.setVideoQuality(resolution: quality.resolution,
+                                                 frameRate: quality.frameRate) != nil else {
+                    throw await unableToProcessError(msg)
+                }
+            case let quality as RemoteCmd.SetPhotoQuality:
+                guard await ctrl.setPhotoQuality(format: quality.format, hdrMode: quality.hdrMode) != nil else {
+                    throw await unableToProcessError(msg)
+                }
+            case let ratio as RemoteCmd.SetAspectRatio:
+                _ = await ctrl.setAspectRatio(ratio.aspectRatio)
+            case let preview as RemoteCmd.SetCameraPreviewMode:
+                await ctrl.setPreviewMode(preview.mode)
+            default:
+                break
+            }
+            await replyWithState(action, error: nil)
+        } catch {
+            await replyWithState(action, error: error as NSError)
+        }
+        return true
+    }
+
+    /// The one reply: the camera's full state tagged with the command it
+    /// answers. A device swap refreshes the cached hardware matrix first.
+    private func replyWithState(_ action: RemoteShutter_CommandAction, error: NSError?) async {
+        if action == .togglecamera || action == .selectcameradevice {
+            await ctrl?.gatherAllCameraCapabilities()
+        }
+        let reply = await ctrl?.gatherCurrentCameraCapabilities()
+            ?? RemoteCmd.CameraCapabilitiesResp(frontCamera: nil, backCamera: nil, currentCamera: .back,
+                                                currentLens: .wideAngle, currentZoom: 1, error: nil)
+        reply.inReplyTo = action
+        reply.error = error
+        await sendOrGoToScanning(reply)
     }
 
     /// A camera can accept an input swap and still never deliver a frame (a
@@ -1452,6 +1474,7 @@ public actor SessionCoordinator {
             await leaveSession()
 
         default:
+            if await handleControl(msg, phase: .takingPicture) { return }
             await handleRoot(msg)
         }
     }
@@ -1460,29 +1483,9 @@ public actor SessionCoordinator {
         guard let ctrl else { return }
 
         switch msg {
-        case let zoom as RemoteCmd.SetZoom:
-            do {
-                let (factor, lens, range) = try await ctrl.setZoom(zoomFactor: zoom.zoomFactor)
-                await sendOrGoToScanning(RemoteCmd.SetZoomResp(
-                    zoomFactor: factor, currentLens: lens, zoomRange: range, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SetZoomResp(
-                    zoomFactor: nil, currentLens: nil, zoomRange: nil, error: error as NSError))
-            }
-
         case let focus as RemoteCmd.FocusAtPoint:
             // Fire-and-forget; focusing is allowed while recording too.
             try? await ctrl.focusAtPoint(x: focus.x, y: focus.y)
-
-        case let lens as RemoteCmd.SwitchLens:
-            do {
-                let (lensType, available, zoom, range) = try await ctrl.switchLens(to: lens.lensType)
-                await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
-                    lensType: lensType, availableLenses: available, currentZoom: zoom, zoomRange: range, error: nil))
-            } catch {
-                await sendOrGoToScanning(RemoteCmd.SwitchLensResp(
-                    lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: error as NSError))
-            }
 
         case is RemoteCmd.RequestKeyframe:
             // The preview stream keeps flowing while recording, so a desynced
@@ -1584,6 +1587,7 @@ public actor SessionCoordinator {
             await transition(to: .camera)
 
         default:
+            if await handleControl(msg, phase: .recording) { return }
             await handleRoot(msg)
         }
     }
@@ -1692,6 +1696,7 @@ public actor SessionCoordinator {
             tell(DeferredPopAndScan())
 
         default:
+            if await handleControl(msg, phase: .transmittingVideo) { return }
             await handleRoot(msg)
         }
     }
@@ -1880,18 +1885,6 @@ public actor SessionCoordinator {
         case let scheduled as RemoteCmd.ScheduledStopRecording:
             await sendOrGoToScanning(RemoteCmd.ScheduledRecordingAck(
                 captureId: scheduled.captureId, isStop: true, error: unableToProcessError(msg)))
-        case is RemoteCmd.ToggleCamera:
-            await sendOrGoToScanning(RemoteCmd.ToggleCameraResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
-        case is RemoteCmd.SelectCameraDevice:
-            await sendOrGoToScanning(RemoteCmd.SelectCameraDeviceResp(cameraCapabilities: nil, error: unableToProcessError(msg)))
-        case is RemoteCmd.ToggleFlash:
-            await sendOrGoToScanning(RemoteCmd.ToggleFlashResp(flashMode: nil, error: unableToProcessError(msg)))
-        case is RemoteCmd.SetZoom:
-            await sendOrGoToScanning(RemoteCmd.SetZoomResp(zoomFactor: nil, currentLens: nil, zoomRange: nil, error: unableToProcessError(msg)))
-        case is RemoteCmd.SwitchLens:
-            await sendOrGoToScanning(RemoteCmd.SwitchLensResp(lensType: nil, availableLenses: nil, currentZoom: nil, zoomRange: nil, error: unableToProcessError(msg)))
-        case is RemoteCmd.SetAspectRatio:
-            await sendOrGoToScanning(RemoteCmd.SetAspectRatioResp(aspectRatio: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.StartRecordingVideo:
             await sendOrGoToScanning(RemoteCmd.StartRecordingVideoAck(sender: nil, error: unableToProcessError(msg)))
         case is RemoteCmd.StopRecordingVideo:
@@ -1901,15 +1894,14 @@ public actor SessionCoordinator {
             // Forward capabilities to the connected monitor.
             await sendOrGoToScanning(capabilities)
 
-        case let cmd as RemoteCmd.SetCameraPreviewMode:
-            // Camera side: a monitor asked us to change the local preview mode.
-            await applyCameraPreviewMode(cmd.mode)
-
         case let ui as UICmd.SetCameraPreviewMode:
-            // Camera side: a local toggle from this device's own chrome. (On a
-            // monitor this is handled by the monitor states before reaching here;
-            // `ctrl` is nil there, so `applyCameraPreviewMode` no-ops safely.)
-            await applyCameraPreviewMode(ui.mode)
+            // Camera side: a local toggle from this device's own chrome. The
+            // remote learns of it like any camera-originated change — a
+            // state push. (`ctrl` is nil on a remote, so this no-ops there.)
+            if let ctrl {
+                await ctrl.setPreviewMode(ui.mode)
+                await attemptToSendCapabilities(attempt: 0)
+            }
 
         case let retry as RetryCapabilities:
             await attemptToSendCapabilities(attempt: retry.attempt)
@@ -1938,6 +1930,9 @@ public actor SessionCoordinator {
             showErrorAlert(NSLocalizedString("Connection error", comment: ""))
 
         default:
+            // A control command outside the camera screen is still answered
+            // (refused), never dropped.
+            if await handleControl(msg, phase: .notCamera) { return }
             // A message with no handler in any state is DROPPED with no reply —
             // the sender's request hangs until its own timeout. Warning-level:
             // this is the bad-state trail.
@@ -1949,12 +1944,6 @@ public actor SessionCoordinator {
     /// the monitor. A no-op off the camera (no `ctrl`). The report is
     /// best-effort (`sendMessage`, not `sendOrGoToScanning`): a local toggle
     /// while briefly unlinked must never tear the session down.
-    private func applyCameraPreviewMode(_ mode: CameraPreviewMode) async {
-        guard let ctrl else { return }
-        await ctrl.setPreviewMode(mode)
-        sendMessage(RemoteCmd.CameraPreviewModeResp(mode: mode))
-    }
-
     // MARK: - Video resource transfer (camera side)
 
     private func handleSendVideoResource(_ sendVideo: UICmd.SendVideoResource) async {
