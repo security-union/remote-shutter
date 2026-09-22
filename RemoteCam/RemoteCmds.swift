@@ -432,18 +432,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    /// Camera -> monitor: the camera's current local-preview mode, sent as the
-    /// ack to `SetCameraPreviewMode` and whenever the camera changes the mode
-    /// on its own (a local toggle), so the monitor can reflect what the camera
-    /// is doing.
-    public class CameraPreviewModeResp: Message, @unchecked Sendable {
-        public let mode: CameraPreviewMode
-
-        public init(mode: CameraPreviewMode) {
-            self.mode = mode
-            super.init(sender: nil)
-        }
-    }
 
     // MARK: - Camera Capabilities Structure
 
@@ -541,8 +529,14 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    // MARK: - Enhanced Camera Response
+    // MARK: - Camera capabilities + state (THE control-plane answer)
 
+    /// What the camera HAS and what it is DOING, as one value. Answers every
+    /// control command (`inReplyTo` echoes it; `error` says why it was
+    /// refused, with the state still the unchanged truth), and is pushed
+    /// under `.requestcapabilities` on link-up and whenever the camera
+    /// changes something on its own. Remotes keep the latest one per camera
+    /// and derive every control from it. See Docs/control-plane.md.
     public class CameraCapabilitiesResp: Message, @unchecked Sendable {
         public let frontCamera: CameraInfo?
         public let backCamera: CameraInfo?
@@ -570,7 +564,14 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// The camera's current local-preview mode, so the monitor can reflect
         /// it from the first capabilities exchange.
         public let previewMode: CameraPreviewMode
-        public let error: Error?
+        public let torchOn: Bool
+        public let flashMode: AVCaptureDevice.FlashMode
+        public let aspectRatio: AspectRatio
+        /// The control command this answers; `.requestcapabilities` for an
+        /// unsolicited push. Set by the camera coordinator before sending.
+        public var inReplyTo: RemoteShutter_CommandAction
+        /// Why the command was refused (nil = applied).
+        public var error: Error?
 
         public init(frontCamera: CameraInfo?, backCamera: CameraInfo?,
                    currentCamera: AVCaptureDevice.Position, currentLens: CameraLensType,
@@ -585,6 +586,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    supportsPreviewMode: Bool = false,
                    supportsMulticam: Bool = false,
                    previewMode: CameraPreviewMode = .on,
+                   torchOn: Bool = false,
+                   flashMode: AVCaptureDevice.FlashMode = .off,
+                   aspectRatio: AspectRatio = .sixteenNine,
+                   inReplyTo: RemoteShutter_CommandAction = .requestcapabilities,
                    error: Error?) {
             self.frontCamera = frontCamera
             self.backCamera = backCamera
@@ -601,6 +606,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.supportsPreviewMode = supportsPreviewMode
             self.supportsMulticam = supportsMulticam
             self.previewMode = previewMode
+            self.torchOn = torchOn
+            self.flashMode = flashMode
+            self.aspectRatio = aspectRatio
+            self.inReplyTo = inReplyTo
             self.error = error
             super.init(sender: nil)
         }
@@ -651,23 +660,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public class SwitchLensResp: Message, @unchecked Sendable {
-        public let lensType: CameraLensType?
-        public let availableLenses: [CameraLensType]?
-        public let currentZoom: CGFloat?
-        public let zoomRange: ZoomRange?
-        public let error: Error?
-
-        public init(lensType: CameraLensType?, availableLenses: [CameraLensType]?,
-                   currentZoom: CGFloat?, zoomRange: ZoomRange?, error: Error?) {
-            self.lensType = lensType
-            self.availableLenses = availableLenses
-            self.currentZoom = currentZoom
-            self.zoomRange = zoomRange
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
 
     /// What the two role announcements have in common: who the peer says it is.
     /// `shortVersion` is the pairing gate (see `PeerAppCompatibility`); the other
@@ -717,16 +709,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public class ToggleFlashResp: Message, @unchecked Sendable {
-        public let error: Error?
-        public let flashMode: AVCaptureDevice.FlashMode?
-
-        public init(flashMode: AVCaptureDevice.FlashMode?, error: Error?) {
-            self.flashMode = flashMode
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
 
     // MARK: - Torch Commands for Video Recording
 
@@ -736,16 +718,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public class ToggleTorchResp: Message, @unchecked Sendable {
-        public let error: Error?
-        public let torchMode: AVCaptureDevice.TorchMode?
-
-        public init(torchMode: AVCaptureDevice.TorchMode?, error: Error?) {
-            self.torchMode = torchMode
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
 
     public class ToggleCamera: Message, @unchecked Sendable {
         public init() {
@@ -753,16 +725,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public class ToggleCameraResp: Message, @unchecked Sendable {
-        public let error: Error?
-        public let cameraCapabilities: CameraCapabilitiesResp?
-
-        public init(cameraCapabilities: CameraCapabilitiesResp?, error: Error?) {
-            self.cameraCapabilities = cameraCapabilities
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
 
     // MARK: - Camera Device Selection (guarded by capability advertising)
 
@@ -778,25 +740,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    /// Subclasses ToggleCameraResp: the monitor treats a completed device
-    /// selection exactly like a completed front/back toggle — fresh
-    /// capabilities in, UI re-synced — so it shares that state's handling.
-    public class SelectCameraDeviceResp: ToggleCameraResp, @unchecked Sendable {}
 
-    public class SetZoomResp: Message, @unchecked Sendable {
-        public let zoomFactor: CGFloat?
-        public let currentLens: CameraLensType?
-        public let zoomRange: ZoomRange?
-        public let error: Error?
-
-        public init(zoomFactor: CGFloat?, currentLens: CameraLensType?, zoomRange: ZoomRange?, error: Error?) {
-            self.zoomFactor = zoomFactor
-            self.currentLens = currentLens
-            self.zoomRange = zoomRange
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
 
     public class RequestCameraCapabilities: Message, @unchecked Sendable {
         public init() {
@@ -817,18 +761,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public class SetVideoQualityResp: Message, @unchecked Sendable {
-        public let resolution: VideoResolution?
-        public let frameRate: VideoFrameRate?
-        public let error: Error?
-
-        public init(resolution: VideoResolution?, frameRate: VideoFrameRate?, error: Error?) {
-            self.resolution = resolution
-            self.frameRate = frameRate
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
 
     // MARK: - Photo Quality Commands
 
@@ -843,18 +775,6 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public class SetPhotoQualityResp: Message, @unchecked Sendable {
-        public let format: PhotoFormat?
-        public let hdrMode: HDRMode?
-        public let error: Error?
-
-        public init(format: PhotoFormat?, hdrMode: HDRMode?, error: Error?) {
-            self.format = format
-            self.hdrMode = hdrMode
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
 
     // MARK: - Timer Countdown Command
 
@@ -878,14 +798,4 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
-    public class SetAspectRatioResp: Message, @unchecked Sendable {
-        public let aspectRatio: AspectRatio?
-        public let error: Error?
-
-        public init(aspectRatio: AspectRatio?, error: Error?) {
-            self.aspectRatio = aspectRatio
-            self.error = error
-            super.init(sender: nil)
-        }
-    }
 }

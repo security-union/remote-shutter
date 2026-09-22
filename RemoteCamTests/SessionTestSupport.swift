@@ -279,7 +279,8 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
         !stalledDeviceIDs.contains(activeDeviceID)
     }
 
-    func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio { ratio }
+    var aspectRatio: AspectRatio = .sixteenNine
+    func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio { aspectRatio = ratio; return ratio }
     func gatherAllCameraCapabilities() async { gatherCapabilitiesCalls += 1 }
     func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
         let entries: [RemoteCmd.CameraDeviceEntry] = advertisesCameraDevices
@@ -295,13 +296,17 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             : []
         return RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            currentCamera: .back, currentLens: lensSwitches.last ?? .wideAngle,
+            currentZoom: zoomCalls.last ?? 1.0,
             cameraDevices: entries,
             activeDeviceID: advertisesCameraDevices ? activeDeviceID : nil,
             supportsFocusPoint: advertisesFocusPoint,
             supportsPreviewMode: advertisesPreviewMode,
             supportsMulticam: advertisesMulticam,
             previewMode: storedPreviewMode,
+            torchOn: torchActive,
+            flashMode: flashMode,
+            aspectRatio: aspectRatio,
             error: nil)
     }
 

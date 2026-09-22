@@ -39,32 +39,23 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SetStreamProfile: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
-    case let m as RemoteCmd.SetZoomResp: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
     case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
-    case let m as RemoteCmd.CameraPreviewModeResp: return m.toFlatBuffer()
     case let m as RemoteCmd.EndSession: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SwitchLens: return m.toFlatBuffer()
-    case let m as RemoteCmd.SwitchLensResp: return m.toFlatBuffer()
     case let m as RemoteCmd.PeerBecameCamera: return m.toFlatBuffer()
     case let m as RemoteCmd.PeerBecameMonitor: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleFlash: return m.toFlatBuffer()
-    case let m as RemoteCmd.ToggleFlashResp: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleTorch: return m.toFlatBuffer()
-    case let m as RemoteCmd.ToggleTorchResp: return m.toFlatBuffer()
     case let m as RemoteCmd.ToggleCamera: return m.toFlatBuffer()
-    case let m as RemoteCmd.ToggleCameraResp: return m.toFlatBuffer() // also SelectCameraDeviceResp (subclass)
     case let m as RemoteCmd.SelectCameraDevice: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestCameraCapabilities: return m.toFlatBuffer()
     case let m as RemoteCmd.CameraStateReport: return m.toFlatBuffer()
     case let m as RemoteCmd.SetVideoQuality: return m.toFlatBuffer()
-    case let m as RemoteCmd.SetVideoQualityResp: return m.toFlatBuffer()
     case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
-    case let m as RemoteCmd.SetPhotoQualityResp: return m.toFlatBuffer()
     case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
     case let m as RemoteCmd.SetAspectRatio: return m.toFlatBuffer()
-    case let m as RemoteCmd.SetAspectRatioResp: return m.toFlatBuffer()
     default: return nil
     }
 }
@@ -389,8 +380,7 @@ private func decodeCameraInfo(_ fb: RemoteShutter_CameraInfo) -> RemoteCmd.Camer
 // MARK: - Capabilities envelope encode helpers
 
 /// Encodes a `CameraCapabilitiesResp` into the wire `CameraCapabilities` +
-/// `CameraState` pair, including the appended camera-device list. Shared by
-/// every response that carries capabilities (request/toggle/select).
+/// `CameraState` pair — what the camera has, and what it is doing.
 private func encodeCapabilitiesEnvelope(
     _ c: RemoteCmd.CameraCapabilitiesResp,
     _ fbb: inout FlatBufferBuilder
@@ -433,10 +423,13 @@ private func encodeCapabilitiesEnvelope(
         currentCamera: toFBCamPos(c.currentCamera),
         currentLens: toFBLens(c.currentLens),
         zoomFactor: Double(c.currentZoom),
+        torchMode: c.torchOn ? .on : .off,
+        flashMode: toFBFlash(c.flashMode),
         videoResolution: toFBResolution(c.currentVideoResolution),
         videoFrameRate: toFBFrameRate(c.currentVideoFrameRate),
         photoFormat: toFBPhotoFormat(c.currentPhotoFormat),
         hdrMode: toFBHDRMode(c.currentHDRMode),
+        aspectRatio: toFBAspectRatio(c.aspectRatio),
         activeDeviceIdOffset: activeIDOffset,
         previewMode: toFBPreviewMode(c.previewMode))
 
@@ -610,54 +603,9 @@ extension RemoteCmd.SetCameraPreviewMode {
     }
 }
 
-extension RemoteCmd.CameraPreviewModeResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let state = RemoteShutter_CameraState.createCameraState(
-            &fbb, previewMode: toFBPreviewMode(mode))
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .setcamerapreviewmode,
-            success: true,
-            currentStateOffset: state)
-        return buildResponse(&fbb, action: .setcamerapreviewmode, response: resp)
-    }
-}
-
-extension RemoteCmd.SetZoomResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if zoomFactor != nil || currentLens != nil {
-            stateOffset = RemoteShutter_CameraState.createCameraState(
-                &fbb,
-                currentLens: currentLens.map { toFBLens($0) } ?? .wideangle,
-                zoomFactor: zoomFactor.map { Double($0) } ?? 0.0
-            )
-        }
-
-        var zoomRangeOffset = Offset()
-        if let range = zoomRange {
-            zoomRangeOffset = RemoteShutter_ZoomRange.createZoomRange(&fbb, minZoom: Double(range.minZoom), maxZoom: Double(range.maxZoom))
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .setzoom,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset,
-            zoomRangeOffset: zoomRangeOffset
-        )
-        return buildResponse(&fbb, action: .setzoom, response: resp)
-    }
-}
-
 extension RemoteCmd.CameraCapabilitiesResp {
     func toFlatBuffer() -> Data {
-        encodeCapabilitiesResponse(action: .requestcapabilities, capabilities: self, error: error)
+        encodeCapabilitiesResponse(action: inReplyTo, capabilities: self, error: error)
     }
 }
 
@@ -666,44 +614,6 @@ extension RemoteCmd.SwitchLens {
         var fbb = FlatBufferBuilder()
         let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, lensType: toFBLens(lensType))
         return buildCommand(&fbb, action: .switchlens, parameters: params)
-    }
-}
-
-extension RemoteCmd.SwitchLensResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if lensType != nil || currentZoom != nil {
-            stateOffset = RemoteShutter_CameraState.createCameraState(
-                &fbb,
-                currentLens: lensType.map { toFBLens($0) } ?? .wideangle,
-                zoomFactor: currentZoom.map { Double($0) } ?? 0.0
-            )
-        }
-
-        var zoomRangeOffset = Offset()
-        if let range = zoomRange {
-            zoomRangeOffset = RemoteShutter_ZoomRange.createZoomRange(&fbb, minZoom: Double(range.minZoom), maxZoom: Double(range.maxZoom))
-        }
-
-        var lensesVector = Offset()
-        if let lenses = availableLenses {
-            lensesVector = fbb.createVector(lenses.map { toFBLens($0) })
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .switchlens,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset,
-            availableLensesVectorOffset: lensesVector,
-            zoomRangeOffset: zoomRangeOffset,
-            currentZoom: currentZoom.map { Double($0) } ?? 0.0
-        )
-        return buildResponse(&fbb, action: .switchlens, response: resp)
     }
 }
 
@@ -875,27 +785,6 @@ extension RemoteCmd.ToggleFlash {
     }
 }
 
-extension RemoteCmd.ToggleFlashResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if let mode = flashMode {
-            stateOffset = RemoteShutter_CameraState.createCameraState(&fbb, flashMode: toFBFlash(mode))
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .toggleflash,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset
-        )
-        return buildResponse(&fbb, action: .toggleflash, response: resp)
-    }
-}
-
 extension RemoteCmd.ToggleTorch {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -903,41 +792,10 @@ extension RemoteCmd.ToggleTorch {
     }
 }
 
-extension RemoteCmd.ToggleTorchResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if let mode = torchMode {
-            stateOffset = RemoteShutter_CameraState.createCameraState(&fbb, torchMode: toFBTorch(mode))
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .toggletorch,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset
-        )
-        return buildResponse(&fbb, action: .toggletorch, response: resp)
-    }
-}
-
 extension RemoteCmd.ToggleCamera {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         return buildCommand(&fbb, action: .togglecamera)
-    }
-}
-
-extension RemoteCmd.ToggleCameraResp {
-    func toFlatBuffer() -> Data {
-        // SelectCameraDeviceResp subclasses this type; the payload shape is
-        // identical, only the wire action differs.
-        let action: RemoteShutter_CommandAction =
-            self is RemoteCmd.SelectCameraDeviceResp ? .selectcameradevice : .togglecamera
-        return encodeCapabilitiesResponse(action: action, capabilities: cameraCapabilities, error: error)
     }
 }
 
@@ -990,56 +848,12 @@ extension RemoteCmd.SetVideoQuality {
     }
 }
 
-extension RemoteCmd.SetVideoQualityResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if let res = resolution, let fr = frameRate {
-            stateOffset = RemoteShutter_CameraState.createCameraState(
-                &fbb, videoResolution: toFBResolution(res), videoFrameRate: toFBFrameRate(fr))
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .setvideoquality,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset
-        )
-        return buildResponse(&fbb, action: .setvideoquality, response: resp)
-    }
-}
-
 extension RemoteCmd.SetPhotoQuality {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
         let params = RemoteShutter_CommandParameters.createCommandParameters(
             &fbb, photoFormat: toFBPhotoFormat(format), hdrMode: toFBHDRMode(hdrMode))
         return buildCommand(&fbb, action: .setphotoquality, parameters: params)
-    }
-}
-
-extension RemoteCmd.SetPhotoQualityResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if let fmt = format, let hdr = hdrMode {
-            stateOffset = RemoteShutter_CameraState.createCameraState(
-                &fbb, photoFormat: toFBPhotoFormat(fmt), hdrMode: toFBHDRMode(hdr))
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .setphotoquality,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset
-        )
-        return buildResponse(&fbb, action: .setphotoquality, response: resp)
     }
 }
 
@@ -1088,28 +902,6 @@ extension RemoteCmd.SetAspectRatio {
         let params = RemoteShutter_CommandParameters.createCommandParameters(
             &fbb, aspectRatio: toFBAspectRatio(aspectRatio))
         return buildCommand(&fbb, action: .setaspectratio, parameters: params)
-    }
-}
-
-extension RemoteCmd.SetAspectRatioResp {
-    func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
-        let errorOffset = (error as NSError?).map { fbb.create(string: RemoteCmd.wireErrorMessage($0)) } ?? Offset()
-
-        var stateOffset = Offset()
-        if let ratio = aspectRatio {
-            stateOffset = RemoteShutter_CameraState.createCameraState(
-                &fbb, aspectRatio: toFBAspectRatio(ratio))
-        }
-
-        let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
-            &fbb,
-            action: .setaspectratio,
-            success: error == nil,
-            errorOffset: errorOffset,
-            currentStateOffset: stateOffset
-        )
-        return buildResponse(&fbb, action: .setaspectratio, response: resp)
     }
 }
 
@@ -1359,84 +1151,21 @@ extension RemoteCmd {
                 return TakePicResp(sender: nil, pic: picData, error: nsError)
             }
 
-        case .setzoom:
-            let state = resp.currentState
-            let zoomFactor: CGFloat? = state != nil ? CGFloat(state!.zoomFactor) : nil
-            let currentLens: CameraLensType? = state != nil ? fromFBLens(state!.currentLens) : nil
-            let zoomRange: ZoomRange? = resp.zoomRange.map { ZoomRange(minZoom: CGFloat($0.minZoom), maxZoom: CGFloat($0.maxZoom)) }
-            return SetZoomResp(zoomFactor: zoomFactor, currentLens: currentLens, zoomRange: zoomRange, error: nsError)
-
-        case .requestcapabilities:
-            return decodeCameraCapabilitiesResp(resp, error: nsError)
-
-        case .switchlens:
-            let state = resp.currentState
-            let lensType: CameraLensType? = state != nil ? fromFBLens(state!.currentLens) : nil
-            let currentZoom: CGFloat? = state != nil ? CGFloat(state!.zoomFactor) : nil
-            let zoomRange: ZoomRange? = resp.zoomRange.map { ZoomRange(minZoom: CGFloat($0.minZoom), maxZoom: CGFloat($0.maxZoom)) }
-
-            var lenses: [CameraLensType]? = nil
-            if resp.hasAvailableLenses {
-                var arr: [CameraLensType] = []
-                for i in 0..<resp.availableLensesCount {
-                    if let l = resp.availableLenses(at: i) {
-                        arr.append(fromFBLens(l))
-                    }
-                }
-                lenses = arr
-            }
-
-            return SwitchLensResp(lensType: lensType, availableLenses: lenses, currentZoom: currentZoom, zoomRange: zoomRange, error: nsError)
-
-        case .toggleflash:
-            let flashMode: AVCaptureDevice.FlashMode? = resp.currentState.map { fromFBFlash($0.flashMode) }
-            return ToggleFlashResp(flashMode: flashMode, error: nsError)
-
-        case .toggletorch:
-            let torchMode: AVCaptureDevice.TorchMode? = resp.currentState.map { fromFBTorch($0.torchMode) }
-            return ToggleTorchResp(torchMode: torchMode, error: nsError)
-
-        case .togglecamera:
-            if nsError != nil {
-                return ToggleCameraResp(cameraCapabilities: nil, error: nsError)
-            }
-            let capabilities = decodeCameraCapabilitiesResp(resp, error: nil)
-            return ToggleCameraResp(cameraCapabilities: capabilities, error: nil)
-
-        case .selectcameradevice:
-            if nsError != nil {
-                return SelectCameraDeviceResp(cameraCapabilities: nil, error: nsError)
-            }
-            let capabilities = decodeCameraCapabilitiesResp(resp, error: nil)
-            return SelectCameraDeviceResp(cameraCapabilities: capabilities, error: nil)
-
-        case .setvideoquality:
-            let state = resp.currentState
-            let resolution: VideoResolution? = state.map { fromFBResolution($0.videoResolution) }
-            let frameRate: VideoFrameRate? = state.map { fromFBFrameRate($0.videoFrameRate) }
-            return SetVideoQualityResp(resolution: resolution, frameRate: frameRate, error: nsError)
-
-        case .setphotoquality:
-            let state = resp.currentState
-            let format: PhotoFormat? = state.map { fromFBPhotoFormat($0.photoFormat) }
-            let hdrMode: HDRMode? = state.map { fromFBHDRMode($0.hdrMode) }
-            return SetPhotoQualityResp(format: format, hdrMode: hdrMode, error: nsError)
-
-        case .setaspectratio:
-            let state = resp.currentState
-            let ratio: AspectRatio? = state.map { fromFBAspectRatio($0.aspectRatio) }
-            return SetAspectRatioResp(aspectRatio: ratio, error: nsError)
-
-        case .setcamerapreviewmode:
-            let mode = resp.currentState.map { fromFBPreviewMode($0.previewMode) } ?? .on
-            return CameraPreviewModeResp(mode: mode)
+        case .requestcapabilities, .setzoom, .switchlens, .toggleflash, .toggletorch,
+             .togglecamera, .selectcameradevice, .setvideoquality, .setphotoquality,
+             .setaspectratio, .setcamerapreviewmode:
+            // Every control command is answered by the camera's full state
+            // under the command's own action (Docs/control-plane.md).
+            return decodeCameraCapabilitiesResp(resp, inReplyTo: resp.action, error: nsError)
 
         default:
             return nil
         }
     }
 
-    private static func decodeCameraCapabilitiesResp(_ resp: RemoteShutter_CameraStateResponse, error: Error?) -> CameraCapabilitiesResp {
+    private static func decodeCameraCapabilitiesResp(_ resp: RemoteShutter_CameraStateResponse,
+                                                     inReplyTo: RemoteShutter_CommandAction,
+                                                     error: Error?) -> CameraCapabilitiesResp {
         let state = resp.currentState
         let caps = resp.capabilities
 
@@ -1478,6 +1207,10 @@ extension RemoteCmd {
             supportsPreviewMode: caps?.supportsPreviewMode ?? false,
             supportsMulticam: caps?.supportsMulticam ?? false,
             previewMode: state.map { fromFBPreviewMode($0.previewMode) } ?? .on,
+            torchOn: state?.torchMode == .on,
+            flashMode: state.map { fromFBFlash($0.flashMode) } ?? .off,
+            aspectRatio: state.map { fromFBAspectRatio($0.aspectRatio) } ?? .sixteenNine,
+            inReplyTo: inReplyTo,
             error: error
         )
     }

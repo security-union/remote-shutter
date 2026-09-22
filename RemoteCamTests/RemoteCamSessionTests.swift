@@ -888,8 +888,8 @@ class SessionCoordinatorTests: XCTestCase {
                                        peer: harness.peer, ctrl: ctrl)
         await harness.deliver(RemoteCmd.ToggleCamera())
 
-        let resp = harness.fakeMP.sentMessages.compactMap { $0.msg as? RemoteCmd.ToggleCameraResp }.last
-        XCTAssertNotNil(resp, "the toggle must be answered")
+        let resp = harness.fakeMP.sentMessages.compactMap { $0.msg as? RemoteCmd.CameraCapabilitiesResp }.last
+        XCTAssertEqual(resp?.inReplyTo, .togglecamera, "the toggle must be answered")
         XCTAssertNotNil(resp?.error, "a reverted switch must not read as success")
     }
 
@@ -901,9 +901,10 @@ class SessionCoordinatorTests: XCTestCase {
                                        peer: harness.peer, ctrl: ctrl)
         await harness.deliver(RemoteCmd.ToggleCamera())
 
-        let resp = harness.fakeMP.sentMessages.compactMap { $0.msg as? RemoteCmd.ToggleCameraResp }.last
+        let resp = harness.fakeMP.sentMessages.compactMap { $0.msg as? RemoteCmd.CameraCapabilitiesResp }.last
+        XCTAssertEqual(resp?.inReplyTo, .togglecamera)
         XCTAssertNil(resp?.error)
-        XCTAssertNotNil(resp?.cameraCapabilities)
+        XCTAssertEqual(resp?.activeDeviceID, "fake-front")
     }
 
     /// The pipeline refuses to record when audio can't be configured and
@@ -959,9 +960,9 @@ class SessionCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(camera.previewModeCalls, [.standby])
         let sent = harness.fakeMP.sentMessages.map(\.msg)
-        let resps = sent.compactMap { $0 as? RemoteCmd.CameraPreviewModeResp }
+        let resps = sent.compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }.filter { $0.inReplyTo == .setcamerapreviewmode }
         XCTAssertEqual(resps.count, 1)
-        XCTAssertEqual(resps.first?.mode, .standby)
+        XCTAssertEqual(resps.first?.previewMode, .standby)
         // Display-only: never mistaken for a capture.
         XCTAssertTrue(camera.takePictureCalls.isEmpty)
     }
@@ -974,10 +975,11 @@ class SessionCoordinatorTests: XCTestCase {
         await harness.deliver(UICmd.SetCameraPreviewMode(mode: .standby))
 
         XCTAssertEqual(camera.previewModeCalls, [.standby])
+        // A camera-originated change reaches the remote as a state push.
         let sent = harness.fakeMP.sentMessages.map(\.msg)
-        let resps = sent.compactMap { $0 as? RemoteCmd.CameraPreviewModeResp }
-        XCTAssertEqual(resps.count, 1)
-        XCTAssertEqual(resps.first?.mode, .standby)
+        let resps = sent.compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
+        XCTAssertEqual(resps.last?.inReplyTo, .requestcapabilities)
+        XCTAssertEqual(resps.last?.previewMode, .standby)
         let state = await harness.stateName()
         XCTAssertEqual(state, .camera)
     }

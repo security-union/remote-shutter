@@ -178,6 +178,7 @@ class LoopbackSessionTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         UserDefaults.standard.removeObject(forKey: TimerPreference.key)
+        UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
         UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
 
         director = MulticamController()
@@ -470,7 +471,7 @@ class LoopbackSessionTests: XCTestCase {
         sendFromDirector(RemoteCmd.ToggleFlash())
         await drainBoth()
 
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ToggleFlashResp }
+        let resps = replies(to: .toggleflash)
         XCTAssertEqual(resps.count, 1)
         XCTAssertNotNil(resps.first?.error)
     }
@@ -494,7 +495,7 @@ class LoopbackSessionTests: XCTestCase {
         sendFromDirector(RemoteCmd.SetZoom(zoomFactor: 2.5))
         await drainBoth()
 
-        XCTAssertTrue(cameraTransport.sentMessages.contains { $0 is RemoteCmd.SetZoomResp })
+        XCTAssertNotNil(replies(to: .setzoom).first?.error, "refused, but answered")
         let cameraState = await cameraCoordinator.currentStateName()
         XCTAssertEqual(cameraState, .connected)
     }
@@ -549,19 +550,30 @@ class LoopbackSessionTests: XCTestCase {
 
     // MARK: - Happy-path camera-control round trips
 
+    /// The camera's state replies to one control command (Docs/control-plane.md).
+    func replies(to action: RemoteShutter_CommandAction) -> [RemoteCmd.CameraCapabilitiesResp] {
+        cameraTransport.sentMessages
+            .compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
+            .filter { $0.inReplyTo == action }
+    }
+
     func testToggleFlashHappyPathAcrossTheWire() async {
         let fakeCamera = await connectCameraAndDirector()
         director.toggleFlash(on: cameraPeer)
         await drainBoth()
 
-        // The fake flips .off -> .on and the mode crosses back in the response.
+        // The fake flips .off -> .on and the mode crosses back in the reply.
         XCTAssertEqual(fakeCamera.flashMode, .on)
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ToggleFlashResp }
+        let resps = replies(to: .toggleflash)
         XCTAssertEqual(resps.count, 1)
         XCTAssertEqual(resps.first?.flashMode, .on)
         XCTAssertNil(resps.first?.error)
+        // The lane's glyph reads the camera's report, and the tap is no
+        // longer in flight.
         let flashOn = await lane()?.flashOn
         XCTAssertEqual(flashOn, true)
+        let pending = await director.pendingForTesting(cameraPeer, .toggleflash)
+        XCTAssertEqual(pending, 0)
         XCTAssertTrue(directorDisplay.transientErrors.isEmpty)
     }
 
@@ -570,13 +582,59 @@ class LoopbackSessionTests: XCTestCase {
         director.flipCamera(cameraPeer)
         await drainBoth()
 
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.ToggleCameraResp }
+        let resps = replies(to: .togglecamera)
         XCTAssertEqual(resps.count, 1)
         XCTAssertNil(resps.first?.error)
-        XCTAssertNotNil(resps.first?.cameraCapabilities,
-                        "toggle response must carry fresh capabilities")
-        XCTAssertEqual(resps.first?.cameraCapabilities?.currentLens, .wideAngle)
+        XCTAssertEqual(resps.first?.currentLens, .wideAngle)
         XCTAssertTrue(directorDisplay.transientErrors.isEmpty)
+    }
+
+    /// The reply matrix: every control command, in every camera phase, is
+    /// answered exactly once — applied when the phase allows it, refused
+    /// (with the unchanged state) when it doesn't. Never a silent drop.
+    func testEveryControlCommandIsAnsweredInEveryCameraPhase() async {
+        let fakeCamera = await connectCameraAndDirector()
+        let commands: [(RemoteShutter_CommandAction, Message)] = [
+            (.setzoom, RemoteCmd.SetZoom(zoomFactor: 2)),
+            (.switchlens, RemoteCmd.SwitchLens(lensType: .telephoto)),
+            (.toggleflash, RemoteCmd.ToggleFlash()),
+            (.toggletorch, RemoteCmd.ToggleTorch()),
+            (.togglecamera, RemoteCmd.ToggleCamera()),
+            (.selectcameradevice, RemoteCmd.SelectCameraDevice(uniqueID: "fake-front")),
+            (.setvideoquality, RemoteCmd.SetVideoQuality(resolution: .hd1080p, frameRate: .fps30)),
+            (.setphotoquality, RemoteCmd.SetPhotoQuality(format: .jpeg, hdrMode: .off)),
+            // The rig's aspect: a camera reporting anything else is brought
+            // back in line by the director, which would be a second reply.
+            (.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: .sixteenNine)),
+            (.setcamerapreviewmode, RemoteCmd.SetCameraPreviewMode(mode: .standby))
+        ]
+        // Idle: everything applies.
+        for (action, cmd) in commands {
+            cameraTransport.sentMessages.removeAll()
+            sendFromDirector(cmd)
+            await drainBoth()
+            let resps = replies(to: action)
+            XCTAssertEqual(resps.count, 1, "\(action) idle: exactly one reply")
+            XCTAssertNil(resps.first?.error, "\(action) idle: applied")
+        }
+        // Recording: zoom/lens/torch/photo-quality/aspect/preview apply;
+        // flash, video quality and camera switches are refused.
+        director.startRecording()
+        await waitUntil { fakeCamera.startRecordingCalls == 1 }
+        await waitUntil { await self.cameraCoordinator.currentStateName() == .cameraRecordingVideo }
+        let refusedWhileRecording: Set<RemoteShutter_CommandAction> =
+            [.toggleflash, .setvideoquality, .togglecamera, .selectcameradevice]
+        for (action, cmd) in commands {
+            cameraTransport.sentMessages.removeAll()
+            sendFromDirector(cmd)
+            await drainBoth()
+            let resps = replies(to: action)
+            XCTAssertEqual(resps.count, 1, "\(action) recording: exactly one reply")
+            XCTAssertEqual(resps.first?.error != nil, refusedWhileRecording.contains(action),
+                           "\(action) recording: refusal policy")
+        }
+        let stillRecording = await cameraCoordinator.currentStateName()
+        XCTAssertEqual(stillRecording, .cameraRecordingVideo)
     }
 
     // MARK: - Camera device selection (a Mac's several cameras)
@@ -594,14 +652,12 @@ class LoopbackSessionTests: XCTestCase {
 
         // The camera switched devices and answered with fresh capabilities.
         XCTAssertEqual(fakeCamera.deviceSelections, ["fake-front"])
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
+        let resps = replies(to: .selectcameradevice)
         XCTAssertEqual(resps.count, 1)
         XCTAssertNil(resps.first?.error)
-        XCTAssertEqual(resps.first?.cameraCapabilities?.activeDeviceID, "fake-front")
-        XCTAssertEqual(resps.first?.cameraCapabilities?.cameraDevices.count, 2)
-        XCTAssertEqual(
-            resps.first?.cameraCapabilities?.cameraDevices.first { $0.isActive }?.uniqueID,
-            "fake-front")
+        XCTAssertEqual(resps.first?.activeDeviceID, "fake-front")
+        XCTAssertEqual(resps.first?.cameraDevices.count, 2)
+        XCTAssertEqual(resps.first?.cameraDevices.first { $0.isActive }?.uniqueID, "fake-front")
         // The refreshed capabilities landed on the lane.
         let after = await lane()
         XCTAssertEqual(after?.activeDeviceID, "fake-front")
@@ -644,7 +700,7 @@ class LoopbackSessionTests: XCTestCase {
         director.selectCameraDevice("builtin-lid-closed", on: cameraPeer)
         await drainBoth()
 
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
+        let resps = replies(to: .selectcameradevice)
         XCTAssertEqual(resps.count, 1)
         XCTAssertNotNil(resps.first?.error, "selecting a suspended camera must fail loudly")
         // The camera did not switch away from its healthy device, and the
@@ -690,7 +746,7 @@ class LoopbackSessionTests: XCTestCase {
         director.selectCameraDevice("obs-0", on: cameraPeer)
         await drainBoth()
 
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
+        let resps = replies(to: .selectcameradevice)
         XCTAssertEqual(resps.count, 1)
         XCTAssertNotNil(resps.first?.error, "a no-frames camera must fail the selection")
         XCTAssertTrue(resps.first?.error?._domain.contains("OBS Virtual Camera") ?? false,
@@ -711,7 +767,7 @@ class LoopbackSessionTests: XCTestCase {
         director.selectCameraDevice("fake-front", on: cameraPeer)
         await drainBoth()
 
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SelectCameraDeviceResp }
+        let resps = replies(to: .selectcameradevice)
         XCTAssertEqual(resps.count, 1)
         XCTAssertNotNil(resps.first?.error, "busy camera must reject device selection")
         XCTAssertTrue(fakeCamera.deviceSelections.isEmpty)
@@ -726,10 +782,9 @@ class LoopbackSessionTests: XCTestCase {
         await drainBoth()
 
         XCTAssertEqual(fakeCamera.zoomCalls, [2.5])
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SetZoomResp }
+        let resps = replies(to: .setzoom)
         XCTAssertEqual(resps.count, 1)
-        XCTAssertEqual(resps.first?.zoomFactor ?? 0, 2.5, accuracy: 0.001)
-        XCTAssertEqual(resps.first?.zoomRange?.maxZoom ?? 0, 10, accuracy: 0.001)
+        XCTAssertEqual(resps.first?.currentZoom ?? 0, 2.5, accuracy: 0.001)
         let zoom = await lane()?.zoomFactor ?? 0
         XCTAssertEqual(zoom, 2.5, accuracy: 0.001)
     }
@@ -771,9 +826,9 @@ class LoopbackSessionTests: XCTestCase {
         await drainBoth()
 
         XCTAssertEqual(fakeCamera.lensSwitches, [.telephoto])
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.SwitchLensResp }
+        let resps = replies(to: .switchlens)
         XCTAssertEqual(resps.count, 1)
-        XCTAssertEqual(resps.first?.lensType, .telephoto)
+        XCTAssertEqual(resps.first?.currentLens, .telephoto)
         XCTAssertNil(resps.first?.error)
     }
 
@@ -1021,9 +1076,9 @@ class LoopbackSessionTests: XCTestCase {
         // Never confused with a capture: standby is display-only.
         XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
         // The camera reported the new mode back to the director.
-        let resps = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.CameraPreviewModeResp }
+        let resps = replies(to: .setcamerapreviewmode)
         XCTAssertEqual(resps.count, 1)
-        XCTAssertEqual(resps.first?.mode, .standby)
+        XCTAssertEqual(resps.first?.previewMode, .standby)
 
         // Restoring the preview round-trips the same way.
         director.setRigStandby(false)

@@ -1168,9 +1168,6 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     case currentState = 10
     case capabilities = 12
     case mediaData = 14
-    case availableLenses = 18
-    case zoomRange = 20
-    case currentZoom = 22
     case clockSyncEchoT0Ms = 24
     case clockSyncCameraClockMs = 26
     case captureIdEcho = 28
@@ -1188,11 +1185,6 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public var mediaDataCount: Int32 { let o = _accessor.offset(VTOFFSET.mediaData.v); return o == 0 ? 0 : _accessor.vector(count: o) }
   public func mediaData(at index: Int32) -> UInt8 { let o = _accessor.offset(VTOFFSET.mediaData.v); return o == 0 ? 0 : _accessor.directRead(of: UInt8.self, offset: _accessor.vector(at: o) + index * 1) }
   public var mediaData: [UInt8] { return _accessor.getVector(at: VTOFFSET.mediaData.v) ?? [] }
-  public var hasAvailableLenses: Bool { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? false : true }
-  public var availableLensesCount: Int32 { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? 0 : _accessor.vector(count: o) }
-  public func availableLenses(at index: Int32) -> RemoteShutter_CameraLensType? { let o = _accessor.offset(VTOFFSET.availableLenses.v); return o == 0 ? RemoteShutter_CameraLensType.wideangle : RemoteShutter_CameraLensType(rawValue: _accessor.directRead(of: Int8.self, offset: _accessor.vector(at: o) + index * 1)) }
-  public var zoomRange: RemoteShutter_ZoomRange? { let o = _accessor.offset(VTOFFSET.zoomRange.v); return o == 0 ? nil : RemoteShutter_ZoomRange(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
-  public var currentZoom: Double { let o = _accessor.offset(VTOFFSET.currentZoom.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Double.self, at: o) }
   public var clockSyncEchoT0Ms: UInt64 { let o = _accessor.offset(VTOFFSET.clockSyncEchoT0Ms.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var clockSyncCameraClockMs: UInt64 { let o = _accessor.offset(VTOFFSET.clockSyncCameraClockMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var captureIdEcho: String? { let o = _accessor.offset(VTOFFSET.captureIdEcho.v); return o == 0 ? nil : _accessor.string(at: o) }
@@ -1205,9 +1197,6 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public static func add(currentState: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: currentState, at: VTOFFSET.currentState.p) }
   public static func add(capabilities: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: capabilities, at: VTOFFSET.capabilities.p) }
   public static func addVectorOf(mediaData: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: mediaData, at: VTOFFSET.mediaData.p) }
-  public static func addVectorOf(availableLenses: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: availableLenses, at: VTOFFSET.availableLenses.p) }
-  public static func add(zoomRange: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: zoomRange, at: VTOFFSET.zoomRange.p) }
-  public static func add(currentZoom: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentZoom, def: 0.0, at: VTOFFSET.currentZoom.p) }
   public static func add(clockSyncEchoT0Ms: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: clockSyncEchoT0Ms, def: 0, at: VTOFFSET.clockSyncEchoT0Ms.p) }
   public static func add(clockSyncCameraClockMs: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: clockSyncCameraClockMs, def: 0, at: VTOFFSET.clockSyncCameraClockMs.p) }
   public static func add(captureIdEcho: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: captureIdEcho, at: VTOFFSET.captureIdEcho.p) }
@@ -1220,9 +1209,6 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     currentStateOffset currentState: Offset = Offset(),
     capabilitiesOffset capabilities: Offset = Offset(),
     mediaDataVectorOffset mediaData: Offset = Offset(),
-    availableLensesVectorOffset availableLenses: Offset = Offset(),
-    zoomRangeOffset zoomRange: Offset = Offset(),
-    currentZoom: Double = 0.0,
     clockSyncEchoT0Ms: UInt64 = 0,
     clockSyncCameraClockMs: UInt64 = 0,
     captureIdEchoOffset captureIdEcho: Offset = Offset()
@@ -1234,9 +1220,6 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     RemoteShutter_CameraStateResponse.add(currentState: currentState, &fbb)
     RemoteShutter_CameraStateResponse.add(capabilities: capabilities, &fbb)
     RemoteShutter_CameraStateResponse.addVectorOf(mediaData: mediaData, &fbb)
-    RemoteShutter_CameraStateResponse.addVectorOf(availableLenses: availableLenses, &fbb)
-    RemoteShutter_CameraStateResponse.add(zoomRange: zoomRange, &fbb)
-    RemoteShutter_CameraStateResponse.add(currentZoom: currentZoom, &fbb)
     RemoteShutter_CameraStateResponse.add(clockSyncEchoT0Ms: clockSyncEchoT0Ms, &fbb)
     RemoteShutter_CameraStateResponse.add(clockSyncCameraClockMs: clockSyncCameraClockMs, &fbb)
     RemoteShutter_CameraStateResponse.add(captureIdEcho: captureIdEcho, &fbb)
@@ -1251,9 +1234,6 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.currentState.p, fieldName: "currentState", required: false, type: ForwardOffset<RemoteShutter_CameraState>.self)
     try _v.visit(field: VTOFFSET.capabilities.p, fieldName: "capabilities", required: false, type: ForwardOffset<RemoteShutter_CameraCapabilities>.self)
     try _v.visit(field: VTOFFSET.mediaData.p, fieldName: "mediaData", required: false, type: ForwardOffset<Vector<UInt8, UInt8>>.self)
-    try _v.visit(field: VTOFFSET.availableLenses.p, fieldName: "availableLenses", required: false, type: ForwardOffset<Vector<RemoteShutter_CameraLensType, RemoteShutter_CameraLensType>>.self)
-    try _v.visit(field: VTOFFSET.zoomRange.p, fieldName: "zoomRange", required: false, type: ForwardOffset<RemoteShutter_ZoomRange>.self)
-    try _v.visit(field: VTOFFSET.currentZoom.p, fieldName: "currentZoom", required: false, type: Double.self)
     try _v.visit(field: VTOFFSET.clockSyncEchoT0Ms.p, fieldName: "clockSyncEchoT0Ms", required: false, type: UInt64.self)
     try _v.visit(field: VTOFFSET.clockSyncCameraClockMs.p, fieldName: "clockSyncCameraClockMs", required: false, type: UInt64.self)
     try _v.visit(field: VTOFFSET.captureIdEcho.p, fieldName: "captureIdEcho", required: false, type: ForwardOffset<String>.self)

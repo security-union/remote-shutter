@@ -22,7 +22,8 @@ final class MulticamViewModelTests: XCTestCase {
                       zoomStops: [CGFloat] = [1.0], wideAngleZoomFactor: CGFloat = 1.0,
                       torchOn: Bool = false, flashOn: Bool = false,
                       cameraDevices: [RemoteCmd.CameraDeviceEntry] = [],
-                      activeDeviceID: String? = nil) -> MulticamLaneInfo {
+                      activeDeviceID: String? = nil,
+                      inFlight: Set<RemoteShutter_CommandAction> = []) -> MulticamLaneInfo {
         MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
                          status: status, isFocused: focused, clockOffsetMillis: nil,
                          captureOutcome: nil, isRecording: false, recordingElapsedMillis: nil,
@@ -32,7 +33,7 @@ final class MulticamViewModelTests: XCTestCase {
                          supportsFocusPoint: supportsFocusPoint, hasTorch: hasTorch,
                          zoomFactor: zoomFactor, maxZoomFactor: maxZoomFactor,
                          zoomStops: zoomStops, wideAngleZoomFactor: wideAngleZoomFactor,
-                         torchOn: torchOn, flashOn: flashOn)
+                         torchOn: torchOn, flashOn: flashOn, inFlight: inFlight)
     }
 
     /// The shutter is a broadcast: cameras present is enough — focus is

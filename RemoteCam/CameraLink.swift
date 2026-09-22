@@ -84,20 +84,13 @@ final class CameraLink {
     /// director. Drives the tile's transfer progress / done / failed badge.
     var collection: LaneCollectionState = .idle
 
-    /// Optimistic torch / flash state, flipped when the director sends the
-    /// toggle to this (focused) camera. The camera decides what actually
-    /// happens; this just tints the glyph immediately, like the 1:1 monitor.
-    var torchOn = false
-    var flashOn = false
-
-    /// Zoom state for the focused zoom pill, seeded from the capabilities
-    /// exchange and refined by each `SetZoomResp` — the same values the 1:1
-    /// monitor tracks (`zoomStops`/`wideAngleZoomFactor`/`maxZoomFactor` build
-    /// the `ZoomScale`; `zoomFactor` is the live hardware factor).
-    var zoomFactor: CGFloat = 1.0
-    var maxZoomFactor: CGFloat = 10.0
-    var zoomStops: [CGFloat] = [1.0]
-    var wideAngleZoomFactor: CGFloat = 1.0
+    /// Control commands sent to this camera and not yet answered, counted per
+    /// action. Every control command is answered exactly once (with the
+    /// camera's full state, Docs/control-plane.md), so a count above zero
+    /// means "in flight" for that control; a reply, a failed send, or the
+    /// reply deadline each bring it down by one. Nothing about the camera is
+    /// remembered from the tap — the glyphs read `capabilities`.
+    var pending: [RemoteShutter_CommandAction: Int] = [:]
 
     init(peerID: MCPeerID) {
         self.peerID = peerID
@@ -127,11 +120,17 @@ final class CameraLink {
             activeDeviceID: capabilities?.activeDeviceID,
             supportsFocusPoint: capabilities?.supportsFocusPoint ?? false,
             hasTorch: capabilities?.getCurrentCameraInfo()?.hasTorch ?? false,
-            zoomFactor: zoomFactor,
-            maxZoomFactor: maxZoomFactor,
-            zoomStops: zoomStops,
-            wideAngleZoomFactor: wideAngleZoomFactor,
-            torchOn: torchOn,
-            flashOn: flashOn)
+            zoomFactor: capabilities?.currentZoom ?? 1.0,
+            maxZoomFactor: zoom?.maxZoomFactor ?? 10.0,
+            zoomStops: zoom?.zoomStops ?? [1.0],
+            wideAngleZoomFactor: zoom?.wideAngleZoomFactor ?? 1.0,
+            torchOn: capabilities?.torchOn ?? false,
+            flashOn: (capabilities?.flashMode ?? .off) != .off,
+            inFlight: Set(pending.filter { $0.value > 0 }.keys))
     }
+
+    /// The zoom scale as the camera last reported it — the same derivation
+    /// for the seed and for every reply, so the pill can never disagree with
+    /// the camera about its range.
+    private var zoom: ZoomScaleSeed.Seed? { capabilities.flatMap { ZoomScaleSeed.seed(from: $0) } }
 }

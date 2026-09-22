@@ -17,7 +17,7 @@ struct ZoomPill: View {
     @State private var isExpanded = false
     @State private var collapseWork: DispatchWorkItem?
     /// What the user just asked for, shown immediately. `currentZoomFactor` only catches
-    /// up when the camera's SetZoomResp returns — a throttled send plus a peer-to-peer
+    /// up when the camera's state reply returns — a throttled send plus a peer-to-peer
     /// round trip — so without this the thumb visibly trails the cursor.
     @State private var pendingZoom: CGFloat?
     @State private var isAdjusting = false

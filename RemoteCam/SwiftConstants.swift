@@ -22,6 +22,17 @@ enum TimerPreference {
     }
 }
 
+/// The director's rig standby, remembered across sessions like the timer:
+/// a rig that was left in standby opens in standby, and every camera that
+/// joins is put there, without tapping the tray again. Unset means off.
+enum RigStandbyPreference {
+    static let key = "rig.standby"
+    static var isOn: Bool {
+        get { UserDefaults.standard.bool(forKey: key) }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
+    }
+}
+
 /// "Send Media to Remote" (Settings): whether the camera pushes each capture
 /// back to the remote that fired it. ONE reader for every remote surface —
 /// the classic 1:1 monitor and the multicam director both put this on the

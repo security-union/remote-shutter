@@ -119,15 +119,22 @@ final class MulticamViewModel: ObservableObject {
                                   isPhotoMode: mode == .photo,
                                   isRecording: isRecording)
     }
-    var focusedCameraCanFlip: Bool { focusedControlState.flipEnabled }
+    /// Controls with a command in flight to the focused camera: the button
+    /// is disabled until the camera answers (or the deadline passes), never
+    /// pre-tinted with a guessed result.
+    var focusedInFlight: Set<RemoteShutter_CommandAction> { focusedLane?.info.inFlight ?? [] }
+    var focusedIsSwitching: Bool {
+        focusedInFlight.contains(.togglecamera) || focusedInFlight.contains(.selectcameradevice)
+    }
+    var focusedCameraCanFlip: Bool { focusedControlState.flipEnabled && !focusedIsSwitching }
     /// The switch control for the focused camera: a flip button for a phone,
     /// a device menu for a Mac with several cameras, nothing for one camera.
     var focusedSwitchControl: CameraSwitchControl { focusedLane?.switchControl ?? .flipButton }
     var focusedCameraDevices: [RemoteCmd.CameraDeviceEntry] { focusedLane?.cameraDevices ?? [] }
     var focusedActiveDeviceID: String? { focusedLane?.activeDeviceID }
     var focusedControlsEnabled: Bool { focusedControlState.isLinked }
-    var focusedTorchEnabled: Bool { focusedControlState.torchEnabled }
-    var focusedFlashEnabled: Bool { focusedControlState.flashEnabled }
+    var focusedTorchEnabled: Bool { focusedControlState.torchEnabled && !focusedInFlight.contains(.toggletorch) }
+    var focusedFlashEnabled: Bool { focusedControlState.flashEnabled && !focusedInFlight.contains(.toggleflash) }
     var focusedTorchOn: Bool { focusedLane?.torchOn ?? false }
     var focusedFlashOn: Bool { focusedLane?.flashOn ?? false }
 

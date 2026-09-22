@@ -110,10 +110,14 @@ sequenceDiagram
     MC->>MV: lane snapshot (main thread)
 ```
 
-Every command follows this shape: a tap becomes a controller message, a `RemoteCmd`
-crosses the wire, both sides transition, and a response (or a timeout) pops the
-transient state. With several cameras the director fans the same message out to
-every lane and settles when the last one answers.
+Every capture command follows this shape: a tap becomes a controller message, a
+`RemoteCmd` crosses the wire, both sides transition, and a response (or a
+timeout) pops the transient state. With several cameras the director fans the
+same message out to every lane and settles when the last one answers. Control
+commands (zoom, torch, quality, …) never transition anything: the camera answers
+each one with its full state (`CameraCapabilitiesResp`, `inReplyTo` = the
+command), and the director's lane counts the send as in flight until that reply
+or a deadline — `Docs/control-plane.md`.
 
 ## The three load-bearing pieces
 
