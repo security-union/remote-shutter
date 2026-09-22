@@ -606,7 +606,8 @@ class LoopbackSessionTests: XCTestCase {
             // The rig's aspect: a camera reporting anything else is brought
             // back in line by the director, which would be a second reply.
             (.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: .sixteenNine)),
-            (.setcamerapreviewmode, RemoteCmd.SetCameraPreviewMode(mode: .standby))
+            (.setcamerapreviewmode, RemoteCmd.SetCameraPreviewMode(mode: .standby)),
+            (.setexposure, RemoteCmd.SetExposure(intent: .manual(durationSeconds: 1.0 / 250, iso: 400)))
         ]
         // Idle: everything applies.
         for (action, cmd) in commands {
@@ -830,6 +831,54 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(resps.count, 1)
         XCTAssertEqual(resps.first?.currentLens, .telephoto)
         XCTAssertNil(resps.first?.error)
+    }
+
+    // MARK: - Exposure (Docs/pro-controls.md)
+
+    func testSetExposureHappyPathAcrossTheWire() async {
+        let fakeCamera = await connectCameraAndDirector()
+        director.setExposure(.manual(durationSeconds: 1.0 / 250, iso: 400), on: cameraPeer)
+        await drainBoth()
+
+        XCTAssertEqual(fakeCamera.exposureIntents, [.manual(durationSeconds: 1.0 / 250, iso: 400)])
+        let resps = replies(to: .setexposure)
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNil(resps.first?.error)
+        XCTAssertEqual(resps.first?.exposure?.mode, .manual)
+        XCTAssertEqual(resps.first?.exposure?.iso, 400)
+        // The lane renders from the report.
+        let lane = await lane()
+        XCTAssertEqual(lane?.exposure?.mode, .manual)
+        XCTAssertEqual(lane?.exposure?.iso, 400)
+
+        director.setExposure(.auto(bias: 1), on: cameraPeer)
+        await drainBoth()
+        XCTAssertEqual(fakeCamera.exposureIntents.last, .auto(bias: 1))
+        XCTAssertEqual(replies(to: .setexposure).last?.exposure?.bias, 1)
+        XCTAssertTrue(directorDisplay.transientErrors.isEmpty)
+    }
+
+    /// Capability is presence: a camera whose state carries no exposure block
+    /// is never sent SetExposure; one that offers bias only is sent Auto but
+    /// never Manual.
+    func testSetExposureIsGatedOnTheCamerasExposureBlock() async {
+        let fakeCamera = await connectCameraAndDirector { fake in fake.exposureState = nil }
+        director.setExposure(.auto(bias: 1), on: cameraPeer)
+        director.setExposure(.manual(durationSeconds: 0.01, iso: 100), on: cameraPeer)
+        await drainBoth()
+        XCTAssertFalse(directorTransport.sentMessages.contains { $0 is RemoteCmd.SetExposure })
+        XCTAssertTrue(fakeCamera.exposureIntents.isEmpty)
+
+        // Bias only (a Mac camera): Auto goes through, Manual is dropped.
+        fakeCamera.exposureState = ExposureState(
+            mode: .auto, bias: 0, minBias: -2, maxBias: 2, targetOffset: 0, supportsManual: false,
+            durationSeconds: 0, iso: 0, minDurationSeconds: 0, maxDurationSeconds: 0, minISO: 0, maxISO: 0)
+        sendFromDirector(RemoteCmd.RequestCameraCapabilities())
+        await drainBoth()
+        director.setExposure(.manual(durationSeconds: 0.01, iso: 100), on: cameraPeer)
+        director.setExposure(.auto(bias: 1), on: cameraPeer)
+        await drainBoth()
+        XCTAssertEqual(fakeCamera.exposureIntents, [.auto(bias: 1)])
     }
 
     // MARK: - App-version gate (semver major)

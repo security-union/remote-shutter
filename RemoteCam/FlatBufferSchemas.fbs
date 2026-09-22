@@ -69,7 +69,7 @@ enum CommandAction : byte {
                                // CommandParameters (state_report_seq,
                                // state_recording_phase, elapsed ticks).
     RequestCameraStateReport = 32, // deprecated (no sender since 12.0): slot retained
-    StopRecordingFinished = 33 // The stop protocol's terminal message
+    StopRecordingFinished = 33, // The stop protocol's terminal message
                                // (StopRecording -> its ack -> this). Carries
                                // success/error ONLY: the clip never rides in a
                                // message — it streams disk-to-disk as a
@@ -77,6 +77,19 @@ enum CommandAction : byte {
                                // RECEIVER sends this first, as its "clip
                                // landed / failed" confirmation; the camera
                                // then forwards it to close the protocol.
+    SetExposure = 34           // director -> camera: Auto (with an EV bias) or
+                               // Manual (shutter + ISO). Payload in
+                               // CommandParameters (exposure_*). Answered like
+                               // every control command, by the camera's full
+                               // state; only sent to a camera whose CameraState
+                               // carries an ExposureState.
+}
+
+// Auto vs. manual exposure, as the camera reports it and the director asks.
+enum ExposureMode : byte {
+    Unknown = 0,
+    Auto = 1,
+    Manual = 2
 }
 
 // Whether the camera device drives its own on-screen live preview. On is the
@@ -234,6 +247,15 @@ table CommandParameters {
     state_report_seq: uint64;
     state_recording_phase: RecordingPhase;
     state_recording_elapsed_ms: uint64;
+    // SetExposure payload. Auto: `exposure_bias` (EV stops, 0 = neutral) is
+    // applied. Manual: `exposure_duration_seconds` / `exposure_iso` are
+    // applied, 0 = keep the camera's current value; the camera clamps both
+    // into its active format's range. Seconds, not CMTime: the camera
+    // rebuilds the CMTime from its own format.
+    exposure_mode: ExposureMode;
+    exposure_bias: float;
+    exposure_duration_seconds: double;
+    exposure_iso: float;
 }
 
 // MARK: - Command Structure
@@ -299,6 +321,34 @@ table CameraDeviceInfo {
     is_suspended: bool;
 }
 
+// The camera's exposure truth: what is applied now, and the active format's
+// ranges, so the director's rulers always show THIS device's limits. Ranges
+// move with every device swap and quality change and travel with every state
+// reply. Presence in CameraState is the capability: absent = this device
+// offers neither bias nor manual exposure, and SetExposure must not be sent.
+table ExposureState {
+    mode: ExposureMode;
+    // Auto: the EV bias applied and its range. `target_offset` is the light
+    // meter — how far the current frame is from the metered target, in stops.
+    bias: float;
+    min_bias: float;
+    max_bias: float;
+    target_offset: float;
+    // Manual: the applied shutter + ISO and the format's ranges. False =
+    // this device (a virtual multi-lens or most Mac cameras) refuses custom
+    // exposure: the director offers bias only.
+    supports_manual: bool;
+    duration_seconds: double;
+    iso: float;
+    min_duration_seconds: double;
+    max_duration_seconds: double;
+    min_iso: float;
+    max_iso: float;
+    // 1 / fps of the active format: the shutter ceiling while recording, so
+    // a clip's frame rate never changes mid-take.
+    max_frame_duration_seconds: double;
+}
+
 table CameraState {
     current_camera: CameraPosition;
     current_lens: CameraLensType;
@@ -316,6 +366,7 @@ table CameraState {
     // so the operator can see whether the camera is showing a live preview or
     // sitting in standby. Absent/Unknown => legacy peer; treat as On.
     preview_mode: CameraPreviewModeEnum;
+    exposure: ExposureState;
 }
 
 table CameraCapabilities {

@@ -1111,7 +1111,7 @@ public actor SessionCoordinator {
             return busy
         case (is RemoteCmd.SetZoom, _), (is RemoteCmd.SwitchLens, _), (is RemoteCmd.ToggleTorch, _),
              (is RemoteCmd.SetPhotoQuality, _), (is RemoteCmd.SetAspectRatio, _),
-             (is RemoteCmd.SetCameraPreviewMode, _):
+             (is RemoteCmd.SetCameraPreviewMode, _), (is RemoteCmd.SetExposure, _):
             return nil
         case (is RemoteCmd.ToggleFlash, _), (is RemoteCmd.SetVideoQuality, _):
             return recording
@@ -1140,6 +1140,7 @@ public actor SessionCoordinator {
         case is RemoteCmd.SetPhotoQuality: action = .setphotoquality
         case is RemoteCmd.SetAspectRatio: action = .setaspectratio
         case is RemoteCmd.SetCameraPreviewMode: action = .setcamerapreviewmode
+        case is RemoteCmd.SetExposure: action = .setexposure
         default: return false
         }
         if let refusal = Self.controlRefusal(msg, phase: phase) {
@@ -1191,6 +1192,8 @@ public actor SessionCoordinator {
                 _ = await ctrl.setAspectRatio(ratio.aspectRatio)
             case let preview as RemoteCmd.SetCameraPreviewMode:
                 await ctrl.setPreviewMode(preview.mode)
+            case let exposure as RemoteCmd.SetExposure:
+                try await ctrl.setExposure(exposure.intent)
             default:
                 break
             }

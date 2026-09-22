@@ -89,6 +89,10 @@ struct MulticamLaneInfo: Equatable {
     /// Controls with a command in flight to this camera (sent, not yet
     /// answered): the chrome dims them instead of guessing the result.
     let inFlight: Set<RemoteShutter_CommandAction>
+    /// This camera's exposure truth and ranges, or nil when it offers no
+    /// exposure control at all — the gate for the exposure rulers and for
+    /// `SetExposure` on the wire.
+    let exposure: ExposureState?
 }
 
 /// A Sendable pipe that carries one lane's decoded-preview frames from the
@@ -477,6 +481,9 @@ public actor MulticamController {
         case let m as MCSelectCameraDevice:
             logInfo("director: select device \(m.uniqueID) → \(m.target.displayName)")
             handleSelectCameraDevice(m.uniqueID, target: m.target)
+        case let m as MCSetExposure:
+            logInfo("director: exposure \(m.intent) → \(m.target.displayName)")
+            handleSetExposure(m.intent, target: m.target)
         case let m as MCFocusAtPoint:
             logInfo("director: focus tap (\(m.x), \(m.y)) → \(m.target.displayName)")
             handleFocusAtPoint(x: m.x, y: m.y, target: m.target)
@@ -896,6 +903,20 @@ public actor MulticamController {
     private func handleFocusAtPoint(x: Float, y: Float, target: MCPeerID) {
         guard links[target]?.capabilities?.supportsFocusPoint == true else { return }
         sendTo(target, RemoteCmd.FocusAtPoint(x: x, y: y))
+    }
+
+    /// Exposure on one camera, like zoom. Dropped unless that camera's state
+    /// carries an exposure block, and a manual intent additionally needs the
+    /// block to say the device accepts custom exposure — a peer that can't
+    /// honor the command is never sent one.
+    public nonisolated func setExposure(_ intent: ExposureIntent, on peer: MCPeerID) {
+        tell(MCSetExposure(intent, target: peer))
+    }
+
+    private func handleSetExposure(_ intent: ExposureIntent, target: MCPeerID) {
+        guard let exposure = links[target]?.capabilities?.exposure else { return }
+        if case .manual = intent, !exposure.supportsManual { return }
+        sendControl(.setexposure, RemoteCmd.SetExposure(intent: intent), to: target)
     }
 
     func switchLens(_ lens: CameraLensType, on peer: MCPeerID) {
@@ -1901,6 +1922,14 @@ final class MCToggleTorch: Message, @unchecked Sendable {
 final class MCToggleFlash: Message, @unchecked Sendable {
     let target: MCPeerID
     init(target: MCPeerID) { self.target = target; super.init(sender: nil) }
+}
+final class MCSetExposure: Message, @unchecked Sendable {
+    let intent: ExposureIntent
+    let target: MCPeerID
+    init(_ intent: ExposureIntent, target: MCPeerID) {
+        self.intent = intent; self.target = target
+        super.init(sender: nil)
+    }
 }
 final class MCSetZoom: Message, @unchecked Sendable {
     let factor: CGFloat

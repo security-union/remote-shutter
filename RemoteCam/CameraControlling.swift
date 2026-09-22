@@ -42,6 +42,9 @@ protocol CameraControlling: AnyObject, Sendable {
     func applyStreamProfile(_ profile: StreamProfile)
 
     func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange)
+    /// Auto (EV bias) or Manual (shutter + ISO) exposure. The device clamps
+    /// into its active format's range; the state reply carries the truth.
+    func setExposure(_ intent: ExposureIntent) async throws
     /// Sets the focus/exposure point of interest from a monitor tap. `x`/`y` are
     /// normalized (0..1) in the upright display image, origin top-left.
     /// Fire-and-forget: a no-op if the active device has no point of interest.

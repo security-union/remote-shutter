@@ -2085,6 +2085,35 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(lanes.first { $0.peerID == camB }?.torchOn, false, "no other lane is touched")
     }
 
+    /// Exposure is sent only to a camera whose state carries the block, and
+    /// Manual only when the block says the device accepts it.
+    func testExposureIsGatedOnTheLanesExposureBlock() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        func caps(_ exposure: ExposureState?) -> RemoteCmd.CameraCapabilitiesResp {
+            RemoteCmd.CameraCapabilitiesResp(
+                frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+                supportsMulticam: true, exposure: exposure, error: nil)
+        }
+        controller.didReceiveMessage(caps(nil), from: camA)
+        await controller.waitForIdle()
+        controller.setExposure(.auto(bias: 1), on: camA)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetExposure.self).isEmpty, "no block, no command")
+
+        let biasOnly = ExposureState(
+            mode: .auto, bias: 0, minBias: -2, maxBias: 2, targetOffset: 0, supportsManual: false,
+            durationSeconds: 0, iso: 0, minDurationSeconds: 0, maxDurationSeconds: 0, minISO: 0, maxISO: 0)
+        controller.didReceiveMessage(caps(biasOnly), from: camA)
+        await controller.waitForIdle()
+        controller.setExposure(.manual(durationSeconds: 0.01, iso: 100), on: camA)
+        controller.setExposure(.auto(bias: 1), on: camA)
+        await controller.waitForIdle()
+        let intents = sent(transport, RemoteCmd.SetExposure.self).compactMap { ($0.msg as? RemoteCmd.SetExposure)?.intent }
+        XCTAssertEqual(intents, [.auto(bias: 1)], "bias only: Manual is dropped, Auto goes")
+        let pending = await controller.pendingForTesting(camA, .setexposure)
+        XCTAssertEqual(pending, 1, "counted in flight like every control command")
+    }
+
     /// A send the transport refuses is settled on the spot: not in flight,
     /// and the operator is told.
     func testControlSendFailureIsReportedAndNotLeftInFlight() async {
