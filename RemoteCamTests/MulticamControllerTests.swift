@@ -29,13 +29,38 @@ final class MulticamControllerTests: XCTestCase {
         super.setUp()
         // The rig timer seeds from the shared preference; tests start from off.
         UserDefaults.standard.removeObject(forKey: TimerPreference.key)
+        UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
         // "Send Media to Remote" is read per shot; tests start from the default (on).
         UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
     }
 
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
+        UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
         super.tearDown()
+    }
+
+    /// Rig standby is remembered like the timer: a director that was left in
+    /// standby opens in standby and puts every joining camera there, and a
+    /// tray tap updates the stored preference.
+    func testRigStandbyIsRememberedAcrossSessions() async {
+        RigStandbyPreference.isOn = true
+        let (controller, transport, _) = await makeController(peers: [camA])
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+            supportsPreviewMode: true, supportsMulticam: true, error: nil)
+        controller.didReceiveMessage(caps, from: camA)
+        await controller.waitForIdle()
+
+        let standby = sent(transport, RemoteCmd.SetCameraPreviewMode.self)
+            .compactMap { ($0.msg as? RemoteCmd.SetCameraPreviewMode)?.mode }
+        XCTAssertEqual(standby, [.standby], "a joining camera is put in the remembered standby")
+        let settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertTrue(settings.standbyOn)
+
+        controller.setRigStandby(false)
+        await controller.waitForIdle()
+        XCTAssertFalse(RigStandbyPreference.isOn, "the tray tap is what the next session remembers")
     }
 
     private func makeController(peers: [MCPeerID])

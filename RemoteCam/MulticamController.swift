@@ -237,7 +237,7 @@ public actor MulticamController {
     /// on-screen preview (the director is the viewfinder; capture and the
     /// streamed frames are unaffected). Sent only to cameras that advertised
     /// `supportsPreviewMode`, including late joiners.
-    private var rigPreviewMode: CameraPreviewMode = .on
+    private var rigPreviewMode: CameraPreviewMode = RigStandbyPreference.isOn ? .standby : .on
     /// One rig self-timer (seconds); 0 = off. Fans out to every camera so
     /// subjects see the countdown, and its expiry triggers the synced capture.
     /// Seeded from the preference the classic remote persists, and written
@@ -1261,6 +1261,7 @@ public actor MulticamController {
 
     private func handleSetRigStandby(_ on: Bool) {
         rigPreviewMode = on ? .standby : .on
+        RigStandbyPreference.isOn = on
         for (peer, link) in links where link.capabilities?.supportsPreviewMode == true {
             sendControl(.setcamerapreviewmode, RemoteCmd.SetCameraPreviewMode(mode: rigPreviewMode), to: peer)
         }

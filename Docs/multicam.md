@@ -252,7 +252,11 @@ These are the invariants worth preserving through future changes.
   Torch, flash and zoom glyphs read the camera's report. A refusal is shown as
   a transient error naming the camera. Rig settings (standby, aspect) are
   re-applied from what a camera *reports*, so a confirming reply never
-  re-triggers the command. See `Docs/control-plane.md`.
+  re-triggers the command. While the rig is in standby the director imposes
+  it; with standby off each camera's own preview toggle is its own business.
+  The rig's standby is remembered across sessions (`RigStandbyPreference`,
+  like the timer), so a rig left in standby opens in standby and puts every
+  joining camera there. See `Docs/control-plane.md`.
 - **Framing belongs to a camera; the shot belongs to the rig.** Per-camera
   controls (zoom, focus, flash, torch, lens, camera flip) address the *focused*
   camera only. Rig controls (shutter, record, timer, quality/HDR) fan out to

@@ -178,6 +178,7 @@ class LoopbackSessionTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         UserDefaults.standard.removeObject(forKey: TimerPreference.key)
+        UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
         UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
 
         director = MulticamController()
