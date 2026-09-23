@@ -13,6 +13,11 @@ struct ZoomPill: View {
     let scale: ZoomScale
     /// Current zoom in hardware factors, as reported by the camera.
     let currentZoomFactor: CGFloat
+    /// When set, the pill takes this track and the same reserved end slot the
+    /// exposure rulers keep, so the whole column is one width and every tick
+    /// field lines up. Nil (no exposure controls on screen) keeps the tight
+    /// lens cluster, which is the right shape when the pill stands alone.
+    var uniformTrackLength: CGFloat?
     let onZoomChange: (CGFloat) -> Void
 
     /// Gap between adjacent lens circles when collapsed. The stops sit in a tight
@@ -22,15 +27,25 @@ struct ZoomPill: View {
     private static let stopSpacing: CGFloat = 10
     /// Breathing room between the number and the circle's edge.
     private static let stopTextInset: CGFloat = 5
+    /// The ruler's length when the pill is the only control in its slot.
+    private static let standaloneTrackLength: CGFloat = 280
 
     var body: some View {
         RulerPill(track: scale.track,
                   currentValue: Double(currentZoomFactor),
                   readout: { scale.label(forHardware: CGFloat($0)) },
                   accessibilityLabel: NSLocalizedString("Zoom", comment: "a11y"),
-                  collapsedWidth: collapsedWidth,
+                  collapsesWhenIdle: true,
+                  collapsedWidth: uniformTrackLength ?? collapsedWidth,
+                  trackLength: uniformTrackLength ?? Self.standaloneTrackLength,
                   onChange: { onZoomChange(CGFloat($0)) },
-                  collapsed: { proxy in stopRow(proxy) })
+                  collapsed: { proxy in stopRow(proxy) },
+                  leading: { _ in EmptyView() },
+                  trailing: { _ in
+                      // Hold the same end slot the exposure rulers keep, so
+                      // zoom's capsule and tick field match theirs.
+                      if uniformTrackLength != nil { RulerEndSlot { EmptyView() } }
+                  })
     }
 
     // MARK: - Collapsed: the lens stops

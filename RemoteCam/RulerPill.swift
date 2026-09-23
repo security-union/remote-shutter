@@ -394,11 +394,12 @@ extension RulerPill where Leading == EmptyView, Trailing == EmptyView {
          readout: @escaping (Double) -> String,
          accessibilityLabel: String,
          collapsedWidth: CGFloat?,
+         trackLength: CGFloat = 280,
          onChange: @escaping (Double) -> Void,
          @ViewBuilder collapsed: @escaping (RulerPillProxy) -> Collapsed) {
         self.init(track: track, currentValue: currentValue, readout: readout,
                   accessibilityLabel: accessibilityLabel, collapsesWhenIdle: true,
-                  collapsedWidth: collapsedWidth, onChange: onChange,
+                  collapsedWidth: collapsedWidth, trackLength: trackLength, onChange: onChange,
                   collapsed: collapsed, leading: { _ in EmptyView() }, trailing: { _ in EmptyView() })
     }
 }

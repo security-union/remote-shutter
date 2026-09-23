@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 @testable import RemoteShutter
 
@@ -124,6 +125,21 @@ final class ExposureScaleTests: XCTestCase {
         XCTAssertEqual(scale.position(forHardware: 1), 0)
         XCTAssertEqual(scale.hardwareFactor(atPosition: 1), 10)
         XCTAssertEqual(scale.snappedToStop(2.02), 2)
+    }
+
+    /// Every ruler gets the same track and the same reserved end slot, so
+    /// the capsules are one width and a thumb travels the same distance on
+    /// each. A reset never costs its ruler any track.
+    func testEveryRulerSharesOneTrackAndOneEndSlot() {
+        for axis in [Axis.horizontal, .vertical] {
+            let lengths = ExposureRulerKind.allCases.map { _ in ExposureRulerMetrics.track(axis: axis) }
+            XCTAssertEqual(Set(lengths).count, 1, "one track length per axis")
+        }
+        XCTAssertGreaterThan(ExposureRulerMetrics.track(axis: .horizontal), 0)
+        XCTAssertEqual(ExposureRulerMetrics.endSlot, PillCircleButton<Text>.diameter,
+                       "the slot is exactly one button wide, filled or not")
+        XCTAssertEqual(ExposureRulerKind.allCases.filter(\.hasReset), [.bias],
+                       "EV is the only ruler with a value worth going back to")
     }
 
     // MARK: - Send throttle

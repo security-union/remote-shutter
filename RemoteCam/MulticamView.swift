@@ -363,6 +363,10 @@ struct MulticamView: View {
            let focused = viewModel.focusedLane {
             ZoomPill(scale: viewModel.focusedZoomScale,
                      currentZoomFactor: viewModel.focusedZoomFactor,
+                     // Line up with the exposure rulers when they are on
+                     // screen; keep the tight lens cluster when alone.
+                     uniformTrackLength: viewModel.showsExposureControls
+                         ? ExposureRulerMetrics.track(axis: .horizontal) : nil,
                      onZoomChange: { onZoomChange(focused, $0) })
         }
     }

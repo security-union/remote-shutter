@@ -119,6 +119,10 @@ enum ExposureRulerKind: Equatable, CaseIterable {
         }
     }
 
+    /// EV is the one ruler with a "correct" value to go back to, so it is
+    /// the one that carries a reset.
+    var hasReset: Bool { self == .bias }
+
     /// The rulers a camera offers in its current mode: EV in Auto, shutter
     /// and ISO in Manual (only when the device accepts custom exposure).
     static func offered(by exposure: ExposureState) -> [ExposureRulerKind] {
@@ -127,6 +131,23 @@ enum ExposureRulerKind: Equatable, CaseIterable {
         case .manual: return exposure.supportsManual ? [.shutter, .iso] : [.bias]
         }
     }
+}
+
+/// The column's geometry. Every ruler — zoom, shutter, ISO, EV — gets the
+/// SAME track, so a thumb travels the same distance on each and the tick
+/// fields line up; and every pill reserves the same slot at the end of that
+/// track, filled by the reset on EV and empty elsewhere, so the capsules are
+/// one width. Nothing gives up track length to carry a button.
+enum ExposureRulerMetrics {
+    static let horizontalTrack: CGFloat = 260
+    static let verticalTrack: CGFloat = 240
+
+    static func track(axis: Axis) -> CGFloat {
+        axis == .vertical ? verticalTrack : horizontalTrack
+    }
+
+    /// The reserved slot at the end of every pill: one button wide.
+    static var endSlot: CGFloat { PillCircleButton<Text>.diameter }
 }
 
 /// One exposure ruler, always up. Vertical on a side edge in landscape,
@@ -143,23 +164,40 @@ struct ExposureRulerPill: View {
                   currentValue: kind.value(exposure),
                   readout: { kind.label($0) },
                   accessibilityLabel: kind.accessibilityLabel,
-                  trackLength: axis == .vertical ? 240 : 260,
+                  trackLength: ExposureRulerMetrics.track(axis: axis),
                   axis: axis,
                   onChange: onChange,
                   leading: { _ in EmptyView() },
                   trailing: { proxy in
-                      // EV is the one ruler with a "correct" value, so it is
-                      // the one with a reset. It commits through the pill, so
-                      // the thumb snaps back on the tap rather than waiting
-                      // for the camera to answer.
-                      if kind == .bias {
-                          PillCircleButton(action: { proxy.commit(0) }) {
-                              Text(verbatim: "0")
-                                  .font(.system(size: 17, weight: .bold, design: .rounded))
+                      RulerEndSlot {
+                          // Back to neutral. It commits through the pill, so
+                          // the thumb returns on the tap rather than waiting
+                          // for the camera to answer.
+                          if kind.hasReset {
+                              PillCircleButton(action: { proxy.commit(0) }) {
+                                  Image(systemName: "arrow.uturn.backward")
+                                      .font(.system(size: 16, weight: .semibold))
+                              }
+                              .accessibilityLabel(NSLocalizedString("Reset exposure compensation",
+                                                                    comment: "a11y"))
                           }
-                          .accessibilityLabel(NSLocalizedString("Reset exposure compensation", comment: "a11y"))
                       }
                   })
+    }
+}
+
+/// The slot every pill keeps at the end of its track. A ruler with nothing
+/// to put there holds the space anyway, so one pill carrying a reset is not
+/// wider than its neighbours.
+struct RulerEndSlot<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack {
+            Spacer(minLength: 0)
+            content()
+        }
+        .frame(width: ExposureRulerMetrics.endSlot, height: ExposureRulerMetrics.endSlot)
     }
 }
 
