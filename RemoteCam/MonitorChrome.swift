@@ -65,6 +65,17 @@ enum MonitorTrayItem: Equatable {
     case help
 }
 
+// MARK: - Tray presentation
+
+/// How a tray panel is being presented, which decides whether it draws its
+/// own glass and grabber or lets a system sheet provide them.
+enum TrayPresentation: Equatable {
+    /// Floating in the screen's own stack, over a live viewfinder.
+    case overlay
+    /// Inside a real `.sheet`, which brings the grabber and the drag.
+    case sheet
+}
+
 // MARK: - Link health
 
 /// What the monitor can say about the picture it is showing. The stream can go

@@ -93,7 +93,7 @@ struct MulticamView: View {
                 chrome(dock: dock)
                 countdownOverlay
                 transientErrorToast
-                if viewModel.showingRigTray { rigTrayLayer }
+                if viewModel.showingRigTray, RigTrayPresentation.style == .overlay { rigTrayLayer }
 
                 #if DEBUG
                 SessionDebugOverlay()
@@ -109,6 +109,37 @@ struct MulticamView: View {
         // style's hit region, leaving material fills unclickable.
         .buttonStyle(.borderless)
         .statusBarHidden()
+        // iOS 16 and later present the tray as a real sheet, so the grab
+        // handle, the drag and the dismissal are the system's rather than
+        // ours. Attached out here, not on the ZStack, so it never competes
+        // with the add-camera sheet for the same presentation slot.
+        .modifier(RigTraySheet(isPresented: $viewModel.showingRigTray) { rigTrayPanel })
+    }
+
+    /// The tray's tiles, in whichever container is presenting them.
+    private var rigTrayPanel: some View {
+        RigTrayPanel(settings: viewModel.rigSettings,
+                     mode: viewModel.mode,
+                     isRecording: viewModel.isRecording,
+                     presentation: RigTrayPresentation.style,
+                     onSetTimer: onSetTimer,
+                     onSelectVideoQuality: onSelectVideoQuality,
+                     onAutomaticVideoQuality: onAutomaticVideoQuality,
+                     onSetPhotoFormat: onSetPhotoFormat,
+                     onSetHDR: onSetHDR,
+                     onSetAspectRatio: onSetAspectRatio,
+                     onSetStandby: onSetStandby,
+                     onSetExposureControls: onSetExposureControls,
+                     // Close the tray first, as the camera screen does — the
+                     // sheet returns to a clean viewfinder.
+                     onOpenSettings: {
+                         viewModel.showingRigTray = false
+                         onOpenSettings()
+                     },
+                     onOpenHelp: {
+                         viewModel.showingRigTray = false
+                         onOpenHelp()
+                     })
     }
 
     /// iPhone/iPad draw the preview full-bleed under the notch and the home
@@ -129,27 +160,7 @@ struct MulticamView: View {
             Color.black.opacity(0.02)
                 .ignoresSafeArea()
                 .onTapGesture { viewModel.showingRigTray = false }
-            RigTrayPanel(settings: viewModel.rigSettings,
-                         mode: viewModel.mode,
-                         isRecording: viewModel.isRecording,
-                         onSetTimer: onSetTimer,
-                         onSelectVideoQuality: onSelectVideoQuality,
-                         onAutomaticVideoQuality: onAutomaticVideoQuality,
-                         onSetPhotoFormat: onSetPhotoFormat,
-                         onSetHDR: onSetHDR,
-                         onSetAspectRatio: onSetAspectRatio,
-                         onSetStandby: onSetStandby,
-                         onSetExposureControls: onSetExposureControls,
-                         // Close the tray first, as the 1:1 tray does — the
-                         // sheet returns to a clean viewfinder.
-                         onOpenSettings: {
-                             viewModel.showingRigTray = false
-                             onOpenSettings()
-                         },
-                         onOpenHelp: {
-                             viewModel.showingRigTray = false
-                             onOpenHelp()
-                         })
+            rigTrayPanel
                 .transition(.move(edge: .bottom))
         }
     }
@@ -862,12 +873,71 @@ struct AddCameraSheet: View {
 /// (reusing `MonitorTrayTile`), rather than a pushed table. Timer and quality
 /// carry rig semantics — quality cycles the capability intersection, and a
 /// footnote names any camera that blocks an option.
+/// Presents the rig tray as a real sheet where the platform has one worth
+/// using, so the grab handle, the rubber-banding and the drag that puts the
+/// tray away are the system's rather than ours. Everywhere else it does
+/// nothing and the screen's own overlay stands.
+struct RigTraySheet<SheetContent: View>: ViewModifier {
+    @Binding var isPresented: Bool
+    @ViewBuilder let sheetContent: () -> SheetContent
+
+    /// The detent, measured from the tray itself rather than guessed, so
+    /// adding a tile can never leave the sheet the wrong height. Seeded with
+    /// a plausible value for the frame before the first measurement lands.
+    @State private var height: CGFloat = 340
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *), RigTrayPresentation.style == .sheet {
+            content.sheet(isPresented: $isPresented) {
+                sheetContent()
+                    .background(
+                        GeometryReader { geo in
+                            // The detent covers the home indicator too, so
+                            // measure the tray plus the inset under it.
+                            Color.clear.preference(key: TrayHeightKey.self,
+                                                   value: geo.size.height + geo.safeAreaInsets.bottom)
+                        })
+                    .onPreferenceChange(TrayHeightKey.self) { measured in
+                        if measured > 0 { height = measured }
+                    }
+                    .presentationDetents([.height(height)])
+                    .presentationDragIndicator(.visible)
+                    .trayGlass()
+            }
+        } else {
+            content
+        }
+    }
+}
+
+private struct TrayHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private extension View {
+    /// Keep the app's glass behind the sheet where the API to set it exists;
+    /// below 16.4 the system's own sheet background stands in.
+    @ViewBuilder func trayGlass() -> some View {
+        if #available(iOS 16.4, macCatalyst 16.4, *) {
+            presentationBackground(.ultraThinMaterial)
+        } else {
+            self
+        }
+    }
+}
+
 struct RigTrayPanel: View {
     let settings: RigSettingsSnapshot
     /// Photo vs video — the tray lists only the tiles that matter to the mode.
     let mode: MonitorMode
     /// Mid-recording the capture settings dim (standby and help stay live).
     let isRecording: Bool
+    /// Sheet or overlay; the shell draws its own glass only as an overlay.
+    var presentation: TrayPresentation = .overlay
     let onSetTimer: (Int) -> Void
     let onSelectVideoQuality: (VideoResolution, VideoFrameRate) -> Void
     let onAutomaticVideoQuality: () -> Void
@@ -887,7 +957,7 @@ struct RigTrayPanel: View {
     private let timerStops = [0, 3, 5, 10, 20]
 
     var body: some View {
-        TrayPanelShell(footnote: settings.blockerFootnote(for: mode)) {
+        TrayPanelShell(footnote: settings.blockerFootnote(for: mode), presentation: presentation) {
             ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable,
                                   exposureAvailable: settings.exposureAvailable),
                     id: \.self) { item in

@@ -573,16 +573,17 @@ struct CaptureModeSelector: View {
 /// the shell is shared. An optional `footnote` sits below the grid.
 struct TrayPanelShell<Content: View>: View {
     var footnote: String? = nil
+    /// In a sheet the system draws the glass and the grab handle, and owns
+    /// the drag that dismisses them. As an overlay the panel draws its own
+    /// glass and no handle: nothing there can be dragged, and a handle that
+    /// does not drag is a promise the panel cannot keep.
+    var presentation: TrayPresentation = .overlay
     @ViewBuilder let content: () -> Content
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
 
     var body: some View {
         VStack(spacing: 18) {
-            Capsule()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 36, height: 5)
-
             LazyVGrid(columns: columns, spacing: 20) { content() }
 
             if let footnote {
@@ -591,14 +592,19 @@ struct TrayPanelShell<Content: View>: View {
                     .foregroundColor(.white.opacity(0.7))
             }
         }
-        .padding(.top, 10)
+        .padding(.top, presentation == .sheet ? 20 : 10)
         .padding(.horizontal, 20)
         .padding(.bottom, 28)
         .frame(maxWidth: .infinity)
-        .background(
+        .background(glass)
+    }
+
+    @ViewBuilder
+    private var glass: some View {
+        if presentation == .overlay {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea(edges: .bottom)
-        )
+        }
     }
 }

@@ -70,4 +70,19 @@ final class MultiCamChromeTests: XCTestCase {
         XCTAssertLessThan(StreamProfile.thumbnail.bitrateKbps, StreamProfile.focused.bitrateKbps)
         XCTAssertLessThan(StreamProfile.thumbnail.fps, StreamProfile.focused.fps)
     }
+
+    /// The tray is a real sheet only where one is the right shape. On Mac
+    /// Catalyst a sheet is a modal card bolted to the window, so the Mac
+    /// keeps the overlay, which a pointer dismisses by clicking away.
+    func testTrayPresentationSuitsThePlatform() {
+        #if targetEnvironment(macCatalyst)
+        XCTAssertEqual(RigTrayPresentation.style, .overlay, "a Mac keeps the overlay")
+        #else
+        if #available(iOS 16.0, *) {
+            XCTAssertEqual(RigTrayPresentation.style, .sheet, "the system sheet brings the drag")
+        } else {
+            XCTAssertEqual(RigTrayPresentation.style, .overlay, "no detents before iOS 16")
+        }
+        #endif
+    }
 }

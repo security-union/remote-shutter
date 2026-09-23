@@ -300,6 +300,15 @@ keep in step with. What it composes from shared files:
   `AspectRatioCropOverlay`), `CameraSwitchControlView`, `CaptureModeSelector`,
   `TrayPanelShell`; plus `ZoomPill` and the layout enums in `MonitorChrome.swift`
   (`MonitorChromeLayout`, `MonitorLinkState`, `MonitorActivity`).
+- **The rig tray is a real sheet on iOS 16 and later.** `RigTrayPresentation`
+  decides: a system sheet where `presentationDetents` exists and a sheet is
+  the right shape, so the grab handle, the rubber-banding and the drag that
+  dismisses it are the system's; the in-screen overlay on Mac Catalyst, where
+  a sheet would be a modal card and a pointer dismisses by clicking the
+  viewfinder. `TrayPanelShell` draws its own glass only as an overlay, and
+  draws no handle there: nothing in an overlay can be dragged, and a handle
+  that does not drag is a promise the panel cannot keep. The sheet's detent is
+  measured from the tray, so adding a tile cannot leave it the wrong height.
 - `ZoomScaleSeed` — the zoom clamp (the single home of the 5×-wide
   `maxDisplayZoom`) and the capabilities→zoom derivation every `CameraLink`
   snapshot reads.
