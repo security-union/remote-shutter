@@ -152,6 +152,25 @@ final class MulticamViewModel: ObservableObject {
     /// its own pill then).
     var focusedZoomScale: ZoomScale { focusedLane?.zoomScale ?? ZoomScale(stops: [1.0], maxZoomFactor: 1.0, wideAngleZoomFactor: 1.0) }
     var focusedZoomFactor: CGFloat { focusedLane?.zoomFactor ?? 1.0 }
+
+    /// The focused camera's exposure truth, from its last state.
+    var focusedExposure: ExposureState? { focusedLane?.info.exposure }
+    /// Two gates, both open: the person turned the EXPOSURE tile on, and the
+    /// focused camera reports an exposure block. Focus mode only, like zoom.
+    var showsExposureControls: Bool {
+        displayMode == .focus && rigSettings.exposureControlsOn && focusedExposure != nil
+            && focusedLane?.status == .linked
+    }
+    /// Portrait: the readout the person tapped, whose ruler takes the zoom
+    /// pill's slot. Derived against what the camera currently offers, so a
+    /// choice that no longer applies (Manual left, camera changed) falls
+    /// back to zoom instead of parking a stale ruler.
+    @Published var selectedExposureRuler: ExposureRulerKind?
+    var portraitExposureRuler: ExposureRulerKind? {
+        guard let exposure = focusedExposure, let selected = selectedExposureRuler,
+              ExposureRulerKind.offered(by: exposure).contains(selected) else { return nil }
+        return selected
+    }
     var showsFocusedZoomPill: Bool {
         guard let focused = focusedLane, focused.status == .linked else { return false }
         return !focused.zoomScale.isDegenerate

@@ -69,6 +69,17 @@ class CameraViewModel: ObservableObject {
     // MARK: - Mode & Quality Status
     @Published var currentMode: RecordingMode = .Photo
     @Published var qualityInfo: String = "1080p 30fps"
+    /// "M 1/125 · ISO 400" while the remote holds this camera in Manual, so
+    /// the person at the camera sees what was set; nil in Auto.
+    @Published var exposureReadout: String?
+
+    func updateExposureReadout(_ state: ExposureState?) {
+        let text: String? = state.flatMap { state in
+            guard state.mode == .manual else { return nil }
+            return "M \(ExposureStops.shutterLabel(state.durationSeconds)) · \(ExposureStops.isoLabel(Double(state.iso)))"
+        }
+        DispatchQueue.main.async { self.exposureReadout = text }
+    }
 
     func updateStatus(mode: RecordingMode, resolution: VideoResolution, frameRate: VideoFrameRate,
                       photoFormat: PhotoFormat, hdrMode: HDRMode) {

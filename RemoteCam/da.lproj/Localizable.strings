@@ -279,3 +279,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "Genopretter forbindelsen til fjernbetjeningen…";
 "stop_recording_button" = "Stop optagelse";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "EKSPONERING";
+"MANUAL" = "MANUEL";
+"ZOOM" = "ZOOM";
+"Shutter speed" = "Lukkertid";
+"Exposure compensation" = "Eksponeringskompensation";
+"Manual exposure" = "Manuel eksponering";
+"Light meter" = "Lysmåler";
+"Zoom" = "Zoom";
+"This camera can't do manual exposure" = "Dette kamera understøtter ikke manuel eksponering";
+"The camera ignored that exposure setting" = "Kameraet ignorerede den eksponeringsindstilling";

@@ -257,6 +257,10 @@ These are the invariants worth preserving through future changes.
   The rig's standby is remembered across sessions (`RigStandbyPreference`,
   like the timer), so a rig left in standby opens in standby and puts every
   joining camera there. See `Docs/control-plane.md`.
+- **Exposure is per camera and off by default.** The EXPOSURE tray tile
+  (remembered) shows a readout strip and rulers for the focused camera only,
+  and only when that camera reports an exposure block. See
+  `Docs/pro-controls.md`.
 - **Framing belongs to a camera; the shot belongs to the rig.** Per-camera
   controls (zoom, focus, flash, torch, lens, camera flip) address the *focused*
   camera only. Rig controls (shutter, record, timer, quality/HDR) fan out to

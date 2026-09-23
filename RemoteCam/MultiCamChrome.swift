@@ -56,7 +56,8 @@ enum RigTray {
     /// Format/HDR stay listed when blocked: the intersection model greys them
     /// and names the blocking camera in the footnote instead. Aspect, like the
     /// 1:1 tray's, shows in both modes — every camera can crop.
-    static func items(mode: MonitorMode, standbyAvailable: Bool) -> [MonitorTrayItem] {
+    static func items(mode: MonitorMode, standbyAvailable: Bool,
+                      exposureAvailable: Bool = false) -> [MonitorTrayItem] {
         var items: [MonitorTrayItem] = [.timer, .aspect]
 
         switch mode {
@@ -66,6 +67,7 @@ enum RigTray {
             items.append(contentsOf: [.format, .hdr])
         }
 
+        if exposureAvailable { items.append(.exposure) }
         if standbyAvailable { items.append(.cameraStandby) }
         items.append(.settings)
         items.append(.help)

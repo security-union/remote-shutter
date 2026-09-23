@@ -100,30 +100,40 @@ zoom: counted in flight, answered by the state reply, refusals shown as a
 transient error naming the camera. `MulticamLaneInfo.exposure` is the lane's
 block, from which the screen derives everything.
 
-### The screen (next slice)
+### The screen
 
 Off by default. An **EXPOSURE** tile in the rig tray, beside TIMER and
 STANDBY, turns the controls on for the director and remembers the choice
-like the timer preference. It reads as unavailable when the focused camera
-has no block. Turning it off while a camera is in Manual sends Auto first,
-so no camera is left at a fixed shutter with nothing on screen to change it.
+(`ExposureControlsPreference`, like the timer). The tile is offered only
+when the focused camera reports a block. Turning it off sends Auto to every
+camera that is in Manual first, so no camera is left at a fixed shutter with
+nothing on screen to change it.
 
-With it on, in landscape: a readout strip near the zoom pill with the
-shutter, ISO, EV and the meter needle, plus an **AUTO / MANUAL** chip. Two
-vertical rulers in the thumb zones: shutter on the left and ISO on the right
-in Manual, EV on the right in Auto. The zoom pill keeps its place. In
-portrait, tapping a readout swaps the zoom pill's ruler for that control's,
-one at a time, with a ZOOM chip to return.
+With it on, a readout strip appears above the zoom pill: the **AUTO /
+MANUAL** chip (dimmed on a bias-only camera), the values ("1/60", "ISO 400",
+"+0.3 EV") and the light meter, a needle over a ±2 stop scale fed by the
+camera's `exposureTargetOffset`. Balancing two dials by eye needs the
+needle, not a number.
+
+In landscape, one vertical ruler per thumb, inboard of the shutter rail:
+shutter on the left and ISO on the right in Manual, EV on the right in Auto.
+The zoom pill keeps its place. In portrait, tapping a readout swaps the zoom
+pill's slot for that control's horizontal ruler, with a ZOOM chip to return;
+the choice is derived against what the camera currently offers, so it falls
+back to zoom when the camera leaves Manual or focus moves to a camera
+without the block (`MulticamViewModel.portraitExposureRuler`).
 
 The rulers are one component, `RulerPill`, the zoom pill's track extracted
-and configured by a scale: log stops for zoom, log-2 stops for shutter and
-ISO, linear stops for EV. Each ruler shows the requested value at once and
-reconciles to the camera's report when the reply lands, as zoom does. The
-readouts show values, not names: "1/60", "ISO 400", "+0.3 EV".
+and configured by a `RulerTrack`: log2 for zoom, shutter and ISO, linear for
+EV. The EV ruler spans ±2 like Apple's dial even when the device reports ±8.
+Each ruler shows the requested value at once and reconciles to the camera's
+report when the reply lands, as zoom does; each has its own send throttle
+(`ThrottledValueSender`, the zoom pattern). Shutter and ISO each send only
+their own component (0 = keep), so dragging one never disturbs the other.
 
-The camera device shows a small readout whenever it is in Manual, regardless
-of the director's preference, so the operator at the camera sees what was
-set.
+The camera device shows "M 1/125 · ISO 400" on its preview whenever it is in
+Manual, regardless of the director's preference, so the operator at the
+camera sees what was set. It clears when the session ends.
 
 ## Hardware probe
 
@@ -133,9 +143,14 @@ bias, applies Manual at 1/250 and ISO 400, checks frames keep flowing, that
 the logical device did not change across the hop, that a focus tap keeps
 Manual, and that Auto restores the chosen device. The engine also logs a
 `🌗 EXPOSURE PROBE` line per position when it scans the hardware matrix.
-Questions it answers on an iPhone: whether the Triple camera refuses custom
-exposure today, the real ranges at 1080p30 and 4K, and the fps drop past
-1/30.
+Measured 2026-09-23 on an iPhone 14, iOS 27, Back Dual Wide Camera: the
+virtual device refuses custom exposure (`custom=false`, `continuous=true`,
+bias ±8), so Manual hops to a constituent, and it worked: 1/250 and ISO 400
+landed with the logical device unchanged, frames kept flowing in Manual and
+back in Auto, and a focus tap kept Manual. The bias applied 157 ms after the
+call, which is what the completion wait is for. Ranges at 1080p30: shutter
+1/66667 s to 1 s, ISO 34 to 3264, frame ceiling 1/30. Still open: the
+ranges at 4K and 60 fps, and the Triple camera on a Pro model.
 
 ## Tests
 

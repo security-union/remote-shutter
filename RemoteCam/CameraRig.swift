@@ -355,6 +355,7 @@ final class CameraRig: @unchecked Sendable {
         }
         disarmFirstFrameWatchdog()
         engine.stopSession()
+        cameraViewModel.updateExposureReadout(nil)
     }
 
     /// Rotates the preview connection (via the published orientation) and the
@@ -526,6 +527,7 @@ extension CameraRig: CameraControlling {
 
     func setExposure(_ intent: ExposureIntent) async throws {
         try await engine.setExposure(intent)
+        cameraViewModel.updateExposureReadout(await engine.gatherCurrentCameraCapabilities()?.exposure)
     }
 
     func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {

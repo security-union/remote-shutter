@@ -242,6 +242,11 @@ public actor MulticamController {
     /// streamed frames are unaffected). Sent only to cameras that advertised
     /// `supportsPreviewMode`, including late joiners.
     private var rigPreviewMode: CameraPreviewMode = RigStandbyPreference.isOn ? .standby : .on
+    /// The director's choice to show exposure controls (Docs/pro-controls.md).
+    /// Remembered like the timer; turning it off hands every camera that is
+    /// in Manual back to Auto first, so no camera is left at a fixed shutter
+    /// with nothing on screen to change it.
+    private var exposureControlsOn = ExposureControlsPreference.isOn
     /// One rig self-timer (seconds); 0 = off. Fans out to every camera so
     /// subjects see the countdown, and its expiry triggers the synced capture.
     /// Seeded from the preference the classic remote persists, and written
@@ -527,6 +532,9 @@ public actor MulticamController {
         case let t as MCSetRigTimer:
             logInfo("director: timer preset \(t.seconds)s")
             handleSetRigTimer(t.seconds)
+        case let s as MCSetExposureControls:
+            logInfo("director: exposure controls \(s.on ? "on" : "off")")
+            handleSetExposureControls(s.on)
         case let s as MCSetRigStandby:
             logInfo("director: standby \(s.on ? "on" : "off") → rig")
             handleSetRigStandby(s.on)
@@ -1276,6 +1284,21 @@ public actor MulticamController {
         TimerPreference.seconds = seconds
     }
 
+    // MARK: - Exposure controls (the EXPOSURE tray tile)
+
+    public nonisolated func setExposureControls(_ on: Bool) { tell(MCSetExposureControls(on)) }
+
+    private func handleSetExposureControls(_ on: Bool) {
+        exposureControlsOn = on
+        ExposureControlsPreference.isOn = on
+        guard !on else { return }
+        for (peer, link) in links where link.capabilities?.exposure?.mode == .manual {
+            sendControl(.setexposure, RemoteCmd.SetExposure(intent: .auto(bias: 0)), to: peer)
+        }
+    }
+
+    func exposureControlsForTesting() -> Bool { exposureControlsOn }
+
     // MARK: - Rig standby (camera-side preview on / standby)
 
     public nonisolated func setRigStandby(_ on: Bool) { tell(MCSetRigStandby(on)) }
@@ -1376,7 +1399,9 @@ public actor MulticamController {
                 guard let link = links[peer], link.status != .failed else { return false }
                 return link.capabilities?.supportsPreviewMode == true
             },
-            standbyOn: rigPreviewMode == .standby)
+            standbyOn: rigPreviewMode == .standby,
+            exposureAvailable: focusedPeer.flatMap { links[$0]?.capabilities?.exposure } != nil,
+            exposureControlsOn: exposureControlsOn)
     }
 
     // MARK: Ack aggregation (shared across photo / start / stop)
@@ -1959,6 +1984,10 @@ final class MCSetAspectRatio: Message, @unchecked Sendable {
     init(_ ratio: AspectRatio) { self.ratio = ratio; super.init(sender: nil) }
 }
 
+final class MCSetExposureControls: Message, @unchecked Sendable {
+    let on: Bool
+    init(_ on: Bool) { self.on = on; super.init(sender: nil) }
+}
 final class MCSetRigStandby: Message, @unchecked Sendable {
     let on: Bool
     init(_ on: Bool) { self.on = on; super.init(sender: nil) }

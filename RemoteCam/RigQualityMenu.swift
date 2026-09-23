@@ -184,6 +184,11 @@ struct RigSettingsSnapshot: Equatable {
     /// The rig's commanded preview mode (standby = every supporting camera's
     /// screen is blanked; capture and streamed frames are unaffected).
     var standbyOn: Bool = false
+    /// The focused camera reports an exposure block — offers the EXPOSURE
+    /// tile. A camera with none is not sent SetExposure.
+    var exposureAvailable: Bool = false
+    /// The director's remembered choice to show the exposure controls.
+    var exposureControlsOn: Bool = false
 
     /// The glass quality tile cycles in place: Automatic → each enabled option
     /// in order → back to Automatic. `nil` is Automatic. Disabled options

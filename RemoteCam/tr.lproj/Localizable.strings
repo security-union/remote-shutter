@@ -400,3 +400,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "Uzaktan kumandaya yeniden bağlanılıyor…";
 "stop_recording_button" = "Kaydı durdur";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "POZLAMA";
+"MANUAL" = "MANUEL";
+"ZOOM" = "YAKINLAŞTIRMA";
+"Shutter speed" = "Enstantane hızı";
+"Exposure compensation" = "Pozlama telafisi";
+"Manual exposure" = "Manuel pozlama";
+"Light meter" = "Işık ölçer";
+"Zoom" = "Yakınlaştırma";
+"This camera can't do manual exposure" = "Bu kamera manuel pozlamayı desteklemiyor";
+"The camera ignored that exposure setting" = "Kamera bu pozlama ayarını yok saydı";

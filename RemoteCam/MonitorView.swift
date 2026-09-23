@@ -291,6 +291,7 @@ struct MonitorTrayTile: View {
         case .format: return "doc"
         case .hdr: return "camera.filters"
         case .cameraStandby: return isActive ? "moon.zzz.fill" : "moon.zzz"
+        case .exposure: return isActive ? "plusminus.circle.fill" : "plusminus.circle"
         case .settings: return "gearshape.fill"
         case .help: return "questionmark"
         }
@@ -305,6 +306,7 @@ struct MonitorTrayTile: View {
         case .format: return NSLocalizedString("FORMAT", comment: "tray tile")
         case .hdr: return NSLocalizedString("HDR", comment: "tray tile")
         case .cameraStandby: return NSLocalizedString("STANDBY", comment: "tray tile")
+        case .exposure: return NSLocalizedString("EXPOSURE", comment: "tray tile")
         case .settings: return NSLocalizedString("SETTINGS", comment: "tray tile")
         case .help: return NSLocalizedString("HELP", comment: "tray tile")
         }

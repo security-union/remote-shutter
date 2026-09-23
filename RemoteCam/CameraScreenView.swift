@@ -43,6 +43,22 @@ struct CameraScreenView: View {
             // stops frame delivery — standby covers the preview, never unmounts it.
             liveContent
 
+            // What the remote set, so the person holding the camera sees it.
+            if let readout = viewModel.exposureReadout {
+                VStack {
+                    Text(readout)
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(.ultraThinMaterial))
+                        .padding(.top, 54)
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+                .transition(.opacity)
+            }
+
             if viewModel.previewMode == .standby {
                 CameraStandbyView(viewModel: viewModel,
                                   onRestore: { onSetPreviewMode?(.on) })

@@ -400,3 +400,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "リモコンに再接続中…";
 "stop_recording_button" = "録画を停止";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "露出";
+"MANUAL" = "マニュアル";
+"ZOOM" = "ズーム";
+"Shutter speed" = "シャッター速度";
+"Exposure compensation" = "露出補正";
+"Manual exposure" = "マニュアル露出";
+"Light meter" = "露出計";
+"Zoom" = "ズーム";
+"This camera can't do manual exposure" = "このカメラはマニュアル露出に対応していません";
+"The camera ignored that exposure setting" = "カメラがその露出設定を無視しました";

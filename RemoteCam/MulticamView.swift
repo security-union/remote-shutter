@@ -38,6 +38,12 @@ struct MulticamView: View {
     let onSetAspectRatio: (AspectRatio) -> Void
     /// Rig standby: blank (or wake) every supporting camera's own preview.
     let onSetStandby: (Bool) -> Void
+    /// The EXPOSURE tile: show the exposure readouts and rulers on the director.
+    let onSetExposureControls: (Bool) -> Void
+    /// A drag on one exposure ruler of the focused camera.
+    let onExposureChange: (CameraLane, ExposureRulerKind, Double) -> Void
+    /// The AUTO / MANUAL chip.
+    let onSetExposureMode: (CameraLane, ExposureMode) -> Void
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
     /// Open the help sheet (the shared one every screen presents).
@@ -133,6 +139,7 @@ struct MulticamView: View {
                          onSetHDR: onSetHDR,
                          onSetAspectRatio: onSetAspectRatio,
                          onSetStandby: onSetStandby,
+                         onSetExposureControls: onSetExposureControls,
                          // Close the tray first, as the 1:1 tray does — the
                          // sheet returns to a clean viewfinder.
                          onOpenSettings: {
@@ -236,29 +243,81 @@ struct MulticamView: View {
     private var bottomCluster: some View {
         VStack(spacing: 14) {
             if viewModel.displayMode == .focus { cameraStrip(axis: .horizontal) }
-            focusedZoomPill
+            exposureReadoutStrip
+            if let kind = viewModel.portraitExposureRuler, viewModel.showsExposureControls,
+               let focused = viewModel.focusedLane, let exposure = viewModel.focusedExposure {
+                HStack(spacing: 10) {
+                    ExposureRulerPill(kind: kind, exposure: exposure, axis: .horizontal,
+                                      onChange: { onExposureChange(focused, kind, $0) })
+                    PillCircleButton(action: { viewModel.selectedExposureRuler = nil }) {
+                        Text(NSLocalizedString("ZOOM", comment: "back to the zoom pill"))
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                    }
+                    .accessibilityLabel(NSLocalizedString("Zoom", comment: "a11y"))
+                }
+            } else {
+                focusedZoomPill
+            }
             actionCluster(axis: .horizontal)
             modeSelector
         }
         .frame(maxWidth: .infinity)
     }
 
+    /// The top plate: shutter, ISO, EV and the meter, plus AUTO / MANUAL.
+    /// Shown only with the EXPOSURE tile on and a camera that reports the
+    /// block. In portrait a tapped readout's ruler takes the zoom pill's slot.
+    @ViewBuilder
+    private var exposureReadoutStrip: some View {
+        if viewModel.showsExposureControls, let exposure = viewModel.focusedExposure,
+           let focused = viewModel.focusedLane {
+            ExposureReadoutStrip(exposure: exposure,
+                                 selected: viewModel.portraitExposureRuler,
+                                 onSelect: { kind in
+                                     viewModel.selectedExposureRuler =
+                                         viewModel.selectedExposureRuler == kind ? nil : kind
+                                 },
+                                 onSetMode: { onSetExposureMode(focused, $0) })
+        }
+    }
+
+    /// Landscape: one vertical ruler per thumb. Shutter under the left thumb
+    /// and ISO under the right in Manual; EV under the right in Auto.
+    @ViewBuilder
+    private func exposureRuler(side: HorizontalEdge) -> some View {
+        if viewModel.showsExposureControls, let exposure = viewModel.focusedExposure,
+           let focused = viewModel.focusedLane {
+            let offered = ExposureRulerKind.offered(by: exposure)
+            let kind: ExposureRulerKind? = side == .leading
+                ? (offered.count > 1 ? offered[0] : nil)
+                : offered.last
+            if let kind {
+                ExposureRulerPill(kind: kind, exposure: exposure, axis: .vertical,
+                                  onChange: { onExposureChange(focused, kind, $0) })
+                    .frame(maxHeight: .infinity, alignment: .center)
+            }
+        }
+    }
+
     /// Wide shapes: the action cluster rides the docked rail; the strip and
     /// mode selector sit inboard — the monitor's `sideCluster` shape.
     private func sideCluster(onLeading: Bool) -> some View {
         HStack(alignment: .bottom, spacing: 16) {
-            if !onLeading { Spacer(minLength: 0) }
             if onLeading { actionCluster(axis: .vertical) }
+            exposureRuler(side: .leading)
+            if !onLeading { Spacer(minLength: 0) }
 
             VStack(spacing: 10) {
                 Spacer(minLength: 0)
                 if viewModel.displayMode == .focus { cameraStrip(axis: .vertical) }
+                exposureReadoutStrip
                 focusedZoomPill
                 modeSelector
             }
 
-            if !onLeading { actionCluster(axis: .vertical) }
             if onLeading { Spacer(minLength: 0) }
+            exposureRuler(side: .trailing)
+            if !onLeading { actionCluster(axis: .vertical) }
         }
     }
 
@@ -816,6 +875,8 @@ struct RigTrayPanel: View {
     let onSetAspectRatio: (AspectRatio) -> Void
     /// Rig standby: blank (or wake) every supporting camera's own preview.
     let onSetStandby: (Bool) -> Void
+    /// The EXPOSURE tile: show the exposure readouts and rulers on the director.
+    let onSetExposureControls: (Bool) -> Void
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
     /// Open the help sheet (the same one every screen presents).
@@ -825,7 +886,8 @@ struct RigTrayPanel: View {
 
     var body: some View {
         TrayPanelShell(footnote: settings.blockerFootnote(for: mode)) {
-            ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable),
+            ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable,
+                                  exposureAvailable: settings.exposureAvailable),
                     id: \.self) { item in
                 tile(for: item)
             }
@@ -866,6 +928,11 @@ struct RigTrayPanel: View {
                             isActive: settings.standbyOn,
                             isEnabled: true,
                             action: { onSetStandby(!settings.standbyOn) })
+        case .exposure:
+            MonitorTrayTile(item: .exposure, value: nil,
+                            isActive: settings.exposureControlsOn,
+                            isEnabled: !isRecording,
+                            action: { onSetExposureControls(!settings.exposureControlsOn) })
         case .settings:
             MonitorTrayTile(item: .settings, value: nil,
                             isActive: false, isEnabled: !isRecording,

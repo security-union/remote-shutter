@@ -400,3 +400,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "正在重新连接遥控器…";
 "stop_recording_button" = "停止录制";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "曝光";
+"MANUAL" = "手动";
+"ZOOM" = "变焦";
+"Shutter speed" = "快门速度";
+"Exposure compensation" = "曝光补偿";
+"Manual exposure" = "手动曝光";
+"Light meter" = "测光表";
+"Zoom" = "变焦";
+"This camera can't do manual exposure" = "此相机不支持手动曝光";
+"The camera ignored that exposure setting" = "相机忽略了该曝光设置";

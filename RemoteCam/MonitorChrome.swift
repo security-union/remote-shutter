@@ -57,6 +57,10 @@ enum MonitorTrayItem: Equatable {
     /// Puts the peer camera's *local* preview to sleep. It keeps capturing and
     /// keeps streaming here.
     case cameraStandby
+    /// Shows the exposure readouts and rulers on the director (off by
+    /// default, remembered). Offered only when the focused camera reports
+    /// an exposure block.
+    case exposure
     case settings
     case help
 }

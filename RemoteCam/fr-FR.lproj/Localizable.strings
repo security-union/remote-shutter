@@ -294,3 +294,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "Reconnexion à la télécommande…";
 "stop_recording_button" = "Arrêter l'enregistrement";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "EXPOSITION";
+"MANUAL" = "MANUEL";
+"ZOOM" = "ZOOM";
+"Shutter speed" = "Vitesse d’obturation";
+"Exposure compensation" = "Correction d’exposition";
+"Manual exposure" = "Exposition manuelle";
+"Light meter" = "Posemètre";
+"Zoom" = "Zoom";
+"This camera can't do manual exposure" = "Cette caméra ne permet pas l’exposition manuelle";
+"The camera ignored that exposure setting" = "La caméra a ignoré ce réglage d’exposition";
