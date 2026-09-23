@@ -45,7 +45,7 @@ struct RulerTrack: Equatable {
     }
 
     private func toTrack(_ value: Double) -> Double { mapping == .log2 ? log2(value) : value }
-    private func fromTrack(_ t: Double) -> Double { mapping == .log2 ? pow(2, t) : t }
+    private func fromTrack(_ onTrack: Double) -> Double { mapping == .log2 ? pow(2, onTrack) : onTrack }
     private var trackMin: Double { toTrack(minValue) }
     private var trackSpan: Double { toTrack(maxValue) - trackMin }
 

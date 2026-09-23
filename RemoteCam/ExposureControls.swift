@@ -174,12 +174,14 @@ struct ExposureRulerPill: View {
                           // the thumb returns on the tap rather than waiting
                           // for the camera to answer.
                           if kind.hasReset {
-                              PillCircleButton(action: { proxy.commit(0) }) {
-                                  Image(systemName: "arrow.uturn.backward")
-                                      .font(.system(size: 16, weight: .semibold))
-                              }
-                              .accessibilityLabel(NSLocalizedString("Reset exposure compensation",
-                                                                    comment: "a11y"))
+                              PillCircleButton(
+                                  action: { proxy.commit(0) },
+                                  label: {
+                                      Image(systemName: "arrow.uturn.backward")
+                                          .font(.system(size: 16, weight: .semibold))
+                                  })
+                                  .accessibilityLabel(NSLocalizedString("Reset exposure compensation",
+                                                                        comment: "a11y"))
                           }
                       }
                   })

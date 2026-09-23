@@ -54,18 +54,20 @@ struct ZoomPill: View {
         let active = activeStop(displayed: CGFloat(proxy.displayedValue))
         return HStack(spacing: Self.stopSpacing) {
             ForEach(scale.stops, id: \.self) { stop in
-                PillCircleButton(isActive: stop == active,
-                                 action: { proxy.commit(Double(scale.clamped(stop))) }) {
-                    Text(labelText(for: stop, active: active, displayed: CGFloat(proxy.displayedValue)))
-                        .font(.system(size: stop == active ? 11.5 : 11, weight: .semibold, design: .rounded))
-                        .lineLimit(1)
-                        // The active circle reads out the live factor, so it can be as wide
-                        // as "2.4×" where a stop's own name is just "1×". Scale the wide one
-                        // down to fit rather than letting it spill past the circle, and keep
-                        // an inset so glyphs never touch the edge.
-                        .minimumScaleFactor(0.7)
-                        .padding(.horizontal, Self.stopTextInset)
-                }
+                PillCircleButton(
+                    isActive: stop == active,
+                    action: { proxy.commit(Double(scale.clamped(stop))) },
+                    label: {
+                        Text(labelText(for: stop, active: active, displayed: CGFloat(proxy.displayedValue)))
+                            .font(.system(size: stop == active ? 11.5 : 11, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                            // The active circle reads out the live factor, so it can be as wide
+                            // as "2.4×" where a stop's own name is just "1×". Scale the wide one
+                            // down to fit rather than letting it spill past the circle, and keep
+                            // an inset so glyphs never touch the edge.
+                            .minimumScaleFactor(0.7)
+                            .padding(.horizontal, Self.stopTextInset)
+                    })
             }
         }
     }
