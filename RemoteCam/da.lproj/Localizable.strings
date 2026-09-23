@@ -283,7 +283,6 @@
 // Exposure controls (Docs/pro-controls.md)
 "EXPOSURE" = "EKSPONERING";
 "MANUAL" = "MANUEL";
-"ZOOM" = "ZOOM";
 "Shutter speed" = "Lukkertid";
 "Exposure compensation" = "Eksponeringskompensation";
 "Manual exposure" = "Manuel eksponering";

@@ -112,8 +112,8 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
     let axis: Axis
     let onChange: (Double) -> Void
     let collapsed: (RulerPillProxy) -> Collapsed
-    let leading: () -> Leading
-    let trailing: () -> Trailing
+    let leading: (RulerPillProxy) -> Leading
+    let trailing: (RulerPillProxy) -> Trailing
 
     @State private var isExpanded: Bool
     @State private var collapseWork: DispatchWorkItem?
@@ -125,9 +125,11 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
     /// Track position when the current drag began; movement is a delta.
     @State private var dragStartPosition: Double?
 
-    static var height: CGFloat { 46 }
-    private static var horizontalPadding: CGFloat { 14 }
-    private static var thumbWidth: CGFloat { 3 }
+    /// Tall enough for a 44pt control plus its readout — the iOS minimum
+    /// touch target, which a 32pt circle in a 46pt capsule was not.
+    static var height: CGFloat { 64 }
+    private static var horizontalPadding: CGFloat { 16 }
+    private static var thumbWidth: CGFloat { 4 }
     /// Track fraction per point of scroll: a ~10pt wheel notch moves ~3%.
     private static var scrollSensitivity: Double { 0.003 }
     private static var tickCount: Int { 41 }
@@ -141,12 +143,12 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
          accessibilityLabel: String,
          collapsesWhenIdle: Bool,
          collapsedWidth: CGFloat? = nil,
-         trackLength: CGFloat = 240,
+         trackLength: CGFloat = 280,
          axis: Axis = .horizontal,
          onChange: @escaping (Double) -> Void,
          @ViewBuilder collapsed: @escaping (RulerPillProxy) -> Collapsed,
-         @ViewBuilder leading: @escaping () -> Leading,
-         @ViewBuilder trailing: @escaping () -> Trailing) {
+         @ViewBuilder leading: @escaping (RulerPillProxy) -> Leading,
+         @ViewBuilder trailing: @escaping (RulerPillProxy) -> Trailing) {
         self.track = track
         self.currentValue = currentValue
         self.readout = readout
@@ -164,13 +166,13 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
 
     var body: some View {
         stack {
-            leading()
+            leading(proxy)
 
             ZStack {
                 if isExpanded {
                     ruler
                 } else {
-                    collapsed(RulerPillProxy(displayedValue: displayedValue, commit: commit))
+                    collapsed(proxy)
                 }
             }
             // Collapsed, the pill is only as wide as its content; it grows to
@@ -190,7 +192,7 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
                 }
             }
 
-            trailing()
+            trailing(proxy)
         }
         .padding(axis == .horizontal ? .horizontal : .vertical, Self.horizontalPadding)
         .background(glassBackground)
@@ -231,12 +233,18 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
     /// otherwise whatever the camera last confirmed.
     private var displayedValue: Double { pendingValue ?? currentValue }
 
+    /// What the pill hands its slots: what it is drawing, and a way to jump
+    /// to a value (a lens stop, a reset) as though it had been dragged there.
+    private var proxy: RulerPillProxy {
+        RulerPillProxy(displayedValue: displayedValue, commit: commit)
+    }
+
     // MARK: Ruler
 
     private var ruler: some View {
         let position = CGFloat(track.position(for: displayedValue))
         let readoutText = Text(readout(displayedValue))
-            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .font(.system(size: 14, weight: .semibold, design: .rounded))
             .foregroundColor(.white)
             .monospacedDigitIfAvailable()
         let thumb = RoundedRectangle(cornerRadius: Self.thumbWidth / 2)
@@ -248,10 +256,10 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
                     readoutText
                     ZStack(alignment: .leading) {
                         ticks
-                        thumb.frame(width: Self.thumbWidth, height: 20)
+                        thumb.frame(width: Self.thumbWidth, height: 28)
                             .offset(x: position * (trackLength - Self.thumbWidth))
                     }
-                    .frame(width: trackLength, height: 20, alignment: .leading)
+                    .frame(width: trackLength, height: 28, alignment: .leading)
                 }
             } else {
                 // Up is more, as on a camera's dial: the thumb sits at the top
@@ -260,10 +268,10 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
                     readoutText
                     ZStack(alignment: .top) {
                         ticks
-                        thumb.frame(width: 20, height: Self.thumbWidth)
+                        thumb.frame(width: 28, height: Self.thumbWidth)
                             .offset(y: (1 - position) * (trackLength - Self.thumbWidth))
                     }
-                    .frame(width: 20, height: trackLength, alignment: .top)
+                    .frame(width: 28, height: trackLength, alignment: .top)
                 }
             }
         }
@@ -292,8 +300,8 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
     private func tick(_ index: Int, isStop: Bool) -> some View {
         Rectangle()
             .fill(Color.white.opacity(isStop ? 0.9 : 0.3))
-            .frame(width: axis == .horizontal ? (isStop ? 2 : 1) : (isStop ? 16 : 8),
-                   height: axis == .horizontal ? (isStop ? 16 : 8) : (isStop ? 2 : 1))
+            .frame(width: axis == .horizontal ? (isStop ? 2 : 1) : (isStop ? 22 : 11),
+                   height: axis == .horizontal ? (isStop ? 22 : 11) : (isStop ? 2 : 1))
             .frame(maxWidth: axis == .horizontal ? .infinity : nil,
                    maxHeight: axis == .vertical ? .infinity : nil)
     }
@@ -391,7 +399,7 @@ extension RulerPill where Leading == EmptyView, Trailing == EmptyView {
         self.init(track: track, currentValue: currentValue, readout: readout,
                   accessibilityLabel: accessibilityLabel, collapsesWhenIdle: true,
                   collapsedWidth: collapsedWidth, onChange: onChange,
-                  collapsed: collapsed, leading: { EmptyView() }, trailing: { EmptyView() })
+                  collapsed: collapsed, leading: { _ in EmptyView() }, trailing: { _ in EmptyView() })
     }
 }
 
@@ -404,8 +412,8 @@ extension RulerPill where Collapsed == EmptyView {
          trackLength: CGFloat,
          axis: Axis,
          onChange: @escaping (Double) -> Void,
-         @ViewBuilder leading: @escaping () -> Leading,
-         @ViewBuilder trailing: @escaping () -> Trailing) {
+         @ViewBuilder leading: @escaping (RulerPillProxy) -> Leading,
+         @ViewBuilder trailing: @escaping (RulerPillProxy) -> Trailing) {
         self.init(track: track, currentValue: currentValue, readout: readout,
                   accessibilityLabel: accessibilityLabel, collapsesWhenIdle: false,
                   trackLength: trackLength, axis: axis, onChange: onChange,
@@ -421,7 +429,9 @@ struct PillCircleButton<Label: View>: View {
     let action: () -> Void
     @ViewBuilder let label: () -> Label
 
-    static var diameter: CGFloat { 32 }
+    /// The iOS minimum touch target. Every circular control in a pill — a
+    /// lens stop, a reset — is this big, so none needs aiming for.
+    static var diameter: CGFloat { 44 }
 
     var body: some View {
         label()

@@ -404,7 +404,6 @@
 // Exposure controls (Docs/pro-controls.md)
 "EXPOSURE" = "PENDEDAHAN";
 "MANUAL" = "MANUAL";
-"ZOOM" = "ZUM";
 "Shutter speed" = "Kelajuan pengatup";
 "Exposure compensation" = "Pampasan pendedahan";
 "Manual exposure" = "Pendedahan manual";

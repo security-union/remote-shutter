@@ -109,19 +109,22 @@ when the focused camera reports a block. Turning it off sends Auto to every
 camera that is in Manual first, so no camera is left at a fixed shutter with
 nothing on screen to change it.
 
-With it on, a readout strip appears above the zoom pill: the **AUTO /
-MANUAL** chip (dimmed on a bias-only camera), the values ("1/60", "ISO 400",
-"+0.3 EV") and the light meter, a needle over a ±2 stop scale fed by the
-camera's `exposureTargetOffset`. Balancing two dials by eye needs the
-needle, not a number.
+**Nothing is behind a toggle.** Zoom keeps its pill, and every ruler the
+camera offers is on screen beside it: EV in Auto, shutter and ISO in Manual.
+A small strip carries the one thing no ruler can say — the **AUTO / MANUAL**
+switch and the light meter, a needle over a ±2 stop scale fed by the
+camera's `exposureTargetOffset`. Each ruler shows its own value above its
+track, so the strip never repeats them.
 
-In landscape, one vertical ruler per thumb, inboard of the shutter rail:
-shutter on the left and ISO on the right in Manual, EV on the right in Auto.
-The zoom pill keeps its place. In portrait, tapping a readout swaps the zoom
-pill's slot for that control's horizontal ruler, with a ZOOM chip to return;
-the choice is derived against what the camera currently offers, so it falls
-back to zoom when the camera leaves Manual or focus moves to a camera
-without the block (`MulticamViewModel.portraitExposureRuler`).
+In landscape the exposure rulers stand vertically, one under each thumb,
+inboard of the shutter rail: shutter on the left and ISO on the right in
+Manual, EV on the right in Auto. In portrait they stack horizontally above
+the zoom pill. Either way the zoom pill never gives up its slot.
+
+Every control is at the iOS minimum touch target: `PillCircleButton` is
+44pt, the pill is 64pt tall, and the mode switch is a 44pt capsule. The EV
+ruler carries a **0** button that resets the bias, committed through the
+pill so the thumb snaps back on the tap instead of waiting for the camera.
 
 The rulers are one component, `RulerPill`, the zoom pill's track extracted
 and configured by a `RulerTrack`: log2 for zoom, shutter and ISO, linear for

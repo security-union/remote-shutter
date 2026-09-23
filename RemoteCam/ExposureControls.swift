@@ -130,7 +130,8 @@ enum ExposureRulerKind: Equatable, CaseIterable {
 }
 
 /// One exposure ruler, always up. Vertical on a side edge in landscape,
-/// horizontal in the zoom pill's slot in portrait.
+/// horizontal above the zoom pill in portrait. Every ruler a camera offers
+/// is on screen at once — nothing is behind a toggle.
 struct ExposureRulerPill: View {
     let kind: ExposureRulerKind
     let exposure: ExposureState
@@ -142,51 +143,42 @@ struct ExposureRulerPill: View {
                   currentValue: kind.value(exposure),
                   readout: { kind.label($0) },
                   accessibilityLabel: kind.accessibilityLabel,
-                  trackLength: axis == .vertical ? 200 : 240,
+                  trackLength: axis == .vertical ? 240 : 260,
                   axis: axis,
                   onChange: onChange,
-                  leading: { EmptyView() },
-                  trailing: { EmptyView() })
+                  leading: { _ in EmptyView() },
+                  trailing: { proxy in
+                      // EV is the one ruler with a "correct" value, so it is
+                      // the one with a reset. It commits through the pill, so
+                      // the thumb snaps back on the tap rather than waiting
+                      // for the camera to answer.
+                      if kind == .bias {
+                          PillCircleButton(action: { proxy.commit(0) }) {
+                              Text(verbatim: "0")
+                                  .font(.system(size: 17, weight: .bold, design: .rounded))
+                          }
+                          .accessibilityLabel(NSLocalizedString("Reset exposure compensation", comment: "a11y"))
+                      }
+                  })
     }
 }
 
 // MARK: - Readout strip
 
-/// The top plate of a camera: shutter, ISO, EV and the light meter as
-/// values, plus the AUTO / MANUAL chip. Tapping a readout is how portrait
-/// picks which ruler takes the zoom pill's slot.
+/// The AUTO / MANUAL switch and the light meter. Each ruler carries its own
+/// value above its track, so this says only what no ruler can: which mode
+/// the camera is in, and how far the frame is from the metered target.
 struct ExposureReadoutStrip: View {
     let exposure: ExposureState
-    /// The ruler currently shown in the zoom pill's slot (portrait), if any.
-    let selected: ExposureRulerKind?
-    let onSelect: (ExposureRulerKind) -> Void
     let onSetMode: (ExposureMode) -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            PillCircleButton(isActive: exposure.mode == .manual, action: {
-                onSetMode(exposure.mode == .manual ? .auto : .manual)
-            }) {
-                Text(exposure.mode == .manual
-                     ? NSLocalizedString("MANUAL", comment: "exposure mode chip")
-                     : NSLocalizedString("AUTO", comment: "exposure mode chip"))
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .minimumScaleFactor(0.7)
-                    .padding(.horizontal, 3)
-            }
-            .opacity(exposure.supportsManual ? 1 : 0.35)
-            .allowsHitTesting(exposure.supportsManual)
-            .accessibilityLabel(NSLocalizedString("Manual exposure", comment: "a11y"))
-            .accessibilityValue(exposure.mode == .manual ? "on" : "off")
-
-            ForEach(ExposureRulerKind.offered(by: exposure), id: \.self) { kind in
-                readout(kind)
-            }
-
+        HStack(spacing: 14) {
+            modeSwitch
             meter
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
         .background(
             ZStack {
                 Color.black.opacity(0.3).background(.ultraThinMaterial).clipShape(Capsule())
@@ -194,18 +186,25 @@ struct ExposureReadoutStrip: View {
             })
     }
 
-    private func readout(_ kind: ExposureRulerKind) -> some View {
-        Text(kind.label(kind.value(exposure)))
-            .font(.system(size: 12, weight: .semibold, design: .rounded))
-            .monospacedDigitIfAvailable()
-            .foregroundColor(selected == kind ? .black : .white)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Capsule().fill(selected == kind ? AppTheme.accent : Color.white.opacity(0.12)))
+    /// One tap between Auto and Manual, at the iOS minimum target size.
+    /// Dimmed on a camera that cannot do manual exposure at all.
+    private var modeSwitch: some View {
+        let isManual = exposure.mode == .manual
+        return Text(isManual
+                    ? NSLocalizedString("MANUAL", comment: "exposure mode switch")
+                    : NSLocalizedString("AUTO", comment: "exposure mode switch"))
+            .font(.system(size: 14, weight: .bold, design: .rounded))
+            .foregroundColor(isManual ? .black : .white)
+            .padding(.horizontal, 18)
+            .frame(height: PillCircleButton<Text>.diameter)
+            .background(Capsule().fill(isManual ? AppTheme.accent : Color.white.opacity(0.14)))
             .contentShape(Capsule())
-            .onTapGesture { onSelect(kind) }
-            .accessibilityLabel(kind.accessibilityLabel)
+            .onTapGesture { onSetMode(isManual ? .auto : .manual) }
+            .opacity(exposure.supportsManual ? 1 : 0.35)
+            .allowsHitTesting(exposure.supportsManual)
+            .accessibilityLabel(NSLocalizedString("Manual exposure", comment: "a11y"))
             .accessibilityAddTraits(.isButton)
+            .accessibilityValue(isManual ? "on" : "off")
     }
 
     /// The light meter: a needle over a ±2 stop scale, from the camera's
@@ -213,14 +212,14 @@ struct ExposureReadoutStrip: View {
     private var meter: some View {
         let offset = max(-2, min(2, Double(exposure.targetOffset)))
         return ZStack {
-            Rectangle().fill(Color.white.opacity(0.35)).frame(width: 44, height: 1)
-            Rectangle().fill(Color.white.opacity(0.6)).frame(width: 1, height: 8)
+            Rectangle().fill(Color.white.opacity(0.35)).frame(width: 64, height: 1)
+            Rectangle().fill(Color.white.opacity(0.6)).frame(width: 1, height: 12)
             Circle()
                 .fill(abs(offset) < 0.3 ? AppTheme.accent : Color.white)
-                .frame(width: 6, height: 6)
-                .offset(x: CGFloat(offset / 2) * 22)
+                .frame(width: 9, height: 9)
+                .offset(x: CGFloat(offset / 2) * 32)
         }
-        .frame(width: 44, height: 14)
+        .frame(width: 64, height: 20)
         .accessibilityLabel(NSLocalizedString("Light meter", comment: "a11y"))
         .accessibilityValue(ExposureStops.biasLabel(offset))
     }

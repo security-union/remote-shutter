@@ -404,7 +404,6 @@
 // Exposure controls (Docs/pro-controls.md)
 "EXPOSURE" = "POZLAMA";
 "MANUAL" = "MANUEL";
-"ZOOM" = "YAKINLAŞTIRMA";
 "Shutter speed" = "Enstantane hızı";
 "Exposure compensation" = "Pozlama telafisi";
 "Manual exposure" = "Manuel pozlama";

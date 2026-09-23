@@ -404,7 +404,6 @@
 // Exposure controls (Docs/pro-controls.md)
 "EXPOSURE" = "एक्सपोज़र";
 "MANUAL" = "मैनुअल";
-"ZOOM" = "ज़ूम";
 "Shutter speed" = "शटर स्पीड";
 "Exposure compensation" = "एक्सपोज़र कंपनसेशन";
 "Manual exposure" = "मैनुअल एक्सपोज़र";

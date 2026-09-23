@@ -37,34 +37,32 @@ final class MulticamViewModelTests: XCTestCase {
                          torchOn: torchOn, flashOn: flashOn, inFlight: inFlight, exposure: exposure)
     }
 
-    /// Portrait's tapped ruler is derived against what the focused camera
-    /// offers now: it vanishes when the camera leaves Manual or the focus
-    /// moves to a camera without the block, instead of parking a stale ruler.
-    func testPortraitExposureRulerFollowsWhatTheCameraOffers() {
+    /// Two gates, both of which must be open: the person turned the EXPOSURE
+    /// tile on, and the focused camera reports a block. A camera that reports
+    /// none shows nothing, whatever the tile says.
+    func testExposureControlsNeedBothTheTileAndTheCamera() {
         let vm = MulticamViewModel()
-        var rig = RigSettingsSnapshot()
-        rig.exposureControlsOn = true
-        vm.rigSettings = rig
         let manual = ExposureState(
             mode: .manual, bias: 0, minBias: -8, maxBias: 8, targetOffset: 0, supportsManual: true,
             durationSeconds: 1.0 / 60, iso: 200, minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 1,
             minISO: 32, maxISO: 3200, maxFrameDurationSeconds: 1.0 / 30)
+
         _ = vm.apply([info(camA, focused: true, exposure: manual)])
+        XCTAssertFalse(vm.showsExposureControls, "the tile is off by default")
+
+        var rig = RigSettingsSnapshot()
+        rig.exposureControlsOn = true
+        vm.rigSettings = rig
         XCTAssertTrue(vm.showsExposureControls)
-
-        vm.selectedExposureRuler = .iso
-        XCTAssertEqual(vm.portraitExposureRuler, .iso)
-
-        var auto = manual
-        auto.mode = .auto
-        _ = vm.apply([info(camA, focused: true, exposure: auto)])
-        XCTAssertNil(vm.portraitExposureRuler, "ISO is not offered in Auto")
-        vm.selectedExposureRuler = .bias
-        XCTAssertEqual(vm.portraitExposureRuler, .bias)
+        XCTAssertEqual(vm.focusedExposure?.mode, .manual)
 
         _ = vm.apply([info(camA, focused: true, exposure: nil)])
         XCTAssertFalse(vm.showsExposureControls, "no block, no controls, whatever the tile says")
-        XCTAssertNil(vm.portraitExposureRuler)
+
+        // Grid mode drives no single camera, so per-camera controls hide.
+        _ = vm.apply([info(camA, focused: true, exposure: manual)])
+        vm.displayMode = .grid
+        XCTAssertFalse(vm.showsExposureControls)
     }
 
     /// The shutter is a broadcast: cameras present is enough — focus is

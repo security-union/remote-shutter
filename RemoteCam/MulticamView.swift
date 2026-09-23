@@ -244,45 +244,44 @@ struct MulticamView: View {
         VStack(spacing: 14) {
             if viewModel.displayMode == .focus { cameraStrip(axis: .horizontal) }
             exposureReadoutStrip
-            if let kind = viewModel.portraitExposureRuler, viewModel.showsExposureControls,
-               let focused = viewModel.focusedLane, let exposure = viewModel.focusedExposure {
-                HStack(spacing: 10) {
-                    ExposureRulerPill(kind: kind, exposure: exposure, axis: .horizontal,
-                                      onChange: { onExposureChange(focused, kind, $0) })
-                    PillCircleButton(action: { viewModel.selectedExposureRuler = nil }) {
-                        Text(NSLocalizedString("ZOOM", comment: "back to the zoom pill"))
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
-                    }
-                    .accessibilityLabel(NSLocalizedString("Zoom", comment: "a11y"))
-                }
-            } else {
-                focusedZoomPill
-            }
+            exposureRulers(axis: .horizontal)
+            focusedZoomPill
             actionCluster(axis: .horizontal)
             modeSelector
         }
         .frame(maxWidth: .infinity)
     }
 
-    /// The top plate: shutter, ISO, EV and the meter, plus AUTO / MANUAL.
-    /// Shown only with the EXPOSURE tile on and a camera that reports the
-    /// block. In portrait a tapped readout's ruler takes the zoom pill's slot.
+    /// The AUTO / MANUAL switch and the light meter. Shown only with the
+    /// EXPOSURE tile on and a camera that reports the block.
     @ViewBuilder
     private var exposureReadoutStrip: some View {
         if viewModel.showsExposureControls, let exposure = viewModel.focusedExposure,
            let focused = viewModel.focusedLane {
             ExposureReadoutStrip(exposure: exposure,
-                                 selected: viewModel.portraitExposureRuler,
-                                 onSelect: { kind in
-                                     viewModel.selectedExposureRuler =
-                                         viewModel.selectedExposureRuler == kind ? nil : kind
-                                 },
                                  onSetMode: { onSetExposureMode(focused, $0) })
         }
     }
 
-    /// Landscape: one vertical ruler per thumb. Shutter under the left thumb
-    /// and ISO under the right in Manual; EV under the right in Auto.
+    /// Portrait: every ruler the camera offers, stacked above the zoom pill —
+    /// EV in Auto, shutter and ISO in Manual. Nothing is behind a toggle, and
+    /// zoom never gives up its slot.
+    @ViewBuilder
+    private func exposureRulers(axis: Axis) -> some View {
+        if viewModel.showsExposureControls, let exposure = viewModel.focusedExposure,
+           let focused = viewModel.focusedLane {
+            VStack(spacing: 10) {
+                ForEach(ExposureRulerKind.offered(by: exposure), id: \.self) { kind in
+                    ExposureRulerPill(kind: kind, exposure: exposure, axis: axis,
+                                      onChange: { onExposureChange(focused, kind, $0) })
+                }
+            }
+        }
+    }
+
+    /// Landscape: one vertical ruler per thumb, alongside the zoom pill.
+    /// Shutter under the left thumb and ISO under the right in Manual; EV
+    /// under the right in Auto.
     @ViewBuilder
     private func exposureRuler(side: HorizontalEdge) -> some View {
         if viewModel.showsExposureControls, let exposure = viewModel.focusedExposure,
@@ -294,7 +293,6 @@ struct MulticamView: View {
             if let kind {
                 ExposureRulerPill(kind: kind, exposure: exposure, axis: .vertical,
                                   onChange: { onExposureChange(focused, kind, $0) })
-                    .frame(maxHeight: .infinity, alignment: .center)
             }
         }
     }

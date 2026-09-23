@@ -404,7 +404,6 @@
 // Exposure controls (Docs/pro-controls.md)
 "EXPOSURE" = "BELICHTUNG";
 "MANUAL" = "MANUELL";
-"ZOOM" = "ZOOM";
 "Shutter speed" = "Verschlusszeit";
 "Exposure compensation" = "Belichtungskorrektur";
 "Manual exposure" = "Manuelle Belichtung";

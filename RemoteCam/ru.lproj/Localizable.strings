@@ -404,7 +404,6 @@
 // Exposure controls (Docs/pro-controls.md)
 "EXPOSURE" = "ЭКСПОЗИЦИЯ";
 "MANUAL" = "РУЧНОЙ";
-"ZOOM" = "ЗУМ";
 "Shutter speed" = "Выдержка";
 "Exposure compensation" = "Экспокоррекция";
 "Manual exposure" = "Ручная экспозиция";

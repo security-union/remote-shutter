@@ -298,7 +298,6 @@
 // Exposure controls (Docs/pro-controls.md)
 "EXPOSURE" = "EXPOSICIÓN";
 "MANUAL" = "MANUAL";
-"ZOOM" = "ZOOM";
 "Shutter speed" = "Velocidad de obturación";
 "Exposure compensation" = "Compensación de exposición";
 "Manual exposure" = "Exposición manual";

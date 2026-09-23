@@ -161,16 +161,6 @@ final class MulticamViewModel: ObservableObject {
         displayMode == .focus && rigSettings.exposureControlsOn && focusedExposure != nil
             && focusedLane?.status == .linked
     }
-    /// Portrait: the readout the person tapped, whose ruler takes the zoom
-    /// pill's slot. Derived against what the camera currently offers, so a
-    /// choice that no longer applies (Manual left, camera changed) falls
-    /// back to zoom instead of parking a stale ruler.
-    @Published var selectedExposureRuler: ExposureRulerKind?
-    var portraitExposureRuler: ExposureRulerKind? {
-        guard let exposure = focusedExposure, let selected = selectedExposureRuler,
-              ExposureRulerKind.offered(by: exposure).contains(selected) else { return nil }
-        return selected
-    }
     var showsFocusedZoomPill: Bool {
         guard let focused = focusedLane, focused.status == .linked else { return false }
         return !focused.zoomScale.isDegenerate
