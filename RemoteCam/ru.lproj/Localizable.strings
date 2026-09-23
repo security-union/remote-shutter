@@ -407,6 +407,7 @@
 "Shutter speed" = "Выдержка";
 "Exposure compensation" = "Экспокоррекция";
 "Manual exposure" = "Ручная экспозиция";
+"METER" = "ЭКСПОНОМЕТР";
 "Light meter" = "Экспонометр";
 "Zoom" = "Зум";
 "This camera can't do manual exposure" = "Эта камера не поддерживает ручную экспозицию";

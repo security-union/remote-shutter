@@ -111,10 +111,12 @@ nothing on screen to change it.
 
 **Nothing is behind a toggle.** Zoom keeps its pill, and every ruler the
 camera offers is on screen beside it: EV in Auto, shutter and ISO in Manual.
-A small strip carries the one thing no ruler can say — the **AUTO / MANUAL**
-switch and the light meter, a needle over a ±2 stop scale fed by the
-camera's `exposureTargetOffset`. Each ruler shows its own value above its
-track, so the strip never repeats them.
+A small strip carries the one thing no ruler can say: the **AUTO / MANUAL**
+switch and the light meter. The meter is a needle over a ±2 stop scale fed
+by the camera's `exposureTargetOffset`, one tick per stop with the metered
+target taller, the dot gold within a third of a stop of it, and a METER
+caption so it reads as an instrument rather than decoration. Each ruler
+shows its own value above its track, so the strip never repeats them.
 
 In landscape the exposure rulers stand vertically, one under each thumb,
 inboard of the shutter rail: shutter on the left and ISO on the right in

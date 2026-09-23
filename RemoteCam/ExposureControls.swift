@@ -246,20 +246,51 @@ struct ExposureReadoutStrip: View {
     }
 
     /// The light meter: a needle over a ±2 stop scale, from the camera's
-    /// `targetOffset`. Balancing two dials by eye needs this, not a number.
+    /// `targetOffset`, captioned so it reads as an instrument rather than
+    /// decoration. Balancing two dials by eye needs this, not a number: the
+    /// dot goes gold within a third of a stop of the metered target.
     private var meter: some View {
-        let offset = max(-2, min(2, Double(exposure.targetOffset)))
-        return ZStack {
-            Rectangle().fill(Color.white.opacity(0.35)).frame(width: 64, height: 1)
-            Rectangle().fill(Color.white.opacity(0.6)).frame(width: 1, height: 12)
-            Circle()
-                .fill(abs(offset) < 0.3 ? AppTheme.accent : Color.white)
-                .frame(width: 9, height: 9)
-                .offset(x: CGFloat(offset / 2) * 32)
+        let offset = max(-Self.meterStops, min(Self.meterStops, Double(exposure.targetOffset)))
+        return VStack(spacing: 3) {
+            ZStack {
+                Rectangle()
+                    .fill(Color.white.opacity(0.35))
+                    .frame(width: Self.meterWidth, height: 1)
+                // One tick per stop, the target taller — the scale is what
+                // makes the dot's distance from centre mean something.
+                ForEach(Array(stride(from: -Self.meterStops, through: Self.meterStops, by: 1)), id: \.self) { stop in
+                    Rectangle()
+                        .fill(Color.white.opacity(stop == 0 ? 0.7 : 0.35))
+                        .frame(width: 1, height: stop == 0 ? 12 : 6)
+                        .offset(x: Self.meterOffset(stop))
+                }
+                Circle()
+                    .fill(abs(offset) < 0.3 ? AppTheme.accent : Color.white)
+                    .frame(width: 9, height: 9)
+                    .offset(x: Self.meterOffset(offset))
+            }
+            .frame(width: Self.meterWidth, height: 14)
+
+            Text(NSLocalizedString("METER", comment: "light meter legend"))
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(0.5)
+                .foregroundColor(.white.opacity(0.5))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: Self.meterWidth)
         }
-        .frame(width: 64, height: 20)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(NSLocalizedString("Light meter", comment: "a11y"))
         .accessibilityValue(ExposureStops.biasLabel(offset))
+    }
+
+    /// Half the scale, in stops either side of the metered target.
+    private static let meterStops: Double = 2
+    private static let meterWidth: CGFloat = 64
+    /// Where a value in stops sits on the scale, for the ticks and the dot
+    /// alike, so a tick and the needle at the same value coincide exactly.
+    private static func meterOffset(_ stops: Double) -> CGFloat {
+        CGFloat(stops / meterStops) * (meterWidth / 2)
     }
 }
 

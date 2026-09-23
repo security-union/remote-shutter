@@ -286,6 +286,7 @@
 "Shutter speed" = "Tempo di scatto";
 "Exposure compensation" = "Compensazione dell’esposizione";
 "Manual exposure" = "Esposizione manuale";
+"METER" = "ESPOSIMETRO";
 "Light meter" = "Esposimetro";
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Questa fotocamera non supporta l’esposizione manuale";

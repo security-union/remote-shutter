@@ -407,6 +407,7 @@
 "Shutter speed" = "셔터 속도";
 "Exposure compensation" = "노출 보정";
 "Manual exposure" = "수동 노출";
+"METER" = "노출계";
 "Light meter" = "노출계";
 "Zoom" = "줌";
 "This camera can't do manual exposure" = "이 카메라는 수동 노출을 지원하지 않습니다";

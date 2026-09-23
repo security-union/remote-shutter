@@ -301,6 +301,7 @@
 "Shutter speed" = "Vitesse d’obturation";
 "Exposure compensation" = "Correction d’exposition";
 "Manual exposure" = "Exposition manuelle";
+"METER" = "POSEMÈTRE";
 "Light meter" = "Posemètre";
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Cette caméra ne permet pas l’exposition manuelle";

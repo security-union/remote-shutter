@@ -407,6 +407,7 @@
 "Shutter speed" = "シャッター速度";
 "Exposure compensation" = "露出補正";
 "Manual exposure" = "マニュアル露出";
+"METER" = "露出計";
 "Light meter" = "露出計";
 "Zoom" = "ズーム";
 "This camera can't do manual exposure" = "このカメラはマニュアル露出に対応していません";

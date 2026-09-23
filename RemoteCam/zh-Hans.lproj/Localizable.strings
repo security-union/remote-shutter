@@ -407,6 +407,7 @@
 "Shutter speed" = "快门速度";
 "Exposure compensation" = "曝光补偿";
 "Manual exposure" = "手动曝光";
+"METER" = "测光";
 "Light meter" = "测光表";
 "Zoom" = "变焦";
 "This camera can't do manual exposure" = "此相机不支持手动曝光";

@@ -407,6 +407,7 @@
 "Shutter speed" = "Verschlusszeit";
 "Exposure compensation" = "Belichtungskorrektur";
 "Manual exposure" = "Manuelle Belichtung";
+"METER" = "MESSUNG";
 "Light meter" = "Belichtungsmesser";
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Diese Kamera unterstützt keine manuelle Belichtung";

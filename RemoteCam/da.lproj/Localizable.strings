@@ -286,6 +286,7 @@
 "Shutter speed" = "Lukkertid";
 "Exposure compensation" = "Eksponeringskompensation";
 "Manual exposure" = "Manuel eksponering";
+"METER" = "LYSMÅLER";
 "Light meter" = "Lysmåler";
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Dette kamera understøtter ikke manuel eksponering";
