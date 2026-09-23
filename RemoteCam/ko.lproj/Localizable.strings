@@ -400,3 +400,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "리모컨에 다시 연결하는 중…";
 "stop_recording_button" = "녹화 중지";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "노출";
+"MANUAL" = "수동";
+"Shutter speed" = "셔터 속도";
+"Exposure compensation" = "노출 보정";
+"Manual exposure" = "수동 노출";
+"METER" = "노출계";
+"Light meter" = "노출계";
+"Zoom" = "줌";
+"This camera can't do manual exposure" = "이 카메라는 수동 노출을 지원하지 않습니다";
+"The camera ignored that exposure setting" = "카메라가 해당 노출 설정을 무시했습니다";

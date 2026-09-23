@@ -136,6 +136,77 @@ final class CaptureIntegrationTests: XCTestCase {
             + "lastFrameAt=\(lastFrameAt)"
     }
 
+    /// The exposure hardware probe (Docs/pro-controls.md): what this camera
+    /// advertises, and that Manual / Auto-with-bias actually land on the
+    /// device and are reported back. Prints the block so a run on a real
+    /// iPhone answers the range and lens-hop questions a code read cannot.
+    func testExposureProbeAppliesAndReportsTruth() async throws {
+        let t0 = Date()
+        try await startRealRig()
+        print("🌗 probe: rig up in \(Int(Date().timeIntervalSince(t0)))s")
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+        print("🌗 probe: frames in \(Int(Date().timeIntervalSince(t0)))s")
+        // Every Apple support query, raw, so a run on new hardware is a
+        // complete record even when the block below is absent.
+        if let av = rig.engine.currentDevice() {
+            print("🌗 probe: raw \(av.localizedName) custom=\(av.isExposureModeSupported(.custom)) "
+                  + "continuous=\(av.isExposureModeSupported(.continuousAutoExposure)) "
+                  + "autoExpose=\(av.isExposureModeSupported(.autoExpose)) locked=\(av.isExposureModeSupported(.locked)) "
+                  + "current=\(av.exposureMode.rawValue) poi=\(av.isExposurePointOfInterestSupported) "
+                  + "bias=\(av.minExposureTargetBias)…\(av.maxExposureTargetBias) type=\(av.deviceType.rawValue)")
+        }
+        guard let before = await rig.gatherCurrentCameraCapabilities()?.exposure else {
+            throw XCTSkip("this camera offers neither EV bias nor manual exposure")
+        }
+        let device = await rig.currentCameraDevice()
+        print("🌗 probe: \(device?.localizedName ?? "?") \(before)")
+
+        if before.maxBias > before.minBias {
+            let t1 = Date()
+            try await rig.setExposure(.auto(bias: 1))
+            print("🌗 probe: setExposure(bias 1) returned in \(Int(Date().timeIntervalSince(t1) * 1000))ms")
+            // The bias lands asynchronously (AVFoundation's completion handler
+            // reports when); poll a little before judging it.
+            var biased = await rig.gatherCurrentCameraCapabilities()?.exposure
+            for _ in 0..<40 where (biased?.bias ?? 0) < 0.99 {
+                try? await Task.sleep(nanoseconds: 50_000_000)
+                biased = await rig.gatherCurrentCameraCapabilities()?.exposure
+            }
+            print("🌗 probe: bias reads \(biased?.bias ?? -99) after \(Int(Date().timeIntervalSince(t1) * 1000))ms")
+            XCTAssertEqual(biased?.mode, .auto)
+            XCTAssertEqual(biased?.bias ?? 0, 1, accuracy: 0.01, "the bias must land on the device")
+        }
+
+        guard before.supportsManual else {
+            try await rig.setExposure(.auto(bias: 0))
+            throw XCTSkip("no manual exposure on \(device?.localizedName ?? "this camera") — bias verified")
+        }
+        let logicalBefore = device?.uniqueID
+        try await rig.setExposure(.manual(durationSeconds: 1.0 / 250, iso: min(400, before.maxISO)))
+        let manualFrames = await waitForFrames(since: lastFrameAt)
+        XCTAssertNotNil(manualFrames, "frames must keep flowing in manual")
+        let manual = await rig.gatherCurrentCameraCapabilities()
+        XCTAssertEqual(manual?.exposure?.mode, .manual)
+        XCTAssertEqual(manual?.exposure?.durationSeconds ?? 0, 1.0 / 250, accuracy: 1.0 / 2000)
+        XCTAssertEqual(manual?.exposure?.iso ?? 0, min(400, before.maxISO), accuracy: 1)
+        XCTAssertEqual(manual?.activeDeviceID, logicalBefore, "a lens hop never leaks into the logical device")
+        print("🌗 probe: manual landed — \(manual?.exposure.map { "\($0)" } ?? "nil") active=\(manual?.activeDeviceID ?? "?")")
+
+        // A focus tap must not throw the manual setting away.
+        try await rig.focusAtPoint(x: 0.5, y: 0.5)
+        let afterFocus = await rig.gatherCurrentCameraCapabilities()?.exposure?.mode
+        XCTAssertEqual(afterFocus, .manual)
+
+        try await rig.setExposure(.auto(bias: 0))
+        let autoFrames = await waitForFrames(since: lastFrameAt)
+        XCTAssertNotNil(autoFrames, "frames must keep flowing after auto")
+        let auto = await rig.gatherCurrentCameraCapabilities()
+        XCTAssertEqual(auto?.exposure?.mode, .auto)
+        XCTAssertEqual(auto?.activeDeviceID, logicalBefore, "auto returns to the chosen device")
+    }
+
     func testCameraStartsAndFramesFlowWithinDeadline() async throws {
         try await startRealRig()
 

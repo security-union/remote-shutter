@@ -257,6 +257,10 @@ These are the invariants worth preserving through future changes.
   The rig's standby is remembered across sessions (`RigStandbyPreference`,
   like the timer), so a rig left in standby opens in standby and puts every
   joining camera there. See `Docs/control-plane.md`.
+- **Exposure is per camera and off by default.** The EXPOSURE tray tile
+  (remembered) shows a readout strip and rulers for the focused camera only,
+  and only when that camera reports an exposure block. See
+  `Docs/pro-controls.md`.
 - **Framing belongs to a camera; the shot belongs to the rig.** Per-camera
   controls (zoom, focus, flash, torch, lens, camera flip) address the *focused*
   camera only. Rig controls (shutter, record, timer, quality/HDR) fan out to
@@ -296,6 +300,15 @@ keep in step with. What it composes from shared files:
   `AspectRatioCropOverlay`), `CameraSwitchControlView`, `CaptureModeSelector`,
   `TrayPanelShell`; plus `ZoomPill` and the layout enums in `MonitorChrome.swift`
   (`MonitorChromeLayout`, `MonitorLinkState`, `MonitorActivity`).
+- **The rig tray is a real sheet on iOS 16 and later.** `RigTrayPresentation`
+  decides: a system sheet where `presentationDetents` exists and a sheet is
+  the right shape, so the grab handle, the rubber-banding and the drag that
+  dismisses it are the system's; the in-screen overlay on Mac Catalyst, where
+  a sheet would be a modal card and a pointer dismisses by clicking the
+  viewfinder. `TrayPanelShell` draws its own glass only as an overlay, and
+  draws no handle there: nothing in an overlay can be dragged, and a handle
+  that does not drag is a promise the panel cannot keep. The sheet's detent is
+  measured from the tray, so adding a tile cannot leave it the wrong height.
 - `ZoomScaleSeed` — the zoom clamp (the single home of the 5×-wide
   `maxDisplayZoom`) and the capabilities→zoom derivation every `CameraLink`
   snapshot reads.

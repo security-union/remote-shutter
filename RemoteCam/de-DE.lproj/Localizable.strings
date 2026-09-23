@@ -400,3 +400,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "Verbindung zur Fernbedienung wird wiederhergestellt…";
 "stop_recording_button" = "Aufnahme stoppen";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "BELICHTUNG";
+"MANUAL" = "MANUELL";
+"Shutter speed" = "Verschlusszeit";
+"Exposure compensation" = "Belichtungskorrektur";
+"Manual exposure" = "Manuelle Belichtung";
+"METER" = "MESSUNG";
+"Light meter" = "Belichtungsmesser";
+"Zoom" = "Zoom";
+"This camera can't do manual exposure" = "Diese Kamera unterstützt keine manuelle Belichtung";
+"The camera ignored that exposure setting" = "Die Kamera hat diese Belichtungseinstellung ignoriert";

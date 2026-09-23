@@ -89,6 +89,10 @@ struct MulticamLaneInfo: Equatable {
     /// Controls with a command in flight to this camera (sent, not yet
     /// answered): the chrome dims them instead of guessing the result.
     let inFlight: Set<RemoteShutter_CommandAction>
+    /// This camera's exposure truth and ranges, or nil when it offers no
+    /// exposure control at all — the gate for the exposure rulers and for
+    /// `SetExposure` on the wire.
+    let exposure: ExposureState?
 }
 
 /// A Sendable pipe that carries one lane's decoded-preview frames from the
@@ -238,6 +242,11 @@ public actor MulticamController {
     /// streamed frames are unaffected). Sent only to cameras that advertised
     /// `supportsPreviewMode`, including late joiners.
     private var rigPreviewMode: CameraPreviewMode = RigStandbyPreference.isOn ? .standby : .on
+    /// The director's choice to show exposure controls (Docs/pro-controls.md).
+    /// Remembered like the timer; turning it off hands every camera that is
+    /// in Manual back to Auto first, so no camera is left at a fixed shutter
+    /// with nothing on screen to change it.
+    private var exposureControlsOn = ExposureControlsPreference.isOn
     /// One rig self-timer (seconds); 0 = off. Fans out to every camera so
     /// subjects see the countdown, and its expiry triggers the synced capture.
     /// Seeded from the preference the classic remote persists, and written
@@ -477,6 +486,9 @@ public actor MulticamController {
         case let m as MCSelectCameraDevice:
             logInfo("director: select device \(m.uniqueID) → \(m.target.displayName)")
             handleSelectCameraDevice(m.uniqueID, target: m.target)
+        case let m as MCSetExposure:
+            logInfo("director: exposure \(m.intent) → \(m.target.displayName)")
+            handleSetExposure(m.intent, target: m.target)
         case let m as MCFocusAtPoint:
             logInfo("director: focus tap (\(m.x), \(m.y)) → \(m.target.displayName)")
             handleFocusAtPoint(x: m.x, y: m.y, target: m.target)
@@ -520,6 +532,9 @@ public actor MulticamController {
         case let t as MCSetRigTimer:
             logInfo("director: timer preset \(t.seconds)s")
             handleSetRigTimer(t.seconds)
+        case let s as MCSetExposureControls:
+            logInfo("director: exposure controls \(s.on ? "on" : "off")")
+            handleSetExposureControls(s.on)
         case let s as MCSetRigStandby:
             logInfo("director: standby \(s.on ? "on" : "off") → rig")
             handleSetRigStandby(s.on)
@@ -898,6 +913,20 @@ public actor MulticamController {
         sendTo(target, RemoteCmd.FocusAtPoint(x: x, y: y))
     }
 
+    /// Exposure on one camera, like zoom. Dropped unless that camera's state
+    /// carries an exposure block, and a manual intent additionally needs the
+    /// block to say the device accepts custom exposure — a peer that can't
+    /// honor the command is never sent one.
+    public nonisolated func setExposure(_ intent: ExposureIntent, on peer: MCPeerID) {
+        tell(MCSetExposure(intent, target: peer))
+    }
+
+    private func handleSetExposure(_ intent: ExposureIntent, target: MCPeerID) {
+        guard let exposure = links[target]?.capabilities?.exposure else { return }
+        if case .manual = intent, !exposure.supportsManual { return }
+        sendControl(.setexposure, RemoteCmd.SetExposure(intent: intent), to: target)
+    }
+
     func switchLens(_ lens: CameraLensType, on peer: MCPeerID) {
         sendControl(.switchlens, RemoteCmd.SwitchLens(lensType: lens), to: peer)
     }
@@ -1255,6 +1284,21 @@ public actor MulticamController {
         TimerPreference.seconds = seconds
     }
 
+    // MARK: - Exposure controls (the EXPOSURE tray tile)
+
+    public nonisolated func setExposureControls(_ on: Bool) { tell(MCSetExposureControls(on)) }
+
+    private func handleSetExposureControls(_ on: Bool) {
+        exposureControlsOn = on
+        ExposureControlsPreference.isOn = on
+        guard !on else { return }
+        for (peer, link) in links where link.capabilities?.exposure?.mode == .manual {
+            sendControl(.setexposure, RemoteCmd.SetExposure(intent: .auto(bias: 0)), to: peer)
+        }
+    }
+
+    func exposureControlsForTesting() -> Bool { exposureControlsOn }
+
     // MARK: - Rig standby (camera-side preview on / standby)
 
     public nonisolated func setRigStandby(_ on: Bool) { tell(MCSetRigStandby(on)) }
@@ -1355,7 +1399,9 @@ public actor MulticamController {
                 guard let link = links[peer], link.status != .failed else { return false }
                 return link.capabilities?.supportsPreviewMode == true
             },
-            standbyOn: rigPreviewMode == .standby)
+            standbyOn: rigPreviewMode == .standby,
+            exposureAvailable: focusedPeer.flatMap { links[$0]?.capabilities?.exposure } != nil,
+            exposureControlsOn: exposureControlsOn)
     }
 
     // MARK: Ack aggregation (shared across photo / start / stop)
@@ -1902,6 +1948,14 @@ final class MCToggleFlash: Message, @unchecked Sendable {
     let target: MCPeerID
     init(target: MCPeerID) { self.target = target; super.init(sender: nil) }
 }
+final class MCSetExposure: Message, @unchecked Sendable {
+    let intent: ExposureIntent
+    let target: MCPeerID
+    init(_ intent: ExposureIntent, target: MCPeerID) {
+        self.intent = intent; self.target = target
+        super.init(sender: nil)
+    }
+}
 final class MCSetZoom: Message, @unchecked Sendable {
     let factor: CGFloat
     let target: MCPeerID
@@ -1930,6 +1984,10 @@ final class MCSetAspectRatio: Message, @unchecked Sendable {
     init(_ ratio: AspectRatio) { self.ratio = ratio; super.init(sender: nil) }
 }
 
+final class MCSetExposureControls: Message, @unchecked Sendable {
+    let on: Bool
+    init(_ on: Bool) { self.on = on; super.init(sender: nil) }
+}
 final class MCSetRigStandby: Message, @unchecked Sendable {
     let on: Bool
     init(_ on: Bool) { self.on = on; super.init(sender: nil) }

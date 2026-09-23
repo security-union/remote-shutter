@@ -57,6 +57,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SetStreamProfile: return m.toFlatBuffer()
         case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
         case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
@@ -697,6 +698,37 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertNil(decodedQuiet.error)
     }
 
+
+    // MARK: - SetExposure + the exposure block of the state reply
+
+    func testSetExposure_autoAndManualRoundTrip() {
+        let auto: RemoteCmd.SetExposure = roundTrip(RemoteCmd.SetExposure(intent: .auto(bias: -1.5)))
+        XCTAssertEqual(auto.intent, .auto(bias: -1.5))
+        let manual: RemoteCmd.SetExposure = roundTrip(
+            RemoteCmd.SetExposure(intent: .manual(durationSeconds: 1.0 / 250, iso: 400)))
+        XCTAssertEqual(manual.intent, .manual(durationSeconds: 1.0 / 250, iso: 400))
+        // 0 = "keep the camera's current value" must survive as 0.
+        let keep: RemoteCmd.SetExposure = roundTrip(RemoteCmd.SetExposure(intent: .manual(durationSeconds: 0, iso: 800)))
+        XCTAssertEqual(keep.intent, .manual(durationSeconds: 0, iso: 800))
+    }
+
+    func testControlReply_carriesTheExposureBlockOrNothing() {
+        let block = ExposureState(
+            mode: .manual, bias: 0.5, minBias: -8, maxBias: 8, targetOffset: -0.3, supportsManual: true,
+            durationSeconds: 1.0 / 60, iso: 200, minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0,
+            minISO: 32, maxISO: 3200, maxFrameDurationSeconds: 1.0 / 30)
+        let with = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+            exposure: block, inReplyTo: .setexposure, error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(with)
+        XCTAssertEqual(decoded.exposure, block)
+        XCTAssertEqual(decoded.inReplyTo, .setexposure)
+
+        let without = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1, error: nil)
+        let decodedWithout: RemoteCmd.CameraCapabilitiesResp = roundTrip(without)
+        XCTAssertNil(decodedWithout.exposure, "absent block = no exposure control on this camera")
+    }
 
     // MARK: - 26. RequestCameraCapabilities
 

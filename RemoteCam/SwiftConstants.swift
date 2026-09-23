@@ -33,6 +33,18 @@ enum RigStandbyPreference {
     }
 }
 
+/// Whether the director shows the exposure readouts and rulers. Off by
+/// default: most users came for zoom, and manual exposure changes what a
+/// photo is (single frame, no HDR merge), so the person asks for it once,
+/// from the EXPOSURE tray tile, and it stays.
+enum ExposureControlsPreference {
+    static let key = "rig.exposureControls"
+    static var isOn: Bool {
+        get { UserDefaults.standard.bool(forKey: key) }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
+    }
+}
+
 /// "Send Media to Remote" (Settings): whether the camera pushes each capture
 /// back to the remote that fired it. ONE reader for every remote surface —
 /// the classic 1:1 monitor and the multicam director both put this on the

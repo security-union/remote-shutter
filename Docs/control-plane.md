@@ -111,10 +111,9 @@ may be deleted. A wire change that older builds cannot follow is an app major
 bump: 13.0.0 introduced this contract, and a 12.x peer completes the version
 exchange and is told to update.
 
-## Next
+## Exposure
 
-Manual exposure and Cinematic video (#206) add one command each and one
-optional block each to the state; capability is the block's presence, the
-same gate `camera_devices` already is for `SelectCameraDevice`. A rig-wide
-photo/video mode command would let Cinematic be refused in photo mode with
-the same policy table.
+`SetExposure` (Docs/pro-controls.md) is the first control added on this
+contract: one command, one optional `ExposureState` block in the state
+reply, capability by presence, one row in the phase table, one gated
+`sendControl` on the director. Cinematic video would follow the same shape.

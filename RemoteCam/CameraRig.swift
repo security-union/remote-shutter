@@ -196,6 +196,9 @@ final class CameraRig: @unchecked Sendable {
                 if token != .invalid { UIApplication.shared.endBackgroundTask(token) }
             }
         }
+        // The exposure policy caps a long shutter at the frame duration while
+        // a clip is rolling; recording truth lives here, not in the engine.
+        engine.isRecordingProvider = { [weak self] in self?.isRecording ?? false }
         engine.onCameraDevicesChanged = { [weak self] in
             // Hot-plug (fires on the session queue): refresh the picker and,
             // when a monitor is connected, re-advertise capabilities.
@@ -352,6 +355,7 @@ final class CameraRig: @unchecked Sendable {
         }
         disarmFirstFrameWatchdog()
         engine.stopSession()
+        cameraViewModel.updateExposureReadout(nil)
     }
 
     /// Rotates the preview connection (via the published orientation) and the
@@ -519,6 +523,11 @@ extension CameraRig: CameraControlling {
         // can't focus (the box is the confirmation).
         cameraViewModel.showRemoteFocus(x: x, y: y)
         try await engine.setFocusExposurePoint(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y)))
+    }
+
+    func setExposure(_ intent: ExposureIntent) async throws {
+        try await engine.setExposure(intent)
+        cameraViewModel.updateExposureReadout(await engine.gatherCurrentCameraCapabilities()?.exposure)
     }
 
     func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {

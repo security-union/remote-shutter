@@ -386,6 +386,21 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    // MARK: - Exposure Remote Commands
+
+    /// Director -> camera: Auto (with an EV bias) or Manual (shutter + ISO).
+    /// The camera clamps into its active format's range and answers, like
+    /// every control command, with its full state. Only sent to a camera
+    /// whose state carries an `exposure` block.
+    public class SetExposure: Message, @unchecked Sendable {
+        public let intent: ExposureIntent
+
+        public init(intent: ExposureIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Focus Remote Commands
 
     /// Monitor -> camera: set the focus/exposure point of interest. `x`/`y` are
@@ -567,6 +582,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
         public let torchOn: Bool
         public let flashMode: AVCaptureDevice.FlashMode
         public let aspectRatio: AspectRatio
+        /// The camera's exposure truth and ranges. Nil = this device offers
+        /// neither EV bias nor manual exposure; the director shows no
+        /// exposure controls and never sends `SetExposure`.
+        public let exposure: ExposureState?
         /// The control command this answers; `.requestcapabilities` for an
         /// unsolicited push. Set by the camera coordinator before sending.
         public var inReplyTo: RemoteShutter_CommandAction
@@ -589,6 +608,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    torchOn: Bool = false,
                    flashMode: AVCaptureDevice.FlashMode = .off,
                    aspectRatio: AspectRatio = .sixteenNine,
+                   exposure: ExposureState? = nil,
                    inReplyTo: RemoteShutter_CommandAction = .requestcapabilities,
                    error: Error?) {
             self.frontCamera = frontCamera
@@ -609,6 +629,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.torchOn = torchOn
             self.flashMode = flashMode
             self.aspectRatio = aspectRatio
+            self.exposure = exposure
             self.inReplyTo = inReplyTo
             self.error = error
             super.init(sender: nil)

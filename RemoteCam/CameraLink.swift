@@ -126,7 +126,8 @@ final class CameraLink {
             wideAngleZoomFactor: zoom?.wideAngleZoomFactor ?? 1.0,
             torchOn: capabilities?.torchOn ?? false,
             flashOn: (capabilities?.flashMode ?? .off) != .off,
-            inFlight: Set(pending.filter { $0.value > 0 }.keys))
+            inFlight: Set(pending.filter { $0.value > 0 }.keys),
+            exposure: capabilities?.exposure)
     }
 
     /// The zoom scale as the camera last reported it — the same derivation

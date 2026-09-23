@@ -160,6 +160,26 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     func applyStreamProfile(_ profile: StreamProfile) { appliedProfiles.append(profile) }
 
     // swiftlint:disable:next large_tuple
+    /// The exposure block this fake advertises (nil = no exposure control),
+    /// and the intents it was asked to apply. A phone-shaped block by default
+    /// so the director's gate is open in loopback tests.
+    var exposureState: ExposureState? = ExposureState(
+        mode: .auto, bias: 0, minBias: -8, maxBias: 8, targetOffset: 0, supportsManual: true,
+        durationSeconds: 1.0 / 120, iso: 64, minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0,
+        minISO: 32, maxISO: 3200, maxFrameDurationSeconds: 1.0 / 30)
+    var exposureIntents: [ExposureIntent] = []
+    func setExposure(_ intent: ExposureIntent) async throws {
+        if let errorToThrow { throw errorToThrow }
+        exposureIntents.append(intent)
+        switch intent {
+        case let .auto(bias): exposureState?.mode = .auto; exposureState?.bias = bias
+        case let .manual(duration, iso):
+            exposureState?.mode = .manual
+            if duration > 0 { exposureState?.durationSeconds = duration }
+            if iso > 0 { exposureState?.iso = iso }
+        }
+    }
+
     func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
         if let errorToThrow { throw errorToThrow }
         zoomCalls.append(zoomFactor)
@@ -307,6 +327,7 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             torchOn: torchActive,
             flashMode: flashMode,
             aspectRatio: aspectRatio,
+            exposure: exposureState,
             error: nil)
     }
 

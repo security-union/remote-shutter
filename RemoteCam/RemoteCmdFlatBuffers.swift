@@ -39,6 +39,7 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SetStreamProfile: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
     case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
     case let m as RemoteCmd.EndSession: return m.toFlatBuffer()
@@ -418,6 +419,7 @@ private func encodeCapabilitiesEnvelope(
         supportsPreviewMode: c.supportsPreviewMode,
         supportsMulticam: c.supportsMulticam)
 
+    let exposureOffset = c.exposure.map { encodeExposureState($0, &fbb) } ?? Offset()
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
         currentCamera: toFBCamPos(c.currentCamera),
@@ -431,7 +433,8 @@ private func encodeCapabilitiesEnvelope(
         hdrMode: toFBHDRMode(c.currentHDRMode),
         aspectRatio: toFBAspectRatio(c.aspectRatio),
         activeDeviceIdOffset: activeIDOffset,
-        previewMode: toFBPreviewMode(c.previewMode))
+        previewMode: toFBPreviewMode(c.previewMode),
+        exposureOffset: exposureOffset)
 
     return (capsOffset, stateOffset)
 }
@@ -839,6 +842,47 @@ extension RemoteCmd.CameraStateReport {
 
 // MARK: - Video/Photo Quality toFlatBuffer() extensions
 
+extension RemoteCmd.SetExposure {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params: Offset
+        switch intent {
+        case let .auto(bias):
+            params = RemoteShutter_CommandParameters.createCommandParameters(
+                &fbb, exposureMode: .auto, exposureBias: bias)
+        case let .manual(durationSeconds, iso):
+            params = RemoteShutter_CommandParameters.createCommandParameters(
+                &fbb, exposureMode: .manual, exposureDurationSeconds: durationSeconds, exposureIso: iso)
+        }
+        return buildCommand(&fbb, action: .setexposure, parameters: params)
+    }
+}
+
+// MARK: - ExposureState encode / decode
+
+private func encodeExposureState(_ e: ExposureState, _ fbb: inout FlatBufferBuilder) -> Offset {
+    RemoteShutter_ExposureState.createExposureState(
+        &fbb,
+        mode: e.mode == .manual ? .manual : .auto,
+        bias: e.bias, minBias: e.minBias, maxBias: e.maxBias, targetOffset: e.targetOffset,
+        supportsManual: e.supportsManual,
+        durationSeconds: e.durationSeconds, iso: e.iso,
+        minDurationSeconds: e.minDurationSeconds, maxDurationSeconds: e.maxDurationSeconds,
+        minIso: e.minISO, maxIso: e.maxISO,
+        maxFrameDurationSeconds: e.maxFrameDurationSeconds)
+}
+
+private func decodeExposureState(_ fb: RemoteShutter_ExposureState) -> ExposureState {
+    ExposureState(
+        mode: fb.mode == .manual ? .manual : .auto,
+        bias: fb.bias, minBias: fb.minBias, maxBias: fb.maxBias, targetOffset: fb.targetOffset,
+        supportsManual: fb.supportsManual,
+        durationSeconds: fb.durationSeconds, iso: fb.iso,
+        minDurationSeconds: fb.minDurationSeconds, maxDurationSeconds: fb.maxDurationSeconds,
+        minISO: fb.minIso, maxISO: fb.maxIso,
+        maxFrameDurationSeconds: fb.maxFrameDurationSeconds)
+}
+
 extension RemoteCmd.SetVideoQuality {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1061,6 +1105,18 @@ extension RemoteCmd {
             logWarning("RemoteCmd: StopRecordingFinished is not a command")
             return nil
 
+        case .setexposure:
+            // Unknown mode = malformed: dropped, never guessed.
+            switch params?.exposureMode {
+            case .auto:
+                return SetExposure(intent: .auto(bias: params?.exposureBias ?? 0))
+            case .manual:
+                return SetExposure(intent: .manual(durationSeconds: params?.exposureDurationSeconds ?? 0,
+                                                   iso: params?.exposureIso ?? 0))
+            default:
+                return nil
+            }
+
         case .setvideoquality:
             let resolution = fromFBResolution(params?.videoResolution ?? .hd1080p)
             let frameRate = fromFBFrameRate(params?.videoFrameRate ?? .fps30)
@@ -1153,7 +1209,7 @@ extension RemoteCmd {
 
         case .requestcapabilities, .setzoom, .switchlens, .toggleflash, .toggletorch,
              .togglecamera, .selectcameradevice, .setvideoquality, .setphotoquality,
-             .setaspectratio, .setcamerapreviewmode:
+             .setaspectratio, .setcamerapreviewmode, .setexposure:
             // Every control command is answered by the camera's full state
             // under the command's own action (Docs/control-plane.md).
             return decodeCameraCapabilitiesResp(resp, inReplyTo: resp.action, error: nsError)
@@ -1210,6 +1266,7 @@ extension RemoteCmd {
             torchOn: state?.torchMode == .on,
             flashMode: state.map { fromFBFlash($0.flashMode) } ?? .off,
             aspectRatio: state.map { fromFBAspectRatio($0.aspectRatio) } ?? .sixteenNine,
+            exposure: state?.exposure.map { decodeExposureState($0) },
             inReplyTo: inReplyTo,
             error: error
         )

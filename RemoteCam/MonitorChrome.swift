@@ -57,8 +57,23 @@ enum MonitorTrayItem: Equatable {
     /// Puts the peer camera's *local* preview to sleep. It keeps capturing and
     /// keeps streaming here.
     case cameraStandby
+    /// Shows the exposure readouts and rulers on the director (off by
+    /// default, remembered). Offered only when the focused camera reports
+    /// an exposure block.
+    case exposure
     case settings
     case help
+}
+
+// MARK: - Tray presentation
+
+/// How a tray panel is being presented, which decides whether it draws its
+/// own glass and grabber or lets a system sheet provide them.
+enum TrayPresentation: Equatable {
+    /// Floating in the screen's own stack, over a live viewfinder.
+    case overlay
+    /// Inside a real `.sheet`, which brings the grabber and the drag.
+    case sheet
 }
 
 // MARK: - Link health

@@ -400,3 +400,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "Повторное подключение к пульту…";
 "stop_recording_button" = "Остановить запись";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "ЭКСПОЗИЦИЯ";
+"MANUAL" = "РУЧНОЙ";
+"Shutter speed" = "Выдержка";
+"Exposure compensation" = "Экспокоррекция";
+"Manual exposure" = "Ручная экспозиция";
+"METER" = "ЭКСПОНОМЕТР";
+"Light meter" = "Экспонометр";
+"Zoom" = "Зум";
+"This camera can't do manual exposure" = "Эта камера не поддерживает ручную экспозицию";
+"The camera ignored that exposure setting" = "Камера проигнорировала эту настройку экспозиции";

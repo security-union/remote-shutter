@@ -400,3 +400,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "Đang kết nối lại với điều khiển…";
 "stop_recording_button" = "Dừng quay";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "PHƠI SÁNG";
+"MANUAL" = "THỦ CÔNG";
+"Shutter speed" = "Tốc độ màn trập";
+"Exposure compensation" = "Bù phơi sáng";
+"Manual exposure" = "Phơi sáng thủ công";
+"METER" = "ĐO SÁNG";
+"Light meter" = "Đo sáng";
+"Zoom" = "Zoom";
+"This camera can't do manual exposure" = "Máy ảnh này không hỗ trợ phơi sáng thủ công";
+"The camera ignored that exposure setting" = "Máy ảnh đã bỏ qua cài đặt phơi sáng đó";

@@ -26,6 +26,10 @@ public final class MulticamViewController: UIViewController {
     /// so a drag doesn't flood the wire; the trailing edge guarantees the final
     /// value lands.
     private var zoomThrottle = ZoomSendThrottle()
+    /// One throttled sender per exposure ruler, the zoom pattern; the target
+    /// camera is whichever lane the drag was on.
+    private var exposureSenders: [ExposureRulerKind: ThrottledValueSender] = [:]
+    private var exposureTarget: MCPeerID?
     private var trailingZoomTimer: Timer?
 
     /// `controller` must already be `install`-ed with its transport + peers by
@@ -82,6 +86,16 @@ public final class MulticamViewController: UIViewController {
             },
             onSetAspectRatio: { [weak self] ratio in self?.controller.setAspectRatio(ratio) },
             onSetStandby: { [weak self] on in self?.controller.setRigStandby(on) },
+            onSetExposureControls: { [weak self] on in self?.controller.setExposureControls(on) },
+            onExposureChange: { [weak self] lane, kind, value in
+                self?.handleExposureChange(kind, value, on: lane.peerID)
+            },
+            onSetExposureMode: { [weak self] lane, mode in
+                // Manual seeds from the camera's current values (0 = keep);
+                // Auto returns the camera to continuous exposure.
+                let intent: ExposureIntent = mode == .manual ? .manual(durationSeconds: 0, iso: 0) : .auto(bias: 0)
+                self?.controller.setExposure(intent, on: lane.peerID)
+            },
             onOpenSettings: { [weak self] in
                 logInfo("director: settings opened")
                 self?.showPaywall()
@@ -167,6 +181,16 @@ public final class MulticamViewController: UIViewController {
         case (.video, false): controller.startRecording()
         case (.video, true): controller.stopRecording()
         }
+    }
+
+    private func handleExposureChange(_ kind: ExposureRulerKind, _ value: Double, on peer: MCPeerID) {
+        exposureTarget = peer
+        let sender = exposureSenders[kind] ?? ThrottledValueSender { [weak self] value in
+            guard let self, let peer = self.exposureTarget else { return }
+            self.controller.setExposure(kind.intent(for: value), on: peer)
+        }
+        exposureSenders[kind] = sender
+        sender.submit(value)
     }
 
     /// Throttled zoom, the same leading+trailing pattern the 1:1 monitor uses

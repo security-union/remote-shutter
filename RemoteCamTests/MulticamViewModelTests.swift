@@ -23,7 +23,8 @@ final class MulticamViewModelTests: XCTestCase {
                       torchOn: Bool = false, flashOn: Bool = false,
                       cameraDevices: [RemoteCmd.CameraDeviceEntry] = [],
                       activeDeviceID: String? = nil,
-                      inFlight: Set<RemoteShutter_CommandAction> = []) -> MulticamLaneInfo {
+                      inFlight: Set<RemoteShutter_CommandAction> = [],
+                      exposure: ExposureState? = nil) -> MulticamLaneInfo {
         MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
                          status: status, isFocused: focused, clockOffsetMillis: nil,
                          captureOutcome: nil, isRecording: false, recordingElapsedMillis: nil,
@@ -33,7 +34,35 @@ final class MulticamViewModelTests: XCTestCase {
                          supportsFocusPoint: supportsFocusPoint, hasTorch: hasTorch,
                          zoomFactor: zoomFactor, maxZoomFactor: maxZoomFactor,
                          zoomStops: zoomStops, wideAngleZoomFactor: wideAngleZoomFactor,
-                         torchOn: torchOn, flashOn: flashOn, inFlight: inFlight)
+                         torchOn: torchOn, flashOn: flashOn, inFlight: inFlight, exposure: exposure)
+    }
+
+    /// Two gates, both of which must be open: the person turned the EXPOSURE
+    /// tile on, and the focused camera reports a block. A camera that reports
+    /// none shows nothing, whatever the tile says.
+    func testExposureControlsNeedBothTheTileAndTheCamera() {
+        let vm = MulticamViewModel()
+        let manual = ExposureState(
+            mode: .manual, bias: 0, minBias: -8, maxBias: 8, targetOffset: 0, supportsManual: true,
+            durationSeconds: 1.0 / 60, iso: 200, minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 1,
+            minISO: 32, maxISO: 3200, maxFrameDurationSeconds: 1.0 / 30)
+
+        _ = vm.apply([info(camA, focused: true, exposure: manual)])
+        XCTAssertFalse(vm.showsExposureControls, "the tile is off by default")
+
+        var rig = RigSettingsSnapshot()
+        rig.exposureControlsOn = true
+        vm.rigSettings = rig
+        XCTAssertTrue(vm.showsExposureControls)
+        XCTAssertEqual(vm.focusedExposure?.mode, .manual)
+
+        _ = vm.apply([info(camA, focused: true, exposure: nil)])
+        XCTAssertFalse(vm.showsExposureControls, "no block, no controls, whatever the tile says")
+
+        // Grid mode drives no single camera, so per-camera controls hide.
+        _ = vm.apply([info(camA, focused: true, exposure: manual)])
+        vm.displayMode = .grid
+        XCTAssertFalse(vm.showsExposureControls)
     }
 
     /// The shutter is a broadcast: cameras present is enough — focus is

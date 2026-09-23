@@ -400,3 +400,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "रिमोट से दोबारा कनेक्ट हो रहा है…";
 "stop_recording_button" = "रिकॉर्डिंग रोकें";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "एक्सपोज़र";
+"MANUAL" = "मैनुअल";
+"Shutter speed" = "शटर स्पीड";
+"Exposure compensation" = "एक्सपोज़र कंपनसेशन";
+"Manual exposure" = "मैनुअल एक्सपोज़र";
+"METER" = "मीटर";
+"Light meter" = "लाइट मीटर";
+"Zoom" = "ज़ूम";
+"This camera can't do manual exposure" = "यह कैमरा मैनुअल एक्सपोज़र नहीं कर सकता";
+"The camera ignored that exposure setting" = "कैमरे ने उस एक्सपोज़र सेटिंग को अनदेखा कर दिया";

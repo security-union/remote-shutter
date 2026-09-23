@@ -400,3 +400,15 @@
 // Keep rolling through a remote drop (v10)
 "reconnecting_to_remote" = "Menyambung semula ke alat kawalan…";
 "stop_recording_button" = "Hentikan rakaman";
+
+// Exposure controls (Docs/pro-controls.md)
+"EXPOSURE" = "PENDEDAHAN";
+"MANUAL" = "MANUAL";
+"Shutter speed" = "Kelajuan pengatup";
+"Exposure compensation" = "Pampasan pendedahan";
+"Manual exposure" = "Pendedahan manual";
+"METER" = "METER";
+"Light meter" = "Meter cahaya";
+"Zoom" = "Zum";
+"This camera can't do manual exposure" = "Kamera ini tidak menyokong pendedahan manual";
+"The camera ignored that exposure setting" = "Kamera mengabaikan tetapan pendedahan itu";

@@ -30,6 +30,7 @@ final class MulticamControllerTests: XCTestCase {
         // The rig timer seeds from the shared preference; tests start from off.
         UserDefaults.standard.removeObject(forKey: TimerPreference.key)
         UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
+        UserDefaults.standard.removeObject(forKey: ExposureControlsPreference.key)
         // "Send Media to Remote" is read per shot; tests start from the default (on).
         UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
     }
@@ -37,7 +38,51 @@ final class MulticamControllerTests: XCTestCase {
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
         UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
+        UserDefaults.standard.removeObject(forKey: ExposureControlsPreference.key)
         super.tearDown()
+    }
+
+    /// The EXPOSURE tile: remembered like the timer, offered only when the
+    /// focused camera reports a block, and turning it off hands every camera
+    /// that is in Manual back to Auto so none is left at a fixed shutter.
+    func testExposureTileIsRememberedOfferedPerCameraAndReleasesManualOnOff() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        func caps(_ exposure: ExposureState?) -> RemoteCmd.CameraCapabilitiesResp {
+            RemoteCmd.CameraCapabilitiesResp(
+                frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+                supportsMulticam: true, exposure: exposure, error: nil)
+        }
+        let manual = ExposureState(
+            mode: .manual, bias: 0, minBias: -8, maxBias: 8, targetOffset: 0, supportsManual: true,
+            durationSeconds: 1.0 / 60, iso: 200, minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 1,
+            minISO: 32, maxISO: 3200, maxFrameDurationSeconds: 1.0 / 30)
+        controller.didReceiveMessage(caps(manual), from: camA)
+        controller.didReceiveMessage(caps(nil), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+
+        var settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertTrue(settings.exposureAvailable, "the focused camera reports a block")
+        XCTAssertFalse(settings.exposureControlsOn, "off by default")
+
+        controller.setExposureControls(true)
+        await controller.waitForIdle()
+        XCTAssertTrue(ExposureControlsPreference.isOn, "remembered for the next session")
+        settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertTrue(settings.exposureControlsOn)
+
+        await controller.setFocusedPeer(camB)
+        await controller.waitForIdle()
+        settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertFalse(settings.exposureAvailable, "a camera without the block offers no tile")
+
+        transport.sentMessages.removeAll()
+        controller.setExposureControls(false)
+        await controller.waitForIdle()
+        let released = sent(transport, RemoteCmd.SetExposure.self)
+        XCTAssertEqual(released.map(\.peers), [[camA]], "only the camera in Manual is told")
+        XCTAssertEqual((released.first?.msg as? RemoteCmd.SetExposure)?.intent, .auto(bias: 0))
+        XCTAssertFalse(ExposureControlsPreference.isOn)
     }
 
     /// Rig standby is remembered like the timer: a director that was left in
@@ -2083,6 +2128,35 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(lanes.first { $0.peerID == camA }?.torchOn, true, "the camera said so")
         XCTAssertEqual(lanes.first { $0.peerID == camA }?.inFlight, [])
         XCTAssertEqual(lanes.first { $0.peerID == camB }?.torchOn, false, "no other lane is touched")
+    }
+
+    /// Exposure is sent only to a camera whose state carries the block, and
+    /// Manual only when the block says the device accepts it.
+    func testExposureIsGatedOnTheLanesExposureBlock() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        func caps(_ exposure: ExposureState?) -> RemoteCmd.CameraCapabilitiesResp {
+            RemoteCmd.CameraCapabilitiesResp(
+                frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+                supportsMulticam: true, exposure: exposure, error: nil)
+        }
+        controller.didReceiveMessage(caps(nil), from: camA)
+        await controller.waitForIdle()
+        controller.setExposure(.auto(bias: 1), on: camA)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetExposure.self).isEmpty, "no block, no command")
+
+        let biasOnly = ExposureState(
+            mode: .auto, bias: 0, minBias: -2, maxBias: 2, targetOffset: 0, supportsManual: false,
+            durationSeconds: 0, iso: 0, minDurationSeconds: 0, maxDurationSeconds: 0, minISO: 0, maxISO: 0)
+        controller.didReceiveMessage(caps(biasOnly), from: camA)
+        await controller.waitForIdle()
+        controller.setExposure(.manual(durationSeconds: 0.01, iso: 100), on: camA)
+        controller.setExposure(.auto(bias: 1), on: camA)
+        await controller.waitForIdle()
+        let intents = sent(transport, RemoteCmd.SetExposure.self).compactMap { ($0.msg as? RemoteCmd.SetExposure)?.intent }
+        XCTAssertEqual(intents, [.auto(bias: 1)], "bias only: Manual is dropped, Auto goes")
+        let pending = await controller.pendingForTesting(camA, .setexposure)
+        XCTAssertEqual(pending, 1, "counted in flight like every control command")
     }
 
     /// A send the transport refuses is settled on the spot: not in flight,
