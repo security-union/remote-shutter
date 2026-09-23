@@ -919,10 +919,16 @@ private struct TrayHeightKey: PreferenceKey {
 }
 
 private extension View {
-    /// Keep the app's glass behind the sheet where the API to set it exists;
-    /// below 16.4 the system's own sheet background stands in.
+    /// The sheet's background. From iOS 26 the system draws sheets in Liquid
+    /// Glass itself, so the app sets nothing: overriding it with a material
+    /// would opt this one sheet out of the platform's own look, which is the
+    /// opposite of what it wants. Between 16.4 and 25 there is no glass to
+    /// inherit, so the app supplies the nearest material it has. Below that,
+    /// the system's plain sheet background stands.
     @ViewBuilder func trayGlass() -> some View {
-        if #available(iOS 16.4, macCatalyst 16.4, *) {
+        if #available(iOS 26.0, macCatalyst 26.0, *) {
+            self
+        } else if #available(iOS 16.4, macCatalyst 16.4, *) {
             presentationBackground(.ultraThinMaterial)
         } else {
             self
