@@ -1,3 +1,11 @@
+NOUVEAU — Exposition manuelle : vitesse d'obturation et ISO depuis la télécommande
+
+- Réglez vous-même la vitesse d'obturation et la sensibilité ISO depuis la télécommande, sans toucher à l'appareil
+- Correction d'exposition quand vous préférez laisser l'appareil mesurer et simplement ajuster
+- Basculez chaque appareil entre AUTO et MANUEL ; chacun conserve son propre réglage
+- Les plages proviennent du capteur de l'appareil concerné : ce que vous voyez est ce qu'il sait vraiment faire
+- Un appareil incapable d'exposition manuelle le signale, au lieu d'ignorer le changement en silence
+
 CORRIGÉ — « Envoyer les Médias à la Télécommande » fonctionne à nouveau
 
 - Réglage désactivé sur la télécommande : les photos et vidéos restent uniquement sur la caméra. La télécommande ne garde plus de copie en double

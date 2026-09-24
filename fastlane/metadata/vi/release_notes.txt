@@ -1,3 +1,11 @@
+MỚI — Phơi sáng thủ công: tốc độ màn trập và ISO từ điều khiển
+
+- Tự đặt tốc độ màn trập và ISO ngay trên điều khiển, không cần chạm vào máy ảnh
+- Bù phơi sáng khi bạn muốn để máy đo sáng và chỉ cần chỉnh nhẹ
+- Chuyển từng máy giữa AUTO và MANUAL; mỗi máy giữ thiết lập riêng
+- Dải giá trị lấy từ cảm biến của chính máy đó, nên những gì bạn thấy là những gì nó thật sự làm được
+- Máy không hỗ trợ phơi sáng thủ công sẽ báo cho bạn biết, thay vì lặng lẽ bỏ qua
+
 ĐÃ SỬA — "Gửi ảnh & video đến điều khiển" hoạt động trở lại
 
 - Khi tắt cài đặt này trên điều khiển, ảnh và video chỉ lưu trên camera. Điều khiển không còn giữ bản sao trùng lặp

@@ -1,3 +1,11 @@
+NUEVO — Exposición manual: velocidad de obturación e ISO desde el control
+
+- Ajusta tú mismo la velocidad de obturación y el ISO desde el control, sin tocar la cámara
+- Compensación de exposición para cuando prefieras que la cámara mida y solo quieras afinarla
+- Cambia cada cámara entre AUTO y MANUAL; cada una conserva su propio ajuste
+- Los rangos vienen del sensor de esa cámara, así que lo que ves es lo que de verdad puede hacer
+- Una cámara que no admite exposición manual lo dice, en vez de ignorar el cambio en silencio
+
 CORREGIDO — "Enviar Multimedia al Remoto" vuelve a funcionar
 
 - Con el ajuste desactivado en el remoto, las fotos y videos se quedan solo en la cámara. El remoto ya no guarda una copia duplicada

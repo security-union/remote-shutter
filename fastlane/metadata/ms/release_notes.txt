@@ -1,3 +1,11 @@
+BAHARU — Dedahan manual: kelajuan pengatup dan ISO dari alat kawalan
+
+- Tetapkan sendiri kelajuan pengatup dan ISO dari alat kawalan, tanpa menyentuh kamera
+- Pampasan dedahan apabila anda lebih suka kamera yang mengukur dan anda hanya melaras sedikit
+- Tukar setiap kamera antara AUTO dan MANUAL; setiap kamera menyimpan tetapannya sendiri
+- Julatnya datang daripada penderia kamera itu sendiri, jadi apa yang anda lihat ialah apa yang ia benar-benar mampu
+- Kamera yang tidak menyokong dedahan manual akan memberitahu, bukan mengabaikannya secara senyap
+
 DIBAIKI — "Hantar Media ke Kawalan Jauh" berfungsi semula
 
 - Apabila tetapan ini dimatikan pada kawalan jauh, foto dan video kekal pada kamera sahaja. Kawalan jauh tidak lagi menyimpan salinan pendua

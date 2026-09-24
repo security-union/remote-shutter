@@ -1,3 +1,11 @@
+NOVO — Exposição manual: velocidade do obturador e ISO pelo controle
+
+- Ajuste você mesmo a velocidade do obturador e o ISO pelo controle, sem tocar na câmera
+- Compensação de exposição para quando preferir deixar a câmera medir e apenas dar um ajuste
+- Alterne cada câmera entre AUTO e MANUAL; cada uma guarda a própria configuração
+- Os intervalos vêm do sensor daquela câmera, então o que você vê é o que ela realmente faz
+- Uma câmera sem exposição manual avisa, em vez de ignorar a mudança em silêncio
+
 CORRIGIDO — "Enviar Mídia ao Remoto" voltou a funcionar
 
 - Com o ajuste desativado no remoto, fotos e vídeos ficam só na câmera. O remoto não guarda mais uma cópia duplicada

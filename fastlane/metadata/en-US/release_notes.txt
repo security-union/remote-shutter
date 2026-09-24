@@ -1,3 +1,11 @@
+NEW — Manual exposure: shutter speed and ISO from the remote
+
+- Set shutter speed and ISO yourself, from the remote, without touching the camera
+- Exposure compensation for when you would rather let the camera meter and simply nudge it
+- Switch any camera between AUTO and MANUAL; each camera keeps its own setting
+- The ranges come from that camera's own sensor, so what you see is what it can really do
+- A camera that cannot do manual exposure says so, instead of quietly ignoring the change
+
 FIXED — "Send Media to Remote" works again
 
 - With the setting off on the remote, photos and videos stay on the camera only. The remote no longer keeps a duplicate copy

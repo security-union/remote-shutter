@@ -1,3 +1,11 @@
+NYT — Manuel eksponering: lukkertid og ISO fra fjernbetjeningen
+
+- Indstil selv lukkertid og ISO fra fjernbetjeningen, uden at røre kameraet
+- Eksponeringskompensation, når du hellere vil lade kameraet måle og bare justere lidt
+- Skift hvert kamera mellem AUTO og MANUEL; hvert kamera husker sin egen indstilling
+- Områderne kommer fra det pågældende kameras egen sensor, så det du ser, er hvad det faktisk kan
+- Et kamera, der ikke kan manuel eksponering, siger det i stedet for stille at ignorere ændringen
+
 RETTET — "Send Medie til Fjernbetjening" virker igen
 
 - Når indstillingen er slået fra på fjernbetjeningen, bliver fotos og videoer kun på kameraet. Fjernbetjeningen gemmer ikke længere en ekstra kopi

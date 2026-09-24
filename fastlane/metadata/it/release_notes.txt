@@ -1,3 +1,11 @@
+NOVITÀ — Esposizione manuale: tempo di posa e ISO dal telecomando
+
+- Imposta tu il tempo di posa e gli ISO dal telecomando, senza toccare la fotocamera
+- Compensazione dell'esposizione quando preferisci che sia la fotocamera a misurare e ti basta una correzione
+- Passa ogni fotocamera tra AUTO e MANUALE; ognuna mantiene la propria impostazione
+- Gli intervalli arrivano dal sensore di quella fotocamera, quindi vedi ciò che può fare davvero
+- Una fotocamera che non supporta l'esposizione manuale lo dice, invece di ignorare la modifica in silenzio
+
 RISOLTO — "Invia Media al Telecomando" funziona di nuovo
 
 - Con l'impostazione disattivata sul telecomando, foto e video restano solo sulla fotocamera. Il telecomando non salva più una copia duplicata

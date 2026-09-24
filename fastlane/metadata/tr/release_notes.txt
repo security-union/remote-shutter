@@ -1,3 +1,11 @@
+YENİ — Manuel pozlama: enstantane hızı ve ISO uzaktan kumandadan
+
+- Kameraya dokunmadan, enstantane hızını ve ISO'yu uzaktan kumandadan kendiniz ayarlayın
+- Ölçümü kameraya bırakıp yalnızca ince ayar yapmak istediğinizde pozlama telafisi
+- Her kamerayı OTOMATİK ve MANUEL arasında değiştirin; her kamera kendi ayarını korur
+- Aralıklar o kameranın kendi sensöründen gelir, yani gördüğünüz şey gerçekten yapabildiğidir
+- Manuel pozlamayı desteklemeyen kamera, sessizce yok saymak yerine bunu söyler
+
 DÜZELTİLDİ — "Medyayı Kumandaya Gönder" yeniden çalışıyor
 
 - Kumandada bu ayar kapalıyken fotoğraf ve videolar yalnızca kamerada kalır. Kumanda artık yinelenen bir kopya kaydetmez
