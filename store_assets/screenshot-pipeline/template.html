@@ -50,7 +50,7 @@
     overflow: hidden; z-index: 1; background: #ddd;
   }
   .scene img {
-    width: 100%; height: 100%; object-fit: cover;
+    width: 100%; height: 100%; object-fit: var(--scene-fit, cover);
     object-position: var(--scene-pos, 50% 50%);
   }
 
@@ -158,7 +158,10 @@
 
   // Locale: static lookup from translations.js — no manifest edits needed.
   const t = window.I18N[params.get("locale") || "en-US"] || window.I18N["en-US"];
-  const baseId = slotId === "banner" ? "0" : slotId.replace(/i$/, "");
+  // `headlineKey` lets two slots in one listing draw different translated
+  // headlines without inventing new copy: an iPad listing can run the scene
+  // under "6" and the grid mockup under "mac5", both already in all locales.
+  const baseId = slot.headlineKey || (slotId === "banner" ? "0" : slotId.replace(/i$/, ""));
   if (t.headlines[baseId]) slot.headline = t.headlines[baseId];
   if (t.sublines && t.sublines[baseId]) slot.subline = t.sublines[baseId];
   const L = (s) => (t.labels && t.labels[s]) || s;
@@ -193,6 +196,13 @@
   if (slot.scene) {
     sceneImg.src = slot.scene;
     document.documentElement.style.setProperty("--scene-pos", slot.scenePosition);
+    // `contain` shows the whole photo instead of cropping it. A 9:16 scene in a
+    // squarer canvas loses ~570 rows to cover-fit, which drops a camera out of
+    // frame; contain keeps every one and pads with the page colour instead.
+    if (slot.sceneFit) {
+      document.documentElement.style.setProperty("--scene-fit", slot.sceneFit);
+      document.querySelector(".scene").style.background = "transparent";
+    }
   } else {
     document.querySelector(".scene").style.display = "none";
   }
@@ -201,6 +211,7 @@
   // How much of the canvas the scene photo gets. A 9:16 scene is cover-fit into
   // this region, so a NARROWER panel shows MORE of the photo's height: the knob
   // for fitting a tall scene whose subjects span more rows than 56% allows.
+  const containFit = slot.sceneFit === "contain";
   const sceneW = landscape ? (slot.sceneWidth ?? 0.56) : 1;
   if (landscape) {
     document.documentElement.style.setProperty("--capW", `${(1 - sceneW) * 100}%`);
@@ -216,7 +227,9 @@
   let map = null;
   if (slot.sceneSize) {
     const [iw, ih] = slot.sceneSize;
-    const scale = Math.max(region.w / iw, region.h / ih);
+    const scale = containFit
+      ? Math.min(region.w / iw, region.h / ih)
+      : Math.max(region.w / iw, region.h / ih);
     const [px, py] = slot.scenePosition.split(" ").map((v) => parseFloat(v) / 100);
     const offX = (region.w - iw * scale) * px + region.x;
     const offY = (region.h - ih * scale) * py + region.y;
@@ -260,7 +273,10 @@
     const P = MOCKUP_PRESETS[m.device || "iphone"];
     const screenW = (m.width || 620) * k;
     const pad = P.pad * k;
-    const screenH = screenW * P.ar;
+    // `ar` may be overridden per slot: an iPad held landscape is the same
+    // device with its aspect flipped, and a 4-up grid of 16:9 feeds fills a
+    // landscape screen instead of letterboxing into portrait cells.
+    const screenH = screenW * (m.ar || P.ar);
     const el = document.createElement("div");
     el.className = "mockup";
     el.style.left = `calc(${m.left || "50%"} - ${(screenW / 2 + pad)}px)`;

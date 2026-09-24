@@ -601,6 +601,31 @@ same mounts, the same blue crash pads, the same bright gym, the same saturated
 colour and deep true blacks. Vertical 9:16.`,
   },
 
+  // The Mac director: e2 already has the laptop, so this only turns the three
+  // near-side phones around. Its strip-logos pass produces mac4_climb_mac.jpg,
+  // the scene the Mac slot ships.
+  "mac4_climb_aim_mac.jpg": {
+    from: ["mac4_climb_e2.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is. Change only which way three
+of the phones face. Each of these three phones stays in exactly the same spot,
+at the same height, gripped by the same clamp on the same mount, and is turned
+halfway around in that clamp so the viewer now sees its front instead of its
+back: the phone in the ceiling clamp at the top left now shows the viewer a
+pure glossy black switched-off screen in a thin plain bezel, tilted down toward
+the climbing wall; the landscape phone on the tall black stand at the left now
+shows a pure glossy black switched-off screen, turned up and across the room
+toward the climber; the phone in the small tripod on the blue crash pad at the
+bottom centre now shows a pure glossy black switched-off screen, tilted back to
+look up at the overhanging wall. Everything else is identical: the same man on
+the pale wooden bench looking up at the climber, the same open unbranded
+aluminium laptop on his lap with its pure black switched-off screen facing the
+viewer and his hands on the keyboard clear of the glass, the same climber
+mid-move on the teal and ochre overhang, the phone in the clamp on the steel
+column at the right edge unchanged, the same blue crash pads, the same bright
+gym, the same saturated colour and deep true blacks. Vertical 9:16.`,
+  },
+
   // The whole director change in ONE hop off the sharp e2, not four sequential
   // ones. Measured on the untouched wall region, the four-hop chain kept 64% of
   // the original detail; this single hop keeps 115%. Every `edit` re-encodes the
@@ -768,7 +793,11 @@ if (process.argv[2] === "derive") {
     const manifest = readFileSync(join(here, "manifest.js"), "utf8");
     const used = [...new Set(manifest.match(/\.\.\/ai-scenes\/[\w.-]+/g) || [])]
       .map((p) => p.replace("../ai-scenes/", ""));
-    const known = new Set([...Object.keys(DERIVED), ...Object.values(CHOSEN)]);
+    // strip-logos is the fourth kind of recipe: logo-patches.json maps a
+    // generated scene to its de-branded twin, and the manifest ships the twin.
+    const patches = JSON.parse(readFileSync(join(here, "logo-patches.json"), "utf8"));
+    const stripped = patches.scenes.map((e) => e.out);
+    const known = new Set([...Object.keys(DERIVED), ...Object.values(CHOSEN), ...stripped]);
     const orphans = used.filter((f) => !known.has(f));
     console.log(`\ncoverage: ${used.length - orphans.length}/${used.length} manifest scenes have a recipe`);
     for (const f of orphans) console.log(`  NO RECIPE: ${f}`);
