@@ -32,7 +32,8 @@ and `fastlane/metadata/` to App Store Connect.
 | `render.mjs` | Drives Chrome over the slot × device matrix (`PLANS`), crops to exact pixels |
 | `ship-locales.sh` | Renders every locale and syncs `fastlane/screenshots/<locale>/` (cleans stale files, keeps Watch captures) |
 | `generate.mjs` | Nano Banana (Gemini) scene generation/editing — needs `AI_STUDIO` env var; only used when creating **new** scenes |
-| `tools.py` | Quad helpers: `detect` (find a screen's corners), `overlay` (draw a quad to verify), `zoom`, `crop`; plus `chrome` (chrome overlays, below) and `grid` (multicam wall: composite N camera previews, aspect-fit, under a real window capture's keyed chrome — see `mac2_multicam_grid.png`'s recipe below) |
+| `tools.py` | Quad helpers: `detect` (find a screen's corners), `overlay` (draw a quad to verify), `zoom`, `crop`; plus `find-logo`/`strip-logos` (below), `chrome` (chrome overlays, below) and `grid` (multicam wall: composite N camera previews, aspect-fit, under a real window capture's keyed chrome — see `mac2_multicam_grid.png`'s recipe below) |
+| `logo-patches.json` | The brand marks to clone out of a generated scene, and where to take clean pixels from — the `strip-logos` table |
 | `assets/` | Chrome overlays composited onto device screens |
 | `assets/raw/` | The unmodified device captures each overlay is derived from |
 | `../ai-scenes/` | Generated scene photos + "what the camera sees" preview shots |
@@ -166,6 +167,72 @@ Worked example — swapping the cardinal for another animal:
    so the remote screens show the same animal the in-scene camera is pointed at.
 6. `./ship-locales.sh`.
 
+## Rendering a UI capture from the app itself
+
+`assets/raw/*.png` do not have to be hand-captured on a device. `SnapshotTestCase`
+hosts any SwiftUI screen in a real window at any size, so a test can seed a view
+model and write a PNG of the true app UI at true device pixels — which is more
+2.3.3-correct than reusing another platform's capture, and unblocks device sizes
+nobody has captured. `MulticamGridSnapshotTests` (in
+`RemoteCamTests/MulticamViewModelTests.swift`) renders the 4-lane director grid
+and the camera standby screen:
+
+```bash
+mkdir -p /tmp/rs-tiles && cp <four tile jpgs> /tmp/rs-tiles/{1,2,3,4}.jpg
+xcodebuild test -workspace RemoteShutter.xcworkspace -scheme RemoteCam \
+  -destination 'platform=iOS Simulator,OS=18.5,name=iPad (A16)' \
+  -configuration Release -only-testing:RemoteShutterTests/MulticamGridSnapshotTests \
+  CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+  SWIFT_ENABLE_TESTABILITY=YES ENABLE_TESTABILITY=YES
+# -> /tmp/rs-out/*.png
+```
+
+Three things that are not obvious:
+
+- **Release, not Debug.** `MulticamView` draws `SessionDebugOverlay()` under
+  `#if DEBUG` and it renders as a yellow bug badge on the screenshot. Release
+  strips `-enable-testing`, hence the two testability flags.
+- **Environment variables never reach a hosted unit test** — not plain, not
+  `TEST_RUNNER_`-prefixed (that is for UI-test runners). The paths are fixed and
+  the test skips when `/tmp/rs-tiles` is absent, so CI ignores it.
+- **Set published fields directly**, not through `updateStatus`: that hops to
+  main and the render beats it, so the screen comes out with the defaults.
+
+## Stripping brand marks (the last stage of a scene's chain)
+
+Nano Banana paints an Apple logo on a phone back every few generations. There is
+no way to prompt it away — the Gemini family has no negative prompt, so "no
+logo" mostly injects one — and re-rolling gambles away a scene that is otherwise
+right. So the mark comes off in post, from a table, and the generated original
+is never edited in place:
+
+```bash
+python3 tools.py find-logo ../ai-scenes/SCENE.jpg X0 Y0 X1 Y1   # measure the box
+python3 tools.py strip-logos --preview                          # apply the table
+```
+
+`find-logo` takes a window over the surface, reports the darkest blob's
+bounding box and prints a ready-made `logo-patches.json` fragment. Each entry
+maps an `in` scene to an `out` scene and lists patches; a patch clones the
+rectangle at `from` (an offset into the *same* surface, so grain and lighting
+already match) over `box`, feathered, with the source's exposure scaled to the
+ring around the destination.
+
+Three things to hold on to:
+
+- **Size the box generously.** The feather ring blends the original back in at
+  the box edge, so a box that only just contains the mark leaves a ghost of it.
+  Leave more margin than `feather` on every side.
+- **`find-logo` is a locator, not a pass/fail detector.** On a surface that is
+  already flat it just returns the window's noise. Confirm removal by looking at
+  the `--preview` before/after sheet.
+- **Set `SCRATCHPAD`** before using `--preview`; `tools.py`'s built-in default
+  points at an old session directory.
+
+Turning a phone around usually removes the problem for free: a camera correctly
+aimed at the subject shows the viewer its *screen*, and a screen carries no
+logo. See the aim rule under Gotchas.
+
 ## Adding a new screenshot (the Claude workflow)
 
 This pipeline was built with Claude Code and is easiest to extend the same way.
@@ -202,6 +269,33 @@ What Claude does under the hood (or do it manually):
 6. `./ship-locales.sh` and review the output.
 
 ## Gotchas (learned the hard way)
+
+**Edit hops cost detail everywhere, not just where you edited.** Each
+`generate.mjs edit` re-encodes the whole frame. Measured on a wall region no edit
+ever touched, a four-hop chain kept 64% of the original high-frequency detail;
+collapsing the same changes into one hop off the sharp seed kept 115%. When a
+scene needs several changes, make them in ONE edit from the sharpest ancestor
+rather than a change per hop, and measure before you accept:
+
+```python
+a = np.asarray(Image.open(f).convert("L").crop(untouched_box), dtype=float)
+detail = (np.diff(a, axis=1)**2).mean() + (np.diff(a, axis=0)**2).mean()
+```
+
+**A surface has no occlusion mask.** The template warps the UI onto the quad and
+paints it, so anything crossing the glass in the photo — a clamp arm, a thumb —
+gets painted out. Either pick a quad whose screen is unobstructed, or leave that
+screen alone.
+
+**Which way a camera faces.** The lenses look out of the phone's back, and the
+viewer's eye sits about where the director sits — *behind* the camera phones,
+further from the subject than they are. So a phone correctly aimed at the
+subject shows the viewer its **pure black switched-off screen**. If you can see
+the lens array, that camera is filming the viewer. Only a phone placed past the
+subject, aiming back toward the director's side, correctly shows its lenses.
+Write the edit prompt as the viewer-visible outcome and get the side right;
+never ask to see the back *and* the lens bump on a camera meant to aim away.
+
 
 - Headless Chrome on macOS steals ~87px of window height even in `--headless=new`;
   `render.mjs` pads the window and crops — don't remove the `PAD`/crop step.

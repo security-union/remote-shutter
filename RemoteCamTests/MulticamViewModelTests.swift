@@ -476,3 +476,115 @@ final class DiscoveredPeersTests: XCTestCase {
         XCTAssertFalse(d.remove(p), "removing an absent peer reports false")
     }
 }
+
+// MARK: - Store-asset generator
+
+/// Renders the real director screen at a device size and writes a PNG, so an
+/// App Store screenshot composites the app's own UI rather than a capture of a
+/// different platform stretched to fit. Skipped unless `SNAPSHOT_OUT` is set,
+/// because it is an asset generator, not a test.
+///
+///   SNAPSHOT_TILES=<dir of 1.jpg..4.jpg> SNAPSHOT_OUT=<dir> \
+///   xcodebuild test … -only-testing:RemoteShutterTests/MulticamGridSnapshotTests
+@MainActor
+final class MulticamGridSnapshotTests: SnapshotTestCase {
+
+    /// iPad Pro 11" in points; the @2x render is the 1640x2360 the pipeline's
+    /// existing iPad captures already use. Both orientations, because which one
+    /// a scene needs depends on how the director is holding the tablet, and the
+    /// grid lays out differently in each.
+    private let iPadSizes: [(name: String, size: CGSize)] = [
+        ("portrait", CGSize(width: 820, height: 1180)),
+        ("landscape", CGSize(width: 1180, height: 820)),
+    ]
+
+    private func laneInfo(_ peer: MCPeerID, focused: Bool) -> MulticamLaneInfo {
+        MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
+                         status: .linked, isFocused: focused, clockOffsetMillis: nil,
+                         captureOutcome: nil, isRecording: false, recordingElapsedMillis: nil,
+                         needsQualityRematch: false, collection: .idle, canFlipCamera: true,
+                         cameraDevices: [], activeDeviceID: nil, supportsFocusPoint: false,
+                         hasTorch: true, zoomFactor: 1.0, maxZoomFactor: 10.0,
+                         zoomStops: [1.0], wideAngleZoomFactor: 1.0, torchOn: false,
+                         flashOn: false, inFlight: [], exposure: nil)
+    }
+
+    private func directorView(_ vm: MulticamViewModel) -> MulticamView {
+        MulticamView(viewModel: vm,
+                     onFocusLane: { _ in }, onShutter: {}, onToggleMode: {},
+                     onAddCamera: {}, onInviteCamera: { _ in }, onSetTimer: { _ in },
+                     onSelectVideoQuality: { _, _ in }, onAutomaticVideoQuality: {},
+                     onSetPhotoFormat: { _ in }, onSetHDR: { _ in },
+                     onSetAspectRatio: { _ in }, onSetStandby: { _ in },
+                     onSetExposureControls: { _ in }, onExposureChange: { _, _, _ in },
+                     onSetExposureMode: { _, _ in }, onOpenSettings: {}, onOpenHelp: {},
+                     onRetryCollection: { _ in }, onFlipCamera: { _ in },
+                     onSelectCameraDevice: { _, _ in }, onToggleTorch: { _ in },
+                     onToggleFlash: { _ in }, onDisconnectCamera: { _ in },
+                     onZoomChange: { _, _ in }, onFocusTap: { _, _ in }, onBack: {})
+    }
+
+    /// The camera device's own screen while the rig is in standby. In a store
+    /// scene every camera phone is a black rectangle otherwise; this is what one
+    /// actually shows, and it says "Controlled by" — the product, in one glance.
+    func testRenderCameraStandbyForStoreAssets() throws {
+        let tileDir = "/tmp/rs-tiles"
+        let outDir = "/tmp/rs-out"
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: tileDir),
+                          "asset generator; stage tiles in \(tileDir) to run")
+
+        // Set the published fields directly: updateStatus hops to main and the
+        // render beats it, so the screen came out with the defaults.
+        let model = CameraViewModel()
+        model.currentMode = .Video
+        model.qualityInfo = "4K 30fps"
+        model.connectedPeerName = "iPad"
+
+        try FileManager.default.createDirectory(atPath: outDir,
+                                                withIntermediateDirectories: true)
+        // iPhone 16 in points, both ways round: the ceiling and stand phones are
+        // clamped landscape, the tripod phone portrait.
+        for (name, size) in [("portrait", CGSize(width: 393, height: 852)),
+                             ("landscape", CGSize(width: 852, height: 393))] {
+            setWindowSize(size)
+            let image = renderScreen(named: "camera-standby-\(name)",
+                                     CameraStandbyView(viewModel: model, onRestore: {}))
+            let out = "\(outDir)/camera-standby-\(name).png"
+            try XCTUnwrap(image.pngData()).write(to: URL(fileURLWithPath: out))
+            print("SNAPSHOT wrote \(out) \(image.size) scale \(image.scale)")
+        }
+    }
+
+    func testRenderDirectorGridForStoreAssets() throws {
+        // Hosted unit tests do not inherit xcodebuild's environment (TEST_RUNNER_*
+        // only reaches a UI-test runner), so the paths are fixed and the gate is
+        // whether the caller staged the tiles. CI has no such directory and skips.
+        let tileDir = "/tmp/rs-tiles"
+        let outDir = "/tmp/rs-out"
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: tileDir),
+                          "asset generator; stage tiles in \(tileDir) to run")
+
+        let names = ["Ceiling", "Stand", "Tripod", "Column"]
+        let vm = MulticamViewModel()
+        let peers = names.map { MCPeerID(displayName: $0) }
+        vm.apply(peers.enumerated().map { laneInfo($1, focused: $0 == 0) })
+        for (index, lane) in vm.lanes.enumerated() {
+            let path = "\(tileDir)/\(index + 1).jpg"
+            guard let image = UIImage(contentsOfFile: path) else {
+                return XCTFail("missing tile \(path)")
+            }
+            lane.frames.cameraImage = image
+        }
+        vm.displayMode = .grid
+
+        try FileManager.default.createDirectory(atPath: outDir,
+                                                withIntermediateDirectories: true)
+        for (name, size) in iPadSizes {
+            setWindowSize(size)
+            let image = renderScreen(named: "director-grid-ipad-\(name)", directorView(vm))
+            let out = "\(outDir)/director-grid-ipad-\(name).png"
+            try XCTUnwrap(image.pngData()).write(to: URL(fileURLWithPath: out))
+            print("SNAPSHOT wrote \(out) \(image.size) scale \(image.scale)")
+        }
+    }
+}

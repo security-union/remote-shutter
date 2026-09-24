@@ -19,7 +19,10 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(here, "..", "ai-scenes");
-const MODEL = "gemini-3-pro-image";
+// Default is the pro still-image model. GEMINI_IMAGE_MODEL overrides it so a
+// scene can be A/B'd across models without editing this file (the 3.1 line is
+// flash-tier only; there is no 3.1 pro image model).
+const MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image";
 const KEY = process.env.AI_STUDIO;
 if (!KEY) { console.error("AI_STUDIO env var not set"); process.exit(1); }
 
@@ -148,6 +151,42 @@ professional tripod faces the pedestal, screen dark. The photographer, wearing a
 black tee, stands well off to the side holding an unbranded tablet as a wireless
 camera monitor, screen dark, one hand hovering over it. Charcoal-gray backdrop, rim
 lighting, controlled shadows but overall bright and premium. ${STYLE}`,
+  // ---- mac4 replacement: bouldering gym (2026-09) ----
+  // The kitchen multicam scene sold the feature badly: four cameras pointed at
+  // one slow, repeatable subject. A boulder problem is one instant, and the
+  // climber's hands are on the wall, so a remote shutter is the only way to
+  // shoot it. Written standalone (no ${STYLE}) because that style block asks
+  // for a washed neutral-warm palette, which is exactly what blew out the
+  // kitchen chain.
+  mac4_climb: `A wide vertical hero shot on a 35mm lens at f/4, taken from the
+floor of a bright indoor bouldering gym, looking up and across a steeply
+overhanging climbing wall. In the upper right of the frame a young woman
+climber is caught mid-move on the overhang, one arm fully extended to a far
+yellow hold, both feet still on the wall, her body a clean diagonal, chalk
+dust hanging in the light. The wall is matte painted plywood in deep teal and
+warm ochre, studded with brightly colored resin holds, and it fills the upper
+two thirds of the frame. In the lower left foreground, close to the lens and
+large in the frame, a man sits on a pale wooden bench at the edge of a thick
+blue crash pad with an open unbranded aluminum laptop on his knees, turned so
+the viewer sees its screen almost square on: bare brushed metal below the
+screen and a pure glossy black switched-off glass screen showing only a faint
+reflection of the room. His hand rests on the trackpad and he is looking up at
+the climber. Four unbranded modern smartphones are mounted around the wall,
+every screen dark and switched off, each on its own clearly different mount
+and widely separated from the others so each phone reads as its own camera:
+(1) a phone in a clamp gripping the steel beam at the very top of the wall in
+the upper left of the frame, aimed straight down the face; (2) a phone on a
+tall slim black light stand standing on the gym floor at the left edge, its
+clamp at head height, aimed across at the climber's profile; (3) a phone lying
+back in a small low tripod on the crash pad at the bottom center of the frame,
+aimed steeply up the overhang; (4) a phone in a clamp gripping a vertical
+steel column at the right edge of the frame at head height, aimed along the
+wall. Every phone shows its dark aluminum back and rear camera lens array
+toward its subject. Each laptop and phone has a bare, unmarked back and a
+plain bezel, and the wall surface between the holds is plain matte paint.
+Bright even gym light from a high clerestory window, rich saturated color,
+deep true blacks, crisp contrast, photorealistic commercial photography in the
+style of an Apple ad. Vertical 9:16.`,
   slot0_v3: `A professional photographer directing a seated portrait session in a
 bright loft studio. An unbranded smartphone on a heavy-duty tripod with a ring light
 faces the model; the photographer stands apart near a large window holding an
@@ -168,6 +207,9 @@ const CHOSEN = {
   mac0_studio: "mac0_studio_c2.jpg",
   mac2_cook: "mac2_cook_c1.jpg",
   mac3_direct: "mac3_direct_c1.jpg",
+  // The A/B between gemini-3-pro-image and gemini-3.1-flash-image kept the
+  // flash candidate, hence the model in the filename.
+  mac4_climb: "mac4_climb_flash_c1.jpg",
 };
 
 // Everything the manifest uses that is NOT a raw candidate: the "what the
@@ -473,6 +515,205 @@ gently simmering across its wide base, wisps of steam rising toward the
 lens, the stainless cooktop in the foreground and the warm wooden counter
 beyond the far edge of the pan, soft daylight. The frame contains only the
 pan, its handle, the steam, the cooktop and the surrounding counter wood.`,
+  },
+
+  // ---- Bouldering-gym multicam chain (2026-09) ----
+  // mac4_climb_flash_c1 -> e1 (lens directions) -> e2 (stand phone cleaned) ->
+  // dir_<device> (which device the director holds) -> aim_<device> (the three
+  // near-side phones turned to face the wall) -> strip-logos -> the shipped file.
+  // The last hop is logo-patches.json, not a prompt; see the README.
+  "mac4_climb_e1.jpg": {
+    from: ["mac4_climb_flash_c1.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with four precise changes.
+Every phone is turned in its mount so its rear camera lens array points at the
+climber on the wall, and every screen stays pure glossy black and switched off.
+The phone in the ceiling clamp at the top left is angled down and to the right,
+aimed down the face of the teal wall. The phone on the tall black stand at the
+left is rotated to the right so it aims up and across the room at the climber.
+The phone in the small tripod on the blue crash pad at the bottom center is
+turned around and tilted back so it looks up and to the right at the
+overhanging wall. The phone in the clamp on the steel column at the right edge
+is rotated to the left so it aims across the wall at the climber. Every phone
+body is plain dark aluminum with a bare unmarked back, and the tripod ball head
+is plain matte black. Everything else is identical: the same climber mid-move
+on the teal and ochre overhang, the same man on the pale wooden bench with the
+open unbranded aluminum laptop on his knees and its pure black switched-off
+screen facing the viewer, the same blue crash pads, the same bright gym with
+its high windows, the same saturated color and deep true blacks. Photorealistic
+commercial photography in the style of an Apple ad. Vertical 9:16.`,
+  },
+  "mac4_climb_e2.jpg": {
+    from: ["mac4_climb_e1.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with one precise change: the
+phone on the tall black stand at the left is rotated in its clamp so its rear
+triple-lens array aims up and to the right, across the room at the climber on
+the wall. The viewer sees it obliquely from behind: a plain dark aluminum back
+whose surface below the lens bump is smooth, bare and completely unmarked matte
+metal, and the clamp holding it is plain matte black all over. Everything else
+is identical: the same man on the pale wooden bench with the open laptop, the
+same climber on the overhang, the phone in the ceiling clamp at the top left,
+the phone in the small tripod on the blue crash pad, the phone in the clamp on
+the steel column at the right edge, the same bright gym, the same saturated
+color and deep true blacks. Vertical 9:16.`,
+  },
+  "mac4_climb_dir_iphone.jpg": {
+    from: ["mac4_climb_e2.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with one precise change: the
+man on the bench now holds a single unbranded modern smartphone instead of the
+laptop. He holds it in both hands in LANDSCAPE orientation, wider than it is
+tall, its long edge running horizontally across the frame and spanning about
+the width of his two hands side by side, raised in front of his chest and
+tilted toward him, turned so the viewer sees its screen almost square on: a
+pure glossy black switched-off glass screen in a thin plain bezel, with a bare
+unmarked aluminum back. His thumbs rest on its lower long edge and his fingers
+wrap its short ends, at a natural phone scale for a pair of adult hands.
+Everything else is identical: the same man in the black t-shirt on the same
+pale wooden bench looking up at the climber, the same climber on the overhang,
+all four camera phones on their mounts with their screens pure black and
+switched off, the same blue crash pads, the same bright gym, the same saturated
+color and deep true blacks. Vertical 9:16.`,
+  },
+  "mac4_climb_aim_iphone.jpg": {
+    from: ["mac4_climb_dir_iphone.jpg"],
+    aspect: "9:16",
+    // The aim rule: a camera pointed at the subject shows the VIEWER its
+    // screen, because the lenses look out of the back and the viewer stands
+    // behind it. Asking to see "the back and the lens bump" films the viewer.
+    prompt: `Keep this photograph exactly as it is. Change only which way three
+of the phones face. Each of these three phones stays in exactly the same spot,
+at the same height, gripped by the same clamp on the same mount, and is turned
+halfway around in that clamp so the viewer now sees its front instead of its
+back: the phone in the ceiling clamp at the top left now shows the viewer a
+pure glossy black switched-off screen in a thin plain bezel, tilted down toward
+the climbing wall; the landscape phone on the tall black stand at the left now
+shows the viewer a pure glossy black switched-off screen, turned up and across
+the room toward the climber; the phone in the small tripod on the blue crash
+pad at the bottom centre now shows the viewer a pure glossy black switched-off
+screen, tilted back to look up at the overhanging wall. Everything else is
+identical: the same man on the pale wooden bench looking up at the climber, the
+same landscape phone in his hands with its pure black switched-off screen
+facing the viewer, the same climber mid-move on the teal and ochre overhang,
+the phone in the clamp on the steel column at the right edge unchanged, the
+same mounts, the same blue crash pads, the same bright gym, the same saturated
+colour and deep true blacks. Vertical 9:16.`,
+  },
+
+  // The whole director change in ONE hop off the sharp e2, not four sequential
+  // ones. Measured on the untouched wall region, the four-hop chain kept 64% of
+  // the original detail; this single hop keeps 115%. Every `edit` re-encodes the
+  // entire frame, so hops cost detail everywhere, including where nothing moved.
+  "mac4_climb_ipad_v2.jpg": {
+    from: ["mac4_climb_e2.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with two precise changes.
+FIRST: the open laptop is replaced by a large unbranded tablet in LANDSCAPE
+orientation, wider than it is tall, resting on his raised thigh and leaning
+back against his knee so its screen faces the viewer almost square on: a pure
+glossy black switched-off glass screen in a thin plain bezel, with a bare
+unmarked aluminium back and rounded corners. His left hand steadies it at its
+left edge with the thumb flat on the bezel beside the glass; his right hand
+rests palm-down on his thigh below the tablet, clear of it. The whole screen
+reads as one clean unbroken black rectangle from corner to corner with nothing
+in front of the glass. SECOND: three of the phones are turned halfway around in
+their clamps so the viewer sees their fronts instead of their backs, each
+staying in exactly the same spot on exactly the same mount: the phone in the
+ceiling clamp at the top left now shows a pure glossy black switched-off screen
+tilted down toward the climbing wall; the landscape phone on the tall black
+stand at the left now shows a pure glossy black switched-off screen turned up
+and across toward the climber; the phone in the small tripod on the blue crash
+pad at the bottom centre now shows a pure glossy black switched-off screen
+tilted back to look up at the overhang. Everything else in the photograph is
+identical: the same man in the black t-shirt on the same pale wooden bench in
+the same pose looking up at the climber, the same climber mid-move on the teal
+and ochre overhang, the phone in the clamp on the steel column at the right
+edge unchanged, the same mounts, the same blue crash pads, the same bright gym
+with its high windows, the same sharp photographic texture, saturated colour
+and deep true blacks. Vertical 9:16.`,
+  },
+
+  // Both hands moved to the bezel. A hand over the screen is not just ugly —
+  // it truncates the flood-fill that solves the screen quad, so the corner has
+  // to be guessed. Clearing the glass fixes the picture and the measurement.
+  "mac4_climb_ipad_hands.jpg": {
+    from: ["mac4_climb_ipad.jpg"],
+    aspect: "9:16",
+    prompt: `Keep this photograph exactly as it is, with one precise change: his
+right hand now grips the tablet from below, around its bottom edge, so the full
+glossy black screen reads as one clean unbroken rectangle from corner to
+corner. His right thumb rests flat on the tablet's thin aluminium bottom bezel,
+below the glass, and his four fingers curl behind the tablet onto its back, so
+only the side of his thumb and the tips of his knuckles show against the metal
+edge. His left hand still cradles the tablet at its left edge exactly as
+before, thumb on the bezel. Everything else is identical: the same man on the
+pale wooden bench looking up at the climber, the same tablet at the same angle
+in the same place, the same climber on the overhang, all four camera phones on
+their mounts, the same bright gym, the same saturated colour and deep true
+blacks. Vertical 9:16.`,
+  },
+
+  // Grid-tile previews — what each of the four cameras sees of the same instant.
+  // Four genuinely different angles is the whole point of the scene, so no two
+  // tiles repeat a framing. Tiles inherit their phone's orientation: the ceiling
+  // and stand phones are landscape, the tripod and column phones portrait, and
+  // the grid pillarboxes the portrait ones honestly.
+  "mac4_climb_preview_top.jpg": {
+    from: ["mac4_climb_iphone.jpg"],
+    aspect: "16:9",
+    prompt: `A photograph taken from the exact point of view of the camera
+clamped to the ceiling beam high above the left of the climbing wall, a steep
+high-angle shot looking down and across the overhanging bouldering wall: the
+same young woman climber seen from above and a little behind, her right arm
+fully extended overhead to a yellow hold, dark ponytail falling past her
+shoulder, grey marled tank top, black leggings, climbing shoes edging on holds
+below her. The matte teal and ochre plywood face fills the frame, scattered
+with brightly coloured resin holds and streaks of chalk, and the blue crash
+pads read as a narrow band at the very bottom. Bright even gym light,
+saturated colour, deep true blacks, sharp throughout. The frame contains only
+the wall, its holds, the climber and that strip of crash pad.`,
+  },
+  "mac4_climb_preview_side.jpg": {
+    from: ["mac4_climb_iphone.jpg"],
+    aspect: "16:9",
+    prompt: `A photograph taken from the exact point of view of the camera on
+the tall stand across the room at the climber's own height, a level side-on
+shot: the same young woman climber in profile on the steeply overhanging wall,
+filling the frame, her right arm extended to a yellow hold and her body a clean
+diagonal, dark ponytail, grey marled tank top, black leggings, climbing shoes
+edging on holds. Behind her the matte teal panel and the ochre panel meet at a
+hard diagonal, studded with brightly coloured holds and chalk. Bright daylight
+from the high windows at the left, saturated colour, deep true blacks. The
+frame contains only the climber and the wall behind her.`,
+  },
+  "mac4_climb_preview_up.jpg": {
+    from: ["mac4_climb_iphone.jpg"],
+    aspect: "9:16",
+    prompt: `A photograph taken from the exact point of view of the camera lying
+back in the small tripod on the blue crash pad, a dramatic worm's-eye shot
+looking straight up the steeply overhanging wall: the underside of the overhang
+looms across the lower frame in sharp perspective, its brightly coloured holds
+receding away up the matte teal plywood, and the same young woman climber is
+high above near the top of the frame, seen from directly below, her right arm
+reaching to a yellow hold, the soles of her climbing shoes and the underside of
+her body foreshortened toward the lens, grey marled tank top, black leggings,
+dark ponytail. The bright high clerestory windows glow along the very top edge.
+Saturated colour, deep true blacks. The frame contains only the wall, its
+holds, the climber and that strip of window light.`,
+  },
+  "mac4_climb_preview_close.jpg": {
+    from: ["mac4_climb_iphone.jpg"],
+    aspect: "9:16",
+    prompt: `A photograph taken from the exact point of view of the camera
+clamped to the steel column at the climber's own height and close to her right
+side, a tight shot: the climber's upper body and outstretched right arm fill
+the frame as her chalked hand closes on a yellow resin hold, her face in
+three-quarter view looking up at it, dark ponytail, grey marled tank top, her
+other hand still on a hold lower down. The matte teal plywood and its
+neighbouring holds sit close behind her, gently soft from the shallow depth of
+field. Bright even gym light, saturated colour, deep true blacks. The frame
+contains only the climber, her hands, the holds and the wall right behind her.`,
   },
 
   // ---- Deterministic crops (exact; boxes recovered from the committed files) ----

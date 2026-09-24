@@ -1,0 +1,46 @@
+{
+  "_doc": [
+    "Brand marks the image model painted onto a device, and where to take clean",
+    "pixels from to cover them. `tools.py strip-logos` reads ../ai-scenes/<in>,",
+    "applies each patch and writes ../ai-scenes/<out>; the generated scene is",
+    "never edited in place, so a patch can always be re-measured and replayed.",
+    "This is the last stage of a scene's chain: generate -> edit -> strip-logos.",
+    "Boxes come from `tools.py find-logo IMG X0 Y0 X1 Y1` (plus its padding);",
+    "`from` is the offset to the clean stretch of the same surface that gets",
+    "cloned over the box, so grain and lighting already match. Check the result",
+    "with --preview: find-logo is a locator, not a pass/fail detector, and on an",
+    "already-flat surface it just returns the window's noise."
+  ],
+  "scenes": [
+    {
+      "in": "mac4_climb_aim_mac.jpg",
+      "out": "mac4_climb_mac.jpg",
+      "patches": []
+    },
+    {
+      "in": "mac4_climb_aim_ipad.jpg",
+      "out": "mac4_climb_ipad.jpg",
+      "patches": [
+        {
+          "what": "Apple logo on the column phone's back",
+          "box": [
+            1302,
+            988,
+            1370,
+            1054
+          ],
+          "from": [
+            0,
+            62
+          ],
+          "feather": 11
+        }
+      ]
+    },
+    {
+      "in": "mac4_climb_aim_iphone.jpg",
+      "out": "mac4_climb_iphone.jpg",
+      "patches": []
+    }
+  ]
+}

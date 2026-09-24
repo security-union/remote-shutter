@@ -410,38 +410,62 @@ window.MANIFEST = {
       ]
     },
 
-    // mac4: NEW multicam — the four-camera kitchen rig (scene chain
-    // mac2_multicam_e1..e6; quads inherited from mac2's base photo, +440y for
-    // the uncropped frame). Every camera gets a CAMERA pill; the Mac runs the
-    // composed grid (assets/ui-monitor-mac-multicam.png, built by
-    // `tools.py grid` — see README).
+    // mac4: the four-camera bouldering rig. A boulder problem happens once and
+    // the climber's hands are on the wall, so the remote shutter is the only way
+    // to shoot it — four angles of one instant. The director's screen is the real
+    // iPad grid rendered from the app's own SwiftUI (MulticamGridSnapshotTests),
+    // not another platform's capture stretched to fit.
+    //
+    // sceneWidth 0.44 rather than the default 0.56: the four mounts plus the
+    // tablet span 2125 rows of the 2752-row scene, and a 56% panel only shows
+    // 1714. A narrower panel scales the cover-fit down and shows 2182.
     "mac4": {
       layout: "landscape",
       headline: ["NEW: Four cameras.", "One director."],
       accentLine: 1,
-      scene: "../ai-scenes/mac2_multicam_e6.jpg",
+      scene: "../ai-scenes/mac4_climb_ipad_v2.jpg",
       sceneSize: [1536, 2752],
-      scenePosition: "50% 30%",
+      sceneWidth: 0.44,
+      headlineScale: 1.3,
+      scenePosition: "50% 8%",
       surfaces: [
         {
-          quad: [[-64, 1514], [417, 1397], [131, 2058], [584, 1842]],
-          size: [1512, 982],
+          quad: [[518, 1817], [830, 1865], [411, 2094], [730, 2180]],
+          size: [2360, 1640],
           bezel: 0,
           radius: 9,
-          ui: "assets/ui-monitor-mac-multicam.png"
+          ui: "assets/raw/monitor-ipad-multicam-climb.png"
+        },
+        // The camera phones run the app's real standby screen ("Preview off /
+        // Controlled by iPad") rather than reading as black rectangles. Only the
+        // two whose clamps sit clear of the glass: the ceiling phone's clamp arm
+        // crosses its screen, and a surface has no occlusion mask, so
+        // compositing there would paint the clamp out.
+        {
+          quad: [[197, 877], [367, 850], [190, 976], [366, 954]],
+          size: [1704, 786],
+          bezel: 0,
+          radius: 6,
+          ui: "assets/raw/camera-standby-landscape.png"
+        },
+        {
+          quad: [[990, 1989], [1081, 1985], [1004, 2180], [1092, 2178]],
+          size: [786, 1704],
+          bezel: 0,
+          radius: 6,
+          ui: "assets/raw/camera-standby-portrait.png"
         }
       ],
-      // Numbers match the grid tiles on the Mac's screen (1=TL … 4=BR), so
-      // the pills double as a legend. Spread: arm up-left, stand mid-left,
-      // hood up-right (short label fits inboard of the edge), eye-level
-      // down-left of its phone, REMOTE over the counter — nothing stacks and
-      // nothing can grow over the laptop in long locales.
+      // Numbers match the grid tiles on the iPad (1=TL Ceiling, 2=TR Stand,
+      // 3=BL Tripod, 4=BR Column), so the pills double as a legend.
       callouts: [
-        { text: "CAMERA 3", anchor: [805, 633], dx: -150, dy: -150 },  // under-cabinet arm → tile 3
-        { text: "CAMERA 1", anchor: [612, 860], dx: -230, dy: 130 },   // stand by the window → tile 1
-        { text: "CAMERA 4", anchor: [1218, 826], dx: 40, dy: -230 },   // range-hood clamp → tile 4
-        { text: "CAMERA 2", anchor: [1369, 1073], dx: -360, dy: 300 }, // eye-level stand → tile 2
-        { text: "REMOTE", anchor: [300, 1620], dx: 420, dy: 160 }      // the Mac
+        // Anchored on each mount, not on the glass: a leader dot on a screen
+        // covers the standby view the surface just composited there.
+        { text: "CAMERA 1", anchor: [300, 270], dx: 260, dy: 90 },
+        { text: "CAMERA 2", anchor: [278, 995], dx: 190, dy: 265 },
+        { text: "CAMERA 4", anchor: [1395, 1120], dx: -180, dy: -470 },
+        { text: "CAMERA 3", anchor: [1044, 2215], dx: 60, dy: -400 },
+        { text: "REMOTE", anchor: [607, 2015], dx: -230, dy: -330 }
       ]
     },
 
@@ -453,7 +477,7 @@ window.MANIFEST = {
       accentLine: 1,
       mockup: {
         device: "mac",
-        ui: "assets/ui-monitor-mac-multicam.png",
+        ui: "assets/ui-monitor-mac-multicam-climb.png",
         naturalSize: [1512, 982],
         width: 1020,
         left: "70%",

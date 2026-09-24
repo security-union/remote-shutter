@@ -37,11 +37,11 @@
 
   /* Landscape (banner) layout: caption column left, scene right */
   body.landscape .caption {
-    top: 0; bottom: 0; left: 0; right: auto; width: 44%; height: auto;
+    top: 0; bottom: 0; left: 0; right: auto; width: var(--capW, 44%); height: auto;
     justify-content: flex-start; text-align: left; padding: 0 calc(90px * var(--k));
   }
-  body.landscape .caption h1 { font-size: calc(92px * var(--k)); }
-  body.landscape .scene { top: 0; left: 44%; border-radius: 0; }
+  body.landscape .caption h1 { font-size: calc(92px * var(--k) * var(--hScale, 1)); }
+  body.landscape .scene { top: 0; left: var(--capW, 44%); border-radius: 0; }
 
   /* ---- Scene ---- */
   .scene {
@@ -198,8 +198,20 @@
   }
 
   // Scene-to-canvas mapping (cover fit inside the scene region).
+  // How much of the canvas the scene photo gets. A 9:16 scene is cover-fit into
+  // this region, so a NARROWER panel shows MORE of the photo's height: the knob
+  // for fitting a tall scene whose subjects span more rows than 56% allows.
+  const sceneW = landscape ? (slot.sceneWidth ?? 0.56) : 1;
+  if (landscape) {
+    document.documentElement.style.setProperty("--capW", `${(1 - sceneW) * 100}%`);
+    // A wider caption column needs a bigger headline or the type looks lost in
+    // it; the default 92px was sized for the 44% column.
+    if (slot.headlineScale) {
+      document.documentElement.style.setProperty("--hScale", slot.headlineScale);
+    }
+  }
   const region = landscape
-    ? { x: cw * 0.44, y: 0, w: cw * 0.56, h: chTotal }
+    ? { x: cw * (1 - sceneW), y: 0, w: cw * sceneW, h: chTotal }
     : { x: 0, y: capH, w: cw, h: chTotal - capH };
   let map = null;
   if (slot.sceneSize) {
