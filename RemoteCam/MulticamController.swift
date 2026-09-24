@@ -669,11 +669,11 @@ public actor MulticamController {
 
         case let ack as RemoteCmd.ScheduledRecordingAck:
             resolveRecordingAck(from: peer, captureId: ack.captureId, isStop: ack.isStop,
-                                success: ack.error == nil)
+                                failure: ack.failureMessage)
 
         case let ack as RemoteCmd.StartRecordingVideoAck:
             // The fallback (plain StartRecordingVideo) path's ack (no id).
-            resolveRecordingAck(from: peer, captureId: nil, isStop: false, success: ack.error == nil)
+            resolveRecordingAck(from: peer, captureId: nil, isStop: false, failure: ack.failureMessage)
 
         case is RemoteCmd.EndSession:
             // The camera is leaving on purpose — the goodbye ends its lane,
@@ -1421,14 +1421,16 @@ public actor MulticamController {
     }
 
     private func resolveRecordingAck(from peer: MCPeerID, captureId: String?,
-                                     isStop: Bool, success: Bool) {
+                                     isStop: Bool, failure: String?) {
         switch state {
         case .startingRecording(let id, _) where !isStop:
             guard capturingLanes.contains(peer), captureId == nil || captureId == id else { return }
-            guard success else {
-                // All-or-nothing: one refusal voids the whole take.
-                logWarning("director: \(peer.displayName) NACKED record-start \(shortID(id))")
+            if let failure {
+                // All-or-nothing: one refusal voids the whole take. Said out
+                // loud, so the operator knows which camera and why.
+                logWarning("director: \(peer.displayName) NACKED record-start \(shortID(id)) — \(failure)")
                 links[peer]?.captureOutcome = .failed
+                showError("\(links[peer]?.displayName ?? peer.displayName): \(failure)")
                 abortRecordingStart()
                 return
             }

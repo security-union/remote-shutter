@@ -115,6 +115,13 @@ enum RecordingPhase : byte {
     Recording = 2
 }
 
+// Why a capture command was refused, when the cause is fixed. The remote
+// words it in its own language; Unknown means read `error` as sent.
+enum RefusalReason : byte {
+    Unknown = 0,
+    MicrophoneDenied = 1
+}
+
 enum TorchMode : byte {
     Off = 0,
     On = 1,
@@ -421,6 +428,7 @@ table CameraStateResponse {
     clock_sync_echo_t0_ms: uint64;    // ClockSyncPing response: echoed director t0
     clock_sync_camera_clock_ms: uint64; // ClockSyncPing response: camera clock at receipt
     capture_id_echo: string;          // ScheduledCapture ack: the accepted capture id
+    refusal_reason: RefusalReason;    // set with `error` when the cause is fixed
 }
 
 // MARK: - Frame Data

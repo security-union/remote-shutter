@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Benarkan Akses Kamera & Foto";
-"camera_permissions_subtitle" = "Remote Shutter memerlukan akses ke kamera dan foto anda untuk menangkap dan menyimpan imej apabila disambungkan dengan peranti lain.";
+"camera_permissions_subtitle" = "Remote Shutter memerlukan akses ke kamera dan foto anda untuk menangkap dan menyimpan imej apabila disambungkan dengan peranti lain, dan ke mikrofon anda untuk merakam video dengan bunyi.";
 
 "camera_permissions_required_title" = "Akses Kamera & Foto Diperlukan";
 "camera_permissions_required_subtitle" = "Remote Shutter memerlukan akses kamera dan foto untuk berfungsi. Sila dayakannya dalam Tetapan untuk meneruskan.";
@@ -168,7 +168,7 @@
 "mic_cancel_recording" = "Batalkan Rakaman";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "Tidak dapat merakam video: Akses mikrofon telah dinafikan. Sila dayakan akses mikrofon dalam Tetapan untuk merakam video dengan audio.";
+"microphone_off_on_camera" = "Akses mikrofon dimatikan. Hidupkannya dalam Tetapan pada kamera itu untuk merakam video.";
 
 /* QR Code Instructions */
 "qr_code_download_instruction" = "Imbas kod QR ini dengan app Kamera anda pada peranti lain untuk memuat turun Remote Shutter dari App Store";

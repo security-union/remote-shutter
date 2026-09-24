@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Kamera ve Fotoğraf Erişimine İzin Ver";
-"camera_permissions_subtitle" = "Remote Shutter'ın, diğer cihazlara bağlıyken görüntü çekmek ve kaydetmek için kameranıza ve fotoğraflarınıza erişmesi gerekir.";
+"camera_permissions_subtitle" = "Remote Shutter'ın, diğer cihazlara bağlıyken görüntü çekmek ve kaydetmek için kameranıza ve fotoğraflarınıza, sesli video kaydetmek için de mikrofonunuza erişmesi gerekir.";
 
 "camera_permissions_required_title" = "Kamera ve Fotoğraf Erişimi Gerekli";
 "camera_permissions_required_subtitle" = "Remote Shutter'ın çalışması için kamera ve fotoğraf erişimi gerekir. Devam etmek için lütfen Ayarlar'dan etkinleştirin.";
@@ -168,7 +168,7 @@
 "mic_cancel_recording" = "Kaydı İptal Et";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "Video kaydedilemiyor: Mikrofon erişimi reddedildi. Sesli video kaydetmek için lütfen Ayarlar'dan mikrofon erişimini etkinleştirin.";
+"microphone_off_on_camera" = "Mikrofon erişimi kapalı. Video kaydetmek için o kameranın Ayarlar'ından açın.";
 
 /* QR Code Instructions */
 "qr_code_download_instruction" = "Remote Shutter'ı App Store'dan indirmek için bu QR kodunu başka bir cihazdaki Kamera uygulamasıyla tarayın";

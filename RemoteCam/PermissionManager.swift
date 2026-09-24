@@ -30,6 +30,14 @@ class PermissionManager: ObservableObject {
         return cameraStatus == .denied || photosStatus == .denied
     }
     
+    /// Ready to enter the camera role: camera and photos granted, and the
+    /// microphone has been asked. The mic's answer can be no (photos still
+    /// work), but it is never asked mid-take: the prompt would interrupt a
+    /// recording the remote already started.
+    var isCameraRoleReady: Bool {
+        return areCameraAndPhotosGranted && microphoneStatus != .notDetermined
+    }
+
     var needsCameraAndPhotosPermission: Bool {
         return cameraStatus == .notDetermined || photosStatus == .notDetermined || areCameraAndPhotosDenied
     }
@@ -44,7 +52,10 @@ class PermissionManager: ObservableObject {
     
     // MARK: - Permission Requesting
     
-    func requestCameraAndPhotosPermissions(completion: @escaping (Bool) -> Void) {
+    /// Asks for everything the camera role uses. `completion` gets whether
+    /// camera and photos were granted; the microphone is asked in the same
+    /// pass but only gates video, so its answer doesn't block the role.
+    func requestCameraRolePermissions(completion: @escaping (Bool) -> Void) {
         let group = DispatchGroup()
         var cameraGranted = false
         var photosGranted = false
@@ -79,6 +90,19 @@ class PermissionManager: ObservableObject {
             group.leave()
         }
         
+        // Request microphone permission (video only)
+        group.enter()
+        if microphoneStatus == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .audio) { _ in
+                DispatchQueue.main.async {
+                    self.microphoneStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+                }
+                group.leave()
+            }
+        } else {
+            group.leave()
+        }
+
         group.notify(queue: .main) {
             let bothGranted = cameraGranted && photosGranted
             completion(bothGranted)

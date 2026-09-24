@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "允许访问相机和照片";
-"camera_permissions_subtitle" = "Remote Shutter 需要访问您的相机和照片，以便在与其他设备连接时拍摄和保存图片。";
+"camera_permissions_subtitle" = "Remote Shutter 需要访问您的相机和照片，以便在与其他设备连接时拍摄和保存图片；还需要访问麦克风，以录制带声音的视频。";
 
 "camera_permissions_required_title" = "需要相机和照片访问权限";
 "camera_permissions_required_subtitle" = "Remote Shutter 需要相机和照片访问才能正常工作。请在设置中启用以继续。";
@@ -168,7 +168,7 @@
 "mic_cancel_recording" = "取消录制";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "无法录制视频：麦克风访问被拒绝。请在设置中启用麦克风访问以录制带音频的视频。";
+"microphone_off_on_camera" = "麦克风访问已关闭。请在该相机设备的设置中开启，以录制视频。";
 
 /* QR Code Instructions */
 "qr_code_download_instruction" = "在另一台设备上使用相机应用扫描此二维码，从 App Store 下载 Remote Shutter";

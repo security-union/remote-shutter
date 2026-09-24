@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Разрешите доступ к камере и фото";
-"camera_permissions_subtitle" = "Remote Shutter требуется доступ к камере и фото, чтобы снимать и сохранять изображения при подключении к другим устройствам.";
+"camera_permissions_subtitle" = "Remote Shutter требуется доступ к камере и фото, чтобы снимать и сохранять изображения при подключении к другим устройствам, и к микрофону, чтобы записывать видео со звуком.";
 
 "camera_permissions_required_title" = "Требуется доступ к камере и фото";
 "camera_permissions_required_subtitle" = "Для работы Remote Shutter нужен доступ к камере и фото. Включите его в Настройках, чтобы продолжить.";
@@ -168,7 +168,7 @@
 "mic_cancel_recording" = "Отменить запись";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "Не удаётся записать видео: доступ к микрофону запрещён. Включите доступ к микрофону в Настройках, чтобы записывать видео со звуком.";
+"microphone_off_on_camera" = "Доступ к микрофону выключен. Включите его в Настройках на этой камере, чтобы записывать видео.";
 
 /* QR Code Instructions */
 "qr_code_download_instruction" = "Отсканируйте этот QR-код приложением «Камера» на другом устройстве, чтобы скачать Remote Shutter из App Store";

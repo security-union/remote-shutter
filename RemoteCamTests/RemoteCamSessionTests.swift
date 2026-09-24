@@ -388,6 +388,58 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(name, .camera)
     }
 
+    // MARK: - Microphone off: video refused, photos unaffected
+
+    /// With microphone access off, a record command is refused before
+    /// anything rolls: the remote gets the reason, the person at the camera
+    /// is asked to turn it on, and the camera stays idle.
+    func testStartRecordingWithMicrophoneOffIsRefused() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.isMicrophoneAuthorized = false
+
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+
+        let acks = sent(RemoteCmd.StartRecordingVideoAck.self)
+            .compactMap { $0.msg as? RemoteCmd.StartRecordingVideoAck }
+        XCTAssertEqual(acks.map(\.refusal), [.microphonedenied])
+        XCTAssertEqual(camera.startRecordingCalls, 0)
+        XCTAssertEqual(camera.microphoneAccessRequests, 1)
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .camera)
+    }
+
+    func testScheduledStartWithMicrophoneOffIsRefusedNotAcked() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.isMicrophoneAuthorized = false
+
+        await harness.deliver(RemoteCmd.ScheduledStartRecording(
+            fireAtCameraClockMillis: SyncClock.nowMillis(),
+            anchorMillis: 42, captureId: "R7", sessionId: "S3", cameraIndex: 1))
+
+        let acks = sent(RemoteCmd.ScheduledRecordingAck.self)
+            .compactMap { $0.msg as? RemoteCmd.ScheduledRecordingAck }
+        XCTAssertEqual(acks.map(\.captureId), ["R7"])
+        XCTAssertEqual(acks.map(\.refusal), [.microphonedenied],
+                       "the director must never be told the camera is rolling")
+        XCTAssertEqual(camera.startRecordingCalls, 0)
+        XCTAssertEqual(camera.microphoneAccessRequests, 1)
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .camera)
+    }
+
+    func testPhotoWithMicrophoneOffStillTakesThePicture() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.isMicrophoneAuthorized = false
+
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
+
+        XCTAssertEqual(camera.takePictureCalls, [false])
+        XCTAssertEqual(camera.microphoneAccessRequests, 0)
+    }
+
     // MARK: - Keep rolling through a drop (uniform: solo and multicam)
 
     /// Drives the machine into `.cameraRecordingVideo` and drops the peer.

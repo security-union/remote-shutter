@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Cho phép truy cập Máy ảnh & Ảnh";
-"camera_permissions_subtitle" = "Remote Shutter cần quyền truy cập máy ảnh và ảnh để chụp và lưu hình ảnh khi kết nối với các thiết bị khác.";
+"camera_permissions_subtitle" = "Remote Shutter cần quyền truy cập máy ảnh và ảnh để chụp và lưu hình ảnh khi kết nối với các thiết bị khác, và quyền truy cập micrô để quay video có âm thanh.";
 
 "camera_permissions_required_title" = "Cần quyền truy cập Máy ảnh & Ảnh";
 "camera_permissions_required_subtitle" = "Remote Shutter cần quyền truy cập máy ảnh và ảnh để hoạt động. Vui lòng bật trong Cài đặt để tiếp tục.";
@@ -168,7 +168,7 @@
 "mic_cancel_recording" = "Hủy quay video";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "Không thể quay video: Quyền truy cập micrô đã bị từ chối. Vui lòng bật quyền truy cập micrô trong Cài đặt để quay video có âm thanh.";
+"microphone_off_on_camera" = "Quyền truy cập micrô đang tắt. Hãy bật trong Cài đặt trên máy quay đó để quay video.";
 
 /* QR Code Instructions */
 "qr_code_download_instruction" = "Quét mã QR này bằng ứng dụng Máy ảnh trên thiết bị khác để tải Remote Shutter từ App Store";

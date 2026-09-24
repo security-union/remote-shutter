@@ -146,6 +146,10 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     // Mirrors the pipeline contract: the recording truth is set before the
     // start ack goes out and cleared when the stop lands, so the camera's
     // state reports (the truth channel) match what was commanded.
+    var isMicrophoneAuthorized = true
+    var microphoneAccessRequests = 0
+    func requestMicrophoneAccess() { microphoneAccessRequests += 1 }
+
     func startRecordingVideo() {
         startRecordingCalls += 1
         if reportedRecordingStartedAt == nil { reportedRecordingStartedAt = Date() }

@@ -100,6 +100,18 @@ public enum RemoteShutter_RecordingPhase: Int8, Enum, Verifiable {
 }
 
 
+public enum RemoteShutter_RefusalReason: Int8, Enum, Verifiable {
+  public typealias T = Int8
+  public static var byteSize: Int { return MemoryLayout<Int8>.size }
+  public var value: Int8 { return self.rawValue }
+  case unknown = 0
+  case microphonedenied = 1
+
+  public static var max: RemoteShutter_RefusalReason { return .microphonedenied }
+  public static var min: RemoteShutter_RefusalReason { return .unknown }
+}
+
+
 public enum RemoteShutter_TorchMode: Int8, Enum, Verifiable {
   public typealias T = Int8
   public static var byteSize: Int { return MemoryLayout<Int8>.size }
@@ -1325,6 +1337,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     case clockSyncEchoT0Ms = 24
     case clockSyncCameraClockMs = 26
     case captureIdEcho = 28
+    case refusalReason = 30
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1343,7 +1356,8 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public var clockSyncCameraClockMs: UInt64 { let o = _accessor.offset(VTOFFSET.clockSyncCameraClockMs.v); return o == 0 ? 0 : _accessor.readBuffer(of: UInt64.self, at: o) }
   public var captureIdEcho: String? { let o = _accessor.offset(VTOFFSET.captureIdEcho.v); return o == 0 ? nil : _accessor.string(at: o) }
   public var captureIdEchoSegmentArray: [UInt8]? { return _accessor.getVector(at: VTOFFSET.captureIdEcho.v) }
-  public static func startCameraStateResponse(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 13) }
+  public var refusalReason: RemoteShutter_RefusalReason { let o = _accessor.offset(VTOFFSET.refusalReason.v); return o == 0 ? .unknown : RemoteShutter_RefusalReason(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public static func startCameraStateResponse(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 14) }
   public static func add(action: RemoteShutter_CommandAction, _ fbb: inout FlatBufferBuilder) { fbb.add(element: action.rawValue, def: 0, at: VTOFFSET.action.p) }
   public static func add(success: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: success, def: false,
    at: VTOFFSET.success.p) }
@@ -1354,6 +1368,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
   public static func add(clockSyncEchoT0Ms: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: clockSyncEchoT0Ms, def: 0, at: VTOFFSET.clockSyncEchoT0Ms.p) }
   public static func add(clockSyncCameraClockMs: UInt64, _ fbb: inout FlatBufferBuilder) { fbb.add(element: clockSyncCameraClockMs, def: 0, at: VTOFFSET.clockSyncCameraClockMs.p) }
   public static func add(captureIdEcho: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: captureIdEcho, at: VTOFFSET.captureIdEcho.p) }
+  public static func add(refusalReason: RemoteShutter_RefusalReason, _ fbb: inout FlatBufferBuilder) { fbb.add(element: refusalReason.rawValue, def: 0, at: VTOFFSET.refusalReason.p) }
   public static func endCameraStateResponse(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraStateResponse(
     _ fbb: inout FlatBufferBuilder,
@@ -1365,7 +1380,8 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     mediaDataVectorOffset mediaData: Offset = Offset(),
     clockSyncEchoT0Ms: UInt64 = 0,
     clockSyncCameraClockMs: UInt64 = 0,
-    captureIdEchoOffset captureIdEcho: Offset = Offset()
+    captureIdEchoOffset captureIdEcho: Offset = Offset(),
+    refusalReason: RemoteShutter_RefusalReason = .unknown
   ) -> Offset {
     let __start = RemoteShutter_CameraStateResponse.startCameraStateResponse(&fbb)
     RemoteShutter_CameraStateResponse.add(action: action, &fbb)
@@ -1377,6 +1393,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     RemoteShutter_CameraStateResponse.add(clockSyncEchoT0Ms: clockSyncEchoT0Ms, &fbb)
     RemoteShutter_CameraStateResponse.add(clockSyncCameraClockMs: clockSyncCameraClockMs, &fbb)
     RemoteShutter_CameraStateResponse.add(captureIdEcho: captureIdEcho, &fbb)
+    RemoteShutter_CameraStateResponse.add(refusalReason: refusalReason, &fbb)
     return RemoteShutter_CameraStateResponse.endCameraStateResponse(&fbb, start: __start)
   }
 
@@ -1391,6 +1408,7 @@ public struct RemoteShutter_CameraStateResponse: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.clockSyncEchoT0Ms.p, fieldName: "clockSyncEchoT0Ms", required: false, type: UInt64.self)
     try _v.visit(field: VTOFFSET.clockSyncCameraClockMs.p, fieldName: "clockSyncCameraClockMs", required: false, type: UInt64.self)
     try _v.visit(field: VTOFFSET.captureIdEcho.p, fieldName: "captureIdEcho", required: false, type: ForwardOffset<String>.self)
+    try _v.visit(field: VTOFFSET.refusalReason.p, fieldName: "refusalReason", required: false, type: RemoteShutter_RefusalReason.self)
     _v.finish()
   }
 }

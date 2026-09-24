@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Permitir Acesso à Câmera e Fotos";
-"camera_permissions_subtitle" = "O Remote Shutter precisa de acesso à sua câmera e fotos para capturar e salvar imagens quando conectado com outros dispositivos.";
+"camera_permissions_subtitle" = "O Remote Shutter precisa de acesso à sua câmera e fotos para capturar e salvar imagens quando conectado com outros dispositivos, e ao seu microfone para gravar vídeos com som.";
 
 "camera_permissions_required_title" = "Acesso à Câmera e Fotos Necessário";
 "camera_permissions_required_subtitle" = "O Remote Shutter requer acesso à câmera e fotos para funcionar. Por favor, ative nas Configurações para continuar.";
@@ -168,7 +168,7 @@
 "mic_cancel_recording" = "Cancelar Gravação";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "Não é possível gravar vídeo: O acesso ao microfone foi negado. Por favor, ative o acesso ao microfone nas Configurações para gravar vídeos com áudio.";
+"microphone_off_on_camera" = "O acesso ao microfone está desativado. Ative-o nas Configurações dessa câmera para gravar vídeo.";
 
 /* QR Code Instructions */
 "qr_code_download_instruction" = "Escaneie este código QR com o app Câmera em outro dispositivo para baixar o Remote Shutter da App Store";

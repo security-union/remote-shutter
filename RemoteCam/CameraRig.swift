@@ -93,7 +93,7 @@ final class CameraRig: @unchecked Sendable {
     var setNavigationBarHidden: ((Bool) -> Void)?
     /// Leave the camera screen (peer refused the role, etc.). Main thread.
     var onExit: (() -> Void)?
-    /// Microphone permission denied while starting a recording. Main thread.
+    /// A recording was refused because microphone access is off. Main thread.
     var onMicrophoneDenied: (() -> Void)?
 
     /// Persisted local-preview preference (on / standby). One store, written by
@@ -571,34 +571,30 @@ extension CameraRig: CameraControlling {
     func getZoomStops() async -> [CGFloat] { await engine.getZoomStops() }
     func getWideAngleZoomFactor() async -> CGFloat { await engine.getWideAngleZoomFactor() }
 
-    func startRecordingVideo() {
-        // Check microphone permission before starting video recording
-        SessionDebug.pipelinePhase("start: mic permission check")
-        PermissionManager.shared.requestMicrophonePermission { [weak self] granted in
-            guard let self = self else { return }
-            SessionDebug.pipelinePhase("start: mic permission answered (granted=\(granted))")
-            if granted {
-                // Straight to the pipeline's own queue — deliberately NO
-                // main-thread stop-over. Right after a backgrounding, main
-                // can be stalled for tens of seconds on audio-session work,
-                // and a stalled main must never sit between "start
-                // commanded" and the writer. `startRecording` is queue-safe
-                // from any thread; the already-granted permission path
-                // completes synchronously on the caller.
-                self.pipeline.startRecording(audioSampleBufferDelegate: self.streamingCoordinator)
+    var isMicrophoneAuthorized: Bool {
+        AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    }
+
+    func requestMicrophoneAccess() {
+        DispatchQueue.main.async {
+            let permissions = PermissionManager.shared
+            permissions.updatePermissionStatuses()
+            if permissions.microphoneStatus == .notDetermined {
+                // No take is waiting on the answer; the next record press reads it.
+                permissions.requestMicrophonePermission { _ in }
             } else {
-                // Microphone denied - notify the remote and prompt the user.
-                DispatchQueue.main.async {
-                    let microphoneError = NSError(
-                        domain: "RemoteShutterError",
-                        code: 1001,
-                        userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("microphone_access_denied_error", comment: "")]
-                    )
-                    self.session ! UICmd.MicrophoneAccessDenied(error: microphoneError)
-                    self.onMicrophoneDenied?()
-                }
+                self.onMicrophoneDenied?()
             }
         }
+    }
+
+    func startRecordingVideo() {
+        // Straight to the pipeline's own queue — deliberately NO main-thread
+        // stop-over. Right after a backgrounding, main can be stalled for
+        // tens of seconds on audio-session work, and a stalled main must
+        // never sit between "start commanded" and the writer. The session
+        // checked `isMicrophoneAuthorized` before commanding the start.
+        pipeline.startRecording(audioSampleBufferDelegate: streamingCoordinator)
     }
 
     func stopRecordingVideo(_ shouldSendVideo: Bool) {
