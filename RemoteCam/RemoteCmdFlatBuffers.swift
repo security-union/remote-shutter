@@ -477,8 +477,9 @@ extension RemoteCmd.StartRecordingVideoAck {
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
             action: .startrecording,
-            success: error == nil,
-            errorOffset: errorOffset
+            success: isAccepted,
+            errorOffset: errorOffset,
+            refusalReason: refusal
         )
         return buildResponse(&fbb, action: .startrecording, response: resp)
     }
@@ -774,9 +775,10 @@ extension RemoteCmd.ScheduledRecordingAck {
         let resp = RemoteShutter_CameraStateResponse.createCameraStateResponse(
             &fbb,
             action: action,
-            success: error == nil,
+            success: isAccepted,
             errorOffset: errorOffset,
-            captureIdEchoOffset: echoOffset)
+            captureIdEchoOffset: echoOffset,
+            refusalReason: refusal)
         return buildResponse(&fbb, action: action, response: resp)
     }
 }
@@ -1176,13 +1178,16 @@ extension RemoteCmd {
             return ScheduledCaptureAck(captureId: resp.captureIdEcho ?? "", error: nsError)
 
         case .scheduledstartrecording:
-            return ScheduledRecordingAck(captureId: resp.captureIdEcho ?? "", isStop: false, error: nsError)
+            return ScheduledRecordingAck(captureId: resp.captureIdEcho ?? "", isStop: false, error: nsError,
+                                         refusal: resp.refusalReason)
 
         case .scheduledstoprecording:
             return ScheduledRecordingAck(captureId: resp.captureIdEcho ?? "", isStop: true, error: nsError)
 
         case .startrecording:
-            return StartRecordingVideoAck(sender: nil, error: nsError)
+            return resp.refusalReason == .unknown
+                ? StartRecordingVideoAck(sender: nil, error: nsError)
+                : StartRecordingVideoAck(sender: nil, refusal: resp.refusalReason)
 
         // The stop protocol's two replies ride two DISTINCT actions:
         //   .stoprecording         → StopRecordingVideoAck  ("stop received")

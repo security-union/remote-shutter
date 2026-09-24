@@ -280,6 +280,8 @@ extension MulticamViewController: MulticamDisplay {
 
     func showTransientError(_ message: String) {
         viewModel.transientError = .init(message: message)
+        // The toast never takes focus, so VoiceOver hears it only if told.
+        UIAccessibility.post(notification: .announcement, argument: message)
     }
 
     func exitMulticam() {

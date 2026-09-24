@@ -40,7 +40,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Autoriser l'Accès Appareil Photo et Photos";
-"camera_permissions_subtitle" = "Remote Shutter a besoin d'accéder à votre appareil photo et à vos photos pour capturer et sauvegarder des images lors de la connexion avec d'autres appareils.";
+"camera_permissions_subtitle" = "Remote Shutter a besoin d'accéder à votre appareil photo et à vos photos pour capturer et sauvegarder des images lors de la connexion avec d'autres appareils, ainsi qu'à votre microphone pour enregistrer des vidéos avec le son.";
 "camera_permissions_required_title" = "Accès Appareil Photo et Photos Requis";
 "camera_permissions_required_subtitle" = "Remote Shutter nécessite l'accès à l'appareil photo et aux photos pour fonctionner. Veuillez les activer dans les Réglages pour continuer.";
 "camera_permission_feature_title" = "Accès Appareil Photo";
@@ -70,7 +70,7 @@
 "mic_cancel_recording" = "Annuler l'Enregistrement";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "Impossible d'enregistrer la vidéo : L'accès au microphone a été refusé. Veuillez activer l'accès au microphone dans les Réglages pour enregistrer des vidéos avec audio.";
+"microphone_off_on_camera" = "L'accès au microphone est désactivé. Activez-le dans les Réglages de cet appareil pour enregistrer des vidéos.";
 
 /* Photos Access Denied Modal */
 "photos_access_denied_photo_title" = "Impossible de Sauvegarder la Photo";

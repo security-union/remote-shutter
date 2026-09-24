@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "카메라 및 사진 접근 허용";
-"camera_permissions_subtitle" = "Remote Shutter는 다른 기기와 연결할 때 이미지를 촬영하고 저장하기 위해 카메라와 사진에 대한 접근이 필요합니다.";
+"camera_permissions_subtitle" = "Remote Shutter는 다른 기기와 연결할 때 이미지를 촬영하고 저장하기 위해 카메라와 사진에, 소리가 있는 비디오를 녹화하기 위해 마이크에 대한 접근이 필요합니다.";
 
 "camera_permissions_required_title" = "카메라 및 사진 접근 필요";
 "camera_permissions_required_subtitle" = "Remote Shutter가 작동하려면 카메라와 사진 접근이 필요합니다. 계속하려면 설정에서 활성화해 주세요.";
@@ -168,7 +168,7 @@
 "mic_cancel_recording" = "녹화 취소";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "비디오를 녹화할 수 없습니다: 마이크 접근이 거부되었습니다. 오디오 포함 비디오를 녹화하려면 설정에서 마이크 접근을 활성화해 주세요.";
+"microphone_off_on_camera" = "마이크 접근이 꺼져 있습니다. 비디오를 녹화하려면 해당 카메라 기기의 설정에서 켜 주세요.";
 
 /* QR Code Instructions */
 "qr_code_download_instruction" = "다른 기기의 카메라 앱으로 이 QR 코드를 스캔하여 App Store에서 Remote Shutter를 다운로드하세요";

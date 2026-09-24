@@ -172,6 +172,8 @@ final class CameraHostController: UIHostingController<CameraScreenView> {
     }
 
     private func showMicrophonePermissionPrompt() {
+        // Repeated record presses from the remote each land here; one prompt is enough.
+        guard microphonePromptController == nil else { return }
         let promptView = MicrophonePermissionPromptView(
             onOpenSettings: { [weak self] in
                 self?.dismissMicrophonePrompt()

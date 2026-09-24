@@ -85,7 +85,7 @@ public class RolePickerController: UIViewController {
         let permissionManager = PermissionManager.shared
         permissionManager.updatePermissionStatuses()
 
-        if permissionManager.areCameraAndPhotosGranted {
+        if permissionManager.isCameraRoleReady {
             let watchRemote = WatchRemoteCameraController()
             navigationController?.pushViewController(watchRemote, animated: true)
         } else if permissionManager.areCameraAndPhotosDenied {
@@ -100,7 +100,7 @@ public class RolePickerController: UIViewController {
             permissionType: .initial,
             onAllow: { [weak self] in
                 self?.dismiss(animated: true) {
-                    PermissionManager.shared.requestCameraAndPhotosPermissions { [weak self] granted in
+                    PermissionManager.shared.requestCameraRolePermissions { [weak self] granted in
                         DispatchQueue.main.async {
                             if granted {
                                 let watchRemote = WatchRemoteCameraController()
@@ -132,7 +132,7 @@ public class RolePickerController: UIViewController {
         let permissionManager = PermissionManager.shared
         permissionManager.updatePermissionStatuses()
 
-        if permissionManager.areCameraAndPhotosGranted {
+        if permissionManager.isCameraRoleReady {
             let scanner = DeviceScannerViewController(role: .camera)
             navigationController?.pushViewController(scanner, animated: true)
         } else if permissionManager.areCameraAndPhotosDenied {
@@ -163,7 +163,7 @@ public class RolePickerController: UIViewController {
     }
 
     private func requestPermissionsAndProceed() {
-        PermissionManager.shared.requestCameraAndPhotosPermissions { [weak self] granted in
+        PermissionManager.shared.requestCameraRolePermissions { [weak self] granted in
             DispatchQueue.main.async {
                 if granted {
                     let scanner = DeviceScannerViewController(role: .camera)

@@ -212,6 +212,18 @@ class WatchRemoteCamStateTests: XCTestCase {
         XCTAssertEqual(pusher.lastEvent, .microphonedenied)
     }
 
+    func testStartRecordingWithMicrophoneOffStaysIdle() async {
+        await enterWatchCamera()
+        ctrl.isMicrophoneAuthorized = false
+        await deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+
+        let name = await stateName()
+        XCTAssertEqual(name, .watchRemoteCamera)
+        XCTAssertEqual(pusher.lastEvent, .microphonedenied)
+        XCTAssertEqual(ctrl.startRecordingCalls, 0)
+        XCTAssertEqual(ctrl.microphoneAccessRequests, 1)
+    }
+
     func testStartingVideoTimeoutCleansUpAndReturnsToCamera() async {
         await enterStartingVideo()
         let generation = await coordinator.currentTimeoutGeneration()

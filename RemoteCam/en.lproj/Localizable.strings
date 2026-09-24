@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Allow Camera & Photos Access";
-"camera_permissions_subtitle" = "Remote Shutter needs access to your camera and photos to capture and save images when connected with other devices.";
+"camera_permissions_subtitle" = "Remote Shutter needs access to your camera and photos to capture and save images when connected with other devices, and to your microphone to record video with sound.";
 
 "camera_permissions_required_title" = "Camera & Photos Access Required";
 "camera_permissions_required_subtitle" = "Remote Shutter requires camera and photos access to function. Please enable them in Settings to continue.";
@@ -168,7 +168,7 @@
 "mic_cancel_recording" = "Cancel Recording";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "Cannot record video: Microphone access was denied. Please enable microphone access in Settings to record videos with audio.";
+"microphone_off_on_camera" = "Microphone access is off. Turn it on in Settings on that camera to record video.";
 
 /* QR Code Instructions */
 "qr_code_download_instruction" = "Scan this QR code with your Camera app on another device to download Remote Shutter from the App Store";

@@ -1015,6 +1015,11 @@ public actor SessionCoordinator {
             break // frame plumbing is FrameSender's job
 
         case is RemoteCmd.StartRecordingVideo:
+            guard ctrl.isMicrophoneAuthorized else {
+                await refuseRecordingWithoutMicrophone(
+                    RemoteCmd.StartRecordingVideoAck(sender: nil, refusal: .microphonedenied))
+                break
+            }
             ctrl.currentCameraMode = .Video
             ctrl.updateCameraStatus()
             ctrl.startRecordingVideo()
@@ -1369,6 +1374,11 @@ public actor SessionCoordinator {
     /// schedule-off-the-actor pattern as `handleScheduledCapture`; the fire
     /// message rolls the recording through the normal pipeline.
     private func handleScheduledStartRecording(_ scheduled: RemoteCmd.ScheduledStartRecording) async {
+        if let ctrl, !ctrl.isMicrophoneAuthorized {
+            await refuseRecordingWithoutMicrophone(RemoteCmd.ScheduledRecordingAck(
+                captureId: scheduled.captureId, isStop: false, refusal: .microphonedenied))
+            return
+        }
         cameraDriver = .director
         // Recording obeys NO clocks: fire the moment the command arrives.
         // Sleeping until a computed instant turned clock-offset error
@@ -1394,6 +1404,16 @@ public actor SessionCoordinator {
         ctrl.updateCameraStatus()
         ctrl.startRecordingVideo()
         await transition(to: .cameraRecordingVideo)
+    }
+
+    /// Video needs the microphone, and the camera never prompts mid-take:
+    /// with access off, the start is refused before anything rolls (the
+    /// remote says why) and the person at the camera is asked to turn it on.
+    /// The camera stays idle, so photos keep working.
+    private func refuseRecordingWithoutMicrophone(_ refusal: Message) async {
+        logWarning("camera: record start refused — microphone access is off")
+        ctrl?.requestMicrophoneAccess()
+        await sendOrGoToScanning(refusal, mode: .reliable)
     }
 
     /// Camera side of a synced recording stop — acks now, fires the stop at the
@@ -2063,6 +2083,11 @@ public actor SessionCoordinator {
             await transition(to: .watchCameraTakingPic(generation: generation))
 
         case is RemoteCmd.StartRecordingVideo:
+            guard ctrl.isMicrophoneAuthorized else {
+                ctrl.requestMicrophoneAccess()
+                await pushWatchState(event: .microphonedenied)
+                break
+            }
             ctrl.currentCameraMode = .Video
             ctrl.startRecordingVideo()
             let generation = scheduleTimeout(.watchRemoteCameraStartingVideo)

@@ -116,7 +116,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Kamera- und Fotozugriff erlauben";
-"camera_permissions_subtitle" = "Remote Shutter benötigt Zugriff auf Ihre Kamera und Fotos, um Bilder aufzunehmen und zu speichern, wenn eine Verbindung mit anderen Geräten besteht.";
+"camera_permissions_subtitle" = "Remote Shutter benötigt Zugriff auf Ihre Kamera und Fotos, um Bilder aufzunehmen und zu speichern, wenn eine Verbindung mit anderen Geräten besteht, sowie auf Ihr Mikrofon, um Videos mit Ton aufzunehmen.";
 
 "camera_permissions_required_title" = "Kamera- und Fotozugriff erforderlich";
 "camera_permissions_required_subtitle" = "Remote Shutter benötigt Kamera- und Fotozugriff, um zu funktionieren. Bitte aktivieren Sie diese in den Einstellungen, um fortzufahren.";
@@ -168,7 +168,7 @@
 "mic_cancel_recording" = "Aufnahme abbrechen";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "Video kann nicht aufgenommen werden: Mikrofonzugriff wurde verweigert. Bitte aktivieren Sie den Mikrofonzugriff in den Einstellungen, um Videos mit Audio aufzunehmen.";
+"microphone_off_on_camera" = "Mikrofonzugriff ist deaktiviert. Aktivieren Sie ihn in den Einstellungen dieser Kamera, um Videos aufzunehmen.";
 
 /* QR Code Instructions */
 "qr_code_download_instruction" = "Scannen Sie diesen QR-Code mit Ihrer Kamera-App auf einem anderen Gerät, um Remote Shutter aus dem App Store herunterzuladen";

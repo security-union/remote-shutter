@@ -1156,6 +1156,26 @@ extension RemoteCmdSerializationTests {
         XCTAssertNotNil(nack.error)
     }
 
+    /// A microphone refusal crosses the wire as the enum, not as text, and
+    /// the receiver words it in its own language.
+    func testRecordingRefusal_roundTripsAsEnum() {
+        let scheduled = roundTrip(RemoteCmd.ScheduledRecordingAck(
+            captureId: "R", isStop: false, refusal: .microphonedenied))
+        XCTAssertEqual(scheduled.refusal, .microphonedenied)
+        XCTAssertFalse(scheduled.isAccepted)
+        XCTAssertEqual(scheduled.failureMessage,
+                       NSLocalizedString("microphone_off_on_camera", comment: ""))
+
+        let plain = roundTrip(RemoteCmd.StartRecordingVideoAck(sender: nil, refusal: .microphonedenied))
+        XCTAssertEqual(plain.refusal, .microphonedenied)
+        XCTAssertFalse(plain.isAccepted)
+
+        let accepted = roundTrip(RemoteCmd.ScheduledRecordingAck(captureId: "R", isStop: false))
+        XCTAssertEqual(accepted.refusal, .unknown)
+        XCTAssertTrue(accepted.isAccepted)
+        XCTAssertNil(accepted.failureMessage)
+    }
+
     func testSetStreamProfile_roundTrip() {
         let result = roundTrip(RemoteCmd.SetStreamProfile(
             maxLongEdge: 640, bitrateKbps: 500, fps: 20))

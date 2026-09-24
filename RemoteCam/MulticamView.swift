@@ -444,15 +444,24 @@ struct MulticamView: View {
     /// A brief error readout (a refused camera switch, e.g.) in the chrome's
     /// glass style, tucked under the top bar. Non-blocking — it never
     /// hit-tests, and it fades itself out; deliberately not a modal.
+    /// A Dynamic Type style (never a fixed size) so it follows the reader's
+    /// text size, wrapping instead of truncating; the dark material keeps
+    /// white text legible over a bright viewfinder.
     @ViewBuilder
     private var transientErrorToast: some View {
         if let error = viewModel.transientError {
             Text(error.message)
-                .font(.caption.weight(.semibold))
+                .font(.callout.weight(.semibold))
                 .foregroundColor(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(.ultraThinMaterial))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(.regularMaterial)
+                    .environment(\.colorScheme, .dark))
+                .frame(maxWidth: 520)
+                .padding(.horizontal, 16)
                 .allowsHitTesting(false)
                 .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.top, 64)

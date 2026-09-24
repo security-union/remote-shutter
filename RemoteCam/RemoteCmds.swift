@@ -32,18 +32,33 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     /// Camera -> remote: recording started (or failed to). Success/error
     /// only — the running timer is driven by `CameraStateReport` ticks.
+    /// A refusal with a fixed cause travels as `refusal`, which the remote
+    /// words in its own language; `error` carries any other failure's text.
     public class StartRecordingVideoAck: RemoteCmd, @unchecked Sendable {
         let error: Error?
+        let refusal: RemoteShutter_RefusalReason
 
         public override init(sender: AnyObject?) {
             self.error = nil
+            self.refusal = .unknown
             super.init(sender: sender)
         }
 
         public init(sender: AnyObject?, error: Error?) {
             self.error = error
+            self.refusal = .unknown
             super.init(sender: sender)
         }
+
+        public init(sender: AnyObject?, refusal: RemoteShutter_RefusalReason) {
+            self.error = nil
+            self.refusal = refusal
+            super.init(sender: sender)
+        }
+
+        var isAccepted: Bool { error == nil && refusal == .unknown }
+        /// Why the start failed, in this device's language; nil when accepted.
+        var failureMessage: String? { refusal.localizedMessage ?? error?._domain }
     }
 
     public class StopRecordingVideo: RemoteCmd, @unchecked Sendable {
@@ -310,14 +325,22 @@ public class RemoteCmd: Message, @unchecked Sendable {
         public let captureId: String
         public let isStop: Bool
         public let error: Error?
+        /// A refusal with a fixed cause; the remote words it in its own language.
+        public let refusal: RemoteShutter_RefusalReason
 
         public init(captureId: String, isStop: Bool, error: Error? = nil,
+                    refusal: RemoteShutter_RefusalReason = .unknown,
                     sender: AnyObject? = nil) {
             self.captureId = captureId
             self.isStop = isStop
             self.error = error
+            self.refusal = refusal
             super.init(sender: sender)
         }
+
+        var isAccepted: Bool { error == nil && refusal == .unknown }
+        /// Why the camera refused, in this device's language; nil when accepted.
+        var failureMessage: String? { refusal.localizedMessage ?? error?._domain }
     }
 
     /// Director → camera: reconfigure the live preview encoder for tiered
@@ -819,4 +842,17 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+}
+
+extension RemoteShutter_RefusalReason {
+    /// This device's wording of a fixed refusal cause; nil for `.unknown`.
+    var localizedMessage: String? {
+        switch self {
+        case .microphonedenied:
+            return NSLocalizedString("microphone_off_on_camera",
+                                     comment: "A camera refused to record: its microphone access is off")
+        case .unknown:
+            return nil
+        }
+    }
 }

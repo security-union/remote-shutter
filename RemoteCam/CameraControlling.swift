@@ -30,6 +30,13 @@ protocol CameraControlling: AnyObject, Sendable {
 
     func updateCameraStatus()
     func takePicture(_ sendMediaToRemote: Bool)
+    /// Whether the microphone is authorized right now. Read before every
+    /// recording start: video needs it, and nothing prompts mid-take.
+    var isMicrophoneAuthorized: Bool { get }
+    /// A recording was refused for the microphone: ask the person at the
+    /// camera to turn it on (the system prompt if never asked, otherwise the
+    /// Settings prompt). Never stacks a second prompt.
+    func requestMicrophoneAccess()
     func startRecordingVideo()
     func stopRecordingVideo(_ shouldSendVideo: Bool)
     /// Multicam only: the sync metadata for the recording about to start, so

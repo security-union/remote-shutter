@@ -69,6 +69,12 @@ struct CameraPermissionsView: View {
                             )
                             
                             FeatureCard(
+                                icon: "mic.circle",
+                                title: NSLocalizedString("video_recording_feature_title", comment: ""),
+                                description: NSLocalizedString("video_recording_feature_description", comment: "")
+                            )
+
+                            FeatureCard(
                                 icon: "iphone.and.arrow.forward",
                                 title: NSLocalizedString("remote_control_feature_title", comment: ""),
                                 description: NSLocalizedString("remote_control_feature_description", comment: "")

@@ -775,6 +775,36 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertNil(elapsed)
     }
 
+    /// A camera with its microphone off refuses the start: the take is void
+    /// and the operator is told which camera and why, in their language.
+    func testMicrophoneRefusalAbortsTakeAndNamesTheCamera() async {
+        let (controller, transport, display) = await makeController(peers: [camA, camB])
+        await controller.seedLaneForTesting(camA, supportsMulticam: true, offsetMillis: 0)
+        await controller.seedLaneForTesting(camB, supportsMulticam: true, offsetMillis: 0)
+
+        controller.startRecording()
+        await controller.waitForIdle()
+        let recID = await controller.startingStateForTesting()!.id
+        transport.sentMessages.removeAll()
+
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false), from: camA)
+        controller.didReceiveMessage(
+            RemoteCmd.ScheduledRecordingAck(captureId: recID, isStop: false,
+                                            refusal: .microphonedenied), from: camB)
+        await controller.waitForIdle()
+
+        let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
+        XCTAssertEqual(Set(stops.flatMap(\.peers)), [camA, camB])
+        let recording = await controller.recordingStateForTesting()
+        XCTAssertNil(recording)
+        let outB = await controller.captureOutcomeForTesting(camB)
+        XCTAssertEqual(outB, .failed)
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+        XCTAssertEqual(display.transientErrors,
+                       ["\(camB.displayName): \(NSLocalizedString("microphone_off_on_camera", comment: ""))"])
+    }
+
     func testStartAckTimeoutAbortsTheTake() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         await controller.setCaptureAckTimeout(0.1)

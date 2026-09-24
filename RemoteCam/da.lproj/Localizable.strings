@@ -23,7 +23,7 @@
 
 /* Camera Permissions Modal */
 "camera_permissions_title" = "Tillad Kamera og Foto Adgang";
-"camera_permissions_subtitle" = "Remote Shutter har brug for adgang til dit kamera og fotos for at tage og gemme billeder når den forbinder med andre enheder.";
+"camera_permissions_subtitle" = "Remote Shutter har brug for adgang til dit kamera og fotos for at tage og gemme billeder, når den forbinder med andre enheder, og til din mikrofon for at optage video med lyd.";
 "camera_permissions_required_title" = "Kamera og Foto Adgang Påkrævet";
 "camera_permissions_required_subtitle" = "Remote Shutter kræver kamera og foto adgang for at fungere. Venligst aktiver dem i Indstillinger for at fortsætte.";
 "camera_permission_feature_title" = "Kamera Adgang";
@@ -53,7 +53,7 @@
 "mic_cancel_recording" = "Annuller Optagelse";
 
 /* Microphone Error Messages */
-"microphone_access_denied_error" = "Kan ikke optage video: Mikrofon adgang blev nægtet. Venligst aktiver mikrofon adgang i Indstillinger for at optage videoer med lyd.";
+"microphone_off_on_camera" = "Mikrofonadgang er slået fra. Slå det til i Indstillinger på det kamera for at optage video.";
 
 /* Photos Access Denied Modal */
 "photos_access_denied_photo_title" = "Kan Ikke Gemme Foto";
