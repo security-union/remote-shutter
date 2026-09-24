@@ -18,10 +18,12 @@ const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 // iPad drops the Watch slot and the family scene (no iPad in it) and uses
 // iPad-native variants for the mockup slots and the cardinal scene.
 const PLANS = [
-  ["APP_IPHONE_67", 1290, 2796, ["0", "6", "1", "3", "4", "2"]],
-  ["APP_IPHONE_65", 1284, 2778, ["0", "6", "1", "3", "4", "2"]],
-  ["APP_IPAD_PRO_3GEN_129", 2048, 2732, ["0", "3i", "2i"]],
-  ["APP_IPAD_PRO_3GEN_11", 1640, 2360, ["0", "3i", "2i"]],
+  // The multicam slot leads every listing: it is the newest feature and the
+  // only one no competitor has. Nothing was dropped to make room.
+  ["APP_IPHONE_67", 1290, 2796, ["6", "0", "1", "3", "4", "2"]],
+  ["APP_IPHONE_65", 1284, 2778, ["6", "0", "1", "3", "4", "2"]],
+  ["APP_IPAD_PRO_3GEN_129", 2048, 2732, ["6is", "6i", "0", "3i", "2i"]],
+  ["APP_IPAD_PRO_3GEN_11", 1640, 2360, ["6is", "6i", "0", "3i", "2i"]],
   // Mac App Store listing (deliver detects the Mac display family by the
   // 2880x1800 16:10 resolution).
   ["APP_DESKTOP", 2880, 1800, ["mac0", "mac4", "mac5", "mac3", "mac1", "mac2"]],

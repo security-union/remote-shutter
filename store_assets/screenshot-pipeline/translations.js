@@ -232,7 +232,8 @@ window.I18N = {
       "CAMERA 1": "相机 1", "CAMERA 2": "相机 2", "CAMERA 3": "相机 3", "CAMERA 4": "相机 4", "CAMERA": "相机", "REMOTE": "遥控器",
       "PHOTO & VIDEO": "照片和视频", "TIMER": "定时器",
       "ZOOM & LENS": "变焦和镜头", "FLASH & TORCH": "闪光灯和手电筒",
-      "CAMERA PICKER": "相机选择", "LIVE PREVIEW": "实时预览", "PRO CAMERA": "专业相机"
+      "CAMERA PICKER": "相机选择", "LIVE PREVIEW": "实时预览", "PRO CAMERA": "专业相机",
+      "SYNCED SHUTTER": "同步快门"
     }
   },
   "hi": {

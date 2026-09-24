@@ -172,31 +172,49 @@ window.MANIFEST = {
       }
     },
 
-    // ---- Slot 6: multicam for iPhone — same content as mac4, portrait ----
-    // The scene is natively portrait, so everything (scene, quad, composed
-    // screen, callout anchors) is shared with mac4; only the layout differs.
-    // Headlines: translations copy the mac4 strings to key "6".
+    // ---- Slot 6: multicam for iPhone — same scene as mac4, portrait ----
+    // The scene is natively portrait, so the scene, the three screen quads and
+    // the callout anchors are shared with mac4; only the layout and the pill
+    // offsets differ. Portrait shows 2543 of the 2752 rows at full width, so
+    // nearly the whole rig is in frame and the pills have real space to sit in.
     "6": {
       headline: ["NEW: Four cameras.", "One director."],
       accentLine: 1,
-      scene: "../ai-scenes/mac2_multicam_e6.jpg",
+      scene: "../ai-scenes/mac4_climb_ipad_v2.jpg",
       sceneSize: [1536, 2752],
-      scenePosition: "50% 30%",
+      scenePosition: "50% 35%",
       surfaces: [
         {
-          quad: [[-64, 1514], [417, 1397], [131, 2058], [584, 1842]],
-          size: [1512, 982],
+          quad: [[518, 1817], [830, 1865], [411, 2094], [730, 2180]],
+          size: [2360, 1640],
           bezel: 0,
           radius: 9,
-          ui: "assets/ui-monitor-mac-multicam.png"
+          ui: "assets/raw/monitor-ipad-multicam-climb.png"
+        },
+        {
+          quad: [[197, 877], [367, 850], [190, 976], [366, 954]],
+          size: [1704, 786],
+          bezel: 0,
+          radius: 6,
+          ui: "assets/raw/camera-standby-landscape.png"
+        },
+        {
+          quad: [[990, 1989], [1081, 1985], [1004, 2180], [1092, 2178]],
+          size: [786, 1704],
+          bezel: 0,
+          radius: 6,
+          ui: "assets/raw/camera-standby-portrait.png"
         }
       ],
+      // Pills land in the two genuinely empty regions — the white clerestory
+      // wall upper left, and the blue mats across the lower middle and right.
+      // Nothing sits over the climber, the man's head, or a screen.
       callouts: [
-        { text: "CAMERA 3", anchor: [805, 633], dx: -150, dy: -150 },
-        { text: "CAMERA 1", anchor: [612, 860], dx: -230, dy: 130 },
-        { text: "CAMERA 4", anchor: [1218, 826], dx: 40, dy: -230 },
-        { text: "CAMERA 2", anchor: [1369, 1073], dx: -360, dy: 300 },
-        { text: "REMOTE", anchor: [300, 1620], dx: 420, dy: 160 }
+        { text: "CAMERA 1", anchor: [300, 270], dx: 300, dy: 40 },
+        { text: "CAMERA 2", anchor: [278, 995], dx: 120, dy: -330 },
+        { text: "CAMERA 4", anchor: [1395, 1120], dx: -150, dy: 430 },
+        { text: "CAMERA 3", anchor: [1044, 2215], dx: 180, dy: -300 },
+        { text: "REMOTE", anchor: [455, 2130], dx: 60, dy: 330 }
       ]
     },
 
@@ -219,6 +237,88 @@ window.MANIFEST = {
         { text: "LIVE PREVIEW", anchorScreen: [0.5, 0.42], dx: 380, dy: -60 },
         { text: "ZOOM & LENS", anchorScreen: [0.5, 0.834], dx: -360, dy: 30 },
         { text: "PHOTO & VIDEO", anchorScreen: [0.5, 0.956], dx: 330, dy: 90 }
+      ]
+    },
+    // 6i: the multicam feature for the iPad listing, which had none. Full-bleed
+    // scene does not work here — an iPad canvas shows only ~1565 of the scene's
+    // 2752 rows and the rig spans ~2135, so the ceiling camera drops out and a
+    // "Four cameras" headline would overclaim. The device mockup shows all four
+    // feeds instead, which is also the strongest framing on an iPad: the thing
+    // you are holding is the thing running the rig. Headline inherits "6"
+    // (baseId strips the trailing i), so all 15 locales already have it.
+    "6i": {
+      // Runs the mac5 headline: this slot IS the grid screen, and the scene
+      // slot below already carries "Four cameras. One director."
+      headlineKey: "mac5",
+      headline: ["4 cameras connected.", "One synced shutter."],
+      accentLine: 1,
+      mockup: {
+        device: "ipad",
+        // Held landscape: the four 16:9 feeds fill the cells instead of
+        // letterboxing into portrait ones, which left the top of the screen
+        // mostly black.
+        ar: 1640 / 2360,
+        ui: "assets/raw/monitor-ipad-multicam-climb.png",
+        naturalSize: [2360, 1640],
+        top: 1130,
+        width: 1650
+      },
+      // The device is narrowed to 1430 so the right-hand controls have margin
+      // to point into; pills sit above and below the frame rather than beside
+      // it, which ran them off the canvas.
+      callouts: [
+        { text: "FLASH & TORCH", anchorScreen: [0.898, 0.038], dx: -60, dy: -250 },
+        // "LIVE PREVIEW" rather than a new string: it is already translated in
+        // all 14 locales and slot 2i uses it for the same thing. The headline
+        // already carries the "4 cameras" claim.
+        { text: "LIVE PREVIEW", anchorScreen: [0.30, 0.52], dx: -250, dy: 270 },
+        { text: "SYNCED SHUTTER", anchorScreen: [0.928, 0.432], dx: 40, dy: 430 },
+        { text: "PHOTO & VIDEO", anchorScreen: [0.848, 0.962], dx: 210, dy: 250 }
+      ]
+    },
+    // 6is: the rig scene on iPad — the same photo and surfaces as the iPhone
+    // slot, in the iPad layout. sceneFit "contain" because an iPad canvas is far
+    // squarer: cover-fit shows only ~1565 of the 2752 rows and the rig spans
+    // ~2135, so the ceiling camera would drop out and "Four cameras" would
+    // overclaim. Contained, every camera stays in frame and the side margins
+    // give the callouts clean space to sit in.
+    "6is": {
+      headlineKey: "6",
+      headline: ["NEW: Four cameras.", "One director."],
+      accentLine: 1,
+      scene: "../ai-scenes/mac4_climb_ipad_v2.jpg",
+      sceneSize: [1536, 2752],
+      sceneFit: "contain",
+      scenePosition: "50% 50%",
+      surfaces: [
+        {
+          quad: [[518, 1817], [830, 1865], [411, 2094], [730, 2180]],
+          size: [2360, 1640],
+          bezel: 0,
+          radius: 9,
+          ui: "assets/raw/monitor-ipad-multicam-climb.png"
+        },
+        {
+          quad: [[197, 877], [367, 850], [190, 976], [366, 954]],
+          size: [1704, 786],
+          bezel: 0,
+          radius: 6,
+          ui: "assets/raw/camera-standby-landscape.png"
+        },
+        {
+          quad: [[990, 1989], [1081, 1985], [1004, 2180], [1092, 2178]],
+          size: [786, 1704],
+          bezel: 0,
+          radius: 6,
+          ui: "assets/raw/camera-standby-portrait.png"
+        }
+      ],
+      callouts: [
+        { text: "CAMERA 1", anchor: [300, 270], dx: -330, dy: -70 },
+        { text: "CAMERA 2", anchor: [278, 995], dx: -340, dy: 60 },
+        { text: "CAMERA 4", anchor: [1395, 1120], dx: 330, dy: -80 },
+        { text: "CAMERA 3", anchor: [1044, 2215], dx: 360, dy: -140 },
+        { text: "REMOTE", anchor: [455, 2130], dx: -330, dy: 120 }
       ]
     },
     "3i": {
@@ -410,38 +510,72 @@ window.MANIFEST = {
       ]
     },
 
-    // mac4: NEW multicam — the four-camera kitchen rig (scene chain
-    // mac2_multicam_e1..e6; quads inherited from mac2's base photo, +440y for
-    // the uncropped frame). Every camera gets a CAMERA pill; the Mac runs the
-    // composed grid (assets/ui-monitor-mac-multicam.png, built by
-    // `tools.py grid` — see README).
+    // mac4: the four-camera bouldering rig. A boulder problem happens once and
+    // the climber's hands are on the wall, so the remote shutter is the only way
+    // to shoot it — four angles of one instant. The director's screen is the real
+    // iPad grid rendered from the app's own SwiftUI (MulticamGridSnapshotTests),
+    // not another platform's capture stretched to fit.
+    //
+    // sceneWidth 0.44 rather than the default 0.56: the four mounts plus the
+    // tablet span 2125 rows of the 2752-row scene, and a 56% panel only shows
+    // 1714. A narrower panel scales the cover-fit down and shows 2182.
     "mac4": {
       layout: "landscape",
       headline: ["NEW: Four cameras.", "One director."],
       accentLine: 1,
-      scene: "../ai-scenes/mac2_multicam_e6.jpg",
+      // The Mac listing shows a Mac directing. Same rig, same instant as the
+      // iPhone slot, but the laptop runs the grid rather than a tablet.
+      scene: "../ai-scenes/mac4_climb_mac.jpg",
       sceneSize: [1536, 2752],
-      scenePosition: "50% 30%",
+      // sceneWidth 0.44 rather than the default 0.56: the four mounts plus the
+      // laptop span ~2150 rows of the 2752-row scene, and a 56% panel shows
+      // only 1714. A narrower panel scales the cover-fit down and shows 2182.
+      sceneWidth: 0.44,
+      headlineScale: 1.3,
+      scenePosition: "50% 8%",
       surfaces: [
         {
-          quad: [[-64, 1514], [417, 1397], [131, 2058], [584, 1842]],
+          quad: [[546, 1831], [821, 1876], [455, 2078], [728, 2143]],
           size: [1512, 982],
           bezel: 0,
           radius: 9,
-          ui: "assets/ui-monitor-mac-multicam.png"
+          ui: "assets/ui-monitor-mac-multicam-climb.png"
+        },
+        // Three camera phones run the app's real standby screen. The ceiling
+        // phone is left dark: its clamp arm crosses the glass, and a surface
+        // has no occlusion mask, so compositing would paint the clamp out.
+        {
+          quad: [[187, 838], [373, 897], [170, 937], [358, 986]],
+          size: [1704, 786],
+          bezel: 0,
+          radius: 6,
+          ui: "assets/raw/camera-standby-landscape.png"
+        },
+        {
+          quad: [[1290, 906], [1387, 910], [1296, 1125], [1396, 1129]],
+          size: [786, 1704],
+          bezel: 0,
+          radius: 6,
+          ui: "assets/raw/camera-standby-portrait.png"
+        },
+        {
+          quad: [[985, 1984], [1064, 1981], [1012, 2186], [1100, 2181]],
+          size: [786, 1704],
+          bezel: 0,
+          radius: 6,
+          ui: "assets/raw/camera-standby-portrait.png"
         }
       ],
-      // Numbers match the grid tiles on the Mac's screen (1=TL … 4=BR), so
-      // the pills double as a legend. Spread: arm up-left, stand mid-left,
-      // hood up-right (short label fits inboard of the edge), eye-level
-      // down-left of its phone, REMOTE over the counter — nothing stacks and
-      // nothing can grow over the laptop in long locales.
+      // Numbers match the grid tiles (1=TL Ceiling, 2=TR Stand, 3=BL Tripod,
+      // 4=BR Column). Anchored on each mount, never on glass or a face: his
+      // head occupies canvas (1647,1101)-(1858,1259) and the laptop screen
+      // (1988,1473)-(2290,1730).
       callouts: [
-        { text: "CAMERA 3", anchor: [805, 633], dx: -150, dy: -150 },  // under-cabinet arm → tile 3
-        { text: "CAMERA 1", anchor: [612, 860], dx: -230, dy: 130 },   // stand by the window → tile 1
-        { text: "CAMERA 4", anchor: [1218, 826], dx: 40, dy: -230 },   // range-hood clamp → tile 4
-        { text: "CAMERA 2", anchor: [1369, 1073], dx: -360, dy: 300 }, // eye-level stand → tile 2
-        { text: "REMOTE", anchor: [300, 1620], dx: 420, dy: 160 }      // the Mac
+        { text: "CAMERA 1", anchor: [300, 290], dx: 260, dy: 90 },
+        { text: "CAMERA 2", anchor: [275, 1010], dx: 190, dy: 265 },
+        { text: "CAMERA 4", anchor: [1420, 1140], dx: -180, dy: -470 },
+        { text: "CAMERA 3", anchor: [1045, 2200], dx: 60, dy: -400 },
+        { text: "REMOTE", anchor: [450, 2060], dx: 60, dy: -230 }
       ]
     },
 
@@ -453,7 +587,7 @@ window.MANIFEST = {
       accentLine: 1,
       mockup: {
         device: "mac",
-        ui: "assets/ui-monitor-mac-multicam.png",
+        ui: "assets/ui-monitor-mac-multicam-climb.png",
         naturalSize: [1512, 982],
         width: 1020,
         left: "70%",

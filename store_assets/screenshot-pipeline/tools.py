@@ -13,17 +13,29 @@ Subcommands:
       Save a zoomed crop to the scratchpad. Prints the output path.
   crop    IMG X0 Y0 X1 Y1 OUT [--scale N]
       Save a crop (e.g. a generation seed reference) to OUT.
+  find-logo IMG X0 Y0 X1 Y1 [--k F]
+      Report the bounding box of the darkest blob inside the window, so a
+      logo-patch box is measured rather than eyeballed. Prints a ready-made
+      logo-patches.json fragment.
+  strip-logos [SCENE ...] [--patches FILE] [--preview]
+      Apply the recorded clone patches that remove brand marks the image model
+      painted on a device. Reads ../ai-scenes/<in>, writes ../ai-scenes/<out>;
+      the generated scene is never modified in place. No SCENE argument means
+      every entry in the table.
   chrome  IMG OUT [--blank X,Y,W,H ...] [--opaque X,Y,W,H ...] [--disc]
       Turn a capture of the remote taken over a BLACK viewfinder into a
       straight-alpha chrome overlay the template can composite over any
       preview. See `key_chrome` for the math.
 """
 import argparse
+import json
 import os
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
+
+SCENES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ai-scenes")
 
 SCRATCH = os.environ.get(
     "SCRATCHPAD",
@@ -246,6 +258,62 @@ def compose_grid(im, tiles, gutter=4, blanks=(), opaques=(), disc_region=None,
     return out_img
 
 
+# ---- Logo stripping -------------------------------------------------------
+# Nano Banana paints an Apple logo on a phone back every few generations. Asking
+# it not to does not work (the models have no negative prompt), and re-rolling
+# gambles away a scene that is otherwise right. So the mark comes off in post:
+# clone a rectangle of the same brushed metal from a clean part of the same
+# surface over it, feathered so there is no seam. The boxes live in
+# logo-patches.json, measured with `find-logo`, so the whole step replays.
+
+def find_logo(im, win, k=2.5):
+    """Bounding box of the darkest blob in win, as (x0, y0, x1, y1)."""
+    x0, y0, x1, y1 = win
+    a = np.asarray(im.convert("L").crop((x0, y0, x1, y1)), dtype=float)
+    thresh = np.median(a) - k * a.std()
+    ys, xs = np.nonzero(a < thresh)
+    if len(xs) == 0:
+        return None
+    return (x0 + int(xs.min()), y0 + int(ys.min()),
+            x0 + int(xs.max()) + 1, y0 + int(ys.max()) + 1)
+
+
+def _ring_mean(im, box, band=8):
+    """Mean RGB of the band just outside box: what the clone has to match."""
+    x0, y0, x1, y1 = box
+    outer = np.asarray(im.crop((x0 - band, y0 - band, x1 + band, y1 + band)),
+                       dtype=float)
+    inner = np.zeros(outer.shape[:2], dtype=bool)
+    inner[band:-band, band:-band] = True
+    return outer[~inner].reshape(-1, 3).mean(axis=0)
+
+
+def clone_patch(im, box, src_off, feather=7):
+    """Cover box with pixels from the same image offset by src_off.
+
+    A brushed-metal back is rarely evenly lit, so cloning from 60px away brings
+    its own exposure with it and leaves a smudge exactly where the mark was.
+    The source is scaled so the ring around it matches the ring around the
+    destination before it is pasted.
+    """
+    x0, y0, x1, y1 = box
+    dx, dy = src_off
+    w, h = x1 - x0, y1 - y0
+    src = im.crop((x0 + dx, y0 + dy, x1 + dx, y1 + dy))
+    gain = _ring_mean(im, box) / np.maximum(
+        _ring_mean(im, (x0 + dx, y0 + dy, x1 + dx, y1 + dy)), 1e-6)
+    a = np.asarray(src, dtype=float) * gain
+    src = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+    # Opaque well inside the box, falling off to transparent at its edge, so
+    # the seam lands on metal the clone already matches.
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).rectangle(
+        [feather, feather, w - feather - 1, h - feather - 1], fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(feather / 2.0))
+    im.paste(src, (x0, y0), mask)
+    return im
+
+
 def main():
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -282,6 +350,18 @@ def main():
                    metavar="X,Y,W,H")
     k.add_argument("--disc", type=rect_arg, metavar="X,Y,W,H",
                    help="region to search for the shutter disc")
+
+    fl = sub.add_parser("find-logo", help="measure a logo-patch box")
+    fl.add_argument("img")
+    fl.add_argument("win", nargs=4, type=int)
+    fl.add_argument("--k", type=float, default=2.5,
+                    help="darkness threshold in std devs below the local median")
+
+    sl = sub.add_parser("strip-logos", help="apply the recorded logo patches")
+    sl.add_argument("scene", nargs="*", help="table keys; default is all of them")
+    sl.add_argument("--patches", default="logo-patches.json")
+    sl.add_argument("--preview", action="store_true",
+                    help="also write a before/after zoom per patch to the scratchpad")
 
     g = sub.add_parser("grid", help="multicam wall: tiles under a capture's chrome")
     g.add_argument("img", help="window capture over a black viewfinder")
@@ -335,6 +415,54 @@ def main():
             im = im.resize((im.width * a.scale, im.height * a.scale), Image.LANCZOS)
         im.save(a.out)
         print(a.out, im.size)
+    elif a.cmd == "find-logo":
+        im = Image.open(a.img)
+        box = find_logo(im, a.win, a.k)
+        if not box:
+            print("nothing darker than the threshold in that window")
+            return
+        x0, y0, x1, y1 = box
+        pad = 10
+        h = y1 - y0
+        print(f"blob: {box}")
+        print('  {"what": "...", "box": [%d, %d, %d, %d], '
+              '"from": [0, %d], "feather": 7}'
+              % (x0 - pad, y0 - pad, x1 + pad, y1 + pad, h + 2 * pad + 6))
+    elif a.cmd == "strip-logos":
+        with open(a.patches) as fh:
+            table = json.load(fh)["scenes"]
+        wanted = set(a.scene)
+        todo = [e for e in table if not wanted or e["in"] in wanted]
+        missing = wanted - {e["in"] for e in table}
+        if missing:
+            sys.exit(f"not in {a.patches}: {', '.join(sorted(missing))}")
+        for entry in todo:
+            src = os.path.join(SCENES, entry["in"])
+            im = Image.open(src).convert("RGB")
+            for i, patch in enumerate(entry["patches"]):
+                if a.preview:
+                    bx = patch["box"]
+                    win = (bx[0] - 40, bx[1] - 40, bx[2] + 40, bx[3] + 40)
+                    before = im.crop(win)
+                clone_patch(im, tuple(patch["box"]), tuple(patch["from"]),
+                            patch.get("feather", 7))
+                if a.preview:
+                    after = im.crop(win)
+                    sheet = Image.new("RGB", (before.width * 2 + 10, before.height),
+                                      "white")
+                    sheet.paste(before, (0, 0))
+                    sheet.paste(after, (before.width + 10, 0))
+                    sheet = sheet.resize((sheet.width * 3, sheet.height * 3),
+                                         Image.NEAREST)
+                    stem = os.path.splitext(entry["out"])[0]
+                    os.makedirs(SCRATCH, exist_ok=True)
+                    out = os.path.join(SCRATCH, f"strip_{stem}_{i}.png")
+                    sheet.save(out)
+                    print(f"  preview {out}")
+                print(f"  patched {patch['what']} at {patch['box']}")
+            dst = os.path.join(SCENES, entry["out"])
+            im.save(dst, quality=95, subsampling=0)
+            print(f"{entry['in']} -> {entry['out']}")
     elif a.cmd == "chrome":
         im = Image.open(a.img)
         print(f"{a.img} {im.size}")
