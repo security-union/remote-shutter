@@ -412,3 +412,18 @@
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Esta câmera não permite exposição manual";
 "The camera ignored that exposure setting" = "A câmera ignorou esse ajuste de exposição";
+
+/* Cinematic video */
+"CINEMATIC" = "CINEMA";
+"CINEMATIC f/%.1f" = "CINEMA f/%.1f";
+"EDIT IN PHOTOS" = "EDITAR NO FOTOS";
+"Cinematic aperture" = "Abertura do Cinema";
+"More light needed" = "Precisa de mais luz";
+"Not available with Cinematic" = "Indisponível com Cinema";
+"Switch to video mode for Cinematic" = "Mude para vídeo para usar Cinema";
+"%@ can't record Cinematic video" = "%@ não pode gravar vídeo Cinema";
+"%@ refused Cinematic video" = "%@ recusou o vídeo Cinema";
+"Editable Cinematic records 16:9 only" = "Cinema editável grava só em 16:9";
+"Editable Cinematic needs 16:9" = "Cinema editável requer 16:9";
+"%@ records editable Cinematic in 16:9" = "%@ grava Cinema editável em 16:9";
+"Locked while recording" = "Bloqueado durante a gravação";

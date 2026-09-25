@@ -154,10 +154,9 @@ class RecordingPipeline {
 
     /// Seam for the recorder choice: the engine's movie file output while
     /// Editable Cinematic is on, else nil (the asset writer records). Read
-    /// once per take with a one-way hop into the session queue, which owns it.
+    /// once per take; the engine hops into the session queue, which owns it.
     lazy var cinematicMovieOutput: () -> AVCaptureMovieFileOutput? = { [weak self] in
-        guard let engine = self?.engine else { return nil }
-        return engine.sessionQueue.sync { engine.cinematicMovieOutput }
+        self?.engine.cinematicMovieOutputForRecording()
     }
 
     /// Seam for the Editable take (tests substitute a fake). The callbacks

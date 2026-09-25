@@ -108,16 +108,7 @@ enum CinematicSubjectLayout {
     /// Where the image sits in an aspect-fit (letterboxed) viewfinder — the
     /// rectangle `LiveFrameView` draws into.
     static func imageFrame(viewSize: CGSize, imageSize: CGSize) -> CGRect? {
-        guard viewSize.width > 0, viewSize.height > 0,
-              imageSize.width > 0, imageSize.height > 0 else { return nil }
-        let imageRatio = imageSize.width / imageSize.height
-        let viewRatio = viewSize.width / viewSize.height
-        let fitted: CGSize = imageRatio > viewRatio
-            ? CGSize(width: viewSize.width, height: viewSize.width / imageRatio)
-            : CGSize(width: viewSize.height * imageRatio, height: viewSize.height)
-        return CGRect(x: (viewSize.width - fitted.width) / 2,
-                      y: (viewSize.height - fitted.height) / 2,
-                      width: fitted.width, height: fitted.height)
+        FocusPointMapping.fittedImageFrame(viewSize: viewSize, imageSize: imageSize)
     }
 
     /// A normalized box on screen.

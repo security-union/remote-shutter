@@ -119,6 +119,17 @@ enum FocusPointMapping {
     static func normalizedImagePoint(tap: CGPoint,
                                      viewSize: CGSize,
                                      imageSize: CGSize) -> CGPoint? {
+        guard let frame = fittedImageFrame(viewSize: viewSize, imageSize: imageSize) else { return nil }
+        let nx = (tap.x - frame.minX) / frame.width
+        let ny = (tap.y - frame.minY) / frame.height
+        guard (0...1).contains(nx), (0...1).contains(ny) else { return nil }
+        return CGPoint(x: nx, y: ny)
+    }
+
+    /// Where the image sits in an aspect-fit (letterboxed) preview of
+    /// `viewSize`. The one fitting rule for taps and for anything drawn over
+    /// the image (Cinematic subject boxes). Nil for an empty view or image.
+    static func fittedImageFrame(viewSize: CGSize, imageSize: CGSize) -> CGRect? {
         guard viewSize.width > 0, viewSize.height > 0,
               imageSize.width > 0, imageSize.height > 0 else { return nil }
         let imageRatio = imageSize.width / imageSize.height
@@ -126,11 +137,8 @@ enum FocusPointMapping {
         let fitted: CGSize = imageRatio > viewRatio
             ? CGSize(width: viewSize.width, height: viewSize.width / imageRatio)
             : CGSize(width: viewSize.height * imageRatio, height: viewSize.height)
-        let xOffset = (viewSize.width - fitted.width) / 2
-        let yOffset = (viewSize.height - fitted.height) / 2
-        let nx = (tap.x - xOffset) / fitted.width
-        let ny = (tap.y - yOffset) / fitted.height
-        guard (0...1).contains(nx), (0...1).contains(ny) else { return nil }
-        return CGPoint(x: nx, y: ny)
+        return CGRect(x: (viewSize.width - fitted.width) / 2,
+                      y: (viewSize.height - fitted.height) / 2,
+                      width: fitted.width, height: fitted.height)
     }
 }

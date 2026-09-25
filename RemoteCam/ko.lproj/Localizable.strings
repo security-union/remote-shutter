@@ -412,3 +412,18 @@
 "Zoom" = "줌";
 "This camera can't do manual exposure" = "이 카메라는 수동 노출을 지원하지 않습니다";
 "The camera ignored that exposure setting" = "카메라가 해당 노출 설정을 무시했습니다";
+
+/* Cinematic video */
+"CINEMATIC" = "시네마틱";
+"CINEMATIC f/%.1f" = "시네마틱 f/%.1f";
+"EDIT IN PHOTOS" = "사진 앱에서 편집";
+"Cinematic aperture" = "시네마틱 조리개";
+"More light needed" = "빛이 더 필요합니다";
+"Not available with Cinematic" = "시네마틱에서는 사용할 수 없음";
+"Switch to video mode for Cinematic" = "시네마틱을 사용하려면 비디오 모드로 전환하세요";
+"%@ can't record Cinematic video" = "%@에서 시네마틱 비디오를 녹화할 수 없습니다";
+"%@ refused Cinematic video" = "%@에서 시네마틱 비디오를 거부했습니다";
+"Editable Cinematic records 16:9 only" = "편집 가능한 시네마틱은 16:9로만 녹화됩니다";
+"Editable Cinematic needs 16:9" = "편집 가능한 시네마틱에는 16:9가 필요합니다";
+"%@ records editable Cinematic in 16:9" = "%@에서 편집 가능한 시네마틱을 16:9로 녹화합니다";
+"Locked while recording" = "녹화 중에는 잠김";

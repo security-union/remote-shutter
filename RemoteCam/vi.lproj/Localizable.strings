@@ -412,3 +412,18 @@
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Máy ảnh này không hỗ trợ phơi sáng thủ công";
 "The camera ignored that exposure setting" = "Máy ảnh đã bỏ qua cài đặt phơi sáng đó";
+
+/* Cinematic video */
+"CINEMATIC" = "ĐIỆN ẢNH";
+"CINEMATIC f/%.1f" = "ĐIỆN ẢNH f/%.1f";
+"EDIT IN PHOTOS" = "SỬA TRONG ẢNH";
+"Cinematic aperture" = "Khẩu độ Điện ảnh";
+"More light needed" = "Cần thêm ánh sáng";
+"Not available with Cinematic" = "Không khả dụng với Điện ảnh";
+"Switch to video mode for Cinematic" = "Chuyển sang chế độ video để dùng Điện ảnh";
+"%@ can't record Cinematic video" = "%@ không thể quay video Điện ảnh";
+"%@ refused Cinematic video" = "%@ đã từ chối video Điện ảnh";
+"Editable Cinematic records 16:9 only" = "Điện ảnh chỉnh sửa được chỉ quay 16:9";
+"Editable Cinematic needs 16:9" = "Điện ảnh chỉnh sửa được cần 16:9";
+"%@ records editable Cinematic in 16:9" = "%@ quay Điện ảnh chỉnh sửa được ở 16:9";
+"Locked while recording" = "Bị khóa khi đang quay";

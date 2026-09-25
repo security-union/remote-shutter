@@ -116,4 +116,6 @@ exchange and is told to update.
 `SetExposure` (Docs/pro-controls.md) is the first control added on this
 contract: one command, one optional `ExposureState` block in the state
 reply, capability by presence, one row in the phase table, one gated
-`sendControl` on the director. Cinematic video would follow the same shape.
+`sendControl` on the director. Cinematic video (Docs/cinematic.md) follows
+the same shape with `SetCinematic` and a `CinematicState` block; its focus
+command and subject reports are fire-and-forget, like `FocusAtPoint`.

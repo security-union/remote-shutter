@@ -13,7 +13,7 @@ Numbers come from the camera, never from constants:
 | EV bias (Auto) | `setExposureTargetBias` | `minExposureTargetBias…maxExposureTargetBias` per device (typically ±8; the ruler shows ±2 like Apple) | photo and video, any device that reports a range |
 | Shutter (Manual) | `setExposureModeCustom(duration:iso:)` | `activeFormat.minExposureDuration…maxExposureDuration` (about 1/10000 s to 1/3 s, at most 1 s) | photo; video capped at one frame duration |
 | ISO (Manual) | same call | `activeFormat.minISO…maxISO` | photo and video |
-| Aperture | none on iPhone; `lensAperture` is a fixed f-number | — | not a control (Cinematic's simulated aperture is a separate, later feature) |
+| Aperture | none on iPhone; `lensAperture` is a fixed f-number | — | not a control (Cinematic's simulated aperture is, see Docs/cinematic.md) |
 
 Support is asked of the device, per Apple's queries. Manual needs
 `isExposureModeSupported(.custom)` on the device or one of its physical

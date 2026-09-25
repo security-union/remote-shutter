@@ -412,3 +412,18 @@
 "Zoom" = "变焦";
 "This camera can't do manual exposure" = "此相机不支持手动曝光";
 "The camera ignored that exposure setting" = "相机忽略了该曝光设置";
+
+/* Cinematic video */
+"CINEMATIC" = "电影效果";
+"CINEMATIC f/%.1f" = "电影效果 f/%.1f";
+"EDIT IN PHOTOS" = "在“照片”中编辑";
+"Cinematic aperture" = "电影效果光圈";
+"More light needed" = "需要更多光线";
+"Not available with Cinematic" = "电影效果下不可用";
+"Switch to video mode for Cinematic" = "切换到视频模式以使用电影效果";
+"%@ can't record Cinematic video" = "%@ 无法录制电影效果视频";
+"%@ refused Cinematic video" = "%@ 拒绝了电影效果视频";
+"Editable Cinematic records 16:9 only" = "可编辑电影效果仅录制 16:9";
+"Editable Cinematic needs 16:9" = "可编辑电影效果需要 16:9";
+"%@ records editable Cinematic in 16:9" = "%@ 以 16:9 录制可编辑电影效果";
+"Locked while recording" = "录制时已锁定";

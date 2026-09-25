@@ -291,3 +291,18 @@
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Dette kamera understøtter ikke manuel eksponering";
 "The camera ignored that exposure setting" = "Kameraet ignorerede den eksponeringsindstilling";
+
+/* Cinematic video */
+"CINEMATIC" = "FILMISK";
+"CINEMATIC f/%.1f" = "FILMISK f/%.1f";
+"EDIT IN PHOTOS" = "REDIGÉR I FOTOS";
+"Cinematic aperture" = "Filmisk blænde";
+"More light needed" = "Der mangler lys";
+"Not available with Cinematic" = "Ikke muligt med Filmisk";
+"Switch to video mode for Cinematic" = "Skift til video for Filmisk";
+"%@ can't record Cinematic video" = "%@ kan ikke optage Filmisk video";
+"%@ refused Cinematic video" = "%@ afviste Filmisk video";
+"Editable Cinematic records 16:9 only" = "Redigerbar Filmisk optager kun 16:9";
+"Editable Cinematic needs 16:9" = "Redigerbar Filmisk kræver 16:9";
+"%@ records editable Cinematic in 16:9" = "%@ optager redigerbar Filmisk i 16:9";
+"Locked while recording" = "Låst under optagelse";
