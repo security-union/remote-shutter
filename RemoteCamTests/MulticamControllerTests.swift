@@ -2189,6 +2189,58 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(pending, 1, "counted in flight like every control command")
     }
 
+    /// A ruler drag asks far faster than a camera applies. One SetExposure
+    /// is in flight at a time; everything asked meanwhile folds into one
+    /// queued intent, sent when the camera answers — so the camera never
+    /// works through a backlog of stale values.
+    func testExposureIsLatestWinsOneInFlight() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        let manual = ExposureState(
+            mode: .manual, bias: 0, minBias: -8, maxBias: 8, targetOffset: 0, supportsManual: true,
+            durationSeconds: 0.01, iso: 100, minDurationSeconds: 1.0 / 8000, maxDurationSeconds: 1,
+            minISO: 32, maxISO: 3200)
+        func caps(replyingTo action: RemoteShutter_CommandAction) -> RemoteCmd.CameraCapabilitiesResp {
+            let caps = RemoteCmd.CameraCapabilitiesResp(
+                frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+                supportsMulticam: true, exposure: manual, error: nil)
+            caps.inReplyTo = action
+            return caps
+        }
+        func intents() -> [ExposureIntent] {
+            sent(transport, RemoteCmd.SetExposure.self).compactMap { ($0.msg as? RemoteCmd.SetExposure)?.intent }
+        }
+        controller.didReceiveMessage(caps(replyingTo: .requestcapabilities), from: camA)
+        await controller.waitForIdle()
+
+        controller.setExposure(.manual(durationSeconds: 1.0 / 125, iso: 0), on: camA)
+        controller.setExposure(.manual(durationSeconds: 1.0 / 100, iso: 0), on: camA)
+        controller.setExposure(.manual(durationSeconds: 1.0 / 80, iso: 0), on: camA)
+        controller.setExposure(.manual(durationSeconds: 0, iso: 800), on: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents(), [.manual(durationSeconds: 1.0 / 125, iso: 0)], "the rest wait for the answer")
+
+        controller.didReceiveMessage(caps(replyingTo: .setexposure), from: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents().last, .manual(durationSeconds: 1.0 / 80, iso: 800),
+                       "one command carries the newest shutter and the newest ISO")
+        XCTAssertEqual(intents().count, 2)
+
+        controller.didReceiveMessage(caps(replyingTo: .setexposure), from: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents().count, 2, "nothing queued, nothing more sent")
+        let pending = await controller.pendingForTesting(camA, .setexposure)
+        XCTAssertEqual(pending, 0)
+
+        // Hiding the controls mid-drag: Auto replaces the Manual still queued.
+        controller.setExposure(.manual(durationSeconds: 1.0 / 60, iso: 0), on: camA)
+        controller.setExposure(.manual(durationSeconds: 1.0 / 50, iso: 0), on: camA)
+        controller.setExposureControls(false)
+        controller.didReceiveMessage(caps(replyingTo: .setexposure), from: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents().last, .auto(bias: 0))
+        XCTAssertEqual(intents().count, 4, "1/50 never goes out")
+    }
+
     /// A send the transport refuses is settled on the spot: not in flight,
     /// and the operator is told.
     func testControlSendFailureIsReportedAndNotLeftInFlight() async {

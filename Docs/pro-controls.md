@@ -100,6 +100,14 @@ zoom: counted in flight, answered by the state reply, refusals shown as a
 transient error naming the camera. `MulticamLaneInfo.exposure` is the lane's
 block, from which the screen derives everything.
 
+Exposure is latest-wins, one at a time. A camera applies a setting in a few
+frames (up to half a second at a slow shutter) while a drag asks ten times
+a second, so while a `SetExposure` is in flight anything newer waits in
+`CameraLink.queuedExposure`, folded into one intent by
+`ExposureIntent.coalesced` (a queued shutter and a queued ISO both land).
+The reply, or the reply deadline, sends it. The camera never works through
+a backlog of stale values, so a drag is at most one round trip behind.
+
 ### The screen
 
 Off by default. An **EXPOSURE** tile in the rig tray, beside TIMER and
@@ -131,10 +139,28 @@ pill so the thumb snaps back on the tap instead of waiting for the camera.
 The rulers are one component, `RulerPill`, the zoom pill's track extracted
 and configured by a `RulerTrack`: log2 for zoom, shutter and ISO, linear for
 EV. The EV ruler spans ±2 like Apple's dial even when the device reports ±8.
-Each ruler shows the requested value at once and reconciles to the camera's
-report when the reply lands, as zoom does; each has its own send throttle
-(`ThrottledValueSender`, the zoom pattern). Shutter and ISO each send only
-their own component (0 = keep), so dragging one never disturbs the other.
+
+Zoom is continuous and only pulled onto a lens stop near one. Shutter, ISO
+and EV click in ⅓ stops like a camera's dials, with a selection haptic per
+click, and a drag inside one click sends nothing. The clicks are computed
+from the range the camera reports (`RulerTrack.dial`), on the ⅓-stop grid
+through 1 s, ISO 100 and 0 EV, plus the camera's own ends when they fall
+off the grid. Photography's names ("1/125" for 2⁻⁷ s, "ISO 320") are labels
+only; a value off the grid, such as a camera's ISO 34 floor, reads as
+exactly what it is.
+
+Each ruler shows the requested value at once and keeps showing it until the
+camera reports a value at the same spot (`RulerTrack.matches`), or a second
+passes. Replies arrive one round trip behind, so reconciling to any reply
+would flick the thumb back to an older ask. Each ruler has its own send
+throttle (`ThrottledValueSender`, the zoom pattern). Shutter and ISO each
+send only their own component (0 = keep), so dragging one never disturbs
+the other.
+
+On iOS 26 and later every pill and the readout strip is the system's Liquid
+Glass (`pillGlass()`, interactive), grouped in a `GlassEffectContainer`
+(`PillGlassGroup`) so neighbouring capsules share one glass layer. Earlier
+systems draw a dark-tinted material with a hairline edge.
 
 The camera device shows "M 1/125 · ISO 400" on its preview whenever it is in
 Manual, regardless of the director's preference, so the operator at the

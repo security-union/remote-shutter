@@ -91,6 +91,12 @@ final class CameraLink {
     /// reply deadline each bring it down by one. Nothing about the camera is
     /// remembered from the tap — the glyphs read `capabilities`.
     var pending: [RemoteShutter_CommandAction: Int] = [:]
+    /// Exposure asked for while a `SetExposure` was in flight, folded into
+    /// one intent (`ExposureIntent.coalesced`) and sent when that command is
+    /// settled. A ruler drag asks far faster than a camera can apply, so the
+    /// camera only ever gets the newest value, one at a time, and never
+    /// works through a backlog of stale ones.
+    var queuedExposure: ExposureIntent?
 
     init(peerID: MCPeerID) {
         self.peerID = peerID
