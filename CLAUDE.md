@@ -35,10 +35,10 @@ Always use `RemoteShutter.xcworkspace` (not `.xcodeproj`) due to CocoaPods. The 
 
 ## Deployment
 
-Releases are deployed via GitHub Actions CI. The workflow is:
-1. Commit and push the branch to GitHub
-2. Create a PR to `master`
-3. CI runs `fastlane release` which builds, signs (via `match`), and uploads to App Store Connect
+Releases are deployed via GitHub Actions. The workflow is:
+1. Commit and push the branch to GitHub and open a PR to `master`; `ios-ci.yml` builds and tests it (Xcode 27 on the `xcode-27` runner image, iOS 27 simulator, plus a Catalyst build)
+2. Merge
+3. Run the "App Store Release" workflow (`release.yml`, manual `workflow_dispatch`), which runs `fastlane release` / `release_mac`: builds, signs (via `match`), and uploads to App Store Connect. A PR never uploads anything.
 
 Never attempt to run `fastlane release` locally — it requires CI environment variables (`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_CONTENT`, `MATCH_GIT_URL`) and `setup_ci`. Always push to GitHub and let CI handle it.
 
