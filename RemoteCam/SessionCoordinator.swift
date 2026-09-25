@@ -1441,7 +1441,8 @@ public actor SessionCoordinator {
         let metadata = CaptureSyncMetadata(
             sessionID: scheduled.sessionId, captureID: scheduled.captureId,
             cameraIndex: scheduled.cameraIndex, anchorMillis: scheduled.anchorMillis,
-            clockOffsetMillis: 0, roundTripMillis: 0)
+            clockOffsetMillis: 0, roundTripMillis: 0,
+            cameraClockAnchorMillis: scheduled.fireAtCameraClockMillis)
         // Fire INLINE — no re-enqueue through the inbox (the deferred-fire
         // indirection died with the sleep). Stamp the recording with its
         // sync metadata (QuickTime keys + RS_ filename), then roll.
