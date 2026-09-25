@@ -678,6 +678,7 @@ public actor MulticamController {
             link.capabilities = caps
             if let n = link.pending[caps.inReplyTo], n > 0 { link.pending[caps.inReplyTo] = n - 1 }
             if caps.inReplyTo == .setexposure { flushQueuedExposure(peer) }
+            if caps.inReplyTo == .setcinematic { flushQueuedCinematic(peer) }
             if let error = caps.error {
                 // A refusal is said out loud — the state already reset the
                 // control to the truth, so silence would read as "the
@@ -780,6 +781,7 @@ public actor MulticamController {
         logWarning("director: \(action) to \(link.displayName) unanswered after \(controlReplyTimeout)s")
         showError("\(link.displayName): \(NSLocalizedString("didn't answer", comment: "control reply deadline passed"))")
         if action == .setexposure { flushQueuedExposure(peer) }
+        if action == .setcinematic { flushQueuedCinematic(peer) }
     }
 
     /// A brief, non-blocking readout on the director screen.
@@ -1012,8 +1014,23 @@ public actor MulticamController {
     }
 
     private func handleSetCinematic(_ intent: CinematicIntent, target: MCPeerID) {
-        guard links[target]?.capabilities?.cinematic != nil else { return }
+        guard let link = links[target], link.capabilities?.cinematic != nil else { return }
+        // Latest wins, one at a time, like exposure: an aperture drag never
+        // leaves the camera working through a backlog.
+        if link.pending[.setcinematic, default: 0] > 0 {
+            link.queuedCinematic = link.queuedCinematic?.coalesced(with: intent) ?? intent
+            return
+        }
         sendControl(.setcinematic, RemoteCmd.SetCinematic(intent: intent), to: target)
+    }
+
+    /// Sends the Cinematic ask that waited behind the one just settled,
+    /// gated again on the camera's latest state.
+    private func flushQueuedCinematic(_ peer: MCPeerID) {
+        guard let link = links[peer], link.pending[.setcinematic, default: 0] == 0,
+              let queued = link.queuedCinematic else { return }
+        link.queuedCinematic = nil
+        handleSetCinematic(queued, target: peer)
     }
 
     /// Cinematic focus on one camera. Fire-and-forget like tap-to-focus (the

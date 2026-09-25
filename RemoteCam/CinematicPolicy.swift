@@ -38,6 +38,18 @@ public struct CinematicIntent: Equatable, Sendable {
     }
 }
 
+extension CinematicIntent {
+    /// The director folds every Cinematic asked for while a `SetCinematic`
+    /// is in flight into one queued intent with this. The newer intent
+    /// wins, except that its aperture "keep" (`0`) keeps the queued one, so
+    /// a toggle queued behind a drag doesn't lose the dragged aperture.
+    func coalesced(with newer: CinematicIntent) -> CinematicIntent {
+        CinematicIntent(enabled: newer.enabled,
+                        aperture: newer.aperture > 0 ? newer.aperture : aperture,
+                        output: newer.output)
+    }
+}
+
 /// The camera's Cinematic truth, carried in every state reply. Present =
 /// this camera can do Cinematic; absent = no tile, no `SetCinematic`.
 public struct CinematicState: Equatable, Sendable {
