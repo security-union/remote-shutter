@@ -44,17 +44,31 @@ struct CameraScreenView: View {
             liveContent
 
             // What the remote set, so the person holding the camera sees it.
-            if let readout = viewModel.exposureReadout {
-                VStack {
-                    Text(readout)
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(.ultraThinMaterial))
-                        .padding(.top, 54)
+            let readouts = [viewModel.exposureReadout, viewModel.cinematicReadout].compactMap { $0 }
+            if !readouts.isEmpty {
+                VStack(spacing: 6) {
+                    HStack(spacing: 6) {
+                        ForEach(readouts, id: \.self) { readout in
+                            Text(readout)
+                                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Capsule().fill(.ultraThinMaterial))
+                        }
+                    }
+                    if viewModel.cinematicReadout != nil && viewModel.cinematicNeedsLight {
+                        Label(NSLocalizedString("More light needed", comment: "camera hint: too dark for Cinematic"),
+                              systemImage: "sun.max")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.yellow)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(.ultraThinMaterial))
+                    }
                     Spacer()
                 }
+                .padding(.top, 54)
                 .allowsHitTesting(false)
                 .transition(.opacity)
             }

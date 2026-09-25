@@ -10,6 +10,7 @@
 //
 
 import CoreGraphics
+import CoreMedia
 import Foundation
 
 /// Which file a Cinematic take produces. One or the other, never both.
@@ -130,5 +131,160 @@ enum CinematicPolicy {
                        in state: CinematicState) -> Bool {
         guard state.enabled else { return true }
         return state.qualities[resolution]?.contains(frameRate) ?? false
+    }
+
+    // MARK: - Camera-side decisions
+
+    /// A camera device as the Cinematic decisions see it.
+    struct DeviceCandidate: Equatable {
+        enum Kind: Equatable { case dualWide, trueDepth, triple, dual, wide, other }
+        enum Side: Equatable { case front, back, unspecified }
+        var id: String
+        var kind: Kind
+        var side: Side
+        var hasCinematicFormats: Bool
+    }
+
+    /// The device the session runs while Cinematic is on: the chosen
+    /// (logical) camera when it has Cinematic formats, else a same-side
+    /// sibling that does. Measured on an iPhone 14: only the back Dual Wide
+    /// and the front TrueDepth have them, and the engine's front pick is the
+    /// plain front camera. Nil = this camera can't do Cinematic.
+    static func device(for logical: DeviceCandidate, among siblings: [DeviceCandidate]) -> DeviceCandidate? {
+        if logical.hasCinematicFormats { return logical }
+        let preference: [DeviceCandidate.Kind] = [.dualWide, .trueDepth, .triple, .dual, .wide, .other]
+        return siblings
+            .filter { $0.side == logical.side && $0.hasCinematicFormats && $0.id != logical.id }
+            .min { preference.firstIndex(of: $0.kind)! < preference.firstIndex(of: $1.kind)! }
+    }
+
+    /// A Cinematic-capable format as the decisions see it.
+    struct FormatCandidate: Equatable {
+        var width: Int32
+        var height: Int32
+        var isEightBit: Bool
+        /// The frame-rate range Cinematic allows on this format.
+        var minFPS: Double
+        var maxFPS: Double
+    }
+
+    /// Which Cinematic format to run: the quality setting's resolution, else
+    /// 1080p, else the first; 8-bit (what the recorder and the preview
+    /// encoder expect) before 10-bit. Nil only when there are none.
+    static func formatIndex(_ formats: [FormatCandidate], resolution: VideoResolution) -> Int? {
+        let hd = VideoResolution.hd1080p.dimensions
+        let wanted = resolution.dimensions
+        let ranked = formats.indices.sorted { lhs, rhs in
+            func score(_ index: Int) -> Int {
+                let format = formats[index]
+                var score = format.isEightBit ? 0 : 1
+                if format.width == wanted.width && format.height == wanted.height {
+                    score += 0
+                } else if format.width == hd.width && format.height == hd.height {
+                    score += 10
+                } else {
+                    score += 20
+                }
+                return score
+            }
+            return (score(lhs), lhs) < (score(rhs), rhs)
+        }
+        return ranked.first
+    }
+
+    /// The resolution/fps pairs the Cinematic formats allow — what the
+    /// quality menu offers while the effect is on.
+    static func qualities(_ formats: [FormatCandidate]) -> [VideoResolution: [VideoFrameRate]] {
+        var result: [VideoResolution: [VideoFrameRate]] = [:]
+        for resolution in VideoResolution.selectableCases {
+            let dims = resolution.dimensions
+            let rates = formats
+                .filter { $0.width == dims.width && $0.height == dims.height }
+                .flatMap { format in
+                    VideoFrameRate.selectableCases.filter {
+                        Double($0.value) >= format.minFPS - 0.5 && Double($0.value) <= format.maxFPS + 0.5
+                    }
+                }
+            let unique = VideoFrameRate.selectableCases.filter { rates.contains($0) }
+            if !unique.isEmpty { result[resolution] = unique }
+        }
+        return result
+    }
+
+    /// The quality to run while Cinematic is on: the setting when Cinematic
+    /// allows it, else the nearest allowed frame rate at the same resolution,
+    /// else the same at 1080p, else anything allowed. Nil when nothing is.
+    /// The result becomes the quality setting (reported, and restored when
+    /// Cinematic goes off), so the director never shows a rate the camera
+    /// isn't running.
+    static func quality(fitting resolution: VideoResolution, _ frameRate: VideoFrameRate,
+                        in qualities: [VideoResolution: [VideoFrameRate]]) -> (VideoResolution, VideoFrameRate)? {
+        func nearest(_ rates: [VideoFrameRate]) -> VideoFrameRate? {
+            rates.min { (abs($0.value - frameRate.value), -$0.value) < (abs($1.value - frameRate.value), -$1.value) }
+        }
+        for candidate in [resolution, .hd1080p] {
+            if let rates = qualities[candidate], let rate = nearest(rates) { return (candidate, rate) }
+        }
+        for candidate in VideoResolution.selectableCases {
+            if let rates = qualities[candidate], let rate = nearest(rates) { return (candidate, rate) }
+        }
+        return nil
+    }
+
+    /// Whether the effect should be on right now: asked for, in video mode,
+    /// on a camera that can do it. The intent survives photo mode.
+    static func isEffective(_ intent: CinematicIntent, isVideoMode: Bool, supported: Bool) -> Bool {
+        intent.enabled && isVideoMode && supported
+    }
+
+    /// Why a Cinematic request can't be applied (nil = go ahead). Turning it
+    /// off is always allowed outside a take.
+    enum Refusal: Equatable {
+        case recording
+        case photoMode
+        case unsupported(device: String)
+        case editableNeedsSixteenNine
+
+        var message: String {
+            switch self {
+            case .recording:
+                return NSLocalizedString("Locked while recording", comment: "control refused while rolling")
+            case .photoMode:
+                return NSLocalizedString("Switch to video mode for Cinematic", comment: "cinematic refused in photo mode")
+            case let .unsupported(device):
+                return String(format: NSLocalizedString("%@ can't record Cinematic video",
+                                                        comment: "cinematic refused: camera has no Cinematic formats"),
+                              device)
+            case .editableNeedsSixteenNine:
+                return NSLocalizedString("Editable Cinematic records 16:9 only",
+                                         comment: "cinematic editable refused: aspect is not 16:9")
+            }
+        }
+    }
+
+    static func refusal(for intent: CinematicIntent, isVideoMode: Bool, isRecording: Bool,
+                        aspect: AspectRatio, supported: Bool, deviceName: String) -> Refusal? {
+        if isRecording { return .recording }
+        guard intent.enabled else { return nil }
+        if !isVideoMode { return .photoMode }
+        if !supported { return .unsupported(device: deviceName) }
+        if !allows(aspect: aspect, output: intent.output) { return .editableNeedsSixteenNine }
+        return nil
+    }
+
+    /// Manual exposure hops to a physical lens that has no Cinematic formats,
+    /// so while Cinematic is on exposure is Auto; a bias the director set is
+    /// kept.
+    static func exposureIntent(_ current: ExposureIntent, cinematicOn: Bool) -> ExposureIntent {
+        guard cinematicOn, case .manual = current else { return current }
+        return .auto(bias: 0)
+    }
+
+    /// The aperture to apply: the request clamped into the format's range;
+    /// 0 keeps the current value, or the format default the first time.
+    static func aperture(requested: Float, current: Float, defaultValue: Float,
+                         min minValue: Float, max maxValue: Float) -> Float {
+        let wanted = requested > 0 ? requested : (current > 0 ? current : defaultValue)
+        return Swift.min(Swift.max(wanted, minValue), maxValue)
     }
 }

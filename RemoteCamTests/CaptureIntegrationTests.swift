@@ -18,6 +18,7 @@
 
 import XCTest
 import AVFoundation
+import CoreImage
 
 @testable import RemoteShutter
 
@@ -207,74 +208,188 @@ final class CaptureIntegrationTests: XCTestCase {
         XCTAssertEqual(auto?.activeDeviceID, logicalBefore, "auto returns to the chosen device")
     }
 
-    /// Cinematic hardware probe, question 2: does OUR session (photo output,
-    /// BGRA video data output, audio) agree to Cinematic on the camera the
-    /// engine opens, and do frames keep flowing once it is on? Mutates the
-    /// engine's session behind its back — a probe, not a behavior test.
-    func testCinematicProbeOnTheRealEngineSession() async throws {
+    /// Cinematic on the real rig (Docs/cinematic.md): the effect turns on
+    /// through the rig, the aperture lands, frames keep flowing, the state
+    /// reply carries the truth, a focus tap doesn't hit the pinned focus
+    /// mode, the front camera hops to TrueDepth, photo mode suspends it, the
+    /// editable output attaches the movie output and holds 16:9, and turning
+    /// it off restores the quality. Skips where the camera has no Cinematic
+    /// formats (Macs, older iPhones). Prints 🎬 lines for the hardware record.
+    func testCinematicOnTheRealRig() async throws {
         guard #available(iOS 26.0, macCatalyst 26.0, *) else { throw XCTSkip("Cinematic needs iOS 26") }
         try await startRealRig()
         guard await waitForFrames(since: 0) != nil else {
             throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
         }
-        let engine = rig.engine
-        let enabled: Bool = await withCheckedContinuation { continuation in
-            engine.sessionQueue.async {
-                let session = engine.captureSession
-                guard let input = engine.videoDeviceInput else {
-                    print("🎬 engine: no video input"); continuation.resume(returning: false); return
-                }
-                let device = input.device
-                let outputs = session.outputs.map { String(describing: type(of: $0)) }.joined(separator: ",")
-                print("🎬 engine: device=\(device.localizedName) type=\(device.deviceType.rawValue) "
-                      + "active=\(CinematicProbe.describe(device.activeFormat)) outputs=[\(outputs)]")
-                let activeDims = CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
-                let cinematicFormats = device.formats.filter { $0.isCinematicVideoCaptureSupported }
-                guard let format = cinematicFormats.first(where: {
-                    let dims = CMVideoFormatDescriptionGetDimensions($0.formatDescription)
-                    return dims.width == activeDims.width && dims.height == activeDims.height
-                }) ?? cinematicFormats.first else {
-                    print("🎬 engine: \(device.localizedName) has NO Cinematic format")
-                    continuation.resume(returning: false); return
-                }
-                // Format committed on its own: the input's support flag reads
-                // the committed configuration (#223's field finding).
-                session.beginConfiguration()
-                session.sessionPreset = .inputPriority
-                if (try? device.lockForConfiguration()) != nil {
-                    device.activeFormat = format
-                    device.unlockForConfiguration()
-                }
-                session.commitConfiguration()
-                print("🎬 engine: format=\(CinematicProbe.describe(format)) "
-                      + "inputSupports=\(input.isCinematicVideoCaptureSupported) (with photo output)")
-
-                if !input.isCinematicVideoCaptureSupported {
-                    session.beginConfiguration()
-                    session.removeOutput(engine.photoOutput)
-                    session.commitConfiguration()
-                    print("🎬 engine: without photo output inputSupports=\(input.isCinematicVideoCaptureSupported)")
-                    session.beginConfiguration()
-                    if session.canAddOutput(engine.photoOutput) { session.addOutput(engine.photoOutput) }
-                    session.commitConfiguration()
-                    continuation.resume(returning: false); return
-                }
-                let t0 = Date()
-                session.beginConfiguration()
-                input.isCinematicVideoCaptureEnabled = true
-                session.commitConfiguration()
-                print("🎬 engine: enabled=\(input.isCinematicVideoCaptureEnabled) "
-                      + "in \(Int(Date().timeIntervalSince(t0) * 1000)) ms, focusMode=\(device.focusMode.rawValue) "
-                      + "aperture=f/\(input.simulatedAperture) zoom=\(device.videoZoomFactor) "
-                      + "fps=\(device.activeVideoMinFrameDuration.seconds)")
-                continuation.resume(returning: input.isCinematicVideoCaptureEnabled)
-            }
+        rig.currentCameraMode = .Video
+        guard let before = await rig.gatherCurrentCameraCapabilities(), let offered = before.cinematic else {
+            throw XCTSkip("this camera offers no Cinematic block")
         }
-        guard enabled else { return }
+        print("🎬 rig: offered f/\(offered.minAperture)…\(offered.maxAperture) default f/\(offered.defaultAperture) "
+              + "qualities=\(offered.qualities) quality=\(before.currentVideoResolution)/\(before.currentVideoFrameRate)")
+        XCTAssertFalse(offered.enabled)
+
+        // Subjects: capture what the engine publishes (the rig normally
+        // forwards it to the director).
+        let reports = Locked<[CinematicSubjectsReport]>([])
+        let forward = rig.engine.onCinematicSubjects
+        rig.engine.onCinematicSubjects = { report in
+            reports.mutate { $0.append(report) }
+            forward?(report)
+        }
+
+        let t0 = Date()
+        try await rig.setCinematic(CinematicIntent(enabled: true, aperture: offered.minAperture))
+        let on = await rig.gatherCurrentCameraCapabilities()?.cinematic
+        print("🎬 rig: enabled=\(on?.enabled ?? false) aperture=f/\(on?.aperture ?? 0) in \(Int(Date().timeIntervalSince(t0) * 1000)) ms")
+        XCTAssertEqual(on?.enabled, true)
+        XCTAssertEqual(Double(on?.aperture ?? 0), Double(offered.minAperture), accuracy: 0.05)
         let flowing = await waitForFrames(since: lastFrameAt)
-        print("🎬 engine: BGRA frames after enable: \(flowing.map { "\(Int($0 * 1000)) ms" } ?? "NONE")")
         XCTAssertNotNil(flowing, "frames must keep flowing with Cinematic on")
+        let exposure = await rig.gatherCurrentCameraCapabilities()?.exposure
+        XCTAssertNotEqual(exposure?.supportsManual, true, "Manual is off the table while Cinematic runs")
+
+        // Focus with the focus mode pinned: must not raise.
+        try await rig.focusAtPoint(x: 0.5, y: 0.4)
+        try await rig.setCinematicFocus(.trackPoint(x: 0.5, y: 0.4, strength: .weak))
+        try await rig.setCinematicFocus(.fixedPoint(x: 0.5, y: 0.5))
+        try await rig.setCinematicFocus(.trackPoint(x: 0.5, y: 0.4, strength: .strong))
+        try await Task.sleep(nanoseconds: 2_000_000_000)
+        let seen = reports.value
+        print("🎬 rig: \(seen.count) subject reports; last=\(seen.last.map { "\($0.subjects.map { "\($0.kind)#\($0.id) \($0.rect) focus=\(String(describing: $0.focus))" }) light=\(!$0.notEnoughLight)" } ?? "none")")
+        if let subject = seen.last?.subjects.first {
+            try await rig.setCinematicFocus(.subject(id: subject.id, strength: .strong))
+        }
+        // What the director is sent, with the boxes it would draw (pull
+        // Documents/CinematicProbe/rig_*.jpg off the phone to look).
+        let output = rig.engine.videoDataOutput
+        let original = output.sampleBufferDelegate
+        let tap = StreamedFrameTap(forwardingTo: original)
+        output.setSampleBufferDelegate(tap, queue: rig.engine.dataOutputQueue)
+        defer { output.setSampleBufferDelegate(original, queue: rig.engine.dataOutputQueue) }
+        if let frame = await tap.nextFrame() {
+            StreamedFrameTap.save(frame, subjects: reports.value.last?.subjects ?? [], name: "rig_back")
+        }
+        assertSubjectMappingMatchesAVFoundation("back")
+
+        // The aperture follows a second request.
+        try await rig.setCinematic(CinematicIntent(enabled: true, aperture: 8))
+        let narrower = await rig.gatherCurrentCameraCapabilities()?.cinematic?.aperture ?? 0
+        XCTAssertEqual(Double(narrower), 8, accuracy: 0.05)
+
+        // Editable: the movie output attaches, and the aspect holds 16:9.
+        try await rig.setCinematic(CinematicIntent(enabled: true, aperture: 0, output: .editable))
+        XCTAssertNotNil(rig.engine.cinematicMovieOutputForRecording())
+        let aspect = await rig.setAspectRatio(.fourThree)
+        XCTAssertEqual(aspect, .sixteenNine, "the editable file is 16:9 only")
+        try await rig.setCinematic(CinematicIntent(enabled: true, aperture: 0, output: .baked))
+        XCTAssertNil(rig.engine.cinematicMovieOutputForRecording())
+
+        // Photo mode suspends the effect; video brings it back.
+        rig.currentCameraMode = .Photo
+        let inPhoto = await rig.gatherCurrentCameraCapabilities()?.cinematic?.enabled
+        XCTAssertEqual(inPhoto, false)
+        rig.currentCameraMode = .Video
+        let backInVideo = await rig.gatherCurrentCameraCapabilities()?.cinematic?.enabled
+        XCTAssertEqual(backInVideo, true)
+
+        // The flip: the front camera hops to its Cinematic sibling, and the
+        // chosen (logical) camera stays what the flip picked.
+        #if !targetEnvironment(macCatalyst)
+        let back = await rig.currentCameraDevice()
+        _ = try await rig.toggleCamera()
+        let chosen = await rig.currentCameraDevice()
+        let running = rig.engine.currentDevice()
+        let front = await rig.gatherCurrentCameraCapabilities()
+        let mirrored = rig.engine.videoConnection?.isVideoMirrored
+        print("🎬 rig: flip chose \(chosen?.localizedName ?? "nil") running \(running?.localizedName ?? "nil") "
+              + "[\(running?.deviceType.rawValue ?? "-")] cinematic=\(front?.cinematic?.enabled ?? false) "
+              + "dataOutputMirrored=\(String(describing: mirrored))")
+        XCTAssertNotEqual(chosen?.uniqueID, back?.uniqueID)
+        if front?.cinematic != nil {
+            XCTAssertEqual(front?.cinematic?.enabled, true)
+            let frontFlowing = await waitForFrames(since: lastFrameAt)
+            XCTAssertNotNil(frontFlowing, "front frames must flow with Cinematic on")
+            try await rig.focusAtPoint(x: 0.5, y: 0.5)
+            try await Task.sleep(nanoseconds: 2_000_000_000)
+            if let frame = await tap.nextFrame() {
+                StreamedFrameTap.save(frame, subjects: reports.value.last?.subjects ?? [], name: "rig_front")
+            }
+            assertSubjectMappingMatchesAVFoundation("front")
+        }
+        _ = try await rig.toggleCamera()
+        let flippedBack = await rig.currentCameraDevice()
+        XCTAssertEqual(flippedBack?.uniqueID, back?.uniqueID)
+        #endif
+
+        // Off: the quality setting's format and frame rate come back.
+        try await rig.setCinematic(CinematicIntent(enabled: false))
+        let off = await rig.gatherCurrentCameraCapabilities()
+        XCTAssertEqual(off?.cinematic?.enabled, false)
+        XCTAssertEqual(off?.currentVideoResolution, before.currentVideoResolution)
+        XCTAssertEqual(off?.currentVideoFrameRate, before.currentVideoFrameRate)
+        let offFlowing = await waitForFrames(since: lastFrameAt)
+        XCTAssertNotNil(offFlowing, "frames must flow after Cinematic goes off")
+        let manualAfter = await rig.gatherCurrentCameraCapabilities()?.exposure?.supportsManual
+        XCTAssertEqual(manualAfter, before.exposure?.supportsManual)
     }
+
+    /// The subject boxes (and focus taps) map device space to the streamed
+    /// image with `FocusPointMapping` and the connection's orientation +
+    /// mirroring. AVFoundation's own conversion is the ground truth: they
+    /// must agree for every camera, whatever the scene.
+    private func assertSubjectMappingMatchesAVFoundation(_ label: String,
+                                                         file: StaticString = #filePath, line: UInt = #line) {
+        let output = rig.engine.videoDataOutput
+        guard let connection = output.connection(with: .video) else {
+            return XCTFail("no video connection", file: file, line: line)
+        }
+        let full = output.outputRectConverted(fromMetadataOutputRect: CGRect(x: 0, y: 0, width: 1, height: 1))
+        let samples = [CGRect(x: 0.1, y: 0.2, width: 0.3, height: 0.4), CGRect(x: 0.6, y: 0.05, width: 0.2, height: 0.1)]
+        for device in samples {
+            let converted = output.outputRectConverted(fromMetadataOutputRect: device)
+            let truth = CGRect(x: (converted.minX - full.minX) / full.width, y: (converted.minY - full.minY) / full.height,
+                               width: converted.width / full.width, height: converted.height / full.height)
+            let ours = FocusPointMapping.displayRect(deviceNormalized: device,
+                                                     videoOrientation: connection.videoOrientation,
+                                                     mirrored: connection.isVideoMirrored)
+            print("🎬 mapping \(label): device=\(device) avfoundation=\(truth) ours=\(ours) "
+                  + "orientation=\(connection.videoOrientation.rawValue) mirrored=\(connection.isVideoMirrored)")
+            XCTAssertEqual(ours.minX, truth.minX, accuracy: 0.01, "\(label) x", file: file, line: line)
+            XCTAssertEqual(ours.minY, truth.minY, accuracy: 0.01, "\(label) y", file: file, line: line)
+            XCTAssertEqual(ours.width, truth.width, accuracy: 0.01, "\(label) width", file: file, line: line)
+            XCTAssertEqual(ours.height, truth.height, accuracy: 0.01, "\(label) height", file: file, line: line)
+        }
+    }
+
+    /// Refusals come back as errors, never as silent no-ops.
+    func testCinematicRefusesPhotoModeOnTheRealRig() async throws {
+        guard #available(iOS 26.0, macCatalyst 26.0, *) else { throw XCTSkip("Cinematic needs iOS 26") }
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+        guard await rig.gatherCurrentCameraCapabilities()?.cinematic != nil else {
+            throw XCTSkip("this camera offers no Cinematic block")
+        }
+        rig.currentCameraMode = .Photo
+        do {
+            try await rig.setCinematic(CinematicIntent(enabled: true))
+            XCTFail("Cinematic must be refused in photo mode")
+        } catch {
+            print("🎬 rig: photo mode refusal: \((error as NSError).domain)")
+        }
+        rig.currentCameraMode = .Video
+        _ = await rig.setAspectRatio(.oneOne)
+        do {
+            try await rig.setCinematic(CinematicIntent(enabled: true, output: .editable))
+            XCTFail("editable Cinematic must be refused at 1:1")
+        } catch {
+            print("🎬 rig: aspect refusal: \((error as NSError).domain)")
+        }
+        _ = await rig.setAspectRatio(.sixteenNine)
+    }
+
 
     func testCameraStartsAndFramesFlowWithinDeadline() async throws {
         try await startRealRig()
@@ -543,5 +658,73 @@ final class CaptureIntegrationTests: XCTestCase {
         let after = await rig.currentCameraDevice()
         XCTAssertFalse(after?.isSuspended ?? true, "toggle must never land on a suspended device")
         print("📸 toggle \(before?.localizedName ?? "?") → \(after?.localizedName ?? "?"): frames in \(Int(latency * 1000))ms")
+    }
+}
+
+/// Test-only tap on the engine's video data output: forwards every frame to
+/// the rig's delegate (so streaming is undisturbed) and hands one frame to a
+/// waiting test. Used to look at what the director is sent.
+private final class StreamedFrameTap: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+    private weak var forward: AVCaptureVideoDataOutputSampleBufferDelegate?
+    private let request = Locked<((CIImage) -> Void)?>(nil)
+
+    init(forwardingTo forward: AVCaptureVideoDataOutputSampleBufferDelegate?) {
+        self.forward = forward
+    }
+
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer,
+                       from connection: AVCaptureConnection) {
+        if let pending = request.value, let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) {
+            request.value = nil
+            pending(CIImage(cvPixelBuffer: pixels))
+        }
+        forward?.captureOutput?(output, didOutput: sampleBuffer, from: connection)
+    }
+
+    func nextFrame() async -> CIImage? {
+        await withCheckedContinuation { continuation in
+            let done = Locked(false)
+            request.value = { image in
+                done.mutate { finished in
+                    guard !finished else { return }
+                    finished = true
+                    continuation.resume(returning: image)
+                }
+            }
+            DispatchQueue.global().asyncAfter(deadline: .now() + 3) { [request] in
+                done.mutate { finished in
+                    guard !finished else { return }
+                    finished = true
+                    request.value = nil
+                    continuation.resume(returning: nil)
+                }
+            }
+        }
+    }
+
+    /// Draws the subject boxes (upright display space, origin top-left) on
+    /// the frame and writes Documents/CinematicProbe/<name>.jpg.
+    static func save(_ image: CIImage, subjects: [CinematicSubject], name: String) {
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(image, from: image.extent) else { return }
+        let width = cgImage.width, height = cgImage.height
+        guard let canvas = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                                     space: CGColorSpaceCreateDeviceRGB(),
+                                     bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
+        canvas.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        canvas.setLineWidth(6)
+        for subject in subjects {
+            canvas.setStrokeColor(subject.focus != nil ? CGColor(red: 1, green: 0.8, blue: 0, alpha: 1)
+                                                       : CGColor(red: 0, green: 1, blue: 0, alpha: 1))
+            let rect = CGRect(x: subject.rect.minX * CGFloat(width),
+                              y: (1 - subject.rect.maxY) * CGFloat(height),   // CG origin is bottom-left
+                              width: subject.rect.width * CGFloat(width),
+                              height: subject.rect.height * CGFloat(height))
+            canvas.stroke(rect)
+        }
+        guard let boxed = canvas.makeImage() else { return }
+        let url = CinematicProbe.directory.appendingPathComponent("\(name).jpg")
+        try? context.writeJPEGRepresentation(of: CIImage(cgImage: boxed), to: url,
+                                             colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!)
     }
 }
