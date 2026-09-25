@@ -40,6 +40,9 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
     case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
     case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetCinematic: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetCinematicFocus: return m.toFlatBuffer()
+    case let m as RemoteCmd.CinematicSubjects: return m.toFlatBuffer()
     case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
     case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
     case let m as RemoteCmd.EndSession: return m.toFlatBuffer()
@@ -420,6 +423,7 @@ private func encodeCapabilitiesEnvelope(
         supportsMulticam: c.supportsMulticam)
 
     let exposureOffset = c.exposure.map { encodeExposureState($0, &fbb) } ?? Offset()
+    let cinematicOffset = c.cinematic.map { encodeCinematicState($0, &fbb) } ?? Offset()
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
         currentCamera: toFBCamPos(c.currentCamera),
@@ -434,7 +438,8 @@ private func encodeCapabilitiesEnvelope(
         aspectRatio: toFBAspectRatio(c.aspectRatio),
         activeDeviceIdOffset: activeIDOffset,
         previewMode: toFBPreviewMode(c.previewMode),
-        exposureOffset: exposureOffset)
+        exposureOffset: exposureOffset,
+        cinematicOffset: cinematicOffset)
 
     return (capsOffset, stateOffset)
 }
@@ -885,6 +890,172 @@ private func decodeExposureState(_ fb: RemoteShutter_ExposureState) -> ExposureS
         maxFrameDurationSeconds: fb.maxFrameDurationSeconds)
 }
 
+// MARK: - Cinematic encode / decode
+
+extension RemoteCmd.SetCinematic {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb, cinematicEnabled: intent.enabled, cinematicAperture: intent.aperture,
+            cinematicOutput: toFBCinematicOutput(intent.output))
+        return buildCommand(&fbb, action: .setcinematic, parameters: params)
+    }
+}
+
+extension RemoteCmd.SetCinematicFocus {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params: Offset
+        switch focus {
+        case let .subject(id, strength):
+            params = RemoteShutter_CommandParameters.createCommandParameters(
+                &fbb, cinematicFocusKind: .tracksubject,
+                cinematicFocusStrength: toFBCinematicStrength(strength), cinematicSubjectId: Int64(id))
+        case let .trackPoint(x, y, strength):
+            params = RemoteShutter_CommandParameters.createCommandParameters(
+                &fbb, focusPointX: x, focusPointY: y, cinematicFocusKind: .trackpoint,
+                cinematicFocusStrength: toFBCinematicStrength(strength))
+        case let .fixedPoint(x, y):
+            params = RemoteShutter_CommandParameters.createCommandParameters(
+                &fbb, focusPointX: x, focusPointY: y, cinematicFocusKind: .fixedpoint)
+        }
+        return buildCommand(&fbb, action: .setcinematicfocus, parameters: params)
+    }
+}
+
+extension RemoteCmd.CinematicSubjects {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let subjectOffsets = report.subjects.map { subject -> Offset in
+            RemoteShutter_CinematicSubject.createCinematicSubject(
+                &fbb, id: Int64(subject.id), groupId: Int64(subject.groupID),
+                kind: toFBCinematicSubjectKind(subject.kind),
+                x: Float(subject.rect.minX), y: Float(subject.rect.minY),
+                width: Float(subject.rect.width), height: Float(subject.rect.height),
+                focus: subject.focus.map { toFBCinematicStrength($0) } ?? .unknown,
+                fixedFocus: subject.isFixedFocus)
+        }
+        let subjectsVector = fbb.createVector(ofOffsets: subjectOffsets)
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb, cinematicSubjectsVectorOffset: subjectsVector,
+            cinematicNotEnoughLight: report.notEnoughLight)
+        return buildCommand(&fbb, action: .cinematicsubjects, parameters: params)
+    }
+}
+
+private func encodeCinematicState(_ c: CinematicState, _ fbb: inout FlatBufferBuilder) -> Offset {
+    // Sorted so the encoding is deterministic (a dictionary has no order).
+    let qualityOffsets = c.qualities.sorted { $0.key.rawValue < $1.key.rawValue }.map { resolution, rates -> Offset in
+        let ratesVector = fbb.createVector(rates.map { toFBFrameRate($0) })
+        return RemoteShutter_ResolutionFrameRates.createResolutionFrameRates(
+            &fbb, resolution: toFBResolution(resolution), supportedFrameRatesVectorOffset: ratesVector)
+    }
+    let qualitiesVector = fbb.createVector(ofOffsets: qualityOffsets)
+    return RemoteShutter_CinematicState.createCinematicState(
+        &fbb, enabled: c.enabled, output: toFBCinematicOutput(c.output),
+        aperture: c.aperture, minAperture: c.minAperture, maxAperture: c.maxAperture,
+        defaultAperture: c.defaultAperture, qualitiesVectorOffset: qualitiesVector)
+}
+
+/// Nil for an Unknown output: a block this build can't read is treated as
+/// absent, so the director never offers a control it would misreport.
+private func decodeCinematicState(_ fb: RemoteShutter_CinematicState) -> CinematicState? {
+    guard let output = fromFBCinematicOutput(fb.output) else { return nil }
+    var qualities: [VideoResolution: [VideoFrameRate]] = [:]
+    for i in 0..<fb.qualitiesCount {
+        guard let rfr = fb.qualities(at: i) else { continue }
+        var rates: [VideoFrameRate] = []
+        for j in 0..<rfr.supportedFrameRatesCount {
+            if let rate = rfr.supportedFrameRates(at: j) { rates.append(fromFBFrameRate(rate)) }
+        }
+        qualities[fromFBResolution(rfr.resolution)] = rates
+    }
+    return CinematicState(enabled: fb.enabled, output: output, aperture: fb.aperture,
+                          minAperture: fb.minAperture, maxAperture: fb.maxAperture,
+                          defaultAperture: fb.defaultAperture, qualities: qualities)
+}
+
+/// Unknown kind, or a tracking request without a strength = malformed.
+private func decodeCinematicFocus(_ params: RemoteShutter_CommandParameters) -> CinematicFocus? {
+    let strength = fromFBCinematicStrength(params.cinematicFocusStrength)
+    switch params.cinematicFocusKind {
+    case .tracksubject:
+        guard let strength else { return nil }
+        return .subject(id: Int(params.cinematicSubjectId), strength: strength)
+    case .trackpoint:
+        guard let strength else { return nil }
+        return .trackPoint(x: params.focusPointX, y: params.focusPointY, strength: strength)
+    case .fixedpoint:
+        return .fixedPoint(x: params.focusPointX, y: params.focusPointY)
+    case .unknown:
+        return nil
+    }
+}
+
+/// Unknown kind = a subject type this build doesn't draw: skipped.
+private func decodeCinematicSubject(_ fb: RemoteShutter_CinematicSubject) -> CinematicSubject? {
+    guard let kind = fromFBCinematicSubjectKind(fb.kind) else { return nil }
+    return CinematicSubject(
+        id: Int(fb.id), groupID: Int(fb.groupId), kind: kind,
+        rect: CGRect(x: CGFloat(fb.x), y: CGFloat(fb.y), width: CGFloat(fb.width), height: CGFloat(fb.height)),
+        focus: fromFBCinematicStrength(fb.focus), isFixedFocus: fb.fixedFocus)
+}
+
+private func toFBCinematicOutput(_ output: CinematicOutput) -> RemoteShutter_CinematicOutput {
+    switch output {
+    case .baked: return .baked
+    case .editable: return .editable
+    }
+}
+
+private func fromFBCinematicOutput(_ output: RemoteShutter_CinematicOutput) -> CinematicOutput? {
+    switch output {
+    case .baked: return .baked
+    case .editable: return .editable
+    case .unknown: return nil
+    }
+}
+
+private func toFBCinematicStrength(_ strength: CinematicFocusStrength) -> RemoteShutter_CinematicFocusStrength {
+    switch strength {
+    case .weak: return .weak_
+    case .strong: return .strong
+    }
+}
+
+private func fromFBCinematicStrength(_ strength: RemoteShutter_CinematicFocusStrength) -> CinematicFocusStrength? {
+    switch strength {
+    case .weak_: return .weak
+    case .strong: return .strong
+    case .unknown: return nil
+    }
+}
+
+private func toFBCinematicSubjectKind(_ kind: CinematicSubjectKind) -> RemoteShutter_CinematicSubjectKind {
+    switch kind {
+    case .face: return .face
+    case .humanBody: return .humanbody
+    case .catHead: return .cathead
+    case .catBody: return .catbody
+    case .dogHead: return .doghead
+    case .dogBody: return .dogbody
+    case .salientObject: return .salientobject
+    }
+}
+
+private func fromFBCinematicSubjectKind(_ kind: RemoteShutter_CinematicSubjectKind) -> CinematicSubjectKind? {
+    switch kind {
+    case .face: return .face
+    case .humanbody: return .humanBody
+    case .cathead: return .catHead
+    case .catbody: return .catBody
+    case .doghead: return .dogHead
+    case .dogbody: return .dogBody
+    case .salientobject: return .salientObject
+    case .unknown: return nil
+    }
+}
+
 extension RemoteCmd.SetVideoQuality {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
@@ -1119,8 +1290,27 @@ extension RemoteCmd {
                 return nil
             }
 
-        case .setcinematic, .setcinematicfocus, .cinematicsubjects:
-            return nil   // FREEZE STUB — WP-A decodes these.
+        case .setcinematic:
+            // Unknown output = malformed: dropped, never guessed.
+            guard let params, let output = fromFBCinematicOutput(params.cinematicOutput) else { return nil }
+            return SetCinematic(intent: CinematicIntent(enabled: params.cinematicEnabled,
+                                                        aperture: params.cinematicAperture,
+                                                        output: output))
+
+        case .setcinematicfocus:
+            guard let params, let focus = decodeCinematicFocus(params) else { return nil }
+            return SetCinematicFocus(focus: focus)
+
+        case .cinematicsubjects:
+            guard let params else { return nil }
+            var subjects: [CinematicSubject] = []
+            for i in 0..<params.cinematicSubjectsCount {
+                if let fb = params.cinematicSubjects(at: i), let subject = decodeCinematicSubject(fb) {
+                    subjects.append(subject)
+                }
+            }
+            return CinematicSubjects(report: CinematicSubjectsReport(
+                subjects: subjects, notEnoughLight: params.cinematicNotEnoughLight))
 
         case .setvideoquality:
             let resolution = fromFBResolution(params?.videoResolution ?? .hd1080p)
@@ -1217,7 +1407,7 @@ extension RemoteCmd {
 
         case .requestcapabilities, .setzoom, .switchlens, .toggleflash, .toggletorch,
              .togglecamera, .selectcameradevice, .setvideoquality, .setphotoquality,
-             .setaspectratio, .setcamerapreviewmode, .setexposure:
+             .setaspectratio, .setcamerapreviewmode, .setexposure, .setcinematic:
             // Every control command is answered by the camera's full state
             // under the command's own action (Docs/control-plane.md).
             return decodeCameraCapabilitiesResp(resp, inReplyTo: resp.action, error: nsError)
@@ -1275,6 +1465,7 @@ extension RemoteCmd {
             flashMode: state.map { fromFBFlash($0.flashMode) } ?? .off,
             aspectRatio: state.map { fromFBAspectRatio($0.aspectRatio) } ?? .sixteenNine,
             exposure: state?.exposure.map { decodeExposureState($0) },
+            cinematic: state?.cinematic.flatMap { decodeCinematicState($0) },
             inReplyTo: inReplyTo,
             error: error
         )

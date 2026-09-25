@@ -607,7 +607,8 @@ class LoopbackSessionTests: XCTestCase {
             // back in line by the director, which would be a second reply.
             (.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: .sixteenNine)),
             (.setcamerapreviewmode, RemoteCmd.SetCameraPreviewMode(mode: .standby)),
-            (.setexposure, RemoteCmd.SetExposure(intent: .manual(durationSeconds: 1.0 / 250, iso: 400)))
+            (.setexposure, RemoteCmd.SetExposure(intent: .manual(durationSeconds: 1.0 / 250, iso: 400))),
+            (.setcinematic, RemoteCmd.SetCinematic(intent: CinematicIntent(enabled: false)))
         ]
         // Idle: everything applies.
         for (action, cmd) in commands {
@@ -619,12 +620,12 @@ class LoopbackSessionTests: XCTestCase {
             XCTAssertNil(resps.first?.error, "\(action) idle: applied")
         }
         // Recording: zoom/lens/torch/photo-quality/aspect/preview apply;
-        // flash, video quality and camera switches are refused.
+        // flash, video quality, camera switches and Cinematic are refused.
         director.startRecording()
         await waitUntil { fakeCamera.startRecordingCalls == 1 }
         await waitUntil { await self.cameraCoordinator.currentStateName() == .cameraRecordingVideo }
         let refusedWhileRecording: Set<RemoteShutter_CommandAction> =
-            [.toggleflash, .setvideoquality, .togglecamera, .selectcameradevice]
+            [.toggleflash, .setvideoquality, .togglecamera, .selectcameradevice, .setcinematic]
         for (action, cmd) in commands {
             cameraTransport.sentMessages.removeAll()
             sendFromDirector(cmd)
@@ -880,6 +881,140 @@ class LoopbackSessionTests: XCTestCase {
         await drainBoth()
         XCTAssertEqual(fakeCamera.exposureIntents, [.auto(bias: 1)])
     }
+
+    // MARK: - Cinematic (Docs/cinematic.md)
+
+    func testSetCinematicAcrossTheWireIsAnsweredWithTheBlock() async {
+        let fakeCamera = await connectCameraAndDirector { fake in
+            fake.cinematicState = FakeCameraControlling.phoneCinematicState
+        }
+        let intent = CinematicIntent(enabled: true, aperture: 4, output: .editable)
+        sendFromDirector(RemoteCmd.SetCinematic(intent: intent))
+        await drainBoth()
+
+        XCTAssertEqual(fakeCamera.cinematicIntents, [intent])
+        let resps = replies(to: .setcinematic)
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNil(resps.first?.error)
+        XCTAssertEqual(resps.first?.cinematic?.enabled, true)
+        XCTAssertEqual(resps.first?.cinematic?.output, .editable)
+        XCTAssertEqual(resps.first?.cinematic?.aperture, 4)
+        XCTAssertEqual(resps.first?.cinematic?.qualities, FakeCameraControlling.phoneCinematicState.qualities)
+    }
+
+    /// Set before the take: a SetCinematic that arrives mid-take is refused,
+    /// the refusal names why, and the camera never sees it.
+    func testSetCinematicIsRefusedWhileRecording() async {
+        let fakeCamera = await connectCameraAndDirector { fake in
+            fake.cinematicState = FakeCameraControlling.phoneCinematicState
+        }
+        director.startRecording()
+        await waitUntil { await self.cameraCoordinator.currentStateName() == .cameraRecordingVideo }
+        cameraTransport.sentMessages.removeAll()
+
+        sendFromDirector(RemoteCmd.SetCinematic(intent: CinematicIntent(enabled: true, aperture: 2)))
+        await drainBoth()
+
+        XCTAssertTrue(fakeCamera.cinematicIntents.isEmpty)
+        let resps = replies(to: .setcinematic)
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertEqual((resps.first?.error as NSError?)?.domain, "Locked while recording")
+        XCTAssertEqual(resps.first?.cinematic?.enabled, false, "the reply carries the unchanged truth")
+    }
+
+    /// Focus is fire-and-forget, before and during the take.
+    func testCinematicFocusAcrossTheWireIdleAndRecording() async {
+        let fakeCamera = await connectCameraAndDirector { fake in
+            fake.cinematicState = FakeCameraControlling.phoneCinematicState
+        }
+        sendFromDirector(RemoteCmd.SetCinematicFocus(focus: .subject(id: 7, strength: .strong)))
+        await drainBoth()
+        XCTAssertEqual(fakeCamera.cinematicFocuses, [.subject(id: 7, strength: .strong)])
+
+        director.startRecording()
+        await waitUntil { await self.cameraCoordinator.currentStateName() == .cameraRecordingVideo }
+        cameraTransport.sentMessages.removeAll()
+        sendFromDirector(RemoteCmd.SetCinematicFocus(focus: .fixedPoint(x: 0.25, y: 0.5)))
+        await drainBoth()
+        XCTAssertEqual(fakeCamera.cinematicFocuses.last, .fixedPoint(x: 0.25, y: 0.5))
+        XCTAssertTrue(cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }.isEmpty,
+                      "fire-and-forget: never answered")
+        XCTAssertTrue(fakeCamera.takePictureCalls.isEmpty)
+    }
+
+    /// The camera's report crosses the real encode/decode path to the director.
+    func testCinematicSubjectsCrossTheWire() async {
+        _ = await connectCameraAndDirector { fake in
+            fake.cinematicState = FakeCameraControlling.phoneCinematicState
+        }
+        let report = CinematicSubjectsReport(
+            subjects: [CinematicSubject(id: 7, groupID: 1, kind: .face,
+                                        rect: CGRect(x: 0.25, y: 0.25, width: 0.25, height: 0.5),
+                                        focus: .strong, isFixedFocus: false)],
+            notEnoughLight: true)
+        cameraCoordinator.tell(UICmd.PublishCinematicSubjects(report: report))
+        await drainBoth()
+
+        let sent = cameraTransport.sentMessages.compactMap { $0 as? RemoteCmd.CinematicSubjects }
+        XCTAssertEqual(sent.map(\.report), [report])
+        let decoded = serializeToFlatBuffer(sent[0]).flatMap { RemoteCmd.fromFlatBuffer($0) }
+        XCTAssertEqual((decoded as? RemoteCmd.CinematicSubjects)?.report, report,
+                       "what the director decodes is what the camera saw")
+    }
+
+    /// While the effect is on, a quality outside the Cinematic formats and a
+    /// non-16:9 aspect for the editable output are refused — never applied.
+    func testQualityAndAspectAreGatedWhileCinematicIsOn() async {
+        var cinematic = FakeCameraControlling.phoneCinematicState
+        cinematic.enabled = true
+        cinematic.output = .editable
+        let fakeCamera = await connectCameraAndDirector { fake in fake.cinematicState = cinematic }
+
+        sendFromDirector(RemoteCmd.SetVideoQuality(resolution: .hd1080p, frameRate: .fps60))
+        sendFromDirector(RemoteCmd.SetAspectRatio(aspectRatio: .fourThree))
+        await drainBoth()
+        let refusal = "Not available with Cinematic"
+        XCTAssertEqual((replies(to: .setvideoquality).last?.error as NSError?)?.domain, refusal)
+        XCTAssertEqual((replies(to: .setaspectratio).last?.error as NSError?)?.domain, refusal)
+        XCTAssertNotEqual(fakeCamera.aspectRatio, .fourThree, "the refused aspect was never applied")
+
+        cameraTransport.sentMessages.removeAll()
+        sendFromDirector(RemoteCmd.SetVideoQuality(resolution: .uhd4k, frameRate: .fps24))
+        await drainBoth()
+        XCTAssertNil(replies(to: .setvideoquality).last?.error, "a Cinematic quality applies")
+    }
+
+    // INTEGRATION: the director-side gate (WP-C adds `setCinematic(_:on:)` /
+    // `setCinematicFocus(_:on:)` to MulticamController). Enabled at integration.
+    #if false
+    /// Capability is presence: a camera whose state carries no Cinematic
+    /// block is never sent SetCinematic or SetCinematicFocus.
+    func testCinematicIsGatedOnTheCamerasCinematicBlock() async {
+        let fakeCamera = await connectCameraAndDirector { fake in fake.cinematicState = nil }
+        director.setCinematic(CinematicIntent(enabled: true), on: cameraPeer)
+        director.setCinematicFocus(.subject(id: 1, strength: .strong), on: cameraPeer)
+        await drainBoth()
+        XCTAssertFalse(directorTransport.sentMessages.contains {
+            $0 is RemoteCmd.SetCinematic || $0 is RemoteCmd.SetCinematicFocus
+        })
+        XCTAssertTrue(fakeCamera.cinematicIntents.isEmpty)
+        XCTAssertTrue(fakeCamera.cinematicFocuses.isEmpty)
+    }
+
+    func testDirectorSetCinematicHappyPath() async {
+        let fakeCamera = await connectCameraAndDirector { fake in
+            fake.cinematicState = FakeCameraControlling.phoneCinematicState
+        }
+        director.setCinematic(CinematicIntent(enabled: true, aperture: 2), on: cameraPeer)
+        await drainBoth()
+        XCTAssertEqual(fakeCamera.cinematicIntents, [CinematicIntent(enabled: true, aperture: 2)])
+        XCTAssertEqual(replies(to: .setcinematic).first?.cinematic?.enabled, true)
+        director.setCinematicFocus(.trackPoint(x: 0.5, y: 0.5, strength: .weak), on: cameraPeer)
+        await drainBoth()
+        XCTAssertEqual(fakeCamera.cinematicFocuses, [.trackPoint(x: 0.5, y: 0.5, strength: .weak)])
+        XCTAssertTrue(directorDisplay.transientErrors.isEmpty)
+    }
+    #endif
 
     // MARK: - App-version gate (semver major)
 

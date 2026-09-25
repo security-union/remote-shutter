@@ -369,6 +369,15 @@ public actor SessionCoordinator {
         return multipeerService.send(msg, to: peers ?? connectedPeers, mode: mode)
     }
 
+    /// A camera with a linked remote forwards the Cinematic report
+    /// best-effort; anywhere else it is dropped. `.unreliable` like a preview
+    /// frame: the next report replaces a lost one, so a failed send never
+    /// touches the session.
+    private func forwardCinematicSubjects(_ report: CinematicSubjectsReport) {
+        guard state.isCameraRole, !connectedPeers.isEmpty else { return }
+        sendMessage(RemoteCmd.CinematicSubjects(report: report), mode: .unreliable)
+    }
+
     /// Send, or pop to scanning with a connection-error alert on failure —
     /// the old `sendCommandOrGoToScanning`. `peers` nil = all connected
     /// (identical for this 1:1 coordinator; the param exists so per-peer
@@ -686,6 +695,12 @@ public actor SessionCoordinator {
     // MARK: Message dispatch
 
     func handle(_ msg: Message) async {
+        // The live Cinematic report is state-independent and ~10 Hz: judged
+        // once here, never traced.
+        if let publish = msg as? UICmd.PublishCinematicSubjects {
+            forwardCinematicSubjects(publish.report)
+            return
+        }
         // Reception trace: every command with the state that will judge it —
         // the seam for chasing wrong-state refusals. The frame stream is
         // excluded (it would drown everything at 20fps).
@@ -1071,6 +1086,10 @@ public actor SessionCoordinator {
             // without a focus point simply ignores it.
             try? await ctrl.focusAtPoint(x: focus.x, y: focus.y)
 
+        case let focus as RemoteCmd.SetCinematicFocus:
+            // Fire-and-forget: the next subjects report shows where it landed.
+            try? await ctrl.setCinematicFocus(focus.focus)
+
         case let disconnected as DisconnectPeer:
             if let lost = disconnected.peer, lost == peer, connectedPeers.isEmpty {
                 // Same policy as every camera state: hold the post. The idle
@@ -1120,11 +1139,33 @@ public actor SessionCoordinator {
             return nil
         case (is RemoteCmd.ToggleFlash, _), (is RemoteCmd.SetVideoQuality, _):
             return recording
-        case (is RemoteCmd.ToggleCamera, .recording), (is RemoteCmd.SelectCameraDevice, .recording):
+        case (is RemoteCmd.ToggleCamera, .recording), (is RemoteCmd.SelectCameraDevice, .recording),
+             (is RemoteCmd.SetCinematic, .recording):
+            // Cinematic's aperture throws mid-take and its enable rebuilds
+            // the capture pipeline: set before the take, never during.
             return recording
         default:
             return busy
         }
+    }
+
+    /// Why a quality or aspect change can't apply while Cinematic is on (nil
+    /// = go ahead). The same `CinematicPolicy` rules the director reads to
+    /// grey those options, so the two sides can't disagree.
+    static func cinematicRefusal(_ msg: Message, cinematic: CinematicState?) -> String? {
+        guard let cinematic, cinematic.enabled else { return nil }
+        let allowed: Bool
+        switch msg {
+        case let quality as RemoteCmd.SetVideoQuality:
+            allowed = CinematicPolicy.allows(resolution: quality.resolution, frameRate: quality.frameRate,
+                                             in: cinematic)
+        case let ratio as RemoteCmd.SetAspectRatio:
+            allowed = CinematicPolicy.allows(aspect: ratio.aspectRatio, output: cinematic.output)
+        default:
+            return nil
+        }
+        return allowed ? nil : NSLocalizedString("Not available with Cinematic",
+                                                 comment: "control refused: conflicts with Cinematic video")
     }
 
     /// Handles a control command if `msg` is one: applies it (or refuses it
@@ -1146,6 +1187,7 @@ public actor SessionCoordinator {
         case is RemoteCmd.SetAspectRatio: action = .setaspectratio
         case is RemoteCmd.SetCameraPreviewMode: action = .setcamerapreviewmode
         case is RemoteCmd.SetExposure: action = .setexposure
+        case is RemoteCmd.SetCinematic: action = .setcinematic
         default: return false
         }
         if let refusal = Self.controlRefusal(msg, phase: phase) {
@@ -1154,6 +1196,12 @@ public actor SessionCoordinator {
             return true
         }
         guard let ctrl else { return false }
+        if msg is RemoteCmd.SetVideoQuality || msg is RemoteCmd.SetAspectRatio,
+           let refusal = Self.cinematicRefusal(msg, cinematic: await ctrl.gatherCurrentCameraCapabilities()?.cinematic) {
+            logWarning("session: \(type(of: msg)) REFUSED — \(refusal)")
+            await replyWithState(action, error: NSError(domain: refusal, code: 0, userInfo: nil))
+            return true
+        }
         do {
             switch msg {
             case let zoom as RemoteCmd.SetZoom:
@@ -1199,6 +1247,8 @@ public actor SessionCoordinator {
                 await ctrl.setPreviewMode(preview.mode)
             case let exposure as RemoteCmd.SetExposure:
                 try await ctrl.setExposure(exposure.intent)
+            case let cinematic as RemoteCmd.SetCinematic:
+                try await ctrl.setCinematic(cinematic.intent)
             default:
                 break
             }
@@ -1509,6 +1559,10 @@ public actor SessionCoordinator {
         case let focus as RemoteCmd.FocusAtPoint:
             // Fire-and-forget; focusing is allowed while recording too.
             try? await ctrl.focusAtPoint(x: focus.x, y: focus.y)
+
+        case let focus as RemoteCmd.SetCinematicFocus:
+            // A focus pull mid-take is the point of Cinematic.
+            try? await ctrl.setCinematicFocus(focus.focus)
 
         case is RemoteCmd.RequestKeyframe:
             // The preview stream keeps flowing while recording, so a desynced
