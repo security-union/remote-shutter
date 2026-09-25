@@ -2666,6 +2666,35 @@ extension MulticamControllerTests {
         XCTAssertEqual(lanes.first?.cinematic?.enabled, true, "the lane reads the camera's report")
     }
 
+    /// An aperture drag, like an exposure drag: one SetCinematic in flight,
+    /// everything asked meanwhile folded into one, sent on the answer.
+    func testCinematicIsLatestWinsOneInFlight() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        func intents() -> [CinematicIntent] {
+            sent(transport, RemoteCmd.SetCinematic.self).compactMap { ($0.msg as? RemoteCmd.SetCinematic)?.intent }
+        }
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: true)), from: camA)
+        await controller.waitForIdle()
+
+        controller.setCinematic(CinematicIntent(enabled: true, aperture: 2.8), on: camA)
+        controller.setCinematic(CinematicIntent(enabled: true, aperture: 4), on: camA)
+        controller.setCinematic(CinematicIntent(enabled: true, aperture: 5.6), on: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents(), [CinematicIntent(enabled: true, aperture: 2.8)], "the rest wait for the answer")
+
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: true)), to: .setcinematic), from: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents(), [CinematicIntent(enabled: true, aperture: 2.8),
+                                   CinematicIntent(enabled: true, aperture: 5.6)],
+                       "one command carries the newest aperture")
+
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: true)), to: .setcinematic), from: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents().count, 2, "nothing queued, nothing more sent")
+        let pending = await controller.pendingForTesting(camA, .setcinematic)
+        XCTAssertEqual(pending, 0)
+    }
+
     /// A refused Cinematic toggle is said out loud, naming the camera.
     func testCinematicRefusalIsShownNamingTheCamera() async {
         let (controller, _, display) = await makeController(peers: [camA])

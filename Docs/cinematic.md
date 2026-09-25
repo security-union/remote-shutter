@@ -69,7 +69,9 @@ A **CINEMATIC** tile appears in the rig tray, in video mode, when the focused
 camera reports a `CinematicState`. Turning it on adds the **APERTURE** ruler,
 which is the same `RulerPill` as zoom and exposure, and an **EDIT IN PHOTOS**
 tile for the editable file. The ruler dims while recording because the camera
-refuses aperture changes mid-take.
+refuses aperture changes mid-take. Like the exposure rulers, a drag sends one
+`SetCinematic` at a time: whatever the ruler asks meanwhile waits, the newest
+value wins, and it goes out when the camera answers.
 
 With Cinematic on, the camera streams what it detects (faces, bodies, pets)
 about ten times a second. The director draws a box per subject over the

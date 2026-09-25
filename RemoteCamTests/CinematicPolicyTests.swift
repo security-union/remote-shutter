@@ -13,6 +13,18 @@ import XCTest
 
 final class CinematicPolicyTests: XCTestCase {
 
+    /// The director's queue fold: newest wins; an aperture "keep" (0) keeps
+    /// the dragged aperture already queued.
+    func testIntentCoalescingKeepsTheQueuedApertureOnKeep() {
+        let queued = CinematicIntent(enabled: true, aperture: 4, output: .baked)
+        XCTAssertEqual(queued.coalesced(with: CinematicIntent(enabled: true, aperture: 8, output: .baked)),
+                       CinematicIntent(enabled: true, aperture: 8, output: .baked))
+        XCTAssertEqual(queued.coalesced(with: CinematicIntent(enabled: false, aperture: 0, output: .baked)),
+                       CinematicIntent(enabled: false, aperture: 4, output: .baked))
+        XCTAssertEqual(queued.coalesced(with: CinematicIntent(enabled: true, aperture: 0, output: .editable)),
+                       CinematicIntent(enabled: true, aperture: 4, output: .editable))
+    }
+
     private typealias Device = CinematicPolicy.DeviceCandidate
     private typealias Format = CinematicPolicy.FormatCandidate
 
