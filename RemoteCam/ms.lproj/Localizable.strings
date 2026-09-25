@@ -412,3 +412,18 @@
 "Zoom" = "Zum";
 "This camera can't do manual exposure" = "Kamera ini tidak menyokong pendedahan manual";
 "The camera ignored that exposure setting" = "Kamera mengabaikan tetapan pendedahan itu";
+
+/* Cinematic video */
+"CINEMATIC" = "SINEMATIK";
+"CINEMATIC f/%.1f" = "SINEMATIK f/%.1f";
+"EDIT IN PHOTOS" = "EDIT DALAM FOTO";
+"Cinematic aperture" = "Bukaan Sinematik";
+"More light needed" = "Perlukan lebih cahaya";
+"Not available with Cinematic" = "Tidak tersedia dengan Sinematik";
+"Switch to video mode for Cinematic" = "Tukar ke mod video untuk Sinematik";
+"%@ can't record Cinematic video" = "%@ tidak dapat merakam video Sinematik";
+"%@ refused Cinematic video" = "%@ menolak video Sinematik";
+"Editable Cinematic records 16:9 only" = "Sinematik boleh edit merakam 16:9 sahaja";
+"Editable Cinematic needs 16:9" = "Sinematik boleh edit memerlukan 16:9";
+"%@ records editable Cinematic in 16:9" = "%@ merakam Sinematik boleh edit dalam 16:9";
+"Locked while recording" = "Dikunci semasa merakam";

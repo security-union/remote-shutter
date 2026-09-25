@@ -93,9 +93,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     var videoConnection: AVCaptureConnection?
     var audioConnection: AVCaptureConnection?
     var videoDeviceInput: AVCaptureDeviceInput!
-    // TEMP seam for WP-B2 — WP-B provides the real one (non-nil while
-    // Editable Cinematic is on). sessionQueue-confined.
-    var cinematicMovieOutput: AVCaptureMovieFileOutput?
 
     /// The active camera position, mirrored for the frame streamer's per-frame
     /// reads (everything else about the device is sessionQueue-confined).
