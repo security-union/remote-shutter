@@ -30,6 +30,9 @@ public final class MulticamViewController: UIViewController {
     /// camera is whichever lane the drag was on.
     private var exposureSenders: [ExposureRulerKind: ThrottledValueSender] = [:]
     private var exposureTarget: MCPeerID?
+    /// The APERTURE ruler's throttle; the target rides with it like zoom's.
+    private var apertureSender: ThrottledValueSender?
+    private var apertureTarget: MCPeerID?
     private var trailingZoomTimer: Timer?
 
     /// `controller` must already be `install`-ed with its transport + peers by
@@ -95,6 +98,15 @@ public final class MulticamViewController: UIViewController {
                 // Auto returns the camera to continuous exposure.
                 let intent: ExposureIntent = mode == .manual ? .manual(durationSeconds: 0, iso: 0) : .auto(bias: 0)
                 self?.controller.setExposure(intent, on: lane.peerID)
+            },
+            onSetCinematic: { [weak self] lane, intent in
+                self?.controller.setCinematic(intent, on: lane.peerID)
+            },
+            onApertureChange: { [weak self] lane, value in
+                self?.handleApertureChange(value, on: lane)
+            },
+            onCinematicFocus: { [weak self] lane, focus in
+                self?.controller.setCinematicFocus(focus, on: lane.peerID)
             },
             onOpenSettings: { [weak self] in
                 logInfo("director: settings opened")
@@ -193,6 +205,20 @@ public final class MulticamViewController: UIViewController {
         sender.submit(value)
     }
 
+    /// Throttled aperture, the exposure-ruler pattern. Each send carries the
+    /// camera's current output with the effect kept on, read when it fires.
+    private func handleApertureChange(_ value: Double, on lane: CameraLane) {
+        apertureTarget = lane.peerID
+        let sender = apertureSender ?? ThrottledValueSender { [weak self] value in
+            guard let self, let peer = self.apertureTarget,
+                  let output = self.viewModel.lane(for: peer)?.cinematic?.output else { return }
+            self.controller.setCinematic(CinematicIntent(enabled: true, aperture: Float(value), output: output),
+                                         on: peer)
+        }
+        apertureSender = sender
+        sender.submit(value)
+    }
+
     /// Throttled zoom, the same leading+trailing pattern the 1:1 monitor uses
     /// so a drag never floods the wire. The target camera rides through the
     /// throttle with the value — the trailing edge lands on the camera the
@@ -286,5 +312,10 @@ extension MulticamViewController: MulticamDisplay {
 
     func exitMulticam() {
         navigationController?.popViewController(animated: true)
+    }
+
+    func applyCinematicSubjects(_ report: CinematicSubjectsReport?, for peer: MCPeerID) {
+        guard let overlay = viewModel.lane(for: peer)?.cinematicOverlay, overlay.report != report else { return }
+        overlay.report = report
     }
 }

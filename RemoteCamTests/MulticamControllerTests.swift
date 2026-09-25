@@ -2585,3 +2585,185 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(lane?.activeDeviceID, "builtin", "a refused switch leaves the device alone")
     }
 }
+
+// MARK: - Cinematic
+
+/// Records the subject reports the controller hands the screen.
+private final class CinematicSubjectsDisplay: MulticamDisplay, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _subjects: [(MCPeerID, CinematicSubjectsReport?)] = []
+    var subjects: [(MCPeerID, CinematicSubjectsReport?)] { lock.lock(); defer { lock.unlock() }; return _subjects }
+
+    func applyLanes(_ lanes: [MulticamLaneInfo]) {}
+    func applyShutterState(capturing: Bool, recording: Bool) {}
+    func applyAvailablePeers(_ peers: [MCPeerID]) {}
+    func applyRigSettings(_ settings: RigSettingsSnapshot) {}
+    func showTransientError(_ message: String) {}
+    func exitMulticam() {}
+    func applyCinematicSubjects(_ report: CinematicSubjectsReport?, for peer: MCPeerID) {
+        lock.lock(); _subjects.append((peer, report)); lock.unlock()
+    }
+}
+
+extension MulticamControllerTests {
+
+    private func cinematicBlock(enabled: Bool, output: CinematicOutput = .baked) -> CinematicState {
+        CinematicState(enabled: enabled, output: output, aperture: 2.8,
+                       minAperture: 2, maxAperture: 16, defaultAperture: 2.8,
+                       qualities: [.hd1080p: [.fps24, .fps30], .uhd4k: [.fps24, .fps30]])
+    }
+
+    private func cinematicCaps(_ cinematic: CinematicState?,
+                               aspect: AspectRatio = .sixteenNine) -> RemoteCmd.CameraCapabilitiesResp {
+        RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+            supportsMulticam: true, aspectRatio: aspect, cinematic: cinematic, error: nil)
+    }
+
+    private func subjectsReport(dark: Bool = false) -> CinematicSubjectsReport {
+        CinematicSubjectsReport(
+            subjects: [CinematicSubject(id: 7, groupID: 1, kind: .face,
+                                        rect: CGRect(x: 0.4, y: 0.2, width: 0.2, height: 0.3),
+                                        focus: .strong, isFixedFocus: false)],
+            notEnoughLight: dark)
+    }
+
+    /// SetCinematic goes only to a camera whose state carries the block, and
+    /// counts in flight like every control command; focus goes only while the
+    /// effect is on, fire-and-forget.
+    func testCinematicIsGatedOnTheLanesCinematicBlock() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        controller.didReceiveMessage(cinematicCaps(nil), from: camA)
+        await controller.waitForIdle()
+        controller.setCinematic(CinematicIntent(enabled: true), on: camA)
+        controller.setCinematicFocus(.trackPoint(x: 0.5, y: 0.5, strength: .strong), on: camA)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetCinematic.self).isEmpty, "no block, no command")
+        XCTAssertTrue(sent(transport, RemoteCmd.SetCinematicFocus.self).isEmpty)
+
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
+        await controller.waitForIdle()
+        controller.setCinematicFocus(.subject(id: 7, strength: .strong), on: camA)
+        controller.setCinematic(CinematicIntent(enabled: true, aperture: 4, output: .editable), on: camA)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetCinematicFocus.self).isEmpty,
+                      "with the effect off there is nothing to focus")
+        let intents = sent(transport, RemoteCmd.SetCinematic.self).compactMap { ($0.msg as? RemoteCmd.SetCinematic)?.intent }
+        XCTAssertEqual(intents, [CinematicIntent(enabled: true, aperture: 4, output: .editable)])
+        let pending = await controller.pendingForTesting(camA, .setcinematic)
+        XCTAssertEqual(pending, 1, "counted in flight until the state reply")
+        let settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertTrue(settings.cinematicInFlight, "the tile waits for the camera")
+
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: true)), to: .setcinematic), from: camA)
+        controller.setCinematicFocus(.subject(id: 7, strength: .strong), on: camA)
+        await controller.waitForIdle()
+        let focuses = sent(transport, RemoteCmd.SetCinematicFocus.self).compactMap { ($0.msg as? RemoteCmd.SetCinematicFocus)?.focus }
+        XCTAssertEqual(focuses, [.subject(id: 7, strength: .strong)])
+        let settled = await controller.pendingForTesting(camA, .setcinematic)
+        XCTAssertEqual(settled, 0)
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first?.cinematic?.enabled, true, "the lane reads the camera's report")
+    }
+
+    /// A refused Cinematic toggle is said out loud, naming the camera.
+    func testCinematicRefusalIsShownNamingTheCamera() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
+        await controller.waitForIdle()
+        controller.setCinematic(CinematicIntent(enabled: true), on: camA)
+        await controller.waitForIdle()
+        let refusal = NSError(domain: "Locked while recording", code: 0)
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: false)),
+                                           to: .setcinematic, error: refusal), from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+        XCTAssertEqual(display.transientErrors.last, "CameraA: Locked while recording")
+    }
+
+    /// Subject boxes stand only while the camera reports the effect on: a
+    /// report is held and published, a report without the effect is dropped,
+    /// and turning Cinematic off clears the boxes.
+    func testCinematicSubjectsAreHeldWhileOnAndClearedWhenOff() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+        let display = CinematicSubjectsDisplay()
+        await controller.setDisplay(display)
+
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
+        controller.didReceiveMessage(RemoteCmd.CinematicSubjects(report: subjectsReport()), from: camA)
+        await controller.waitForIdle()
+        var held = await controller.cinematicSubjectsForTesting(camA)
+        XCTAssertNil(held, "no effect, no boxes")
+
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: true)), from: camA)
+        controller.didReceiveMessage(RemoteCmd.CinematicSubjects(report: subjectsReport(dark: true)), from: camA)
+        await controller.waitForIdle()
+        held = await controller.cinematicSubjectsForTesting(camA)
+        XCTAssertEqual(held, subjectsReport(dark: true))
+        await pumpMainUntil { display.subjects.count == 1 }
+        XCTAssertEqual(display.subjects.last?.1, subjectsReport(dark: true))
+
+        // The same report again is not re-published.
+        controller.didReceiveMessage(RemoteCmd.CinematicSubjects(report: subjectsReport(dark: true)), from: camA)
+        await controller.waitForIdle()
+
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
+        await controller.waitForIdle()
+        held = await controller.cinematicSubjectsForTesting(camA)
+        XCTAssertNil(held, "turning Cinematic off clears the boxes")
+        await pumpMainUntil { display.subjects.count == 2 }
+        XCTAssertEqual(display.subjects.count, 2, "one publish per change")
+        XCTAssertNil(display.subjects.last?.1)
+    }
+
+    /// Editable Cinematic records the whole 16:9 frame: the tray stops
+    /// offering other aspects, a stale request is not sent, and the rig's
+    /// aspect re-sync never pushes that camera into a crop it would refuse.
+    func testEditableCinematicHoldsTheRigAtSixteenNine() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(cinematicCaps(nil), from: camA)
+        controller.didReceiveMessage(cinematicCaps(nil), from: camB)
+        await controller.waitForIdle()
+        controller.setAspectRatio(.fourThree)
+        await controller.waitForIdle()
+
+        transport.sentMessages.removeAll()
+        // camA reports editable Cinematic at 16:9 while the rig is 4:3: the
+        // re-sync must not push it into a crop it would refuse.
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: true, output: .editable),
+                                                   aspect: .sixteenNine), from: camA)
+        await controller.waitForIdle()
+        let resync = sent(transport, RemoteCmd.SetAspectRatio.self).filter { $0.peers.contains(camA) }
+        XCTAssertTrue(resync.isEmpty, "never re-synced into a crop editable Cinematic refuses")
+
+        let settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(settings.selectableAspects, [.sixteenNine])
+        XCTAssertEqual(settings.aspectBlockedBy, ["CameraA"])
+
+        transport.sentMessages.removeAll()
+        controller.setAspectRatio(.oneOne)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetAspectRatio.self).isEmpty, "not offered, not sent")
+        controller.setAspectRatio(.sixteenNine)
+        await controller.waitForIdle()
+        XCTAssertEqual(sent(transport, RemoteCmd.SetAspectRatio.self).count, 2, "16:9 goes to the whole rig")
+    }
+
+    /// The tray's CINEMATIC tile follows the focused camera's block.
+    func testCinematicTileFollowsTheFocusedCamera() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: true)), from: camA)
+        controller.didReceiveMessage(cinematicCaps(nil), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        var settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(settings.cinematic, cinematicBlock(enabled: true))
+        XCTAssertTrue(settings.cinematicAvailable(in: .video))
+        XCTAssertFalse(settings.cinematicAvailable(in: .photo), "a video effect")
+
+        await controller.setFocusedPeer(camB)
+        await controller.waitForIdle()
+        settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertNil(settings.cinematic, "a camera without the block offers no tile")
+    }
+}

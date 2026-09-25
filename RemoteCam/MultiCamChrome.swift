@@ -73,8 +73,13 @@ enum RigTray {
     /// Format/HDR stay listed when blocked: the intersection model greys them
     /// and names the blocking camera in the footnote instead. Aspect, like the
     /// 1:1 tray's, shows in both modes — every camera can crop.
+    /// Cinematic is a video effect: its tile is offered in video mode for a
+    /// camera that reports the block, and the editable-output tile joins it
+    /// once the effect is on.
     static func items(mode: MonitorMode, standbyAvailable: Bool,
-                      exposureAvailable: Bool = false) -> [MonitorTrayItem] {
+                      exposureAvailable: Bool = false,
+                      cinematicAvailable: Bool = false,
+                      cinematicOn: Bool = false) -> [MonitorTrayItem] {
         var items: [MonitorTrayItem] = [.timer, .aspect]
 
         switch mode {
@@ -85,6 +90,10 @@ enum RigTray {
         }
 
         if exposureAvailable { items.append(.exposure) }
+        if mode == .video, cinematicAvailable {
+            items.append(.cinematic)
+            if cinematicOn { items.append(.cinematicEditable) }
+        }
         if standbyAvailable { items.append(.cameraStandby) }
         items.append(.settings)
         items.append(.help)

@@ -65,6 +65,46 @@ final class MulticamViewModelTests: XCTestCase {
         XCTAssertFalse(vm.showsExposureControls)
     }
 
+    /// The APERTURE ruler shows for the focused camera with Cinematic on, in
+    /// video mode and focus layout only; it holds still while the rig records.
+    func testApertureRulerNeedsCinematicOnInVideoAndFocus() {
+        let vm = MulticamViewModel()
+        vm.mode = .video
+        let on = CinematicState(enabled: true, output: .baked, aperture: 2.8, minAperture: 2, maxAperture: 16,
+                                defaultAperture: 2.8, qualities: [:])
+        var off = on
+        off.enabled = false
+
+        _ = vm.apply([cinematicInfo(camA, on)])
+        XCTAssertTrue(vm.showsCinematicControls)
+        XCTAssertTrue(vm.cinematicApertureEnabled)
+        XCTAssertTrue(vm.focusedLane?.isCinematicOn ?? false, "taps become Cinematic focus")
+
+        vm.isRecording = true
+        XCTAssertTrue(vm.showsCinematicControls, "still shown, reading the value")
+        XCTAssertFalse(vm.cinematicApertureEnabled, "the camera takes the aperture before a take only")
+        vm.isRecording = false
+
+        vm.mode = .photo
+        XCTAssertFalse(vm.showsCinematicControls, "a video effect")
+        vm.mode = .video
+        vm.displayMode = .grid
+        XCTAssertFalse(vm.showsCinematicControls, "the grid drives no single camera")
+        vm.displayMode = .focus
+
+        _ = vm.apply([cinematicInfo(camA, off)])
+        XCTAssertFalse(vm.showsCinematicControls, "effect off, no ruler")
+        _ = vm.apply([cinematicInfo(camA, nil)])
+        XCTAssertFalse(vm.showsCinematicControls)
+        XCTAssertFalse(vm.focusedLane?.isCinematicOn ?? true, "ordinary tap-to-focus")
+    }
+
+    private func cinematicInfo(_ peer: MCPeerID, _ cinematic: CinematicState?) -> MulticamLaneInfo {
+        var lane = info(peer, focused: true)
+        lane.cinematic = cinematic
+        return lane
+    }
+
     /// The shutter is a broadcast: cameras present is enough — focus is
     /// presentation and must never gate firing.
     func testShutterNeedsCamerasNotFocus() {
@@ -517,7 +557,9 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
                      onSetPhotoFormat: { _ in }, onSetHDR: { _ in },
                      onSetAspectRatio: { _ in }, onSetStandby: { _ in },
                      onSetExposureControls: { _ in }, onExposureChange: { _, _, _ in },
-                     onSetExposureMode: { _, _ in }, onOpenSettings: {}, onOpenHelp: {},
+                     onSetExposureMode: { _, _ in }, onSetCinematic: { _, _ in },
+                     onApertureChange: { _, _ in }, onCinematicFocus: { _, _ in },
+                     onOpenSettings: {}, onOpenHelp: {},
                      onRetryCollection: { _ in }, onFlipCamera: { _ in },
                      onSelectCameraDevice: { _, _ in }, onToggleTorch: { _ in },
                      onToggleFlash: { _ in }, onDisconnectCamera: { _ in },
@@ -553,6 +595,40 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
             try XCTUnwrap(image.pngData()).write(to: URL(fileURLWithPath: out))
             print("SNAPSHOT wrote \(out) \(image.size) scale \(image.scale)")
         }
+    }
+
+    /// The director with Cinematic on the focused camera renders: aperture
+    /// ruler, subject boxes over the preview, the light warning. Writes the
+    /// render to the temp directory so the layout can be looked at.
+    func testRenderDirectorWithCinematicOn() throws {
+        let vm = MulticamViewModel()
+        let peer = MCPeerID(displayName: "Stand")
+        var lane = laneInfo(peer, focused: true)
+        lane.cinematic = CinematicState(enabled: true, output: .baked, aperture: 2.8, minAperture: 2,
+                                        maxAperture: 16, defaultAperture: 2.8,
+                                        qualities: [.hd1080p: [.fps24, .fps30]])
+        vm.apply([lane])
+        vm.mode = .video
+        let focused = try XCTUnwrap(vm.lanes.first)
+        focused.frames.cameraImage = UIGraphicsImageRenderer(size: CGSize(width: 192, height: 108)).image { ctx in
+            UIColor.darkGray.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 192, height: 108))
+        }
+        focused.cinematicOverlay.report = CinematicSubjectsReport(
+            subjects: [CinematicSubject(id: 1, groupID: 1, kind: .face,
+                                        rect: CGRect(x: 0.4, y: 0.2, width: 0.15, height: 0.3),
+                                        focus: .strong, isFixedFocus: false),
+                       CinematicSubject(id: 2, groupID: 2, kind: .face,
+                                        rect: CGRect(x: 0.7, y: 0.3, width: 0.1, height: 0.2),
+                                        focus: nil, isFixedFocus: false)],
+            notEnoughLight: true)
+
+        setWindowSize(CGSize(width: 393, height: 852))
+        let image = renderScreen(named: "director-cinematic", directorView(vm))
+        XCTAssertGreaterThan(image.size.width, 0)
+        let out = (NSTemporaryDirectory() as NSString).appendingPathComponent("director-cinematic.png")
+        try XCTUnwrap(image.pngData()).write(to: URL(fileURLWithPath: out))
+        print("SNAPSHOT wrote \(out)")
     }
 
     func testRenderDirectorGridForStoreAssets() throws {
