@@ -113,7 +113,8 @@ struct MulticamView: View {
         // handle, the drag and the dismissal are the system's rather than
         // ours. Attached out here, not on the ZStack, so it never competes
         // with the add-camera sheet for the same presentation slot.
-        .modifier(RigTraySheet(isPresented: $viewModel.showingRigTray) { rigTrayPanel })
+        .modifier(RigTraySheet(isPresented: $viewModel.showingRigTray,
+                               onDismiss: viewModel.rigTrayDidDismiss) { rigTrayPanel })
     }
 
     /// The tray's tiles, in whichever container is presenting them.
@@ -132,14 +133,8 @@ struct MulticamView: View {
                      onSetExposureControls: onSetExposureControls,
                      // Close the tray first, as the camera screen does — the
                      // sheet returns to a clean viewfinder.
-                     onOpenSettings: {
-                         viewModel.showingRigTray = false
-                         onOpenSettings()
-                     },
-                     onOpenHelp: {
-                         viewModel.showingRigTray = false
-                         onOpenHelp()
-                     })
+                     onOpenSettings: { viewModel.closeRigTray(then: onOpenSettings) },
+                     onOpenHelp: { viewModel.closeRigTray(then: onOpenHelp) })
     }
 
     /// iPhone/iPad draw the preview full-bleed under the notch and the home
@@ -898,6 +893,9 @@ struct AddCameraSheet: View {
 /// nothing and the screen's own overlay stands.
 struct RigTraySheet<SheetContent: View>: ViewModifier {
     @Binding var isPresented: Bool
+    /// Runs once the sheet is fully off screen, the earliest moment the host
+    /// can present something else.
+    let onDismiss: () -> Void
     @ViewBuilder let sheetContent: () -> SheetContent
 
     /// The detent, measured from the tray itself rather than guessed, so
@@ -908,7 +906,7 @@ struct RigTraySheet<SheetContent: View>: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         if #available(iOS 16.0, *), RigTrayPresentation.style == .sheet {
-            content.sheet(isPresented: $isPresented) {
+            content.sheet(isPresented: $isPresented, onDismiss: onDismiss) {
                 sheetContent()
                     .background(
                         GeometryReader { geo in

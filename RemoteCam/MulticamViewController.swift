@@ -19,7 +19,7 @@ import UIKit
 public final class MulticamViewController: UIViewController {
 
     private let controller: MulticamController
-    private let viewModel = MulticamViewModel()
+    let viewModel = MulticamViewModel()
     private var hosting: UIHostingController<MulticamView>?
 
     /// Rate-limits zoom sends to the focused camera, same as the 1:1 monitor,

@@ -588,3 +588,37 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
         }
     }
 }
+
+// MARK: - Leaving the rig tray for another screen
+
+extension MulticamViewModelTests {
+
+    /// Settings and Help open from inside the tray. When the tray is a sheet,
+    /// the tile's action waits for the sheet to finish leaving: presenting
+    /// over a still-presented sheet is refused by UIKit and nothing shows.
+    func testSheetTrayRunsTheTileActionOnlyAfterItHasDismissed() {
+        let vm = MulticamViewModel()
+        vm.showingRigTray = true
+        var opened = 0
+
+        vm.closeRigTray(presentation: .sheet) { opened += 1 }
+        XCTAssertFalse(vm.showingRigTray)
+        XCTAssertEqual(opened, 0, "the sheet is still on screen")
+
+        vm.rigTrayDidDismiss()
+        XCTAssertEqual(opened, 1)
+
+        vm.rigTrayDidDismiss()
+        XCTAssertEqual(opened, 1, "a later drag-dismiss must not reopen it")
+    }
+
+    func testOverlayTrayRunsTheTileActionAtOnce() {
+        let vm = MulticamViewModel()
+        vm.showingRigTray = true
+        var opened = 0
+
+        vm.closeRigTray(presentation: .overlay) { opened += 1 }
+        XCTAssertFalse(vm.showingRigTray)
+        XCTAssertEqual(opened, 1)
+    }
+}
