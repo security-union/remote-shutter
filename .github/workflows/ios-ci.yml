@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     name: Build and Test
-    runs-on: macos-26
+    runs-on: xcode-27
     
     steps:
     - name: Checkout
@@ -24,7 +24,7 @@ jobs:
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '26.2'
+        xcode-version: '27.0'
         
     - name: Show Xcode version
       run: xcodebuild -version
@@ -32,16 +32,17 @@ jobs:
     - name: Show available simulators
       run: xcrun simctl list devicetypes
 
-    # Xcode 26 compilation cache (LLVM CAS). Content-addressed, so stale
-    # entries are harmless — restore-keys falls back to the newest cache on
-    # any branch when the exact-sha key misses (i.e. always, except re-runs).
+    # Xcode compilation cache (LLVM CAS), keyed per Xcode major so one
+    # compiler's cache is never restored into another. Content-addressed, so
+    # stale entries are harmless — restore-keys falls back to the newest cache
+    # on any branch when the exact-sha key misses (i.e. always, except re-runs).
     - name: Restore compilation cache
       uses: actions/cache@v4
       with:
         path: ~/compilation-cache
-        key: cas-ios-${{ github.sha }}
+        key: cas-ios-xcode27-${{ github.sha }}
         restore-keys: |
-          cas-ios-
+          cas-ios-xcode27-
 
     # TODO: Remove this once we have a way to install CocoaPods
     # - name: Cache CocoaPods
@@ -66,7 +67,7 @@ jobs:
         xcodebuild \
           -workspace RemoteShutter.xcworkspace \
           -scheme RemoteCam \
-          -destination 'platform=iOS Simulator,OS=26.2,name=iPhone 17' \
+          -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 17' \
           -configuration Debug \
           clean build \
           CODE_SIGNING_REQUIRED=NO \
@@ -85,7 +86,7 @@ jobs:
         xcodebuild \
           -workspace RemoteShutter.xcworkspace \
           -scheme RemoteCam \
-          -destination 'platform=iOS Simulator,OS=26.2,name=iPhone 17' \
+          -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 17' \
           -configuration Debug \
           test \
           -enableCodeCoverage YES \
@@ -133,7 +134,7 @@ jobs:
 
   build-mac-catalyst:
     name: Build Mac Catalyst
-    runs-on: macos-26
+    runs-on: xcode-27
 
     steps:
     - name: Checkout
@@ -144,15 +145,15 @@ jobs:
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '26.2'
+        xcode-version: '27.0'
 
     - name: Restore compilation cache
       uses: actions/cache@v4
       with:
         path: ~/compilation-cache
-        key: cas-catalyst-${{ github.sha }}
+        key: cas-catalyst-xcode27-${{ github.sha }}
         restore-keys: |
-          cas-catalyst-
+          cas-catalyst-xcode27-
 
     - name: Build for Mac Catalyst
       run: |
