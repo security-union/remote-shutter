@@ -12,8 +12,9 @@
 //  default connection orientation) being the identity. The preview frame was
 //  rotated from that reference into the connection's current `videoOrientation`
 //  before it left the camera, so mapping a display point back to device space
-//  is the inverse of that rotation, plus an un-mirror for the front camera
-//  (whose preview is shown horizontally mirrored).
+//  is the inverse of that rotation, plus an un-mirror when the streamed buffer
+//  is mirrored (the caller reads that from the connection; an iPhone 14's
+//  front-camera data output measured NOT mirrored).
 //
 //  This is deliberately isolated and pure so it can be unit-tested and,
 //  crucially, validated/tuned against real hardware in CaptureIntegrationTests
@@ -36,7 +37,7 @@ enum FocusPointMapping {
     ///     (i.e. the capture connection's `videoOrientation`). On landscape-native
     ///     Mac cameras this is `.landscapeRight` (identity).
     ///   - mirrored: true when the displayed image is horizontally mirrored
-    ///     relative to the sensor (the front camera).
+    ///     relative to the sensor (the connection's `isVideoMirrored`).
     /// - Returns: a point in `focusPointOfInterest` space, clamped to [0,1].
     static func devicePoint(displayNormalized point: CGPoint,
                             videoOrientation: AVCaptureVideoOrientation,
@@ -62,6 +63,44 @@ enum FocusPointMapping {
             device = CGPoint(x: px, y: py)
         }
         return CGPoint(x: clamp01(device.x), y: clamp01(device.y))
+    }
+
+    /// The inverse of `devicePoint`: a point in device space (where
+    /// `focusPointOfInterest` and `AVMetadataObject.bounds` live) back into the
+    /// upright display image the director shows.
+    static func displayPoint(deviceNormalized point: CGPoint,
+                             videoOrientation: AVCaptureVideoOrientation,
+                             mirrored: Bool) -> CGPoint {
+        let dx = clamp01(point.x)
+        let dy = clamp01(point.y)
+        var display: CGPoint
+        switch videoOrientation {
+        case .landscapeRight:
+            display = CGPoint(x: dx, y: dy)
+        case .landscapeLeft:
+            display = CGPoint(x: 1 - dx, y: 1 - dy)
+        case .portrait:
+            display = CGPoint(x: 1 - dy, y: dx)
+        case .portraitUpsideDown:
+            display = CGPoint(x: dy, y: 1 - dx)
+        @unknown default:
+            display = CGPoint(x: dx, y: dy)
+        }
+        if mirrored { display.x = 1 - display.x }
+        return display
+    }
+
+    /// A device-space rect (a detected subject's bounds) in the upright
+    /// display image: both corners mapped, then re-normalized, since a
+    /// rotation swaps which corner is the origin.
+    static func displayRect(deviceNormalized rect: CGRect,
+                            videoOrientation: AVCaptureVideoOrientation,
+                            mirrored: Bool) -> CGRect {
+        let a = displayPoint(deviceNormalized: CGPoint(x: rect.minX, y: rect.minY),
+                             videoOrientation: videoOrientation, mirrored: mirrored)
+        let b = displayPoint(deviceNormalized: CGPoint(x: rect.maxX, y: rect.maxY),
+                             videoOrientation: videoOrientation, mirrored: mirrored)
+        return CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
     }
 
     private static func clamp01(_ v: CGFloat) -> CGFloat {

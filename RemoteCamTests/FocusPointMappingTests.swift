@@ -121,4 +121,63 @@ final class FocusPointMappingTests: XCTestCase {
         XCTAssertEqual(p.x, 1.0, accuracy: acc)
         XCTAssertEqual(p.y, 0.0, accuracy: acc)
     }
+
+    // MARK: - displayPoint / displayRect (device -> display, Cinematic subject boxes)
+
+    private let orientations: [AVCaptureVideoOrientation] = [.portrait, .portraitUpsideDown, .landscapeLeft, .landscapeRight]
+
+    func testDisplayPointInvertsDevicePointForEveryOrientationAndMirror() {
+        let samples = [CGPoint(x: 0.2, y: 0.3), CGPoint(x: 0.9, y: 0.1), CGPoint(x: 0.5, y: 0.5), CGPoint(x: 0, y: 1)]
+        for orientation in orientations {
+            for mirrored in [false, true] {
+                for display in samples {
+                    let device = FocusPointMapping.devicePoint(displayNormalized: display,
+                                                               videoOrientation: orientation, mirrored: mirrored)
+                    let back = FocusPointMapping.displayPoint(deviceNormalized: device,
+                                                              videoOrientation: orientation, mirrored: mirrored)
+                    XCTAssertEqual(back.x, display.x, accuracy: acc, "\(orientation.rawValue) mirrored=\(mirrored)")
+                    XCTAssertEqual(back.y, display.y, accuracy: acc, "\(orientation.rawValue) mirrored=\(mirrored)")
+                }
+            }
+        }
+    }
+
+    func testDisplayRectIdentityInLandscapeRight() {
+        let rect = FocusPointMapping.displayRect(deviceNormalized: CGRect(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+                                                 videoOrientation: .landscapeRight, mirrored: false)
+        XCTAssertEqual(rect.minX, 0.1, accuracy: acc)
+        XCTAssertEqual(rect.minY, 0.2, accuracy: acc)
+        XCTAssertEqual(rect.width, 0.3, accuracy: acc)
+        XCTAssertEqual(rect.height, 0.4, accuracy: acc)
+    }
+
+    func testDisplayRectPortraitSwapsTheAxes() {
+        // Device (x,y) -> display (1 - y, x): a sensor box 0.3 wide, 0.4 tall
+        // shows 0.4 wide, 0.3 tall in a portrait image.
+        let rect = FocusPointMapping.displayRect(deviceNormalized: CGRect(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+                                                 videoOrientation: .portrait, mirrored: false)
+        XCTAssertEqual(rect.minX, 0.4, accuracy: acc)
+        XCTAssertEqual(rect.minY, 0.1, accuracy: acc)
+        XCTAssertEqual(rect.width, 0.4, accuracy: acc)
+        XCTAssertEqual(rect.height, 0.3, accuracy: acc)
+    }
+
+    func testDisplayRectCornersRoundTripThroughDevicePoint() {
+        let display = CGRect(x: 0.25, y: 0.1, width: 0.2, height: 0.5)
+        for orientation in orientations {
+            for mirrored in [false, true] {
+                let a = FocusPointMapping.devicePoint(displayNormalized: CGPoint(x: display.minX, y: display.minY),
+                                                      videoOrientation: orientation, mirrored: mirrored)
+                let b = FocusPointMapping.devicePoint(displayNormalized: CGPoint(x: display.maxX, y: display.maxY),
+                                                      videoOrientation: orientation, mirrored: mirrored)
+                let device = CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
+                let back = FocusPointMapping.displayRect(deviceNormalized: device,
+                                                         videoOrientation: orientation, mirrored: mirrored)
+                XCTAssertEqual(back.minX, display.minX, accuracy: acc)
+                XCTAssertEqual(back.minY, display.minY, accuracy: acc)
+                XCTAssertEqual(back.width, display.width, accuracy: acc)
+                XCTAssertEqual(back.height, display.height, accuracy: acc)
+            }
+        }
+    }
 }

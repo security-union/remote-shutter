@@ -84,7 +84,13 @@ final class CameraRig: @unchecked Sendable {
     private let currentCameraModeShared = Locked(RecordingMode.Photo)
     var currentCameraMode: RecordingMode {
         get { currentCameraModeShared.value }
-        set { currentCameraModeShared.value = newValue }
+        set {
+            let changed = currentCameraModeShared.value != newValue
+            currentCameraModeShared.value = newValue
+            // Cinematic follows video mode; the engine re-applies before the
+            // coordinator's state reply reads it.
+            if changed { engine.recordingModeChanged() }
+        }
     }
 
     // MARK: - Shell seams
@@ -199,6 +205,21 @@ final class CameraRig: @unchecked Sendable {
         // The exposure policy caps a long shutter at the frame duration while
         // a clip is rolling; recording truth lives here, not in the engine.
         engine.isRecordingProvider = { [weak self] in self?.isRecording ?? false }
+        // Cinematic is a video-mode effect; mode truth lives here.
+        engine.isVideoModeProvider = { [currentCameraModeShared] in
+            currentCameraModeShared.value != .Photo
+        }
+        // The chip on this screen follows every Cinematic change, whoever
+        // caused it (the remote, a flip, a mode change, teardown).
+        engine.onCinematicStateChanged = { [cameraViewModel] state in
+            cameraViewModel.updateCinematicReadout(state)
+        }
+        // Captures the session ref (not self): the report reaches the
+        // coordinator, which forwards it to the director .unreliable.
+        engine.onCinematicSubjects = { [session, cameraViewModel] report in
+            cameraViewModel.updateCinematicLight(notEnoughLight: report.notEnoughLight)
+            session ! UICmd.PublishCinematicSubjects(report: report)
+        }
         engine.onCameraDevicesChanged = { [weak self] in
             // Hot-plug (fires on the session queue): refresh the picker and,
             // when a monitor is connected, re-advertise capabilities.
@@ -531,6 +552,12 @@ extension CameraRig: CameraControlling {
     }
 
     func setCinematic(_ intent: CinematicIntent) async throws {
+        defer {
+            // Turning Cinematic on can end Manual exposure: keep that chip true.
+            Task { [engine, cameraViewModel] in
+                cameraViewModel.updateExposureReadout(await engine.gatherCurrentCameraCapabilities()?.exposure)
+            }
+        }
         try await engine.setCinematic(intent)
     }
 
