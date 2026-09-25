@@ -412,3 +412,18 @@
 "Zoom" = "ズーム";
 "This camera can't do manual exposure" = "このカメラはマニュアル露出に対応していません";
 "The camera ignored that exposure setting" = "カメラがその露出設定を無視しました";
+
+/* Cinematic video */
+"CINEMATIC" = "シネマティック";
+"CINEMATIC f/%.1f" = "シネマティック f/%.1f";
+"EDIT IN PHOTOS" = "写真で編集";
+"Cinematic aperture" = "シネマティックの絞り";
+"More light needed" = "もっと明るさが必要です";
+"Not available with Cinematic" = "シネマティックでは使用できません";
+"Switch to video mode for Cinematic" = "シネマティックにはビデオモードに切り替えてください";
+"%@ can't record Cinematic video" = "%@はシネマティックビデオを撮影できません";
+"%@ refused Cinematic video" = "%@がシネマティックビデオを拒否しました";
+"Editable Cinematic records 16:9 only" = "編集可能なシネマティックは16:9のみです";
+"Editable Cinematic needs 16:9" = "編集可能なシネマティックには16:9が必要です";
+"%@ records editable Cinematic in 16:9" = "%@は編集可能なシネマティックを16:9で撮影します";
+"Locked while recording" = "録画中はロックされています";

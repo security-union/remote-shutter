@@ -77,12 +77,63 @@ enum CommandAction : byte {
                                // RECEIVER sends this first, as its "clip
                                // landed / failed" confirmation; the camera
                                // then forwards it to close the protocol.
-    SetExposure = 34           // director -> camera: Auto (with an EV bias) or
+    SetExposure = 34,          // director -> camera: Auto (with an EV bias) or
                                // Manual (shutter + ISO). Payload in
                                // CommandParameters (exposure_*). Answered like
                                // every control command, by the camera's full
                                // state; only sent to a camera whose CameraState
                                // carries an ExposureState.
+    SetCinematic = 35,         // director -> camera: Cinematic video on/off, the
+                               // simulated aperture and the output (baked blur vs
+                               // editable-in-Photos). Payload in CommandParameters
+                               // (cinematic_*). Answered like every control command,
+                               // by the camera's full state; only sent to a camera
+                               // whose CameraState carries a CinematicState.
+    SetCinematicFocus = 36,    // director -> camera: Cinematic focus — track a
+                               // detected subject, track at a point, or fix focus at
+                               // a point. Fire-and-forget like FocusAtPoint; the
+                               // next CinematicSubjects report shows the result.
+    CinematicSubjects = 37     // camera -> director: the subjects Cinematic detects
+                               // (boxes in upright display space) and the light
+                               // warning. Sent .unreliable, ~10 Hz, only while the
+                               // effect is on.
+}
+
+// Which file a Cinematic take produces. Baked: the blur is rendered into the
+// video (our asset writer), so every player shows it. Editable: the movie file
+// output's clean video + disparity + Cinematic metadata, re-focusable in Photos
+// (the blur exists only in Apple's renderers). One or the other, never both.
+enum CinematicOutput : byte {
+    Unknown = 0,
+    Baked = 1,
+    Editable = 2
+}
+
+// SetCinematicFocus: what to focus on.
+enum CinematicFocusKind : byte {
+    Unknown = 0,
+    TrackSubject = 1,  // cinematic_subject_id
+    TrackPoint = 2,    // focus_point_x/y — track whatever is there
+    FixedPoint = 3     // focus_point_x/y — hold focus at that distance
+}
+
+// Strong: stay on the subject until it leaves the frame. Weak: the camera may
+// move to a more prominent subject. Unknown in a report = not the focus.
+enum CinematicFocusStrength : byte {
+    Unknown = 0,
+    Weak = 1,
+    Strong = 2
+}
+
+enum CinematicSubjectKind : byte {
+    Unknown = 0,
+    Face = 1,
+    HumanBody = 2,
+    CatHead = 3,
+    CatBody = 4,
+    DogHead = 5,
+    DogBody = 6,
+    SalientObject = 7
 }
 
 // Auto vs. manual exposure, as the camera reports it and the director asks.
@@ -263,6 +314,32 @@ table CommandParameters {
     exposure_bias: float;
     exposure_duration_seconds: double;
     exposure_iso: float;
+    // SetCinematic payload. `cinematic_aperture` 0 = keep the camera's
+    // current (or the format default); the camera clamps into its range.
+    cinematic_enabled: bool;
+    cinematic_aperture: float;
+    cinematic_output: CinematicOutput;
+    // SetCinematicFocus payload (points reuse focus_point_x/y).
+    cinematic_focus_kind: CinematicFocusKind;
+    cinematic_focus_strength: CinematicFocusStrength;
+    cinematic_subject_id: long;
+    // CinematicSubjects payload.
+    cinematic_subjects: [CinematicSubject];
+    cinematic_not_enough_light: bool;
+}
+
+// One detected subject. The box is normalized (0..1) in the upright display
+// image, origin top-left — the same space as focus_point_x/y.
+table CinematicSubject {
+    id: long;
+    group_id: long;
+    kind: CinematicSubjectKind;
+    x: float;
+    y: float;
+    width: float;
+    height: float;
+    focus: CinematicFocusStrength;   // Unknown = not the focus
+    fixed_focus: bool;
 }
 
 // MARK: - Command Structure
@@ -356,6 +433,22 @@ table ExposureState {
     max_frame_duration_seconds: double;
 }
 
+// Cinematic video truth. Present = this camera can do Cinematic on its chosen
+// device (it may hop to the Dual Wide / TrueDepth sibling to do it); absent =
+// no CINEMATIC tile and SetCinematic never sent. The aperture range is the
+// active (or would-be) Cinematic format's. `qualities` are the video
+// resolution/fps pairs Cinematic formats allow — the quality menu offers only
+// these while `enabled`.
+table CinematicState {
+    enabled: bool;
+    output: CinematicOutput;
+    aperture: float;
+    min_aperture: float;
+    max_aperture: float;
+    default_aperture: float;
+    qualities: [ResolutionFrameRates];
+}
+
 table CameraState {
     current_camera: CameraPosition;
     current_lens: CameraLensType;
@@ -374,6 +467,7 @@ table CameraState {
     // sitting in standby. Absent/Unknown => legacy peer; treat as On.
     preview_mode: CameraPreviewModeEnum;
     exposure: ExposureState;
+    cinematic: CinematicState;
 }
 
 table CameraCapabilities {

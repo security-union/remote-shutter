@@ -412,3 +412,18 @@
 "Zoom" = "Yakınlaştırma";
 "This camera can't do manual exposure" = "Bu kamera manuel pozlamayı desteklemiyor";
 "The camera ignored that exposure setting" = "Kamera bu pozlama ayarını yok saydı";
+
+/* Cinematic video */
+"CINEMATIC" = "SİNEMATİK";
+"CINEMATIC f/%.1f" = "SİNEMATİK f/%.1f";
+"EDIT IN PHOTOS" = "FOTOĞRAFLAR’DA DÜZENLE";
+"Cinematic aperture" = "Sinematik diyafram";
+"More light needed" = "Daha fazla ışık gerekli";
+"Not available with Cinematic" = "Sinematik ile kullanılamaz";
+"Switch to video mode for Cinematic" = "Sinematik için video moduna geçin";
+"%@ can't record Cinematic video" = "%@ Sinematik video kaydedemiyor";
+"%@ refused Cinematic video" = "%@ Sinematik videoyu reddetti";
+"Editable Cinematic records 16:9 only" = "Düzenlenebilir Sinematik yalnızca 16:9 kaydeder";
+"Editable Cinematic needs 16:9" = "Düzenlenebilir Sinematik 16:9 gerektirir";
+"%@ records editable Cinematic in 16:9" = "%@ düzenlenebilir Sinematik’i 16:9 kaydediyor";
+"Locked while recording" = "Kayıt sırasında kilitli";

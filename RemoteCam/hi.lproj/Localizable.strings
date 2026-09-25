@@ -412,3 +412,18 @@
 "Zoom" = "ज़ूम";
 "This camera can't do manual exposure" = "यह कैमरा मैनुअल एक्सपोज़र नहीं कर सकता";
 "The camera ignored that exposure setting" = "कैमरे ने उस एक्सपोज़र सेटिंग को अनदेखा कर दिया";
+
+/* Cinematic video */
+"CINEMATIC" = "सिनेमैटिक";
+"CINEMATIC f/%.1f" = "सिनेमैटिक f/%.1f";
+"EDIT IN PHOTOS" = "फ़ोटो में संपादित करें";
+"Cinematic aperture" = "सिनेमैटिक अपर्चर";
+"More light needed" = "और रोशनी चाहिए";
+"Not available with Cinematic" = "सिनेमैटिक के साथ उपलब्ध नहीं";
+"Switch to video mode for Cinematic" = "सिनेमैटिक के लिए वीडियो मोड पर जाएँ";
+"%@ can't record Cinematic video" = "%@ सिनेमैटिक वीडियो रिकॉर्ड नहीं कर सकता";
+"%@ refused Cinematic video" = "%@ ने सिनेमैटिक वीडियो अस्वीकार किया";
+"Editable Cinematic records 16:9 only" = "संपादन योग्य सिनेमैटिक केवल 16:9 में रिकॉर्ड होता है";
+"Editable Cinematic needs 16:9" = "संपादन योग्य सिनेमैटिक के लिए 16:9 चाहिए";
+"%@ records editable Cinematic in 16:9" = "%@ संपादन योग्य सिनेमैटिक 16:9 में रिकॉर्ड करता है";
+"Locked while recording" = "रिकॉर्डिंग के दौरान लॉक";

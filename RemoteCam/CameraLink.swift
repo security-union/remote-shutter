@@ -97,6 +97,9 @@ final class CameraLink {
     /// camera only ever gets the newest value, one at a time, and never
     /// works through a backlog of stale ones.
     var queuedExposure: ExposureIntent?
+    /// The same for `SetCinematic`: an aperture drag, latest wins, one at a
+    /// time (`CinematicIntent.coalesced`).
+    var queuedCinematic: CinematicIntent?
 
     init(peerID: MCPeerID) {
         self.peerID = peerID
@@ -133,7 +136,8 @@ final class CameraLink {
             torchOn: capabilities?.torchOn ?? false,
             flashOn: (capabilities?.flashMode ?? .off) != .off,
             inFlight: Set(pending.filter { $0.value > 0 }.keys),
-            exposure: capabilities?.exposure)
+            exposure: capabilities?.exposure,
+            cinematic: capabilities?.cinematic)
     }
 
     /// The zoom scale as the camera last reported it — the same derivation

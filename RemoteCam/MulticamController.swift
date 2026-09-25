@@ -93,6 +93,10 @@ struct MulticamLaneInfo: Equatable {
     /// exposure control at all — the gate for the exposure rulers and for
     /// `SetExposure` on the wire.
     let exposure: ExposureState?
+    /// This camera's Cinematic truth, or nil when it can't do Cinematic —
+    /// the gate for the CINEMATIC tile, the aperture ruler, and
+    /// `SetCinematic` / `SetCinematicFocus` on the wire.
+    var cinematic: CinematicState? = nil
 }
 
 /// A Sendable pipe that carries one lane's decoded-preview frames from the
@@ -122,6 +126,15 @@ protocol MulticamDisplay: AnyObject {
     /// The screen shows it and clears it itself — the controller keeps none of it.
     func showTransientError(_ message: String)
     func exitMulticam()
+    /// One camera's live Cinematic report (subject boxes, the light warning),
+    /// ~10 Hz while its effect is on; nil clears it. Its own channel so the
+    /// boxes never re-render the lanes or the chrome.
+    func applyCinematicSubjects(_ report: CinematicSubjectsReport?, for peer: MCPeerID)
+}
+
+extension MulticamDisplay {
+    /// A display that draws no subject boxes (a test double) ignores them.
+    func applyCinematicSubjects(_ report: CinematicSubjectsReport?, for peer: MCPeerID) {}
 }
 
 /// Director side of a multicam session: one controller, several cameras.
@@ -391,7 +404,40 @@ public actor MulticamController {
     func handle(_ msg: Message) async {
         await route(msg)
         publishChangedSnapshots()
+        publishCinematicSubjects()
     }
+
+    /// The latest Cinematic report per camera, and what was last handed to
+    /// the screen. A report stands only while its camera is linked and
+    /// reports the effect on: a lane dropping, going to reconnect, or
+    /// turning Cinematic off clears its boxes on the same pump turn.
+    private var cinematicSubjects: [MCPeerID: CinematicSubjectsReport] = [:]
+    private var publishedCinematicSubjects: [MCPeerID: CinematicSubjectsReport] = [:]
+
+    private func publishCinematicSubjects() {
+        for peer in Array(cinematicSubjects.keys) {
+            guard let link = links[peer], link.status == .linked,
+                  link.capabilities?.cinematic?.enabled == true else {
+                cinematicSubjects[peer] = nil
+                continue
+            }
+        }
+        var changes: [(MCPeerID, CinematicSubjectsReport?)] = []
+        for (peer, report) in cinematicSubjects where publishedCinematicSubjects[peer] != report {
+            changes.append((peer, report))
+        }
+        for peer in publishedCinematicSubjects.keys where cinematicSubjects[peer] == nil {
+            changes.append((peer, nil))
+        }
+        guard !changes.isEmpty else { return }
+        publishedCinematicSubjects = cinematicSubjects
+        let display = display
+        OperationQueue.main.addOperation {
+            for (peer, report) in changes { display?.applyCinematicSubjects(report, for: peer) }
+        }
+    }
+
+    func cinematicSubjectsForTesting(_ peer: MCPeerID) -> CinematicSubjectsReport? { cinematicSubjects[peer] }
 
     private func publishChangedSnapshots() {
         let lanes = laneSnapshot()
@@ -489,6 +535,12 @@ public actor MulticamController {
         case let m as MCSetExposure:
             logInfo("director: exposure \(m.intent) → \(m.target.displayName)")
             handleSetExposure(m.intent, target: m.target)
+        case let m as MCSetCinematic:
+            logInfo("director: cinematic \(m.intent) → \(m.target.displayName)")
+            handleSetCinematic(m.intent, target: m.target)
+        case let m as MCSetCinematicFocus:
+            logInfo("director: cinematic focus \(m.focus) → \(m.target.displayName)")
+            handleSetCinematicFocus(m.focus, target: m.target)
         case let m as MCFocusAtPoint:
             logInfo("director: focus tap (\(m.x), \(m.y)) → \(m.target.displayName)")
             handleFocusAtPoint(x: m.x, y: m.y, target: m.target)
@@ -626,6 +678,7 @@ public actor MulticamController {
             link.capabilities = caps
             if let n = link.pending[caps.inReplyTo], n > 0 { link.pending[caps.inReplyTo] = n - 1 }
             if caps.inReplyTo == .setexposure { flushQueuedExposure(peer) }
+            if caps.inReplyTo == .setcinematic { flushQueuedCinematic(peer) }
             if let error = caps.error {
                 // A refusal is said out loud — the state already reset the
                 // control to the truth, so silence would read as "the
@@ -648,9 +701,17 @@ public actor MulticamController {
             if rigPreviewMode == .standby, caps.supportsPreviewMode, caps.previewMode != .standby {
                 sendControl(.setcamerapreviewmode, RemoteCmd.SetCameraPreviewMode(mode: .standby), to: peer)
             }
-            if caps.aspectRatio != activeAspectRatio {
+            if caps.aspectRatio != activeAspectRatio,
+               CinematicPolicy.allows(aspect: activeAspectRatio, output: Self.activeCinematicOutput(caps.cinematic)) {
                 sendControl(.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: activeAspectRatio), to: peer)
             }
+
+        case let subjects as RemoteCmd.CinematicSubjects:
+            // Held only while the camera reports the effect on; a report that
+            // outlives it (unreliable datagrams reorder) is dropped, and
+            // `publishCinematicSubjects` clears what it no longer backs.
+            guard link.capabilities?.cinematic?.enabled == true else { break }
+            cinematicSubjects[peer] = subjects.report
 
         case let ack as RemoteCmd.ScheduledCaptureAck:
             resolvePhotoAck(from: peer, captureId: ack.captureId, success: ack.error == nil)
@@ -720,6 +781,7 @@ public actor MulticamController {
         logWarning("director: \(action) to \(link.displayName) unanswered after \(controlReplyTimeout)s")
         showError("\(link.displayName): \(NSLocalizedString("didn't answer", comment: "control reply deadline passed"))")
         if action == .setexposure { flushQueuedExposure(peer) }
+        if action == .setcinematic { flushQueuedCinematic(peer) }
     }
 
     /// A brief, non-blocking readout on the director screen.
@@ -942,6 +1004,52 @@ public actor MulticamController {
               let queued = link.queuedExposure else { return }
         link.queuedExposure = nil
         handleSetExposure(queued, target: peer)
+    }
+
+    /// Cinematic on one camera, like exposure: counted in flight, answered by
+    /// the camera's state reply, a refusal said out loud. Dropped unless that
+    /// camera's state carries a Cinematic block.
+    public nonisolated func setCinematic(_ intent: CinematicIntent, on peer: MCPeerID) {
+        tell(MCSetCinematic(intent, target: peer))
+    }
+
+    private func handleSetCinematic(_ intent: CinematicIntent, target: MCPeerID) {
+        guard let link = links[target], link.capabilities?.cinematic != nil else { return }
+        // Latest wins, one at a time, like exposure: an aperture drag never
+        // leaves the camera working through a backlog.
+        if link.pending[.setcinematic, default: 0] > 0 {
+            link.queuedCinematic = link.queuedCinematic?.coalesced(with: intent) ?? intent
+            return
+        }
+        sendControl(.setcinematic, RemoteCmd.SetCinematic(intent: intent), to: target)
+    }
+
+    /// Sends the Cinematic ask that waited behind the one just settled,
+    /// gated again on the camera's latest state.
+    private func flushQueuedCinematic(_ peer: MCPeerID) {
+        guard let link = links[peer], link.pending[.setcinematic, default: 0] == 0,
+              let queued = link.queuedCinematic else { return }
+        link.queuedCinematic = nil
+        handleSetCinematic(queued, target: peer)
+    }
+
+    /// Cinematic focus on one camera. Fire-and-forget like tap-to-focus (the
+    /// next subjects report shows where focus went); only sent while that
+    /// camera reports the effect on — with it off there is nothing to focus.
+    public nonisolated func setCinematicFocus(_ focus: CinematicFocus, on peer: MCPeerID) {
+        tell(MCSetCinematicFocus(focus, target: peer))
+    }
+
+    private func handleSetCinematicFocus(_ focus: CinematicFocus, target: MCPeerID) {
+        guard links[target]?.capabilities?.cinematic?.enabled == true else { return }
+        sendTo(target, RemoteCmd.SetCinematicFocus(focus: focus))
+    }
+
+    /// The output a camera's Cinematic block constrains the rig with: its
+    /// output while the effect is on, otherwise none (baked allows anything).
+    static func activeCinematicOutput(_ cinematic: CinematicState?) -> CinematicOutput {
+        guard let cinematic, cinematic.enabled else { return .baked }
+        return cinematic.output
     }
 
     func switchLens(_ lens: CameraLensType, on peer: MCPeerID) {
@@ -1236,7 +1344,8 @@ public actor MulticamController {
             guard let link = links[peer], link.status != .failed,
                   let info = link.capabilities?.getCurrentCameraInfo() else { return nil }
             return RigQualityMenu.Lane(name: link.displayName.isEmpty ? "Camera \(index + 1)" : link.displayName,
-                                       info: info)
+                                       info: info,
+                                       cinematic: link.capabilities?.cinematic)
         }
         return RigQualityMenu(lanes: menuLanes)
     }
@@ -1270,6 +1379,9 @@ public actor MulticamController {
     public nonisolated func setAspectRatio(_ ratio: AspectRatio) { tell(MCSetAspectRatio(ratio)) }
 
     private func handleSetAspectRatio(_ ratio: AspectRatio) {
+        // The tray never offers an aspect a camera's editable Cinematic
+        // refuses; a stale tap that asks anyway is not sent.
+        guard selectableAspects().contains(ratio) else { return }
         activeAspectRatio = ratio
         for peer in order {
             sendControl(.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: ratio), to: peer)
@@ -1422,7 +1534,33 @@ public actor MulticamController {
             },
             standbyOn: rigPreviewMode == .standby,
             exposureAvailable: focusedPeer.flatMap { links[$0]?.capabilities?.exposure } != nil,
-            exposureControlsOn: exposureControlsOn)
+            exposureControlsOn: exposureControlsOn,
+            cinematic: focusedPeer.flatMap { peer in
+                links[peer].flatMap { $0.status == .linked ? $0.capabilities?.cinematic : nil }
+            },
+            cinematicInFlight: focusedPeer.flatMap { links[$0]?.pending[.setcinematic] }.map { $0 > 0 } ?? false,
+            selectableAspects: selectableAspects(),
+            aspectBlockedBy: aspectBlockers())
+    }
+
+    /// Cameras recording editable Cinematic (which is 16:9 only), by name.
+    private func aspectBlockers() -> [String] {
+        order.compactMap { peer in
+            guard let link = links[peer], link.status != .failed,
+                  Self.activeCinematicOutput(link.capabilities?.cinematic) == .editable else { return nil }
+            return link.displayName
+        }
+    }
+
+    /// The aspects every camera in the rig can take right now.
+    private func selectableAspects() -> [AspectRatio] {
+        let outputs = order.compactMap { peer -> CinematicOutput? in
+            guard let link = links[peer], link.status != .failed else { return nil }
+            return Self.activeCinematicOutput(link.capabilities?.cinematic)
+        }
+        return AspectRatio.selectableCases.filter { ratio in
+            outputs.allSatisfy { CinematicPolicy.allows(aspect: ratio, output: $0) }
+        }
     }
 
     // MARK: Ack aggregation (shared across photo / start / stop)
@@ -1768,7 +1906,8 @@ public actor MulticamController {
             if let active = activeVideoQuality,
                let info = link.capabilities?.getCurrentCameraInfo() {
                 needsRematch = !RigQualityMenu.cameraCanMatch(
-                    info, resolution: active.resolution, frameRate: active.frameRate)
+                    info, cinematic: link.capabilities?.cinematic,
+                    resolution: active.resolution, frameRate: active.frameRate)
             } else {
                 needsRematch = false
             }
@@ -1976,6 +2115,22 @@ final class MCSetExposure: Message, @unchecked Sendable {
     let target: MCPeerID
     init(_ intent: ExposureIntent, target: MCPeerID) {
         self.intent = intent; self.target = target
+        super.init(sender: nil)
+    }
+}
+final class MCSetCinematic: Message, @unchecked Sendable {
+    let intent: CinematicIntent
+    let target: MCPeerID
+    init(_ intent: CinematicIntent, target: MCPeerID) {
+        self.intent = intent; self.target = target
+        super.init(sender: nil)
+    }
+}
+final class MCSetCinematicFocus: Message, @unchecked Sendable {
+    let focus: CinematicFocus
+    let target: MCPeerID
+    init(_ focus: CinematicFocus, target: MCPeerID) {
+        self.focus = focus; self.target = target
         super.init(sender: nil)
     }
 }

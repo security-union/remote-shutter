@@ -172,6 +172,22 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
         durationSeconds: 1.0 / 120, iso: 64, minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0,
         minISO: 32, maxISO: 3200, maxFrameDurationSeconds: 1.0 / 30)
     var exposureIntents: [ExposureIntent] = []
+    /// The Cinematic block this fake advertises (nil = no Cinematic, the
+    /// default — seed `phoneCinematicState` to open the director's gate), and
+    /// the intents and focus requests it was asked to apply.
+    var cinematicState: CinematicState?
+    var cinematicIntents: [CinematicIntent] = []
+    var cinematicFocuses: [CinematicFocus] = []
+    func setCinematic(_ intent: CinematicIntent) async throws {
+        if let errorToThrow { throw errorToThrow }
+        cinematicIntents.append(intent)
+        cinematicState?.enabled = intent.enabled
+        cinematicState?.output = intent.output
+        if intent.aperture > 0 { cinematicState?.aperture = intent.aperture }
+    }
+    func setCinematicFocus(_ focus: CinematicFocus) async throws {
+        cinematicFocuses.append(focus)
+    }
     func setExposure(_ intent: ExposureIntent) async throws {
         if let errorToThrow { throw errorToThrow }
         exposureIntents.append(intent)
@@ -332,8 +348,16 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             flashMode: flashMode,
             aspectRatio: aspectRatio,
             exposure: exposureState,
+            cinematic: cinematicState,
             error: nil)
     }
+
+    /// The block an iPhone 14's back Dual Wide camera reports (measured by
+    /// CinematicProbeTests): f/2–f/16, default f/2.8, 1080p and 4K at 24/30.
+    static let phoneCinematicState = CinematicState(
+        enabled: false, output: .baked, aperture: 2.8,
+        minAperture: 2.0, maxAperture: 16.0, defaultAperture: 2.8,
+        qualities: [.hd1080p: [.fps24, .fps30], .uhd4k: [.fps24, .fps30]])
 
     func getCurrentZoomFactor() async -> CGFloat { zoomCalls.last ?? 1.0 }
     func getMinZoomFactor() async -> CGFloat { 1.0 }

@@ -40,8 +40,13 @@ struct ViewfinderGestureLayer: View {
     let onFocusTap: (CGPoint) -> Void
     let onDoubleTap: () -> Void
     let onZoomChange: (CGFloat) -> Void
+    /// A press held in place, in the same normalized space as `onFocusTap`.
+    /// Nil (the default) keeps every press a tap — Cinematic's director
+    /// passes one to hold focus at a distance.
+    var onLongPress: ((CGPoint) -> Void)? = nil
 
     @State private var viewSize: CGSize = .zero
+    @State private var pressStartedAt: Date?
     @State private var focusReticle: FocusReticle?
     @State private var zoomAtGestureStart: CGFloat?
 
@@ -58,9 +63,15 @@ struct ViewfinderGestureLayer: View {
                 }
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 0)
+                        .onChanged { _ in
+                            if pressStartedAt == nil { pressStartedAt = Date() }
+                        }
                         .onEnded { value in
+                            let held = pressStartedAt.map { Date().timeIntervalSince($0) } ?? 0
+                            pressStartedAt = nil
                             if abs(value.translation.width) < 10, abs(value.translation.height) < 10 {
-                                handleFocusTap(at: value.location)
+                                handleFocusTap(at: value.location,
+                                               isLongPress: held >= Self.longPressSeconds)
                             }
                         }
                 )
@@ -97,7 +108,10 @@ struct ViewfinderGestureLayer: View {
 
     /// Maps a tap into a normalized image point and, if it landed on the image
     /// (not the letterbox), shows the reticle and forwards it to the screen.
-    private func handleFocusTap(at location: CGPoint) {
+    /// The system long-press default.
+    private static let longPressSeconds: TimeInterval = 0.5
+
+    private func handleFocusTap(at location: CGPoint, isLongPress: Bool = false) {
         guard focusEnabled,
               let image = cameraImage(),
               let normalized = FocusPointMapping.normalizedImagePoint(
@@ -108,7 +122,11 @@ struct ViewfinderGestureLayer: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             if focusReticle?.id == reticle.id { focusReticle = nil }
         }
-        onFocusTap(normalized)
+        if isLongPress, let onLongPress {
+            onLongPress(normalized)
+        } else {
+            onFocusTap(normalized)
+        }
     }
 }
 

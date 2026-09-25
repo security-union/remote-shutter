@@ -412,3 +412,18 @@
 "Zoom" = "Зум";
 "This camera can't do manual exposure" = "Эта камера не поддерживает ручную экспозицию";
 "The camera ignored that exposure setting" = "Камера проигнорировала эту настройку экспозиции";
+
+/* Cinematic video */
+"CINEMATIC" = "КИНОЭФФЕКТ";
+"CINEMATIC f/%.1f" = "КИНОЭФФЕКТ f/%.1f";
+"EDIT IN PHOTOS" = "ИЗМЕНИТЬ В ФОТО";
+"Cinematic aperture" = "Диафрагма киноэффекта";
+"More light needed" = "Нужно больше света";
+"Not available with Cinematic" = "Недоступно с киноэффектом";
+"Switch to video mode for Cinematic" = "Переключитесь на видео для киноэффекта";
+"%@ can't record Cinematic video" = "%@ не может снимать видео с киноэффектом";
+"%@ refused Cinematic video" = "%@: видео с киноэффектом отклонено";
+"Editable Cinematic records 16:9 only" = "Редактируемый киноэффект снимается только в 16:9";
+"Editable Cinematic needs 16:9" = "Для редактируемого киноэффекта нужно 16:9";
+"%@ records editable Cinematic in 16:9" = "%@ снимает редактируемый киноэффект в 16:9";
+"Locked while recording" = "Заблокировано во время записи";

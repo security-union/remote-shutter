@@ -257,4 +257,53 @@ final class RigQualityMenuTests: XCTestCase {
         snap.heifBlockedBy = []
         XCTAssertTrue(snap.blockerFootnote(for: .photo)?.contains("iPhone") == true)
     }
+
+    // MARK: - Cinematic
+
+    private func cinematic(enabled: Bool, output: CinematicOutput = .baked) -> CinematicState {
+        CinematicState(enabled: enabled, output: output, aperture: 2.8,
+                       minAperture: 2, maxAperture: 16, defaultAperture: 2.8,
+                       qualities: [.hd1080p: [.fps24, .fps30], .uhd4k: [.fps24, .fps30]])
+    }
+
+    /// A camera with Cinematic on reaches only its Cinematic formats, so the
+    /// rig never offers 60 fps it would refuse — and the picker names it.
+    func testCinematicOnNarrowsTheRigToItsFormats() {
+        var cinematicLane = lane("Cam 1", full4K)
+        cinematicLane.cinematic = cinematic(enabled: true)
+        let menu = RigQualityMenu(lanes: [cinematicLane, lane("Cam 2", full4K)])
+        let opts = Set(menu.videoOptions().map { "\($0.resolution.displayName)\($0.frameRate.displayName)" })
+        XCTAssertFalse(opts.contains { $0.contains("60") }, "Cinematic tops out at 30")
+        XCTAssertEqual(menu.blockingLanes(resolution: .uhd4k, frameRate: .fps60), ["Cam 1"])
+        XCTAssertTrue(menu.blockingLanes(resolution: .uhd4k, frameRate: .fps30).isEmpty)
+        XCTAssertFalse(RigQualityMenu.cameraCanMatch(info(full4K), cinematic: cinematic(enabled: true),
+                                                     resolution: .hd1080p, frameRate: .fps60),
+                       "the re-match badge knows the narrowing too")
+    }
+
+    /// A block with the effect off narrows nothing.
+    func testCinematicOffDoesNotNarrow() {
+        var cinematicLane = lane("Cam 1", full4K)
+        cinematicLane.cinematic = cinematic(enabled: false)
+        let menu = RigQualityMenu(lanes: [cinematicLane])
+        XCTAssertTrue(menu.blockingLanes(resolution: .uhd4k, frameRate: .fps60).isEmpty)
+    }
+
+    /// Editable Cinematic is offered only at 16:9, and the tray says why when
+    /// it isn't; a camera holding the rig at 16:9 is named.
+    func testEditableCinematicNeedsSixteenNineAndSaysWhy() {
+        var snap = RigSettingsSnapshot()
+        snap.cinematic = cinematic(enabled: true)
+        XCTAssertTrue(snap.editableCinematicAllowed)
+        XCTAssertNil(snap.blockerFootnote(for: .video))
+
+        snap.aspectRatio = .fourThree
+        XCTAssertFalse(snap.editableCinematicAllowed)
+        XCTAssertEqual(snap.blockerFootnote(for: .video), "Editable Cinematic needs 16:9")
+        XCTAssertNil(snap.blockerFootnote(for: .photo), "a video limit never shows in the photo tray")
+
+        snap.aspectRatio = .sixteenNine
+        snap.aspectBlockedBy = ["Cam 1"]
+        XCTAssertEqual(snap.blockerFootnote(for: .video), "Cam 1 records editable Cinematic in 16:9")
+    }
 }

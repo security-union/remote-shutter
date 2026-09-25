@@ -266,8 +266,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // The AVCaptureDevice outlives this session: leave it in auto so
             // the next session (or the system Camera app) starts clean.
             exposureIntent = .auto(bias: 0)
-            manualExposureRestoreDeviceID = nil
+            hopRestoreDeviceID = nil
             applyExposureIntentLocked()
+            cinematicIntent = CinematicIntent(enabled: false)
+            applyCinematicEffectLocked()
         }
         sessionQueue.async {
             self.isExpectedToRun = false
@@ -323,7 +325,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         #endif
         let available = selectableDevicesLocked()
         guard let next = CameraDeviceDescriptor.nextToggleSelection(
-                currentID: videoDeviceInput?.device.uniqueID,
+                currentID: logicalDeviceIDLocked(),
                 available: available.map { self.descriptorLocked($0) },
                 flipPosition: flipPosition) else { return nil }
         return available.first { $0.uniqueID == next.uniqueID }
@@ -375,6 +377,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
         resetFocusExposureToAutoLocked()   // a stale focus point must not carry across a device change
         applyExposureIntentLocked()   // the new device must match the director's exposure intent
+        applyCinematicEffectLocked()  // ...and its Cinematic intent (a new input starts with it off)
         // Swapping away from a dead device must also revive a session that a
         // runtime error stopped — otherwise the new camera never delivers.
         if isExpectedToRun && !captureSession.isRunning {
@@ -475,10 +478,43 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// Recording truth lives in the rig's pipeline; the policy needs it to cap
     /// a long shutter at the frame duration while a clip is rolling.
     var isRecordingProvider: () -> Bool = { false }
-    /// While Manual is active on a virtual multi-lens device the engine runs
-    /// the physical constituent (virtual devices refuse `.custom`); this
-    /// remembers the virtual device to restore when exposure returns to Auto.
-    private var manualExposureRestoreDeviceID: String?
+    /// The chosen (logical) camera while the session runs a different device
+    /// for it: Manual on a virtual multi-lens device runs a physical
+    /// constituent (virtual devices refuse `.custom`), and Cinematic on a
+    /// camera without Cinematic formats runs its Dual Wide / TrueDepth
+    /// sibling. Nil = the session runs the chosen camera itself.
+    private var hopRestoreDeviceID: String?
+
+    // MARK: - Cinematic intent (iOS 26+)
+
+    /// What the director asked for. The session is made to match it by
+    /// exactly one function, `applyCinematicEffectLocked()`, which every path
+    /// that disturbs the device (swap, format change, mode change) calls
+    /// again. Survives photo mode; cleared when the session ends.
+    /// sessionQueue-confined.
+    private var cinematicIntent = CinematicIntent(enabled: false)
+    /// Cinematic is a video-mode effect; mode truth lives in the rig.
+    var isVideoModeProvider: () -> Bool = { false }
+    /// Attached exactly while Cinematic is on with the editable output; the
+    /// recorder records through it. sessionQueue-confined — read it with
+    /// `cinematicMovieOutputForRecording()` from elsewhere.
+    private(set) var cinematicMovieOutput: AVCaptureMovieFileOutput?
+    /// Attached exactly while the effect is on (its types must equal the
+    /// required set, or enabling throws).
+    private let cinematicMetadataOutput = AVCaptureMetadataOutput()
+    private let cinematicMetadataQueue = DispatchQueue(label: "cinematic metadata queue")
+    /// What the metadata callback needs to map boxes into display space.
+    /// Written on the session queue, read on the metadata queue.
+    private let cinematicSubjectContext = Locked<CinematicSubjectContext?>(nil)
+    /// metadata-queue-confined throttle state.
+    private var lastSubjectsPublishAt: TimeInterval = 0
+    private var lastSubjectsCount = 0
+    /// The live subjects report, ~10 Hz while the effect is on. Set once by
+    /// the rig before the session starts; called on the metadata queue.
+    var onCinematicSubjects: ((CinematicSubjectsReport) -> Void)?
+    /// The Cinematic truth after every apply (nil block = unsupported), for
+    /// the camera screen's chip. Called on the session queue.
+    var onCinematicStateChanged: ((CinematicState?) -> Void)?
 
     private var desiredTorchOnStorage = false
     var desiredTorchOn: Bool {
@@ -629,9 +665,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
+    /// The chosen camera — the logical one, never a hop target: the
+    /// coordinator compares it with the device it asked for.
     func currentCameraDevice() async -> CameraDeviceDescriptor? {
         await onSessionQueue {
-            (self.videoDeviceInput?.device).map { self.descriptorLocked($0) }
+            self.logicalDeviceLocked().map { self.descriptorLocked($0) }
         }
     }
 
@@ -1063,6 +1101,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             flashMode: cameraSettings.flashMode,
             aspectRatio: currentAspectRatio,
             exposure: exposureStateLocked(currentDevice),
+            cinematic: cinematicStateLocked(),
             error: nil
         )
 
@@ -1127,20 +1166,18 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return
         }
 
-        // The buffer the monitor tapped was rotated into this orientation before
-        // it left the camera; front preview is shown mirrored. Invert both.
-        let videoOrientation: AVCaptureVideoOrientation =
-            OrientationUtils.appliesInterfaceRotation
-            ? OrientationUtils.transform(o: self.orientation)
-            : .landscapeRight
-        let poi = FocusPointMapping.devicePoint(displayNormalized: point,
-                                                videoOrientation: videoOrientation,
-                                                mirrored: device.position == .front)
+        // The buffer the monitor tapped was rotated (and possibly mirrored)
+        // before it left the camera; invert both.
+        let poi = devicePointLocked(displayNormalized: point)
 
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
 
-        if device.isFocusPointOfInterestSupported {
+        // While Cinematic is on it owns focus: writing focusMode throws, and
+        // a tap means "track this subject".
+        if #available(iOS 26.0, macCatalyst 26.0, *), videoDeviceInput?.isCinematicVideoCaptureEnabled == true {
+            device.setCinematicVideoTrackingFocus(at: poi, focusMode: .strong)
+        } else if device.isFocusPointOfInterestSupported {
             device.focusPointOfInterest = poi
             if device.isFocusModeSupported(.continuousAutoFocus) {
                 device.focusMode = .continuousAutoFocus
@@ -1158,7 +1195,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 device.exposureMode = .autoExpose
             }
         }
-        debugLog("🎯 DEBUG: focus/exposure POI set to \(poi) (orientation \(videoOrientation.rawValue))")
+        debugLog("🎯 DEBUG: focus/exposure POI set to \(poi)")
     }
 
     /// Restores continuous auto focus/exposure at the center. Called when the
@@ -1170,7 +1207,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
               (try? device.lockForConfiguration()) != nil else { return }
         defer { device.unlockForConfiguration() }
         let center = CGPoint(x: 0.5, y: 0.5)
-        if device.isFocusPointOfInterestSupported {
+        // focusMode is pinned while Cinematic is on (writing it throws).
+        var cinematicOwnsFocus = false
+        if #available(iOS 26.0, macCatalyst 26.0, *) {
+            cinematicOwnsFocus = videoDeviceInput?.isCinematicVideoCaptureEnabled == true
+        }
+        if device.isFocusPointOfInterestSupported, !cinematicOwnsFocus {
             device.focusPointOfInterest = center
             if device.isFocusModeSupported(.continuousAutoFocus) { device.focusMode = .continuousAutoFocus }
         }
@@ -1210,7 +1252,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                         code: 0, userInfo: nil))
                 }
                 self.exposureIntent = intent
-                self.reconcileExposureDeviceLocked()
+                self.reconcileDeviceLocked()
                 self.applyExposureIntentLocked(completion: resume)
                 self.sessionQueue.asyncAfter(deadline: .now() + 0.5, execute: resume)
             }
@@ -1256,7 +1298,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// one of its physical lenses accepts `.custom`, since Manual hops there.
     private func exposureStateLocked(_ device: AVCaptureDevice) -> ExposureState? {
         let facts = exposureFactsLocked(device)
-        let supportsManual = manualExposureLensLocked(for: logicalDeviceLocked() ?? device) != nil
+        // Cinematic runs on Auto (Manual's physical lens has no Cinematic
+        // formats), so the director offers bias only while it is on.
+        let logical = logicalDeviceLocked() ?? device
+        let supportsManual = manualExposureLensLocked(for: logical) != nil && !cinematicEffectiveLocked(for: logical)
         // A bias moves an AUTO exposure's target, so it is only real on a
         // device that supports an auto exposure mode. The range alone lies:
         // measured 2026-09-22 (CaptureIntegrationTests.testExposureProbe…), a
@@ -1347,23 +1392,36 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     /// The physical lens `device` must run on for Manual, or nil when it can
-    /// run Manual itself (or Manual is off). Two entry points act on it — a
-    /// change of intent (`reconcileExposureDeviceLocked`) and a change of
-    /// device (`selectLogicalDeviceLocked`). Re-apply sites never swap:
-    /// `swapToDeviceLocked` calls `applyExposureIntentLocked`, so a swap from
-    /// there would recurse.
+    /// run Manual itself (or Manual is off).
     private func manualExposureHopTargetLocked(for device: AVCaptureDevice) -> AVCaptureDevice? {
         guard case .manual = exposureIntent, !device.isExposureModeSupported(.custom) else { return nil }
         return manualExposureLensLocked(for: device)
     }
 
+    /// The device the session must run for the chosen camera `logical`, or
+    /// nil when it runs `logical` itself. Cinematic wins (it forces exposure
+    /// to Auto, so the two never both want a hop). Two entry points act on
+    /// it — a change of intent (`reconcileDeviceLocked`) and a change of
+    /// device (`selectLogicalDeviceLocked`). Re-apply sites never swap:
+    /// `swapToDeviceLocked` re-applies both intents, so a swap from there
+    /// would recurse.
+    private func hopTargetLocked(for logical: AVCaptureDevice) -> AVCaptureDevice? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        if cinematicEffectiveLocked(for: logical) {
+            guard let cinematic = cinematicDeviceLocked(for: logical),
+                  cinematic.uniqueID != logical.uniqueID else { return nil }
+            return cinematic
+        }
+        return manualExposureHopTargetLocked(for: logical)
+    }
+
     /// The camera the user chose, as opposed to the one the session is
-    /// running: while Manual has hopped a virtual device to one of its
-    /// physical lenses, the virtual device stays the LOGICAL camera — the
-    /// flip decides from it, the picker highlights it, Auto returns to it.
+    /// running: while a hop runs another device for it, the chosen device
+    /// stays the LOGICAL camera — the flip decides from it, the picker
+    /// highlights it, the state reply reports it, and the hop returns to it.
     private func logicalDeviceIDLocked() -> String? {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        return manualExposureRestoreDeviceID ?? videoDeviceInput?.device.uniqueID
+        return hopRestoreDeviceID ?? videoDeviceInput?.device.uniqueID
     }
 
     private func logicalDeviceLocked() -> AVCaptureDevice? {
@@ -1371,40 +1429,397 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         return selectableDevicesLocked().first { $0.uniqueID == id } ?? videoDeviceInput?.device
     }
 
-    /// A user-chosen device change (flip, picker): re-bases the Manual hop on
-    /// the new device — the chosen device becomes the logical camera, and the
-    /// session runs its physical lens if Manual needs one.
+    /// A user-chosen device change (flip, picker): re-bases the hop on the
+    /// new device — the chosen device becomes the logical camera, and the
+    /// session runs whatever device the intents need for it.
     private func selectLogicalDeviceLocked(_ device: AVCaptureDevice,
                                            orientation: UIInterfaceOrientation) throws -> CameraSelectionResult {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        manualExposureRestoreDeviceID = nil
+        hopRestoreDeviceID = nil
         var target = device
-        if let physical = manualExposureHopTargetLocked(for: device) {
-            manualExposureRestoreDeviceID = device.uniqueID
-            debugLog("🌗 EXPOSURE: manual stays on — \(device.localizedName) runs as \(physical.localizedName)")
-            target = physical
+        if let hop = hopTargetLocked(for: device) {
+            hopRestoreDeviceID = device.uniqueID
+            debugLog("🔀 HOP: \(device.localizedName) runs as \(hop.localizedName)")
+            target = hop
         }
         return try swapToDeviceLocked(target, orientation: orientation)
     }
 
-    /// Entering Manual on a virtual device hops to a physical lens; returning
-    /// to Auto hops back to the logical (virtual) device.
-    private func reconcileExposureDeviceLocked() {
+    /// After an intent change: run the device the intents need for the
+    /// chosen camera — hop to a physical lens (Manual) or a Cinematic
+    /// sibling, or back to the chosen camera itself.
+    private func reconcileDeviceLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        guard let device = videoDeviceInput?.device else { return }
-        switch exposureIntent {
-        case .manual:
-            guard let physical = manualExposureHopTargetLocked(for: device) else { return }
-            manualExposureRestoreDeviceID = device.uniqueID
-            debugLog("🌗 EXPOSURE: manual on virtual \(device.localizedName) — hopping to \(physical.localizedName)")
-            _ = try? swapToDeviceLocked(physical, orientation: orientation)
-        case .auto:
-            guard let restoreID = manualExposureRestoreDeviceID else { return }
-            manualExposureRestoreDeviceID = nil
-            guard let virtual = selectableDevicesLocked().first(where: { $0.uniqueID == restoreID }) else { return }
-            debugLog("🌗 EXPOSURE: back to auto — restoring \(virtual.localizedName)")
-            _ = try? swapToDeviceLocked(virtual, orientation: orientation)
+        guard let running = videoDeviceInput?.device, let logical = logicalDeviceLocked() else { return }
+        let target = hopTargetLocked(for: logical) ?? logical
+        guard target.uniqueID != running.uniqueID else { return }
+        hopRestoreDeviceID = target.uniqueID == logical.uniqueID ? nil : logical.uniqueID
+        debugLog("🔀 HOP: \(logical.localizedName) now runs as \(target.localizedName)")
+        _ = try? swapToDeviceLocked(target, orientation: orientation)
+    }
+
+    // MARK: - Cinematic video (iOS 26+)
+
+    /// Stores the director's intent and makes the session match it. Throws
+    /// the refusal the state reply carries; the reply's `cinematic` block is
+    /// the truth either way.
+    func setCinematic(_ intent: CinematicIntent) async throws {
+        try await onSessionQueueThrowing {
+            guard let running = self.videoDeviceInput?.device else {
+                throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
+            }
+            let logical = self.logicalDeviceLocked() ?? running
+            if let refusal = CinematicPolicy.refusal(
+                for: intent, isVideoMode: self.isVideoModeProvider(), isRecording: self.isRecordingProvider(),
+                aspect: self.currentAspectRatio, supported: self.cinematicDeviceLocked(for: logical) != nil,
+                deviceName: logical.localizedName) {
+                throw NSError(domain: refusal.message, code: 0, userInfo: nil)
+            }
+            self.cinematicIntent = intent
+            // Exposure first, so the frame rate Auto restores is clamped by
+            // the Cinematic apply that follows, never the other way round.
+            let exposure = CinematicPolicy.exposureIntent(self.exposureIntent, cinematicOn: intent.enabled)
+            if exposure != self.exposureIntent {
+                debugLog("🎬 CINEMATIC: Manual exposure off — Cinematic runs on Auto")
+                self.exposureIntent = exposure
+            }
+            self.reconcileDeviceLocked()
+            self.applyExposureIntentLocked()
+            let on = self.applyCinematicEffectLocked()
+            if intent.enabled && !on {
+                self.cinematicIntent.enabled = false
+                let name = self.videoDeviceInput?.device.localizedName ?? logical.localizedName
+                self.reconcileDeviceLocked()
+                throw NSError(domain: String(format: NSLocalizedString("%@ refused Cinematic video",
+                                                                       comment: "cinematic refused by the session"), name),
+                              code: 0, userInfo: nil)
+            }
         }
+    }
+
+    /// Where Cinematic focuses. A no-op while the effect is off.
+    func setCinematicFocus(_ focus: CinematicFocus) async throws {
+        try await onSessionQueueThrowing {
+            guard #available(iOS 26.0, macCatalyst 26.0, *),
+                  let input = self.videoDeviceInput, input.isCinematicVideoCaptureEnabled else { return }
+            let device = input.device
+            try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
+            switch focus {
+            case let .subject(id, strength):
+                device.setCinematicVideoTrackingFocus(detectedObjectID: id, focusMode: Self.focusMode(strength))
+            case let .trackPoint(x, y, strength):
+                device.setCinematicVideoTrackingFocus(at: self.devicePointLocked(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y))),
+                                                      focusMode: Self.focusMode(strength))
+            case let .fixedPoint(x, y):
+                device.setCinematicVideoFixedFocus(at: self.devicePointLocked(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y))),
+                                                   focusMode: .strong)
+            }
+            debugLog("🎬 CINEMATIC: focus \(focus)")
+        }
+    }
+
+    @available(iOS 26.0, macCatalyst 26.0, *)
+    private static func focusMode(_ strength: CinematicFocusStrength) -> AVCaptureDevice.CinematicVideoFocusMode {
+        switch strength {
+        case .weak: return .weak
+        case .strong: return .strong
+        }
+    }
+
+    /// The rig's mode changed: the effect follows video mode (the intent
+    /// survives photo mode). Synchronous so the state reply that follows
+    /// carries the truth.
+    func recordingModeChanged() {
+        syncOnSessionQueue {
+            guard cinematicIntent.enabled else { return }
+            reconcileDeviceLocked()
+            applyCinematicEffectLocked()
+        }
+    }
+
+    /// The editable output's movie file output, for the recorder. Non-nil
+    /// exactly while Cinematic is on with `.editable`.
+    func cinematicMovieOutputForRecording() -> AVCaptureMovieFileOutput? {
+        syncOnSessionQueue { cinematicMovieOutput }
+    }
+
+    /// Whether the effect should be on for the chosen camera right now.
+    private func cinematicEffectiveLocked(for logical: AVCaptureDevice) -> Bool {
+        CinematicPolicy.isEffective(cinematicIntent, isVideoMode: isVideoModeProvider(),
+                                    supported: cinematicDeviceLocked(for: logical) != nil)
+    }
+
+    /// The device Cinematic runs for the chosen camera (itself, or a
+    /// same-position sibling), or nil when there is none. Never on a Mac.
+    private func cinematicDeviceLocked(for logical: AVCaptureDevice) -> AVCaptureDevice? {
+        #if targetEnvironment(macCatalyst)
+        return nil
+        #else
+        guard #available(iOS 26.0, *) else { return nil }
+        let siblings = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInDualWideCamera, .builtInTrueDepthCamera, .builtInTripleCamera,
+                          .builtInDualCamera, .builtInWideAngleCamera],
+            mediaType: .video, position: logical.position).devices
+        func candidate(_ device: AVCaptureDevice) -> CinematicPolicy.DeviceCandidate {
+            let kind: CinematicPolicy.DeviceCandidate.Kind
+            switch device.deviceType {
+            case .builtInDualWideCamera: kind = .dualWide
+            case .builtInTrueDepthCamera: kind = .trueDepth
+            case .builtInTripleCamera: kind = .triple
+            case .builtInDualCamera: kind = .dual
+            case .builtInWideAngleCamera: kind = .wide
+            default: kind = .other
+            }
+            let side: CinematicPolicy.DeviceCandidate.Side
+            switch device.position {
+            case .front: side = .front
+            case .back: side = .back
+            default: side = .unspecified
+            }
+            return CinematicPolicy.DeviceCandidate(
+                id: device.uniqueID, kind: kind, side: side,
+                hasCinematicFormats: device.formats.contains { $0.isCinematicVideoCaptureSupported })
+        }
+        guard let chosen = CinematicPolicy.device(for: candidate(logical), among: siblings.map(candidate)) else {
+            return nil
+        }
+        return chosen.id == logical.uniqueID ? logical : siblings.first { $0.uniqueID == chosen.id }
+        #endif
+    }
+
+    @available(iOS 26.0, macCatalyst 26.0, *)
+    private static func formatCandidates(_ formats: [AVCaptureDevice.Format]) -> [CinematicPolicy.FormatCandidate] {
+        formats.map { format in
+            let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            let subtype = CMFormatDescriptionGetMediaSubType(format.formatDescription)
+            let range = format.videoFrameRateRangeForCinematicVideo
+            return CinematicPolicy.FormatCandidate(
+                width: dims.width, height: dims.height,
+                isEightBit: subtype == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+                    || subtype == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+                minFPS: range?.minFrameRate ?? 0, maxFPS: range?.maxFrameRate ?? 0)
+        }
+    }
+
+    /// The ONE place that touches `isCinematicVideoCaptureEnabled`,
+    /// `simulatedAperture`, the metadata output and the movie output. Runs on
+    /// a fresh intent and again after every device swap, quality change and
+    /// mode change. Never swaps devices (see `hopTargetLocked`). Returns
+    /// whether the effect is on afterwards.
+    @discardableResult
+    private func applyCinematicEffectLocked() -> Bool {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard #available(iOS 26.0, macCatalyst 26.0, *), let input = videoDeviceInput else { return false }
+        // Never reconfigure under a rolling clip (the aperture setter throws
+        // mid-take); the coordinator refuses the commands, this is the floor.
+        guard !isRecordingProvider() else { return input.isCinematicVideoCaptureEnabled }
+        let device = input.device
+        let logical = logicalDeviceLocked() ?? device
+        let wantOn = cinematicEffectiveLocked(for: logical)
+            && cinematicDeviceLocked(for: logical)?.uniqueID == device.uniqueID
+
+        guard wantOn else {
+            let attached = captureSession.outputs.contains(cinematicMetadataOutput) || cinematicMovieOutput != nil
+            if input.isCinematicVideoCaptureEnabled || attached {
+                captureSession.beginConfiguration()
+                if input.isCinematicVideoCaptureEnabled { input.isCinematicVideoCaptureEnabled = false }
+                captureSession.removeOutput(cinematicMetadataOutput)
+                if let movie = cinematicMovieOutput { captureSession.removeOutput(movie) }
+                captureSession.commitConfiguration()
+                cinematicMovieOutput = nil
+                cinematicSubjectContext.value = nil
+                debugLog("🎬 CINEMATIC: off on \(device.localizedName)")
+                // Back to the format + frame rate the quality setting chose
+                // (this also restores zoom, torch and the exposure intent).
+                _ = setVideoQualityLocked(resolution: currentVideoResolution, frameRate: currentVideoFrameRate,
+                                          isRecording: false)
+            }
+            onCinematicStateChanged?(cinematicStateLocked())
+            return false
+        }
+
+        let formats = device.formats.filter { $0.isCinematicVideoCaptureSupported }
+        let candidates = Self.formatCandidates(formats)
+        // The quality setting follows what Cinematic allows (reported, and
+        // restored as-is when Cinematic goes off).
+        if let (resolution, frameRate) = CinematicPolicy.quality(
+            fitting: currentVideoResolution, currentVideoFrameRate, in: CinematicPolicy.qualities(candidates)) {
+            if resolution != currentVideoResolution || frameRate != currentVideoFrameRate {
+                currentVideoResolution = resolution
+                currentVideoFrameRate = frameRate
+                fpsSetting.value = frameRate.value
+                onStatusChanged?()
+            }
+        }
+        guard let index = CinematicPolicy.formatIndex(candidates, resolution: currentVideoResolution) else { return false }
+        let format = formats[index]
+
+        // Step 1: the format, committed ALONE. The input's support flag reads
+        // the session's COMMITTED configuration (measured, and #223's field
+        // bug): checked inside the same commit it reads the old answer.
+        if device.activeFormat != format {
+            captureSession.beginConfiguration()
+            captureSession.sessionPreset = .inputPriority
+            if (try? device.lockForConfiguration()) != nil {
+                device.activeFormat = format
+                device.unlockForConfiguration()
+            }
+            captureSession.commitConfiguration()
+        }
+        // Step 2: enable, with the metadata output's types set to the
+        // required set in the SAME commit (else AVFoundation throws).
+        if !input.isCinematicVideoCaptureEnabled {
+            guard input.isCinematicVideoCaptureSupported else {
+                let outputs = captureSession.outputs.map { String(describing: type(of: $0)) }.joined(separator: ",")
+                logWarning("🎬 CINEMATIC: session refuses on \(device.localizedName) outputs=[\(outputs)]")
+                return false
+            }
+            captureSession.beginConfiguration()
+            input.isCinematicVideoCaptureEnabled = true
+            if !captureSession.outputs.contains(cinematicMetadataOutput),
+               captureSession.canAddOutput(cinematicMetadataOutput) {
+                captureSession.addOutput(cinematicMetadataOutput)
+            }
+            if captureSession.outputs.contains(cinematicMetadataOutput) {
+                cinematicMetadataOutput.metadataObjectTypes =
+                    cinematicMetadataOutput.requiredMetadataObjectTypesForCinematicVideoCapture
+            }
+            captureSession.commitConfiguration()
+            cinematicMetadataOutput.setMetadataObjectsDelegate(self, queue: cinematicMetadataQueue)
+            guard input.isCinematicVideoCaptureEnabled else {
+                logWarning("🎬 CINEMATIC: enable reverted on \(device.localizedName)")
+                return false
+            }
+            debugLog("🎬 CINEMATIC: on — \(device.localizedName) \(format)")
+        }
+
+        // Cinematic narrows frame rate and zoom: clamp into the format's OWN
+        // CMTimes, never rebuilt from integers alone.
+        if (try? device.lockForConfiguration()) != nil {
+            if let range = format.videoFrameRateRangeForCinematicVideo {
+                var duration = CMTimeMake(value: 1, timescale: Int32(max(1, currentVideoFrameRate.value)))
+                if CMTimeCompare(duration, range.minFrameDuration) < 0 { duration = range.minFrameDuration }
+                if CMTimeCompare(duration, range.maxFrameDuration) > 0 { duration = range.maxFrameDuration }
+                device.activeVideoMaxFrameDuration = duration
+                device.activeVideoMinFrameDuration = duration
+            }
+            let bounds = cinematicZoomBoundsLocked(device)
+            let zoom = min(max(device.videoZoomFactor, bounds.min), bounds.max)
+            if device.videoZoomFactor != zoom { device.videoZoomFactor = zoom }
+            currentZoomFactor = zoom
+            currentLensType = lensTypeForZoomFactor(zoom, device: device)
+            device.unlockForConfiguration()
+        }
+
+        if format.minSimulatedAperture > 0 {
+            let aperture = CinematicPolicy.aperture(
+                requested: cinematicIntent.aperture, current: input.simulatedAperture,
+                defaultValue: format.defaultSimulatedAperture,
+                min: format.minSimulatedAperture, max: format.maxSimulatedAperture)
+            if input.simulatedAperture != aperture { input.simulatedAperture = aperture }
+        }
+
+        // One output or the other: the editable file needs the movie output.
+        if cinematicIntent.output == .editable, cinematicMovieOutput == nil {
+            let movie = AVCaptureMovieFileOutput()
+            captureSession.beginConfiguration()
+            if captureSession.canAddOutput(movie) {
+                captureSession.addOutput(movie)
+                cinematicMovieOutput = movie
+            }
+            captureSession.commitConfiguration()
+            if cinematicMovieOutput == nil { logWarning("🎬 CINEMATIC: movie output could not be added") }
+        } else if cinematicIntent.output == .baked, let movie = cinematicMovieOutput {
+            captureSession.beginConfiguration()
+            captureSession.removeOutput(movie)
+            captureSession.commitConfiguration()
+            cinematicMovieOutput = nil
+        }
+        applyDesiredTorchLocked()   // commits reset the torch
+        updateCinematicSubjectContextLocked()
+        onCinematicStateChanged?(cinematicStateLocked())
+        return input.isCinematicVideoCaptureEnabled
+    }
+
+    /// The zoom range the device honors now: Cinematic's own band while on.
+    private func cinematicZoomBoundsLocked(_ device: AVCaptureDevice) -> (min: CGFloat, max: CGFloat) {
+        let deviceMin = device.minAvailableVideoZoomFactor
+        let deviceMax = device.maxAvailableVideoZoomFactor
+        if #available(iOS 26.0, macCatalyst 26.0, *), videoDeviceInput?.isCinematicVideoCaptureEnabled == true {
+            let low = max(deviceMin, device.activeFormat.videoMinZoomFactorForCinematicVideo)
+            let high = min(deviceMax, device.activeFormat.videoMaxZoomFactorForCinematicVideo)
+            if high >= low { return (low, high) }
+        }
+        return (deviceMin, deviceMax)
+    }
+
+    /// The Cinematic block of the state reply, or nil when the chosen camera
+    /// can't do Cinematic (capability is presence).
+    private func cinematicStateLocked() -> CinematicState? {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard #available(iOS 26.0, macCatalyst 26.0, *), let input = videoDeviceInput else { return nil }
+        let running = input.device
+        let logical = logicalDeviceLocked() ?? running
+        guard let target = cinematicDeviceLocked(for: logical) else { return nil }
+        let formats = target.formats.filter { $0.isCinematicVideoCaptureSupported }
+        let candidates = Self.formatCandidates(formats)
+        let enabled = input.isCinematicVideoCaptureEnabled
+        let format: AVCaptureDevice.Format
+        if enabled {
+            format = running.activeFormat
+        } else if let index = CinematicPolicy.formatIndex(candidates, resolution: currentVideoResolution) {
+            format = formats[index]
+        } else {
+            return nil
+        }
+        let aperture = enabled
+            ? input.simulatedAperture
+            : CinematicPolicy.aperture(requested: cinematicIntent.aperture, current: 0,
+                                       defaultValue: format.defaultSimulatedAperture,
+                                       min: format.minSimulatedAperture, max: format.maxSimulatedAperture)
+        return CinematicState(
+            enabled: enabled,
+            output: cinematicIntent.output,
+            aperture: aperture,
+            minAperture: format.minSimulatedAperture,
+            maxAperture: format.maxSimulatedAperture,
+            defaultAperture: format.defaultSimulatedAperture,
+            qualities: CinematicPolicy.qualities(candidates))
+    }
+
+    /// The display geometry every point mapping uses — tap to focus and the
+    /// Cinematic subject boxes alike: the orientation the streamed buffer was
+    /// rotated into, and whether the streamed buffer is mirrored. Mirroring
+    /// is read from the data-output connection, never assumed from the
+    /// camera position: measured on an iPhone 14 (2026-09-25), the front
+    /// camera's data output is NOT mirrored (only the local preview layer is).
+    private func displayGeometryLocked() -> (orientation: AVCaptureVideoOrientation, mirrored: Bool) {
+        let videoOrientation: AVCaptureVideoOrientation =
+            OrientationUtils.appliesInterfaceRotation
+            ? OrientationUtils.transform(o: self.orientation)
+            : .landscapeRight
+        return (videoOrientation, videoConnection?.isVideoMirrored ?? false)
+    }
+
+    /// A director point (upright display space) in device space.
+    private func devicePointLocked(displayNormalized point: CGPoint) -> CGPoint {
+        let geometry = displayGeometryLocked()
+        return FocusPointMapping.devicePoint(displayNormalized: point,
+                                             videoOrientation: geometry.orientation,
+                                             mirrored: geometry.mirrored)
+    }
+
+    private func updateCinematicSubjectContextLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard #available(iOS 26.0, macCatalyst 26.0, *),
+              let input = videoDeviceInput, input.isCinematicVideoCaptureEnabled else {
+            cinematicSubjectContext.value = nil
+            return
+        }
+        let geometry = displayGeometryLocked()
+        cinematicSubjectContext.value = CinematicSubjectContext(
+            device: input.device, orientation: geometry.orientation, mirrored: geometry.mirrored)
     }
 
     // MARK: - Enhanced Zoom Control Methods
@@ -1567,6 +1982,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         if let videoConnection = self.videoConnection {
             applyCaptureOrientationLocked(o, to: videoConnection)
         }
+        if let movieConnection = cinematicMovieOutput?.connection(with: .video) {
+            applyCaptureOrientationLocked(o, to: movieConnection)
+        }
+        updateCinematicSubjectContextLocked()   // subject boxes follow the display rotation
         if let photoConnection = self.photoOutput.connection(with: AVMediaType.video) {
             applyCaptureOrientationLocked(o, to: photoConnection)
             return true
@@ -1675,6 +2094,19 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         guard !isRecording else { return nil }
         guard let device = videoDeviceInput?.device else { return nil }
 
+        // While Cinematic is on, only its formats' qualities apply, and the
+        // Cinematic apply picks the format.
+        if let cinematic = cinematicStateLocked(), cinematic.enabled {
+            guard CinematicPolicy.allows(resolution: resolution, frameRate: frameRate, in: cinematic) else { return nil }
+            currentVideoResolution = resolution
+            currentVideoFrameRate = frameRate
+            fpsSetting.value = frameRate.value
+            applyCinematicEffectLocked()
+            applyExposureIntentLocked()
+            onStatusChanged?()
+            return (currentVideoResolution, currentVideoFrameRate)
+        }
+
         captureSession.beginConfiguration()
 
         var appliedFrameRate = frameRate
@@ -1737,6 +2169,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio {
         await onSessionQueue {
+            // The editable Cinematic file is 16:9 only: while it is the
+            // output the aspect stays put, and the state reply says so.
+            if self.cinematicIntent.enabled,
+               !CinematicPolicy.allows(aspect: ratio, output: self.cinematicIntent.output) {
+                return self.currentAspectRatio
+            }
             self.currentAspectRatio = ratio
             self.onStatusChanged?()
             return ratio
@@ -1847,5 +2285,70 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         } else {
             onPicture?(photoData, nil)
         }
+    }
+}
+
+/// What the Cinematic metadata callback needs, snapshotted on the session
+/// queue: the device (for the light warning) and the display geometry that
+/// maps its boxes into the director's upright image.
+struct CinematicSubjectContext {
+    let device: AVCaptureDevice
+    let orientation: AVCaptureVideoOrientation
+    let mirrored: Bool
+}
+
+// MARK: - Cinematic subjects (metadata output)
+
+extension CaptureEngine: AVCaptureMetadataOutputObjectsDelegate {
+
+    /// Publish rate for the director's subject boxes.
+    static let cinematicSubjectsInterval: TimeInterval = 0.1
+
+    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject],
+                        from connection: AVCaptureConnection) {
+        dispatchPrecondition(condition: .onQueue(cinematicMetadataQueue))
+        guard #available(iOS 26.0, macCatalyst 26.0, *),
+              let context = cinematicSubjectContext.value else { return }
+        let subjects = metadataObjects.compactMap { Self.cinematicSubject($0, context: context) }
+        // ~10 Hz, but a scene that just emptied is always published so the
+        // director's last boxes don't linger.
+        let now = CACurrentMediaTime()
+        let emptied = subjects.isEmpty && lastSubjectsCount > 0
+        guard emptied || now - lastSubjectsPublishAt >= Self.cinematicSubjectsInterval else { return }
+        lastSubjectsPublishAt = now
+        lastSubjectsCount = subjects.count
+        let notEnoughLight = context.device.cinematicVideoCaptureSceneMonitoringStatuses.contains(.notEnoughLight)
+        onCinematicSubjects?(CinematicSubjectsReport(subjects: subjects, notEnoughLight: notEnoughLight))
+    }
+
+    @available(iOS 26.0, macCatalyst 26.0, *)
+    static func cinematicSubject(_ object: AVMetadataObject, context: CinematicSubjectContext) -> CinematicSubject? {
+        let kind: CinematicSubjectKind
+        switch object.type {
+        case .face: kind = .face
+        case .humanBody: kind = .humanBody
+        case .catHead: kind = .catHead
+        case .catBody: kind = .catBody
+        case .dogHead: kind = .dogHead
+        case .dogBody: kind = .dogBody
+        case .salientObject: kind = .salientObject
+        default:
+            // A fixed focus arrives as its own object; show it as a subject
+            // so the director sees where focus is held.
+            guard object.isFixedFocus else { return nil }
+            kind = .salientObject
+        }
+        let focus: CinematicFocusStrength?
+        switch object.cinematicVideoFocusMode {
+        case .strong: focus = .strong
+        case .weak: focus = .weak
+        default: focus = nil
+        }
+        return CinematicSubject(
+            id: object.objectID, groupID: object.groupID, kind: kind,
+            rect: FocusPointMapping.displayRect(deviceNormalized: object.bounds,
+                                                videoOrientation: context.orientation,
+                                                mirrored: context.mirrored),
+            focus: focus, isFixedFocus: object.isFixedFocus)
     }
 }
