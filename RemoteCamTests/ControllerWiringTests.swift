@@ -152,4 +152,32 @@ class ControllerWiringTests: XCTestCase {
         XCTAssertTrue(model.isAwaitingRemoteReconnect,
                       "the chip states a link fact, not a recording fact")
     }
+
+    // MARK: - MulticamViewController
+
+    /// Regression: the tray's Settings tile opened nothing once the tray
+    /// became a real sheet, because the paywall was presented while the tray
+    /// sheet was still up. Drives the real director in a real window, through
+    /// the same close-then-open path the tile uses.
+    func testDirectorTraySettingsTilePresentsSettings() {
+        let director = MulticamViewController(controller: MulticamController())
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 393, height: 852))
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        window.windowScene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
+        window.rootViewController = director
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        pump()
+
+        director.viewModel.showingRigTray = true
+        if RigTrayPresentation.style == .sheet {
+            XCTAssertTrue(waitUntil { director.presentedViewController != nil },
+                          "the tray sheet must be up before the tile is tapped")
+        }
+
+        director.viewModel.closeRigTray(then: director.showPaywall)
+
+        XCTAssertTrue(waitUntil { director.presentedViewController is UIHostingController<SettingsView> },
+                      "Settings must be on screen, got \(String(describing: director.presentedViewController))")
+    }
 }

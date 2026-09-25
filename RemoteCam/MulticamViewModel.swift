@@ -93,6 +93,8 @@ final class MulticamViewModel: ObservableObject {
     @Published var rigSettings = RigSettingsSnapshot()
     /// Whether the rig settings tray is showing.
     @Published var showingRigTray: Bool = false
+    /// What a tray tile asked for once the tray is gone (Settings, Help).
+    private var afterRigTrayDismissal: (() -> Void)?
     /// A brief, non-blocking error readout (a refused camera switch, e.g.).
     /// The toast that renders it clears it after a few seconds. Each report
     /// carries its own identity — same pattern as `FocusReticle` — so a
@@ -103,6 +105,29 @@ final class MulticamViewModel: ObservableObject {
         let message: String
     }
     @Published var transientError: TransientError?
+
+    /// Close the tray, then run `action`. A sheet tray is still on screen
+    /// until its dismissal finishes, and UIKit refuses to present anything
+    /// over a controller that is already presenting — so for a sheet the
+    /// action waits for `rigTrayDidDismiss()`. An overlay tray is gone as
+    /// soon as the flag drops.
+    func closeRigTray(presentation: TrayPresentation = RigTrayPresentation.style,
+                      then action: @escaping () -> Void) {
+        guard presentation == .sheet, showingRigTray else {
+            showingRigTray = false
+            action()
+            return
+        }
+        afterRigTrayDismissal = action
+        showingRigTray = false
+    }
+
+    /// The sheet tray finished leaving the screen (a tile or a drag).
+    func rigTrayDidDismiss() {
+        let action = afterRigTrayDismissal
+        afterRigTrayDismissal = nil
+        action?()
+    }
 
     var focusedLane: CameraLane? { lanes.first { $0.isFocused } }
 
