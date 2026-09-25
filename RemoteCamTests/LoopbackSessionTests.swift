@@ -984,9 +984,6 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertNil(replies(to: .setvideoquality).last?.error, "a Cinematic quality applies")
     }
 
-    // INTEGRATION: the director-side gate (WP-C adds `setCinematic(_:on:)` /
-    // `setCinematicFocus(_:on:)` to MulticamController). Enabled at integration.
-    #if false
     /// Capability is presence: a camera whose state carries no Cinematic
     /// block is never sent SetCinematic or SetCinematicFocus.
     func testCinematicIsGatedOnTheCamerasCinematicBlock() async {
@@ -1014,7 +1011,6 @@ class LoopbackSessionTests: XCTestCase {
         XCTAssertEqual(fakeCamera.cinematicFocuses, [.trackPoint(x: 0.5, y: 0.5, strength: .weak)])
         XCTAssertTrue(directorDisplay.transientErrors.isEmpty)
     }
-    #endif
 
     // MARK: - App-version gate (semver major)
 
