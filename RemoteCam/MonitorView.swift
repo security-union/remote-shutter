@@ -292,6 +292,8 @@ struct MonitorTrayTile: View {
         case .hdr: return "camera.filters"
         case .cameraStandby: return isActive ? "moon.zzz.fill" : "moon.zzz"
         case .exposure: return isActive ? "plusminus.circle.fill" : "plusminus.circle"
+        case .cinematic: return "camera.aperture"
+        case .cinematicEditable: return isActive ? "pencil.circle.fill" : "pencil.circle"
         case .settings: return "gearshape.fill"
         case .help: return "questionmark"
         }
@@ -307,6 +309,9 @@ struct MonitorTrayTile: View {
         case .hdr: return NSLocalizedString("HDR", comment: "tray tile")
         case .cameraStandby: return NSLocalizedString("STANDBY", comment: "tray tile")
         case .exposure: return NSLocalizedString("EXPOSURE", comment: "tray tile")
+        case .cinematic: return NSLocalizedString("CINEMATIC", comment: "tray tile: Cinematic video on/off")
+        case .cinematicEditable: return NSLocalizedString("EDIT IN PHOTOS",
+                                                          comment: "tray tile: record Cinematic so focus can be changed later in Photos")
         case .settings: return NSLocalizedString("SETTINGS", comment: "tray tile")
         case .help: return NSLocalizedString("HELP", comment: "tray tile")
         }

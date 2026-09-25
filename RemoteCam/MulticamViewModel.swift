@@ -22,6 +22,9 @@ final class CameraLane: ObservableObject, Identifiable {
     /// Live preview frames for this lane only (not `@Published` on the parent
     /// view model — see `FrameDisplayModel`).
     let frames = FrameDisplayModel()
+    /// This lane's live Cinematic report (subject boxes, light warning),
+    /// isolated the same way: ~10 Hz reports re-render only the overlay.
+    let cinematicOverlay = CinematicOverlayModel()
 
     /// The whole lane snapshot, published as one value — the fields below are
     /// pure reads, so a status change and a badge change coalesce into a single
@@ -50,6 +53,9 @@ final class CameraLane: ObservableObject, Identifiable {
     var torchOn: Bool { info.torchOn }
     var flashOn: Bool { info.flashOn }
     var hasTorch: Bool { info.hasTorch }
+    var cinematic: CinematicState? { info.cinematic }
+    /// Cinematic is on at this camera right now: taps become Cinematic focus.
+    var isCinematicOn: Bool { info.cinematic?.enabled == true }
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
     /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
@@ -161,6 +167,16 @@ final class MulticamViewModel: ObservableObject {
         displayMode == .focus && rigSettings.exposureControlsOn && focusedExposure != nil
             && focusedLane?.status == .linked
     }
+    /// The focused camera's Cinematic truth, from its last state.
+    var focusedCinematic: CinematicState? { focusedLane?.cinematic }
+    /// The APERTURE ruler: the focused camera has Cinematic on, in video
+    /// mode, focus layout. Nothing to show otherwise.
+    var showsCinematicControls: Bool {
+        displayMode == .focus && mode == .video && focusedLane?.status == .linked
+            && focusedCinematic?.enabled == true
+    }
+    /// The camera takes the aperture before a take only.
+    var cinematicApertureEnabled: Bool { !isRecording }
     var showsFocusedZoomPill: Bool {
         guard let focused = focusedLane, focused.status == .linked else { return false }
         return !focused.zoomScale.isDegenerate

@@ -61,6 +61,12 @@ enum MonitorTrayItem: Equatable {
     /// default, remembered). Offered only when the focused camera reports
     /// an exposure block.
     case exposure
+    /// Cinematic video on the focused camera (director, video mode only).
+    /// Offered only when that camera reports a Cinematic block.
+    case cinematic
+    /// Which file a Cinematic take makes: lit = editable in Photos, unlit =
+    /// the blur rendered into the video. Shown while Cinematic is on.
+    case cinematicEditable
     case settings
     case help
 }
