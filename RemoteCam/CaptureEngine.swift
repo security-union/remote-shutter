@@ -1185,6 +1185,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     /// Stores the director's intent and makes the device match it. The
     /// state reply that follows carries the applied truth.
+    // FREEZE STUB — WP-B replaces with the real Cinematic engine.
+    func setCinematic(_ intent: CinematicIntent) async throws {
+        throw NSError(domain: "Cinematic not implemented", code: 0, userInfo: nil)
+    }
+
+    // FREEZE STUB — WP-B replaces with the real Cinematic engine.
+    func setCinematicFocus(_ focus: CinematicFocus) async throws {}
+
     func setExposure(_ intent: ExposureIntent) async throws {
         // AVFoundation applies exposure settings asynchronously and reports
         // when through the completion handler; the state reply that follows

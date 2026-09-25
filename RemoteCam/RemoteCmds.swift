@@ -424,6 +424,42 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    // MARK: - Cinematic Remote Commands
+
+    /// Director -> camera: Cinematic on/off, aperture and output. Answered,
+    /// like every control command, with the camera's full state. Only sent to
+    /// a camera whose state carries a `cinematic` block.
+    public class SetCinematic: Message, @unchecked Sendable {
+        public let intent: CinematicIntent
+
+        public init(intent: CinematicIntent) {
+            self.intent = intent
+            super.init(sender: nil)
+        }
+    }
+
+    /// Director -> camera: where Cinematic focuses. Fire-and-forget like
+    /// `FocusAtPoint`; the next `CinematicSubjects` report shows the result.
+    public class SetCinematicFocus: Message, @unchecked Sendable {
+        public let focus: CinematicFocus
+
+        public init(focus: CinematicFocus) {
+            self.focus = focus
+            super.init(sender: nil)
+        }
+    }
+
+    /// Camera -> director: what Cinematic sees, sent `.unreliable` ~10 Hz
+    /// while the effect is on. A dropped report is replaced by the next.
+    public class CinematicSubjects: Message, @unchecked Sendable {
+        public let report: CinematicSubjectsReport
+
+        public init(report: CinematicSubjectsReport) {
+            self.report = report
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Focus Remote Commands
 
     /// Monitor -> camera: set the focus/exposure point of interest. `x`/`y` are
@@ -609,6 +645,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// neither EV bias nor manual exposure; the director shows no
         /// exposure controls and never sends `SetExposure`.
         public let exposure: ExposureState?
+        /// The camera's Cinematic truth. Nil = this camera can't do Cinematic
+        /// on its chosen device; the director shows no CINEMATIC tile and
+        /// never sends `SetCinematic`.
+        public let cinematic: CinematicState?
         /// The control command this answers; `.requestcapabilities` for an
         /// unsolicited push. Set by the camera coordinator before sending.
         public var inReplyTo: RemoteShutter_CommandAction
@@ -632,6 +672,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    flashMode: AVCaptureDevice.FlashMode = .off,
                    aspectRatio: AspectRatio = .sixteenNine,
                    exposure: ExposureState? = nil,
+                   cinematic: CinematicState? = nil,
                    inReplyTo: RemoteShutter_CommandAction = .requestcapabilities,
                    error: Error?) {
             self.frontCamera = frontCamera
@@ -653,6 +694,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.flashMode = flashMode
             self.aspectRatio = aspectRatio
             self.exposure = exposure
+            self.cinematic = cinematic
             self.inReplyTo = inReplyTo
             self.error = error
             super.init(sender: nil)

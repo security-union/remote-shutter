@@ -207,6 +207,75 @@ final class CaptureIntegrationTests: XCTestCase {
         XCTAssertEqual(auto?.activeDeviceID, logicalBefore, "auto returns to the chosen device")
     }
 
+    /// Cinematic hardware probe, question 2: does OUR session (photo output,
+    /// BGRA video data output, audio) agree to Cinematic on the camera the
+    /// engine opens, and do frames keep flowing once it is on? Mutates the
+    /// engine's session behind its back — a probe, not a behavior test.
+    func testCinematicProbeOnTheRealEngineSession() async throws {
+        guard #available(iOS 26.0, macCatalyst 26.0, *) else { throw XCTSkip("Cinematic needs iOS 26") }
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+        let engine = rig.engine
+        let enabled: Bool = await withCheckedContinuation { continuation in
+            engine.sessionQueue.async {
+                let session = engine.captureSession
+                guard let input = engine.videoDeviceInput else {
+                    print("🎬 engine: no video input"); continuation.resume(returning: false); return
+                }
+                let device = input.device
+                let outputs = session.outputs.map { String(describing: type(of: $0)) }.joined(separator: ",")
+                print("🎬 engine: device=\(device.localizedName) type=\(device.deviceType.rawValue) "
+                      + "active=\(CinematicProbe.describe(device.activeFormat)) outputs=[\(outputs)]")
+                let activeDims = CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
+                let cinematicFormats = device.formats.filter { $0.isCinematicVideoCaptureSupported }
+                guard let format = cinematicFormats.first(where: {
+                    let dims = CMVideoFormatDescriptionGetDimensions($0.formatDescription)
+                    return dims.width == activeDims.width && dims.height == activeDims.height
+                }) ?? cinematicFormats.first else {
+                    print("🎬 engine: \(device.localizedName) has NO Cinematic format")
+                    continuation.resume(returning: false); return
+                }
+                // Format committed on its own: the input's support flag reads
+                // the committed configuration (#223's field finding).
+                session.beginConfiguration()
+                session.sessionPreset = .inputPriority
+                if (try? device.lockForConfiguration()) != nil {
+                    device.activeFormat = format
+                    device.unlockForConfiguration()
+                }
+                session.commitConfiguration()
+                print("🎬 engine: format=\(CinematicProbe.describe(format)) "
+                      + "inputSupports=\(input.isCinematicVideoCaptureSupported) (with photo output)")
+
+                if !input.isCinematicVideoCaptureSupported {
+                    session.beginConfiguration()
+                    session.removeOutput(engine.photoOutput)
+                    session.commitConfiguration()
+                    print("🎬 engine: without photo output inputSupports=\(input.isCinematicVideoCaptureSupported)")
+                    session.beginConfiguration()
+                    if session.canAddOutput(engine.photoOutput) { session.addOutput(engine.photoOutput) }
+                    session.commitConfiguration()
+                    continuation.resume(returning: false); return
+                }
+                let t0 = Date()
+                session.beginConfiguration()
+                input.isCinematicVideoCaptureEnabled = true
+                session.commitConfiguration()
+                print("🎬 engine: enabled=\(input.isCinematicVideoCaptureEnabled) "
+                      + "in \(Int(Date().timeIntervalSince(t0) * 1000)) ms, focusMode=\(device.focusMode.rawValue) "
+                      + "aperture=f/\(input.simulatedAperture) zoom=\(device.videoZoomFactor) "
+                      + "fps=\(device.activeVideoMinFrameDuration.seconds)")
+                continuation.resume(returning: input.isCinematicVideoCaptureEnabled)
+            }
+        }
+        guard enabled else { return }
+        let flowing = await waitForFrames(since: lastFrameAt)
+        print("🎬 engine: BGRA frames after enable: \(flowing.map { "\(Int($0 * 1000)) ms" } ?? "NONE")")
+        XCTAssertNotNil(flowing, "frames must keep flowing with Cinematic on")
+    }
+
     func testCameraStartsAndFramesFlowWithinDeadline() async throws {
         try await startRealRig()
 

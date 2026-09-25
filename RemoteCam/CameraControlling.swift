@@ -52,6 +52,12 @@ protocol CameraControlling: AnyObject, Sendable {
     /// Auto (EV bias) or Manual (shutter + ISO) exposure. The device clamps
     /// into its active format's range; the state reply carries the truth.
     func setExposure(_ intent: ExposureIntent) async throws
+    /// Cinematic on/off, aperture and output (iOS 26+). Throws a refusal the
+    /// state reply carries; the reply's `cinematic` block is the truth.
+    func setCinematic(_ intent: CinematicIntent) async throws
+    /// Cinematic focus: a subject, a tracked point or a fixed point.
+    /// Fire-and-forget; a no-op while the effect is off.
+    func setCinematicFocus(_ focus: CinematicFocus) async throws
     /// Sets the focus/exposure point of interest from a monitor tap. `x`/`y` are
     /// normalized (0..1) in the upright display image, origin top-left.
     /// Fire-and-forget: a no-op if the active device has no point of interest.
