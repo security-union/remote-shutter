@@ -34,6 +34,13 @@ enum RecordingStoragePolicy {
  movie. Non-UI — the frame streaming coordinator feeds it sample buffers, and
  the rig/shell reach back in through the closure seams below.
 
+ One lifecycle, two ways to write the file. Every take is written by our
+ asset writer, except Editable Cinematic, which the engine's movie file
+ output writes (`MovieTakeRecording`) because only it records the disparity
+ and Cinematic metadata Photos re-focuses. Arming, the start ack, the stop
+ protocol, the watchdogs, saving/sending and the failure funnel are shared;
+ only "start writing" and "finish the file" differ.
+
  Threading: ALL recording state lives on the engine's `dataOutputQueue` — the
  same serial queue that delivers both video and audio sample buffers, so
  `processFrame` is naturally serialized. Record start syncs once into the
@@ -100,7 +107,15 @@ class RecordingPipeline {
         writer.finishWriting(completionHandler: done)
     }
 
+    /// What writes the current take's file: our asset writer (every take,
+    /// Baked Cinematic included) or, for Editable Cinematic, a movie take on
+    /// the engine's movie file output. Exactly one is set while a take is
+    /// armed or rolling; everything else in the lifecycle is shared.
     private var assetWriter: AVAssetWriter?
+    private var movieTake: MovieTakeRecording?
+    /// Whether the stop in flight should send the clip to the peer — held
+    /// for the movie take, whose finish arrives through its own callback.
+    private var stopSendsVideo = false
     private(set) var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     private(set) var cachedVideoCropRect: CGRect? // Computed once at recording start, reused per frame
 
@@ -135,6 +150,33 @@ class RecordingPipeline {
     /// production reads the recording volume's important-usage capacity.
     lazy var freeSpaceForRecording: () -> Int64? = {
         RecordingPipeline.availableCapacity(at: movieUrl())
+    }
+
+    /// Seam for the recorder choice: the engine's movie file output while
+    /// Editable Cinematic is on, else nil (the asset writer records). Read
+    /// once per take with a one-way hop into the session queue, which owns it.
+    lazy var cinematicMovieOutput: () -> AVCaptureMovieFileOutput? = { [weak self] in
+        guard let engine = self?.engine else { return nil }
+        return engine.sessionQueue.sync { engine.cinematicMovieOutput }
+    }
+
+    /// Seam for the Editable take (tests substitute a fake). The callbacks
+    /// may fire on any queue.
+    lazy var makeMovieTake: (_ output: AVCaptureMovieFileOutput, _ url: URL,
+                             _ onStarted: @escaping (CMTime) -> Void,
+                             _ onFinished: @escaping (Error?, Bool) -> Void) -> MovieTakeRecording
+        = { [weak self] output, url, onStarted, onFinished in
+            CinematicMovieRecorder(output: output, url: url,
+                                   sessionQueue: self?.engine.sessionQueue ?? DispatchQueue(label: "orphaned movie take"),
+                                   onStarted: onStarted, onFinished: onFinished)
+        }
+
+    /// The clock capture timestamps are on — for the first-frame sync
+    /// offset. nil = host time.
+    lazy var sessionClock: () -> CMClock? = { [weak self] in
+        guard let session = self?.engine.captureSession else { return nil }
+        if #available(iOS 15.4, macCatalyst 15.4, *) { return session.synchronizationClock }
+        return nil
     }
 
     // MARK: - Start / stop
@@ -222,6 +264,16 @@ class RecordingPipeline {
         // Remove the file if one with the same name already exists
         let outputFilePath = movieUrl()
         cleanupFileAt(outputFilePath)
+        // Editable Cinematic: the movie file output writes this take. It
+        // reports its own start; the arming watchdog above covers it too.
+        if let movieOutput = cinematicMovieOutput() {
+            armMovieTake(on: movieOutput, url: outputFilePath)
+            SessionDebug.pipelinePhase("start: movie take armed, awaiting its start")
+            OperationQueue.main.addOperation { [weak self] in
+                self?.onModeChanged?(false)
+            }
+            return
+        }
         // Create an asset writer
         do {
             let writer = try AVAssetWriter(outputURL: outputFilePath, fileType: .mov)
@@ -247,6 +299,91 @@ class RecordingPipeline {
         }
     }
 
+    // MARK: - Movie take (Editable Cinematic)
+
+    /// Builds and starts the take. Its callbacks hop onto the data queue and
+    /// are identity-guarded, so a late callback from a take that was already
+    /// reset can never touch a newer one.
+    private func armMovieTake(on output: AVCaptureMovieFileOutput, url: URL) {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
+        final class WeakTake { weak var take: MovieTakeRecording? }
+        let ref = WeakTake()
+        let take = makeMovieTake(output, url, { [weak self] startPTS in
+            self?.dataQueue.async { self?.movieTakeStarted(ref.take, startPTS: startPTS) }
+        }, { [weak self] error, fileIsComplete in
+            self?.dataQueue.async {
+                self?.movieTakeFinished(ref.take, error: error, fileIsComplete: fileIsComplete)
+            }
+        })
+        ref.take = take
+        movieTake = take
+        take.start(metadata: pendingSyncMetadata?.quickTimeMetadataItems())
+    }
+
+    /// The movie output wrote its first frame: the take is rolling.
+    private func movieTakeStarted(_ take: MovieTakeRecording?, startPTS: CMTime) {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
+        guard let take, take === movieTake, recordingWillBeStarted, !isRecording else { return }
+        if let metadata = pendingSyncMetadata {
+            let stamped = metadata.withFirstFrame(
+                uptimeNanos: CaptureClockConversion.uptimeNanos(of: startPTS, on: sessionClock()))
+            pendingSyncMetadata = stamped
+            // The file took its metadata before the first frame, so the
+            // offset can't ride inside it; the sidecar keeps the record.
+            if stamped.firstFrameOffsetMillis != nil {
+                do {
+                    try stamped.writeSidecar(in: Self.syncSidecarDirectory)
+                } catch {
+                    logWarning("recording: sync sidecar not written — \(error)")
+                }
+            }
+        }
+        markRecordingStarted()
+    }
+
+    /// The movie output finished its file — asked to (a stop) or on its own
+    /// (interruption, disk full, a start that never took).
+    private func movieTakeFinished(_ take: MovieTakeRecording?, error: Error?, fileIsComplete: Bool) {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
+        guard let take, take === movieTake else { return }
+        if recordingWillBeStopped {
+            SessionDebug.pipelinePhase("stop: movie take finished")
+            completeStop(finalizeError: fileIsComplete ? nil : Self.recordingFailureError(error))
+        } else if isRecording {
+            SessionDebug.pipelinePhase("recording: movie take ended on its own")
+            failRecording(Self.recordingFailureError(error), hasClip: true)
+        } else {
+            failRecording(Self.localizedRecordingError("Unable to start recording"), hasClip: false)
+        }
+    }
+
+    /// Where Editable clips' alignment records go (see `movieTakeStarted`).
+    static var syncSidecarDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("SyncMetadata", isDirectory: true)
+    }
+
+    /// THE recording-started instant, for either kind of take: everything
+    /// downstream — both timers, the monitor's ack, the wire's
+    /// `recording_start_unix_ms`, and `isRecording` itself — derives from
+    /// this one stamp.
+    private func markRecordingStarted() {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
+        SessionDebug.pipelinePhase("start: RECORDING")
+        recordingWillBeStarted = false
+        let startTime = Date()
+        recordingStartShared.value = startTime
+
+        // Start recording timer and notify monitor
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.onRecordingStarted?(startTime)
+
+            // Tell the remote the recording is rolling.
+            self.sendMessage?(RemoteCmd.StartRecordingVideoAck(sender: nil))
+        }
+    }
+
     func stopRecording(_ shouldSendVideo: Bool) {
         dataQueue.async { [weak self] in
             guard let self = self else { return }
@@ -263,6 +400,9 @@ class RecordingPipeline {
             // arming and answer the stop as an empty take.
             if self.recordingWillBeStarted && !self.isRecording {
                 SessionDebug.pipelinePhase("stop: cancelled arming (empty take)")
+                // A movie take may still be starting; its late callbacks
+                // are identity-guarded against the reset below.
+                self.movieTake?.stop()
                 self.resetRecordingState()
                 cleanupFileAt(movieUrl())
                 DispatchQueue.main.async { [weak self] in
@@ -296,8 +436,8 @@ class RecordingPipeline {
                 self.sendMessage?(RemoteCmd.StopRecordingVideoResp())
                 return
             }
-            guard let writer = self.assetWriter else {
-                // isRecording without a writer is unreachable by construction;
+            guard let take = self.currentTake else {
+                // isRecording without a take is unreachable by construction;
                 // if it ever happens, answer rather than wedge.
                 self.resetRecordingState()
                 self.sendMessage?(RemoteCmd.StopRecordingVideoResp())
@@ -305,6 +445,7 @@ class RecordingPipeline {
             }
             self.recordingStartShared.value = nil
             self.recordingWillBeStopped = true
+            self.stopSendsVideo = shouldSendVideo
 
             // Stop recording timer
             DispatchQueue.main.async { [weak self] in
@@ -313,49 +454,63 @@ class RecordingPipeline {
             // Finalize watchdog, symmetric to the arming watchdog: a finalize
             // whose completion never comes back (the process suspended
             // mid-finalize; media services die and the callback is lost) must
-            // not leave the machine unanswered — salvage the fragmented file
-            // and report the truth. Identity-keyed to THIS writer so a slow
-            // but successful finalize (or a later take) can never be failed
-            // by a stale timer.
+            // not leave the machine unanswered — salvage the file and report
+            // the truth. Identity-keyed to THIS take so a slow but successful
+            // finalize (or a later take) can never be failed by a stale timer.
             self.dataQueue.asyncAfter(deadline: .now() + self.finalizeTimeout) { [weak self] in
-                guard let self, self.assetWriter === writer else { return }
+                guard let self, self.currentTake === take else { return }
                 SessionDebug.pipelinePhase("stop: finalize WATCHDOG fired")
                 self.failRecording(Self.localizedRecordingError("Unable to save video"),
                                    hasClip: true)
             }
             SessionDebug.pipelinePhase("stop: finalizing")
-            self.finalizeWriter(writer) { [weak self] in
-                // The writer calls back on its own queue — hop home before
-                // touching recording state.
-                guard let self = self else { return }
-                self.dataQueue.async { [weak self] in
-                    guard let self = self else { return }
-                    // Identity guard: this completion belongs to the take it
-                    // finalized. If the state was already reset (watchdog
-                    // fired, or a new take armed after a suspension), a late
-                    // completion must not touch the current state.
-                    guard self.assetWriter === writer else { return }
-                    SessionDebug.pipelinePhase("stop: finalized")
-                    let finalizeError: NSError? = (writer.status == .completed)
-                        ? nil
-                        : Self.writerFailureError(writer)
-                    self.resetRecordingState()
-                    if let finalizeError {
-                        // Finalize failed under the stop — the fragmented
-                        // file is still playable up to the last fragment:
-                        // save what exists and report the truth instead of
-                        // pretending the stop succeeded.
-                        self.saveMovieToPhotosApp()
-                        self.onError?(finalizeError.localizedDescription)
-                        self.sendMessage?(UICmd.RecordingTerminated(error: finalizeError))
-                    } else {
-                        self.saveMovieToPhotosAppAndRemotePeer(shouldSendVideo)
+            if let movieTake = self.movieTake {
+                // The finish arrives through `movieTakeFinished`.
+                movieTake.stop()
+            } else if let writer = self.assetWriter {
+                self.finalizeWriter(writer) { [weak self] in
+                    // The writer calls back on its own queue — hop home before
+                    // touching recording state.
+                    self?.dataQueue.async { [weak self] in
+                        // Identity guard: this completion belongs to the take
+                        // it finalized. If the state was already reset
+                        // (watchdog fired, or a new take armed after a
+                        // suspension), a late completion must not touch it.
+                        guard let self, self.assetWriter === writer else { return }
+                        SessionDebug.pipelinePhase("stop: finalized")
+                        self.completeStop(finalizeError: writer.status == .completed
+                                          ? nil : Self.writerFailureError(writer))
                     }
                 }
             }
             OperationQueue.main.addOperation { [weak self] in
                 self?.onModeChanged?(true)
             }
+        }
+    }
+
+    /// Identity of the take that is armed or rolling, whichever kind it is.
+    /// Held strongly by the watchdog so `===` can never match a newer take
+    /// that happens to reuse a freed address.
+    private var currentTake: AnyObject? {
+        (assetWriter as AnyObject?) ?? (movieTake as AnyObject?)
+    }
+
+    /// The end of a requested stop, for either kind of take: the file is
+    /// final (or as final as it will get).
+    private func completeStop(finalizeError: NSError?) {
+        dispatchPrecondition(condition: .onQueue(dataQueue))
+        let sendVideo = stopSendsVideo
+        resetRecordingState()
+        if let finalizeError {
+            // Finalize failed under the stop — the file is still playable up
+            // to what was written: save what exists and report the truth
+            // instead of pretending the stop succeeded.
+            saveMovieToPhotosApp()
+            onError?(finalizeError.localizedDescription)
+            sendMessage?(UICmd.RecordingTerminated(error: finalizeError))
+        } else {
+            saveMovieToPhotosAppAndRemotePeer(sendVideo)
         }
     }
 
@@ -370,6 +525,8 @@ class RecordingPipeline {
         readyToRecordVideo = false
         readyToRecordAudio = false
         assetWriter = nil
+        movieTake = nil
+        stopSendsVideo = false
         pixelBufferAdaptor = nil
         cachedVideoCropRect = nil
         recordingStartShared.value = nil
@@ -388,7 +545,9 @@ class RecordingPipeline {
         dispatchPrecondition(condition: .onQueue(dataQueue))
         // Dropping a failed writer is safe — it is not mid-finalize (a failed
         // writer cannot be finalized at all); the fragmented file on disk is
-        // the recording.
+        // the recording. A movie take is told to stop (a no-op when it
+        // already ended); its late finish is identity-guarded out.
+        movieTake?.stop()
         resetRecordingState()
         DispatchQueue.main.async { [weak self] in
             self?.onRecordingStopped?()
@@ -403,7 +562,12 @@ class RecordingPipeline {
     /// that is what killed it (the overwhelmingly common case), otherwise a
     /// generic recording failure carrying the system's description.
     private static func writerFailureError(_ writer: AVAssetWriter?) -> NSError {
-        let underlying = writer?.error as NSError?
+        recordingFailureError(writer?.error)
+    }
+
+    /// The same classification for any recorder's underlying error.
+    private static func recordingFailureError(_ error: Error?) -> NSError {
+        let underlying = error as NSError?
         let diskFull = underlying?.domain == AVFoundationErrorDomain
             && underlying?.code == AVError.diskFull.rawValue
         return localizedRecordingError(
@@ -616,23 +780,8 @@ class RecordingPipeline {
             }
             let isReadyToRecord = readyToRecordAudio && readyToRecordVideo
             if !wasReadyToRecord && isReadyToRecord {
-                SessionDebug.pipelinePhase("start: RECORDING — both legs ready")
-                recordingWillBeStarted = false
-                // THE recording-started instant: everything downstream — both
-                // timers, the monitor's ack, the wire's
-                // `recording_start_unix_ms`, and `isRecording` itself —
-                // derives from this one stamp.
-                let startTime = Date()
-                self.recordingStartShared.value = startTime
-
-                // Start recording timer and notify monitor
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.onRecordingStarted?(startTime)
-
-                    // Tell the remote the recording is rolling.
-                    self.sendMessage?(RemoteCmd.StartRecordingVideoAck(sender: nil))
-                }
+                SessionDebug.pipelinePhase("start: both legs ready")
+                markRecordingStarted()
             }
         }
     }
@@ -647,8 +796,18 @@ class RecordingPipeline {
             return
         }
         if assetWriter.status == .unknown {
+            let firstPTS = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+            // Synced multicam: the first frame is now known, and the writer
+            // takes metadata until it starts — so the first-frame offset
+            // rides inside the file with the rest of the alignment keys.
+            if let metadata = pendingSyncMetadata {
+                let stamped = metadata.withFirstFrame(
+                    uptimeNanos: CaptureClockConversion.uptimeNanos(of: firstPTS, on: sessionClock()))
+                pendingSyncMetadata = stamped
+                assetWriter.metadata = stamped.quickTimeMetadataItems()
+            }
             if assetWriter.startWriting() {
-                assetWriter.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
+                assetWriter.startSession(atSourceTime: firstPTS)
             } else {
                 failRecording(Self.writerFailureError(assetWriter), hasClip: false)
                 return
