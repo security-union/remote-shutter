@@ -15,29 +15,56 @@ import SwiftUI
 
 enum ExposureStops {
 
-    /// Standard shutter stops from 1/8000 s up to 1 s.
-    static let shutterSeconds: [Double] = [
-        1.0 / 8000, 1.0 / 4000, 1.0 / 2000, 1.0 / 1000, 1.0 / 500, 1.0 / 250,
-        1.0 / 125, 1.0 / 60, 1.0 / 30, 1.0 / 15, 1.0 / 8, 1.0 / 4, 1.0 / 3,
-        1.0 / 2, 1.0
-    ]
+    /// The rulers click in ⅓ stops, the way a camera's dials do. The clicks
+    /// themselves are computed from the range the camera reports
+    /// (`RulerTrack.dial`), on the grid through these anchors: full stops of
+    /// shutter fall on powers of two of a second, ISO on doublings of 100,
+    /// EV on whole stops.
+    static let shutterAnchor: Double = 1
+    static let isoAnchor: Double = 100
+    static let biasAnchor: Double = 0
+    static let stepsPerStop = 3
 
-    /// ISO in ⅓-stops.
-    static let iso: [Double] = [
-        25, 32, 40, 50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640,
-        800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10_000
-    ]
-
-    /// EV bias detents, one per stop. The ruler spans ±2 like Apple's dial;
-    /// the device's own range (typically ±8) still bounds what is sent.
-    static let bias: [Double] = [-2, -1, 0, 1, 2]
+    /// The EV ruler spans ±2 like Apple's dial; the device's own range
+    /// (typically ±8) still bounds what is sent.
     static let biasRulerSpan: Double = 2
 
-    /// "1/125" below a quarter second, "0.5s" / "1s" at or above.
+    // MARK: Names
+
+    /// The names photography prints for the ⅓-stop shutter series. A click
+    /// sits a little off its name (1/125 is 2⁻⁷ = 1/128 s, the convention
+    /// every camera shares), so these are labels only, never values.
+    static let shutterNames: [Double] = [
+        32000, 25000, 20000, 16000, 12800, 10000, 8000, 6400, 5000, 4000, 3200,
+        2500, 2000, 1600, 1250, 1000, 800, 640, 500, 400, 320, 250, 200, 160,
+        125, 100, 80, 60, 50, 40, 30, 25, 20, 15, 13, 10, 8, 6, 5, 4
+    ].map { 1.0 / $0 }
+
+    /// The names of the ⅓-stop ISO series; labels only, like the shutter's.
+    static let isoNames: [Double] = [
+        6, 8, 10, 12, 16, 20, 25, 32, 40, 50, 64, 80, 100, 125, 160, 200, 250,
+        320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000,
+        6400, 8000, 10_000, 12_800, 16_000, 20_000, 25_600, 32_000, 40_000, 51_200
+    ]
+
+    /// The name to print for `value`: a click on the ⅓-stop grid reads as
+    /// photography's name for it; anything else (a camera's own odd end,
+    /// ISO 34 or 1/24000) reads as exactly what it is.
+    private static func nominal(_ value: Double, anchor: Double, names: [Double]) -> Double? {
+        let onGrid = log2(value / anchor) * Double(stepsPerStop)
+        guard abs(onGrid - onGrid.rounded()) < 0.03 else { return nil }
+        let nearest = names.min { abs(log2($0 / value)) < abs(log2($1 / value)) }
+        guard let name = nearest, abs(log2(name / value)) < 1.0 / 6 else { return nil }
+        return name
+    }
+
+    /// "1/125" up to a quarter second, "0.3s" / "1s" above, as a camera
+    /// prints its shutter series.
     static func shutterLabel(_ seconds: Double) -> String {
         guard seconds > 0 else { return "—" }
-        if seconds < 0.25 {
-            return "1/\(Int((1.0 / seconds).rounded()))"
+        if seconds < 0.28 {
+            let named = nominal(seconds, anchor: shutterAnchor, names: shutterNames) ?? seconds
+            return "1/\(Int((1.0 / named).rounded()))"
         }
         let formatted = seconds == seconds.rounded()
             ? String(Int(seconds)) : String(format: "%.1f", seconds)
@@ -45,7 +72,9 @@ enum ExposureStops {
     }
 
     static func isoLabel(_ iso: Double) -> String {
-        "ISO \(Int(iso.rounded()))"
+        guard iso > 0 else { return "ISO —" }
+        let named = nominal(iso, anchor: isoAnchor, names: isoNames) ?? iso
+        return "ISO \(Int(named.rounded()))"
     }
 
     /// "+0.3 EV", "0 EV", "−1.7 EV".
@@ -72,14 +101,15 @@ enum ExposureRulerKind: Equatable, CaseIterable {
     func track(_ exposure: ExposureState) -> RulerTrack {
         switch self {
         case .shutter:
-            return RulerTrack(min: exposure.minDurationSeconds, max: exposure.maxDurationSeconds,
-                              stops: ExposureStops.shutterSeconds)
+            return .dial(min: exposure.minDurationSeconds, max: exposure.maxDurationSeconds,
+                         anchor: ExposureStops.shutterAnchor, stepsPerStop: ExposureStops.stepsPerStop)
         case .iso:
-            return RulerTrack(min: Double(exposure.minISO), max: Double(exposure.maxISO),
-                              stops: ExposureStops.iso)
+            return .dial(min: Double(exposure.minISO), max: Double(exposure.maxISO),
+                         anchor: ExposureStops.isoAnchor, stepsPerStop: ExposureStops.stepsPerStop)
         case .bias:
             let span = min(ExposureStops.biasRulerSpan, Double(max(-exposure.minBias, exposure.maxBias)))
-            return RulerTrack(mapping: .linear, min: -span, max: span, stops: ExposureStops.bias)
+            return .dial(mapping: .linear, min: -span, max: span,
+                         anchor: ExposureStops.biasAnchor, stepsPerStop: ExposureStops.stepsPerStop)
         }
     }
 
@@ -219,11 +249,7 @@ struct ExposureReadoutStrip: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
-        .background(
-            ZStack {
-                Color.black.opacity(0.3).background(.ultraThinMaterial).clipShape(Capsule())
-                Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1)
-            })
+        .pillGlass()
     }
 
     /// One tap between Auto and Manual, at the iOS minimum target size.

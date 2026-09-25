@@ -254,9 +254,13 @@ struct MulticamView: View {
     private var bottomCluster: some View {
         VStack(spacing: 14) {
             if viewModel.displayMode == .focus { cameraStrip(axis: .horizontal) }
-            exposureReadoutStrip
-            exposureRulers(axis: .horizontal)
-            focusedZoomPill
+            PillGlassGroup {
+                VStack(spacing: 14) {
+                    exposureReadoutStrip
+                    exposureRulers(axis: .horizontal)
+                    focusedZoomPill
+                }
+            }
             actionCluster(axis: .horizontal)
             modeSelector
         }
@@ -311,6 +315,12 @@ struct MulticamView: View {
     /// Wide shapes: the action cluster rides the docked rail; the strip and
     /// mode selector sit inboard — the monitor's `sideCluster` shape.
     private func sideCluster(onLeading: Bool) -> some View {
+        PillGlassGroup {
+            sideClusterContent(onLeading: onLeading)
+        }
+    }
+
+    private func sideClusterContent(onLeading: Bool) -> some View {
         HStack(alignment: .bottom, spacing: 16) {
             if onLeading { actionCluster(axis: .vertical) }
             exposureRuler(side: .leading)

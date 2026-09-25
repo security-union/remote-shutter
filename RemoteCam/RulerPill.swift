@@ -22,20 +22,71 @@ import SwiftUI
 struct RulerTrack: Equatable {
     enum Mapping: Equatable { case log2, linear }
 
+    /// How a dragged value settles. Zoom is continuous and only *pulled*
+    /// onto a lens stop near one. Shutter, ISO and EV click from detent to
+    /// detent like a camera's dial, and nothing between them is reachable.
+    enum Detents: Equatable { case magnetic, stepped }
+
     let mapping: Mapping
+    let detents: Detents
     let minValue: Double
     let maxValue: Double
-    /// Detents inside the range, ascending.
+    /// Detents inside the range, ascending. A stepped track also carries
+    /// its two ends, so the camera's whole range stays reachable.
     let stops: [Double]
+    /// The detents drawn as tall ticks (full stops on a ⅓-stop dial); the
+    /// rest are drawn short. Every detent on a magnetic track is major.
+    let majorStops: [Double]
 
-    init(mapping: Mapping = .log2, min: Double, max: Double, stops: [Double]) {
+    init(mapping: Mapping = .log2, detents: Detents = .magnetic,
+         min: Double, max: Double, stops: [Double], majorStops: [Double]? = nil) {
         self.mapping = mapping
+        self.detents = detents
         let floor: Double = mapping == .log2 ? 0 : -.infinity
         let low = (min.isFinite && min > floor) ? min : floor
         let high = (max.isFinite && max > low) ? max : low
         minValue = low
         maxValue = high
-        self.stops = stops.filter { $0.isFinite && $0 >= low && $0 <= high }.sorted()
+        let inRange = { (value: Double) in value.isFinite && value >= low && value <= high }
+        var detentValues = stops.filter(inRange).sorted()
+        if detents == .stepped, low.isFinite, high > low {
+            // An end that is not a detent becomes one, unless a detent sits
+            // within a sixth of a stop of it — two clicks for one value.
+            let toTrack: (Double) -> Double = mapping == .log2 ? { Foundation.log2($0) } : { $0 }
+            for end in [low, high] where !detentValues.contains(where: { abs(toTrack($0) - toTrack(end)) < 1.0 / 6 }) {
+                detentValues.append(end)
+            }
+            detentValues.sort()
+        }
+        self.stops = detentValues
+        self.majorStops = majorStops.map { $0.filter(inRange).sorted() } ?? detentValues
+    }
+
+    /// A camera dial over `min…max`: a detent every `1 / stepsPerStop` of a
+    /// stop, laid on the grid through `anchor`, the full stops major. Every
+    /// detent is computed from the range the camera reports, so a device
+    /// that reaches 1/24000 s or ISO 12800 gets clicks all the way there.
+    static func dial(mapping: Mapping = .log2, min: Double, max: Double,
+                     anchor: Double, stepsPerStop: Int = 3) -> RulerTrack {
+        let steps = Double(stepsPerStop)
+        let onGrid: (Double) -> Double = mapping == .log2
+            ? { Foundation.log2($0 / anchor) * steps } : { ($0 - anchor) * steps }
+        let atStep: (Int) -> Double = mapping == .log2
+            ? { anchor * pow(2, Double($0) / steps) } : { anchor + Double($0) / steps }
+        var detents: [Double] = []
+        var major: [Double] = []
+        if min.isFinite, max.isFinite, max > min, mapping == .linear || min > 0 {
+            let first = Int((onGrid(min) - 1e-9).rounded(.up))
+            let last = Int((onGrid(max) + 1e-9).rounded(.down))
+            if first <= last, last - first < 1000 {
+                for step in first...last {
+                    detents.append(atStep(step))
+                    if step % stepsPerStop == 0 { major.append(atStep(step)) }
+                }
+            }
+        }
+        return RulerTrack(mapping: mapping, detents: .stepped, min: min, max: max,
+                          stops: detents, majorStops: major)
     }
 
     /// True when there is nothing to slide: no range yet, or a fixed value.
@@ -83,6 +134,32 @@ struct RulerTrack: Equatable {
         guard let stop = nearest, abs(position(for: stop) - targetPosition) <= tolerance else { return target }
         return stop
     }
+
+    /// Where a dragged value comes to rest: the nearest detent on a stepped
+    /// track, the magnetic pull near one otherwise.
+    func settled(_ value: Double) -> Double {
+        guard detents == .stepped else { return snappedToStop(value) }
+        return snappedToStop(value, tolerance: .infinity)
+    }
+
+    /// `count` detents on from `value` (negative = down), for VoiceOver's
+    /// swipe up / down. A magnetic track moves a twentieth of its length.
+    func stepping(_ current: Double, by count: Int) -> Double {
+        guard detents == .stepped, !stops.isEmpty else {
+            return value(atPosition: position(for: current) + 0.05 * Double(count))
+        }
+        let here = settled(current)
+        let index = stops.firstIndex(of: here) ?? 0
+        return stops[Swift.max(0, Swift.min(stops.count - 1, index + count))]
+    }
+
+    /// True when two values sit on the same spot of the track, to within a
+    /// hundredth of it. The pill keeps drawing what the user asked for until
+    /// the camera reports a value that matches it this way, so the thumb
+    /// never flicks back to a reply that answers an older ask.
+    func matches(_ value: Double, _ other: Double) -> Bool {
+        abs(position(for: value) - position(for: other)) <= 0.01
+    }
 }
 
 // MARK: - Pill
@@ -124,6 +201,15 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
     @State private var isAdjusting = false
     /// Track position when the current drag began; movement is a delta.
     @State private var dragStartPosition: Double?
+    /// Where the scroll wheel has carried the track so far this gesture,
+    /// before settling. A stepped track needs it: one small notch moves less
+    /// than a detent, and re-reading the settled value each notch would
+    /// snap it straight back.
+    @State private var scrollPosition: Double?
+    /// Gives the thumb back to the camera if its report never matches the
+    /// ask (a value it clamped), so a stale thumb cannot stick forever.
+    @State private var releaseWork: DispatchWorkItem?
+    @State private var detentFeedback = UISelectionFeedbackGenerator()
 
     /// Tall enough for a 44pt control plus its readout — the iOS minimum
     /// touch target, which a 32pt circle in a 46pt capsule was not.
@@ -136,6 +222,9 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
     /// How long the ruler lingers after a drag, so a repeated adjustment
     /// doesn't have to re-expand each time.
     private static var collapseDelay: TimeInterval { 1.2 }
+    /// How long the thumb holds the asked-for value waiting for a matching
+    /// report before the camera's own value takes over.
+    private static var releaseDelay: TimeInterval { 1.0 }
 
     init(track: RulerTrack,
          currentValue: Double,
@@ -183,11 +272,9 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
             .accessibilityLabel(accessibilityLabel)
             .accessibilityValue(readout(displayedValue))
             .accessibilityAdjustableAction { direction in
-                let step = 0.05
-                let position = track.position(for: displayedValue)
                 switch direction {
-                case .increment: commit(track.value(atPosition: position + step))
-                case .decrement: commit(track.value(atPosition: position - step))
+                case .increment: commitAndRelease(track.stepping(displayedValue, by: 1))
+                case .decrement: commitAndRelease(track.stepping(displayedValue, by: -1))
                 @unknown default: break
                 }
             }
@@ -195,13 +282,15 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
             trailing(proxy)
         }
         .padding(axis == .horizontal ? .horizontal : .vertical, Self.horizontalPadding)
-        .background(glassBackground)
+        .pillGlass()
         // Scrolling over the pill adjusts — reaching for the wheel is the
         // reflex on a Mac. Behind the content so it never intercepts the drag.
         .background(
             ScrollWheelCatcher(onScroll: handleScroll,
                                onEnded: {
                                    isAdjusting = false
+                                   scrollPosition = nil
+                                   scheduleRelease()
                                    scheduleCollapse()
                                })
         )
@@ -212,11 +301,13 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
         .animation(.easeOut(duration: 0.18), value: isExpanded)
         .opacity(track.isDegenerate ? 0 : 1)
         .allowsHitTesting(!track.isDegenerate)
-        // Hand control back to the camera once it confirms, but never
-        // mid-drag: a reply for an earlier value would yank the thumb
-        // backwards under the cursor.
-        .onChange(of: currentValue) { _ in
-            if !isAdjusting { pendingValue = nil }
+        // Hand the thumb back to the camera once it reports what was asked
+        // for. Any other report answers an older ask (they arrive in order,
+        // one round trip behind), so drawing it would flick the thumb back.
+        .onChange(of: currentValue) { reported in
+            if !isAdjusting, let pending = pendingValue, track.matches(pending, reported) {
+                pendingValue = nil
+            }
         }
     }
 
@@ -236,13 +327,14 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
     /// What the pill hands its slots: what it is drawing, and a way to jump
     /// to a value (a lens stop, a reset) as though it had been dragged there.
     private var proxy: RulerPillProxy {
-        RulerPillProxy(displayedValue: displayedValue, commit: commit)
+        RulerPillProxy(displayedValue: displayedValue, commit: commitAndRelease)
     }
 
     // MARK: Ruler
 
     private var ruler: some View {
         let position = CGFloat(track.position(for: displayedValue))
+        let travel = trackLength - Self.thumbWidth
         let readoutText = Text(readout(displayedValue))
             .font(.system(size: 14, weight: .semibold, design: .rounded))
             .foregroundColor(.white)
@@ -250,16 +342,21 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
         let thumb = RoundedRectangle(cornerRadius: Self.thumbWidth / 2)
             .fill(AppTheme.accent)
             .shadow(color: AppTheme.accent.opacity(0.5), radius: 3)
+        // A stepped thumb glides into each detent, so a click reads as a
+        // click; a continuous one (zoom) tracks the finger with no lag.
+        let thumbMotion: Animation? = track.detents == .stepped || !isAdjusting
+            ? .interactiveSpring(response: 0.18, dampingFraction: 0.86) : nil
         return Group {
             if axis == .horizontal {
                 VStack(spacing: 4) {
                     readoutText
                     ZStack(alignment: .leading) {
                         ticks
-                        thumb.frame(width: Self.thumbWidth, height: 28)
-                            .offset(x: position * (trackLength - Self.thumbWidth))
+                        thumb.frame(width: Self.thumbWidth, height: Self.tickFieldDepth)
+                            .offset(x: position * travel)
+                            .animation(thumbMotion, value: position)
                     }
-                    .frame(width: trackLength, height: 28, alignment: .leading)
+                    .frame(width: trackLength, height: Self.tickFieldDepth, alignment: .leading)
                 }
             } else {
                 // Up is more, as on a camera's dial: the thumb sits at the top
@@ -268,50 +365,42 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
                     readoutText
                     ZStack(alignment: .top) {
                         ticks
-                        thumb.frame(width: 28, height: Self.thumbWidth)
-                            .offset(y: (1 - position) * (trackLength - Self.thumbWidth))
+                        thumb.frame(width: Self.tickFieldDepth, height: Self.thumbWidth)
+                            .offset(y: (1 - position) * travel)
+                            .animation(thumbMotion, value: position)
                     }
-                    .frame(width: 28, height: trackLength, alignment: .top)
+                    .frame(width: Self.tickFieldDepth, height: trackLength, alignment: .top)
                 }
             }
         }
     }
 
+    private static var tickFieldDepth: CGFloat { 28 }
+
+    /// The tick field in one draw. Ticks sit where the thumb's centre would
+    /// for their value, so the thumb parked on a detent covers its tick.
     private var ticks: some View {
-        Group {
-            if axis == .horizontal {
-                HStack(spacing: 0) {
-                    ForEach(0..<Self.tickCount, id: \.self) { index in
-                        tick(index, isStop: tickMarksAStop(index))
-                    }
-                }
-                .frame(width: trackLength)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach((0..<Self.tickCount).reversed(), id: \.self) { index in
-                        tick(index, isStop: tickMarksAStop(index))
-                    }
-                }
-                .frame(height: trackLength)
+        let marks = RulerTicks.marks(for: track, gridCount: Self.tickCount)
+        let horizontal = axis == .horizontal
+        return Canvas { context, size in
+            let length = horizontal ? size.width : size.height
+            let depth = horizontal ? size.height : size.width
+            let inset = Self.thumbWidth / 2
+            for mark in marks {
+                let along = inset + CGFloat(mark.position) * (length - 2 * inset)
+                let tickLength: CGFloat = mark.isMajor ? 22 : 11
+                let tickWidth: CGFloat = mark.isMajor ? 2 : 1
+                let across = (depth - tickLength) / 2
+                // Up is more on a vertical track.
+                let rect = horizontal
+                    ? CGRect(x: along - tickWidth / 2, y: across, width: tickWidth, height: tickLength)
+                    : CGRect(x: across, y: length - along - tickWidth / 2, width: tickLength, height: tickWidth)
+                context.fill(Path(rect), with: .color(.white.opacity(mark.isMajor ? 0.9 : 0.35)))
             }
         }
-    }
-
-    private func tick(_ index: Int, isStop: Bool) -> some View {
-        Rectangle()
-            .fill(Color.white.opacity(isStop ? 0.9 : 0.3))
-            .frame(width: axis == .horizontal ? (isStop ? 2 : 1) : (isStop ? 22 : 11),
-                   height: axis == .horizontal ? (isStop ? 22 : 11) : (isStop ? 2 : 1))
-            .frame(maxWidth: axis == .horizontal ? .infinity : nil,
-                   maxHeight: axis == .vertical ? .infinity : nil)
-    }
-
-    /// True when a detent falls within half a tick of this tick, so detents
-    /// read as taller marks rather than being drawn between ticks.
-    private func tickMarksAStop(_ index: Int) -> Bool {
-        let spacing = 1.0 / Double(Self.tickCount - 1)
-        let position = Double(index) * spacing
-        return track.stops.contains { abs(track.position(for: $0) - position) < spacing / 2 }
+        .frame(width: horizontal ? trackLength : Self.tickFieldDepth,
+               height: horizontal ? Self.tickFieldDepth : trackLength)
+        .allowsHitTesting(false)
     }
 
     // MARK: Interaction
@@ -332,14 +421,17 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
                     start = track.position(for: displayedValue)
                     dragStartPosition = start
                     isExpanded = true
+                    cancelRelease()
+                    detentFeedback.prepare()
                 }
                 let travel = axis == .horizontal ? value.translation.width : -value.translation.height
                 let moved = start + Double(travel) / Double(trackLength)
-                commit(track.snappedToStop(track.value(atPosition: moved)))
+                commit(track.settled(track.value(atPosition: moved)))
             }
             .onEnded { _ in
                 dragStartPosition = nil
                 isAdjusting = false
+                scheduleRelease()
                 scheduleCollapse()
             }
     }
@@ -349,17 +441,42 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
     private func handleScroll(_ delta: CGFloat) {
         guard !track.isDegenerate else { return }
         cancelCollapse()
+        cancelRelease()
         isAdjusting = true
         if !isExpanded { isExpanded = true }
-        let position = track.position(for: displayedValue)
-        let moved = position - Double(delta) * Self.scrollSensitivity
-        commit(track.snappedToStop(track.value(atPosition: moved)))
+        let position = scrollPosition ?? track.position(for: displayedValue)
+        let moved = max(0, min(1, position - Double(delta) * Self.scrollSensitivity))
+        scrollPosition = moved
+        commit(track.settled(track.value(atPosition: moved)))
     }
 
+    /// Shows `value` at once and asks the camera for it, only when it is a
+    /// change: a drag that stays inside one detent sends nothing.
     private func commit(_ value: Double) {
-        guard !track.isDegenerate else { return }
+        guard !track.isDegenerate, value != displayedValue else { return }
+        if track.detents == .stepped { detentFeedback.selectionChanged() }
         pendingValue = value
         onChange(value)
+    }
+
+    /// A commit that is not part of a drag (a lens stop, a reset, VoiceOver):
+    /// the release deadline starts at once.
+    private func commitAndRelease(_ value: Double) {
+        commit(value)
+        scheduleRelease()
+    }
+
+    private func scheduleRelease() {
+        cancelRelease()
+        guard pendingValue != nil else { return }
+        let work = DispatchWorkItem { if !isAdjusting { pendingValue = nil } }
+        releaseWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.releaseDelay, execute: work)
+    }
+
+    private func cancelRelease() {
+        releaseWork?.cancel()
+        releaseWork = nil
     }
 
     private func scheduleCollapse() {
@@ -375,14 +492,72 @@ struct RulerPill<Collapsed: View, Leading: View, Trailing: View>: View {
         collapseWork = nil
     }
 
-    // MARK: Chrome
+}
 
-    private var glassBackground: some View {
-        ZStack {
-            Color.black.opacity(0.3)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-            Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1)
+// MARK: - Ticks
+
+/// Where a ruler's ticks go, as positions on its 0…1 track. A stepped track
+/// draws one tick per detent, tall on its major stops; a magnetic one draws
+/// an even grid with the ticks nearest a detent drawn tall. Pure, so the
+/// layout is testable without rendering.
+enum RulerTicks {
+    struct Mark: Equatable {
+        let position: Double
+        let isMajor: Bool
+    }
+
+    static func marks(for track: RulerTrack, gridCount: Int) -> [Mark] {
+        guard !track.isDegenerate else { return [] }
+        if track.detents == .stepped {
+            return track.stops.map { stop in
+                Mark(position: track.position(for: stop),
+                     isMajor: track.majorStops.contains { track.matches($0, stop) })
+            }
+        }
+        let spacing = 1.0 / Double(max(1, gridCount - 1))
+        return (0..<gridCount).map { index in
+            let position = Double(index) * spacing
+            return Mark(position: position,
+                        isMajor: track.stops.contains { abs(track.position(for: $0) - position) < spacing / 2 })
+        }
+    }
+}
+
+// MARK: - Glass
+
+extension View {
+    /// The director's control capsule. From iOS 26 it is the system's Liquid
+    /// Glass, interactive so it answers a touch the way system controls do,
+    /// with the system's own edge and adaptive tint. Before that, the nearest
+    /// thing: a dark-tinted material with a hairline edge.
+    @ViewBuilder func pillGlass() -> some View {
+        if #available(iOS 26.0, macCatalyst 26.0, *) {
+            glassEffect(.regular.interactive(), in: Capsule())
+        } else {
+            background(
+                ZStack {
+                    Color.black.opacity(0.3)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
+                    Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1)
+                })
+        }
+    }
+}
+
+/// Groups neighbouring glass capsules so the system renders them as one
+/// layer of glass (glass cannot sample glass) and morphs them as they come
+/// and go. Spacing 0 keeps each capsule its own shape: they share the glass,
+/// they do not melt into each other. Plain content before iOS 26.
+struct PillGlassGroup<Content: View>: View {
+    var spacing: CGFloat = 0
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        if #available(iOS 26.0, macCatalyst 26.0, *) {
+            GlassEffectContainer(spacing: spacing) { content() }
+        } else {
+            content()
         }
     }
 }

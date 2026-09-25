@@ -26,6 +26,19 @@ public enum ExposureMode: Equatable, Sendable {
 public enum ExposureIntent: Equatable, Sendable {
     case auto(bias: Float)
     case manual(durationSeconds: Double, iso: Float)
+
+    /// One intent that means "this, then `newer`". The director holds at most
+    /// one exposure command in flight per camera and folds everything asked
+    /// meanwhile into a single queued intent with this. The newer intent
+    /// wins, except that a Manual "keep" component (`0`) keeps what the
+    /// queued Manual intent asked for, so a shutter drag and an ISO drag
+    /// queued together both land.
+    func coalesced(with newer: ExposureIntent) -> ExposureIntent {
+        guard case let .manual(queuedDuration, queuedISO) = self,
+              case let .manual(newerDuration, newerISO) = newer else { return newer }
+        return .manual(durationSeconds: newerDuration > 0 ? newerDuration : queuedDuration,
+                       iso: newerISO > 0 ? newerISO : queuedISO)
+    }
 }
 
 /// The ranges and booleans the policy needs from the active device + format.

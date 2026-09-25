@@ -625,6 +625,7 @@ public actor MulticamController {
             logInfo("director: state from \(link.displayName) (\(caps.inReplyTo)) — torch=\(caps.torchOn), camera=\(caps.currentCamera)")
             link.capabilities = caps
             if let n = link.pending[caps.inReplyTo], n > 0 { link.pending[caps.inReplyTo] = n - 1 }
+            if caps.inReplyTo == .setexposure { flushQueuedExposure(peer) }
             if let error = caps.error {
                 // A refusal is said out loud — the state already reset the
                 // control to the truth, so silence would read as "the
@@ -718,6 +719,7 @@ public actor MulticamController {
         link.pending[action] = n - 1
         logWarning("director: \(action) to \(link.displayName) unanswered after \(controlReplyTimeout)s")
         showError("\(link.displayName): \(NSLocalizedString("didn't answer", comment: "control reply deadline passed"))")
+        if action == .setexposure { flushQueuedExposure(peer) }
     }
 
     /// A brief, non-blocking readout on the director screen.
@@ -922,9 +924,24 @@ public actor MulticamController {
     }
 
     private func handleSetExposure(_ intent: ExposureIntent, target: MCPeerID) {
-        guard let exposure = links[target]?.capabilities?.exposure else { return }
+        guard let link = links[target], let exposure = link.capabilities?.exposure else { return }
         if case .manual = intent, !exposure.supportsManual { return }
+        // Latest wins, one at a time: while a SetExposure is in flight the
+        // newest ask waits, folded into whatever was already waiting.
+        if link.pending[.setexposure, default: 0] > 0 {
+            link.queuedExposure = link.queuedExposure?.coalesced(with: intent) ?? intent
+            return
+        }
         sendControl(.setexposure, RemoteCmd.SetExposure(intent: intent), to: target)
+    }
+
+    /// Sends the exposure that waited behind the one just settled, gated
+    /// again on the camera's latest state.
+    private func flushQueuedExposure(_ peer: MCPeerID) {
+        guard let link = links[peer], link.pending[.setexposure, default: 0] == 0,
+              let queued = link.queuedExposure else { return }
+        link.queuedExposure = nil
+        handleSetExposure(queued, target: peer)
     }
 
     func switchLens(_ lens: CameraLensType, on peer: MCPeerID) {
@@ -1292,8 +1309,12 @@ public actor MulticamController {
         exposureControlsOn = on
         ExposureControlsPreference.isOn = on
         guard !on else { return }
-        for (peer, link) in links where link.capabilities?.exposure?.mode == .manual {
-            sendControl(.setexposure, RemoteCmd.SetExposure(intent: .auto(bias: 0)), to: peer)
+        // Through the latest-wins path, so Auto also replaces any Manual
+        // still waiting to be sent.
+        for (peer, link) in links {
+            var inManual = link.capabilities?.exposure?.mode == .manual
+            if case .manual = link.queuedExposure { inManual = true }
+            if inManual { handleSetExposure(.auto(bias: 0), target: peer) }
         }
     }
 
