@@ -172,6 +172,19 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
         durationSeconds: 1.0 / 120, iso: 64, minDurationSeconds: 1.0 / 10_000, maxDurationSeconds: 1.0,
         minISO: 32, maxISO: 3200, maxFrameDurationSeconds: 1.0 / 30)
     var exposureIntents: [ExposureIntent] = []
+    var cinematicState: CinematicState?
+    var cinematicIntents: [CinematicIntent] = []
+    var cinematicFocuses: [CinematicFocus] = []
+    func setCinematic(_ intent: CinematicIntent) async throws {
+        if let errorToThrow { throw errorToThrow }
+        cinematicIntents.append(intent)
+        cinematicState?.enabled = intent.enabled
+        cinematicState?.output = intent.output
+        if intent.aperture > 0 { cinematicState?.aperture = intent.aperture }
+    }
+    func setCinematicFocus(_ focus: CinematicFocus) async throws {
+        cinematicFocuses.append(focus)
+    }
     func setExposure(_ intent: ExposureIntent) async throws {
         if let errorToThrow { throw errorToThrow }
         exposureIntents.append(intent)

@@ -134,6 +134,17 @@ public class UICmd {
         }
     }
 
+    /// Camera rig -> its session: the latest Cinematic subjects report, for
+    /// the coordinator to forward to the director `.unreliable`.
+    public class PublishCinematicSubjects: Message, @unchecked Sendable {
+        public let report: CinematicSubjectsReport
+
+        public init(report: CinematicSubjectsReport) {
+            self.report = report
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Video Resource Transfer Messages
 
     public class SendVideoResource: Message, @unchecked Sendable {

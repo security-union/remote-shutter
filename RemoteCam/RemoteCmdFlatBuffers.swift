@@ -1119,6 +1119,9 @@ extension RemoteCmd {
                 return nil
             }
 
+        case .setcinematic, .setcinematicfocus, .cinematicsubjects:
+            return nil   // FREEZE STUB — WP-A decodes these.
+
         case .setvideoquality:
             let resolution = fromFBResolution(params?.videoResolution ?? .hd1080p)
             let frameRate = fromFBFrameRate(params?.videoFrameRate ?? .fps30)

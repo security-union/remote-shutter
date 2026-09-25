@@ -530,6 +530,14 @@ extension CameraRig: CameraControlling {
         cameraViewModel.updateExposureReadout(await engine.gatherCurrentCameraCapabilities()?.exposure)
     }
 
+    func setCinematic(_ intent: CinematicIntent) async throws {
+        try await engine.setCinematic(intent)
+    }
+
+    func setCinematicFocus(_ focus: CinematicFocus) async throws {
+        try await engine.setCinematicFocus(focus)
+    }
+
     func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {
         try await engine.switchLens(to: lensType)
     }
