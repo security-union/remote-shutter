@@ -19,7 +19,7 @@
 import XCTest
 import AVFoundation
 import CoreImage
-#if canImport(Cinematic)
+#if compiler(>=6.4) && canImport(Cinematic)
 import Cinematic
 #endif
 
@@ -722,7 +722,8 @@ final class CaptureIntegrationTests: XCTestCase {
                     .flatMap(CaptureSyncMetadata.fromJSONString)
                 XCTAssertNotNil(stamped?.firstFrameOffsetMillis, "editable writes the offset to the sidecar")
                 print("🎬 take editable: firstFrameOffsetMs=\(String(describing: stamped?.firstFrameOffsetMillis))")
-                #if canImport(Cinematic)
+                // CNAssetInfo.cinematicCapability is iOS 27 SDK API.
+                #if compiler(>=6.4) && canImport(Cinematic)
                 if #available(iOS 27.0, macCatalyst 27.0, *) {
                     let capability = await CNAssetInfo.cinematicCapability(for: asset)
                     print("🎬 take editable: CNCinematicCapability=\(capability.rawValue)")

@@ -19,7 +19,6 @@
 import XCTest
 import AVFoundation
 import CoreImage
-import Cinematic
 
 @testable import RemoteShutter
 
@@ -75,6 +74,14 @@ enum CinematicProbe {
         guard status == .authorized else { throw XCTSkip("no camera permission") }
     }
 }
+
+// The session and tests below read iOS 27 SDK API (Cinematic metadata
+// capture, CNAssetInfo capability) and the Cinematic framework, which the
+// simulator SDK lacks. They only run on a phone, so they compile only with
+// the Xcode 27 SDK (Swift 6.4) for a platform that ships Cinematic; CI's
+// simulator build leaves them out. `CinematicProbe` above stays shared.
+#if compiler(>=6.4) && canImport(Cinematic)
+import Cinematic
 
 /// A bare capture session shaped like ours (BGRA video data output + photo
 /// output) with Cinematic on, plus a metadata output and an optional
@@ -498,3 +505,4 @@ final class CinematicProbeTests: XCTestCase {
         zip(a, b).reduce(0) { $0 + abs(Int($1.0) - Int($1.1)) } * 100 / max(a.count, 1)
     }
 }
+#endif
