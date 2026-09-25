@@ -19,6 +19,9 @@
 import XCTest
 import AVFoundation
 import CoreImage
+#if canImport(Cinematic)
+import Cinematic
+#endif
 
 @testable import RemoteShutter
 
@@ -635,6 +638,106 @@ final class CaptureIntegrationTests: XCTestCase {
         rig.stopRecordingVideo(false)
 
         await fulfillment(of: [responded], timeout: 15)
+    }
+
+    /// Both Cinematic outputs, recorded through the real pipeline as a
+    /// multicam take would be (sync metadata set): Baked writes one video
+    /// track with the first-frame offset inside the .mov; Editable writes the
+    /// movie output's disparity + metadata tracks, Cinematic reads it as
+    /// renderable, and the offset lands in the sidecar. Copies each clip to
+    /// Documents/CinematicTakes for inspection (the clips also go to Photos).
+    func testCinematicTakesRecordBothOutputsOnTheRealRig() async throws {
+        guard #available(iOS 26.0, macCatalyst 26.0, *) else { throw XCTSkip("Cinematic needs iOS 26") }
+        try await startRealRig()
+        try await Self.skipUnlessMicAuthorized()
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+        rig.currentCameraMode = .Video
+        guard await rig.gatherCurrentCameraCapabilities()?.cinematic != nil else {
+            throw XCTSkip("this camera offers no Cinematic block")
+        }
+        let keep = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("CinematicTakes", isDirectory: true)
+        try? FileManager.default.createDirectory(at: keep, withIntermediateDirectories: true)
+
+        for output in [CinematicOutput.baked, .editable] {
+            try await rig.setCinematic(CinematicIntent(enabled: true, output: output))
+            let now = SyncClock.nowMillis()
+            let metadata = CaptureSyncMetadata(
+                sessionID: UUID().uuidString, captureID: UUID().uuidString, cameraIndex: 1,
+                anchorMillis: now, clockOffsetMillis: 0, roundTripMillis: 0,
+                cameraClockAnchorMillis: now)
+            rig.setVideoSyncMetadata(metadata)
+
+            let responded = expectation(description: "StopRecordingVideoResp \(output)")
+            responded.assertForOverFulfill = false
+            let copy = keep.appendingPathComponent("\(output).mov")
+            try? FileManager.default.removeItem(at: copy)
+            rig.pipeline.sendMessage = { msg in
+                guard msg is RemoteCmd.StopRecordingVideoResp else { return }
+                // Before Photos takes the file.
+                try? FileManager.default.copyItem(at: movieUrl(), to: copy)
+                responded.fulfill()
+            }
+            let pressed = Date()
+            rig.startRecordingVideo()
+            let deadline = Date().addingTimeInterval(10)
+            while !rig.isRecording && Date() < deadline {
+                try? await Task.sleep(nanoseconds: 50_000_000)
+            }
+            let startDiagnostics = await diagnostics()
+            XCTAssertTrue(rig.isRecording, "\(output): recording never started. \(startDiagnostics)")
+            print("🎬 take \(output): rolling after \(Int(Date().timeIntervalSince(pressed) * 1000)) ms")
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            rig.stopRecordingVideo(false)
+            await fulfillment(of: [responded], timeout: 15)
+
+            let asset = AVURLAsset(url: copy)
+            let tracks = (try? await asset.load(.tracks)) ?? []
+            let subtypes = await withTaskGroup(of: String.self) { group in
+                for track in tracks {
+                    group.addTask {
+                        let formats = (try? await track.load(.formatDescriptions)) ?? []
+                        return formats.map { Self.fourCC(CMFormatDescriptionGetMediaSubType($0)) }.joined()
+                    }
+                }
+                return await group.reduce(into: [String]()) { $0.append($1) }
+            }
+            print("🎬 take \(output): tracks=\(subtypes.sorted())")
+            let items = (try? await asset.load(.metadata)) ?? []
+            let offsetItem = items.first { $0.identifier?.rawValue.hasSuffix(CaptureSyncMetadata.QuickTimeKey.firstFrameOffset) == true }
+            let fileOffset = try? await offsetItem?.load(.value)
+
+            switch output {
+            case .baked:
+                XCTAssertFalse(subtypes.contains("dish"), "baked has no disparity track")
+                XCTAssertNotNil(fileOffset, "baked stamps the first-frame offset into the .mov")
+                print("🎬 take baked: firstFrameOffsetMs=\(String(describing: fileOffset))")
+            case .editable:
+                XCTAssertTrue(subtypes.contains("dish"), "editable carries the disparity track")
+                let sidecar = RecordingPipeline.syncSidecarDirectory
+                    .appendingPathComponent("\(metadata.filenamePrefix).json")
+                let stamped = (try? String(contentsOf: sidecar, encoding: .utf8))
+                    .flatMap(CaptureSyncMetadata.fromJSONString)
+                XCTAssertNotNil(stamped?.firstFrameOffsetMillis, "editable writes the offset to the sidecar")
+                print("🎬 take editable: firstFrameOffsetMs=\(String(describing: stamped?.firstFrameOffsetMillis))")
+                #if canImport(Cinematic)
+                if #available(iOS 27.0, macCatalyst 27.0, *) {
+                    let capability = await CNAssetInfo.cinematicCapability(for: asset)
+                    print("🎬 take editable: CNCinematicCapability=\(capability.rawValue)")
+                    XCTAssertEqual(capability, .renderable)
+                }
+                #endif
+            }
+        }
+        rig.setVideoSyncMetadata(nil)
+        try await rig.setCinematic(CinematicIntent(enabled: false))
+    }
+
+    private static func fourCC(_ code: FourCharCode) -> String {
+        let bytes = [24, 16, 8, 0].map { UInt8((code >> $0) & 0xFF) }
+        return String(bytes: bytes, encoding: .ascii) ?? "\(code)"
     }
 
     func testToggleKeepsFramesFlowing() async throws {
