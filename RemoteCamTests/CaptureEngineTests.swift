@@ -105,3 +105,77 @@ final class CaptureEngineTests: XCTestCase {
         XCTAssertFalse(engine.desiredTorchOn)
     }
 }
+
+// TEMPORARY device probe — not for commit.
+@available(iOS 16.0, *)
+final class StillResolutionProbe: XCTestCase, AVCapturePhotoCaptureDelegate {
+    private var done: XCTestExpectation?
+    private var result = ""
+
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        let d = photo.resolvedSettings.photoDimensions
+        var px = "?"
+        if let data = photo.fileDataRepresentation(), let img = UIImage(data: data)?.cgImage {
+            px = "\(img.width)x\(img.height) \(data.count / 1024)KB"
+        }
+        result = "resolved=\(d.width)x\(d.height) file=\(px) err=\(String(describing: error))"
+        done?.fulfill()
+    }
+
+    private func shoot(_ output: AVCapturePhotoOutput, _ settings: AVCapturePhotoSettings) -> String {
+        done = expectation(description: "photo")
+        output.capturePhoto(with: settings, delegate: self)
+        wait(for: [done!], timeout: 15)
+        return result
+    }
+
+    private func dims(_ f: AVCaptureDevice.Format) -> String {
+        let v = CMVideoFormatDescriptionGetDimensions(f.formatDescription)
+        let sub = CMFormatDescriptionGetMediaSubType(f.formatDescription)
+        let fourcc = String(bytes: [UInt8(sub >> 24 & 255), UInt8(sub >> 16 & 255), UInt8(sub >> 8 & 255), UInt8(sub & 255)], encoding: .ascii) ?? "?"
+        let fps = f.videoSupportedFrameRateRanges.map { $0.maxFrameRate }.max() ?? 0
+        let stills = f.supportedMaxPhotoDimensions.map { "\($0.width)x\($0.height)" }.joined(separator: ",")
+        return "video=\(v.width)x\(v.height) \(fourcc) fps<=\(Int(fps)) stills=[\(stills)]"
+    }
+
+    func testProbeStillResolution() throws {
+        print("PROBE auth=\(AVCaptureDevice.authorizationStatus(for: .video).rawValue)")
+        let device = CaptureEngine().preferredCamera(for: .back) ?? AVCaptureDevice.default(for: .video)!
+        print("PROBE device=\(device.localizedName) type=\(device.deviceType.rawValue)")
+        for preset in [AVCaptureSession.Preset.high, .hd1920x1080, .hd4K3840x2160, .photo] {
+            let session = AVCaptureSession()
+            session.beginConfiguration()
+            session.sessionPreset = preset
+            session.addInput(try AVCaptureDeviceInput(device: device))
+            session.addOutput(AVCaptureVideoDataOutput())
+            let output = AVCapturePhotoOutput()
+            output.isHighResolutionCaptureEnabled = true
+            output.maxPhotoQualityPrioritization = .quality
+            session.addOutput(output)
+            session.commitConfiguration()
+            session.startRunning()
+            Thread.sleep(forTimeInterval: 1.5)
+            print("PROBE [\(preset.rawValue)] active: \(dims(device.activeFormat))")
+
+            // What the App Store build does today.
+            let today = AVCapturePhotoSettings()
+            today.isHighResolutionPhotoEnabled = true
+            today.photoQualityPrioritization = .balanced
+            print("PROBE [\(preset.rawValue)] today:   \(shoot(output, today))")
+
+            // Ask for the biggest still this format allows.
+            if let big = device.activeFormat.supportedMaxPhotoDimensions.max(by: { Int($0.width) * Int($0.height) < Int($1.width) * Int($1.height) }) {
+                output.maxPhotoDimensions = big
+                let s = AVCapturePhotoSettings()
+                s.maxPhotoDimensions = big
+                s.photoQualityPrioritization = .balanced
+                print("PROBE [\(preset.rawValue)] maxDims: \(shoot(output, s))")
+            }
+            session.stopRunning()
+        }
+        let active = CMVideoFormatDescriptionGetDimensions(device.formats[0].formatDescription)
+        _ = active
+        print("PROBE --- all formats ---")
+        for (i, f) in device.formats.enumerated() { print("PROBE fmt\(i) \(dims(f))") }
+    }
+}

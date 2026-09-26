@@ -180,6 +180,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
             self.captureSession.addInput(self.videoDeviceInput)
             self.captureSession.addOutput(self.videoDataOutput)
+            self.upgradeFormatForStillsLocked(videoDevice)
 
             try self.setFrameRate(framerate: fpsSetting.value, videoDevice: videoDevice)
 
@@ -361,7 +362,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         // session churn and diverges from Apple's reference.)
         videoConnection = videoDataOutput.connection(with: .video)
         audioConnection = audioDataOutput.connection(with: .audio)
+        upgradeFormatForStillsLocked(newDevice)
         try setFrameRate(framerate: fpsSetting.value, videoDevice: newDevice)
+        applyMaxPhotoDimensionsLocked()
 
         updateAvailableLensTypes(for: newDevice)
         zoomStops = discoverZoomStops(for: newDevice)
@@ -409,6 +412,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             photoOutput.isHighResolutionCaptureEnabled = true
             photoOutput.maxPhotoQualityPrioritization = .quality
             captureSession.addOutput(photoOutput)
+            applyMaxPhotoDimensionsLocked()
         } else {
             logWarning("Could not add movie file output to the session")
             return
@@ -1700,6 +1704,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 .filter { $0.value <= maxFPS }
                 .last ?? .fps30
         }
+        upgradeFormatForStillsLocked(device, fps: Double(appliedFrameRate.value))
 
         do {
             try setFrameRate(framerate: appliedFrameRate.value, videoDevice: device)
@@ -1707,6 +1712,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             captureSession.commitConfiguration()
             return nil
         }
+        applyMaxPhotoDimensionsLocked()
         captureSession.commitConfiguration()
 
         // Restore zoom factor — changing activeFormat/sessionPreset resets it to 1.0
@@ -1789,6 +1795,94 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         return croppedImage.jpegData(compressionQuality: 0.95)
     }
 
+    // MARK: - Still Resolution
+
+    /// A capture format reduced to the facts that decide which one takes the
+    /// biggest stills without changing the video.
+    struct StillFormatCandidate: Equatable {
+        let videoWidth: Int32
+        let videoHeight: Int32
+        let pixelFormat: FourCharCode
+        let maxFPS: Double
+        let maxStillPixels: Int64
+    }
+
+    /// The candidate to run instead of `baseline`: same video size and pixel
+    /// format, still reaches `fps`, and takes strictly bigger stills. Returns
+    /// `baseline` when nothing beats it, so the video never changes.
+    static func formatIndexForLargestStills(_ candidates: [StillFormatCandidate],
+                                            baseline: Int, fps: Double) -> Int {
+        guard candidates.indices.contains(baseline) else { return baseline }
+        let base = candidates[baseline]
+        var best = baseline
+        for (index, candidate) in candidates.enumerated()
+        where candidate.videoWidth == base.videoWidth
+            && candidate.videoHeight == base.videoHeight
+            && candidate.pixelFormat == base.pixelFormat
+            && candidate.maxFPS >= fps
+            && candidate.maxStillPixels > candidates[best].maxStillPixels {
+            best = index
+        }
+        return best
+    }
+
+    /// The largest still size by pixel count, or nil for an empty list.
+    static func largestDimensions(_ dimensions: [CMVideoDimensions]) -> CMVideoDimensions? {
+        dimensions.max { Int64($0.width) * Int64($0.height) < Int64($1.width) * Int64($1.height) }
+    }
+
+    private func stillFormatCandidate(_ format: AVCaptureDevice.Format) -> StillFormatCandidate {
+        let video = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+        let stills: [CMVideoDimensions]
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            stills = format.supportedMaxPhotoDimensions
+        } else {
+            stills = [format.highResolutionStillImageDimensions]
+        }
+        let largest = Self.largestDimensions(stills) ?? video
+        return StillFormatCandidate(
+            videoWidth: video.width,
+            videoHeight: video.height,
+            pixelFormat: CMFormatDescriptionGetMediaSubType(format.formatDescription),
+            maxFPS: format.videoSupportedFrameRateRanges.reduce(0) { max($0, $1.maxFrameRate) },
+            maxStillPixels: Int64(largest.width) * Int64(largest.height))
+    }
+
+    /// Several formats often record identical video but differ in the still
+    /// size they allow. Moves `device` to the one with the biggest stills.
+    /// Call inside a session configuration, before `setFrameRate` (a format
+    /// change resets the frame duration).
+    private func upgradeFormatForStillsLocked(_ device: AVCaptureDevice, fps: Double? = nil) {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        let formats = device.formats
+        guard let baseline = formats.firstIndex(of: device.activeFormat) else { return }
+        let best = Self.formatIndexForLargestStills(
+            formats.map(stillFormatCandidate),
+            baseline: baseline,
+            fps: fps ?? Double(fpsSetting.value))
+        guard best != baseline else { return }
+        do {
+            try device.lockForConfiguration()
+            device.activeFormat = formats[best]
+            device.unlockForConfiguration()
+        } catch {
+            logWarning("Could not switch to the format with larger stills: \(error)")
+        }
+    }
+
+    /// Asks the photo output for the largest still the active format supports
+    /// (24/48 MP on recent iPhones). Re-run after every format or device
+    /// change: the output falls back to its default when the format changes.
+    private func applyMaxPhotoDimensionsLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard #available(iOS 16.0, macCatalyst 16.0, *),
+              let device = videoDeviceInput?.device,
+              let largest = Self.largestDimensions(device.activeFormat.supportedMaxPhotoDimensions)
+        else { return }
+        photoOutput.maxPhotoDimensions = largest
+        debugLog("📷 STILLS: \(largest.width)x\(largest.height) on \(device.localizedName)")
+    }
+
     func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) async -> (PhotoFormat, HDRMode)? {
         await onSessionQueue {
             if format == .heif {
@@ -1810,7 +1904,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             newSettings = AVCapturePhotoSettings()
         }
         newSettings.flashMode = settings.flashMode
-        newSettings.isHighResolutionPhotoEnabled = settings.isHighResolutionPhotoEnabled
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            newSettings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
+        } else {
+            newSettings.isHighResolutionPhotoEnabled = settings.isHighResolutionPhotoEnabled
+        }
         if currentHDRMode == .on {
             newSettings.photoQualityPrioritization = .quality
         } else {
