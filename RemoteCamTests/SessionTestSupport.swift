@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SessionModel
 import XCTest
 import MPCCompat
 import Stormo

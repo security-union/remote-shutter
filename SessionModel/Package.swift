@@ -15,12 +15,17 @@ let package = Package(
         // API is expected to move. Bump deliberately, with the checker re-run.
         .package(
             url: "https://github.com/security-union/correcto.git",
-            revision: "b2c67c6482635d17db027b37ef88fd1ce95151ce")
+            revision: "b2c67c6482635d17db027b37ef88fd1ce95151ce"),
+        // Same exact version the app pins, for `PeerID` in `SessionState`.
+        .package(url: "https://github.com/security-union/Stormo.git", exact: "2.0.2"),
     ],
     targets: [
         .target(
             name: "SessionModel",
-            dependencies: [.product(name: "Correcto", package: "correcto")]),
+            dependencies: [
+                .product(name: "Correcto", package: "correcto"),
+                .product(name: "Stormo", package: "Stormo"),
+            ]),
         .testTarget(
             name: "SessionModelTests",
             dependencies: [

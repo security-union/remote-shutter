@@ -18,6 +18,20 @@ Four tests, about three milliseconds. Two of them hunt for bugs the coordinator 
 `PhotoCameraBuggy`, and they print the sequence that causes each. That output is the point
 of this package, so read it before reading any of the code.
 
+## One state machine, not two
+
+`SessionState` lives in this package, not in the app. The coordinator imports it and runs
+it; the checker imports it and explores it. There is one definition, so the two cannot
+drift, which is the failure this whole exercise exists to prevent.
+
+That is also why `projectPhotoState()` in the app has no phase mapping: the phase is
+simply the coordinator's own `state`. What the projection still builds is the handful of
+flags the enum does not carry, such as whether the alert is up.
+
+The model only has transitions for the photo slice today. Every other case of
+`SessionState` reaches `default` and is ignored, which is what "slice" means here and is
+honest about how far the model has got.
+
 ## The machine
 
 One camera. The peer, the capture hardware and the ten second watchdog are the world

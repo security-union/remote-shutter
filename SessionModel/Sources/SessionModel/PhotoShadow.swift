@@ -12,12 +12,12 @@ public enum PhotoShadow {
     /// `PhotoSliceTests`; here they run on a real device against real traffic.
     public static let rules: [Invariant<PhotoState>] = [
         Invariant("an alert is up only while taking a picture") { state in
-            if case .takingPic = state.phase { return true }
+            if case .cameraTakingPic = state.phase { return true }
             return !state.alertUp
         },
         Invariant("a capture is outstanding only while taking a picture or just after") { state in
             guard state.captureOutstanding else { return true }
-            if case .takingPic = state.phase { return true }
+            if case .cameraTakingPic = state.phase { return true }
             // Settled back to idle with a capture still in flight is legal for
             // a moment: the watchdog fired and the hardware has not answered.
             return state.phase == .camera

@@ -16,14 +16,9 @@ import Correcto
 
 // MARK: - State
 
-public enum PhotoPhase: Hashable, Codable, Sendable {
-    case camera
-    case takingPic(sendMediaToPeer: Bool, generation: Int)
-    case scanning
-}
-
 public struct PhotoState: Hashable, Codable, Sendable {
-    public var phase: PhotoPhase
+    /// The app's own state enum, not a copy of it.
+    public var phase: SessionState
     /// A peer is connected. `SessionCoordinator.link` narrowed to what this
     /// slice decides on.
     public var linked: Bool
@@ -37,7 +32,7 @@ public struct PhotoState: Hashable, Codable, Sendable {
     public var captureOutstanding: Bool
     public var timeoutGeneration: Int
 
-    public init(phase: PhotoPhase = .camera, linked: Bool = true, alertUp: Bool = false,
+    public init(phase: SessionState = .camera, linked: Bool = true, alertUp: Bool = false,
                 captureOutstanding: Bool = false, timeoutGeneration: Int = 0) {
         self.phase = phase
         self.linked = linked
@@ -101,7 +96,7 @@ public func photoStep(
     case let (.camera, .pressShutter(send)):
         guard state.linked else { return .ignore(state) }
         next.timeoutGeneration += 1
-        next.phase = .takingPic(sendMediaToPeer: send, generation: next.timeoutGeneration)
+        next.phase = .cameraTakingPic(sendMediaToPeer: send, generation: next.timeoutGeneration)
         next.alertUp = true
         next.captureOutstanding = true
         return Step(next, [
@@ -109,19 +104,19 @@ public func photoStep(
             .takePicture(sendToPeer: send)
         ])
 
-    case (.takingPic, .pictureCaptured):
+    case (.cameraTakingPic, .pictureCaptured):
         next.phase = .camera
         next.alertUp = false
         next.captureOutstanding = false
         return Step(next, [.dismissAlert, .saveToLibrary, .sendAck])
 
-    case (.takingPic, .captureFailed):
+    case (.cameraTakingPic, .captureFailed):
         next.phase = .camera
         next.alertUp = false
         next.captureOutstanding = false
         return Step(next, [.dismissAlert])
 
-    case let (.takingPic(_, generation), .stateTimeout(fired)):
+    case let (.cameraTakingPic(_, generation), .stateTimeout(fired)):
         // The generation guard the app already has, and which works.
         guard fired == generation else { return .ignore(state) }
         next.phase = .camera
@@ -132,7 +127,7 @@ public func photoStep(
 
     // Abandoning a capture. `popToScanning` and `sendOrGoToScanning` both leave
     // by this door and neither dismisses today.
-    case (.takingPic, .endSession), (.takingPic, .sendFailed):
+    case (.cameraTakingPic, .endSession), (.cameraTakingPic, .sendFailed):
         next.phase = .scanning
         next.linked = false
         guard behaviour.dismissesAlertOnAbort else { return Step(next) }

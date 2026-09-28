@@ -20,27 +20,18 @@ import Stormo
 
 extension SessionCoordinator {
 
-    /// Build the model's state from the coordinator's own. Every field has to
-    /// be derivable from what the app already keeps, or the shadow cannot
+    /// Build the model's state from the coordinator's own. The phase needs no
+    /// mapping, because both share one `SessionState`; what is left is the
+    /// handful of flags the enum does not carry. Every one of them has to be
+    /// derivable from what the app already keeps, or the shadow cannot
     /// resynchronise it.
     func projectPhotoState() -> PhotoState {
         PhotoState(
-            phase: Self.photoPhase(from: state),
+            phase: state,
             linked: currentPeer != nil,
             alertUp: hasCameraAlert,
             captureOutstanding: captureOutstanding,
             timeoutGeneration: timeoutGeneration)
-    }
-
-    private static func photoPhase(from state: SessionState) -> PhotoPhase {
-        switch state {
-        case let .cameraTakingPic(sendMediaToPeer, generation):
-            return .takingPic(sendMediaToPeer: sendMediaToPeer, generation: generation)
-        case .scanning, .reconnecting, .waitingForLobby, .lobby:
-            return .scanning
-        default:
-            return .camera
-        }
     }
 
     /// Map a coordinator message to a model event, or nil when the model does

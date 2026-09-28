@@ -25,78 +25,9 @@ enum MonitorMode: Equatable {
     case video
 }
 
-/// The session's complete state space — every `become` state of the old
-/// Theater machine as a compiler-checked case. Transient states carry their
-/// timeout generation; states whose "stack parent" varies carry where they
-/// return to.
-///
-/// The photo round trip is also written down as a checked model in
-/// `SessionModel/`, where `swift test` explores every order these events can
-/// arrive in and prints the shortest sequence that breaks a rule. Start with
-/// that package's README; the plan for routing this coordinator through it is
-/// `Docs/correcto-integration.md`. The model is not wired in yet: this enum is
-/// still the only state that runs.
-enum SessionState: Equatable {
-    case waitingForLobby
-    case lobby
-    case scanning
-    /// The session peer's link ended and we want it back. Distinct from
-    /// `scanning` because the difference matters later: scanning wants any
-    /// peer, this wants one, and the machine put itself here rather than the
-    /// user asking for it.
-    case reconnecting(peer: MCPeerID)
-    case connected
-
-    // Camera family
-    case camera
-    case cameraTakingPic(sendMediaToPeer: Bool, generation: Int)
-    case cameraRecordingVideo
-    case cameraTransmittingVideo
-
-    // Watch family (no transport, no lobby)
-    case watchCamera
-    case watchCameraTakingPic(generation: Int)
-    case watchCameraStartingVideo(generation: Int)
-    case watchCameraRecordingVideo(stopGeneration: Int?)
-
-    /// The old state-name vocabulary, for tests and logs.
-    var name: RemoteCamState {
-        switch self {
-        case .waitingForLobby: return .idle
-        case .lobby: return .idle
-        case .scanning: return .scanning
-        case .reconnecting: return .reconnecting
-        case .connected: return .connected
-        case .camera: return .camera
-        case .cameraTakingPic: return .cameraTakingPic
-        case .cameraRecordingVideo: return .cameraRecordingVideo
-        case .cameraTransmittingVideo: return .cameraTransmittingVideo
-        case .watchCamera: return .watchRemoteCamera
-        case .watchCameraTakingPic: return .watchRemoteCameraTakingPic
-        case .watchCameraStartingVideo: return .watchRemoteCameraStartingVideo
-        case .watchCameraRecordingVideo: return .watchRemoteCameraRecordingVideo
-        }
-    }
-
-    /// The peer we are waiting for, when that is what we are doing.
-    var awaitedPeer: MCPeerID? {
-        if case .reconnecting(let peer) = self { return peer }
-        return nil
-    }
-
-    /// The camera family. The camera is a SERVER: it holds its post through a
-    /// peer drop (any of these states) and merely reports its truth; only the
-    /// monitor — the dialer — treats a dead link as a reason to return to the
-    /// scanner. `.reconnecting` is therefore a monitor-only state.
-    var isCameraRole: Bool {
-        switch self {
-        case .camera, .cameraTakingPic, .cameraRecordingVideo, .cameraTransmittingVideo:
-            return true
-        default:
-            return false
-        }
-    }
-}
+// `SessionState` and `RemoteCamState` live in the `SessionModel` package, so
+// the coordinator and the checker share one definition instead of two that can
+// drift. See SessionModel/README.md.
 
 // MARK: - Internal messages
 

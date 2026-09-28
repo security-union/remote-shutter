@@ -88,7 +88,7 @@ final class PhotoSliceTests: XCTestCase {
     static func alertRule<M: Model>() -> WorldInvariant<M, PhotoEnv> where M.State == PhotoState {
         WorldInvariant("an alert is up only while taking a picture") { world in
             guard let state = world.machines[cam] else { return true }
-            if case .takingPic = state.phase { return true }
+            if case .cameraTakingPic = state.phase { return true }
             return !state.alertUp
         }
     }
@@ -108,7 +108,7 @@ final class PhotoSliceTests: XCTestCase {
     where M.State == PhotoState, M.Event == PhotoEvent {
         TransitionInvariant("a timeout for a stale generation changes nothing") { transition in
             guard case let .stateTimeout(fired) = transition.event else { return true }
-            guard case let .takingPic(_, current) = transition.before.phase else { return true }
+            guard case let .cameraTakingPic(_, current) = transition.before.phase else { return true }
             if fired == current { return true }
             return transition.after == transition.before
         }
