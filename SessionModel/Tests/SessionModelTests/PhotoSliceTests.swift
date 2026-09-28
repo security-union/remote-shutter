@@ -9,7 +9,7 @@ import XCTest
 /// Two jobs. `PhotoCamera` must keep every rule over every reachable state.
 /// And the checker, given only those rules, must rediscover the two defects a
 /// person already found and reproduced on the simulator in
-/// `CorrectoReproductionTests`, which is what `PhotoCameraAsShipped` is for. A
+/// `CorrectoReproductionTests`, which is what `PhotoCameraBuggy` is for. A
 /// checker that cannot find bugs we already have has no business being trusted
 /// on the ones nobody has.
 final class PhotoSliceTests: XCTestCase {
@@ -117,7 +117,7 @@ final class PhotoSliceTests: XCTestCase {
     // MARK: - Acceptance: the checker must rediscover both defects
 
     func testCheckerFindsTheOrphanedAlert() {
-        let checker = Explorer<PhotoCameraAsShipped, PhotoEnv>(
+        let checker = Explorer<PhotoCameraBuggy, PhotoEnv>(
             environment: Self.environment(), invariants: [Self.alertRule()])
         let report = checker.explore(from: Self.world())
 
@@ -129,7 +129,7 @@ final class PhotoSliceTests: XCTestCase {
     }
 
     func testCheckerFindsTheLostPhoto() {
-        let checker = Explorer<PhotoCameraAsShipped, PhotoEnv>(
+        let checker = Explorer<PhotoCameraBuggy, PhotoEnv>(
             environment: Self.environment(), invariants: [Self.noLostCaptureRule()])
         let report = checker.explore(from: Self.world(disconnects: 0))
 

@@ -589,6 +589,13 @@ public actor SessionCoordinator {
             cameraTimerTickTask?.cancel()
             cameraTimerTickTask = nil
         }
+        // The "Taking picture" modal belongs to `.cameraTakingPic`, so leaving
+        // it takes the modal down and nothing else has to remember to. The
+        // in-state handlers dismiss before they transition; this catches the
+        // doors that do not go through them, `popToScanning` and a failed send.
+        if case .cameraTakingPic = previous, newState.name != .cameraTakingPic {
+            await dismissCameraAlert()
+        }
         SessionDebug.stateChanged(newState.name.rawValue)
         publishWaitingOverlay()
         await didEnter(newState, from: previous)
@@ -676,6 +683,8 @@ public actor SessionCoordinator {
         // the latch survives a transient director drop.
         cameraDriver = .solo
         pendingSyncMetadata = nil
+        pendingVideoSyncMetadata = nil
+        lastMulticamClipURL = nil
         switch state {
         case .scanning:
             // Already there — re-entering would restart discovery and reset
@@ -1027,6 +1036,13 @@ public actor SessionCoordinator {
                     RemoteCmd.StartRecordingVideoAck(sender: nil, refusal: .microphonedenied))
                 break
             }
+            // An ordinary recording belongs to no synced capture. The slot is
+            // kept across a send so `RequestVideoResend` can still answer, so
+            // it is this start that has to clear it, or the clip inherits a
+            // finished multicam take's filename and camera index.
+            pendingVideoSyncMetadata = nil
+            lastMulticamClipURL = nil
+            ctrl.setVideoSyncMetadata(nil)
             ctrl.currentCameraMode = .Video
             ctrl.updateCameraStatus()
             ctrl.startRecordingVideo()
@@ -1043,6 +1059,14 @@ public actor SessionCoordinator {
             let generation = scheduleTimeout(.cameraTakingPic)
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
             await transition(to: .cameraTakingPic(sendMediaToPeer: pic.sendMediaToPeer, generation: generation))
+
+        case let picture as UICmd.OnPicture:
+            // A capture finished after its watchdog already settled us back
+            // here. The shutter still fired, so the bytes are real and are
+            // saved; the monitor was told about the timeout and is not told
+            // again. Mirrors the Watch path, which has always done this.
+            pendingSyncMetadata = nil
+            if let pic = picture.pic { photoLibrarySaver(pic) }
 
         case let scheduled as RemoteCmd.ScheduledCapture:
             await handleScheduledCapture(scheduled)

@@ -7,28 +7,28 @@ betting a shipped app on one. Companion to `Docs/ARCHITECTURE.md` (what the app 
 Correcto lives at `../correcto`. Its design is in that repo's `docs/DESIGN.md`; shadow
 mode, which phase zero below depends on, is in its `docs/SHADOW-MODE.md`.
 
-**Status.** The photo slice is modelled and checked in `SessionModel/`, and the checker
-finds both known defects from the rules alone. Start at `SessionModel/README.md`, which
+**Status.** Three defects found, reproduced and fixed. The photo slice is modelled and
+checked in `SessionModel/`, and the checker rediscovers two of them from the rules alone
+when they are switched back on. Start at `SessionModel/README.md`, which
 is the onboarding document: how to run it, the machine as a diagram, and how to read a
 counterexample. Shadow mode and wiring the app target to the package are next.
 
 ## Why
 
 Not theory. Reading the coordinator with a checker's rules in mind, and then writing the
-sequences as tests, produced three defects that reproduce on the simulator today. They
-are in `RemoteCamTests/RemoteCamSessionTests.swift` under `CorrectoReproductionTests`.
+sequences as tests, produced three defects that reproduced on the simulator. All three
+are fixed in this change; the tests that found them are now regression tests.
 
-| Defect | Sequence | Effect |
-|---|---|---|
-| Orphaned alert | capture, then `EndSession` from the peer | "Taking picture" stays on screen; `alertHandle` is never cleared, so a later capture orphans it for good |
-| Orphaned alert, second route | capture, then any failed send | same, via `sendOrGoToScanning` |
-| Lost photo | capture outlives its 10s watchdog, bytes arrive after | `inCamera` has no `OnPicture` case; the photo is dropped |
-| Stale multicam identity | any multicam take, then any later ordinary clip | the clip goes out as `RS_session-_capture-_cam2.mov`, delayed 2s by the old camera index, and the monitor drops it, so the camera never leaves `.cameraTransmittingVideo` |
+| Defect | Sequence | Was | Fix |
+|---|---|---|---|
+| Orphaned alert | capture, then `EndSession` or any failed send | the modal stayed up, and `alertHandle` was never cleared so a later capture orphaned it for good | `transition(to:)` takes the alert down when leaving `.cameraTakingPic`, whichever door it leaves by |
+| Lost photo | capture outlives its 10s watchdog, bytes arrive after | `inCamera` had no `OnPicture` case and the photo was dropped | `inCamera` saves it, the way the Watch path always has |
+| Stale multicam identity | any multicam take, then any later ordinary clip | the clip went out as `RS_session-_capture-_cam2.mov`, 2s late from the old camera index, and the monitor dropped it so the camera never left `.cameraTransmittingVideo` | an ordinary recording clears the slot on start, and `popToScanning` clears it when the session ends |
 
-Two of the three are the same story: one code path learned a lesson its sibling never
-did. `pendingSyncMetadata` is cleared in three places and `pendingVideoSyncMetadata` in
-none. The Watch saves a late picture on purpose, with a test; the phone drops it. Nothing
-prevents that recurring, because the rule was never written where a machine could read it.
+The first two were the same story: one code path learned a lesson its sibling never did.
+`pendingSyncMetadata` was cleared in three places and `pendingVideoSyncMetadata` in none.
+The Watch saved a late picture on purpose and the phone dropped it. Writing the rule down
+is what stops that recurring, because the rule is now checked rather than remembered.
 
 ## What we already have
 

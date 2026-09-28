@@ -1359,38 +1359,21 @@ class SessionReconnectTests: XCTestCase {
 
 // MARK: - Correcto reproductions
 
-/// Reproductions of defects found by reading `SessionCoordinator` with a model
-/// checker's rules in mind, rather than by reading it for bugs.
+/// Regression tests for three defects found by reading `SessionCoordinator`
+/// with a model checker's rules in mind, rather than by reading it for bugs.
 ///
-/// Each test states the rule it is checking as a sentence, the way an invariant
-/// would be written, and then drives the real coordinator through the real inbox
-/// until the rule breaks. They are expected to FAIL against the current code.
+/// Each test states the rule it guards as a sentence, the way an invariant is
+/// written, then drives the real coordinator through the real inbox until that
+/// rule would break. All three failed before the fixes in this change.
 ///
-/// They exist for two reasons. They turn three static traces into reproductions
-/// on the simulator. And when a Correcto model of this slice lands, the checker
-/// must rediscover these same sequences from the rules alone: they are the ground
-/// truth that says the tool works before it is trusted on anything unknown.
+/// The same rules are checked exhaustively, over every order these events can
+/// arrive in, by `SessionModel`. These tests pin the behaviour in the app; the
+/// model proves no order can reach it.
 final class CorrectoReproductionTests: XCTestCase {
 
     private var harness: CoordinatorHarness!
     private var camera: FakeCameraControlling!
     private var savedPhotos: [Data] = []
-
-    // Each defect is marked with XCTExpectFailure so this suite documents it
-    // without turning CI red. When one is fixed the test fails as an
-    // unexpected pass, which is the prompt to delete its marker.
-
-    static let alertDefect = """
-        Known defect: showCameraAlert runs on the way into .cameraTakingPic and every         dismissCameraAlert is inside that state's own handler, so popToScanning and         sendOrGoToScanning leave the modal up. alertHandle is not cleared either, so a         later capture orphans it for good. See Docs/correcto-integration.md.
-        """
-
-    static let lostPhotoDefect = """
-        Known defect: inCamera has no OnPicture case, so a capture that outlives its ten         second watchdog is dropped and the photo is lost. The Watch path handles this         deliberately and has a test for it. See Docs/correcto-integration.md.
-        """
-
-    static let staleMetadataDefect = """
-        Known defect: pendingVideoSyncMetadata is written when a scheduled multicam         recording fires and cleared nowhere, not even by popToScanning, and the generic         send path reads it unguarded. See Docs/correcto-integration.md.
-        """
 
     override func setUp() async throws {
         try await super.setUp()
@@ -1444,12 +1427,10 @@ final class CorrectoReproductionTests: XCTestCase {
 
         let after = await harness.stateName()
         XCTAssertNotEqual(after, .cameraTakingPic, "the goodbye must leave the capture state")
-        XCTExpectFailure(Self.alertDefect) {
-            XCTAssertTrue(
-                harness.alerts.shownAlerts.allSatisfy { $0.dismissed },
-                "leaving the capture state must dismiss its alert; landed in \(after) with "
-                    + "\(harness.alerts.shownAlerts.filter { !$0.dismissed }.count) still on screen")
-        }
+        XCTAssertTrue(
+            harness.alerts.shownAlerts.allSatisfy { $0.dismissed },
+            "leaving the capture state must dismiss its alert; landed in \(after) with "
+                + "\(harness.alerts.shownAlerts.filter { !$0.dismissed }.count) still on screen")
     }
 
     /// The same rule, reached the other way: a send that fails pops to scanning
@@ -1463,11 +1444,9 @@ final class CorrectoReproductionTests: XCTestCase {
 
         let after = await harness.stateName()
         XCTAssertNotEqual(after, .cameraTakingPic, "the failed send must leave the capture state")
-        XCTExpectFailure(Self.alertDefect) {
-            XCTAssertTrue(
-                harness.alerts.shownAlerts.allSatisfy { $0.dismissed },
-                "leaving the capture state must dismiss its alert; landed in \(after)")
-        }
+        XCTAssertTrue(
+            harness.alerts.shownAlerts.allSatisfy { $0.dismissed },
+            "leaving the capture state must dismiss its alert; landed in \(after)")
     }
 
     // MARK: - Rule: a capture that produced bytes never loses them
@@ -1490,11 +1469,9 @@ final class CorrectoReproductionTests: XCTestCase {
         // The hardware was slow, not broken. The bytes exist.
         await harness.deliver(UICmd.OnPicture(sender: nil, pic: Data([0xFF, 0xD8, 0xFF])))
 
-        XCTExpectFailure(Self.lostPhotoDefect) {
-            XCTAssertEqual(
-                savedPhotos.count, 1,
-                "a picture that arrives after its watchdog must still reach the library")
-        }
+        XCTAssertEqual(
+            savedPhotos.count, 1,
+            "a picture that arrives after its watchdog must still reach the library")
     }
 
     // MARK: - Rule: a clip belongs to the capture that produced it
@@ -1545,16 +1522,14 @@ final class CorrectoReproductionTests: XCTestCase {
         let name = harness.fakeMP.sentResources.first?.name
 
         XCTAssertNotNil(name, "precondition: the clip was handed to the transport")
-        XCTExpectFailure(Self.staleMetadataDefect) {
-            XCTAssertNotNil(
-                immediate,
-                "an ordinary clip must not be delayed by a previous multicam session's "
-                    + "camera index; it only reached the transport after a stagger")
-            XCTAssertTrue(
-                name?.hasPrefix("video_") == true,
-                "an ordinary clip must not inherit a previous multicam session's identity; "
-                    + "it went out as \(name ?? "nil")")
-        }
+        XCTAssertNotNil(
+            immediate,
+            "an ordinary clip must not be delayed by a previous multicam session's "
+                + "camera index; it only reached the transport after a stagger")
+        XCTAssertTrue(
+            name?.hasPrefix("video_") == true,
+            "an ordinary clip must not inherit a previous multicam session's identity; "
+                + "it went out as \(name ?? "nil")")
     }
 
     /// Not a defect by itself: the camera waits for the receiver to echo before

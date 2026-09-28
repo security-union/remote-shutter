@@ -2,12 +2,13 @@ import Correcto
 
 /// The photo round trip, as a state machine.
 ///
-/// `PhotoCamera` is the model: one pure function, correct. The two places where
-/// `SessionCoordinator` currently behaves differently are parameters rather
-/// than a second copy of the machine, so `PhotoCameraAsShipped` is the same
-/// body with those two switched off. That variant exists only so the checker
-/// can be held to a standard: given the rules alone it must rediscover the
-/// defects `CorrectoReproductionTests` reproduces on the simulator.
+/// `PhotoCamera` is the model: one pure function, correct, and the coordinator
+/// now matches it. The two behaviours it used to get wrong are parameters
+/// rather than a second copy of the machine, so `PhotoCameraBuggy` is the same
+/// body with both switched off. That variant is a deliberate regression kept
+/// for one purpose: the checker must rediscover, from the rules alone, the
+/// defects that `CorrectoReproductionTests` now guards against. A checker that
+/// cannot find bugs we already fixed should not be believed about new ones.
 ///
 /// The peer is the environment rather than a second machine in this slice.
 /// Nothing here decides on peer identity, only on whether a peer is there, so
@@ -76,9 +77,9 @@ public enum PhotoEffect: Hashable, Codable, Sendable {
 
 // MARK: - The machine
 
-/// The two behaviours where the coordinator and the model disagree today. Both
-/// are `true` in the model that matters; `CorrectoReproductionTests` shows them
-/// `false` in the app.
+/// The two behaviours the coordinator used to get wrong. Both are `true` in
+/// the model and in the app; `.buggy` switches them off so the checker can be
+/// held to finding them.
 public struct PhotoBehaviour: Hashable, Sendable {
     /// Abandoning a capture takes its alert down, whichever door it leaves by.
     public let dismissesAlertOnAbort: Bool
@@ -87,7 +88,7 @@ public struct PhotoBehaviour: Hashable, Sendable {
     public let savesLatePicture: Bool
 
     public static let correct = PhotoBehaviour(dismissesAlertOnAbort: true, savesLatePicture: true)
-    public static let asShipped = PhotoBehaviour(dismissesAlertOnAbort: false, savesLatePicture: false)
+    public static let buggy = PhotoBehaviour(dismissesAlertOnAbort: false, savesLatePicture: false)
 }
 
 public func photoStep(
@@ -166,10 +167,10 @@ public enum PhotoCamera: Model {
     }
 }
 
-/// The same machine with the two known defects switched back on, so the checker
-/// can be held to finding them. Not a description of what we intend to ship.
-public enum PhotoCameraAsShipped: Model {
+/// A deliberate regression. Not shipped, not intended; it exists so the
+/// acceptance tests can prove the checker finds these two defects.
+public enum PhotoCameraBuggy: Model {
     public static func step(_ state: PhotoState, _ event: PhotoEvent) -> Step<PhotoState, PhotoEffect> {
-        photoStep(state, event, .asShipped)
+        photoStep(state, event, .buggy)
     }
 }

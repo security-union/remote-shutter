@@ -14,9 +14,9 @@ is already here.
 cd SessionModel && swift test
 ```
 
-Four tests, about three milliseconds. Two of them deliberately hunt for bugs that are in
-`SessionCoordinator` today, and they print the sequence that causes each one. That output
-is the point of this package, so read it before reading any of the code.
+Four tests, about three milliseconds. Two of them hunt for bugs the coordinator used to have, using
+`PhotoCameraBuggy`, and they print the sequence that causes each. That output is the point
+of this package, so read it before reading any of the code.
 
 ## The machine
 
@@ -43,7 +43,7 @@ behaves differently today: abandoning a capture does not dismiss the alert, and 
 arriving after the watchdog is dropped along with the photo.
 
 Rather than keep a second copy of the machine, those two are parameters on `photoStep`.
-`PhotoCameraAsShipped` is the same body with both switched off, and it exists for exactly
+`PhotoCameraBuggy` is the same body with both switched off, and it exists for exactly
 one reason: the checker has to be held to finding the defects we already know about. If it
 cannot rediscover those, it should not be believed about anything else.
 
@@ -90,12 +90,13 @@ In `PhotoSliceTests.swift`. Three sentences, and it is worth knowing why each ex
 
 | Rule | Catches | Enforced in the app by |
 |---|---|---|
-| An alert is up only while taking a picture | the stranded "Taking picture" modal | `dismissCameraAlert()` called in three places, all inside one state's handler |
-| When nothing more can happen, no capture is unaccounted for | a photo lost because it arrived after the watchdog | nothing |
-| A timeout for a stale generation changes nothing | a late watchdog killing the wrong state | the generation in the state payload, which works |
+| An alert is up only while taking a picture | the stranded "Taking picture" modal | `transition(to:)`, which dismisses on leaving the capture by any door |
+| When nothing more can happen, no capture is unaccounted for | a photo lost because it arrived after the watchdog | `inCamera`'s `OnPicture` case, which saves it |
+| A timeout for a stale generation changes nothing | a late watchdog killing the wrong state | the generation in the state payload |
 
-The third one passes. It is the checker agreeing with a decision the team made years ago,
-and it is there so that a future change cannot quietly undo it.
+All three hold in the app today; the first two only since the change that added this
+package. They are here so a future edit cannot quietly undo any of them, which is the
+whole reason to write a rule down rather than fix a bug and move on.
 
 The second one is a terminal rule, meaning it is only checked when nothing more can
 happen. Note that neither of the other two would have caught a lost photo: a list of
