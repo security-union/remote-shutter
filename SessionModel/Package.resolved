@@ -1,0 +1,13 @@
+{
+  "pins" : [
+    {
+      "identity" : "correcto",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/security-union/correcto.git",
+      "state" : {
+        "revision" : "b2c67c6482635d17db027b37ef88fd1ce95151ce"
+      }
+    }
+  ],
+  "version" : 2
+}

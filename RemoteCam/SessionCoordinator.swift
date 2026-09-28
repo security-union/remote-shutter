@@ -28,6 +28,13 @@ enum MonitorMode: Equatable {
 /// Theater machine as a compiler-checked case. Transient states carry their
 /// timeout generation; states whose "stack parent" varies carry where they
 /// return to.
+///
+/// The photo round trip is also written down as a checked model in
+/// `SessionModel/`, where `swift test` explores every order these events can
+/// arrive in and prints the shortest sequence that breaks a rule. Start with
+/// that package's README; the plan for routing this coordinator through it is
+/// `Docs/correcto-integration.md`. The model is not wired in yet: this enum is
+/// still the only state that runs.
 enum SessionState: Equatable {
     case waitingForLobby
     case lobby
