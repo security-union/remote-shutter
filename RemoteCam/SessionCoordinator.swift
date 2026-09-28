@@ -11,6 +11,7 @@
 
 import Foundation
 import MPCCompat
+import SessionModel
 import Stormo
 import Combine
 import UIKit
@@ -199,6 +200,10 @@ public actor SessionCoordinator {
     /// saved under its `RS_<sess>_<cap>_cam<k>` filename. Nil for ordinary
     /// single-camera captures, which save exactly as before.
     private var pendingSyncMetadata: CaptureSyncMetadata?
+    /// The shutter fired and the hardware has not answered yet. Survives the
+    /// watchdog on purpose: a slow capture still produces bytes, and they are
+    /// saved when they land. Read by the model shadow, see SessionShadow.swift.
+    private(set) var captureOutstanding = false
     /// The sync metadata for the multicam clip currently being recorded, used
     /// to name its auto-collect transfer (`RS_…cam<k>.mov`) and to stagger the
     /// send by camera index. Kept until the next recording so a director retry
@@ -450,6 +455,7 @@ public actor SessionCoordinator {
     /// The peer this session is about: the one we are talking to or dialing, or
     /// the one we are waiting for.
     private var peer: MCPeerID? { link.peer ?? state.awaitedPeer }
+    var currentPeer: MCPeerID? { peer }
 
     private var peerLinkStatus: PeerLinkStatus = .shared
     private var reconnectRetryTask: Task<Void, Never>?
@@ -558,7 +564,23 @@ public actor SessionCoordinator {
 
     // MARK: Timeouts
 
-    private var timeoutGeneration = 0
+    private(set) var timeoutGeneration = 0
+
+    /// The photo slice's model, running beside this coordinator and deciding
+    /// nothing. Nil unless `startShadowingPhotoSlice` was called, so it costs
+    /// nothing in a build that does not want it. See SessionShadow.swift.
+    private var shadow: ShadowRuntime<PhotoCamera>?
+
+    /// Attach the model. Seeded from a projection of the live state rather
+    /// than the model's initial state, because this attaches to a coordinator
+    /// that is already running.
+    func startShadowingPhotoSlice(
+        report: @escaping @Sendable (ShadowRuntime<PhotoCamera>.Divergence) -> Void
+    ) {
+        shadow = PhotoShadow.make(seededWith: projectPhotoState(), report: report)
+    }
+
+    func stopShadowingPhotoSlice() { shadow = nil }
 
     /// Arms a 10s watchdog; the generation invalidates stale timers.
     private func scheduleTimeout(_ name: RemoteCamState) -> Int {
@@ -682,6 +704,7 @@ public actor SessionCoordinator {
         // says otherwise. A reconnect goes through `.reconnecting`, not here, so
         // the latch survives a transient director drop.
         cameraDriver = .solo
+        captureOutstanding = false
         pendingSyncMetadata = nil
         pendingVideoSyncMetadata = nil
         lastMulticamClipURL = nil
@@ -708,6 +731,15 @@ public actor SessionCoordinator {
         if !(msg is RemoteCmd.SendFrame || msg is RemoteCmd.RequestFrame) {
             logInfo("session rx \(type(of: msg)) [\(currentStateName())]")
         }
+        let shadowEvent = shadow == nil ? nil : photoEvent(for: msg)
+        await handleLegacy(msg)
+        // The model sees what already happened. It performs nothing, so it
+        // cannot change any of it; it only says where it and the app disagree,
+        // and whether a rule broke on the state the app really reached.
+        await shadow?.observe(event: shadowEvent, observed: projectPhotoState())
+    }
+
+    private func handleLegacy(_ msg: Message) async {
         switch state {
         case .waitingForLobby:
             await inWaitingForLobby(msg)
@@ -1055,12 +1087,14 @@ public actor SessionCoordinator {
         case let pic as RemoteCmd.TakePic:
             ctrl.currentCameraMode = .Photo
             ctrl.updateCameraStatus()
+            captureOutstanding = true
             ctrl.takePicture(pic.sendMediaToPeer)
             let generation = scheduleTimeout(.cameraTakingPic)
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
             await transition(to: .cameraTakingPic(sendMediaToPeer: pic.sendMediaToPeer, generation: generation))
 
         case let picture as UICmd.OnPicture:
+            captureOutstanding = false
             // A capture finished after its watchdog already settled us back
             // here. The shutter still fired, so the bytes are real and are
             // saved; the monitor was told about the timeout and is not told
@@ -1089,6 +1123,7 @@ public actor SessionCoordinator {
             pendingSyncMetadata = fire.metadata
             ctrl.currentCameraMode = .Photo
             ctrl.updateCameraStatus()
+            captureOutstanding = true
             ctrl.takePicture(fire.sendMediaToPeer)
             let generation = scheduleTimeout(.cameraTakingPic)
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
@@ -1483,6 +1518,7 @@ public actor SessionCoordinator {
             await transition(to: .camera)
 
         case let picture as UICmd.OnPicture:
+            captureOutstanding = false
             // A scheduled multicam capture stamps the still with its sync
             // metadata once; that same stamped image is saved locally under the
             // shared RS_<sess>_<cap>_cam<k> name AND returned to the director so
@@ -1762,6 +1798,8 @@ public actor SessionCoordinator {
     // preview they are framing with.
 
     private var alertHandle: AlertHandle?
+    /// Whether the capture modal is on screen, without handing out the handle.
+    var hasCameraAlert: Bool { alertHandle != nil }
 
     private func showCameraAlert(_ title: String) async {
         let presenter = alertPresenter
@@ -2109,6 +2147,7 @@ public actor SessionCoordinator {
         switch msg {
         case is RemoteCmd.TakePic:
             ctrl.currentCameraMode = .Photo
+            captureOutstanding = true
             ctrl.takePicture(false)
             let generation = scheduleTimeout(.watchRemoteCameraTakingPic)
             await transition(to: .watchCameraTakingPic(generation: generation))
@@ -2138,6 +2177,7 @@ public actor SessionCoordinator {
             await pushWatchState()
 
         case let picture as UICmd.OnPicture:
+            captureOutstanding = false
             // A capture finished after its sub-state already timed out —
             // correct the Watch with a truthful event.
             if let pic = picture.pic {
@@ -2193,6 +2233,7 @@ public actor SessionCoordinator {
 
         switch msg {
         case let picture as UICmd.OnPicture:
+            captureOutstanding = false
             if let pic = picture.pic {
                 photoLibrarySaver(pic)
                 await pushWatchState(event: .phototaken)

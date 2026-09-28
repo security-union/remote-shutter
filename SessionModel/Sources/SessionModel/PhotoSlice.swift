@@ -1,18 +1,18 @@
 import Correcto
 
-/// The photo round trip, as a state machine.
-///
-/// `PhotoCamera` is the model: one pure function, correct, and the coordinator
-/// now matches it. The two behaviours it used to get wrong are parameters
-/// rather than a second copy of the machine, so `PhotoCameraBuggy` is the same
-/// body with both switched off. That variant is a deliberate regression kept
-/// for one purpose: the checker must rediscover, from the rules alone, the
-/// defects that `CorrectoReproductionTests` now guards against. A checker that
-/// cannot find bugs we already fixed should not be believed about new ones.
-///
-/// The peer is the environment rather than a second machine in this slice.
-/// Nothing here decides on peer identity, only on whether a peer is there, so
-/// `Stormo.PeerID` is not needed yet.
+// The photo round trip, as a state machine.
+//
+// `PhotoCamera` is the model: one pure function, correct, and the coordinator
+// now matches it. The two behaviours it used to get wrong are parameters
+// rather than a second copy of the machine, so `PhotoCameraBuggy` is the same
+// body with both switched off. That variant is a deliberate regression kept
+// for one purpose: the checker must rediscover, from the rules alone, the
+// defects that `CorrectoReproductionTests` now guards against. A checker that
+// cannot find bugs we already fixed should not be believed about new ones.
+//
+// The peer is the environment rather than a second machine in this slice.
+// Nothing here decides on peer identity, only on whether a peer is there, so
+// `Stormo.PeerID` is not needed yet.
 
 // MARK: - State
 
@@ -91,6 +91,7 @@ public struct PhotoBehaviour: Hashable, Sendable {
     public static let buggy = PhotoBehaviour(dismissesAlertOnAbort: false, savesLatePicture: false)
 }
 
+// swiftlint:disable:next cyclomatic_complexity
 public func photoStep(
     _ state: PhotoState, _ event: PhotoEvent, _ behaviour: PhotoBehaviour
 ) -> Step<PhotoState, PhotoEffect> {
@@ -105,7 +106,7 @@ public func photoStep(
         next.captureOutstanding = true
         return Step(next, [
             .armTimeout(generation: next.timeoutGeneration), .showAlert,
-            .takePicture(sendToPeer: send),
+            .takePicture(sendToPeer: send)
         ])
 
     case (.takingPic, .pictureCaptured):

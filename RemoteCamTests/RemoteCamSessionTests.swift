@@ -12,6 +12,7 @@
 
 import XCTest
 import MPCCompat
+import SessionModel
 import Stormo
 
 @testable import RemoteShutter
@@ -1369,6 +1370,17 @@ class SessionReconnectTests: XCTestCase {
 /// The same rules are checked exhaustively, over every order these events can
 /// arrive in, by `SessionModel`. These tests pin the behaviour in the app; the
 /// model proves no order can reach it.
+/// Collects shadow reports from the coordinator's actor context.
+final class DivergenceLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var lines: [String] = []
+    func append(_ divergence: ShadowRuntime<PhotoCamera>.Divergence) {
+        lock.lock(); defer { lock.unlock() }
+        lines.append(PhotoShadow.describe(divergence))
+    }
+    var all: [String] { lock.lock(); defer { lock.unlock() }; return lines }
+}
+
 final class CorrectoReproductionTests: XCTestCase {
 
     private var harness: CoordinatorHarness!
@@ -1530,6 +1542,42 @@ final class CorrectoReproductionTests: XCTestCase {
             name?.hasPrefix("video_") == true,
             "an ordinary clip must not inherit a previous multicam session's identity; "
                 + "it went out as \(name ?? "nil")")
+    }
+
+    // MARK: - Shadow mode: the model runs beside the coordinator and decides nothing
+
+    /// The shadow watches every message, compares the model's prediction to
+    /// what the coordinator actually did, and checks the rules against reality.
+    /// A clean photo round trip must produce no report at all.
+    func testShadowAgreesWithTheCoordinatorOnACleanCapture() async {
+        let reports = DivergenceLog()
+        await enterCameraForRepro()
+        await harness.coordinator.startShadowingPhotoSlice { reports.append($0) }
+
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
+        await harness.deliver(UICmd.OnPicture(sender: nil, pic: Data([0xFF, 0xD8, 0xFF])))
+
+        XCTAssertEqual(reports.all, [], "the model must agree with the coordinator")
+    }
+
+    /// And it is not silent by construction. A message the model does not own
+    /// yet still moves the app, and the shadow says so, which is how the next
+    /// slice gets chosen.
+    func testShadowReportsAMessageTheModelDoesNotOwn() async {
+        let reports = DivergenceLog()
+        await enterCameraForRepro()
+        await harness.coordinator.startShadowingPhotoSlice { reports.append($0) }
+
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
+        // The model has a `sendFailed` event but `photoEvent(for:)` maps no
+        // message to it yet, so this send failure moves the app out of the
+        // capture with the model unaware. That gap is what the shadow is for.
+        harness.fakeMP.sendResult = false
+        await harness.deliver(RemoteCmd.ToggleFlash())
+
+        XCTAssertTrue(
+            reports.all.contains { $0.contains("unmodelled") },
+            "the shadow must notice an unowned message moving the app; got \(reports.all)")
     }
 
     /// Not a defect by itself: the camera waits for the receiver to echo before

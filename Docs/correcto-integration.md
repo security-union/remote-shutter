@@ -7,9 +7,11 @@ betting a shipped app on one. Companion to `Docs/ARCHITECTURE.md` (what the app 
 Correcto lives at `../correcto`. Its design is in that repo's `docs/DESIGN.md`; shadow
 mode, which phase zero below depends on, is in its `docs/SHADOW-MODE.md`.
 
-**Status.** Three defects found, reproduced and fixed. The photo slice is modelled and
-checked in `SessionModel/`, and the checker rediscovers two of them from the rules alone
-when they are switched back on. Start at `SessionModel/README.md`, which
+**Status.** Phase zero is done. Three defects found, reproduced and fixed; the photo
+slice is modelled and checked in `SessionModel/`; and the model now runs in the app,
+in shadow mode, deciding nothing. `SessionCoordinator.handle` observes every message
+and reports where the model and the app disagree. Phase one, routing those events
+through `step` for real, is next. Start at `SessionModel/README.md`, which
 is the onboarding document: how to run it, the machine as a diagram, and how to read a
 counterexample. Shadow mode and wiring the app target to the package are next.
 
@@ -99,12 +101,12 @@ peer becomes `linked: Bool` for the photo slice, since nothing in it decides on 
 Nothing changes behaviour first. The model runs beside the real code and reports where
 they disagree.
 
+This is the code, as it now stands in `SessionCoordinator.handle`:
+
 ```swift
-func handle(_ message: Message) async {
-    let event = SessionModel.event(from: message, in: await shadow.state)
-    await legacyHandle(message)                          // reality, untouched
-    await shadow.observe(event: event, observed: projectForShadow())
-}
+let shadowEvent = shadow == nil ? nil : photoEvent(for: msg)
+await handleLegacy(msg)
+await shadow?.observe(event: shadowEvent, observed: projectPhotoState())
 ```
 
 ```swift
