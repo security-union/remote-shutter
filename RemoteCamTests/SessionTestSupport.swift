@@ -48,9 +48,20 @@ class FakeMultipeerService: MultipeerServiceProtocol {
         sentMessages.append((msg, peers, mode))
         return sendResult
     }
+    /// Resource transfers the coordinator asked for, in order. The real service
+    /// names the transfer from the model's metadata, so the name is the
+    /// observable that says which capture a clip believes it belongs to.
+    var sentResources: [(url: URL, name: String, peer: MCPeerID)] = []
+    /// Set false to leave a transfer hanging instead of completing it.
+    var completesResourceSends = true
+
     func sendResource(at url: URL, withName name: String,
                       toPeer peer: MCPeerID,
-                      completion: @escaping (Error?) -> Void) -> Progress? { return nil }
+                      completion: @escaping (Error?) -> Void) -> Progress? {
+        sentResources.append((url: url, name: name, peer: peer))
+        if completesResourceSends { completion(nil) }
+        return nil
+    }
 }
 
 // MARK: - Fake AlertPresenter
