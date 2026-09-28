@@ -11,6 +11,7 @@
 
 import Foundation
 import MPCCompat
+import SessionModel
 import Stormo
 import Combine
 import UIKit
@@ -24,71 +25,9 @@ enum MonitorMode: Equatable {
     case video
 }
 
-/// The session's complete state space — every `become` state of the old
-/// Theater machine as a compiler-checked case. Transient states carry their
-/// timeout generation; states whose "stack parent" varies carry where they
-/// return to.
-enum SessionState: Equatable {
-    case waitingForLobby
-    case lobby
-    case scanning
-    /// The session peer's link ended and we want it back. Distinct from
-    /// `scanning` because the difference matters later: scanning wants any
-    /// peer, this wants one, and the machine put itself here rather than the
-    /// user asking for it.
-    case reconnecting(peer: MCPeerID)
-    case connected
-
-    // Camera family
-    case camera
-    case cameraTakingPic(sendMediaToPeer: Bool, generation: Int)
-    case cameraRecordingVideo
-    case cameraTransmittingVideo
-
-    // Watch family (no transport, no lobby)
-    case watchCamera
-    case watchCameraTakingPic(generation: Int)
-    case watchCameraStartingVideo(generation: Int)
-    case watchCameraRecordingVideo(stopGeneration: Int?)
-
-    /// The old state-name vocabulary, for tests and logs.
-    var name: RemoteCamState {
-        switch self {
-        case .waitingForLobby: return .idle
-        case .lobby: return .idle
-        case .scanning: return .scanning
-        case .reconnecting: return .reconnecting
-        case .connected: return .connected
-        case .camera: return .camera
-        case .cameraTakingPic: return .cameraTakingPic
-        case .cameraRecordingVideo: return .cameraRecordingVideo
-        case .cameraTransmittingVideo: return .cameraTransmittingVideo
-        case .watchCamera: return .watchRemoteCamera
-        case .watchCameraTakingPic: return .watchRemoteCameraTakingPic
-        case .watchCameraStartingVideo: return .watchRemoteCameraStartingVideo
-        case .watchCameraRecordingVideo: return .watchRemoteCameraRecordingVideo
-        }
-    }
-
-    /// The peer we are waiting for, when that is what we are doing.
-    var awaitedPeer: MCPeerID? {
-        if case .reconnecting(let peer) = self { return peer }
-        return nil
-    }
-
-    /// The camera family. The camera is a SERVER: it holds its post through a
-    /// peer drop (any of these states) and merely reports its truth; only the
-    /// monitor — the dialer — treats a dead link as a reason to return to the
-    /// scanner. `.reconnecting` is therefore a monitor-only state.
-    var isCameraRole: Bool {
-        switch self {
-        case .camera, .cameraTakingPic, .cameraRecordingVideo, .cameraTransmittingVideo:
-            return true
-        default:
-            return false
-        }
-    }
-}
+// `SessionState` and `RemoteCamState` live in the `SessionModel` package, so
+// the coordinator and the checker share one definition instead of two that can
+// drift. See SessionModel/README.md.
 
 // MARK: - Internal messages
 
@@ -192,6 +131,10 @@ public actor SessionCoordinator {
     /// saved under its `RS_<sess>_<cap>_cam<k>` filename. Nil for ordinary
     /// single-camera captures, which save exactly as before.
     private var pendingSyncMetadata: CaptureSyncMetadata?
+    /// The shutter fired and the hardware has not answered yet. Survives the
+    /// watchdog on purpose: a slow capture still produces bytes, and they are
+    /// saved when they land. Read by the model shadow, see SessionShadow.swift.
+    private(set) var captureOutstanding = false
     /// The sync metadata for the multicam clip currently being recorded, used
     /// to name its auto-collect transfer (`RS_…cam<k>.mov`) and to stagger the
     /// send by camera index. Kept until the next recording so a director retry
@@ -443,6 +386,7 @@ public actor SessionCoordinator {
     /// The peer this session is about: the one we are talking to or dialing, or
     /// the one we are waiting for.
     private var peer: MCPeerID? { link.peer ?? state.awaitedPeer }
+    var currentPeer: MCPeerID? { peer }
 
     private var peerLinkStatus: PeerLinkStatus = .shared
     private var reconnectRetryTask: Task<Void, Never>?
@@ -551,7 +495,23 @@ public actor SessionCoordinator {
 
     // MARK: Timeouts
 
-    private var timeoutGeneration = 0
+    private(set) var timeoutGeneration = 0
+
+    /// The photo slice's model, running beside this coordinator and deciding
+    /// nothing. Nil unless `startShadowingPhotoSlice` was called, so it costs
+    /// nothing in a build that does not want it. See SessionShadow.swift.
+    private var shadow: ShadowRuntime<PhotoCamera>?
+
+    /// Attach the model. Seeded from a projection of the live state rather
+    /// than the model's initial state, because this attaches to a coordinator
+    /// that is already running.
+    func startShadowingPhotoSlice(
+        report: @escaping @Sendable (ShadowRuntime<PhotoCamera>.Divergence) -> Void
+    ) {
+        shadow = PhotoShadow.make(seededWith: projectPhotoState(), report: report)
+    }
+
+    func stopShadowingPhotoSlice() { shadow = nil }
 
     /// Arms a 10s watchdog; the generation invalidates stale timers.
     private func scheduleTimeout(_ name: RemoteCamState) -> Int {
@@ -581,6 +541,13 @@ public actor SessionCoordinator {
         if case .cameraRecordingVideo = newState {} else {
             cameraTimerTickTask?.cancel()
             cameraTimerTickTask = nil
+        }
+        // The "Taking picture" modal belongs to `.cameraTakingPic`, so leaving
+        // it takes the modal down and nothing else has to remember to. The
+        // in-state handlers dismiss before they transition; this catches the
+        // doors that do not go through them, `popToScanning` and a failed send.
+        if case .cameraTakingPic = previous, newState.name != .cameraTakingPic {
+            await dismissCameraAlert()
         }
         SessionDebug.stateChanged(newState.name.rawValue)
         publishWaitingOverlay()
@@ -668,7 +635,10 @@ public actor SessionCoordinator {
         // says otherwise. A reconnect goes through `.reconnecting`, not here, so
         // the latch survives a transient director drop.
         cameraDriver = .solo
+        captureOutstanding = false
         pendingSyncMetadata = nil
+        pendingVideoSyncMetadata = nil
+        lastMulticamClipURL = nil
         switch state {
         case .scanning:
             // Already there — re-entering would restart discovery and reset
@@ -692,6 +662,15 @@ public actor SessionCoordinator {
         if !(msg is RemoteCmd.SendFrame || msg is RemoteCmd.RequestFrame) {
             logInfo("session rx \(type(of: msg)) [\(currentStateName())]")
         }
+        let shadowEvent = shadow == nil ? nil : photoEvent(for: msg)
+        await handleLegacy(msg)
+        // The model sees what already happened. It performs nothing, so it
+        // cannot change any of it; it only says where it and the app disagree,
+        // and whether a rule broke on the state the app really reached.
+        await shadow?.observe(event: shadowEvent, observed: projectPhotoState())
+    }
+
+    private func handleLegacy(_ msg: Message) async {
         switch state {
         case .waitingForLobby:
             await inWaitingForLobby(msg)
@@ -1020,6 +999,13 @@ public actor SessionCoordinator {
                     RemoteCmd.StartRecordingVideoAck(sender: nil, refusal: .microphonedenied))
                 break
             }
+            // An ordinary recording belongs to no synced capture. The slot is
+            // kept across a send so `RequestVideoResend` can still answer, so
+            // it is this start that has to clear it, or the clip inherits a
+            // finished multicam take's filename and camera index.
+            pendingVideoSyncMetadata = nil
+            lastMulticamClipURL = nil
+            ctrl.setVideoSyncMetadata(nil)
             ctrl.currentCameraMode = .Video
             ctrl.updateCameraStatus()
             ctrl.startRecordingVideo()
@@ -1032,10 +1018,20 @@ public actor SessionCoordinator {
         case let pic as RemoteCmd.TakePic:
             ctrl.currentCameraMode = .Photo
             ctrl.updateCameraStatus()
+            captureOutstanding = true
             ctrl.takePicture(pic.sendMediaToPeer)
             let generation = scheduleTimeout(.cameraTakingPic)
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
             await transition(to: .cameraTakingPic(sendMediaToPeer: pic.sendMediaToPeer, generation: generation))
+
+        case let picture as UICmd.OnPicture:
+            captureOutstanding = false
+            // A capture finished after its watchdog already settled us back
+            // here. The shutter still fired, so the bytes are real and are
+            // saved; the monitor was told about the timeout and is not told
+            // again. Mirrors the Watch path, which has always done this.
+            pendingSyncMetadata = nil
+            if let pic = picture.pic { photoLibrarySaver(pic) }
 
         case let scheduled as RemoteCmd.ScheduledCapture:
             await handleScheduledCapture(scheduled)
@@ -1058,6 +1054,7 @@ public actor SessionCoordinator {
             pendingSyncMetadata = fire.metadata
             ctrl.currentCameraMode = .Photo
             ctrl.updateCameraStatus()
+            captureOutstanding = true
             ctrl.takePicture(fire.sendMediaToPeer)
             let generation = scheduleTimeout(.cameraTakingPic)
             await showCameraAlert(NSLocalizedString("Taking picture", comment: ""))
@@ -1452,6 +1449,7 @@ public actor SessionCoordinator {
             await transition(to: .camera)
 
         case let picture as UICmd.OnPicture:
+            captureOutstanding = false
             // A scheduled multicam capture stamps the still with its sync
             // metadata once; that same stamped image is saved locally under the
             // shared RS_<sess>_<cap>_cam<k> name AND returned to the director so
@@ -1731,6 +1729,8 @@ public actor SessionCoordinator {
     // preview they are framing with.
 
     private var alertHandle: AlertHandle?
+    /// Whether the capture modal is on screen, without handing out the handle.
+    var hasCameraAlert: Bool { alertHandle != nil }
 
     private func showCameraAlert(_ title: String) async {
         let presenter = alertPresenter
@@ -2078,6 +2078,7 @@ public actor SessionCoordinator {
         switch msg {
         case is RemoteCmd.TakePic:
             ctrl.currentCameraMode = .Photo
+            captureOutstanding = true
             ctrl.takePicture(false)
             let generation = scheduleTimeout(.watchRemoteCameraTakingPic)
             await transition(to: .watchCameraTakingPic(generation: generation))
@@ -2107,6 +2108,7 @@ public actor SessionCoordinator {
             await pushWatchState()
 
         case let picture as UICmd.OnPicture:
+            captureOutstanding = false
             // A capture finished after its sub-state already timed out —
             // correct the Watch with a truthful event.
             if let pic = picture.pic {
@@ -2162,6 +2164,7 @@ public actor SessionCoordinator {
 
         switch msg {
         case let picture as UICmd.OnPicture:
+            captureOutstanding = false
             if let pic = picture.pic {
                 photoLibrarySaver(pic)
                 await pushWatchState(event: .phototaken)

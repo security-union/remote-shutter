@@ -7,6 +7,7 @@
 
 import Foundation
 import MPCCompat
+import SessionModel
 import Stormo
 import Combine
 import UIKit

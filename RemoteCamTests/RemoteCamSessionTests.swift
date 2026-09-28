@@ -12,6 +12,7 @@
 
 import XCTest
 import MPCCompat
+import SessionModel
 import Stormo
 
 @testable import RemoteShutter
@@ -1354,5 +1355,254 @@ class SessionReconnectTests: XCTestCase {
         XCTAssertFalse(harness.fakeMP.disconnectCalled)
         let state = await harness.stateName()
         XCTAssertEqual(state, .connected)
+    }
+}
+
+// MARK: - Correcto reproductions
+
+/// Regression tests for three defects found by reading `SessionCoordinator`
+/// with a model checker's rules in mind, rather than by reading it for bugs.
+///
+/// Each test states the rule it guards as a sentence, the way an invariant is
+/// written, then drives the real coordinator through the real inbox until that
+/// rule would break. All three failed before the fixes in this change.
+///
+/// The same rules are checked exhaustively, over every order these events can
+/// arrive in, by `SessionModel`. These tests pin the behaviour in the app; the
+/// model proves no order can reach it.
+/// Collects shadow reports from the coordinator's actor context.
+final class DivergenceLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var lines: [String] = []
+    func append(_ divergence: ShadowRuntime<PhotoCamera>.Divergence) {
+        lock.lock(); defer { lock.unlock() }
+        lines.append(PhotoShadow.describe(divergence))
+    }
+    var all: [String] { lock.lock(); defer { lock.unlock() }; return lines }
+}
+
+final class CorrectoReproductionTests: XCTestCase {
+
+    private var harness: CoordinatorHarness!
+    private var camera: FakeCameraControlling!
+    private var savedPhotos: [Data] = []
+
+    override func setUp() async throws {
+        try await super.setUp()
+        harness = await makeCoordinatorHarness()
+        camera = FakeCameraControlling()
+        savedPhotos = []
+        await harness.coordinator.setPhotoLibrarySaver { [weak self] data in
+            self?.savedPhotos.append(data)
+        }
+    }
+
+    override func tearDown() async throws {
+        harness.coordinator.stop()
+        harness = nil
+        camera = nil
+        try await super.tearDown()
+    }
+
+    /// Connect and become the camera, the way production does.
+    private func enterCameraForRepro() async {
+        await harness.coordinator.seed(
+            state: .connected, lobby: harness.lobbyWrapper, peer: harness.peer)
+        await harness.deliver(UICmd.BecomeCamera(sender: nil, ctrl: camera))
+        harness.fakeMP.sentMessages.removeAll()
+    }
+
+    /// Enter `.cameraTakingPic` the way production does: connect, become the
+    /// camera, then take the shutter command off the wire.
+    private func enterCameraTakingPic() async {
+        await harness.coordinator.seed(
+            state: .connected, lobby: harness.lobbyWrapper, peer: harness.peer)
+        await harness.deliver(UICmd.BecomeCamera(sender: nil, ctrl: camera))
+        harness.fakeMP.sentMessages.removeAll()
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
+    }
+
+    // MARK: - Rule: the camera alert is visible only while the camera is taking a picture
+
+    /// `showCameraAlert` runs on the way into `.cameraTakingPic`, and every
+    /// `dismissCameraAlert` lives inside that state's own handler. A peer's
+    /// goodbye leaves the state from `handleRoot` instead, so the modal is never
+    /// taken down and `alertHandle` is never cleared.
+    func testPeerGoodbyeDuringCaptureDismissesTheAlert() async {
+        await enterCameraTakingPic()
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .cameraTakingPic, "precondition: the capture is running")
+        XCTAssertEqual(harness.alerts.shownAlerts.count, 1, "precondition: the capture put an alert up")
+
+        await harness.deliver(RemoteCmd.EndSession())
+
+        let after = await harness.stateName()
+        XCTAssertNotEqual(after, .cameraTakingPic, "the goodbye must leave the capture state")
+        XCTAssertTrue(
+            harness.alerts.shownAlerts.allSatisfy { $0.dismissed },
+            "leaving the capture state must dismiss its alert; landed in \(after) with "
+                + "\(harness.alerts.shownAlerts.filter { !$0.dismissed }.count) still on screen")
+    }
+
+    /// The same rule, reached the other way: a send that fails pops to scanning
+    /// through `sendOrGoToScanning`, which also never dismisses.
+    func testFailedSendDuringCaptureDismissesTheAlert() async {
+        await enterCameraTakingPic()
+        XCTAssertEqual(harness.alerts.shownAlerts.count, 1, "precondition: the capture put an alert up")
+
+        harness.fakeMP.sendResult = false
+        await harness.deliver(RemoteCmd.ToggleFlash())
+
+        let after = await harness.stateName()
+        XCTAssertNotEqual(after, .cameraTakingPic, "the failed send must leave the capture state")
+        XCTAssertTrue(
+            harness.alerts.shownAlerts.allSatisfy { $0.dismissed },
+            "leaving the capture state must dismiss its alert; landed in \(after)")
+    }
+
+    // MARK: - Rule: a capture that produced bytes never loses them
+
+    /// The watchdog settles the machine back to `.camera` after ten seconds.
+    /// `inCamera` has no `OnPicture` case, so a capture that finishes late is
+    /// dropped on the floor. The Watch path handles exactly this on purpose and
+    /// has a test for it; the phone path has neither.
+    func testPictureArrivingAfterTheWatchdogIsStillSaved() async {
+        await enterCameraTakingPic()
+
+        let generation = await harness.coordinator.currentTimeoutGeneration()
+        await harness.deliver(
+            UICmd.StateTimeout(stateName: .cameraTakingPic, generation: generation))
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .camera, "precondition: the watchdog settled the machine to idle")
+        XCTAssertEqual(savedPhotos.count, 0, "precondition: nothing saved yet")
+
+        // The hardware was slow, not broken. The bytes exist.
+        await harness.deliver(UICmd.OnPicture(sender: nil, pic: Data([0xFF, 0xD8, 0xFF])))
+
+        XCTAssertEqual(
+            savedPhotos.count, 1,
+            "a picture that arrives after its watchdog must still reach the library")
+    }
+
+    // MARK: - Rule: a clip belongs to the capture that produced it
+
+    /// Writes a small real file; `handleSendVideoResource` stats the path before
+    /// it will send anything.
+    private func makeTempClip() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("clip-\(UUID().uuidString).mov")
+        try Data([0x00, 0x01, 0x02, 0x03]).write(to: url)
+        return url
+    }
+
+    /// `pendingVideoSyncMetadata` is set when a scheduled multicam recording
+    /// fires and is cleared nowhere, not even by `popToScanning`. The generic
+    /// send path reads it unguarded, so the next ordinary clip is named for a
+    /// capture it was never part of.
+    func testOrdinaryClipDoesNotInheritAPreviousMulticamName() async throws {
+        await enterCameraForRepro()
+
+        // A multicam take. This is the only writer of the field.
+        await harness.deliver(RemoteCmd.ScheduledStartRecording(
+            fireAtCameraClockMillis: 0, anchorMillis: 0,
+            captureId: "capture-1", sessionId: "session-1", cameraIndex: 2))
+        XCTAssertNotNil(camera.videoSyncMetadata, "precondition: the multicam take stamped the camera")
+
+        // That session ends for good.
+        await harness.deliver(RemoteCmd.EndSession())
+
+        // A fresh, ordinary, single-camera session.
+        await enterCameraForRepro()
+        harness.fakeMP.sentResources.removeAll()
+
+        // An ordinary clip goes to the monitor.
+        let clip = try makeTempClip()
+        defer { try? FileManager.default.removeItem(at: clip) }
+        await harness.deliver(UICmd.SendVideoResource(
+            videoURL: clip, peers: [], shouldSendToPeer: true, sender: nil))
+
+        // The inherited metadata also carries the old camera index, and the send
+        // path staggers by (index - 1) x 2 seconds. An ordinary clip should leave
+        // immediately, so the wait is itself part of what is being measured.
+        let immediate = harness.fakeMP.sentResources.first?.name
+        let deadline = Date().addingTimeInterval(4)
+        while harness.fakeMP.sentResources.isEmpty && Date() < deadline {
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let name = harness.fakeMP.sentResources.first?.name
+
+        XCTAssertNotNil(name, "precondition: the clip was handed to the transport")
+        XCTAssertNotNil(
+            immediate,
+            "an ordinary clip must not be delayed by a previous multicam session's "
+                + "camera index; it only reached the transport after a stagger")
+        XCTAssertTrue(
+            name?.hasPrefix("video_") == true,
+            "an ordinary clip must not inherit a previous multicam session's identity; "
+                + "it went out as \(name ?? "nil")")
+    }
+
+    // MARK: - Shadow mode: the model runs beside the coordinator and decides nothing
+
+    /// The shadow watches every message, compares the model's prediction to
+    /// what the coordinator actually did, and checks the rules against reality.
+    /// A clean photo round trip must produce no report at all.
+    func testShadowAgreesWithTheCoordinatorOnACleanCapture() async {
+        let reports = DivergenceLog()
+        await enterCameraForRepro()
+        await harness.coordinator.startShadowingPhotoSlice { reports.append($0) }
+
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
+        await harness.deliver(UICmd.OnPicture(sender: nil, pic: Data([0xFF, 0xD8, 0xFF])))
+
+        XCTAssertEqual(reports.all, [], "the model must agree with the coordinator")
+    }
+
+    /// And it is not silent by construction. A message the model does not own
+    /// yet still moves the app, and the shadow says so, which is how the next
+    /// slice gets chosen.
+    func testShadowReportsAMessageTheModelDoesNotOwn() async {
+        let reports = DivergenceLog()
+        await enterCameraForRepro()
+        await harness.coordinator.startShadowingPhotoSlice { reports.append($0) }
+
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
+        // The model has a `sendFailed` event but `photoEvent(for:)` maps no
+        // message to it yet, so this send failure moves the app out of the
+        // capture with the model unaware. That gap is what the shadow is for.
+        harness.fakeMP.sendResult = false
+        await harness.deliver(RemoteCmd.ToggleFlash())
+
+        XCTAssertTrue(
+            reports.all.contains { $0.contains("unmodelled") },
+            "the shadow must notice an unowned message moving the app; got \(reports.all)")
+    }
+
+    /// Not a defect by itself: the camera waits for the receiver to echo before
+    /// leaving `.cameraTransmittingVideo`, which `MulticamController` calls the
+    /// 1:1 monitor's contract. This test documents the coupling, because it is
+    /// what turns the naming defect above into a camera that stops responding:
+    /// a monitor drops any resource not named `video_`, so no echo is sent.
+    func testCameraWaitsForThePeerEchoBeforeLeavingTransmitting() async {
+        await enterCameraForRepro()
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+        let recording = await harness.stateName()
+        XCTAssertEqual(recording, .cameraRecordingVideo, "precondition: recording")
+
+        await harness.deliver(RemoteCmd.StopRecordingVideo(sender: nil, sendMediaToPeer: true))
+        let transmitting = await harness.stateName()
+        XCTAssertEqual(transmitting, .cameraTransmittingVideo, "precondition: transmitting")
+
+        // The camera's own send finished. This is not enough.
+        await harness.deliver(UICmd.VideoResourceTransferCompleted(
+            resourceName: "video_x.mov", success: true, sender: nil))
+
+        let afterOwnCompletion = await harness.stateName()
+        XCTAssertEqual(
+            afterOwnCompletion, .cameraTransmittingVideo,
+            "documents the coupling: only the peer's echo frees the camera, so a clip the "
+                + "peer drops leaves it here")
     }
 }
