@@ -25,8 +25,10 @@ the Cinematic format commits on its own first. And when the effect goes on,
 the metadata output's types must already be the required set in the same
 commit, or AVFoundation throws.
 
-While the effect is on, `focusMode` belongs to Cinematic. Writing it throws,
-so taps become Cinematic tracking focus. Manual exposure is off too: it hops
+While the effect is on, `focusMode` belongs to Cinematic and writing it
+throws. The director sends taps as `SetCinematicFocus` then, and the camera
+drops a plain `FocusAtPoint` that raced the toggle instead of reinterpreting
+it, so each command means one thing. Manual exposure is off too: it hops
 to a physical lens, and no physical lens has Cinematic formats. Cinematic
 returns exposure to Auto and keeps the EV bias.
 
@@ -78,7 +80,15 @@ about ten times a second. The director draws a box per subject over the
 preview, gold for the one in focus, solid when locked and dashed when the
 camera may move on. Tap a box to lock on it, tap anywhere else to track that
 spot, long-press to hold focus at that distance. Focus works during a take,
-which is the point of a focus pull.
+which is the point of a focus pull. `CinematicSubjectLayout.request` makes
+that call, from the camera's last state: Cinematic on means Cinematic focus,
+off means ordinary tap-to-focus.
+
+Cinematic is per camera, like zoom and exposure. The tile, the ruler and the
+taps address the focused camera, because a rig often mixes phones and the
+wide angle usually wants everything sharp. Every strip and grid tile whose
+camera has the effect on wears an `f/2.8` chip, so the rig's state reads
+without focusing each camera.
 
 The quality and aspect menus only offer what the camera can do while
 Cinematic is on, so the director never asks for something the camera would

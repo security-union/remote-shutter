@@ -33,6 +33,35 @@ enum CinematicApertureStops {
     static func track(_ cinematic: CinematicState) -> RulerTrack {
         RulerTrack(min: Double(cinematic.minAperture), max: Double(cinematic.maxAperture), stops: fNumbers)
     }
+
+    /// What a camera tile shows while that camera has Cinematic on ("f/2.8");
+    /// nil when it is off or the camera can't do it.
+    static func tileLabel(_ cinematic: CinematicState?) -> String? {
+        guard let cinematic, cinematic.enabled else { return nil }
+        return label(Double(cinematic.aperture))
+    }
+}
+
+/// The chip a strip or grid tile wears while its camera has Cinematic on.
+/// Cinematic is per camera, so this is how the director sees which cameras
+/// run it without focusing each one.
+struct CinematicTileChip: View {
+    let label: String
+    var compact = false
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "camera.aperture")
+            Text(label)
+        }
+        .font(.system(size: compact ? 10 : 12, weight: .semibold, design: .monospaced))
+        .foregroundColor(.white)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(.ultraThinMaterial))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(NSLocalizedString("CINEMATIC", comment: "")) + Text(" \(label)"))
+    }
 }
 
 /// The APERTURE ruler: shallow (small f-number) to deep. The camera takes
@@ -103,6 +132,25 @@ enum CinematicSubjectLayout {
             return .subject(id: subject.id, strength: .strong)
         }
         return .trackPoint(x: Float(point.x), y: Float(point.y), strength: .strong)
+    }
+
+    /// What a viewfinder gesture asks the focused camera for. Two commands,
+    /// one meaning each: with Cinematic on, focus is Cinematic's
+    /// (`SetCinematicFocus`); otherwise a tap is ordinary tap-to-focus
+    /// (`FocusAtPoint`), sent only to a camera that advertises it. Nil = send
+    /// nothing (a long press means something only to Cinematic).
+    enum Request: Equatable {
+        case tapToFocus(x: Float, y: Float)
+        case cinematic(CinematicFocus)
+    }
+
+    static func request(forTap point: CGPoint, isLongPress: Bool, cinematicOn: Bool,
+                        supportsFocusPoint: Bool, subjects: [CinematicSubject]) -> Request? {
+        if cinematicOn {
+            return .cinematic(focus(forTap: point, subjects: subjects, isLongPress: isLongPress))
+        }
+        guard !isLongPress, supportsFocusPoint else { return nil }
+        return .tapToFocus(x: Float(point.x), y: Float(point.y))
     }
 
     /// Where the image sits in an aspect-fit (letterboxed) viewfinder — the

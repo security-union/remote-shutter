@@ -539,11 +539,13 @@ extension CameraRig: CameraControlling {
     }
 
     func focusAtPoint(x: Float, y: Float) async throws {
+        let outcome = try await engine.setFocusExposurePoint(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y)))
         // Show the same reticle the monitor draws, so the person holding the
-        // camera sees the tap land — on every command, even where the device
-        // can't focus (the box is the confirmation).
-        cameraViewModel.showRemoteFocus(x: x, y: y)
-        try await engine.setFocusExposurePoint(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y)))
+        // camera sees the tap land — even where the device can't focus (the
+        // box is the confirmation), but not for a tap Cinematic dropped.
+        if outcome != .cinematicOwnsFocus {
+            cameraViewModel.showRemoteFocus(x: x, y: y)
+        }
     }
 
     func setExposure(_ intent: ExposureIntent) async throws {

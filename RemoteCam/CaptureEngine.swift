@@ -1148,14 +1148,24 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     // MARK: - Focus / Exposure Point
 
+    /// What a tap-to-focus did on the camera.
+    enum FocusPointOutcome: Equatable {
+        case applied
+        /// The device has neither point of interest.
+        case unsupported
+        /// Cinematic is on and owns focus; Cinematic focus arrives as
+        /// `SetCinematicFocus`, never as a tap-to-focus.
+        case cinematicOwnsFocus
+    }
+
     /// Sets the focus and exposure point of interest from a monitor tap. `point`
-    /// is normalized (0..1) in the upright display image (origin top-left). No-op
-    /// if the active device supports neither point of interest.
-    func setFocusExposurePoint(displayNormalized point: CGPoint) async throws {
+    /// is normalized (0..1) in the upright display image (origin top-left).
+    @discardableResult
+    func setFocusExposurePoint(displayNormalized point: CGPoint) async throws -> FocusPointOutcome {
         try await onSessionQueueThrowing { try self.setFocusExposurePointLocked(displayNormalized: point) }
     }
 
-    private func setFocusExposurePointLocked(displayNormalized point: CGPoint) throws {
+    private func setFocusExposurePointLocked(displayNormalized point: CGPoint) throws -> FocusPointOutcome {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard let device = self.videoDeviceInput?.device else {
             throw NSError(domain: "No camera device available", code: 0, userInfo: nil)
@@ -1163,7 +1173,15 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
         guard device.isFocusPointOfInterestSupported || device.isExposurePointOfInterestSupported else {
             debugLog("🎯 DEBUG: focus/exposure POI unsupported on \(device.localizedName) — ignoring tap")
-            return
+            return .unsupported
+        }
+
+        // A tap that raced a Cinematic toggle: the director routes taps to
+        // `SetCinematicFocus` while it sees the effect on, so dropping this
+        // one keeps the two commands meaning one thing each.
+        if #available(iOS 26.0, macCatalyst 26.0, *), videoDeviceInput?.isCinematicVideoCaptureEnabled == true {
+            logInfo("camera: tap-to-focus ignored, Cinematic owns focus")
+            return .cinematicOwnsFocus
         }
 
         // The buffer the monitor tapped was rotated (and possibly mirrored)
@@ -1173,11 +1191,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
 
-        // While Cinematic is on it owns focus: writing focusMode throws, and
-        // a tap means "track this subject".
-        if #available(iOS 26.0, macCatalyst 26.0, *), videoDeviceInput?.isCinematicVideoCaptureEnabled == true {
-            device.setCinematicVideoTrackingFocus(at: poi, focusMode: .strong)
-        } else if device.isFocusPointOfInterestSupported {
+        if device.isFocusPointOfInterestSupported {
             device.focusPointOfInterest = poi
             if device.isFocusModeSupported(.continuousAutoFocus) {
                 device.focusMode = .continuousAutoFocus
@@ -1196,6 +1210,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             }
         }
         debugLog("🎯 DEBUG: focus/exposure POI set to \(poi)")
+        return .applied
     }
 
     /// Restores continuous auto focus/exposure at the center. Called when the
@@ -1501,7 +1516,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     func setCinematicFocus(_ focus: CinematicFocus) async throws {
         try await onSessionQueueThrowing {
             guard #available(iOS 26.0, macCatalyst 26.0, *),
-                  let input = self.videoDeviceInput, input.isCinematicVideoCaptureEnabled else { return }
+                  let input = self.videoDeviceInput, input.isCinematicVideoCaptureEnabled else {
+                logInfo("camera: Cinematic focus ignored, the effect is off")
+                return
+            }
             let device = input.device
             try device.lockForConfiguration()
             defer { device.unlockForConfiguration() }

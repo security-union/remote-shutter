@@ -612,13 +612,17 @@ struct MulticamView: View {
     }
 
     private func routeFocus(_ point: CGPoint, on lane: CameraLane, isLongPress: Bool) {
-        guard lane.isCinematicOn else {
-            onFocusTap(lane, point)
-            return
+        switch CinematicSubjectLayout.request(forTap: point, isLongPress: isLongPress,
+                                              cinematicOn: lane.isCinematicOn,
+                                              supportsFocusPoint: lane.supportsFocusPoint,
+                                              subjects: lane.cinematicOverlay.report?.subjects ?? []) {
+        case let .tapToFocus(x, y)?:
+            onFocusTap(lane, CGPoint(x: CGFloat(x), y: CGFloat(y)))
+        case let .cinematic(focus)?:
+            onCinematicFocus(lane, focus)
+        case nil:
+            break
         }
-        let subjects = lane.cinematicOverlay.report?.subjects ?? []
-        onCinematicFocus(lane, CinematicSubjectLayout.focus(forTap: point, subjects: subjects,
-                                                            isLongPress: isLongPress))
     }
 
     /// The camera strip — multicam's one added element. Thumbnails of the other
@@ -838,6 +842,9 @@ struct CameraTileView: View {
                                                compact: isThumbnail)
                         }
                         HStack {
+                            if let cinematic = CinematicApertureStops.tileLabel(lane.cinematic) {
+                                CinematicTileChip(label: cinematic, compact: isThumbnail)
+                            }
                             Spacer()
                             TileStatusBadge(status: shownStatus, onRetry: onRetry,
                                             diameter: isThumbnail ? 22 : 28)

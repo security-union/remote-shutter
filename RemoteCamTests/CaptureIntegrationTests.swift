@@ -252,8 +252,11 @@ final class CaptureIntegrationTests: XCTestCase {
         let exposure = await rig.gatherCurrentCameraCapabilities()?.exposure
         XCTAssertNotEqual(exposure?.supportsManual, true, "Manual is off the table while Cinematic runs")
 
-        // Focus with the focus mode pinned: must not raise.
-        try await rig.focusAtPoint(x: 0.5, y: 0.4)
+        // Cinematic owns focus: a plain tap is dropped, never turned into
+        // tracking. Cinematic focus comes only as SetCinematicFocus.
+        let tapOutcome = try await rig.engine.setFocusExposurePoint(displayNormalized: CGPoint(x: 0.5, y: 0.4))
+        XCTAssertEqual(tapOutcome, .cinematicOwnsFocus)
+        // Cinematic focus with the focus mode pinned: must not raise.
         try await rig.setCinematicFocus(.trackPoint(x: 0.5, y: 0.4, strength: .weak))
         try await rig.setCinematicFocus(.fixedPoint(x: 0.5, y: 0.5))
         try await rig.setCinematicFocus(.trackPoint(x: 0.5, y: 0.4, strength: .strong))
@@ -313,7 +316,7 @@ final class CaptureIntegrationTests: XCTestCase {
             XCTAssertEqual(front?.cinematic?.enabled, true)
             let frontFlowing = await waitForFrames(since: lastFrameAt)
             XCTAssertNotNil(frontFlowing, "front frames must flow with Cinematic on")
-            try await rig.focusAtPoint(x: 0.5, y: 0.5)
+            try await rig.setCinematicFocus(.trackPoint(x: 0.5, y: 0.5, strength: .strong))
             try await Task.sleep(nanoseconds: 2_000_000_000)
             if let frame = await tap.nextFrame() {
                 StreamedFrameTap.save(frame, subjects: reports.value.last?.subjects ?? [], name: "rig_front")

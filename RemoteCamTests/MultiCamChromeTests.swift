@@ -40,6 +40,16 @@ final class MultiCamChromeTests: XCTestCase {
         XCTAssertEqual(track.snappedToStop(3.0, tolerance: 0.05), 2.8, accuracy: 0.001, "detents at the whole stops")
     }
 
+    func testTileChipShowsTheApertureOnlyWhileCinematicIsOn() {
+        let on = CinematicState(enabled: true, output: .baked, aperture: 2.8, minAperture: 2, maxAperture: 16,
+                                defaultAperture: 2.8, qualities: [:])
+        var off = on
+        off.enabled = false
+        XCTAssertEqual(CinematicApertureStops.tileLabel(on), "f/2.8")
+        XCTAssertNil(CinematicApertureStops.tileLabel(off), "capable but off: no chip")
+        XCTAssertNil(CinematicApertureStops.tileLabel(nil), "a camera without Cinematic: no chip")
+    }
+
     private func subject(_ id: Int, _ kind: CinematicSubjectKind, group: Int, _ rect: CGRect,
                          focus: CinematicFocusStrength? = nil) -> CinematicSubject {
         CinematicSubject(id: id, groupID: group, kind: kind, rect: rect, focus: focus, isFixedFocus: false)
@@ -73,6 +83,32 @@ final class MultiCamChromeTests: XCTestCase {
         XCTAssertEqual(CinematicSubjectLayout.focus(forTap: CGPoint(x: 0.45, y: 0.35), subjects: subjects,
                                                     isLongPress: true),
                        .fixedPoint(x: 0.45, y: 0.35))
+    }
+
+    /// One command per meaning: Cinematic on sends Cinematic focus, off
+    /// sends tap-to-focus, and nothing goes where it means nothing.
+    func testViewfinderGestureRoutesToExactlyOneFocusCommand() {
+        let face = subject(1, .face, group: 5, CGRect(x: 0.4, y: 0.3, width: 0.1, height: 0.1))
+        let onFace = CGPoint(x: 0.45, y: 0.35)
+        func route(_ point: CGPoint, longPress: Bool = false, cinematic: Bool, focusPoint: Bool)
+            -> CinematicSubjectLayout.Request? {
+            CinematicSubjectLayout.request(forTap: point, isLongPress: longPress, cinematicOn: cinematic,
+                                           supportsFocusPoint: focusPoint, subjects: [face])
+        }
+
+        XCTAssertEqual(route(onFace, cinematic: false, focusPoint: true), .tapToFocus(x: 0.45, y: 0.35),
+                       "Cinematic off: ordinary tap-to-focus, even on a subject")
+        XCTAssertNil(route(onFace, cinematic: false, focusPoint: false), "a camera that can't focus at a point is sent nothing")
+        XCTAssertNil(route(onFace, longPress: true, cinematic: false, focusPoint: true),
+                     "a long press means something only to Cinematic")
+
+        XCTAssertEqual(route(onFace, cinematic: true, focusPoint: true), .cinematic(.subject(id: 1, strength: .strong)))
+        XCTAssertEqual(route(CGPoint(x: 0.9, y: 0.9), cinematic: true, focusPoint: true),
+                       .cinematic(.trackPoint(x: 0.9, y: 0.9, strength: .strong)))
+        XCTAssertEqual(route(onFace, longPress: true, cinematic: true, focusPoint: true),
+                       .cinematic(.fixedPoint(x: 0.45, y: 0.35)))
+        XCTAssertEqual(route(onFace, cinematic: true, focusPoint: false), .cinematic(.subject(id: 1, strength: .strong)),
+                       "Cinematic focus doesn't depend on tap-to-focus support")
     }
 
     /// Boxes land where the letterboxed image is drawn, and a box's center

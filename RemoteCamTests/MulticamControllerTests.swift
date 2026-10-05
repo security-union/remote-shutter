@@ -2779,20 +2779,34 @@ extension MulticamControllerTests {
     }
 
     /// The tray's CINEMATIC tile follows the focused camera's block.
-    func testCinematicTileFollowsTheFocusedCamera() async {
-        let (controller, _, _) = await makeController(peers: [camA, camB])
-        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: true)), from: camA)
+    /// Cinematic is per camera: in a mixed rig the capable camera gets the
+    /// tile and the command, the other gets neither, and each lane carries
+    /// its own state (what the strip chip reads).
+    func testCinematicIsPerCameraInAMixedRig() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
         controller.didReceiveMessage(cinematicCaps(nil), from: camB)
         await controller.setFocusedPeer(camA)
         await controller.waitForIdle()
         var settings = await controller.rigSettingsSnapshotForTesting()
-        XCTAssertEqual(settings.cinematic, cinematicBlock(enabled: true))
-        XCTAssertTrue(settings.cinematicAvailable(in: .video))
+        XCTAssertEqual(settings.cinematic, cinematicBlock(enabled: false))
+        XCTAssertTrue(settings.cinematicAvailable(in: .video), "one capable camera is enough for its own tile")
         XCTAssertFalse(settings.cinematicAvailable(in: .photo), "a video effect")
 
+        controller.setCinematic(CinematicIntent(enabled: true), on: camA)
+        controller.setCinematic(CinematicIntent(enabled: true), on: camB)
+        await controller.waitForIdle()
+        let sends = sent(transport, RemoteCmd.SetCinematic.self)
+        XCTAssertEqual(sends.map(\.peers), [[camA]], "only the camera that asked, never the one without the block")
+
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: true)), to: .setcinematic), from: camA)
         await controller.setFocusedPeer(camB)
         await controller.waitForIdle()
         settings = await controller.rigSettingsSnapshotForTesting()
         XCTAssertNil(settings.cinematic, "a camera without the block offers no tile")
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.cinematic?.enabled, true,
+                       "focused away, camera A still reads as Cinematic on")
+        XCTAssertNil(lanes.first { $0.peerID == camB }?.cinematic)
     }
 }
