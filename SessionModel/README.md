@@ -1,147 +1,227 @@
 # SessionModel
 
-The session logic as a state machine you can interrogate. Right now it covers one slice,
-the photo round trip, and it is not yet wired into the app: the coordinator still runs its
-own code, and this package exists so we can ask questions about that code faster than we
-can run a simulator.
+The session logic as one state machine: pairing, roles, taking a picture and
+recording a clip, for both devices. `sessionStep` is a pure function, the
+checker explores it, and `session-runner` lets you walk it by hand.
 
-The plan for wiring it in is `Docs/correcto-integration.md`. This file is how to read what
-is already here.
+There is one machine here, not one per role and not a correct copy beside a
+broken one. Two devices run the same function and the role splits them, which is
+how the app works: both sides are a `SessionCoordinator`.
 
 ## Run it first
 
 ```bash
-cd SessionModel && swift test
+make model      # the checker over every world, about three seconds
+make runner     # walk the machine yourself
+make rig        # a remote and two cameras, nothing paired yet
+make demo       # replays pairing, a photo, and a clip
 ```
 
-Four tests, about three milliseconds. Two of them hunt for bugs the coordinator used to have, using
-`PhotoCameraBuggy`, and they print the sequence that causes each. That output is the point
-of this package, so read it before reading any of the code.
+`--multicam` starts from a remote that already holds both cameras, which is the
+starting point when the question is about a take rather than about how the rig
+got assembled.
 
-## One state machine, not two
-
-`SessionState` lives in this package, not in the app. The coordinator imports it and runs
-it; the checker imports it and explores it. There is one definition, so the two cannot
-drift, which is the failure this whole exercise exists to prevent.
-
-That is also why `projectPhotoState()` in the app has no phase mapping: the phase is
-simply the coordinator's own `state`. What the projection still builds is the handful of
-flags the enum does not carry, such as whether the alert is up.
-
-The model only has transitions for the photo slice today. Every other case of
-`SessionState` reaches `default` and is ignored, which is what "slice" means here and is
-honest about how far the model has got.
-
-## The machine
-
-One camera. The peer, the capture hardware and the ten second watchdog are the world
-around it, which is where the interesting orders come from.
-
-```mermaid
-stateDiagram-v2
-    [*] --> camera
-    camera --> takingPic: pressShutter / arm watchdog, show alert, take picture
-    takingPic --> camera: pictureCaptured / dismiss alert, save, ack
-    takingPic --> camera: captureFailed / dismiss alert
-    takingPic --> camera: watchdog, current generation / dismiss alert, report timeout
-    takingPic --> takingPic: watchdog, stale generation / ignored
-    takingPic --> scanning: endSession or sendFailed / dismiss alert
-    camera --> scanning: endSession or sendFailed
-    camera --> camera: pictureCaptured, late / save
-```
-
-### One machine, two settings
-
-`PhotoCamera` is the model, and it is correct. Two edges above are where the coordinator
-behaves differently today: abandoning a capture does not dismiss the alert, and a picture
-arriving after the watchdog is dropped along with the photo.
-
-Rather than keep a second copy of the machine, those two are parameters on `photoStep`.
-`PhotoCameraBuggy` is the same body with both switched off, and it exists for exactly
-one reason: the checker has to be held to finding the defects we already know about. If it
-cannot rediscover those, it should not be believed about anything else.
-
-Both defects reproduce on the simulator in `RemoteCamTests/RemoteCamSessionTests.swift`
-under `CorrectoReproductionTests`.
-
-## How to read a trace
-
-This is the whole skill. Run the tests and you get output like:
+`make runner` drops you into this:
 
 ```
-worlds explored: 6, max depth: 2
-VIOLATION: an alert is up only while taking a picture
-initial:
-  camera: phase: camera, alertUp: false, captureOutstanding: false
-1. press shutter
-     [camera] pressShutter -> takingPic(generation: 1), alertUp: true
-     effects: armTimeout(generation: 1), showAlert, takePicture
-2. peer says goodbye
-     [camera] endSession -> scanning, alertUp: true
+  camera   scanning  camera
+  remote   scanning
+  budget   invites 1, shutter 1, recordings 1, stops 1, goodbyes 1, drops 0
+
+  you
+    1  remote invites camera
 ```
 
-Read it in this order.
+Every move offered comes from `SessionWorld.choices`, which is the same function
+the explorer calls to decide what to try next. So walking this by hand walks the
+graph the search walks, one edge at a time. Press `c` at any point and the world
+you have reached is handed to the checker, which explores everything reachable
+from there.
 
-**The rule that broke**, on the VIOLATION line. That is a sentence somebody wrote in
-`PhotoSliceTests.swift`, and it is the only thing the checker was told to care about.
+## The conversation, drawn as you walk
 
-**The numbered steps.** Each is one event the world delivered. `press shutter` and `peer
-says goodbye` are labels from the environment, so they read as things a person or a peer
-did, not as internal function names.
+Every move adds a row to a sequence diagram, so the protocol draws itself:
 
-**The state after each step**, which is where the bug becomes visible. Here the second
-line ends in `scanning` with `alertUp: true`, and the rule says that combination cannot
-exist.
+```
+     you      remote     camera
+      ├──────────▶          │        invite camera  inviting
+      │          │          ●        link up with remote
+      │          ◀╌╌╌╌╌╌╌╌╌╌┤        peerBecameCamera  queued
+      │          ◀──────────┤        peerBecameCamera
+      ├──────────▶          │        press the shutter  watchdog#1 armed
+      │          ├╌╌╌╌╌╌╌╌╌╌▶        takePic(sendMediaToPeer: true)  queued
+      │          ├──────────▶        takePic  alert up, camera: take picture
+      │          │          ●        picture captured  alert down, saved
+      │          ◀╌╌╌╌╌╌╌╌╌╌┤        takePicAck  queued
+      │          ◀──────────┤        takePicAck  ignored
+      │          ◀──────────┤        takePicResp(carriesMedia: true)  saved
+```
 
-**`worlds explored: 6, max depth: 2`.** Six distinct situations were reachable inside the
-budgets, and the bug is two moves from the start. The search is breadth first, so nothing
-shorter exists. If you ever see a trace of nine steps, there is genuinely no shorter way
-to reach that bug.
+Three things in that picture are deliberate.
 
-## The rules, and what each is for
+**A send and its delivery are two rows.** Dashed when the message is queued,
+solid when the receiver actually steps on it. The dashed arrows piling up and
+then landing in the order you chose is the checker's whole idea, done by hand.
 
-In `PhotoSliceTests.swift`. Three sentences, and it is worth knowing why each exists.
+**The transport's news is a mark on one lifeline**, not an arrow from the peer. A
+dropped link is the transport telling one device something; drawing it as an
+arrow said the peer sent its own disconnection.
 
-| Rule | Catches | Enforced in the app by |
+**The notes are what a person would notice**: an alert going up, a photo saved, a
+watchdog armed, a message ignored. They are the effects, named in the words of
+somebody holding the phone.
+
+`d` prints the whole diagram plus its Mermaid source, which is how a walk ends up
+in a document or an issue:
+
+```
+sequenceDiagram
+    participant you
+    participant remote
+    participant camera
+    you->>remote: press the shutter [watchdog#35;1 armed]
+    remote-->>camera: takePic(sendMediaToPeer: true) [queued]
+    remote->>camera: takePic(sendMediaToPeer: true) [alert up, camera: take picture]
+```
+
+Other keys: `u` undo (the diagram rewinds with it), `r` one random move, `a`
+twenty random moves, `h` the history of what you picked, `q` quit.
+
+Two things make a walk worth keeping. `--script "shutter on remote; deliver takePic"` replays one by move name rather than by number, because numbers shift
+whenever the model changes and names do not. And random moves run off a seed
+that is printed on startup, so `--seed 42` walks the same way twice: an
+unrepeatable walk that broke a rule is a story, a seed is a bug report.
+
+## The actors
+
+Three, and the first one is not a machine.
+
+**You** are the environment. The taps are moves the world offers: invite,
+shutter, record, stop, leave. Most of the interesting orders in a session are
+the world's rather than the app's, so the person belongs on the same list as the
+link and the hardware.
+
+**The remote** holds `.connected` with `role: .remote` and drives the camera. In
+the app this is the director.
+
+**The camera** holds `.camera` and its capture phases. It is a server: it keeps
+its post through a peer drop and settles when the hardware answers. It serves
+one remote.
+
+**The other cameras**, with `make rig` or `--multicam`. A remote holds as many
+cameras as the person connected, so one shutter tap is a command to each of
+them and the take stays outstanding until the last one reports. That is the
+only difference between the one-camera case and the rig.
+
+The link, the capture hardware and the ten second watchdog are also in the
+environment, which is where the orders nobody enumerated come from.
+
+## What is modelled
+
+| Part of the protocol | What the model carries |
+|---|---|
+| Pairing | an invite, then each end learning the link came up separately, because in a real session they do; a remote keeps browsing while connected, which is how the second camera joins |
+| Roles | the camera announces itself with `peerBecameCamera`; the other side learns it is the remote |
+| Photo | shutter, the ten second watchdog with its generation, the capture answering either way, the ack and the response |
+| Video | record, stop, and the transmit phase the camera holds until the receiver echoes |
+| Leaving | a deliberate goodbye, a send that died on a live link, and a link that went away by itself |
+
+Not modelled, deliberately: anything with an identity or a lifetime. The camera
+rig, the lobby, the alert handle, the two `Task` values, the real metadata. The
+model carries the fact that an alert is up; the app carries the alert.
+
+The app has not caught up with the multi-peer part yet: `SessionCoordinator`
+holds one `link`, and a remote driving several cameras is `MulticamController`,
+a second machine. So the shadow projects a single peer, and the model is ahead
+of the app here on purpose. That is the direction this is supposed to run: the
+model describes the protocol, the app grows into it a slice at a time.
+
+## The rules
+
+In `Sources/SessionWorld/SessionRules.swift`. Five sentences and one about a
+step, in the order they pay off.
+
+| Rule | Catches |
+|---|---|
+| An alert is up only while taking a picture | the stranded "Taking picture" modal, which had two doors out of a capture that never dismissed it |
+| Two paired devices never both hold the camera | both devices answering the shutter and neither showing a preview |
+| A camera serves one remote | two remotes driving one camera, where each sees half a session |
+| The remote never believes recording while the camera is idle (terminal) | the two devices disagreeing after the dust settles, which no unit test can express |
+| When nothing more can happen, nothing is left outstanding (terminal) | a photo that arrives in a phase which ignores it, which is lost data rather than a broken state |
+| No camera is left waiting to transmit (terminal) | the camera wedged in `.cameraTransmittingVideo`, where every capture command is refused, because the echo never came |
+| A timeout for a stale generation changes nothing (a step) | a late watchdog killing the state that replaced the one it was armed for |
+
+Terminal rules are checked only where nothing more can happen. That is also why
+only the first one runs in shadow mode on a device: a running app never reaches
+quiescence, so there is no moment at which to ask the others.
+
+## The worlds, and what each costs
+
+Every number here is from `make model`, which asserts them.
+
+| World | Worlds | Depth |
 |---|---|---|
-| An alert is up only while taking a picture | the stranded "Taking picture" modal | `transition(to:)`, which dismisses on leaving the capture by any door |
-| When nothing more can happen, no capture is unaccounted for | a photo lost because it arrived after the watchdog | `inCamera`'s `OnPicture` case, which saves it |
-| A timeout for a stale generation changes nothing | a late watchdog killing the wrong state | the generation in the state payload |
+| Pairing, one photo, one goodbye | 301 | 12 |
+| Two captures in a row | 1,188 | 16 |
+| Recording and transmitting | 150 | 11 |
+| A photo, a clip, a goodbye and a dropped link | 51,713 | 20 |
+| Assembling a rig of two cameras | 139 | 8 |
+| One tap, two cameras | 495 | 10 |
+| A camera dropping out of a take | 2,613 | 11 |
 
-All three hold in the app today; the first two only since the change that added this
-package. They are here so a future edit cannot quietly undo any of them, which is the
-whole reason to write a rule down rather than fix a bug and move on.
+The role pickers as a configuration space, four worlds, is the one worth
+reading:
 
-The second one is a terminal rule, meaning it is only checked when nothing more can
-happen. Note that neither of the other two would have caught a lost photo: a list of
-things that must never be true does not describe losing data to a message arriving in a
-state that ignores it. That is worth remembering when adding rules of your own.
+| Roles | Worlds | Why |
+|---|---|---|
+| camera and camera | 1 | nothing can happen: a camera advertises, and only a browsing device invites, so two cameras never pair |
+| camera and undecided | 301 | the real configuration |
+| undecided and undecided | 15 | they can invite each other and no camera ever appears |
 
-## What is modelled and what is not
+## Two things this got wrong, both found by the checker
 
-In the model: the phase, whether a peer is linked, whether the alert is up, whether a
-capture is outstanding, and the timeout generation.
+**A configuration is not a move.** The first version let a device claim the
+camera role after pairing, and the checker immediately produced two devices both
+holding the camera. In the app the role is a constructor argument to the scanner:
+you pick it on the picker screen, before a session exists. Offering it as a move
+invented a race the app cannot have. Role configurations are separate worlds now,
+which is the right way to check a configuration space.
 
-Not in the model, and deliberately: anything with an identity or a lifetime. The camera
-rig, the lobby, the alert handle itself, the two `Task` values, the real metadata. Those
-stay wherever the app keeps them. The model carries the fact that an alert is up; the app
-carries the alert.
-
-Peers could go in, because `MCPeerID` here is an alias for `Stormo.PeerID`, a struct whose
-equality is the peer's public key hash. This slice does not need them, since nothing in it
-decides on which peer, only on whether there is one.
+**Every repeatable action needs a budget, including the ones that look
+harmless.** Stop had none. A person could press stop forever, each press arms
+another watchdog, `timeoutGeneration` climbs without bound, and an infinite state
+space wears a finite model's clothes. The search then stopped at its world limit
+and reported that every rule held, which is the one result that must never be
+read as a pass. `testAnUnboundedBudgetIsReportedRatherThanPassed` pins that the
+report says so, and the runner prints "this is not a proof" in red.
 
 ## Changing it
 
-Add a rule when you find yourself writing a comment that says "this must always be true".
-That comment is a sentence, and a sentence can be checked.
+Add a rule when you find yourself writing a comment that says "this must always
+be true". That comment is a sentence, and a sentence can be checked.
 
-Two things to keep right. Every field of the state must stay plain data, or the checker
-cannot compare two states and the search cannot terminate. And every action in the
-environment needs a budget, or the search never ends; when you add one, check the report
-says the search finished rather than stopping at a limit, because a pass that stopped
-early proves nothing.
+Keep every field of the state plain data, or worlds cannot be compared and the
+search cannot terminate. Keep every environment action bounded, and read the line
+saying whether the search finished before believing a pass.
 
-The model is a transcription of the app, so when the two disagree the first question is
-which one is wrong. Often it is the model, and that is fine. The second question is worth
-asking anyway.
+One more constraint, from shadow mode: every field of the state should be
+derivable from what the app already holds. A field the app cannot produce cannot
+be resynchronised, and a model needing state the app does not keep is usually a
+sign the app is deciding on something it never wrote down.
+
+## Shadow mode
+
+`SessionShadow` is the app-facing half: which rules run against reality, how a
+divergence reads, and a factory the coordinator calls in one line. The switch is
+`SessionDebug.attachModelShadow(to:)`, called from the scanner, Debug builds
+only, and `testDeviceScannerSwitchesOnTheModelShadow` keeps it switched on.
+
+Ownership is by phase, not by message type. `popToScanning` stops at the lobby
+floor for the lobby and Watch phases, so a model that owned `EndSession`
+everywhere would decide wrongly outside this slice. `modelOwnsPhase` is that
+list.
+
+It has already paid for itself once: a disagreement about `captureOutstanding`
+after a teardown turned out to be a photo being dropped when a session ended
+mid-capture, which nobody had found by reading. That story is in
+`Docs/correcto-integration.md`.

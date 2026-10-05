@@ -339,6 +339,14 @@ public actor SessionCoordinator {
                 debugLog("sendOrGoToScanning: no peer — dropped \(type(of: msg)) while the camera holds its post")
                 return true
             }
+            // The model names this `sendFailed`; the app has no message for it
+            // because the failure is detected here rather than delivered. Told
+            // to the shadow so it can follow the app out of the capture. This
+            // is also the shape phase one needs: when the slice goes live these
+            // are the events `step` is given, in this order.
+            if shadow != nil, let peer = currentPeer {
+                inlineModelEvents.append(.sendFailed(DeviceRef(peer.displayName)))
+            }
             await popToScanning()
             let presenter = alertPresenter
             OperationQueue.main.addOperation {
@@ -497,21 +505,33 @@ public actor SessionCoordinator {
 
     private(set) var timeoutGeneration = 0
 
-    /// The photo slice's model, running beside this coordinator and deciding
-    /// nothing. Nil unless `startShadowingPhotoSlice` was called, so it costs
+    /// The session model, running beside this coordinator and deciding
+    /// nothing. Nil unless `startShadowingSession` was called, so it costs
     /// nothing in a build that does not want it. See SessionShadow.swift.
-    private var shadow: ShadowRuntime<PhotoCamera>?
+    private var shadow: ShadowRuntime<SessionDevice>?
+
+    /// Model events the app decided on inline while handling the current
+    /// message, rather than receiving as a message of its own. A send that
+    /// dies on a live link is the one that matters today: the model calls it
+    /// `sendFailed`, and without this the shadow sees the machine arrive in
+    /// scanning with nothing to explain it. Appended during `handleLegacy`,
+    /// drained in `handle`, and only ever written while a shadow is attached.
+    private var inlineModelEvents: [SessionEvent] = []
 
     /// Attach the model. Seeded from a projection of the live state rather
     /// than the model's initial state, because this attaches to a coordinator
     /// that is already running.
-    func startShadowingPhotoSlice(
-        report: @escaping @Sendable (ShadowRuntime<PhotoCamera>.Divergence) -> Void
+    func startShadowingSession(
+        report: @escaping @Sendable (ShadowRuntime<SessionDevice>.Divergence) -> Void
     ) {
-        shadow = PhotoShadow.make(seededWith: projectPhotoState(), report: report)
+        shadow = SessionShadow.make(seededWith: projectDeviceState(), report: report)
     }
 
-    func stopShadowingPhotoSlice() { shadow = nil }
+    func stopShadowingSession() { shadow = nil }
+
+    /// Whether a model is watching. The one thing a test can ask to prove the
+    /// shadow was actually switched on, rather than compiled and left dormant.
+    var isShadowingSession: Bool { shadow != nil }
 
     /// Arms a 10s watchdog; the generation invalidates stale timers.
     private func scheduleTimeout(_ name: RemoteCamState) -> Int {
@@ -635,7 +655,11 @@ public actor SessionCoordinator {
         // says otherwise. A reconnect goes through `.reconnecting`, not here, so
         // the latch survives a transient director drop.
         cameraDriver = .solo
-        captureOutstanding = false
+        // `captureOutstanding` is deliberately not cleared here. The session is
+        // over; the capture is not. The hardware still owes an answer, and
+        // forgetting that is what dropped the picture: the flag is what tells
+        // `handleRoot` the bytes are ours when they land. It clears when the
+        // capture answers, which is the only event that ends it.
         pendingSyncMetadata = nil
         pendingVideoSyncMetadata = nil
         lastMulticamClipURL = nil
@@ -662,12 +686,21 @@ public actor SessionCoordinator {
         if !(msg is RemoteCmd.SendFrame || msg is RemoteCmd.RequestFrame) {
             logInfo("session rx \(type(of: msg)) [\(currentStateName())]")
         }
-        let shadowEvent = shadow == nil ? nil : photoEvent(for: msg)
+        let shadowEvent = shadow == nil ? nil : sessionEvent(for: msg)
+        inlineModelEvents.removeAll(keepingCapacity: true)
         await handleLegacy(msg)
         // The model sees what already happened. It performs nothing, so it
         // cannot change any of it; it only says where it and the app disagree,
         // and whether a rule broke on the state the app really reached.
-        await shadow?.observe(event: shadowEvent, observed: projectPhotoState())
+        //
+        // The message's own event comes first, then whatever the handler
+        // decided inline: a reply that could not leave is a second step, and
+        // the model has a name for it.
+        if let shadow {
+            let events = (shadowEvent.map { [$0] } ?? []) + inlineModelEvents
+            inlineModelEvents.removeAll(keepingCapacity: true)
+            await shadow.observe(events: events, observed: projectDeviceState())
+        }
     }
 
     private func handleLegacy(_ msg: Message) async {
@@ -1839,6 +1872,21 @@ public actor SessionCoordinator {
 
     private func handleRoot(_ msg: Message) async {
         switch msg {
+        case let picture as UICmd.OnPicture:
+            // A capture we asked for, answering in a state that was no longer
+            // waiting for it. `inCamera` covers the watchdog door and the Watch
+            // path covers its own; this is every other door, and the one that
+            // matters is a teardown: a goodbye mid-capture used to drop the
+            // bytes on the floor. The shutter fired, so they are the person's
+            // picture and they are saved wherever we happen to be.
+            //
+            // The guard is what keeps this narrow: no outstanding capture means
+            // this is not our answer, and nothing is saved.
+            guard captureOutstanding else { break }
+            captureOutstanding = false
+            pendingSyncMetadata = nil
+            if let pic = picture.pic { photoLibrarySaver(pic) }
+
         case is RemoteCmd.EndSession:
             // The peer is leaving on purpose, so the goodbye is the end of the
             // session: leave now. The disconnect that follows matches no peer

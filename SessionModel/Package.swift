@@ -8,7 +8,9 @@ let package = Package(
     name: "SessionModel",
     platforms: [.iOS(.v15), .macOS(.v12)],
     products: [
-        .library(name: "SessionModel", targets: ["SessionModel"])
+        .library(name: "SessionModel", targets: ["SessionModel"]),
+        .library(name: "SessionWorld", targets: ["SessionWorld"]),
+        .executable(name: "session-runner", targets: ["session-runner"]),
     ],
     dependencies: [
         // Pinned to an exact revision, not a branch: Correcto is pre-1.0 and its
@@ -26,10 +28,26 @@ let package = Package(
                 .product(name: "Correcto", package: "correcto"),
                 .product(name: "Stormo", package: "Stormo"),
             ]),
+        // The world the devices live in, plus the rules. Separate from the
+        // model because this is where `CorrectoCheck` is allowed: the app links
+        // `SessionModel` only, so no explorer reaches a shipped binary.
+        .target(
+            name: "SessionWorld",
+            dependencies: [
+                "SessionModel",
+                .product(name: "Correcto", package: "correcto"),
+                .product(name: "CorrectoCheck", package: "correcto"),
+            ]),
+        // Drive the machine by hand. Same model the checker explores, same
+        // moves the checker enumerates, one at a time, chosen by a person.
+        .executableTarget(
+            name: "session-runner",
+            dependencies: ["SessionModel", "SessionWorld"]),
         .testTarget(
             name: "SessionModelTests",
             dependencies: [
                 "SessionModel",
+                "SessionWorld",
                 .product(name: "CorrectoCheck", package: "correcto"),
                 .product(name: "CorrectoTesting", package: "correcto"),
             ]),

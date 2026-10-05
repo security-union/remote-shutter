@@ -1374,9 +1374,9 @@ class SessionReconnectTests: XCTestCase {
 final class DivergenceLog: @unchecked Sendable {
     private let lock = NSLock()
     private var lines: [String] = []
-    func append(_ divergence: ShadowRuntime<PhotoCamera>.Divergence) {
+    func append(_ divergence: ShadowRuntime<SessionDevice>.Divergence) {
         lock.lock(); defer { lock.unlock() }
-        lines.append(PhotoShadow.describe(divergence))
+        lines.append(SessionShadow.describe(divergence))
     }
     var all: [String] { lock.lock(); defer { lock.unlock() }; return lines }
 }
@@ -1544,6 +1544,27 @@ final class CorrectoReproductionTests: XCTestCase {
                 + "it went out as \(name ?? "nil")")
     }
 
+    /// The same lost-photo rule, reached through the other door, and the first
+    /// defect the shadow found rather than a person: the model and the
+    /// coordinator disagreed about whether a capture is still outstanding after
+    /// a teardown. `inCamera` saves a late picture since the watchdog fix, and
+    /// `.scanning` had no handler at all, so a goodbye during a capture drops
+    /// bytes the person asked for.
+    func testPictureArrivingAfterATeardownIsStillSaved() async {
+        await enterCameraTakingPic()
+        await harness.deliver(RemoteCmd.EndSession())
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .scanning, "precondition: the goodbye tore the session down")
+        XCTAssertEqual(savedPhotos.count, 0, "precondition: nothing saved yet")
+
+        await harness.deliver(UICmd.OnPicture(sender: nil, pic: Data([0xFF, 0xD8, 0xFF])))
+
+        XCTAssertEqual(
+            savedPhotos.count, 1,
+            "a picture that arrives after the session ended must still reach the library")
+    }
+
     // MARK: - Shadow mode: the model runs beside the coordinator and decides nothing
 
     /// The shadow watches every message, compares the model's prediction to
@@ -1552,7 +1573,7 @@ final class CorrectoReproductionTests: XCTestCase {
     func testShadowAgreesWithTheCoordinatorOnACleanCapture() async {
         let reports = DivergenceLog()
         await enterCameraForRepro()
-        await harness.coordinator.startShadowingPhotoSlice { reports.append($0) }
+        await harness.coordinator.startShadowingSession { reports.append($0) }
 
         await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
         await harness.deliver(UICmd.OnPicture(sender: nil, pic: Data([0xFF, 0xD8, 0xFF])))
@@ -1561,23 +1582,44 @@ final class CorrectoReproductionTests: XCTestCase {
     }
 
     /// And it is not silent by construction. A message the model does not own
-    /// yet still moves the app, and the shadow says so, which is how the next
-    /// slice gets chosen.
+    /// still moves the app, and the shadow says so, which is how the next slice
+    /// gets chosen.
+    ///
+    /// The Watch path is the honest example now that the model covers video:
+    /// `popToScanning` stops at the lobby floor for those phases, so the model
+    /// is not allowed to decide there and `modelOwnsPhase` excludes them.
     func testShadowReportsAMessageTheModelDoesNotOwn() async {
         let reports = DivergenceLog()
         await enterCameraForRepro()
-        await harness.coordinator.startShadowingPhotoSlice { reports.append($0) }
+        await harness.coordinator.startShadowingSession { reports.append($0) }
 
-        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
-        // The model has a `sendFailed` event but `photoEvent(for:)` maps no
-        // message to it yet, so this send failure moves the app out of the
-        // capture with the model unaware. That gap is what the shadow is for.
-        harness.fakeMP.sendResult = false
-        await harness.deliver(RemoteCmd.ToggleFlash())
+        await harness.deliver(UICmd.BecomeWatchCamera(ctrl: camera))
 
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .watchRemoteCamera, "precondition: the app moved out of the slice")
         XCTAssertTrue(
             reports.all.contains { $0.contains("unmodelled") },
             "the shadow must notice an unowned message moving the app; got \(reports.all)")
+    }
+
+    /// A send that dies on a live link takes the app out of the capture without
+    /// any message saying so: `sendOrGoToScanning` detects it inline. The model
+    /// calls that `sendFailed`, and the coordinator now hands it to the shadow
+    /// alongside the message being handled, so the shadow follows the app
+    /// through the second of the alert defect's two doors instead of reporting
+    /// a disagreement it was never told about.
+    func testShadowFollowsTheAppThroughAFailedSend() async {
+        let reports = DivergenceLog()
+        await enterCameraForRepro()
+        await harness.coordinator.startShadowingSession { reports.append($0) }
+
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: true))
+        harness.fakeMP.sendResult = false
+        await harness.deliver(RemoteCmd.ToggleFlash())
+
+        let name = await harness.stateName()
+        XCTAssertEqual(name, .scanning, "precondition: the failed send popped to scanning")
+        XCTAssertEqual(reports.all, [], "the model must agree with the coordinator")
     }
 
     /// Not a defect by itself: the camera waits for the receiver to echo before
