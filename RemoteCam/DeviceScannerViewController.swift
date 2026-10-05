@@ -107,6 +107,11 @@ public class DeviceScannerViewController: UIViewController {
         super.viewDidLoad()
         _ = _peerIDInitialized
         remoteCamSession.setFrameSender(frameSender)
+        // Phase zero of the Correcto integration: the photo slice's model
+        // watches this coordinator and decides nothing. Debug builds only, and
+        // it is the only screen that gets it — the Watch path runs states the
+        // slice does not model yet, so attaching there would report noise.
+        SessionDebug.attachModelShadow(to: remoteCamSession)
         self.remoteCamSession ! SetScannerLobby(lobby: self)
         scannerViewModel.role = role
         // Multicam director collecting: only the monitor role, only behind the

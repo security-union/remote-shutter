@@ -31,8 +31,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-asn1.git",
       "state" : {
-        "revision" : "a9a5efd40eaf558a2bcd48d64b1d1646be686008",
-        "version" : "1.7.1"
+        "revision" : "3b6410f7dee09eb33cdd26260c5fd47fda19b0e2",
+        "version" : "1.7.3"
       }
     },
     {
@@ -40,8 +40,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-certificates.git",
       "state" : {
-        "revision" : "449dbbecd0f31e82b510ada227ca152caa8b5e98",
-        "version" : "1.19.4"
+        "revision" : "ff86b924ead66f853b8baf91f3c41926a8f36177",
+        "version" : "1.21.0"
       }
     },
     {
@@ -49,8 +49,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-crypto.git",
       "state" : {
-        "revision" : "47d3869a7291f085c1fb9fb1e6d3b97a793f45c6",
-        "version" : "4.5.1"
+        "revision" : "a9d1d5ab8951ada40cafff8c8e2b551dfde4f390",
+        "version" : "5.0.0"
       }
     }
   ],

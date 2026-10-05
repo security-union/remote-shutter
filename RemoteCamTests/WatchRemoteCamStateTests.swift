@@ -8,6 +8,7 @@
 //  WatchConnectivity.
 //
 
+import SessionModel
 import XCTest
 import UIKit
 import AVFoundation

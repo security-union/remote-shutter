@@ -13,6 +13,7 @@
 //
 
 import MPCCompat
+import SessionModel
 import Stormo
 
 public typealias MCPeerID = PeerID

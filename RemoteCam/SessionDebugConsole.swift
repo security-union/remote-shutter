@@ -21,6 +21,7 @@
 //
 
 import Combine
+import SessionModel
 import SwiftUI
 
 // MARK: - Facade (always compiled; free in Release)
@@ -50,6 +51,36 @@ enum SessionDebug {
     static func pipelinePhase(_ label: @autoclosure () -> String) {
         #if DEBUG
         SessionDebugLog.shared.recordLifecycle("⛭ \(label())")
+        #endif
+    }
+
+    /// Switches on shadow mode for the session model: the model runs beside the
+    /// coordinator, compares its own prediction against the state the
+    /// coordinator actually reached, and checks its rules against that state.
+    /// It performs no effects and nothing downstream reads it, so it cannot
+    /// change what the app does.
+    ///
+    /// Two different things come out of it, and the second is the valuable
+    /// one. A state disagreement means the model is wrong about the app. A
+    /// broken rule means the app is wrong, found by a sentence, on a real
+    /// device — the orphaned alert would have reported here.
+    ///
+    /// No-op in Release like every other tap in this file, so a shipped build
+    /// carries no shadow at all. The evidence therefore comes from development
+    /// and TestFlight-with-debug runs, not from App Store sessions; a
+    /// Release-safe channel is a separate decision, see
+    /// docs/correcto-integration.md.
+    static func attachModelShadow(to coordinator: SessionCoordinator) {
+        #if DEBUG
+        Task {
+            await coordinator.startShadowingSession { divergence in
+                let line = SessionShadow.describe(divergence)
+                // Warning level, not info: a divergence is either a wrong
+                // model or a broken rule, and both are worth interrupting for.
+                logWarning("model shadow: \(line)")
+                SessionDebugLog.shared.recordLifecycle("⚖︎ \(line)")
+            }
+        }
         #endif
     }
 
