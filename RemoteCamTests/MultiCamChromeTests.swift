@@ -10,6 +10,138 @@ import XCTest
 
 final class MultiCamChromeTests: XCTestCase {
 
+    // MARK: - Cinematic
+
+    /// The CINEMATIC tile is a video-mode tile for a camera that reports the
+    /// block; EDIT IN PHOTOS joins it once the effect is on. Both sit in the
+    /// focused camera's section, never among the rig's tiles.
+    func testCinematicTilesAreVideoOnlyAndFollowTheEffect() {
+        XCTAssertFalse(RigTray.cameraItems(mode: .photo, exposureAvailable: false,
+                                           cinematicAvailable: true, cinematicOn: true).contains(.cinematic))
+        XCTAssertEqual(RigTray.cameraItems(mode: .video, exposureAvailable: false,
+                                           cinematicAvailable: false, cinematicOn: false), [],
+                       "no block, no tile")
+        let off = RigTray.cameraItems(mode: .video, exposureAvailable: false, cinematicAvailable: true, cinematicOn: false)
+        XCTAssertEqual(off, [.cinematic], "the output choice waits for the effect")
+        let on = RigTray.cameraItems(mode: .video, exposureAvailable: true, cinematicAvailable: true, cinematicOn: true)
+        XCTAssertEqual(on, [.exposure, .cinematic, .cinematicEditable],
+                       "the output sits beside the effect it belongs to")
+    }
+
+    /// The tray's two sections never share a tile: what addresses one camera
+    /// is under its name, what addresses the rig is under ALL CAMERAS.
+    func testTraySplitsCameraTilesFromRigTiles() {
+        let perCamera: Set<MonitorTrayItem> = [.exposure, .cinematic, .cinematicEditable]
+        for mode in [MonitorMode.photo, .video] {
+            let rig = RigTray.rigItems(mode: mode, standbyAvailable: true)
+            XCTAssertTrue(perCamera.isDisjoint(with: rig), "\(mode): no per-camera tile among the rig's")
+            let camera = RigTray.cameraItems(mode: mode, exposureAvailable: true, cinematicAvailable: true, cinematicOn: true)
+            XCTAssertTrue(Set(camera).isSubset(of: perCamera), "\(mode): only per-camera tiles under the name")
+        }
+    }
+
+    func testApertureLabelsAndTrack() {
+        XCTAssertEqual(CinematicApertureStops.label(2), "f/2")
+        XCTAssertEqual(CinematicApertureStops.label(2.8), "f/2.8")
+        XCTAssertEqual(CinematicApertureStops.label(16), "f/16")
+        let state = CinematicState(enabled: true, output: .baked, aperture: 2.8, minAperture: 2, maxAperture: 16,
+                                   defaultAperture: 2.8, qualities: [:])
+        let track = CinematicApertureStops.track(state)
+        XCTAssertEqual(track.minValue, 2)
+        XCTAssertEqual(track.maxValue, 16)
+        XCTAssertEqual(track.mapping, .log2, "each whole stop is an equal step")
+        XCTAssertEqual(track.snappedToStop(3.0, tolerance: 0.05), 2.8, accuracy: 0.001, "detents at the whole stops")
+    }
+
+    func testTileChipShowsTheApertureOnlyWhileCinematicIsOn() {
+        let on = CinematicState(enabled: true, output: .baked, aperture: 2.8, minAperture: 2, maxAperture: 16,
+                                defaultAperture: 2.8, qualities: [:])
+        var off = on
+        off.enabled = false
+        XCTAssertEqual(CinematicApertureStops.tileLabel(on), "f/2.8")
+        XCTAssertNil(CinematicApertureStops.tileLabel(off), "capable but off: no chip")
+        XCTAssertNil(CinematicApertureStops.tileLabel(nil), "a camera without Cinematic: no chip")
+    }
+
+    private func subject(_ id: Int, _ kind: CinematicSubjectKind, group: Int, _ rect: CGRect,
+                         focus: CinematicFocusStrength? = nil) -> CinematicSubject {
+        CinematicSubject(id: id, groupID: group, kind: kind, rect: rect, focus: focus, isFixedFocus: false)
+    }
+
+    /// One box per person: a body is dropped when that person's face is there.
+    func testSubjectBoxesDropABodyWhoseFaceIsShown() {
+        let face = subject(1, .face, group: 5, CGRect(x: 0.4, y: 0.1, width: 0.2, height: 0.2))
+        let body = subject(2, .humanBody, group: 5, CGRect(x: 0.3, y: 0.1, width: 0.4, height: 0.8))
+        let loneBody = subject(3, .humanBody, group: 6, CGRect(x: 0.8, y: 0.2, width: 0.1, height: 0.6))
+        let visible = CinematicSubjectLayout.visibleSubjects([face, body, loneBody]).map(\.id)
+        XCTAssertEqual(visible, [1, 3])
+    }
+
+    /// A tap inside a box locks that subject (the smallest box wins); a tap
+    /// elsewhere tracks the point; a long press holds focus there.
+    func testTapMapsToCinematicFocus() {
+        let object = subject(9, .salientObject, group: -1, CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6))
+        let face = subject(1, .face, group: 5, CGRect(x: 0.4, y: 0.3, width: 0.1, height: 0.1))
+        let subjects = [object, face]
+
+        XCTAssertEqual(CinematicSubjectLayout.focus(forTap: CGPoint(x: 0.45, y: 0.35), subjects: subjects,
+                                                    isLongPress: false),
+                       .subject(id: 1, strength: .strong))
+        XCTAssertEqual(CinematicSubjectLayout.focus(forTap: CGPoint(x: 0.25, y: 0.25), subjects: subjects,
+                                                    isLongPress: false),
+                       .subject(id: 9, strength: .strong))
+        XCTAssertEqual(CinematicSubjectLayout.focus(forTap: CGPoint(x: 0.9, y: 0.9), subjects: subjects,
+                                                    isLongPress: false),
+                       .trackPoint(x: 0.9, y: 0.9, strength: .strong))
+        XCTAssertEqual(CinematicSubjectLayout.focus(forTap: CGPoint(x: 0.45, y: 0.35), subjects: subjects,
+                                                    isLongPress: true),
+                       .fixedPoint(x: 0.45, y: 0.35))
+    }
+
+    /// One command per meaning: Cinematic on sends Cinematic focus, off
+    /// sends tap-to-focus, and nothing goes where it means nothing.
+    func testViewfinderGestureRoutesToExactlyOneFocusCommand() {
+        let face = subject(1, .face, group: 5, CGRect(x: 0.4, y: 0.3, width: 0.1, height: 0.1))
+        let onFace = CGPoint(x: 0.45, y: 0.35)
+        func route(_ point: CGPoint, longPress: Bool = false, cinematic: Bool, focusPoint: Bool)
+            -> CinematicSubjectLayout.Request? {
+            CinematicSubjectLayout.request(forTap: point, isLongPress: longPress, cinematicOn: cinematic,
+                                           supportsFocusPoint: focusPoint, subjects: [face])
+        }
+
+        XCTAssertEqual(route(onFace, cinematic: false, focusPoint: true), .tapToFocus(x: 0.45, y: 0.35),
+                       "Cinematic off: ordinary tap-to-focus, even on a subject")
+        XCTAssertNil(route(onFace, cinematic: false, focusPoint: false), "a camera that can't focus at a point is sent nothing")
+        XCTAssertNil(route(onFace, longPress: true, cinematic: false, focusPoint: true),
+                     "a long press means something only to Cinematic")
+
+        XCTAssertEqual(route(onFace, cinematic: true, focusPoint: true), .cinematic(.subject(id: 1, strength: .strong)))
+        XCTAssertEqual(route(CGPoint(x: 0.9, y: 0.9), cinematic: true, focusPoint: true),
+                       .cinematic(.trackPoint(x: 0.9, y: 0.9, strength: .strong)))
+        XCTAssertEqual(route(onFace, longPress: true, cinematic: true, focusPoint: true),
+                       .cinematic(.fixedPoint(x: 0.45, y: 0.35)))
+        XCTAssertEqual(route(onFace, cinematic: true, focusPoint: false), .cinematic(.subject(id: 1, strength: .strong)),
+                       "Cinematic focus doesn't depend on tap-to-focus support")
+    }
+
+    /// Boxes land where the letterboxed image is drawn, and a box's center
+    /// maps back through the tap mapping to the same normalized point.
+    func testSubjectBoxMappingMatchesTheTapMapping() throws {
+        let view = CGSize(width: 400, height: 800)       // portrait viewfinder
+        let image = CGSize(width: 1920, height: 1080)    // 16:9 frame, letterboxed
+        let frame = try XCTUnwrap(CinematicSubjectLayout.imageFrame(viewSize: view, imageSize: image))
+        XCTAssertEqual(frame.width, 400, accuracy: 0.001)
+        XCTAssertEqual(frame.height, 225, accuracy: 0.001)
+        XCTAssertEqual(frame.minY, 287.5, accuracy: 0.001)
+
+        let box = CGRect(x: 0.25, y: 0.5, width: 0.5, height: 0.2)
+        let onScreen = CinematicSubjectLayout.viewRect(box, in: frame)
+        let back = try XCTUnwrap(FocusPointMapping.normalizedImagePoint(
+            tap: CGPoint(x: onScreen.midX, y: onScreen.midY), viewSize: view, imageSize: image))
+        XCTAssertEqual(back.x, box.midX, accuracy: 0.0001)
+        XCTAssertEqual(back.y, box.midY, accuracy: 0.0001)
+    }
+
     func testGridColumnsAreNearSquare() {
         XCTAssertEqual(MultiCamChrome.gridColumnCount(cameraCount: 1), 1)
         XCTAssertEqual(MultiCamChrome.gridColumnCount(cameraCount: 2), 2) // 2-up
@@ -44,21 +176,21 @@ final class MultiCamChromeTests: XCTestCase {
     /// Photo mode lists photo settings only — no video-quality tile, exactly
     /// as the 1:1 monitor's tray behaves in photo mode.
     func testRigTrayPhotoModeListsPhotoTilesOnly() {
-        XCTAssertEqual(RigTray.items(mode: .photo, standbyAvailable: true),
+        XCTAssertEqual(RigTray.rigItems(mode: .photo, standbyAvailable: true),
                        [.timer, .aspect, .format, .hdr, .cameraStandby, .settings, .help])
     }
 
     /// Video mode lists the single rig-quality tile only — no photo format or
     /// HDR tiles (frame rate rides the quality tile's intersection cycle).
     func testRigTrayVideoModeListsQualityTileOnly() {
-        XCTAssertEqual(RigTray.items(mode: .video, standbyAvailable: true),
+        XCTAssertEqual(RigTray.rigItems(mode: .video, standbyAvailable: true),
                        [.timer, .aspect, .resolution, .cameraStandby, .settings, .help])
     }
 
     /// A rig with no standby-capable camera omits the tile (not dims it).
     func testRigTrayOmitsStandbyWhenUnavailable() {
-        XCTAssertFalse(RigTray.items(mode: .photo, standbyAvailable: false).contains(.cameraStandby))
-        XCTAssertFalse(RigTray.items(mode: .video, standbyAvailable: false).contains(.cameraStandby))
+        XCTAssertFalse(RigTray.rigItems(mode: .photo, standbyAvailable: false).contains(.cameraStandby))
+        XCTAssertFalse(RigTray.rigItems(mode: .video, standbyAvailable: false).contains(.cameraStandby))
     }
 
     func testStreamProfilePresets() {

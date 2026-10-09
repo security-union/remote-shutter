@@ -68,13 +68,29 @@ enum RigTrayPresentation {
 
 enum RigTray {
 
+    /// The focused camera's own tiles, shown under its name: they address
+    /// that camera only. Exposure shows when the camera reports the block.
+    /// Cinematic is a video effect: its tile is offered in video mode for a
+    /// camera that reports the block, and the editable-output tile joins it
+    /// once the effect is on.
+    static func cameraItems(mode: MonitorMode, exposureAvailable: Bool,
+                            cinematicAvailable: Bool, cinematicOn: Bool) -> [MonitorTrayItem] {
+        var items: [MonitorTrayItem] = []
+        if exposureAvailable { items.append(.exposure) }
+        if mode == .video, cinematicAvailable {
+            items.append(.cinematic)
+            if cinematicOn { items.append(.cinematicEditable) }
+        }
+        return items
+    }
+
+    /// The tiles that apply to every camera, plus settings and help.
     /// `standbyAvailable` omits (not dims) the standby tile, as the 1:1 tray
     /// does — a rig with no standby-capable camera has nothing to offer.
     /// Format/HDR stay listed when blocked: the intersection model greys them
     /// and names the blocking camera in the footnote instead. Aspect, like the
     /// 1:1 tray's, shows in both modes — every camera can crop.
-    static func items(mode: MonitorMode, standbyAvailable: Bool,
-                      exposureAvailable: Bool = false) -> [MonitorTrayItem] {
+    static func rigItems(mode: MonitorMode, standbyAvailable: Bool) -> [MonitorTrayItem] {
         var items: [MonitorTrayItem] = [.timer, .aspect]
 
         switch mode {
@@ -84,7 +100,6 @@ enum RigTray {
             items.append(contentsOf: [.format, .hdr])
         }
 
-        if exposureAvailable { items.append(.exposure) }
         if standbyAvailable { items.append(.cameraStandby) }
         items.append(.settings)
         items.append(.help)

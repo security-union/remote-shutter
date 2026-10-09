@@ -84,7 +84,13 @@ final class CameraRig: @unchecked Sendable {
     private let currentCameraModeShared = Locked(RecordingMode.Photo)
     var currentCameraMode: RecordingMode {
         get { currentCameraModeShared.value }
-        set { currentCameraModeShared.value = newValue }
+        set {
+            let changed = currentCameraModeShared.value != newValue
+            currentCameraModeShared.value = newValue
+            // Cinematic follows video mode; the engine re-applies before the
+            // coordinator's state reply reads it.
+            if changed { engine.recordingModeChanged() }
+        }
     }
 
     // MARK: - Shell seams
@@ -199,6 +205,21 @@ final class CameraRig: @unchecked Sendable {
         // The exposure policy caps a long shutter at the frame duration while
         // a clip is rolling; recording truth lives here, not in the engine.
         engine.isRecordingProvider = { [weak self] in self?.isRecording ?? false }
+        // Cinematic is a video-mode effect; mode truth lives here.
+        engine.isVideoModeProvider = { [currentCameraModeShared] in
+            currentCameraModeShared.value != .Photo
+        }
+        // The chip on this screen follows every Cinematic change, whoever
+        // caused it (the remote, a flip, a mode change, teardown).
+        engine.onCinematicStateChanged = { [cameraViewModel] state in
+            cameraViewModel.updateCinematicReadout(state)
+        }
+        // Captures the session ref (not self): the report reaches the
+        // coordinator, which forwards it to the director .unreliable.
+        engine.onCinematicSubjects = { [session, cameraViewModel] report in
+            cameraViewModel.updateCinematicLight(notEnoughLight: report.notEnoughLight)
+            session ! UICmd.PublishCinematicSubjects(report: report)
+        }
         engine.onCameraDevicesChanged = { [weak self] in
             // Hot-plug (fires on the session queue): refresh the picker and,
             // when a monitor is connected, re-advertise capabilities.
@@ -518,16 +539,32 @@ extension CameraRig: CameraControlling {
     }
 
     func focusAtPoint(x: Float, y: Float) async throws {
+        let outcome = try await engine.setFocusExposurePoint(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y)))
         // Show the same reticle the monitor draws, so the person holding the
-        // camera sees the tap land — on every command, even where the device
-        // can't focus (the box is the confirmation).
-        cameraViewModel.showRemoteFocus(x: x, y: y)
-        try await engine.setFocusExposurePoint(displayNormalized: CGPoint(x: CGFloat(x), y: CGFloat(y)))
+        // camera sees the tap land — even where the device can't focus (the
+        // box is the confirmation), but not for a tap Cinematic dropped.
+        if outcome != .cinematicOwnsFocus {
+            cameraViewModel.showRemoteFocus(x: x, y: y)
+        }
     }
 
     func setExposure(_ intent: ExposureIntent) async throws {
         try await engine.setExposure(intent)
         cameraViewModel.updateExposureReadout(await engine.gatherCurrentCameraCapabilities()?.exposure)
+    }
+
+    func setCinematic(_ intent: CinematicIntent) async throws {
+        defer {
+            // Turning Cinematic on can end Manual exposure: keep that chip true.
+            Task { [engine, cameraViewModel] in
+                cameraViewModel.updateExposureReadout(await engine.gatherCurrentCameraCapabilities()?.exposure)
+            }
+        }
+        try await engine.setCinematic(intent)
+    }
+
+    func setCinematicFocus(_ focus: CinematicFocus) async throws {
+        try await engine.setCinematicFocus(focus)
     }
 
     func switchLens(to lensType: CameraLensType) async throws -> (CameraLensType, [CameraLensType], CGFloat, RemoteCmd.ZoomRange) {

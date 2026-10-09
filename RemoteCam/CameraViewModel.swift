@@ -81,6 +81,31 @@ class CameraViewModel: ObservableObject {
         DispatchQueue.main.async { self.exposureReadout = text }
     }
 
+    /// "CINEMATIC f/2.8" while the effect is on, so the person at the camera
+    /// knows the blur they see is the remote's doing; nil when off.
+    @Published var cinematicReadout: String?
+    /// The camera reports the scene too dark for Cinematic to work well.
+    @Published var cinematicNeedsLight = false
+
+    func updateCinematicReadout(_ state: CinematicState?) {
+        let text: String? = state.flatMap { state in
+            guard state.enabled else { return nil }
+            return String(format: NSLocalizedString("CINEMATIC f/%.1f", comment: "camera chip: Cinematic on, simulated aperture"),
+                          state.aperture)
+        }
+        DispatchQueue.main.async {
+            self.cinematicReadout = text
+            if text == nil { self.cinematicNeedsLight = false }
+        }
+    }
+
+    func updateCinematicLight(notEnoughLight: Bool) {
+        DispatchQueue.main.async {
+            guard self.cinematicNeedsLight != notEnoughLight else { return }
+            self.cinematicNeedsLight = notEnoughLight
+        }
+    }
+
     func updateStatus(mode: RecordingMode, resolution: VideoResolution, frameRate: VideoFrameRate,
                       photoFormat: PhotoFormat, hdrMode: HDRMode) {
         DispatchQueue.main.async {

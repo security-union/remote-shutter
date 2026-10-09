@@ -2585,3 +2585,304 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(lane?.activeDeviceID, "builtin", "a refused switch leaves the device alone")
     }
 }
+
+// MARK: - Cinematic
+
+/// Records the subject reports the controller hands the screen.
+private final class CinematicSubjectsDisplay: MulticamDisplay, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _subjects: [(MCPeerID, CinematicSubjectsReport?)] = []
+    var subjects: [(MCPeerID, CinematicSubjectsReport?)] { lock.lock(); defer { lock.unlock() }; return _subjects }
+
+    func applyLanes(_ lanes: [MulticamLaneInfo]) {}
+    func applyShutterState(capturing: Bool, recording: Bool) {}
+    func applyAvailablePeers(_ peers: [MCPeerID]) {}
+    func applyRigSettings(_ settings: RigSettingsSnapshot) {}
+    func showTransientError(_ message: String) {}
+    func exitMulticam() {}
+    func applyCinematicSubjects(_ report: CinematicSubjectsReport?, for peer: MCPeerID) {
+        lock.lock(); _subjects.append((peer, report)); lock.unlock()
+    }
+}
+
+extension MulticamControllerTests {
+
+    private func cinematicBlock(enabled: Bool, output: CinematicOutput = .baked) -> CinematicState {
+        CinematicState(enabled: enabled, output: output, aperture: 2.8,
+                       minAperture: 2, maxAperture: 16, defaultAperture: 2.8,
+                       qualities: [.hd1080p: [.fps24, .fps30], .uhd4k: [.fps24, .fps30]])
+    }
+
+    private func cinematicCaps(_ cinematic: CinematicState?,
+                               aspect: AspectRatio = .sixteenNine) -> RemoteCmd.CameraCapabilitiesResp {
+        RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+            supportsMulticam: true, aspectRatio: aspect, cinematic: cinematic, error: nil)
+    }
+
+    private func subjectsReport(dark: Bool = false) -> CinematicSubjectsReport {
+        CinematicSubjectsReport(
+            subjects: [CinematicSubject(id: 7, groupID: 1, kind: .face,
+                                        rect: CGRect(x: 0.4, y: 0.2, width: 0.2, height: 0.3),
+                                        focus: .strong, isFixedFocus: false)],
+            notEnoughLight: dark)
+    }
+
+    /// SetCinematic goes only to a camera whose state carries the block, and
+    /// counts in flight like every control command; focus goes only while the
+    /// effect is on, fire-and-forget.
+    func testCinematicIsGatedOnTheLanesCinematicBlock() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        controller.didReceiveMessage(cinematicCaps(nil), from: camA)
+        await controller.waitForIdle()
+        controller.setCinematic(CinematicIntent(enabled: true), on: camA)
+        controller.setCinematicFocus(.trackPoint(x: 0.5, y: 0.5, strength: .strong), on: camA)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetCinematic.self).isEmpty, "no block, no command")
+        XCTAssertTrue(sent(transport, RemoteCmd.SetCinematicFocus.self).isEmpty)
+
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
+        await controller.waitForIdle()
+        controller.setCinematicFocus(.subject(id: 7, strength: .strong), on: camA)
+        controller.setCinematic(CinematicIntent(enabled: true, aperture: 4, output: .editable), on: camA)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetCinematicFocus.self).isEmpty,
+                      "with the effect off there is nothing to focus")
+        let intents = sent(transport, RemoteCmd.SetCinematic.self).compactMap { ($0.msg as? RemoteCmd.SetCinematic)?.intent }
+        XCTAssertEqual(intents, [CinematicIntent(enabled: true, aperture: 4, output: .editable)])
+        let pending = await controller.pendingForTesting(camA, .setcinematic)
+        XCTAssertEqual(pending, 1, "counted in flight until the state reply")
+        let settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertTrue(settings.cinematicInFlight, "the tile waits for the camera")
+
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: true)), to: .setcinematic), from: camA)
+        controller.setCinematicFocus(.subject(id: 7, strength: .strong), on: camA)
+        await controller.waitForIdle()
+        let focuses = sent(transport, RemoteCmd.SetCinematicFocus.self).compactMap { ($0.msg as? RemoteCmd.SetCinematicFocus)?.focus }
+        XCTAssertEqual(focuses, [.subject(id: 7, strength: .strong)])
+        let settled = await controller.pendingForTesting(camA, .setcinematic)
+        XCTAssertEqual(settled, 0)
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first?.cinematic?.enabled, true, "the lane reads the camera's report")
+    }
+
+    /// An aperture drag, like an exposure drag: one SetCinematic in flight,
+    /// everything asked meanwhile folded into one, sent on the answer.
+    func testCinematicIsLatestWinsOneInFlight() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        func intents() -> [CinematicIntent] {
+            sent(transport, RemoteCmd.SetCinematic.self).compactMap { ($0.msg as? RemoteCmd.SetCinematic)?.intent }
+        }
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: true)), from: camA)
+        await controller.waitForIdle()
+
+        controller.setCinematic(CinematicIntent(enabled: true, aperture: 2.8), on: camA)
+        controller.setCinematic(CinematicIntent(enabled: true, aperture: 4), on: camA)
+        controller.setCinematic(CinematicIntent(enabled: true, aperture: 5.6), on: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents(), [CinematicIntent(enabled: true, aperture: 2.8)], "the rest wait for the answer")
+
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: true)), to: .setcinematic), from: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents(), [CinematicIntent(enabled: true, aperture: 2.8),
+                                   CinematicIntent(enabled: true, aperture: 5.6)],
+                       "one command carries the newest aperture")
+
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: true)), to: .setcinematic), from: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(intents().count, 2, "nothing queued, nothing more sent")
+        let pending = await controller.pendingForTesting(camA, .setcinematic)
+        XCTAssertEqual(pending, 0)
+    }
+
+    /// A refused Cinematic toggle is said out loud, naming the camera.
+    func testCinematicRefusalIsShownNamingTheCamera() async {
+        let (controller, _, display) = await makeController(peers: [camA])
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
+        await controller.waitForIdle()
+        controller.setCinematic(CinematicIntent(enabled: true), on: camA)
+        await controller.waitForIdle()
+        let refusal = NSError(domain: "Locked while recording", code: 0)
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: false)),
+                                           to: .setcinematic, error: refusal), from: camA)
+        await controller.waitForIdle()
+        await pumpMainUntil { !display.transientErrors.isEmpty }
+        XCTAssertEqual(display.transientErrors.last, "CameraA: Locked while recording")
+    }
+
+    /// Subject boxes stand only while the camera reports the effect on: a
+    /// report is held and published, a report without the effect is dropped,
+    /// and turning Cinematic off clears the boxes.
+    func testCinematicSubjectsAreHeldWhileOnAndClearedWhenOff() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+        let display = CinematicSubjectsDisplay()
+        await controller.setDisplay(display)
+
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
+        controller.didReceiveMessage(RemoteCmd.CinematicSubjects(report: subjectsReport()), from: camA)
+        await controller.waitForIdle()
+        var held = await controller.cinematicSubjectsForTesting(camA)
+        XCTAssertNil(held, "no effect, no boxes")
+
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: true)), from: camA)
+        controller.didReceiveMessage(RemoteCmd.CinematicSubjects(report: subjectsReport(dark: true)), from: camA)
+        await controller.waitForIdle()
+        held = await controller.cinematicSubjectsForTesting(camA)
+        XCTAssertEqual(held, subjectsReport(dark: true))
+        await pumpMainUntil { display.subjects.count == 1 }
+        XCTAssertEqual(display.subjects.last?.1, subjectsReport(dark: true))
+
+        // The same report again is not re-published.
+        controller.didReceiveMessage(RemoteCmd.CinematicSubjects(report: subjectsReport(dark: true)), from: camA)
+        await controller.waitForIdle()
+
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
+        await controller.waitForIdle()
+        held = await controller.cinematicSubjectsForTesting(camA)
+        XCTAssertNil(held, "turning Cinematic off clears the boxes")
+        await pumpMainUntil { display.subjects.count == 2 }
+        XCTAssertEqual(display.subjects.count, 2, "one publish per change")
+        XCTAssertNil(display.subjects.last?.1)
+    }
+
+    /// Editable Cinematic records the whole 16:9 frame: the tray stops
+    /// offering other aspects, a stale request is not sent, and the rig's
+    /// aspect re-sync never pushes that camera into a crop it would refuse.
+    func testEditableCinematicHoldsTheRigAtSixteenNine() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(cinematicCaps(nil), from: camA)
+        controller.didReceiveMessage(cinematicCaps(nil), from: camB)
+        await controller.waitForIdle()
+        controller.setAspectRatio(.fourThree)
+        await controller.waitForIdle()
+
+        transport.sentMessages.removeAll()
+        // camA reports editable Cinematic at 16:9 while the rig is 4:3: the
+        // re-sync must not push it into a crop it would refuse.
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: true, output: .editable),
+                                                   aspect: .sixteenNine), from: camA)
+        await controller.waitForIdle()
+        let resync = sent(transport, RemoteCmd.SetAspectRatio.self).filter { $0.peers.contains(camA) }
+        XCTAssertTrue(resync.isEmpty, "never re-synced into a crop editable Cinematic refuses")
+
+        let settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(settings.selectableAspects, [.sixteenNine])
+        XCTAssertEqual(settings.aspectBlockedBy, ["CameraA"])
+
+        transport.sentMessages.removeAll()
+        controller.setAspectRatio(.oneOne)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetAspectRatio.self).isEmpty, "not offered, not sent")
+        controller.setAspectRatio(.sixteenNine)
+        await controller.waitForIdle()
+        XCTAssertEqual(sent(transport, RemoteCmd.SetAspectRatio.self).count, 2, "16:9 goes to the whole rig")
+    }
+
+    /// Cinematic is per camera: in a mixed rig the capable camera gets the
+    /// tile and the command, the other gets neither, and each lane carries
+    /// its own state (what the strip chip reads).
+    func testCinematicIsPerCameraInAMixedRig() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        controller.didReceiveMessage(cinematicCaps(cinematicBlock(enabled: false)), from: camA)
+        controller.didReceiveMessage(cinematicCaps(nil), from: camB)
+        await controller.setFocusedPeer(camA)
+        await controller.waitForIdle()
+        var settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertEqual(settings.cinematic, cinematicBlock(enabled: false))
+        XCTAssertTrue(settings.cinematicAvailable(in: .video), "one capable camera is enough for its own tile")
+        XCTAssertFalse(settings.cinematicAvailable(in: .photo), "a video effect")
+
+        controller.setCinematic(CinematicIntent(enabled: true), on: camA)
+        controller.setCinematic(CinematicIntent(enabled: true), on: camB)
+        await controller.waitForIdle()
+        let sends = sent(transport, RemoteCmd.SetCinematic.self)
+        XCTAssertEqual(sends.map(\.peers), [[camA]], "only the camera that asked, never the one without the block")
+
+        controller.didReceiveMessage(reply(cinematicCaps(cinematicBlock(enabled: true)), to: .setcinematic), from: camA)
+        await controller.setFocusedPeer(camB)
+        await controller.waitForIdle()
+        settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertNil(settings.cinematic, "a camera without the block offers no tile")
+        let lanes = await controller.lanesForTesting()
+        XCTAssertEqual(lanes.first { $0.peerID == camA }?.cinematic?.enabled, true,
+                       "focused away, camera A still reads as Cinematic on")
+        XCTAssertNil(lanes.first { $0.peerID == camB }?.cinematic)
+    }
+
+    /// Every per-camera command reaches the one phone it addresses, in rigs
+    /// of 1, 2 and 4: Cinematic on, an aperture drag, Cinematic focus and
+    /// tap-to-focus. Even cameras can do Cinematic, odd ones can't, so the
+    /// bigger rigs mix both. A rig-wide command (aspect) reaches every phone.
+    func testPerCameraCommandsReachOnlyTheirPhoneIn1And2And4CameraRigs() async {
+        for count in [1, 2, 4] {
+            let cameras = (0..<count).map { MCPeerID(displayName: "Rig\(count)-Cam\($0)") }
+            let capable = Set(cameras.enumerated().filter { $0.offset % 2 == 0 }.map(\.element))
+            let (controller, transport, _) = await makeController(peers: cameras)
+            func state(_ cinematic: CinematicState?, inReplyTo action: RemoteShutter_CommandAction = .requestcapabilities)
+                -> RemoteCmd.CameraCapabilitiesResp {
+                RemoteCmd.CameraCapabilitiesResp(
+                    frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+                    supportsFocusPoint: true, supportsMulticam: true, cinematic: cinematic,
+                    inReplyTo: action, error: nil)
+            }
+            for camera in cameras {
+                controller.didReceiveMessage(state(capable.contains(camera) ? cinematicBlock(enabled: false) : nil),
+                                             from: camera)
+            }
+            await controller.waitForIdle()
+
+            for target in cameras {
+                let label = "\(count) cameras, \(target.displayName)"
+                transport.sentMessages.removeAll()
+
+                controller.setCinematic(CinematicIntent(enabled: true), on: target)
+                await controller.waitForIdle()
+                guard capable.contains(target) else {
+                    XCTAssertTrue(sent(transport, RemoteCmd.SetCinematic.self).isEmpty,
+                                  "\(label): can't do Cinematic, so no phone is sent it")
+                    controller.focusCamera(target, x: 0.3, y: 0.6)
+                    await controller.waitForIdle()
+                    XCTAssertEqual(sent(transport, RemoteCmd.FocusAtPoint.self).map(\.peers), [[target]],
+                                   "\(label): tap-to-focus reaches this phone only")
+                    continue
+                }
+                XCTAssertEqual(sent(transport, RemoteCmd.SetCinematic.self).map(\.peers), [[target]],
+                               "\(label): Cinematic on reaches this phone only")
+                controller.didReceiveMessage(state(cinematicBlock(enabled: true), inReplyTo: .setcinematic), from: target)
+                await controller.waitForIdle()
+
+                controller.setCinematic(CinematicIntent(enabled: true, aperture: 4), on: target)
+                controller.setCinematicFocus(.subject(id: 7, strength: .strong), on: target)
+                controller.focusCamera(target, x: 0.3, y: 0.6)
+                await controller.waitForIdle()
+                let apertures = sent(transport, RemoteCmd.SetCinematic.self).dropFirst()
+                XCTAssertEqual(apertures.map(\.peers), [[target]], "\(label): the aperture drag reaches this phone only")
+                XCTAssertEqual((apertures.first?.msg as? RemoteCmd.SetCinematic)?.intent.aperture, 4)
+                XCTAssertEqual(sent(transport, RemoteCmd.SetCinematicFocus.self).map(\.peers), [[target]],
+                               "\(label): Cinematic focus reaches this phone only")
+                XCTAssertEqual(sent(transport, RemoteCmd.FocusAtPoint.self).map(\.peers), [[target]],
+                               "\(label): tap-to-focus reaches this phone only")
+
+                let lanes = await controller.lanesForTesting()
+                for other in cameras where other != target {
+                    XCTAssertNotEqual(lanes.first { $0.peerID == other }?.cinematic?.enabled, true,
+                                      "\(label): \(other.displayName) is untouched")
+                }
+
+                // Off again, so the next target starts from a rig with Cinematic off.
+                controller.didReceiveMessage(state(cinematicBlock(enabled: true), inReplyTo: .setcinematic), from: target)
+                controller.setCinematic(CinematicIntent(enabled: false), on: target)
+                await controller.waitForIdle()
+                controller.didReceiveMessage(state(cinematicBlock(enabled: false), inReplyTo: .setcinematic), from: target)
+                await controller.waitForIdle()
+            }
+
+            transport.sentMessages.removeAll()
+            controller.setAspectRatio(.fourThree)
+            await controller.waitForIdle()
+            let aspectSends = sent(transport, RemoteCmd.SetAspectRatio.self).flatMap(\.peers)
+            XCTAssertEqual(Set(aspectSends), Set(cameras), "\(count) cameras: a rig-wide command reaches every phone")
+            XCTAssertEqual(aspectSends.count, count, "\(count) cameras: once each")
+        }
+    }
+}

@@ -22,6 +22,9 @@ struct RigQualityMenu: Equatable {
     struct Lane: Equatable {
         let name: String
         let info: RemoteCmd.CameraInfo
+        /// The camera's Cinematic block: while its effect is on, only the
+        /// Cinematic formats' qualities are reachable on that camera.
+        var cinematic: CinematicState? = nil
     }
 
     /// The universal floor every iPhone camera supports — used when the
@@ -97,10 +100,11 @@ struct RigQualityMenu: Equatable {
     /// The same rule as a pure function of one camera's info — for deriving a
     /// lane's re-match badge at render time without building a menu.
     static func cameraCanMatch(_ info: RemoteCmd.CameraInfo,
+                               cinematic: CinematicState? = nil,
                                resolution: VideoResolution,
                                frameRate: VideoFrameRate) -> Bool {
         RigQualityMenu(lanes: []).laneSupports(
-            Lane(name: "", info: info), resolution: resolution, frameRate: frameRate)
+            Lane(name: "", info: info, cinematic: cinematic), resolution: resolution, frameRate: frameRate)
     }
 
     // MARK: - Internals
@@ -118,6 +122,10 @@ struct RigQualityMenu: Equatable {
     private func laneSupports(_ lane: Lane,
                               resolution: VideoResolution,
                               frameRate: VideoFrameRate) -> Bool {
+        if let cinematic = lane.cinematic,
+           !CinematicPolicy.allows(resolution: resolution, frameRate: frameRate, in: cinematic) {
+            return false
+        }
         let matrix = lane.info.getResolutionFrameRates()
         if let rates = matrix[resolution] { return rates.contains(frameRate) }
         // A camera that never advertised the matrix (older build) is treated as
@@ -189,6 +197,27 @@ struct RigSettingsSnapshot: Equatable {
     var exposureAvailable: Bool = false
     /// The director's remembered choice to show the exposure controls.
     var exposureControlsOn: Bool = false
+    /// The focused camera's Cinematic block — offers the CINEMATIC tile (in
+    /// video mode). Nil: that camera can't do Cinematic and is never sent it.
+    var cinematic: CinematicState?
+    /// A Cinematic toggle to the focused camera awaits its reply: the tile
+    /// waits for the camera instead of guessing the result.
+    var cinematicInFlight: Bool = false
+    /// The aspects every camera can take right now (editable Cinematic is
+    /// 16:9 only); the aspect tile cycles through these alone.
+    var selectableAspects: [AspectRatio] = AspectRatio.selectableCases
+    /// Cameras whose editable Cinematic holds the rig at 16:9.
+    var aspectBlockedBy: [String] = []
+
+    /// The tile is offered in video mode only: Cinematic is a video effect.
+    func cinematicAvailable(in mode: MonitorMode) -> Bool {
+        mode == .video && cinematic != nil
+    }
+
+    /// Editable-in-Photos needs the whole frame, so it is offered only at 16:9.
+    var editableCinematicAllowed: Bool {
+        CinematicPolicy.allows(aspect: aspectRatio, output: .editable)
+    }
 
     /// The glass quality tile cycles in place: Automatic → each enabled option
     /// in order → back to Automatic. `nil` is Automatic. Disabled options
@@ -218,6 +247,15 @@ struct RigSettingsSnapshot: Equatable {
     func blockerFootnote(for mode: MonitorMode) -> String? {
         switch mode {
         case .video:
+            if let who = aspectBlockedBy.first {
+                return String(format: NSLocalizedString("%@ records editable Cinematic in 16:9",
+                                                        comment: "camera's editable Cinematic holds the rig aspect at 16:9"),
+                              who)
+            }
+            if cinematic?.enabled == true, !editableCinematicAllowed {
+                return NSLocalizedString("Editable Cinematic needs 16:9",
+                                         comment: "why the editable Cinematic tile is dimmed")
+            }
             guard let opt = videoOptions.first(where: { !$0.enabled }),
                   let who = opt.blockedBy.first else { return nil }
             return String(format: NSLocalizedString("%@ can’t do %@", comment: "camera blocks a quality"),

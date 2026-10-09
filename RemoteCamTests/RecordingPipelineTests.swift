@@ -419,6 +419,231 @@ final class RecordingPipelineTests: XCTestCase {
         XCTAssertFalse(pipeline.isRecording)
     }
 
+    // MARK: - Editable Cinematic (movie take)
+
+    /// Stands in for `CinematicMovieRecorder`: records the calls and hands
+    /// the test its callbacks, so AVFoundation's side can be played by hand.
+    private final class FakeMovieTake: MovieTakeRecording {
+        let onStarted: (CMTime) -> Void
+        let onFinished: (Error?, Bool) -> Void
+        private(set) var startedWith: [[AVMetadataItem]?] = []
+        private(set) var stopCount = 0
+        init(onStarted: @escaping (CMTime) -> Void, onFinished: @escaping (Error?, Bool) -> Void) {
+            self.onStarted = onStarted
+            self.onFinished = onFinished
+        }
+        func start(metadata: [AVMetadataItem]?) { startedWith.append(metadata) }
+        func stop() { stopCount += 1 }
+    }
+
+    /// A pipeline whose engine reports an Editable Cinematic movie output,
+    /// with the take factory captured.
+    private func makeEditablePipeline() -> (CaptureEngine, RecordingPipeline, Locked<[FakeMovieTake]>) {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in true }
+        let output = AVCaptureMovieFileOutput()
+        pipeline.cinematicMovieOutput = { output }
+        pipeline.sessionClock = { nil }
+        let takes = Locked<[FakeMovieTake]>([])
+        pipeline.makeMovieTake = { _, _, started, finished in
+            let take = FakeMovieTake(onStarted: started, onFinished: finished)
+            takes.mutate { $0.append(take) }
+            return take
+        }
+        return (engine, pipeline, takes)
+    }
+
+    private func hostTime(seconds: Double) -> CMTime {
+        CMTime(seconds: seconds, preferredTimescale: 1_000_000_000)
+    }
+
+    /// The editable take shares the whole lifecycle: armed (not recording),
+    /// rolling on the output's own start (one ack), stopped through the
+    /// output, answered on its finish.
+    func testEditableTakeRecordsThroughTheMovieOutputWithTheSharedLifecycle() throws {
+        let (engine, pipeline, takes) = makeEditablePipeline()
+        let sent = Locked<[Message]>([])
+        let ack = expectation(description: "start ack")
+        pipeline.sendMessage = { message in
+            sent.mutate { $0.append(message) }
+            if message is RemoteCmd.StartRecordingVideoAck { ack.fulfill() }
+        }
+
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        let take = try XCTUnwrap(takes.value.first)
+        XCTAssertEqual(take.startedWith.count, 1, "the take is started once")
+        XCTAssertTrue(pipeline.recordingWillBeStarted)
+        XCTAssertFalse(pipeline.isRecording, "armed, not rolling, until the output reports its start")
+
+        // Frames from the data outputs never reach a writer on this path.
+        engine.dataOutputQueue.sync {
+            pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 0))
+            pipeline.processFrame(engine.audioDataOutput, didOutput: try! self.makeAudioSampleBuffer())
+        }
+        XCTAssertFalse(pipeline.isRecording)
+
+        take.onStarted(hostTime(seconds: 1))
+        take.onStarted(hostTime(seconds: 1))   // a duplicate must not re-ack
+        engine.dataOutputQueue.sync {}
+        wait(for: [ack], timeout: 2)
+        XCTAssertTrue(pipeline.isRecording)
+
+        pipeline.stopRecording(false)
+        engine.dataOutputQueue.sync {}
+        XCTAssertEqual(take.stopCount, 1, "the stop goes to the output")
+        XCTAssertFalse(pipeline.isRecording)
+        XCTAssertFalse(sent.value.contains { $0 is RemoteCmd.StopRecordingVideoResp },
+                       "no answer before the file is finished")
+
+        take.onFinished(nil, true)
+        engine.dataOutputQueue.sync {}
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        XCTAssertFalse(pipeline.recordingWillBeStopped)
+        XCTAssertEqual(sent.value.filter { $0 is RemoteCmd.StartRecordingVideoAck }.count, 1)
+        XCTAssertEqual(sent.value.filter { $0 is RemoteCmd.StopRecordingVideoResp }.count, 1)
+        XCTAssertFalse(sent.value.contains { $0 is UICmd.RecordingTerminated })
+    }
+
+    /// No movie output (every take but Editable Cinematic): the asset writer
+    /// records exactly as before and no movie take is ever built.
+    func testWithoutAMovieOutputTheWriterRecords() throws {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in true }
+        pipeline.cinematicMovieOutput = { nil }
+        var built = 0
+        pipeline.makeMovieTake = { _, _, started, finished in
+            built += 1
+            return FakeMovieTake(onStarted: started, onFinished: finished)
+        }
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        engine.dataOutputQueue.sync {
+            pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 0))
+            pipeline.processFrame(engine.audioDataOutput, didOutput: try! self.makeAudioSampleBuffer())
+        }
+        XCTAssertEqual(built, 0)
+        XCTAssertTrue(pipeline.isRecording, "the writer's ready edge started the take")
+    }
+
+    /// The output ending the file on its own (interruption, disk full) is the
+    /// end of the take: the failure funnel reports it, nothing stays rolling.
+    func testEditableTakeEndingOnItsOwnTerminatesTheRecording() throws {
+        let (engine, pipeline, takes) = makeEditablePipeline()
+        let sent = Locked<[Message]>([])
+        pipeline.sendMessage = { message in sent.mutate { $0.append(message) } }
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        let take = try XCTUnwrap(takes.value.first)
+        take.onStarted(hostTime(seconds: 1))
+        engine.dataOutputQueue.sync {}
+        XCTAssertTrue(pipeline.isRecording)
+
+        let diskFull = NSError(domain: AVFoundationErrorDomain, code: AVError.diskFull.rawValue,
+                               userInfo: [AVErrorRecordingSuccessfullyFinishedKey: true])
+        take.onFinished(diskFull, true)
+        engine.dataOutputQueue.sync {}
+        XCTAssertFalse(pipeline.isRecording)
+        XCTAssertFalse(pipeline.recordingWillBeStarted)
+        let terminated = try XCTUnwrap(sent.value.compactMap { $0 as? UICmd.RecordingTerminated }.first)
+        XCTAssertEqual((terminated.error as NSError?)?.domain,
+                       NSLocalizedString("recording_stopped_disk_full_error", comment: ""))
+    }
+
+    /// A stop that finds the file incomplete reports the truth.
+    func testEditableStopWithAnIncompleteFileReportsTheFailure() throws {
+        let (engine, pipeline, takes) = makeEditablePipeline()
+        let sent = Locked<[Message]>([])
+        pipeline.sendMessage = { message in sent.mutate { $0.append(message) } }
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        let take = try XCTUnwrap(takes.value.first)
+        take.onStarted(hostTime(seconds: 1))
+        engine.dataOutputQueue.sync {}
+        pipeline.stopRecording(true)
+        engine.dataOutputQueue.sync {}
+        take.onFinished(NSError(domain: AVFoundationErrorDomain, code: -11800), false)
+        engine.dataOutputQueue.sync {}
+        XCTAssertTrue(sent.value.contains { $0 is UICmd.RecordingTerminated })
+        XCTAssertFalse(sent.value.contains { $0 is UICmd.SendVideoResource })
+    }
+
+    /// Cancelling an armed take stops the output, and its late start can
+    /// never revive the cancelled take.
+    func testCancelledEditableTakeIgnoresALateStart() throws {
+        let (engine, pipeline, takes) = makeEditablePipeline()
+        let sent = Locked<[Message]>([])
+        pipeline.sendMessage = { message in sent.mutate { $0.append(message) } }
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        let take = try XCTUnwrap(takes.value.first)
+        pipeline.stopRecording(false)
+        engine.dataOutputQueue.sync {}
+        XCTAssertEqual(take.stopCount, 1)
+        XCTAssertTrue(sent.value.contains { $0 is RemoteCmd.StopRecordingVideoResp }, "answered as an empty take")
+
+        take.onStarted(hostTime(seconds: 1))
+        take.onFinished(nil, true)
+        engine.dataOutputQueue.sync {}
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
+        XCTAssertFalse(pipeline.isRecording)
+        XCTAssertFalse(sent.value.contains { $0 is RemoteCmd.StartRecordingVideoAck })
+    }
+
+    // MARK: - First-frame sync offset
+
+    /// Editable take: the offset comes from the output's startPTS.
+    func testEditableTakeStampsTheFirstFrameOffsetFromStartPTS() throws {
+        let (engine, pipeline, takes) = makeEditablePipeline()
+        pipeline.sendMessage = { _ in }
+        var metadata = CaptureSyncMetadata(sessionID: UUID().uuidString, captureID: UUID().uuidString,
+                                           cameraIndex: 1, anchorMillis: 900, clockOffsetMillis: 0, roundTripMillis: 0)
+        metadata.cameraClockAnchorMillis = 1_000
+        pipeline.pendingSyncMetadata = metadata
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: RecordingPipeline.syncSidecarDirectory
+                .appendingPathComponent("\(metadata.filenamePrefix).json"))
+        }
+
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        let take = try XCTUnwrap(takes.value.first)
+        XCTAssertEqual(take.startedWith.first??.count, 4, "anchor keys go in before the start; the offset can't")
+        take.onStarted(hostTime(seconds: 1.042))
+        engine.dataOutputQueue.sync {}
+
+        let offset = try XCTUnwrap(pipeline.pendingSyncMetadata?.firstFrameOffsetMillis)
+        XCTAssertEqual(offset, 42, accuracy: 1)
+        let sidecar = RecordingPipeline.syncSidecarDirectory.appendingPathComponent("\(metadata.filenamePrefix).json")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: sidecar.path), "the editable clip's record is the sidecar")
+    }
+
+    /// Writer take: the offset comes from the first appended sample.
+    func testWriterTakeStampsTheFirstFrameOffsetFromTheFirstSample() throws {
+        let engine = CaptureEngine()
+        let pipeline = RecordingPipeline(engine: engine)
+        pipeline.configureAudio = { _ in true }
+        pipeline.cinematicMovieOutput = { nil }
+        pipeline.sessionClock = { nil }
+        pipeline.sendMessage = { _ in }
+        var metadata = CaptureSyncMetadata(sessionID: "s", captureID: "c", cameraIndex: 1,
+                                           anchorMillis: 900, clockOffsetMillis: 0, roundTripMillis: 0)
+        metadata.cameraClockAnchorMillis = 2_000
+        pipeline.pendingSyncMetadata = metadata
+
+        pipeline.startRecording(audioSampleBufferDelegate: DummyAudioDelegate())
+        engine.dataOutputQueue.sync {}
+        engine.dataOutputQueue.sync {
+            pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 2.5))
+            pipeline.processFrame(engine.audioDataOutput, didOutput: try! self.makeAudioSampleBuffer())
+            pipeline.processFrame(engine.videoDataOutput, didOutput: try! self.makeVideoSampleBuffer(seconds: 2.5))
+        }
+        let offset = try XCTUnwrap(pipeline.pendingSyncMetadata?.firstFrameOffsetMillis)
+        XCTAssertEqual(offset, 500, accuracy: 1)
+    }
+
     // MARK: - Concurrency hammer
 
     /// Slams the engine's entry points from many concurrent tasks at once

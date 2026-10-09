@@ -44,6 +44,13 @@ struct MulticamView: View {
     let onExposureChange: (CameraLane, ExposureRulerKind, Double) -> Void
     /// The AUTO / MANUAL chip.
     let onSetExposureMode: (CameraLane, ExposureMode) -> Void
+    /// The CINEMATIC and EDIT IN PHOTOS tiles: the focused camera's whole
+    /// Cinematic request (on/off, output; aperture 0 = keep).
+    let onSetCinematic: (CameraLane, CinematicIntent) -> Void
+    /// A drag on the focused camera's APERTURE ruler (throttled by the host).
+    let onApertureChange: (CameraLane, Double) -> Void
+    /// A tap or long press on the preview while that camera has Cinematic on.
+    let onCinematicFocus: (CameraLane, CinematicFocus) -> Void
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
     /// Open the help sheet (the shared one every screen presents).
@@ -120,6 +127,7 @@ struct MulticamView: View {
     /// The tray's tiles, in whichever container is presenting them.
     private var rigTrayPanel: some View {
         RigTrayPanel(settings: viewModel.rigSettings,
+                     cameraName: viewModel.focusedLane?.displayName,
                      mode: viewModel.mode,
                      isRecording: viewModel.isRecording,
                      presentation: RigTrayPresentation.style,
@@ -131,6 +139,9 @@ struct MulticamView: View {
                      onSetAspectRatio: onSetAspectRatio,
                      onSetStandby: onSetStandby,
                      onSetExposureControls: onSetExposureControls,
+                     onSetCinematic: { intent in
+                         if let focused = viewModel.focusedLane { onSetCinematic(focused, intent) }
+                     },
                      // Close the tray first, as the camera screen does — the
                      // sheet returns to a clean viewfinder.
                      onOpenSettings: { viewModel.closeRigTray(then: onOpenSettings) },
@@ -168,6 +179,10 @@ struct MulticamView: View {
     private func chrome(dock: MonitorChromeDock) -> some View {
         VStack(spacing: 0) {
             topBar
+            if viewModel.displayMode == .focus, let focused = viewModel.focusedLane, focused.isCinematicOn {
+                CinematicLightWarning(model: focused.cinematicOverlay)
+                    .padding(.top, 8)
+            }
 
             Spacer(minLength: 0)
 
@@ -253,6 +268,7 @@ struct MulticamView: View {
                 VStack(spacing: 14) {
                     exposureReadoutStrip
                     exposureRulers(axis: .horizontal)
+                    apertureRuler(axis: .horizontal)
                     focusedZoomPill
                 }
             }
@@ -307,6 +323,19 @@ struct MulticamView: View {
         }
     }
 
+    /// The APERTURE ruler while the focused camera has Cinematic on: above the
+    /// zoom pill in portrait, standing under the left thumb in landscape
+    /// (Cinematic keeps exposure in Auto, so that side is free of shutter).
+    @ViewBuilder
+    private func apertureRuler(axis: Axis) -> some View {
+        if viewModel.showsCinematicControls, let cinematic = viewModel.focusedCinematic,
+           let focused = viewModel.focusedLane {
+            CinematicApertureRulerPill(cinematic: cinematic, axis: axis,
+                                       isEnabled: viewModel.cinematicApertureEnabled,
+                                       onChange: { onApertureChange(focused, $0) })
+        }
+    }
+
     /// Wide shapes: the action cluster rides the docked rail; the strip and
     /// mode selector sit inboard — the monitor's `sideCluster` shape.
     private func sideCluster(onLeading: Bool) -> some View {
@@ -319,6 +348,7 @@ struct MulticamView: View {
         HStack(alignment: .bottom, spacing: 16) {
             if onLeading { actionCluster(axis: .vertical) }
             exposureRuler(side: .leading)
+            apertureRuler(axis: .vertical)
             if !onLeading { Spacer(minLength: 0) }
 
             VStack(spacing: 10) {
@@ -381,7 +411,7 @@ struct MulticamView: View {
                      currentZoomFactor: viewModel.focusedZoomFactor,
                      // Line up with the exposure rulers when they are on
                      // screen; keep the tight lens cluster when alone.
-                     uniformTrackLength: viewModel.showsExposureControls
+                     uniformTrackLength: viewModel.showsExposureControls || viewModel.showsCinematicControls
                          ? ExposureRulerMetrics.track(axis: .horizontal) : nil,
                      onZoomChange: { onZoomChange(focused, $0) })
         }
@@ -550,14 +580,24 @@ struct MulticamView: View {
             // camera; in grid mode a tile tap focuses the lane instead.
             ZStack {
                 LiveFrameView(frames: focused.frames, aspectRatio: viewModel.rigSettings.aspectRatio)
+                if focused.isCinematicOn {
+                    CinematicSubjectOverlay(model: focused.cinematicOverlay,
+                                            imageSize: { focused.frames.cameraImage?.size })
+                }
+                // With Cinematic on, a tap picks what the effect focuses on
+                // (a subject's box, or the point) and a long press holds
+                // focus at that distance; otherwise it is ordinary
+                // tap-to-focus. Decided at tap time from the lane's truth.
                 ViewfinderGestureLayer(
                     cameraImage: { focused.frames.cameraImage },
                     zoomScale: { focused.zoomScale },
                     currentZoomFactor: { focused.zoomFactor },
-                    focusEnabled: focused.supportsFocusPoint,
-                    onFocusTap: { onFocusTap(focused, $0) },
+                    focusEnabled: focused.supportsFocusPoint || focused.isCinematicOn,
+                    onFocusTap: { point in routeFocus(point, on: focused, isLongPress: false) },
                     onDoubleTap: { onFlipCamera(focused) },
-                    onZoomChange: { onZoomChange(focused, $0) })
+                    onZoomChange: { onZoomChange(focused, $0) },
+                    onLongPress: focused.isCinematicOn
+                        ? { point in routeFocus(point, on: focused, isLongPress: true) } : nil)
             }
             .ignoresSafeArea(edges: Self.previewBleedEdges)
         } else {
@@ -569,6 +609,20 @@ struct MulticamView: View {
                         .font(.system(size: 44))
                         .foregroundColor(.white.opacity(0.5)))
                 .ignoresSafeArea(edges: Self.previewBleedEdges)
+        }
+    }
+
+    private func routeFocus(_ point: CGPoint, on lane: CameraLane, isLongPress: Bool) {
+        switch CinematicSubjectLayout.request(forTap: point, isLongPress: isLongPress,
+                                              cinematicOn: lane.isCinematicOn,
+                                              supportsFocusPoint: lane.supportsFocusPoint,
+                                              subjects: lane.cinematicOverlay.report?.subjects ?? []) {
+        case let .tapToFocus(x, y)?:
+            onFocusTap(lane, CGPoint(x: CGFloat(x), y: CGFloat(y)))
+        case let .cinematic(focus)?:
+            onCinematicFocus(lane, focus)
+        case nil:
+            break
         }
     }
 
@@ -789,6 +843,9 @@ struct CameraTileView: View {
                                                compact: isThumbnail)
                         }
                         HStack {
+                            if let cinematic = CinematicApertureStops.tileLabel(lane.cinematic) {
+                                CinematicTileChip(label: cinematic, compact: isThumbnail)
+                            }
                             Spacer()
                             TileStatusBadge(status: shownStatus, onRetry: onRetry,
                                             diameter: isThumbnail ? 22 : 28)
@@ -953,8 +1010,26 @@ private extension View {
     }
 }
 
+/// A tray section's title, full width above its row of tiles.
+struct TraySectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .textCase(.uppercase)
+            .lineLimit(1)
+            .foregroundColor(.white.opacity(0.6))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
 struct RigTrayPanel: View {
     let settings: RigSettingsSnapshot
+    /// The focused camera's name: the header over the tiles that address it
+    /// alone (exposure, Cinematic), above the ALL CAMERAS tiles.
+    var cameraName: String?
     /// Photo vs video — the tray lists only the tiles that matter to the mode.
     let mode: MonitorMode
     /// Mid-recording the capture settings dim (standby and help stay live).
@@ -972,6 +1047,8 @@ struct RigTrayPanel: View {
     let onSetStandby: (Bool) -> Void
     /// The EXPOSURE tile: show the exposure readouts and rulers on the director.
     let onSetExposureControls: (Bool) -> Void
+    /// The CINEMATIC / EDIT IN PHOTOS tiles, for the focused camera.
+    let onSetCinematic: (CinematicIntent) -> Void
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
     /// Open the help sheet (the same one every screen presents).
@@ -981,12 +1058,32 @@ struct RigTrayPanel: View {
 
     var body: some View {
         TrayPanelShell(footnote: settings.blockerFootnote(for: mode), presentation: presentation) {
-            ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable,
-                                  exposureAvailable: settings.exposureAvailable),
-                    id: \.self) { item in
-                tile(for: item)
+            // Headers only when the focused camera has tiles of its own;
+            // otherwise every tile is the rig's and the tray reads as one.
+            if cameraItems.isEmpty {
+                tiles(rigItems)
+            } else {
+                Section(header: TraySectionHeader(title: cameraName ?? "")) { tiles(cameraItems) }
+                Section(header: TraySectionHeader(
+                    title: NSLocalizedString("ALL CAMERAS", comment: "tray header: tiles that apply to every camera"))) {
+                    tiles(rigItems)
+                }
             }
         }
+    }
+
+    private var cameraItems: [MonitorTrayItem] {
+        RigTray.cameraItems(mode: mode, exposureAvailable: settings.exposureAvailable,
+                            cinematicAvailable: settings.cinematicAvailable(in: mode),
+                            cinematicOn: settings.cinematic?.enabled == true)
+    }
+
+    private var rigItems: [MonitorTrayItem] {
+        RigTray.rigItems(mode: mode, standbyAvailable: settings.standbyAvailable)
+    }
+
+    private func tiles(_ items: [MonitorTrayItem]) -> some View {
+        ForEach(items, id: \.self) { item in tile(for: item) }
     }
 
     @ViewBuilder
@@ -997,12 +1094,11 @@ struct RigTrayPanel: View {
                             isActive: settings.timerSeconds > 0, isEnabled: !isRecording,
                             action: cycleTimer)
         case .aspect:
+            // Cycles only the aspects every camera can take (editable
+            // Cinematic holds the rig at 16:9).
             MonitorTrayTile(item: .aspect, value: settings.aspectRatio.displayName,
-                            isActive: false, isEnabled: !isRecording,
-                            action: {
-                                onSetAspectRatio(cycled(settings.aspectRatio,
-                                                        in: AspectRatio.selectableCases))
-                            })
+                            isActive: false, isEnabled: !isRecording && settings.selectableAspects.count > 1,
+                            action: { onSetAspectRatio(cycled(settings.aspectRatio, in: settings.selectableAspects)) })
         case .resolution:
             MonitorTrayTile(item: .resolution, value: settings.videoTileValue,
                             isActive: settings.activeVideo != nil,
@@ -1028,6 +1124,27 @@ struct RigTrayPanel: View {
                             isActive: settings.exposureControlsOn,
                             isEnabled: !isRecording,
                             action: { onSetExposureControls(!settings.exposureControlsOn) })
+        case .cinematic:
+            if let cinematic = settings.cinematic {
+                MonitorTrayTile(item: .cinematic, value: nil,
+                                isActive: cinematic.enabled,
+                                isEnabled: !isRecording && !settings.cinematicInFlight,
+                                action: { onSetCinematic(toggledCinematic(cinematic)) })
+            }
+        case .cinematicEditable:
+            if let cinematic = settings.cinematic {
+                let editable = cinematic.output == .editable
+                MonitorTrayTile(item: .cinematicEditable, value: nil,
+                                isActive: editable,
+                                // Turning editable off is always allowed;
+                                // on needs the whole 16:9 frame.
+                                isEnabled: !isRecording && !settings.cinematicInFlight
+                                    && (editable || settings.editableCinematicAllowed),
+                                action: {
+                                    onSetCinematic(CinematicIntent(enabled: true, aperture: 0,
+                                                                   output: editable ? .baked : .editable))
+                                })
+            }
         case .settings:
             MonitorTrayTile(item: .settings, value: nil,
                             isActive: false, isEnabled: !isRecording,
@@ -1037,10 +1154,18 @@ struct RigTrayPanel: View {
                             isActive: false, isEnabled: true,
                             action: onOpenHelp)
         case .frameRate:
-            // Not offered by `RigTray.items` — frame rate rides the single
+            // Not offered by `RigTray.rigItems` — frame rate rides the single
             // quality tile's intersection cycle.
             EmptyView()
         }
+    }
+
+    /// On keeps the camera's aperture (0 = keep) and its output, unless the
+    /// rig's aspect no longer allows the editable file.
+    private func toggledCinematic(_ cinematic: CinematicState) -> CinematicIntent {
+        let output: CinematicOutput = cinematic.output == .editable && settings.editableCinematicAllowed
+            ? .editable : .baked
+        return CinematicIntent(enabled: !cinematic.enabled, aperture: 0, output: output)
     }
 
     private func cycleTimer() {

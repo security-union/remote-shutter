@@ -58,6 +58,9 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.RequestVideoResend: return m.toFlatBuffer()
         case let m as RemoteCmd.SetZoom: return m.toFlatBuffer()
         case let m as RemoteCmd.SetExposure: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetCinematic: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetCinematicFocus: return m.toFlatBuffer()
+        case let m as RemoteCmd.CinematicSubjects: return m.toFlatBuffer()
         case let m as RemoteCmd.FocusAtPoint: return m.toFlatBuffer()
         case let m as RemoteCmd.SetCameraPreviewMode: return m.toFlatBuffer()
         case let m as RemoteCmd.CameraCapabilitiesResp: return m.toFlatBuffer()
@@ -728,6 +731,105 @@ final class RemoteCmdSerializationTests: XCTestCase {
             frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1, error: nil)
         let decodedWithout: RemoteCmd.CameraCapabilitiesResp = roundTrip(without)
         XCTAssertNil(decodedWithout.exposure, "absent block = no exposure control on this camera")
+    }
+
+    // MARK: - Cinematic commands + the Cinematic block of the state reply
+
+    func testSetCinematic_roundTrip() {
+        for intent in [CinematicIntent(enabled: true, aperture: 2.8, output: .baked),
+                       CinematicIntent(enabled: false, aperture: 0, output: .editable)] {
+            let decoded: RemoteCmd.SetCinematic = roundTrip(RemoteCmd.SetCinematic(intent: intent))
+            XCTAssertEqual(decoded.intent, intent)
+        }
+    }
+
+    func testSetCinematicFocus_everyKindRoundTrips() {
+        let focuses: [CinematicFocus] = [
+            .subject(id: 42, strength: .strong),
+            .subject(id: 3, strength: .weak),
+            .trackPoint(x: 0.25, y: 0.75, strength: .weak),
+            .fixedPoint(x: 0.5, y: 0.1)
+        ]
+        for focus in focuses {
+            let decoded: RemoteCmd.SetCinematicFocus = roundTrip(RemoteCmd.SetCinematicFocus(focus: focus))
+            XCTAssertEqual(decoded.focus, focus)
+        }
+    }
+
+    func testCinematicSubjects_roundTrip() {
+        let report = CinematicSubjectsReport(
+            subjects: [
+                CinematicSubject(id: 7, groupID: 1, kind: .face,
+                                 rect: CGRect(x: 0.25, y: 0.125, width: 0.25, height: 0.375),
+                                 focus: .strong, isFixedFocus: false),
+                CinematicSubject(id: 8, groupID: 1, kind: .humanBody,
+                                 rect: CGRect(x: 0.125, y: 0.0625, width: 0.5, height: 0.875),
+                                 focus: nil, isFixedFocus: false),
+                CinematicSubject(id: 9, groupID: 2, kind: .dogHead,
+                                 rect: CGRect(x: 0.5, y: 0.5, width: 0.125, height: 0.125),
+                                 focus: .weak, isFixedFocus: true)
+            ],
+            notEnoughLight: true)
+        let decoded: RemoteCmd.CinematicSubjects = roundTrip(RemoteCmd.CinematicSubjects(report: report))
+        XCTAssertEqual(decoded.report, report)
+
+        let empty: RemoteCmd.CinematicSubjects = roundTrip(
+            RemoteCmd.CinematicSubjects(report: CinematicSubjectsReport(subjects: [], notEnoughLight: false)))
+        XCTAssertEqual(empty.report.subjects, [])
+        XCTAssertFalse(empty.report.notEnoughLight)
+    }
+
+    func testControlReply_carriesTheCinematicBlockOrNothing() {
+        let block = CinematicState(
+            enabled: true, output: .editable, aperture: 4, minAperture: 2, maxAperture: 16, defaultAperture: 2.8,
+            qualities: [.hd1080p: [.fps24, .fps30], .uhd4k: [.fps30]])
+        let with = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 2,
+            cinematic: block, inReplyTo: .setcinematic, error: nil)
+        let decoded: RemoteCmd.CameraCapabilitiesResp = roundTrip(with)
+        XCTAssertEqual(decoded.cinematic, block)
+        XCTAssertEqual(decoded.inReplyTo, .setcinematic)
+
+        let without = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1, error: nil)
+        let decodedWithout: RemoteCmd.CameraCapabilitiesResp = roundTrip(without)
+        XCTAssertNil(decodedWithout.cinematic, "absent block = no Cinematic on this camera")
+    }
+
+    /// Unknown enum values are malformed: dropped, never guessed into a default.
+    func testCinematicCommandsWithUnknownEnumsAreDropped() {
+        func command(_ action: RemoteShutter_CommandAction,
+                     _ build: (inout FlatBufferBuilder) -> Offset) -> Data {
+            var fbb = FlatBufferBuilder()
+            let params = build(&fbb)
+            let cmd = RemoteShutter_CameraCommand.createCameraCommand(&fbb, action: action, parametersOffset: params)
+            let msg = RemoteShutter_P2PMessage.createP2PMessage(&fbb, type: .cameracommand, commandOffset: cmd)
+            fbb.finish(offset: msg, fileId: "RCAM")
+            return fbb.data
+        }
+        let unknownOutput = command(.setcinematic) {
+            RemoteShutter_CommandParameters.createCommandParameters(&$0, cinematicEnabled: true)
+        }
+        XCTAssertNil(RemoteCmd.fromFlatBuffer(unknownOutput), "output Unknown: dropped")
+
+        let unknownKind = command(.setcinematicfocus) {
+            RemoteShutter_CommandParameters.createCommandParameters(&$0, cinematicFocusStrength: .strong)
+        }
+        XCTAssertNil(RemoteCmd.fromFlatBuffer(unknownKind), "focus kind Unknown: dropped")
+
+        let trackWithoutStrength = command(.setcinematicfocus) {
+            RemoteShutter_CommandParameters.createCommandParameters(
+                &$0, cinematicFocusKind: .tracksubject, cinematicSubjectId: 7)
+        }
+        XCTAssertNil(RemoteCmd.fromFlatBuffer(trackWithoutStrength), "tracking without a strength: dropped")
+
+        let unknownSubject = command(.cinematicsubjects) { fbb in
+            let subject = RemoteShutter_CinematicSubject.createCinematicSubject(&fbb, id: 1, width: 0.5, height: 0.5)
+            let vector = fbb.createVector(ofOffsets: [subject])
+            return RemoteShutter_CommandParameters.createCommandParameters(&fbb, cinematicSubjectsVectorOffset: vector)
+        }
+        let report = (RemoteCmd.fromFlatBuffer(unknownSubject) as? RemoteCmd.CinematicSubjects)?.report
+        XCTAssertEqual(report?.subjects, [], "a subject kind this build can't draw is skipped, the report kept")
     }
 
     // MARK: - 26. RequestCameraCapabilities

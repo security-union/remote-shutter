@@ -1356,3 +1356,101 @@ class SessionReconnectTests: XCTestCase {
         XCTAssertEqual(state, .connected)
     }
 }
+
+// MARK: - Cinematic (Docs/cinematic.md)
+
+extension SessionCoordinatorTests {
+
+    private var cinematicReport: CinematicSubjectsReport { CinematicSubjectsReport(
+        subjects: [CinematicSubject(id: 7, groupID: 1, kind: .face,
+                                    rect: CGRect(x: 0.4, y: 0.2, width: 0.2, height: 0.3),
+                                    focus: .strong, isFixedFocus: false)],
+        notEnoughLight: false) }
+
+    /// The live report rides `.unreliable` like a preview frame, from every
+    /// camera phase — a take in progress is when focus matters most.
+    func testCinematicSubjectsAreForwardedUnreliablyFromEveryCameraPhase() async {
+        let phases: [SessionState] = [.camera, .cameraRecordingVideo, .cameraTransmittingVideo,
+                                      .cameraTakingPic(sendMediaToPeer: true, generation: 0)]
+        for phase in phases {
+            harness.fakeMP.sentMessages.removeAll()
+            await harness.coordinator.seed(state: phase, lobby: harness.lobbyWrapper,
+                                           peer: harness.peer, ctrl: FakeCameraControlling())
+            await harness.deliver(UICmd.PublishCinematicSubjects(report: cinematicReport))
+
+            let sent = harness.fakeMP.sentMessages.filter { $0.msg is RemoteCmd.CinematicSubjects }
+            XCTAssertEqual(sent.count, 1, "\(phase): forwarded once")
+            XCTAssertEqual(sent.first?.mode, .unreliable, "\(phase): never queued behind control traffic")
+            XCTAssertEqual((sent.first?.msg as? RemoteCmd.CinematicSubjects)?.report, cinematicReport)
+        }
+    }
+
+    /// Off the camera screen, or with the remote away, there is no one to
+    /// tell: the report is dropped, and a drop never touches the session.
+    func testCinematicSubjectsAreDroppedWithoutALinkedRemote() async {
+        await harness.deliver(UICmd.PublishCinematicSubjects(report: cinematicReport))
+        XCTAssertFalse(harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.CinematicSubjects },
+                       "not a camera: dropped")
+
+        await harness.coordinator.seed(state: .camera, lobby: harness.lobbyWrapper,
+                                       peer: harness.peer, ctrl: FakeCameraControlling())
+        harness.fakeMP.connectedPeers = []
+        await harness.deliver(UICmd.PublishCinematicSubjects(report: cinematicReport))
+        XCTAssertFalse(harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.CinematicSubjects },
+                       "remote away: dropped")
+        let state = await harness.stateName()
+        XCTAssertEqual(state, .camera, "the camera holds its post")
+    }
+
+    /// Cinematic is set before the take: its aperture throws mid-clip and its
+    /// enable rebuilds the capture pipeline.
+    func testSetCinematicPhasePolicy() {
+        let cmd = RemoteCmd.SetCinematic(intent: CinematicIntent(enabled: true))
+        XCTAssertNil(SessionCoordinator.controlRefusal(cmd, phase: .idle))
+        XCTAssertEqual(SessionCoordinator.controlRefusal(cmd, phase: .recording), "Locked while recording")
+        XCTAssertEqual(SessionCoordinator.controlRefusal(cmd, phase: .takingPicture), "Camera is busy")
+        XCTAssertEqual(SessionCoordinator.controlRefusal(cmd, phase: .transmittingVideo), "Camera is busy")
+        XCTAssertEqual(SessionCoordinator.controlRefusal(cmd, phase: .notCamera), "Not on the camera screen")
+    }
+
+    /// While the effect is on, only the Cinematic formats' qualities apply,
+    /// and the editable output takes 16:9 only. Off, nothing is gated.
+    func testCinematicGatesQualityAndAspect() {
+        var state = FakeCameraControlling.phoneCinematicState
+        let refusal = "Not available with Cinematic"
+        let fps60 = RemoteCmd.SetVideoQuality(resolution: .hd1080p, frameRate: .fps60)
+        let fps30 = RemoteCmd.SetVideoQuality(resolution: .uhd4k, frameRate: .fps30)
+        let square = RemoteCmd.SetAspectRatio(aspectRatio: .oneOne)
+        let wide = RemoteCmd.SetAspectRatio(aspectRatio: .sixteenNine)
+
+        XCTAssertNil(SessionCoordinator.cinematicRefusal(fps60, cinematic: nil), "no Cinematic: no gate")
+        XCTAssertNil(SessionCoordinator.cinematicRefusal(fps60, cinematic: state), "off: no gate")
+
+        state.enabled = true
+        XCTAssertEqual(SessionCoordinator.cinematicRefusal(fps60, cinematic: state), refusal)
+        XCTAssertNil(SessionCoordinator.cinematicRefusal(fps30, cinematic: state))
+        XCTAssertNil(SessionCoordinator.cinematicRefusal(square, cinematic: state), "baked crops any aspect")
+
+        state.output = .editable
+        XCTAssertEqual(SessionCoordinator.cinematicRefusal(square, cinematic: state), refusal)
+        XCTAssertNil(SessionCoordinator.cinematicRefusal(wide, cinematic: state))
+        XCTAssertNil(SessionCoordinator.cinematicRefusal(RemoteCmd.SetZoom(zoomFactor: 2), cinematic: state),
+                     "only quality and aspect are gated here")
+    }
+
+    /// Focus is fire-and-forget in the idle and recording phases: applied,
+    /// never answered.
+    func testCinematicFocusIsAppliedIdleAndWhileRecording() async {
+        for phase in [SessionState.camera, .cameraRecordingVideo] {
+            let ctrl = FakeCameraControlling()
+            harness.fakeMP.sentMessages.removeAll()
+            await harness.coordinator.seed(state: phase, lobby: harness.lobbyWrapper,
+                                           peer: harness.peer, ctrl: ctrl)
+            await harness.deliver(RemoteCmd.SetCinematicFocus(focus: .subject(id: 7, strength: .strong)))
+
+            XCTAssertEqual(ctrl.cinematicFocuses, [.subject(id: 7, strength: .strong)], "\(phase)")
+            XCTAssertFalse(harness.fakeMP.sentMessages.contains { $0.msg is RemoteCmd.CameraCapabilitiesResp },
+                           "\(phase): fire-and-forget")
+        }
+    }
+}
