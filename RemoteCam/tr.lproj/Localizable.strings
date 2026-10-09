@@ -427,3 +427,6 @@
 "Editable Cinematic needs 16:9" = "Düzenlenebilir Sinematik 16:9 gerektirir";
 "%@ records editable Cinematic in 16:9" = "%@ düzenlenebilir Sinematik’i 16:9 kaydediyor";
 "Locked while recording" = "Kayıt sırasında kilitli";
+
+/* tray header: tiles that apply to every camera */
+"ALL CAMERAS" = "TÜM KAMERALAR";

@@ -86,7 +86,9 @@ off means ordinary tap-to-focus.
 
 Cinematic is per camera, like zoom and exposure. The tile, the ruler and the
 taps address the focused camera, because a rig often mixes phones and the
-wide angle usually wants everything sharp. Every strip and grid tile whose
+wide angle usually wants everything sharp. In the tray the CINEMATIC and
+EXPOSURE tiles sit under the focused camera's name, above the ALL CAMERAS
+tiles, so it's clear which phone a tap addresses. Every strip and grid tile whose
 camera has the effect on wears an `f/2.8` chip, so the rig's state reads
 without focusing each camera.
 

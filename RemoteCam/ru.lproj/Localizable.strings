@@ -427,3 +427,6 @@
 "Editable Cinematic needs 16:9" = "Для редактируемого киноэффекта нужно 16:9";
 "%@ records editable Cinematic in 16:9" = "%@ снимает редактируемый киноэффект в 16:9";
 "Locked while recording" = "Заблокировано во время записи";
+
+/* tray header: tiles that apply to every camera */
+"ALL CAMERAS" = "ВСЕ КАМЕРЫ";

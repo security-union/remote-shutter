@@ -306,3 +306,6 @@
 "Editable Cinematic needs 16:9" = "Redigerbar Filmisk kræver 16:9";
 "%@ records editable Cinematic in 16:9" = "%@ optager redigerbar Filmisk i 16:9";
 "Locked while recording" = "Låst under optagelse";
+
+/* tray header: tiles that apply to every camera */
+"ALL CAMERAS" = "ALLE KAMERAER";

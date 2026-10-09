@@ -427,3 +427,6 @@
 "Editable Cinematic needs 16:9" = "Sinematik boleh edit memerlukan 16:9";
 "%@ records editable Cinematic in 16:9" = "%@ merakam Sinematik boleh edit dalam 16:9";
 "Locked while recording" = "Dikunci semasa merakam";
+
+/* tray header: tiles that apply to every camera */
+"ALL CAMERAS" = "SEMUA KAMERA";

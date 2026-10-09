@@ -427,3 +427,6 @@
 "Editable Cinematic needs 16:9" = "편집 가능한 시네마틱에는 16:9가 필요합니다";
 "%@ records editable Cinematic in 16:9" = "%@에서 편집 가능한 시네마틱을 16:9로 녹화합니다";
 "Locked while recording" = "녹화 중에는 잠김";
+
+/* tray header: tiles that apply to every camera */
+"ALL CAMERAS" = "모든 카메라";

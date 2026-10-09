@@ -427,3 +427,6 @@
 "Editable Cinematic needs 16:9" = "Điện ảnh chỉnh sửa được cần 16:9";
 "%@ records editable Cinematic in 16:9" = "%@ quay Điện ảnh chỉnh sửa được ở 16:9";
 "Locked while recording" = "Bị khóa khi đang quay";
+
+/* tray header: tiles that apply to every camera */
+"ALL CAMERAS" = "TẤT CẢ CAMERA";

@@ -427,3 +427,6 @@
 "Editable Cinematic needs 16:9" = "संपादन योग्य सिनेमैटिक के लिए 16:9 चाहिए";
 "%@ records editable Cinematic in 16:9" = "%@ संपादन योग्य सिनेमैटिक 16:9 में रिकॉर्ड करता है";
 "Locked while recording" = "रिकॉर्डिंग के दौरान लॉक";
+
+/* tray header: tiles that apply to every camera */
+"ALL CAMERAS" = "सभी कैमरे";

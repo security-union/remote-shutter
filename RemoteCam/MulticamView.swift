@@ -127,6 +127,7 @@ struct MulticamView: View {
     /// The tray's tiles, in whichever container is presenting them.
     private var rigTrayPanel: some View {
         RigTrayPanel(settings: viewModel.rigSettings,
+                     cameraName: viewModel.focusedLane?.displayName,
                      mode: viewModel.mode,
                      isRecording: viewModel.isRecording,
                      presentation: RigTrayPresentation.style,
@@ -1009,8 +1010,26 @@ private extension View {
     }
 }
 
+/// A tray section's title, full width above its row of tiles.
+struct TraySectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .textCase(.uppercase)
+            .lineLimit(1)
+            .foregroundColor(.white.opacity(0.6))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
 struct RigTrayPanel: View {
     let settings: RigSettingsSnapshot
+    /// The focused camera's name: the header over the tiles that address it
+    /// alone (exposure, Cinematic), above the ALL CAMERAS tiles.
+    var cameraName: String?
     /// Photo vs video — the tray lists only the tiles that matter to the mode.
     let mode: MonitorMode
     /// Mid-recording the capture settings dim (standby and help stay live).
@@ -1039,14 +1058,32 @@ struct RigTrayPanel: View {
 
     var body: some View {
         TrayPanelShell(footnote: settings.blockerFootnote(for: mode), presentation: presentation) {
-            ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable,
-                                  exposureAvailable: settings.exposureAvailable,
-                                  cinematicAvailable: settings.cinematicAvailable(in: mode),
-                                  cinematicOn: settings.cinematic?.enabled == true),
-                    id: \.self) { item in
-                tile(for: item)
+            // Headers only when the focused camera has tiles of its own;
+            // otherwise every tile is the rig's and the tray reads as one.
+            if cameraItems.isEmpty {
+                tiles(rigItems)
+            } else {
+                Section(header: TraySectionHeader(title: cameraName ?? "")) { tiles(cameraItems) }
+                Section(header: TraySectionHeader(
+                    title: NSLocalizedString("ALL CAMERAS", comment: "tray header: tiles that apply to every camera"))) {
+                    tiles(rigItems)
+                }
             }
         }
+    }
+
+    private var cameraItems: [MonitorTrayItem] {
+        RigTray.cameraItems(mode: mode, exposureAvailable: settings.exposureAvailable,
+                            cinematicAvailable: settings.cinematicAvailable(in: mode),
+                            cinematicOn: settings.cinematic?.enabled == true)
+    }
+
+    private var rigItems: [MonitorTrayItem] {
+        RigTray.rigItems(mode: mode, standbyAvailable: settings.standbyAvailable)
+    }
+
+    private func tiles(_ items: [MonitorTrayItem]) -> some View {
+        ForEach(items, id: \.self) { item in tile(for: item) }
     }
 
     @ViewBuilder
@@ -1117,7 +1154,7 @@ struct RigTrayPanel: View {
                             isActive: false, isEnabled: true,
                             action: onOpenHelp)
         case .frameRate:
-            // Not offered by `RigTray.items` — frame rate rides the single
+            // Not offered by `RigTray.rigItems` — frame rate rides the single
             // quality tile's intersection cycle.
             EmptyView()
         }

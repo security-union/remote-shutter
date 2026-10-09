@@ -429,3 +429,6 @@
 "Editable Cinematic needs 16:9" = "Editable Cinematic needs 16:9";
 "%@ records editable Cinematic in 16:9" = "%@ records editable Cinematic in 16:9";
 "Locked while recording" = "Locked while recording";
+
+/* tray header: tiles that apply to every camera */
+"ALL CAMERAS" = "ALL CAMERAS";

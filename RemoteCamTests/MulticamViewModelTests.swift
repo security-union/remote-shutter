@@ -7,6 +7,7 @@
 
 import MPCCompat
 import Stormo
+import SwiftUI
 import XCTest
 @testable import RemoteShutter
 
@@ -629,6 +630,34 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
         let out = (NSTemporaryDirectory() as NSString).appendingPathComponent("director-cinematic.png")
         try XCTUnwrap(image.pngData()).write(to: URL(fileURLWithPath: out))
         print("SNAPSHOT wrote \(out)")
+    }
+
+    /// The tray with the focused camera's section (its name over EXPOSURE /
+    /// CINEMATIC / EDIT IN PHOTOS, then ALL CAMERAS) and without one.
+    func testRenderRigTraySections() throws {
+        var settings = RigSettingsSnapshot()
+        settings.exposureAvailable = true
+        settings.cinematic = CinematicState(enabled: true, output: .baked, aperture: 2.8, minAperture: 2,
+                                            maxAperture: 16, defaultAperture: 2.8,
+                                            qualities: [.hd1080p: [.fps24, .fps30]])
+        setWindowSize(CGSize(width: 393, height: 852))
+        for (name, tray) in [("rig-tray-camera-section", settings), ("rig-tray-rig-only", RigSettingsSnapshot())] {
+            let panel = RigTrayPanel(settings: tray, cameraName: "iPhone 14", mode: .video, isRecording: false,
+                                     onSetTimer: { _ in }, onSelectVideoQuality: { _, _ in },
+                                     onAutomaticVideoQuality: {}, onSetPhotoFormat: { _ in }, onSetHDR: { _ in },
+                                     onSetAspectRatio: { _ in }, onSetStandby: { _ in },
+                                     onSetExposureControls: { _ in }, onSetCinematic: { _ in },
+                                     onOpenSettings: {}, onOpenHelp: {})
+            let screen = ZStack(alignment: .bottom) {
+                Color.black.ignoresSafeArea()
+                panel
+            }
+            let image = renderScreen(named: name, screen)
+            XCTAssertGreaterThan(image.size.width, 0)
+            let out = (NSTemporaryDirectory() as NSString).appendingPathComponent("\(name).png")
+            try XCTUnwrap(image.pngData()).write(to: URL(fileURLWithPath: out))
+            print("SNAPSHOT wrote \(out)")
+        }
     }
 
     func testRenderDirectorGridForStoreAssets() throws {

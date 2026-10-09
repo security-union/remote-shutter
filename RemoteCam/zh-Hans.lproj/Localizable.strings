@@ -427,3 +427,6 @@
 "Editable Cinematic needs 16:9" = "可编辑电影效果需要 16:9";
 "%@ records editable Cinematic in 16:9" = "%@ 以 16:9 录制可编辑电影效果";
 "Locked while recording" = "录制时已锁定";
+
+/* tray header: tiles that apply to every camera */
+"ALL CAMERAS" = "所有相机";

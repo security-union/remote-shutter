@@ -13,18 +13,31 @@ final class MultiCamChromeTests: XCTestCase {
     // MARK: - Cinematic
 
     /// The CINEMATIC tile is a video-mode tile for a camera that reports the
-    /// block; EDIT IN PHOTOS joins it once the effect is on.
+    /// block; EDIT IN PHOTOS joins it once the effect is on. Both sit in the
+    /// focused camera's section, never among the rig's tiles.
     func testCinematicTilesAreVideoOnlyAndFollowTheEffect() {
-        XCTAssertFalse(RigTray.items(mode: .photo, standbyAvailable: false,
-                                     cinematicAvailable: true, cinematicOn: true).contains(.cinematic))
-        XCTAssertFalse(RigTray.items(mode: .video, standbyAvailable: false).contains(.cinematic),
+        XCTAssertFalse(RigTray.cameraItems(mode: .photo, exposureAvailable: false,
+                                           cinematicAvailable: true, cinematicOn: true).contains(.cinematic))
+        XCTAssertEqual(RigTray.cameraItems(mode: .video, exposureAvailable: false,
+                                           cinematicAvailable: false, cinematicOn: false), [],
                        "no block, no tile")
-        let off = RigTray.items(mode: .video, standbyAvailable: false, cinematicAvailable: true)
-        XCTAssertTrue(off.contains(.cinematic))
-        XCTAssertFalse(off.contains(.cinematicEditable), "the output choice waits for the effect")
-        let on = RigTray.items(mode: .video, standbyAvailable: false, cinematicAvailable: true, cinematicOn: true)
-        XCTAssertEqual(on.firstIndex(of: .cinematicEditable), on.firstIndex(of: .cinematic).map { $0 + 1 },
+        let off = RigTray.cameraItems(mode: .video, exposureAvailable: false, cinematicAvailable: true, cinematicOn: false)
+        XCTAssertEqual(off, [.cinematic], "the output choice waits for the effect")
+        let on = RigTray.cameraItems(mode: .video, exposureAvailable: true, cinematicAvailable: true, cinematicOn: true)
+        XCTAssertEqual(on, [.exposure, .cinematic, .cinematicEditable],
                        "the output sits beside the effect it belongs to")
+    }
+
+    /// The tray's two sections never share a tile: what addresses one camera
+    /// is under its name, what addresses the rig is under ALL CAMERAS.
+    func testTraySplitsCameraTilesFromRigTiles() {
+        let perCamera: Set<MonitorTrayItem> = [.exposure, .cinematic, .cinematicEditable]
+        for mode in [MonitorMode.photo, .video] {
+            let rig = RigTray.rigItems(mode: mode, standbyAvailable: true)
+            XCTAssertTrue(perCamera.isDisjoint(with: rig), "\(mode): no per-camera tile among the rig's")
+            let camera = RigTray.cameraItems(mode: mode, exposureAvailable: true, cinematicAvailable: true, cinematicOn: true)
+            XCTAssertTrue(Set(camera).isSubset(of: perCamera), "\(mode): only per-camera tiles under the name")
+        }
     }
 
     func testApertureLabelsAndTrack() {
@@ -163,21 +176,21 @@ final class MultiCamChromeTests: XCTestCase {
     /// Photo mode lists photo settings only — no video-quality tile, exactly
     /// as the 1:1 monitor's tray behaves in photo mode.
     func testRigTrayPhotoModeListsPhotoTilesOnly() {
-        XCTAssertEqual(RigTray.items(mode: .photo, standbyAvailable: true),
+        XCTAssertEqual(RigTray.rigItems(mode: .photo, standbyAvailable: true),
                        [.timer, .aspect, .format, .hdr, .cameraStandby, .settings, .help])
     }
 
     /// Video mode lists the single rig-quality tile only — no photo format or
     /// HDR tiles (frame rate rides the quality tile's intersection cycle).
     func testRigTrayVideoModeListsQualityTileOnly() {
-        XCTAssertEqual(RigTray.items(mode: .video, standbyAvailable: true),
+        XCTAssertEqual(RigTray.rigItems(mode: .video, standbyAvailable: true),
                        [.timer, .aspect, .resolution, .cameraStandby, .settings, .help])
     }
 
     /// A rig with no standby-capable camera omits the tile (not dims it).
     func testRigTrayOmitsStandbyWhenUnavailable() {
-        XCTAssertFalse(RigTray.items(mode: .photo, standbyAvailable: false).contains(.cameraStandby))
-        XCTAssertFalse(RigTray.items(mode: .video, standbyAvailable: false).contains(.cameraStandby))
+        XCTAssertFalse(RigTray.rigItems(mode: .photo, standbyAvailable: false).contains(.cameraStandby))
+        XCTAssertFalse(RigTray.rigItems(mode: .video, standbyAvailable: false).contains(.cameraStandby))
     }
 
     func testStreamProfilePresets() {
