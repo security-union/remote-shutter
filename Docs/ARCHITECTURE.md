@@ -137,7 +137,12 @@ snapshots to the director screen.
 the single `dataOutputQueue` that delivers both video and audio frames), and
 `FrameStreamingCoordinator` (fans each frame out to the live preview and, while
 recording, the pipeline). Queue confinement + a one-way hop rule; the only shared
-values are a handful of `Locked<T>` boxes on the per-frame hot path.
+values are a handful of `Locked<T>` boxes on the per-frame hot path. The session's
+configuration follows the rig's `currentCameraMode`: photo mode runs the
+full-sensor `.photo` preset (stills at the active format's `maxPhotoDimensions`,
+`.quality` prioritization, preview-sized buffers to the streamer), video mode runs
+the selected video format; an aspect ratio other than the sensor's own is a
+metadata-preserving ImageIO crop of the full capture.
 
 **The wire** — `MultipeerService` wraps MultipeerConnectivity; every message is a
 FlatBuffers table (`FlatBufferSchemas.fbs`). Control messages ship reliable,

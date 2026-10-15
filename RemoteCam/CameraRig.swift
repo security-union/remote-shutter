@@ -84,7 +84,13 @@ final class CameraRig: @unchecked Sendable {
     private let currentCameraModeShared = Locked(RecordingMode.Photo)
     var currentCameraMode: RecordingMode {
         get { currentCameraModeShared.value }
-        set { currentCameraModeShared.value = newValue }
+        set {
+            currentCameraModeShared.value = newValue
+            // The engine's session configuration follows the mode: photo mode
+            // runs the full-sensor photo format, video the selected video
+            // format. The engine dedupes, so repeated sets cost nothing.
+            engine.setCaptureMode(newValue)
+        }
     }
 
     // MARK: - Shell seams

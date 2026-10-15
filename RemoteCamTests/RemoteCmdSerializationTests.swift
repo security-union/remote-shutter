@@ -74,6 +74,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
         case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
         case let m as RemoteCmd.SetAspectRatio: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetCameraMode: return m.toFlatBuffer()
         default:
             XCTFail("No toFlatBuffer() for \(type(of: msg))")
             fatalError()
@@ -911,6 +912,20 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertTrue(info.supportsHDR)
         let rfr = info.getResolutionFrameRates()
         XCTAssertEqual(rfr[.uhd4k], [.fps24, .fps30])
+    }
+
+    // MARK: - SetCameraMode Round-Trip
+
+    func testSetCameraMode_video_roundTrip() {
+        let original = RemoteCmd.SetCameraMode(mode: .Video)
+        let decoded: RemoteCmd.SetCameraMode = roundTrip(original)
+        XCTAssertEqual(decoded.mode, .Video)
+    }
+
+    func testSetCameraMode_photo_roundTrip() {
+        let original = RemoteCmd.SetCameraMode(mode: .Photo)
+        let decoded: RemoteCmd.SetCameraMode = roundTrip(original)
+        XCTAssertEqual(decoded.mode, .Photo)
     }
 
     // MARK: - SetAspectRatio Round-Trip

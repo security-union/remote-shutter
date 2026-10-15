@@ -1,4 +1,6 @@
 import XCTest
+import ImageIO
+import CoreGraphics
 @testable import RemoteShutter
 
 final class CropRectTests: XCTestCase {
@@ -163,5 +165,64 @@ final class CropRectTests: XCTestCase {
         let unknownRect = CR.cropRect(sourceWidth: 1920, sourceHeight: 1080, aspectRatio: .unknown)
         let fourThreeRect = CR.cropRect(sourceWidth: 1920, sourceHeight: 1080, aspectRatio: .fourThree)
         XCTAssertEqual(unknownRect, fourThreeRect)
+    }
+
+    // MARK: - cropPhotoData (the ImageIO path a captured still goes through)
+
+    /// A tiny real JPEG with an EXIF UserComment — the field the multicam
+    /// sync stamp rides in, so losing it in a crop would break rig grouping.
+    private func makeJPEG(width: Int, height: Int, userComment: String) -> Data {
+        let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+        let context = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8,
+            bytesPerRow: 0, space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        context.setFillColor(CGColor(red: 0.2, green: 0.5, blue: 0.8, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        let image = context.makeImage()!
+
+        let output = NSMutableData()
+        let dest = CGImageDestinationCreateWithData(output, "public.jpeg" as CFString, 1, nil)!
+        let properties: [CFString: Any] = [
+            kCGImagePropertyExifDictionary: [kCGImagePropertyExifUserComment: userComment]
+        ]
+        CGImageDestinationAddImage(dest, image, properties as CFDictionary)
+        CGImageDestinationFinalize(dest)
+        return output as Data
+    }
+
+    func testCropPhotoDataPreservesCodecAndMetadata() throws {
+        let jpeg = makeJPEG(width: 400, height: 300, userComment: "rig-sync-stamp")
+
+        let cropped = try XCTUnwrap(CR.cropPhotoData(jpeg, to: .sixteenNine))
+
+        let source = try XCTUnwrap(CGImageSourceCreateWithData(cropped as CFData, nil))
+        XCTAssertEqual(CGImageSourceGetType(source) as String?, "public.jpeg",
+                       "the crop must keep the container type")
+        let properties = try XCTUnwrap(
+            CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+        let width = try XCTUnwrap(properties[kCGImagePropertyPixelWidth] as? Int)
+        let height = try XCTUnwrap(properties[kCGImagePropertyPixelHeight] as? Int)
+        XCTAssertEqual(width, 400)
+        // CGImage.cropping integral-rounds a fractional rect (y 37.5, h 225
+        // → 226 rows), so the height is exact only to within a pixel.
+        XCTAssertEqual(height, 225, accuracy: 1)
+        let exif = try XCTUnwrap(properties[kCGImagePropertyExifDictionary] as? [CFString: Any])
+        XCTAssertEqual(exif[kCGImagePropertyExifUserComment] as? String, "rig-sync-stamp",
+                       "EXIF must survive the crop — the rig stamp lives there")
+        XCTAssertEqual(exif[kCGImagePropertyExifPixelXDimension] as? Int, width,
+                       "the EXIF dims must be rewritten to the cropped size")
+        XCTAssertEqual(exif[kCGImagePropertyExifPixelYDimension] as? Int, height,
+                       "the EXIF dims must be rewritten to the cropped size")
+    }
+
+    func testCropPhotoDataReturnsOriginalBytesWhenRatioMatches() {
+        let jpeg = makeJPEG(width: 1600, height: 900, userComment: "unused")
+        XCTAssertEqual(CR.cropPhotoData(jpeg, to: .sixteenNine), jpeg,
+                       "a matching ratio must not re-encode")
+    }
+
+    func testCropPhotoDataRefusesGarbage() {
+        XCTAssertNil(CR.cropPhotoData(Data([0xde, 0xad, 0xbe, 0xef]), to: .fourThree))
     }
 }

@@ -18,6 +18,7 @@
 
 import XCTest
 import AVFoundation
+import ImageIO
 
 @testable import RemoteShutter
 
@@ -474,5 +475,126 @@ final class CaptureIntegrationTests: XCTestCase {
         let after = await rig.currentCameraDevice()
         XCTAssertFalse(after?.isSuspended ?? true, "toggle must never land on a suspended device")
         print("📸 toggle \(before?.localizedName ?? "?") → \(after?.localizedName ?? "?"): frames in \(Int(latency * 1000))ms")
+    }
+
+    // MARK: - Photo quality (full-sensor stills)
+
+    /// Captures one still through the engine and hands back its bytes.
+    /// Rewires `onPicture` away from the session — fine, the rig is torn
+    /// down after every test.
+    private func captureStill(timeout: TimeInterval = 30) async throws -> Data {
+        let photoDelivered = expectation(description: "photo delivered")
+        let delivered = Locked<(Data?, Error?)>((nil, nil))
+        rig.engine.onPicture = { data, error in
+            delivered.value = (data, error)
+            photoDelivered.fulfill()
+        }
+        rig.engine.takePicture(false)
+        await fulfillment(of: [photoDelivered], timeout: timeout)
+        let (data, error) = delivered.value
+        if let data { return data }
+        throw error ?? NSError(domain: "no photo delivered", code: 0, userInfo: nil)
+    }
+
+    private func stillDimensions(_ data: Data) throws -> (width: Int, height: Int) {
+        let source = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
+        let properties = try XCTUnwrap(
+            CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+        return (try XCTUnwrap(properties[kCGImagePropertyPixelWidth] as? Int),
+                try XCTUnwrap(properties[kCGImagePropertyPixelHeight] as? Int))
+    }
+
+    /// THE invariant this branch exists for: in photo mode a still is the
+    /// active format's full photo resolution — never a frame lifted from a
+    /// video format. Native-ratio shot must match the format's photo ceiling
+    /// exactly; any other ratio must be a crop of that full capture
+    /// (`cropRect` is the oracle — it is what the engine applies).
+    func testPhotoModeStillIsTheFormatsFullPhotoResolution() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+        guard #available(macCatalyst 16.0, iOS 16.0, *) else {
+            throw XCTSkip("maxPhotoDimensions needs OS 16")
+        }
+        let device = try XCTUnwrap(rig.engine.currentDevice())
+        let ceiling = try XCTUnwrap(device.activeFormat.supportedMaxPhotoDimensions
+            .max { Int64($0.width) * Int64($0.height) < Int64($1.width) * Int64($1.height) })
+        let ceilingW = Int(ceiling.width), ceilingH = Int(ceiling.height)
+        print("📸 fullres: \(device.localizedName) photo ceiling \(ceilingW)x\(ceilingH) "
+              + "format \(device.activeFormat.formatDescription)")
+
+        // Shoot at the sensor's own ratio first: no crop may apply.
+        let native = Double(ceilingW) / Double(ceilingH)
+        let nativeAspect: AspectRatio? = abs(native - 4.0 / 3.0) < 0.05 ? .fourThree
+            : abs(native - 16.0 / 9.0) < 0.05 ? .sixteenNine : nil
+        if let nativeAspect {
+            _ = await rig.engine.setAspectRatio(nativeAspect)
+            let dims = try stillDimensions(try await captureStill())
+            print("📸 fullres: native \(nativeAspect.displayName) still \(dims.width)x\(dims.height)")
+            XCTAssertEqual(Set([dims.width, dims.height]), Set([ceilingW, ceilingH]),
+                           "a native-ratio still must be the format's full photo resolution")
+        }
+
+        // Any other ratio is a crop OF THE FULL CAPTURE: cropRect on the
+        // ceiling predicts the exact output dimensions.
+        let croppedAspect: AspectRatio = nativeAspect == .fourThree ? .sixteenNine : .fourThree
+        _ = await rig.engine.setAspectRatio(croppedAspect)
+        let dims = try stillDimensions(try await captureStill())
+        print("📸 fullres: cropped \(croppedAspect.displayName) still \(dims.width)x\(dims.height)")
+        let expected = CaptureEngine.cropRect(
+            sourceWidth: CGFloat(ceilingW), sourceHeight: CGFloat(ceilingH),
+            aspectRatio: croppedAspect)?.size
+            ?? CGSize(width: ceilingW, height: ceilingH)
+        let sorted = [dims.width, dims.height].sorted()
+        let expectedSorted = [Int(expected.width), Int(expected.height)].sorted()
+        XCTAssertEqual(sorted[1], expectedSorted[1], accuracy: 2,
+                       "the crop must come from the full-resolution capture")
+        XCTAssertEqual(sorted[0], expectedSorted[0], accuracy: 2,
+                       "the crop must come from the full-resolution capture")
+    }
+
+    /// The engine's session configuration follows the rig's mode — and both
+    /// directions keep frames flowing (the preview encoder survives the
+    /// 4:3 ↔ 16:9 dimension cut).
+    func testCaptureModeFollowsTheRigAndFramesKeepFlowing() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+
+        var mark = Date().timeIntervalSinceReferenceDate
+        rig.currentCameraMode = .Video
+        guard let toVideo = await waitForFrames(since: mark) else {
+            return XCTFail("no frames after →video — \(await diagnostics())")
+        }
+        mark = Date().timeIntervalSinceReferenceDate
+        rig.currentCameraMode = .Photo
+        guard let toPhoto = await waitForFrames(since: mark) else {
+            return XCTFail("no frames after →photo — \(await diagnostics())")
+        }
+        print("📸 mode flip: →video frames in \(Int(toVideo * 1000))ms, →photo in \(Int(toPhoto * 1000))ms")
+
+        let data = try await captureStill()
+        XCTAssertFalse(data.isEmpty, "a still must capture after round-tripping the modes")
+    }
+
+    /// HEIF in, HEIF out: the aspect crop must not silently convert to JPEG.
+    func testHEICSurvivesAspectCrop() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+        guard await rig.engine.setPhotoQuality(format: .heif, hdrMode: .off) != nil else {
+            throw XCTSkip("no HEIF on this camera")
+        }
+        // Force a crop: shoot an aspect that can't match the sensor.
+        _ = await rig.engine.setAspectRatio(.oneOne)
+        let data = try await captureStill()
+        let source = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
+        let type = try XCTUnwrap(CGImageSourceGetType(source) as String?)
+        print("📸 heic: cropped still type \(type), \(data.count) bytes")
+        XCTAssertTrue(type.contains("heic") || type.contains("heif"),
+                      "the crop must keep the HEIF container, got \(type)")
     }
 }

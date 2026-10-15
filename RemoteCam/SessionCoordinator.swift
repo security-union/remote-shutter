@@ -1118,7 +1118,8 @@ public actor SessionCoordinator {
              (is RemoteCmd.SetPhotoQuality, _), (is RemoteCmd.SetAspectRatio, _),
              (is RemoteCmd.SetCameraPreviewMode, _), (is RemoteCmd.SetExposure, _):
             return nil
-        case (is RemoteCmd.ToggleFlash, _), (is RemoteCmd.SetVideoQuality, _):
+        case (is RemoteCmd.ToggleFlash, _), (is RemoteCmd.SetVideoQuality, _),
+             (is RemoteCmd.SetCameraMode, _):
             return recording
         case (is RemoteCmd.ToggleCamera, .recording), (is RemoteCmd.SelectCameraDevice, .recording):
             return recording
@@ -1146,6 +1147,7 @@ public actor SessionCoordinator {
         case is RemoteCmd.SetAspectRatio: action = .setaspectratio
         case is RemoteCmd.SetCameraPreviewMode: action = .setcamerapreviewmode
         case is RemoteCmd.SetExposure: action = .setexposure
+        case is RemoteCmd.SetCameraMode: action = .setcameramode
         default: return false
         }
         if let refusal = Self.controlRefusal(msg, phase: phase) {
@@ -1199,6 +1201,10 @@ public actor SessionCoordinator {
                 await ctrl.setPreviewMode(preview.mode)
             case let exposure as RemoteCmd.SetExposure:
                 try await ctrl.setExposure(exposure.intent)
+            case let mode as RemoteCmd.SetCameraMode:
+                // The pre-warm: the rig's setter reconfigures the session.
+                ctrl.currentCameraMode = mode.mode
+                ctrl.updateCameraStatus()
             default:
                 break
             }
@@ -1350,6 +1356,12 @@ public actor SessionCoordinator {
             return
         }
         await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(captureId: scheduled.captureId))
+
+        // Flip to photo configuration NOW, during the countdown, so the
+        // session reconfiguration (video format → full-sensor photo format)
+        // never lands between cameras' fire instants and skews the rig.
+        ctrl?.currentCameraMode = .Photo
+        ctrl?.updateCameraStatus()
 
         let metadata = CaptureSyncMetadata(
             sessionID: scheduled.sessionId,

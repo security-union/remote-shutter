@@ -63,6 +63,9 @@ public final class MulticamViewController: UIViewController {
                       self.viewModel.rigSettings.countdown == nil else { return }
                 self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
                 logInfo("director: mode → \(self.viewModel.mode)")
+                // Pre-warm every capable camera's session configuration now, so
+                // the sensor reconfigure happens here and not at the shutter.
+                self.controller.setCameraMode(self.viewModel.mode == .video ? .Video : .Photo)
             },
             onAddCamera: { [weak self] in self?.handleAddCameraTapped() },
             onInviteCamera: { [weak self] peer in

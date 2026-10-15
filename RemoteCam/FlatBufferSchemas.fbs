@@ -77,12 +77,23 @@ enum CommandAction : byte {
                                // RECEIVER sends this first, as its "clip
                                // landed / failed" confirmation; the camera
                                // then forwards it to close the protocol.
-    SetExposure = 34           // director -> camera: Auto (with an EV bias) or
+    SetExposure = 34,          // director -> camera: Auto (with an EV bias) or
                                // Manual (shutter + ISO). Payload in
                                // CommandParameters (exposure_*). Answered like
                                // every control command, by the camera's full
                                // state; only sent to a camera whose CameraState
                                // carries an ExposureState.
+    SetCameraMode = 35         // director -> camera: pre-warm the photo/video
+                               // session configuration when the director's
+                               // mode toggle flips, so the sensor reconfigure
+                               // (~0.5s) is paid at the toggle, not at the
+                               // shutter. A SETTING push, not the trigger:
+                               // capture commands still set the mode at
+                               // arrival, so a missed push can never desync.
+                               // Payload camera_mode; answered like every
+                               // control command. Only sent to a camera whose
+                               // CameraState reports camera_mode (presence is
+                               // the capability, as with ExposureState).
 }
 
 // Auto vs. manual exposure, as the camera reports it and the director asks.
@@ -263,6 +274,8 @@ table CommandParameters {
     exposure_bias: float;
     exposure_duration_seconds: double;
     exposure_iso: float;
+    // SetCameraMode payload: the director's photo/video toggle.
+    camera_mode: RecordingModeEnum;
 }
 
 // MARK: - Command Structure
@@ -374,6 +387,10 @@ table CameraState {
     // sitting in standby. Absent/Unknown => legacy peer; treat as On.
     preview_mode: CameraPreviewModeEnum;
     exposure: ExposureState;
+    // The session configuration the camera is running (photo = full-sensor
+    // stills, video = the selected video format). Absent/Unknown = peer
+    // predates mode pre-warming; a director must not send SetCameraMode.
+    camera_mode: RecordingModeEnum;
 }
 
 table CameraCapabilities {
@@ -406,7 +423,7 @@ table CameraCapabilities {
 //   only their own fields;
 // - every CONTROL command (SetZoom, SwitchLens, ToggleFlash, ToggleTorch,
 //   ToggleCamera, SelectCameraDevice, SetVideoQuality, SetPhotoQuality,
-//   SetAspectRatio, SetCameraPreviewMode) is answered by exactly one response
+//   SetAspectRatio, SetCameraPreviewMode, SetCameraMode) is answered by exactly one response
 //   echoing its action with `current_state` + `capabilities`: the camera's
 //   complete state after the command, whether it was applied (`success`) or
 //   refused (`error` says why; the state is the unchanged truth). The same
