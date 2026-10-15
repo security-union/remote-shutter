@@ -1168,8 +1168,7 @@ extension RemoteCmd {
             return SetAspectRatio(aspectRatio: ratio)
 
         case .setcameramode:
-            // Unknown is malformed for this command (the sender always encodes
-            // a real mode) — drop rather than guess.
+            // Unknown is malformed here — drop rather than guess a mode.
             guard let mode = fromFBRecordingMode(params?.cameraMode ?? .unknown) else { return nil }
             return SetCameraMode(mode: mode)
 

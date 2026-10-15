@@ -112,15 +112,15 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// Shorts run the selected video format. sessionQueue-confined.
     private var captureMode: RecordingMode = .Photo
 
-    /// Mac cameras have no separate photo sensor path — their photo ceiling
-    /// IS the video format's — and this hardware throws an uncatchable
-    /// NSInvalidArgumentException on the `.photo` preset (measured:
-    /// CaptureIntegrationTests on Catalyst). Photo mode on the Mac keeps the
-    /// video format; `maxPhotoDimensions` carries the full quality there.
+    /// Whether this platform's cameras take the `.photo` preset. Mac cameras
+    /// do not — their photo ceiling IS the video format's, and the preset
+    /// throws an uncatchable NSInvalidArgumentException there (pinned by
+    /// CaptureIntegrationTests on Catalyst) — so Mac photo mode keeps the
+    /// video format and `maxPhotoDimensions` carries the full quality.
     #if targetEnvironment(macCatalyst)
-    private let photoPresetSupported = false
+    private static let photoPresetSupported = false
     #else
-    private let photoPresetSupported = true
+    private static let photoPresetSupported = true
     #endif
 
     // MARK: - Zoom and Lens Properties
@@ -183,7 +183,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
         self.captureSession.beginConfiguration()
         self.captureSession.sessionPreset =
-            (self.captureMode == .Photo && self.photoPresetSupported
+            (self.captureMode == .Photo && Self.photoPresetSupported
              && self.captureSession.canSetSessionPreset(.photo))
             ? .photo : .high
 
@@ -220,7 +220,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // This prevents requesting microphone permission upfront
             self.configSessionOutput()
             self.captureSession.commitConfiguration()
-            self.updateMaxPhotoDimensionsLocked()   // activeFormat is settled only after the commit
+            self.updateMaxPhotoDimensionsLocked()
             self.applyDesiredTorchLocked()   // commitConfiguration can reset the torch
             self.captureSession.startRunning()
             self.isExpectedToRun = true
@@ -392,7 +392,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         rotateOutputsLocked(orientation: orientation)
         let newFlashMode: AVCaptureDevice.FlashMode? = newDevice.hasFlash ? cameraSettings.flashMode : nil
         captureSession.commitConfiguration()
-        updateMaxPhotoDimensionsLocked()   // the new device's format has its own photo ceiling
+        updateMaxPhotoDimensionsLocked()
         applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
         resetFocusExposureToAutoLocked()   // a stale focus point must not carry across a device change
         applyExposureIntentLocked()   // the new device must match the director's exposure intent
@@ -1084,7 +1084,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             flashMode: cameraSettings.flashMode,
             aspectRatio: currentAspectRatio,
             exposure: exposureStateLocked(currentDevice),
-            // Reported presence is the SetCameraMode capability gate.
             cameraMode: captureMode,
             error: nil
         )
@@ -1704,40 +1703,43 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
+    /// Reconfigures the session for the stored mode. A real reconfiguration
+    /// changes the frame dimensions (16:9 video ↔ 4:3 full sensor) — a scene
+    /// cut for the preview encoder, announced like a device swap.
     private func applyCaptureModeLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        if captureMode == .Photo {
-            applyPhotoFormatLocked()
-        } else {
-            _ = setVideoQualityLocked(resolution: currentVideoResolution,
-                                      frameRate: currentVideoFrameRate,
-                                      isRecording: false)
-        }
-        // The frame dimensions just changed (16:9 video ↔ 4:3 full sensor):
-        // a scene cut for the preview encoder, same as a device swap.
-        onDeviceSwapped?()
+        let changed = captureMode == .Photo
+            ? applyPhotoFormatLocked()
+            : setVideoQualityLocked(resolution: currentVideoResolution,
+                                    frameRate: currentVideoFrameRate,
+                                    isRecording: false) != nil
+        if changed { onDeviceSwapped?() }
     }
 
-    private func applyPhotoFormatLocked() {
+    /// Puts the session on the full-sensor `.photo` preset, keeping the
+    /// device's frame rate (`resolveFrameRate` clamps it into the photo
+    /// format's own ranges). Where the preset is unavailable the session
+    /// keeps the video format and only the photo-output ceiling is
+    /// refreshed. Returns whether the session was reconfigured.
+    private func applyPhotoFormatLocked() -> Bool {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        guard photoPresetSupported else {
-            updateMaxPhotoDimensionsLocked()   // the video format's own ceiling still applies
-            return
+        guard Self.photoPresetSupported else {
+            updateMaxPhotoDimensionsLocked()
+            return false
         }
         guard captureSession.canSetSessionPreset(.photo) else {
             logWarning("photo preset unsupported on this device — keeping the video format for stills")
-            return
+            return false
         }
         captureSession.beginConfiguration()
         captureSession.sessionPreset = .photo
         captureSession.commitConfiguration()
         if let device = videoDeviceInput?.device {
-            // Keep the preview cadence deliberate; resolveFrameRate clamps
-            // into the photo format's own ranges.
             try? setFrameRate(framerate: fpsSetting.value, videoDevice: device)
         }
         restoreAfterFormatChangeLocked()
         onStatusChanged?()
+        return true
     }
 
     /// The one tail every format/preset change runs: zoom, torch, exposure and
@@ -1746,7 +1748,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     private func restoreAfterFormatChangeLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         if let device = videoDeviceInput?.device {
-            // Restore zoom factor — changing activeFormat/sessionPreset resets it to 1.0
             let savedZoom = currentZoomFactor
             do {
                 try device.lockForConfiguration()
@@ -1759,8 +1760,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 debugLog("❌ DEBUG: Failed to restore zoom after format change: \(error)")
             }
         }
-        applyDesiredTorchLocked()   // changing activeFormat/preset also resets the torch
-        applyExposureIntentLocked()   // ranges and the frame-rate cap changed with the format
+        applyDesiredTorchLocked()
+        applyExposureIntentLocked()
         updateMaxPhotoDimensionsLocked()
     }
 
@@ -1782,14 +1783,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         await onSessionQueue { self.setVideoQualityLocked(resolution: resolution, frameRate: frameRate, isRecording: isRecording) }
     }
 
+    /// Applies the selected video quality. In photo mode the session stays on
+    /// the photo format: the selection is recorded and echoed, and applied
+    /// when the mode flips to video (`applyCaptureModeLocked`).
     private func setVideoQualityLocked(resolution: VideoResolution, frameRate: VideoFrameRate, isRecording: Bool) -> (VideoResolution, VideoFrameRate)? {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard !isRecording else { return nil }
         guard let device = videoDeviceInput?.device else { return nil }
 
-        // In photo mode the session stays on the full-sensor photo format:
-        // record the director's choice; it is applied when the mode flips to
-        // video (`applyCaptureModeLocked`). The echoed state is the selection.
         guard captureMode != .Photo else {
             currentVideoResolution = resolution
             currentVideoFrameRate = frameRate
@@ -1876,10 +1877,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
-    /// Crops photo data to the selected aspect ratio via ImageIO: the
-    /// container type is preserved (HEIC stays HEIC), the EXIF/TIFF/GPS
-    /// metadata rides along, and the one unavoidable re-encode is explicit.
-    /// Returns the data unchanged when the ratio already matches.
+    /// Crops photo data to the selected aspect ratio via ImageIO: the crop
+    /// runs in sensor space (the EXIF orientation tag rides along untouched),
+    /// the container type is preserved (HEIC stays HEIC), the metadata
+    /// travels, and the one unavoidable re-encode is explicit. Returns the
+    /// data unchanged when the ratio already matches.
     static func cropPhotoData(_ data: Data, to aspectRatio: AspectRatio) -> Data? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let type = CGImageSourceGetType(source),
@@ -1888,8 +1890,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return nil
         }
 
-        // Crop in sensor space; the EXIF orientation tag is carried over, so
-        // the pixels stay untouched by rotation exactly as before.
         guard let rect = cropRect(
             sourceWidth: CGFloat(cgImage.width),
             sourceHeight: CGFloat(cgImage.height),
@@ -1901,15 +1901,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return nil
         }
 
-        var properties = (CGImageSourceCopyPropertiesAtIndex(source, 0, nil)
-            as? [CFString: Any]) ?? [:]
-        if var exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any] {
-            exif[kCGImagePropertyExifPixelXDimension] = croppedCG.width
-            exif[kCGImagePropertyExifPixelYDimension] = croppedCG.height
-            properties[kCGImagePropertyExifDictionary] = exif
-        }
-        properties[kCGImageDestinationLossyCompressionQuality] = 0.95
-
+        let properties = destinationProperties(
+            of: source, croppedWidth: croppedCG.width, croppedHeight: croppedCG.height)
         let output = NSMutableData()
         guard let dest = CGImageDestinationCreateWithData(output, type, 1, nil) else {
             return nil
@@ -1920,6 +1913,25 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return nil
         }
         return output as Data
+    }
+
+    /// The source image's properties carried onto the cropped destination:
+    /// EXIF pixel dimensions rewritten to the crop, encode quality pinned.
+    private static func destinationProperties(
+        of source: CGImageSource, croppedWidth: Int, croppedHeight: Int
+    ) -> [CFString: Any] {
+        let original = (CGImageSourceCopyPropertiesAtIndex(source, 0, nil)
+            as? [CFString: Any]) ?? [:]
+        let withQuality = original.merging(
+            [kCGImageDestinationLossyCompressionQuality: 0.95]) { _, new in new }
+        guard let exif = original[kCGImagePropertyExifDictionary] as? [CFString: Any] else {
+            return withQuality
+        }
+        let croppedExif = exif.merging(
+            [kCGImagePropertyExifPixelXDimension: croppedWidth,
+             kCGImagePropertyExifPixelYDimension: croppedHeight]) { _, new in new }
+        return withQuality.merging(
+            [kCGImagePropertyExifDictionary: croppedExif]) { _, new in new }
     }
 
     func setPhotoQuality(format: PhotoFormat, hdrMode: HDRMode) async -> (PhotoFormat, HDRMode)? {
@@ -1935,6 +1947,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
+    /// Per-shot settings: the template's flash, the output's full photo
+    /// dimensions, and always `.quality` processing — a remote shutter has
+    /// no shot-to-shot latency budget to protect.
     func cloneCameraSettings(_ settings: AVCapturePhotoSettings) -> AVCapturePhotoSettings {
         let newSettings: AVCapturePhotoSettings
         if currentPhotoFormat == .heif && photoOutput.availablePhotoCodecTypes.contains(.hevc) {
@@ -1948,8 +1963,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         } else {
             newSettings.isHighResolutionPhotoEnabled = settings.isHighResolutionPhotoEnabled
         }
-        // Always ask for the full multi-frame processing (Deep Fusion et al.).
-        // A remote shutter has no shot-to-shot latency budget to protect.
         newSettings.photoQualityPrioritization = .quality
         return newSettings
     }
@@ -1973,11 +1986,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         guard let photoData = photo.fileDataRepresentation() else {
             return
         }
-        // Apply aspect ratio cropping if needed (delivered on an AVFoundation
-        // callback queue; read the aspect through the session queue). The
-        // photo format's stills are the sensor's native 4:3, so EVERY other
-        // selected ratio — 16:9 included — is a crop of the full capture.
-        // A failed crop delivers the full frame: all the pixels beat none.
+        // Delivered on an AVFoundation callback queue; the aspect is read
+        // through the session queue. Any ratio other than the still's own is
+        // a crop of the full capture; a failed crop delivers the full frame.
         let aspectRatio = currentAspectRatioValue()
         onPicture?(Self.cropPhotoData(photoData, to: aspectRatio) ?? photoData, nil)
     }

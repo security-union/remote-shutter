@@ -1202,7 +1202,6 @@ public actor SessionCoordinator {
             case let exposure as RemoteCmd.SetExposure:
                 try await ctrl.setExposure(exposure.intent)
             case let mode as RemoteCmd.SetCameraMode:
-                // The pre-warm: the rig's setter reconfigures the session.
                 ctrl.currentCameraMode = mode.mode
                 ctrl.updateCameraStatus()
             default:
@@ -1357,9 +1356,8 @@ public actor SessionCoordinator {
         }
         await sendOrGoToScanning(RemoteCmd.ScheduledCaptureAck(captureId: scheduled.captureId))
 
-        // Flip to photo configuration NOW, during the countdown, so the
-        // session reconfiguration (video format → full-sensor photo format)
-        // never lands between cameras' fire instants and skews the rig.
+        // Photo configuration is armed at arrival: the session reconfigures
+        // during the countdown, never between the cameras' fire instants.
         ctrl?.currentCameraMode = .Photo
         ctrl?.updateCameraStatus()
 

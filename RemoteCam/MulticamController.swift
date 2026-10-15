@@ -657,8 +657,8 @@ public actor MulticamController {
             if caps.aspectRatio != activeAspectRatio {
                 sendControl(.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: activeAspectRatio), to: peer)
             }
-            // Mode pre-warm, same settings-not-events gate: only to a camera
-            // that REPORTS a mode (the capability), and only when it differs.
+            // Mode pre-warm rides the same gate: reporting a mode is the
+            // capability, and only a differing camera is commanded.
             if let reported = caps.cameraMode, reported != rigCameraMode {
                 sendControl(.setcameramode, RemoteCmd.SetCameraMode(mode: rigCameraMode), to: peer)
             }
