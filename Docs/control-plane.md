@@ -46,7 +46,7 @@ The phase policy, `controlRefusal(_:phase:)`, is a table:
 | Command | idle | taking picture | recording | transmitting video | not a camera |
 |---|---|---|---|---|---|
 | SetZoom, SwitchLens, ToggleTorch, SetPhotoQuality, SetAspectRatio, SetCameraPreviewMode | applied | busy | applied | applied | refused |
-| ToggleFlash, SetVideoQuality | applied | busy | recording | recording | refused |
+| ToggleFlash, SetVideoQuality, SetCameraMode | applied | busy | recording | recording | refused |
 | ToggleCamera, SelectCameraDevice | applied | busy | recording | busy | refused |
 
 A refusal still carries the full, unchanged state, so the remote's controls

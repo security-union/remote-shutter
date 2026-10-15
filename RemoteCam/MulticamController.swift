@@ -237,6 +237,10 @@ public actor MulticamController {
     /// intersection: it fans to every lane and is re-applied to late joiners.
     /// 16:9 is the cameras' own default.
     private var activeAspectRatio: AspectRatio = .sixteenNine
+    /// The director's PHOTO/VIDEO toggle, pushed to each camera as a
+    /// pre-warm (the sensor reconfigure is paid at the toggle, not at the
+    /// shutter). A setting, not an event: reconciled on join like aspect.
+    private var rigCameraMode: RecordingMode = .Photo
     /// The rig-wide camera-preview mode: standby blanks each camera's own
     /// on-screen preview (the director is the viewfinder; capture and the
     /// streamed frames are unaffected). Sent only to cameras that advertised
@@ -526,6 +530,8 @@ public actor MulticamController {
         case let q as MCSetPhotoQuality:
             logInfo("director: photo quality \(q.format)/\(q.hdr) → all")
             handleSetPhotoQuality(format: q.format, hdr: q.hdr)
+        case let m as MCSetCameraMode:
+            handleSetCameraMode(m.mode)
         case let a as MCSetAspectRatio:
             logInfo("director: aspect \(a.ratio.displayName) → all")
             handleSetAspectRatio(a.ratio)
@@ -650,6 +656,11 @@ public actor MulticamController {
             }
             if caps.aspectRatio != activeAspectRatio {
                 sendControl(.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: activeAspectRatio), to: peer)
+            }
+            // Mode pre-warm rides the same gate: reporting a mode is the
+            // capability, and only a differing camera is commanded.
+            if let reported = caps.cameraMode, reported != rigCameraMode {
+                sendControl(.setcameramode, RemoteCmd.SetCameraMode(mode: rigCameraMode), to: peer)
             }
 
         case let ack as RemoteCmd.ScheduledCaptureAck:
@@ -1273,6 +1284,18 @@ public actor MulticamController {
         activeAspectRatio = ratio
         for peer in order {
             sendControl(.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: ratio), to: peer)
+        }
+    }
+
+    /// The PHOTO/VIDEO toggle: pre-warm every capable camera's session
+    /// configuration now, so the first shot after the flip is instant.
+    public nonisolated func setCameraMode(_ mode: RecordingMode) { tell(MCSetCameraMode(mode)) }
+
+    private func handleSetCameraMode(_ mode: RecordingMode) {
+        rigCameraMode = mode
+        for peer in order {
+            guard links[peer]?.capabilities?.cameraMode != nil else { continue }
+            sendControl(.setcameramode, RemoteCmd.SetCameraMode(mode: mode), to: peer)
         }
     }
 
@@ -2000,6 +2023,11 @@ final class MCSetPhotoQuality: Message, @unchecked Sendable {
     let format: PhotoFormat
     let hdr: HDRMode
     init(_ format: PhotoFormat, _ hdr: HDRMode) { self.format = format; self.hdr = hdr; super.init(sender: nil) }
+}
+
+final class MCSetCameraMode: Message, @unchecked Sendable {
+    let mode: RecordingMode
+    init(_ mode: RecordingMode) { self.mode = mode; super.init(sender: nil) }
 }
 
 final class MCSetAspectRatio: Message, @unchecked Sendable {

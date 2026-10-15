@@ -81,7 +81,7 @@ Messages.swift) handle communication:
 - **`UICmd`** (UICmds.swift) — Local messages from screens into the session coordinator within a single device.
 
 Control commands (zoom, lens, flash, torch, flip, device select, quality,
-aspect, preview mode, exposure) are all answered the same way: one
+aspect, preview mode, exposure, camera mode) are all answered the same way: one
 `CameraCapabilitiesResp` — the camera's full state — tagged with the command's
 action (`inReplyTo`) and, if refused, why (`error`). The camera answers in
 every phase (busy phases refuse, never drop); the director counts each send as

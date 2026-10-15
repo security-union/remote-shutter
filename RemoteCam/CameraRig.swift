@@ -82,9 +82,15 @@ final class CameraRig: @unchecked Sendable {
     /// Lock-boxed: written on the actor mailbox (mode changes) and main
     /// (recording chrome), read wherever the status overlay updates.
     private let currentCameraModeShared = Locked(RecordingMode.Photo)
+    /// The capture mode, mirrored to the engine on every write: the session
+    /// configuration follows it (photo = full-sensor photo format, video =
+    /// the selected video format). The engine dedupes repeated sets.
     var currentCameraMode: RecordingMode {
         get { currentCameraModeShared.value }
-        set { currentCameraModeShared.value = newValue }
+        set {
+            currentCameraModeShared.value = newValue
+            engine.setCaptureMode(newValue)
+        }
     }
 
     // MARK: - Shell seams

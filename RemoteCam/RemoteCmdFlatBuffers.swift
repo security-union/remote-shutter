@@ -57,6 +57,7 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.SetPhotoQuality: return m.toFlatBuffer()
     case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
     case let m as RemoteCmd.SetAspectRatio: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetCameraMode: return m.toFlatBuffer()
     default: return nil
     }
 }
@@ -434,7 +435,8 @@ private func encodeCapabilitiesEnvelope(
         aspectRatio: toFBAspectRatio(c.aspectRatio),
         activeDeviceIdOffset: activeIDOffset,
         previewMode: toFBPreviewMode(c.previewMode),
-        exposureOffset: exposureOffset)
+        exposureOffset: exposureOffset,
+        cameraMode: c.cameraMode.map { toFBRecordingMode($0) } ?? .unknown)
 
     return (capsOffset, stateOffset)
 }
@@ -925,6 +927,24 @@ private func fromFBAspectRatio(_ r: RemoteShutter_AspectRatioEnum) -> AspectRati
 
 // MARK: - CameraPreviewMode enum conversions
 
+func toFBRecordingMode(_ mode: RecordingMode) -> RemoteShutter_RecordingModeEnum {
+    switch mode {
+    case .Photo: return .photo
+    case .Video: return .video
+    case .Shorts: return .shorts
+    }
+}
+
+/// Nil for Unknown/absent: presence is the capability (old peers report none).
+func fromFBRecordingMode(_ mode: RemoteShutter_RecordingModeEnum) -> RecordingMode? {
+    switch mode {
+    case .photo: return .Photo
+    case .video: return .Video
+    case .shorts: return .Shorts
+    case .unknown: return nil
+    }
+}
+
 func toFBPreviewMode(_ mode: CameraPreviewMode) -> RemoteShutter_CameraPreviewModeEnum {
     switch mode {
     case .on: return .on
@@ -948,6 +968,17 @@ extension RemoteCmd.SetAspectRatio {
         let params = RemoteShutter_CommandParameters.createCommandParameters(
             &fbb, aspectRatio: toFBAspectRatio(aspectRatio))
         return buildCommand(&fbb, action: .setaspectratio, parameters: params)
+    }
+}
+
+// MARK: - SetCameraMode toFlatBuffer()
+
+extension RemoteCmd.SetCameraMode {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb, cameraMode: toFBRecordingMode(mode))
+        return buildCommand(&fbb, action: .setcameramode, parameters: params)
     }
 }
 
@@ -1136,6 +1167,11 @@ extension RemoteCmd {
             let ratio = fromFBAspectRatio(params?.aspectRatio ?? .unknown)
             return SetAspectRatio(aspectRatio: ratio)
 
+        case .setcameramode:
+            // Unknown is malformed here — drop rather than guess a mode.
+            guard let mode = fromFBRecordingMode(params?.cameraMode ?? .unknown) else { return nil }
+            return SetCameraMode(mode: mode)
+
         case .selectcameradevice:
             return SelectCameraDevice(uniqueID: params?.deviceUniqueId ?? "")
 
@@ -1214,7 +1250,7 @@ extension RemoteCmd {
 
         case .requestcapabilities, .setzoom, .switchlens, .toggleflash, .toggletorch,
              .togglecamera, .selectcameradevice, .setvideoquality, .setphotoquality,
-             .setaspectratio, .setcamerapreviewmode, .setexposure:
+             .setaspectratio, .setcamerapreviewmode, .setexposure, .setcameramode:
             // Every control command is answered by the camera's full state
             // under the command's own action (Docs/control-plane.md).
             return decodeCameraCapabilitiesResp(resp, inReplyTo: resp.action, error: nsError)
@@ -1272,6 +1308,7 @@ extension RemoteCmd {
             flashMode: state.map { fromFBFlash($0.flashMode) } ?? .off,
             aspectRatio: state.map { fromFBAspectRatio($0.aspectRatio) } ?? .sixteenNine,
             exposure: state?.exposure.map { decodeExposureState($0) },
+            cameraMode: state.flatMap { fromFBRecordingMode($0.cameraMode) },
             inReplyTo: inReplyTo,
             error: error
         )

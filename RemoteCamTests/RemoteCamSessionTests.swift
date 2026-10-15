@@ -320,6 +320,33 @@ class SessionCoordinatorTests: XCTestCase {
                        "the scheduled shutter fires, saving locally AND returning the still to the director")
     }
 
+    /// The photo configuration is armed when the command ARRIVES — the
+    /// session reconfigures during the countdown — never at the fire
+    /// instant, where the format switch would skew the rig's synced shutter.
+    /// The fire is placed comfortably in the future so "arrival" and "fire"
+    /// are deterministically distinct moments.
+    func testScheduledCaptureArmsPhotoModeAtArrivalNotAtFire() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.currentCameraMode = .Video   // as if a take just ended
+
+        await harness.deliver(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: SyncClock.nowMillis() + 800,
+            anchorMillis: SyncClock.nowMillis(), captureId: "CAP-ARM",
+            sessionId: "S", cameraIndex: 1))
+
+        XCTAssertEqual(camera.currentCameraMode, .Photo,
+                       "photo configuration is armed at arrival, during the countdown")
+        XCTAssertTrue(camera.takePictureCalls.isEmpty,
+                      "arming the mode is not the shutter — the fire is still \(800)ms out")
+
+        // And the fire still happens.
+        for _ in 0..<200 where camera.takePictureCalls.isEmpty {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(camera.takePictureCalls, [true])
+    }
+
     // MARK: - Recording truth derivation (v10)
 
     private var reportSeq: UInt64 = 0
@@ -1034,6 +1061,43 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(resps.last?.previewMode, .standby)
         let state = await harness.stateName()
         XCTAssertEqual(state, .camera)
+    }
+
+    // MARK: - SetCameraMode (pre-warm)
+
+    /// The director's mode toggle pre-warms the camera: applied in idle,
+    /// answered with the one state reply every control command gets.
+    func testCameraAppliesSetCameraModeWhenIdle() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+
+        await harness.deliver(RemoteCmd.SetCameraMode(mode: .Video))
+
+        XCTAssertEqual(camera.currentCameraMode, .Video, "the pre-warm lands on the rig")
+        let resps = harness.fakeMP.sentMessages.map(\.msg)
+            .compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
+            .filter { $0.inReplyTo == .setcameramode }
+        XCTAssertEqual(resps.count, 1, "exactly one reply, tagged with the command")
+        XCTAssertNil(resps.first?.error)
+        XCTAssertTrue(camera.takePictureCalls.isEmpty, "a mode push is never a shutter")
+    }
+
+    /// A take's format never changes mid-take: the pre-warm is refused while
+    /// rolling — loudly, with the unchanged truth — and the mode stays put.
+    func testSetCameraModeIsRefusedWhileRecording() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        await harness.deliver(RemoteCmd.StartRecordingVideo(sender: nil))
+        XCTAssertEqual(camera.currentCameraMode, .Video)
+
+        await harness.deliver(RemoteCmd.SetCameraMode(mode: .Photo))
+
+        XCTAssertEqual(camera.currentCameraMode, .Video, "refused: the take's format is locked")
+        let resps = harness.fakeMP.sentMessages.map(\.msg)
+            .compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
+            .filter { $0.inReplyTo == .setcameramode }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNotNil(resps.first?.error, "refusals are said out loud")
     }
 }
 

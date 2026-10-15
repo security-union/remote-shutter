@@ -2160,6 +2160,30 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(lanes.first { $0.peerID == camB }?.torchOn, false, "no other lane is touched")
     }
 
+    /// The mode pre-warm is sent only to a camera that REPORTS a mode
+    /// (presence is the capability, like exposure), and a camera joining
+    /// with a different mode is brought in line — settings, not events.
+    func testSetCameraModeIsGatedOnTheReportedModeAndReconciled() async {
+        let (controller, transport, _) = await makeController(peers: [camA])
+        func caps(_ mode: RecordingMode?) -> RemoteCmd.CameraCapabilitiesResp {
+            RemoteCmd.CameraCapabilitiesResp(
+                frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+                supportsMulticam: true, cameraMode: mode, error: nil)
+        }
+        // Old peer: no reported mode, no command — ever.
+        controller.didReceiveMessage(caps(nil), from: camA)
+        await controller.waitForIdle()
+        controller.setCameraMode(.Video)
+        await controller.waitForIdle()
+        XCTAssertTrue(sent(transport, RemoteCmd.SetCameraMode.self).isEmpty, "no reported mode, no command")
+
+        // Reporting peer whose mode disagrees with the rig: reconciled on receipt.
+        controller.didReceiveMessage(caps(.Photo), from: camA)
+        await controller.waitForIdle()
+        let modes = sent(transport, RemoteCmd.SetCameraMode.self).compactMap { ($0.msg as? RemoteCmd.SetCameraMode)?.mode }
+        XCTAssertEqual(modes, [.Video], "the rig's mode wins on join")
+    }
+
     /// Exposure is sent only to a camera whose state carries the block, and
     /// Manual only when the block says the device accepts it.
     func testExposureIsGatedOnTheLanesExposureBlock() async {

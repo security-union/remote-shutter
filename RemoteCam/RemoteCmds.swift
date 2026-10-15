@@ -609,6 +609,11 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// neither EV bias nor manual exposure; the director shows no
         /// exposure controls and never sends `SetExposure`.
         public let exposure: ExposureState?
+        /// The session configuration the camera is running (photo = full-sensor
+        /// stills, video = the selected video format). Nil = peer predates
+        /// mode pre-warming; the director never sends `SetCameraMode` to it
+        /// (presence is the capability, as with `exposure`).
+        public let cameraMode: RecordingMode?
         /// The control command this answers; `.requestcapabilities` for an
         /// unsolicited push. Set by the camera coordinator before sending.
         public var inReplyTo: RemoteShutter_CommandAction
@@ -632,6 +637,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    flashMode: AVCaptureDevice.FlashMode = .off,
                    aspectRatio: AspectRatio = .sixteenNine,
                    exposure: ExposureState? = nil,
+                   cameraMode: RecordingMode? = nil,
                    inReplyTo: RemoteShutter_CommandAction = .requestcapabilities,
                    error: Error?) {
             self.frontCamera = frontCamera
@@ -653,6 +659,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.flashMode = flashMode
             self.aspectRatio = aspectRatio
             self.exposure = exposure
+            self.cameraMode = cameraMode
             self.inReplyTo = inReplyTo
             self.error = error
             super.init(sender: nil)
@@ -827,6 +834,21 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
         public init(value: Int) {
             self.value = value
+            super.init(sender: nil)
+        }
+    }
+
+    // MARK: - Capture Mode Command
+
+    /// Pre-warms the camera's photo/video session configuration when the
+    /// director's mode toggle flips, so the sensor reconfigure is paid at the
+    /// toggle, not at the shutter. A setting push, never the trigger: capture
+    /// commands still set the mode at arrival.
+    public class SetCameraMode: Message, @unchecked Sendable {
+        public let mode: RecordingMode
+
+        public init(mode: RecordingMode) {
+            self.mode = mode
             super.init(sender: nil)
         }
     }
