@@ -579,6 +579,15 @@ final class CaptureIntegrationTests: XCTestCase {
         XCTAssertFalse(data.isEmpty, "a still must capture after round-tripping the modes")
     }
 
+    /// A fresh session starts on the best format the hardware encodes.
+    func testDefaultPhotoFormatMatchesTheHardware() async throws {
+        try await startRealRig()
+        let (_, _, format, _) = rig.engine.statusSnapshot()
+        let hevcAvailable = rig.engine.photoOutput.availablePhotoCodecTypes.contains(.hevc)
+        XCTAssertEqual(format, CaptureEngine.defaultPhotoFormat(hevcAvailable: hevcAvailable))
+        print("📸 default format: \(format) (hevc \(hevcAvailable))")
+    }
+
     /// HEIF in, HEIF out: the aspect crop must not silently convert to JPEG.
     func testHEICSurvivesAspectCrop() async throws {
         try await startRealRig()

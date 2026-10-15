@@ -221,6 +221,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.configSessionOutput()
             self.captureSession.commitConfiguration()
             self.updateMaxPhotoDimensionsLocked()
+            self.currentPhotoFormat = Self.defaultPhotoFormat(
+                hevcAvailable: self.photoOutput.availablePhotoCodecTypes.contains(.hevc))
             self.applyDesiredTorchLocked()   // commitConfiguration can reset the torch
             self.captureSession.startRunning()
             self.isExpectedToRun = true
@@ -1763,6 +1765,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         applyDesiredTorchLocked()
         applyExposureIntentLocked()
         updateMaxPhotoDimensionsLocked()
+    }
+
+    /// The format a fresh session starts on: HEIC where the hardware encodes
+    /// it (Apple's own default — half the bytes of JPEG at equal quality, and
+    /// the HDR gain map rides natively), JPEG otherwise. A director's
+    /// SetPhotoQuality still overrides it.
+    static func defaultPhotoFormat(hevcAvailable: Bool) -> PhotoFormat {
+        hevcAvailable ? .heif : .jpeg
     }
 
     /// Single point that keeps the photo output asking for everything the

@@ -222,6 +222,11 @@ final class CropRectTests: XCTestCase {
                        "a matching ratio must not re-encode")
     }
 
+    func testDefaultPhotoFormatPolicy() {
+        XCTAssertEqual(CaptureEngine.defaultPhotoFormat(hevcAvailable: true), .heif)
+        XCTAssertEqual(CaptureEngine.defaultPhotoFormat(hevcAvailable: false), .jpeg)
+    }
+
     func testCropPhotoDataRefusesGarbage() {
         XCTAssertNil(CR.cropPhotoData(Data([0xde, 0xad, 0xbe, 0xef]), to: .fourThree))
     }
