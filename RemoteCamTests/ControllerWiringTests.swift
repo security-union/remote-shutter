@@ -113,6 +113,25 @@ class ControllerWiringTests: XCTestCase {
         // die with it — no shared registry left to assert against.
     }
 
+    /// Shadow mode is worth nothing until something switches it on. The model
+    /// was wired into `SessionCoordinator.handle` while the only callers of
+    /// `startShadowingSession` were tests, so outside the suite it observed
+    /// exactly nothing. This test is what keeps it switched on.
+    func testDeviceScannerSwitchesOnTheModelShadow() async {
+        let scanner = DeviceScannerViewController(role: .camera)
+        defer { scanner.remoteCamSession.stop() }
+        _ = scanner.view // viewDidLoad attaches the shadow
+
+        // Attachment hops onto the coordinator's actor, so it lands a turn
+        // later rather than inside viewDidLoad.
+        var shadowing = await scanner.remoteCamSession.isShadowingSession
+        for _ in 0..<100 where !shadowing {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+            shadowing = await scanner.remoteCamSession.isShadowingSession
+        }
+        XCTAssertTrue(shadowing, "the scanner must switch the model shadow on")
+    }
+
     // MARK: - CameraRig indicator wiring
 
     /// The camera screen's own truth chain: the pipeline's callbacks drive

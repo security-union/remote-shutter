@@ -94,6 +94,7 @@
 		6AFBFC4B9D8E918C026E1A8D /* CameraCountdownTorch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */; };
 		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		7D02D87D84E8B4BD8D8F321B /* Stormo in Frameworks */ = {isa = PBXBuildFile; productRef = 6B8522FCDD8E4B1F29B307A3 /* Stormo */; };
+		A1B2C3D40000000000000003 /* SessionModel in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D40000000000000002 /* SessionModel */; };
 		7EEA33327E4D84592E5583F4 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2CBCE8B82BF3D236B662AC6 /* Pods_RemoteShutterTests.framework */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		874ECE4F11DE0C041937D86C /* RemoteShutterWatch/WatchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8080E0FDE21CFE4B92AEAB /* RemoteShutterWatch/WatchSettingsView.swift */; };
@@ -180,6 +181,7 @@
 		CAFEBABE0100000000000002 /* PeerCompatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0100000000000001 /* PeerCompatibility.swift */; };
 		CB5F78DFB9D567955BC863AF /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99FC5340BB98B2BD307FFA1A /* SoundManager.swift */; };
 		D14174575AF4813B523869A4 /* MultipeerCompatAliases.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3BD30A73B8F4FBEBF12B15 /* MultipeerCompatAliases.swift */; };
+		A1B2C3D40000000000000005 /* SessionShadow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000004 /* SessionShadow.swift */; };
 		D2B94CD08C14086E035FBAA4 /* RemoteShutterWatch/WatchCameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6816F7F01F22AF52E28D6518 /* RemoteShutterWatch/WatchCameraViewModel.swift */; };
 		D808C297E991CF09EE2FC00C /* System/Library/Frameworks/WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 381BB7BCEF561D22B0F194A6 /* System/Library/Frameworks/WatchConnectivity.framework */; };
 		DCDBA5102EA8C85C82D8E2FC /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2F16CCCC931B7EC3877C89 /* SettingsViewModel.swift */; };
@@ -271,6 +273,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D40000000000000001 /* SessionModel */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = SessionModel; path = SessionModel; sourceTree = "<group>"; };
 		036824F9CFF7D4D8699380C8 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
 		043B715A46C4498C9A2B6911 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		0602E4EA1BEA4FC90015A988 /* BFGallery.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BFGallery.framework; path = "Pods/../build/Debug-iphoneos/BFGallery.framework"; sourceTree = "<group>"; };
@@ -447,6 +450,7 @@
 		D9C44C88664AD8685AFA3CDF /* Pods-RemoteShutter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RemoteShutter.release.xcconfig"; path = "Target Support Files/Pods-RemoteShutter/Pods-RemoteShutter.release.xcconfig"; sourceTree = "<group>"; };
 		DC9A830256BC7B3762B17FEF /* RemoteShutterWatch/WatchConnectionView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteShutterWatch/WatchConnectionView.swift; sourceTree = SOURCE_ROOT; };
 		DD3BD30A73B8F4FBEBF12B15 /* MultipeerCompatAliases.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MultipeerCompatAliases.swift; sourceTree = "<group>"; };
+		A1B2C3D40000000000000004 /* SessionShadow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SessionShadow.swift; sourceTree = "<group>"; };
 		DEADBEEF0001000000000001 /* DebugLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLog.swift; sourceTree = "<group>"; };
 		E655FAEBED183EB237F41DEA /* Shared/WatchSharedTypes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Shared/WatchSharedTypes.swift; sourceTree = SOURCE_ROOT; };
 		F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
@@ -493,6 +497,7 @@
 				28DAF89E6644742C1F1E47E6 /* FlatBuffers in Frameworks */,
 				6A6CABFCEF39FA1EA8934047 /* MPCCompat in Frameworks */,
 				7D02D87D84E8B4BD8D8F321B /* Stormo in Frameworks */,
+				A1B2C3D40000000000000003 /* SessionModel in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -603,6 +608,7 @@
 				AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */,
 				AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */,
 				DD3BD30A73B8F4FBEBF12B15 /* MultipeerCompatAliases.swift */,
+				A1B2C3D40000000000000004 /* SessionShadow.swift */,
 			);
 			path = RemoteCam;
 			sourceTree = "<group>";
@@ -776,6 +782,7 @@
 			children = (
 				060866BD2522519B001B59FC /* Configuration.storekit */,
 				0609A4FE251C3ADB0090DEB7 /* RemoteShutter.entitlements */,
+				A1B2C3D40000000000000001 /* SessionModel */,
 				0692841D1BE5BF5B00AF4678 /* RemoteCam */,
 				069284321BE5BF5C00AF4678 /* RemoteCamTests */,
 				852E4307250D4B1D00F5151E /* RemoteShutterUITests */,
@@ -895,6 +902,7 @@
 				8C0454249B071E09F8788E2E /* FlatBuffers */,
 				6525F6CE651CB5D9401943FD /* MPCCompat */,
 				6B8522FCDD8E4B1F29B307A3 /* Stormo */,
+				A1B2C3D40000000000000002 /* SessionModel */,
 			);
 			productName = RemoteCam;
 			productReference = 85F118E5250ACBE100B73E48 /* RemoteShutter.app */;
@@ -1292,6 +1300,7 @@
 				AB12CD34EF5601789ABC0DE6 /* FrameStreamingCoordinator.swift in Sources */,
 				AB12CD34EF5601789ABC0DE8 /* CameraScreenView.swift in Sources */,
 				D14174575AF4813B523869A4 /* MultipeerCompatAliases.swift in Sources */,
+				A1B2C3D40000000000000005 /* SessionShadow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1887,6 +1896,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		A1B2C3D40000000000000002 /* SessionModel */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SessionModel;
+		};
 		6525F6CE651CB5D9401943FD /* MPCCompat */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 72565EF424F9D7BBFAF363C0 /* XCRemoteSwiftPackageReference "Stormo" */;

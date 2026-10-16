@@ -8,6 +8,7 @@
 
 import Foundation
 import MPCCompat
+import SessionModel
 import Stormo
 import UIKit
 import AVFoundation

@@ -8,17 +8,5 @@
 
 import Foundation
 
-enum RemoteCamState: String {
-    case scanning
-    case reconnecting
-    case idle
-    case connected
-    case camera
-    case cameraTakingPic
-    case cameraRecordingVideo
-    case cameraTransmittingVideo
-    case watchRemoteCamera
-    case watchRemoteCameraTakingPic
-    case watchRemoteCameraStartingVideo
-    case watchRemoteCameraRecordingVideo
-}
+// `RemoteCamState` moved into the `SessionModel` package alongside
+// `SessionState`, so the app and the checker share one definition.

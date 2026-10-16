@@ -6,6 +6,9 @@ Two Apple devices, one photo shoot: one phone is the **camera**, the other is th
 shutter, video, zoom, lens, flash, torch, quality — works from across the room.
 An Apple Watch can also drive the camera directly (no second phone needed).
 
+Turning `SessionCoordinator` into a checked state machine, without a rewrite, is
+planned in `Docs/correcto-integration.md`.
+
 ## The big picture
 
 ```mermaid
