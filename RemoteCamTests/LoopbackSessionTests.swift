@@ -206,6 +206,10 @@ class LoopbackSessionTests: XCTestCase {
             imports.mutate { $0.append((url, name)) }
             completion(.saved)
         }
+        // Keep the capture tally (and the review sheet it can schedule) off
+        // the real defaults; collected stills "save" without touching Photos.
+        useScratchCaptureTally()
+        await director.setPhotoSaver { _, _, completion in completion(true) }
         // No timer may fire inside a test: retries are the production loop's
         // business and would re-handshake under the assertions.
         await director.setCapsRetryDelay(60)

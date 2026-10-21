@@ -441,3 +441,23 @@ final class FakeMulticamDisplay: MulticamDisplay, @unchecked Sendable {
     func showTransientError(_ message: String) { transientErrors.append(message) }
     func exitMulticam() { didExit = true }
 }
+
+// MARK: - Capture tally scratch suite
+
+extension XCTestCase {
+    /// Points `CaptureTally` at a scratch suite for this test's lifetime, so
+    /// collect paths that report a verified save never touch the real
+    /// defaults (and never schedule a real review sheet mid-suite). Returns
+    /// the scratch defaults for assertions.
+    @discardableResult
+    func useScratchCaptureTally() -> UserDefaults {
+        let name = "CaptureTallyScratch-\(UUID().uuidString)"
+        let scratch = UserDefaults(suiteName: name)!
+        CaptureTally.defaults = scratch
+        addTeardownBlock {
+            CaptureTally.defaults = .standard
+            scratch.removePersistentDomain(forName: name)
+        }
+        return scratch
+    }
+}
