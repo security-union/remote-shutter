@@ -70,6 +70,8 @@
 		06E965232535199400E5A8B3 /* MediaProcessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E965202535199400E5A8B3 /* MediaProcessors.swift */; };
 		06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
 		06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */; };
+		AF67D95F1F5749845191FB1F /* CaptureTally.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5DF86A11D9C6425C2C7D1A5 /* CaptureTally.swift */; };
+		1A63F8D28DCDEBA6AD82DF1F /* CaptureTally.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5DF86A11D9C6425C2C7D1A5 /* CaptureTally.swift */; };
 		06E9653E2535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E9653D2535754800E5A8B3 /* Data+MD5.swift */; };
 		0A11B22C33D44E55F6070002 /* ZoomScale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A11B22C33D44E55F6070001 /* ZoomScale.swift */; };
@@ -337,6 +339,7 @@
 		06CDFB1D252E9CD200EA56FB /* UICmds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICmds.swift; sourceTree = "<group>"; };
 		06E965202535199400E5A8B3 /* MediaProcessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaProcessors.swift; sourceTree = "<group>"; };
 		06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftConstants.swift; sourceTree = "<group>"; };
+		F5DF86A11D9C6425C2C7D1A5 /* CaptureTally.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureTally.swift; sourceTree = "<group>"; };
 		06E9653D2535754800E5A8B3 /* Data+MD5.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+MD5.swift"; sourceTree = "<group>"; };
 		06EEA7DB1BBB87EE005787AE /* Starscream.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Starscream.framework; path = "Pods/../build/Debug-iphoneos/Starscream.framework"; sourceTree = "<group>"; };
 		06FA4AD71BC8B8E9005608E6 /* CocoaLumberjack.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CocoaLumberjack.framework; path = "Pods/../build/Debug-iphoneos/CocoaLumberjack.framework"; sourceTree = "<group>"; };
@@ -732,6 +735,7 @@
 				060B1E141BE7079800077BCC /* Helpers */,
 				06E965202535199400E5A8B3 /* MediaProcessors.swift */,
 				06E9652625351E3F00E5A8B3 /* SwiftConstants.swift */,
+				F5DF86A11D9C6425C2C7D1A5 /* CaptureTally.swift */,
 				0673275B2E2DF142003E5F94 /* PermissionManager.swift */,
 			);
 			name = Model;
@@ -1244,6 +1248,7 @@
 				067327692E2E0293003E5F94 /* RemoteShutterHelpView.swift in Sources */,
 				06BB79BC2E3884F00094E085 /* CameraProgressOverlayView.swift in Sources */,
 				06E9652725351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
+				AF67D95F1F5749845191FB1F /* CaptureTally.swift in Sources */,
 				06BB79AE2E372D420094E085 /* RecordingTimer.swift in Sources */,
 				06BB79BF2E3884FA0094E085 /* CameraViewModel.swift in Sources */,
 				CAFEBABE0013000000000002 /* CameraPreviewMode.swift in Sources */,
@@ -1382,6 +1387,7 @@
 				FADEC0DE0001000000000003 /* FrameCreditWindow.swift in Sources */,
 				CAFEBABE0007000000000003 /* WatchPreviewStreamer.swift in Sources */,
 				06E9652925351E3F00E5A8B3 /* SwiftConstants.swift in Sources */,
+				1A63F8D28DCDEBA6AD82DF1F /* CaptureTally.swift in Sources */,
 				06E965402535754800E5A8B3 /* Data+MD5.swift in Sources */,
 				06CDFB20252E9CD200EA56FB /* UICmds.swift in Sources */,
 				06AEE43625333B4A00C2ED90 /* UIAlertController.swift in Sources */,
