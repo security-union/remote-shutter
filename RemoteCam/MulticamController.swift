@@ -1621,7 +1621,9 @@ public actor MulticamController {
         guard let link = links[peer] else { return }
         let name = rigMetadata(for: peer).photoFilename(isHEIC: Self.isHEIC(data))
         link.collection = .collected
-        Self.savePhotoToLibrary(data, originalFilename: name)
+        photoSaver(data, name) { saved in
+            if saved { CaptureTally.recordAndMaybeRequestReview() }
+        }
     }
 
     private func handleResourceStarted(_ started: ResourceTransferStarted) {
@@ -1666,6 +1668,15 @@ public actor MulticamController {
         videoImporter = importer
     }
 
+    /// Seam: writes a collected still into Photos (`savePhotoToLibrary`);
+    /// tests substitute a saver that reports an outcome without Photos.
+    var photoSaver: (Data, String, @escaping (Bool) -> Void) -> Void = {
+        MulticamController.savePhotoToLibrary($0, originalFilename: $1, completion: $2)
+    }
+    func setPhotoSaver(_ saver: @escaping (Data, String, @escaping (Bool) -> Void) -> Void) {
+        photoSaver = saver
+    }
+
     /// A clip that reached the director but could not be moved into Photos
     /// is a FAILED collection: the lane's tile shows it and offers the retry
     /// (the camera still holds the file — multicam clips are copied, not
@@ -1695,15 +1706,20 @@ public actor MulticamController {
         data.count > 12 && data[4] == 0x66 && data[5] == 0x74 && data[6] == 0x79 && data[7] == 0x70
     }
 
-    private static func savePhotoToLibrary(_ data: Data, originalFilename: String) {
+    private static func savePhotoToLibrary(_ data: Data, originalFilename: String,
+                                           completion: @escaping (Bool) -> Void) {
         PHPhotoLibrary.requestAuthorization { status in
-            guard status == .authorized else { return }
+            guard status == .authorized else {
+                completion(false)
+                return
+            }
             PHPhotoLibrary.shared().performChanges({
                 let options = PHAssetResourceCreationOptions()
                 options.originalFilename = originalFilename
                 PHAssetCreationRequest.forAsset().addResource(with: .photo, data: data, options: options)
             }, completionHandler: { ok, _ in
                 print(ok ? "Director collected photo \(originalFilename)" : "collect photo failed")
+                completion(ok)
             })
         }
     }
@@ -1712,7 +1728,7 @@ public actor MulticamController {
         videoImporter(url, originalFilename) { [weak self] outcome in
             switch outcome {
             case .saved:
-                break
+                CaptureTally.recordAndMaybeRequestReview()
             case .accessDenied:
                 DispatchQueue.main.async { showPhotosAccessDeniedModal(for: .video) }
                 self?.tell(ClipImportFailed(peer: peer))

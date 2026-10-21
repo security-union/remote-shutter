@@ -85,15 +85,44 @@ public let lastVersionPromptedForReviewKey = "lastVersionPromptedForReview"
 public let mediaCaptureCounterKey = "mediaCaptureCounter"
 public let mediaCapturedBeforeRequestingReview = 5
 
+// MARK: - Capture tally
+
+/// Verified captures saved into this device's photo library — the one counter
+/// behind every review surface. The director's collect points record on the
+/// save's own success signal, never on intent, so the ask is only earned by
+/// captures that actually landed. Each collected lane counts: a 3-camera rig
+/// capture is 3 captures.
+enum CaptureTally {
+    /// Test seam; the app always runs on `.standard`.
+    static var defaults: UserDefaults = .standard
+
+    static var count: Int { defaults.integer(forKey: mediaCaptureCounterKey) }
+
+    static func record() {
+        defaults.set(count + 1, forKey: mediaCaptureCounterKey)
+    }
+
+    /// Record the capture and, once the ask is earned, request the system
+    /// review sheet after a beat (2s, the classic monitor's cadence) so the
+    /// sheet never lands on top of the shot that was just collected.
+    static func recordAndMaybeRequestReview() {
+        record()
+        guard hasEarnedReviewAsk(captureCount: count) else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            requestSystemReviewIfAppropriate()
+        }
+    }
+}
+
 // MARK: - Shared Review Prompt Utility
-func privateShowReviewPromptIfAppropriate() {
-    let reviewCount = UserDefaults.standard.integer(forKey: reviewCounterKey)
+private func requestSystemReviewIfAppropriate() {
+    let reviewCount = CaptureTally.defaults.integer(forKey: reviewCounterKey)
     let infoDictionaryKey = kCFBundleVersionKey as String
     guard let currentVersion = Bundle.main.object(forInfoDictionaryKey: infoDictionaryKey) as? String
         else { return }
-    
-    let lastVersionPromptedForReview = UserDefaults.standard.string(forKey: lastVersionPromptedForReviewKey)
-    
+
+    let lastVersionPromptedForReview = CaptureTally.defaults.string(forKey: lastVersionPromptedForReviewKey)
+
     if reviewCount <= 4 && currentVersion != lastVersionPromptedForReview {
         if let windowScene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
@@ -106,10 +135,10 @@ func privateShowReviewPromptIfAppropriate() {
 
             if !(presentedVC is WelcomeViewController) {
                 SKStoreReviewController.requestReview(in: windowScene)
-                UserDefaults.standard.set(currentVersion, forKey: lastVersionPromptedForReviewKey)
-                var count = UserDefaults.standard.integer(forKey: reviewCounterKey)
+                CaptureTally.defaults.set(currentVersion, forKey: lastVersionPromptedForReviewKey)
+                var count = CaptureTally.defaults.integer(forKey: reviewCounterKey)
                 count += 1
-                UserDefaults.standard.set(count, forKey: reviewCounterKey)
+                CaptureTally.defaults.set(count, forKey: reviewCounterKey)
             }
         }
     }
@@ -127,23 +156,11 @@ func hasEarnedReviewAsk(captureCount: Int) -> Bool {
 }
 
 func hasEarnedReviewAsk() -> Bool {
-    hasEarnedReviewAsk(captureCount: UserDefaults.standard.integer(forKey: mediaCaptureCounterKey))
+    hasEarnedReviewAsk(captureCount: CaptureTally.count)
 }
 
 func openAppStoreReview() {
     UIApplication.shared.open(AppStoreReviewURL)
-}
-
-public func showReviewPromptIfAppropriate() {
-    var count = UserDefaults.standard.integer(forKey: mediaCaptureCounterKey)
-    count += 1
-    UserDefaults.standard.set(count, forKey: mediaCaptureCounterKey)
-    
-    if count >= mediaCapturedBeforeRequestingReview {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            privateShowReviewPromptIfAppropriate()
-        }
-    }
 }
 
 // MARK: - Recommended Gear Web Page

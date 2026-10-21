@@ -27,6 +27,7 @@ final class MulticamControllerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        useScratchCaptureTally()
         // The rig timer seeds from the shared preference; tests start from off.
         UserDefaults.standard.removeObject(forKey: TimerPreference.key)
         UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
@@ -116,8 +117,10 @@ final class MulticamControllerTests: XCTestCase {
         transport.connectedPeers = peers
         let display = FakeMulticamDisplay()
         await controller.setDisplay(display)
-        // Never touch the real Photos library from a test: clips "import" fine.
+        // Never touch the real Photos library from a test: clips "import" fine
+        // and stills "save" fine.
         await controller.setVideoImporter { _, _, completion in completion(.saved) }
+        await controller.setPhotoSaver { _, _, completion in completion(true) }
         await controller.install(transport: transport, initialPeers: peers)
         await controller.waitForIdle()
         return (controller, transport, display)
@@ -1921,6 +1924,61 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         let state = await controller.collectionStateForTesting(camB)
         XCTAssertEqual(state, .collected)
+    }
+
+    // MARK: - Capture tally (the review counter)
+
+    /// The single pure gate behind every "Rate on App Store" surface.
+    func testReviewAskIsEarnedAtTheCaptureThreshold() {
+        XCTAssertFalse(hasEarnedReviewAsk(captureCount: mediaCapturedBeforeRequestingReview - 1))
+        XCTAssertTrue(hasEarnedReviewAsk(captureCount: mediaCapturedBeforeRequestingReview))
+    }
+
+    /// Collected media is tallied on the save's own success signal, one count
+    /// per collected lane (a rig shot is N captures). Pins the regression
+    /// where the counter lost its callers with the classic monitor (#236), so
+    /// no install could ever earn the review ask again.
+    func testCollectedPhotoAndClipAreTalliedOnVerifiedSave() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0, 0, 0, 0, 0])
+        controller.didReceiveMessage(
+            RemoteCmd.TakePicResp(sender: nil, pic: jpeg, error: nil), from: camA)
+        await controller.waitForIdle()
+        XCTAssertEqual(CaptureTally.count, 1)
+
+        controller.didReceiveMessage(
+            RemoteCmd.TakePicResp(sender: nil, pic: jpeg, error: nil), from: camB)
+        await controller.waitForIdle()
+        XCTAssertEqual(CaptureTally.count, 2, "each collected lane counts on its own")
+
+        let clip = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RS_tally_\(UUID().uuidString)_cam1.mov")
+        try? Data([0x00]).write(to: clip)
+        addTeardownBlock { try? FileManager.default.removeItem(at: clip) }
+        controller.didFinishReceivingResource(name: "RS_a_b_cam1.mov", from: camA, at: clip, error: nil)
+        await controller.waitForIdle()
+        XCTAssertEqual(CaptureTally.count, 3, "a collected clip is a capture too")
+    }
+
+    /// A save that never lands is not a capture: a refused photo save and a
+    /// failed clip import count nothing.
+    func testFailedSavesAreNotTallied() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+        await controller.setPhotoSaver { _, _, completion in completion(false) }
+        await controller.setVideoImporter { _, _, completion in completion(.failed(nil)) }
+
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0, 0, 0, 0, 0])
+        controller.didReceiveMessage(
+            RemoteCmd.TakePicResp(sender: nil, pic: jpeg, error: nil), from: camA)
+        let clip = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RS_tally_\(UUID().uuidString)_cam1.mov")
+        try? Data([0x00]).write(to: clip)
+        addTeardownBlock { try? FileManager.default.removeItem(at: clip) }
+        controller.didFinishReceivingResource(name: "RS_a_b_cam1.mov", from: camA, at: clip, error: nil)
+        await controller.waitForIdle()
+
+        XCTAssertEqual(CaptureTally.count, 0)
     }
 
     // MARK: - Fixtures
