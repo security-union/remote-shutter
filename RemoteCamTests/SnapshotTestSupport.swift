@@ -99,6 +99,21 @@ class SnapshotTestCase: XCTestCase {
         return image
     }
 
+    /// The real window's pixels once the screen has settled, for comparing
+    /// two renders. Nil when this host can't draw a window (headless CI) —
+    /// there is no `ImageRenderer` fallback here, because it omits the material
+    /// and layout a pixel comparison is about.
+    func settledWindowRender<Screen: View>(_ screen: Screen) -> UIImage? {
+        window.rootViewController = UIHostingController(rootView: screen)
+        window.makeKeyAndVisible()
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 1))
+        let image = snapshot()
+        guard let data = image.cgImage?.dataProvider?.data,
+              let bytes = CFDataGetBytePtr(data) else { return nil }
+        let isBlank = (0..<CFDataGetLength(data)).allSatisfy { bytes[$0] == bytes[$0 % 4] }
+        return isBlank ? nil : image
+    }
+
     private func snapshot() -> UIImage {
         let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
         return renderer.image { context in

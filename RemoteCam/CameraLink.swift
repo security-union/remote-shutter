@@ -5,6 +5,7 @@
 //  Copyright © 2026 Security Union LLC. All rights reserved.
 //
 
+import Combine
 import Foundation
 import MPCCompat
 import Stormo
@@ -83,6 +84,8 @@ final class CameraLink {
     /// Where this lane's footage is in the post-take auto-collect to the
     /// director. Drives the tile's transfer progress / done / failed badge.
     var collection: LaneCollectionState = .idle
+    /// Follows the running transfer's `Progress`; dropped when it finishes.
+    var transferWatch: AnyCancellable?
 
     /// Control commands sent to this camera and not yet answered, counted per
     /// action. Every control command is answered exactly once (with the

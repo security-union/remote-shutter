@@ -177,6 +177,7 @@ struct MulticamView: View {
             case .trailing: sideCluster(onLeading: false)
             }
         }
+        .overlay(alignment: .topTrailing) { focusedStatusBadge }
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 8)
@@ -198,6 +199,25 @@ struct MulticamView: View {
             topBarControls
         }
     }
+
+    /// Focus mode: the focused camera has no tile, so its status badge sits
+    /// on the corner its tile would have, right under the top bar. An overlay
+    /// of the chrome, not a row in it: short windows have no height to spare,
+    /// so the badge must never push the controls. It stays inside the chrome's
+    /// bounds, so the retry button is tappable. Grid mode draws one on each
+    /// tile instead. REC stays out because the top bar's timer already says it.
+    @ViewBuilder
+    private var focusedStatusBadge: some View {
+        if viewModel.displayMode != .grid, let focused = viewModel.focusedLane {
+            LaneStatusBadge(lane: focused, showsRecording: false, diameter: 32,
+                            onRetry: { onRetryCollection(focused) })
+                .id(focused.peerID)
+                .padding(.top, Self.topBarHeight + 8)
+        }
+    }
+
+    /// The tallest control in the top bar sets its height.
+    private static let topBarHeight: CGFloat = 44
 
     private var topBarControls: some View {
         HStack(spacing: 0) {
@@ -704,6 +724,50 @@ struct TileStatusBadge: View {
     }
 }
 
+extension CameraLane {
+    /// The one status this lane shows.
+    func tileStatus(showsRecording: Bool = true, includeSuccess: Bool = true) -> TileStatus {
+        TileStatus.resolve(status: status,
+                           captureOutcome: captureOutcome,
+                           isRecording: showsRecording && isRecording,
+                           collection: collection,
+                           needsQualityRematch: needsQualityRematch,
+                           includeSuccess: includeSuccess)
+    }
+}
+
+/// A lane's corner badge, wherever that lane is shown: it observes the lane
+/// and fades a success confirmation back to the resting status. The `ZStack`
+/// keeps the fade task alive while the badge itself draws nothing.
+struct LaneStatusBadge: View {
+    @ObservedObject var lane: CameraLane
+    var showsRecording = true
+    var diameter: CGFloat = 28
+    var onRetry: (() -> Void)?
+
+    @State private var successFaded = false
+
+    private var baseStatus: TileStatus { lane.tileStatus(showsRecording: showsRecording) }
+
+    var body: some View {
+        ZStack {
+            TileStatusBadge(
+                status: baseStatus == .success && successFaded
+                    ? lane.tileStatus(showsRecording: showsRecording, includeSuccess: false)
+                    : baseStatus,
+                onRetry: onRetry, diameter: diameter)
+                .transition(.opacity)
+        }
+        // The task restarts (and resets the fade) whenever the status changes.
+        .task(id: baseStatus) {
+            successFaded = false
+            guard baseStatus.isTransient else { return }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            withAnimation(.easeInOut(duration: 0.3)) { successFaded = true }
+        }
+    }
+}
+
 /// One camera's tile: its isolated live frame, a name chip, a focus ring, and
 /// a reconnecting scrim. `Equatable` on the value inputs so a frame delivered
 /// to another lane can't invalidate this tile's chrome — only its own
@@ -740,29 +804,6 @@ struct CameraTileView: View {
     /// Retry a failed footage collection for this lane (nil = not offered).
     var onRetry: (() -> Void)? = nil
 
-    /// The one status this tile shows, before the transient-success fade.
-    private var baseStatus: TileStatus {
-        TileStatus.resolve(status: lane.status,
-                           captureOutcome: lane.captureOutcome,
-                           isRecording: lane.isRecording,
-                           collection: lane.collection,
-                           needsQualityRematch: lane.needsQualityRematch)
-    }
-
-    /// The status actually rendered: once a success confirmation has faded, the
-    /// tile falls back to its resting status (a rematch warning, or nothing).
-    private var shownStatus: TileStatus {
-        guard baseStatus == .success, successFaded else { return baseStatus }
-        return TileStatus.resolve(status: lane.status,
-                                  captureOutcome: lane.captureOutcome,
-                                  isRecording: lane.isRecording,
-                                  collection: lane.collection,
-                                  needsQualityRematch: lane.needsQualityRematch,
-                                  includeSuccess: false)
-    }
-
-    @State private var successFaded = false
-
     var body: some View {
         ZStack {
             LiveFrameView(frames: lane.frames, aspectRatio: aspectRatio)
@@ -771,7 +812,7 @@ struct CameraTileView: View {
 
             // Reconnecting is the one full-tile treatment; every other status is
             // the single corner badge, so nothing ever stacks on nothing.
-            if shownStatus == .reconnecting {
+            if lane.tileStatus() == .reconnecting {
                 RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0)
                     .fill(Color.black.opacity(0.45))
                     .overlay(
@@ -790,9 +831,8 @@ struct CameraTileView: View {
                         }
                         HStack {
                             Spacer()
-                            TileStatusBadge(status: shownStatus, onRetry: onRetry,
-                                            diameter: isThumbnail ? 22 : 28)
-                                .transition(.opacity)
+                            LaneStatusBadge(lane: lane, diameter: isThumbnail ? 22 : 28,
+                                            onRetry: onRetry)
                         }
                     }
                     Spacer()
@@ -816,14 +856,6 @@ struct CameraTileView: View {
         .overlay(
             RoundedRectangle(cornerRadius: isThumbnail ? 10 : 0)
                 .stroke(lane.isFocused ? AppTheme.accent : .clear, lineWidth: 3))
-        // Auto-fade a success confirmation after ~2s; the task restarts (and
-        // resets the fade) whenever the underlying status changes.
-        .task(id: baseStatus) {
-            successFaded = false
-            guard baseStatus.isTransient else { return }
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            withAnimation(.easeInOut(duration: 0.3)) { successFaded = true }
-        }
     }
 }
 
