@@ -104,7 +104,10 @@ final class CaptureIntegrationTests: XCTestCase {
             throw XCTSkip("no camera permission in this environment")
         }
 
-        rig = CameraRig(session: SessionCoordinator(), frameSender: FrameSender())
+        // A test that must observe the session before it starts builds the rig itself.
+        if rig == nil {
+            rig = CameraRig(session: SessionCoordinator(), frameSender: FrameSender())
+        }
         rig.startCameraOnce()
 
         // Wait for the engine to finish configuration (isBusy clears via a
@@ -729,5 +732,123 @@ final class CaptureIntegrationTests: XCTestCase {
         print("📸 heic: cropped still type \(type), \(data.count) bytes")
         XCTAssertTrue(type.contains("heic") || type.contains("heif"),
                       "the crop must keep the HEIF container, got \(type)")
+    }
+
+    // MARK: - Frame rate under preview load
+
+    /// The gate for issue #251: a 4K30 take must write a 30 fps movie while the
+    /// monitor preview encodes every frame. No peer is needed — with no session
+    /// the FrameSender spends no credit, so the preview encoder runs flat out
+    /// and the result is discarded at the sender. `TEST_RUNNER_RECORD_SECONDS`
+    /// (default 60) and `TEST_RUNNER_RECORD_RESOLUTION=1080p` tune the take.
+    func testMovieKeepsTheSelectedFrameRateAt4K30UnderPreviewLoad() async throws {
+        // A long take outlives auto-lock, and a locked screen interrupts capture.
+        await MainActor.run { UIApplication.shared.isIdleTimerDisabled = true }
+        defer { Task { @MainActor in UIApplication.shared.isIdleTimerDisabled = false } }
+
+        // Observe interruptions before the session starts so a silent camera is explained.
+        let interruptions = Locked<[String]>([])
+        rig = CameraRig(session: SessionCoordinator(), frameSender: FrameSender())
+        let observer = NotificationCenter.default.addObserver(
+            forName: .AVCaptureSessionWasInterrupted, object: rig.engine.captureSession, queue: nil) { note in
+            interruptions.mutate { $0.append("\(note.userInfo?[AVCaptureSessionInterruptionReasonKey] ?? "?")") }
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        try await startRealRig()
+        try await Self.skipUnlessMicAuthorized()
+        guard await waitForFrames(since: 0) != nil else {
+            return XCTFail("startup never delivered frames — \(await diagnostics()) interruptions=\(interruptions.value)")
+        }
+
+        let environment = ProcessInfo.processInfo.environment
+        let resolution: VideoResolution = environment["RECORD_RESOLUTION"] == "1080p" ? .hd1080p : .uhd4k
+        let seconds = environment["RECORD_SECONDS"].flatMap(Double.init) ?? 60
+        rig.currentCameraMode = .Video
+        guard let applied = await rig.setVideoQuality(resolution: resolution, frameRate: .fps30),
+              applied.0 == resolution, applied.1 == .fps30 else {
+            throw XCTSkip("this camera does not offer \(resolution.displayName) at 30 fps")
+        }
+        guard await waitForFrames(since: Date().timeIntervalSinceReferenceDate) != nil else {
+            return XCTFail("no frames after switching to \(resolution.displayName) — \(await diagnostics())")
+        }
+        let device = try XCTUnwrap(rig.engine.captureSession.inputs
+            .compactMap({ $0 as? AVCaptureDeviceInput })
+            .first(where: { $0.device.hasMediaType(.video) })?.device)
+        let dims = CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
+
+        // A synced take is COPIED into Photos, not moved, so the file stays readable here.
+        rig.setVideoSyncMetadata(CaptureSyncMetadata(
+            sessionID: "fps-probe", captureID: UUID().uuidString, cameraIndex: 1,
+            anchorMillis: 0, clockOffsetMillis: 0, roundTripMillis: 0))
+        let finished = expectation(description: "recording finalized")
+        finished.assertForOverFulfill = false
+        let failure = Locked<String?>(nil)
+        rig.pipeline.sendMessage = { message in
+            if message is RemoteCmd.StopRecordingVideoResp { finished.fulfill() }
+            if let terminated = message as? UICmd.RecordingTerminated {
+                failure.value = terminated.error.localizedDescription
+                finished.fulfill()
+            }
+        }
+
+        let coordinator = rig.streamingCoordinator
+        let lane = coordinator.previewLane
+        rig.startRecordingVideo()
+        let armDeadline = Date().addingTimeInterval(10)
+        while !rig.isRecording && Date() < armDeadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        guard rig.isRecording else {
+            return XCTFail("recording never started within 10s — \(await diagnostics())")
+        }
+        let delivered0 = coordinator.videoFramesDelivered.value
+        let dropped0 = coordinator.videoFramesDropped.value
+        let encoded0 = lane.encoded.value
+        let skipped0 = lane.skipped.value
+        let started = Date()
+        while Date().timeIntervalSince(started) < seconds {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+        let wall = Date().timeIntervalSince(started)
+        let delivered = coordinator.videoFramesDelivered.value - delivered0
+        let dropped = coordinator.videoFramesDropped.value - dropped0
+        let encoded = lane.encoded.value - encoded0
+        let skipped = lane.skipped.value - skipped0
+        rig.stopRecordingVideo(false)
+        await fulfillment(of: [finished], timeout: 30)
+        XCTAssertNil(failure.value, "recording ended in failure: \(failure.value ?? "")")
+
+        let movie = try await Self.videoTrackSummary(at: movieUrl())
+        let writtenFPS = Double(movie.frames) / movie.seconds
+        print("""
+            🎞 \(device.localizedName): \(dims.width)x\(dims.height) @ 30 fps for \(String(format: "%.0f", wall)) s, \
+            thermal \(ProcessInfo.processInfo.thermalState.rawValue), interruptions \(interruptions.value)
+            🎞   camera   delivered \(delivered), discarded \(dropped) (\(coordinator.lastDropReason.value ?? "none"))
+            🎞   preview  encoded \(encoded) (\(String(format: "%.1f", Double(encoded) / wall)) fps), skipped \(skipped)
+            🎞   movie    \(movie.frames) frames / \(String(format: "%.1f", movie.seconds)) s = \(String(format: "%.2f", writtenFPS)) fps
+            """)
+
+        XCTAssertEqual(dropped, 0, "the camera discarded \(dropped) frames — each is a hole in the movie")
+        XCTAssertGreaterThanOrEqual(writtenFPS, 0.97 * 30, """
+            the movie averages \(String(format: "%.2f", writtenFPS)) fps for a 30 fps take \
+            (\(delivered) delivered, \(dropped) discarded, \(movie.frames) written)
+            """)
+    }
+
+    /// Samples in the file's video track: frames ÷ duration is the fps
+    /// QuickTime shows for a variable-rate file.
+    private static func videoTrackSummary(at url: URL) async throws -> (frames: Int, seconds: Double) {
+        let asset = AVURLAsset(url: url)
+        let tracks = try await asset.loadTracks(withMediaType: .video)
+        let track = try XCTUnwrap(tracks.first, "movie has no video track")
+        let seconds = try await track.load(.timeRange).duration.seconds
+        let reader = try AVAssetReader(asset: asset)
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: nil)
+        reader.add(output)
+        guard reader.startReading() else { throw reader.error ?? NSError(domain: "fps-probe", code: 1) }
+        var frames = 0
+        while output.copyNextSampleBuffer() != nil { frames += 1 }
+        return (frames, seconds)
     }
 }

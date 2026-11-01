@@ -21,12 +21,15 @@
 //  monitor joining mid-stream rebuilds its decoder from the next keyframe alone —
 //  the exact re-sync guarantee VP9's keyframes give.
 //
-//  Synchronous contract: `StreamVideoEncoding.encode` returns the compressed
-//  frame inline, but `VTCompressionSessionEncodeFrame` completes on VideoToolbox's
-//  own queue. Because frame reordering is disabled and the session is realtime,
-//  each input yields exactly one output promptly; we bridge the callback to the
-//  synchronous return with a `DispatchSemaphore`. Confined to the capture queue
-//  like every `FrameEncoding` conformer.
+//  Pipelined contract: `encode` submits this frame to VideoToolbox and returns
+//  the oldest frame whose output has already come back, or `.skipped` while
+//  none has. It never waits on the hardware encoder, which the movie writer
+//  shares during a recording. Reordering is off and the session is realtime,
+//  so outputs arrive in submission order; at most `maxInFlight` frames sit in
+//  the encoder, and a frame beyond that is skipped before submission, so the
+//  stream stays continuous. Preview-lane confined like every `FrameEncoding`
+//  conformer; only the VideoToolbox callback runs elsewhere, and it touches
+//  nothing but the `completed` lock-box.
 //
 
 import Foundation
@@ -83,6 +86,26 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
     private var pts: Int64 = 0
     private var forceNextKeyframe = false
 
+    /// Identifies one submitted frame across session rebuilds: a callback from
+    /// a torn-down session can never be mistaken for the new session's frame,
+    /// and whatever it leaves in `completed` is cleared at the next rebuild.
+    private struct FrameKey: Hashable {
+        let generation: Int
+        let pts: Int64
+    }
+    private var generation = 0
+    /// Frames inside the hardware encoder, oldest first, with their submit
+    /// time (for the dead-session watchdog). Preview-lane confined.
+    private var inFlight: [(key: FrameKey, submittedAt: DispatchTime)] = []
+    /// Outputs the VideoToolbox callback has delivered, awaiting collection
+    /// in order by the next `encode` call. `.skipped` records a frame the
+    /// encoder produced nothing for.
+    private let completed = Locked<[FrameKey: FrameEncodeResult]>([:])
+    /// Encoder depth. Enough to keep the hardware busy while the writer's 4K
+    /// frames interleave with ours; small enough that preview latency stays
+    /// under a tenth of a second at 30 fps.
+    private static let maxInFlight = 3
+
     init(maxLongEdge: CGFloat, settings: HEVCSettings) {
         self.maxLongEdge = Int(maxLongEdge)
         self.settings = settings
@@ -94,7 +117,7 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
 
     /// Forces the next encoded frame to be a keyframe — answers a monitor's
     /// RequestKeyframe so a desynced decoder re-syncs without waiting for the
-    /// periodic keyframe. Capture-queue confined like `encode`.
+    /// periodic keyframe. Preview-lane confined like `encode`.
     func forceKeyframe() {
         forceNextKeyframe = true
     }
@@ -116,60 +139,71 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
             return .failed
         }
 
-        var frameProperties: [CFString: Any]?
-        if forceNextKeyframe {
-            frameProperties = [kVTEncodeFrameOptionKey_ForceKeyFrame: kCFBooleanTrue as Any]
-            forceNextKeyframe = false
-        }
-
-        // Bridge the async VideoToolbox callback to the synchronous protocol:
-        // the handler stashes the packaged payload in a lock-box; the
-        // semaphore releases when it runs. Realtime + no reordering ⇒ one
-        // output per input, promptly — WHEN the session is alive. The wait is
-        // BOUNDED because backgrounding revokes hardware sessions: a submit
-        // into a revoked session returns noErr and then never calls back,
-        // and an unbounded wait here froze the whole capture data queue
-        // (recording start included) for as long as the daemon took to
-        // recover — tens of seconds after a wake.
-        let box = Locked<FrameEncodeResult>(.failed)
-        let done = DispatchSemaphore(value: 0)
-        let status = VTCompressionSessionEncodeFrame(
-            session,
-            imageBuffer: scaled,
-            presentationTimeStamp: CMTimeMake(value: pts, timescale: Int32(max(settings.fps, 1))),
-            duration: .invalid,
-            frameProperties: frameProperties as CFDictionary?,
-            infoFlagsOut: nil
-        ) { encodeStatus, _, sampleBuffer in
-            if encodeStatus == noErr, let sampleBuffer,
-               let payload = Self.package(sampleBuffer) {
-                box.value = .encoded(payload)
-            }
-            done.signal()
-        }
-
-        guard status == noErr else {
-            StreamLog.encode.error("HEVC encode submit failed: \(status)")
-            return .failed
-        }
-        guard done.wait(timeout: .now() + Self.encodeCallbackTimeout) == .success else {
-            // The callback never came — the revoked-session shape. Drop the
-            // corpse (no flush: flushing waits on the same dead session) and
-            // report SKIPPED, not failed: the next frame builds a fresh
-            // session and the stream heals itself. A late callback lands in
-            // the lock-box of an abandoned frame, harmlessly.
+        // Dead-session watchdog. Backgrounding revokes hardware sessions: a
+        // submit into a revoked one returns noErr and then never calls back.
+        // If the oldest frame in flight is this overdue, drop the corpse (no
+        // flush: flushing waits on the same dead session) and report
+        // SKIPPED, not failed — the next frame builds a fresh session and the
+        // stream heals itself. Its late callbacks carry the old generation
+        // and are ignored at collection.
+        if let oldest = inFlight.first,
+           completed.value[oldest.key] == nil,
+           DispatchTime.now() > oldest.submittedAt + Self.encodeCallbackTimeout {
             StreamLog.encode.error("HEVC encode callback timed out — rebuilding the session")
             SessionDebug.note("⚠︎ HEVC encode callback timeout — session rebuilt")
             invalidateSession()
             return .skipped
         }
-        pts += 1
-        return box.value
+
+        // Submit — unless the encoder is already holding `maxInFlight` of our
+        // frames; then this one is skipped before it ever reaches the encoder.
+        if inFlight.count < Self.maxInFlight {
+            var frameProperties: [CFString: Any]?
+            if forceNextKeyframe {
+                frameProperties = [kVTEncodeFrameOptionKey_ForceKeyFrame: kCFBooleanTrue as Any]
+                forceNextKeyframe = false
+            }
+            let key = FrameKey(generation: generation, pts: pts)
+            let completed = self.completed
+            let status = VTCompressionSessionEncodeFrame(
+                session,
+                imageBuffer: scaled,
+                presentationTimeStamp: CMTimeMake(value: pts, timescale: Int32(max(settings.fps, 1))),
+                duration: .invalid,
+                frameProperties: frameProperties as CFDictionary?,
+                infoFlagsOut: nil
+            ) { encodeStatus, _, sampleBuffer in
+                let result: FrameEncodeResult
+                if encodeStatus == noErr, let sampleBuffer, let payload = Self.package(sampleBuffer) {
+                    result = .encoded(payload)
+                } else {
+                    result = .skipped
+                }
+                completed.mutate { $0[key] = result }
+            }
+            guard status == noErr else {
+                StreamLog.encode.error("HEVC encode submit failed: \(status)")
+                return .failed
+            }
+            inFlight.append((key, DispatchTime.now()))
+            pts += 1
+        }
+
+        // Collect: hand back the oldest finished frame, in order.
+        while let oldest = inFlight.first {
+            var result: FrameEncodeResult?
+            completed.mutate { result = $0.removeValue(forKey: oldest.key) }
+            guard let result else { break }          // still in the encoder
+            inFlight.removeFirst()
+            if case .encoded = result { return result }
+        }
+        return .skipped
     }
 
-    /// How long one realtime encode may take before the session is presumed
-    /// dead (a healthy one answers in milliseconds).
-    private static let encodeCallbackTimeout: TimeInterval = 1.0
+    /// How long the oldest frame in flight may go unanswered before the
+    /// session is presumed dead (a healthy one answers in tens of ms even
+    /// while the 4K writer shares the encoder).
+    private static let encodeCallbackTimeout: DispatchTimeInterval = .seconds(1)
 
     // MARK: - Session
 
@@ -209,6 +243,7 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
         sessionWidth = width
         sessionHeight = height
         pts = 0
+        generation += 1
         forceNextKeyframe = false
         pixelBufferPool = Self.makePool(width: width, height: height)
         StreamLog.encode.info("""
@@ -231,6 +266,8 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
         sessionWidth = 0
         sessionHeight = 0
         pixelBufferPool = nil
+        inFlight.removeAll()
+        completed.value.removeAll()
     }
 
     private static func makePool(width: Int, height: Int) -> CVPixelBufferPool? {

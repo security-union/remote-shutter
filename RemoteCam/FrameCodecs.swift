@@ -81,7 +81,7 @@ struct EncodedFrame {
     let codec: RemoteCmd.StreamCodec
 }
 
-/// A synchronous preview-frame encoder. Called on the capture queue; must not
+/// A synchronous preview-frame encoder. Called on the preview queue; must not
 /// block longer than a frame interval.
 protocol FrameEncoding: AnyObject {
     var codec: RemoteCmd.StreamCodec { get }
@@ -90,7 +90,7 @@ protocol FrameEncoding: AnyObject {
 
 /// A stateful video encoder whose delta frames depend on the previous frame
 /// (VP9). Adds keyframe control so a desynced receiver can be re-synced on
-/// demand. Capture-queue confined like `FrameEncoding`.
+/// demand. Preview-queue confined like `FrameEncoding`.
 protocol StreamVideoEncoding: FrameEncoding {
     /// Force the next encoded frame to be a keyframe.
     func forceKeyframe()

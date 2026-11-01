@@ -20,7 +20,7 @@ import Foundation
 /// pipeline never spends CPU on a frame that would be dropped. A watchdog resets the window
 /// if acks ever stop arriving, so a lost message can't freeze the preview.
 ///
-/// All mutable state is confined to `queue` (the camera's capture queue), so the type is
+/// All mutable state is confined to `queue` (the coordinator's preview queue), so the type is
 /// lock-free. `offer(_:)` must be called on `queue`; `acknowledge()` is safe to call from
 /// any thread and hops onto `queue`.
 final class WatchPreviewStreamer {
