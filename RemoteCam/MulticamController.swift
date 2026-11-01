@@ -7,6 +7,7 @@
 
 // swiftlint:disable cyclomatic_complexity function_body_length
 
+import Combine
 import Foundation
 import MPCCompat
 import Photos
@@ -473,6 +474,9 @@ public actor MulticamController {
 
         case let started as ResourceTransferStarted:
             handleResourceStarted(started)
+
+        case let progressed as ResourceTransferProgressed:
+            handleResourceProgressed(progressed)
 
         case let finished as ResourceTransferFinished:
             handleResourceFinished(finished)
@@ -1629,6 +1633,22 @@ public actor MulticamController {
     private func handleResourceStarted(_ started: ResourceTransferStarted) {
         guard let link = links[started.peer] else { return }
         link.collection = .transferring(0)
+        // The transport moves `Progress` once per chunk; whole percents are
+        // all the ring can show, so that is all that enters the inbox.
+        let peer = started.peer
+        link.transferWatch = started.progress.publisher(for: \.fractionCompleted)
+            .map { Int($0 * 100) }
+            .removeDuplicates()
+            .sink { [weak self] percent in
+                self?.tell(ResourceTransferProgressed(peer: peer, fraction: Double(percent) / 100))
+            }
+    }
+
+    /// A tick already in the inbox when the transfer finished must not drag a
+    /// settled lane back to transferring, so only a running transfer moves.
+    private func handleResourceProgressed(_ progressed: ResourceTransferProgressed) {
+        guard let link = links[progressed.peer], case .transferring = link.collection else { return }
+        link.collection = .transferring(progressed.fraction)
     }
 
     private func handleResourceFinished(_ finished: ResourceTransferFinished) {
@@ -1638,6 +1658,7 @@ public actor MulticamController {
             finished.localURL.map(Self.discardTempFile)
             return
         }
+        link.transferWatch = nil
         // The camera holds `.cameraTransmittingVideo` — where every capture
         // command is dropped — until the receiver confirms the transfer with
         // this echo (the 1:1 monitor's contract). Sent on failure too: the
@@ -1916,6 +1937,16 @@ final class ResourceTransferStarted: Message, @unchecked Sendable {
     let progress: Progress
     init(peer: MCPeerID, name: String, progress: Progress) {
         self.peer = peer; self.name = name; self.progress = progress
+        super.init(sender: nil)
+    }
+}
+
+/// A running footage transfer crossed a whole percent.
+final class ResourceTransferProgressed: Message, @unchecked Sendable {
+    let peer: MCPeerID
+    let fraction: Double
+    init(peer: MCPeerID, fraction: Double) {
+        self.peer = peer; self.fraction = fraction
         super.init(sender: nil)
     }
 }

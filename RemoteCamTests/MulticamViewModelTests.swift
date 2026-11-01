@@ -498,11 +498,12 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
         ("landscape", CGSize(width: 1180, height: 820)),
     ]
 
-    private func laneInfo(_ peer: MCPeerID, focused: Bool) -> MulticamLaneInfo {
+    private func laneInfo(_ peer: MCPeerID, focused: Bool, recording: Bool = false,
+                          collection: CameraLink.LaneCollectionState = .idle) -> MulticamLaneInfo {
         MulticamLaneInfo(peerID: peer, displayName: peer.displayName,
                          status: .linked, isFocused: focused, clockOffsetMillis: nil,
-                         captureOutcome: nil, isRecording: false, recordingElapsedMillis: nil,
-                         needsQualityRematch: false, collection: .idle, canFlipCamera: true,
+                         captureOutcome: nil, isRecording: recording, recordingElapsedMillis: nil,
+                         needsQualityRematch: false, collection: collection, canFlipCamera: true,
                          cameraDevices: [], activeDeviceID: nil, supportsFocusPoint: false,
                          hasTorch: true, zoomFactor: 1.0, maxZoomFactor: 10.0,
                          zoomStops: [1.0], wideAngleZoomFactor: 1.0, torchOn: false,
@@ -522,6 +523,71 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
                      onSelectCameraDevice: { _, _ in }, onToggleTorch: { _ in },
                      onToggleFlash: { _ in }, onDisconnectCamera: { _ in },
                      onZoomChange: { _, _ in }, onFocusTap: { _, _ in }, onBack: {})
+    }
+
+    /// The focused camera has no tile, so its badge is the only progress the
+    /// remote shows with one camera. It must draw, and it must stay a corner
+    /// badge: everything outside its corner is pixel-identical with and without
+    /// it, so no control moved and none is covered. Short windows are the
+    /// case that matters, because the chrome has no height to spare there.
+    func testFocusedTransferBadgeDrawsInItsCornerAndMovesNothing() throws {
+        let peer = MCPeerID(displayName: "Tripod")
+        func render(_ collection: CameraLink.LaneCollectionState) throws -> UIImage {
+            let viewModel = MulticamViewModel()
+            viewModel.apply([laneInfo(peer, focused: true, collection: collection)])
+            let image = settledWindowRender(directorView(viewModel))
+            try XCTSkipIf(image == nil, "this host can't draw a settled window")
+            return try XCTUnwrap(image)
+        }
+        for size in [CGSize(width: 320, height: 568), CGSize(width: 375, height: 667),
+                     CGSize(width: 852, height: 393), CGSize(width: 932, height: 430)] {
+            setWindowSize(size)
+            let without = try render(.idle)
+            let with = try render(.transferring(0.6))
+
+            let changed = try XCTUnwrap(changedRegion(without, with), "the badge never drew at \(size)")
+            let slop: CGFloat = 4 // the badge's antialiased edge, in points
+            XCTAssertLessThanOrEqual(changed.width, 32 + slop, "something else changed at \(size): \(changed)")
+            XCTAssertLessThanOrEqual(changed.height, 32 + slop, "something else changed at \(size): \(changed)")
+            XCTAssertGreaterThanOrEqual(changed.maxX, size.width - 16 - slop, "off its corner at \(size): \(changed)")
+        }
+    }
+
+    /// The bounding box, in points, of every pixel that differs between renders.
+    private func changedRegion(_ first: UIImage, _ second: UIImage) -> CGRect? {
+        guard let firstImage = first.cgImage, let secondImage = second.cgImage,
+              firstImage.width == secondImage.width, firstImage.height == secondImage.height,
+              let firstData = firstImage.dataProvider?.data, let secondData = secondImage.dataProvider?.data,
+              let firstBytes = CFDataGetBytePtr(firstData), let secondBytes = CFDataGetBytePtr(secondData)
+        else { return nil }
+        let bytesPerPixel = firstImage.bitsPerPixel / 8
+        var region: CGRect?
+        for row in 0..<firstImage.height {
+            for col in 0..<firstImage.width {
+                let offset = row * firstImage.bytesPerRow + col * bytesPerPixel
+                let differs = (0..<3).contains {
+                    abs(Int(firstBytes[offset + $0]) - Int(secondBytes[offset + $0])) > 16
+                }
+                guard differs else { continue }
+                let pixel = CGRect(x: col, y: row, width: 1, height: 1)
+                region = region?.union(pixel) ?? pixel
+            }
+        }
+        let scale = first.scale
+        return region.map { CGRect(x: $0.minX / scale, y: $0.minY / scale,
+                                   width: $0.width / scale, height: $0.height / scale) }
+    }
+
+    /// The top bar's timer already says REC, so the focused badge leaves it out;
+    /// a transfer or a retry still shows while the camera rolls the next take.
+    func testFocusedBadgeLeavesRECToTheTimer() {
+        let peer = MCPeerID(displayName: "Tripod")
+        let rolling = CameraLane(info: laneInfo(peer, focused: true, recording: true))
+        XCTAssertEqual(rolling.tileStatus(showsRecording: false), TileStatus.none)
+        XCTAssertEqual(rolling.tileStatus(), .recording, "tiles still badge REC")
+
+        let failed = CameraLane(info: laneInfo(peer, focused: true, recording: true, collection: .failed))
+        XCTAssertEqual(failed.tileStatus(showsRecording: false), .transferFailed)
     }
 
     /// The camera device's own screen while the rig is in standby. In a store

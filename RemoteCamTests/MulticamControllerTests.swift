@@ -1845,6 +1845,66 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(stateB, .idle)
     }
 
+    /// The ring is the remote's only word on a transfer: it follows the bytes
+    /// all the way to the screen, moves only on whole percents, and a finished
+    /// transfer can't be dragged back by the `Progress` it left behind.
+    func testTransferProgressReachesTheLaneAndStopsWhenTheTransferEnds() async {
+        let (controller, _, display) = await makeController(peers: [camA, camB])
+        func published(_ peer: MCPeerID) async -> CameraLink.LaneCollectionState? {
+            await controller.waitForIdle()
+            // Snapshots reach the display through the main operation queue.
+            await withCheckedContinuation { done in
+                OperationQueue.main.addOperation { done.resume() }
+            }
+            return display.lastLanes.first { $0.peerID == peer }?.collection
+        }
+        let name = "RS_a_b_cam1.mov"
+        let progress = Progress(totalUnitCount: 1_000)
+        controller.didStartReceivingResource(name: name, from: camA, progress: progress)
+
+        progress.completedUnitCount = 250
+        var shown = await published(camA)
+        XCTAssertEqual(shown, .transferring(0.25))
+        let untouched = await published(camB)
+        XCTAssertEqual(untouched, .idle, "progress belongs to the lane that is receiving")
+
+        progress.completedUnitCount = 259
+        shown = await published(camA)
+        XCTAssertEqual(shown, .transferring(0.25), "under a whole percent the ring has nothing new to draw")
+
+        progress.completedUnitCount = 900
+        shown = await published(camA)
+        XCTAssertEqual(shown, .transferring(0.9))
+
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("clip.mov")
+        controller.didFinishReceivingResource(name: name, from: camA, at: url, error: nil)
+        progress.completedUnitCount = 950
+        shown = await published(camA)
+        XCTAssertEqual(shown, .collected, "a settled lane ignores the old transfer's Progress")
+    }
+
+    /// A retry starts a new transfer with a new `Progress`: the ring follows
+    /// that one from zero, and the dead transfer's can no longer move it.
+    func testRetriedTransferFollowsItsOwnProgress() async {
+        let (controller, _, _) = await makeController(peers: [camA])
+        let name = "RS_a_b_cam1.mov"
+        let failedTry = Progress(totalUnitCount: 100)
+        controller.didStartReceivingResource(name: name, from: camA, progress: failedTry)
+        failedTry.completedUnitCount = 80
+        controller.didFinishReceivingResource(name: name, from: camA, at: nil,
+                                              error: NSError(domain: "x", code: 1))
+        await controller.waitForIdle()
+
+        controller.retryCollection(for: camA)
+        let secondTry = Progress(totalUnitCount: 100)
+        controller.didStartReceivingResource(name: name, from: camA, progress: secondTry)
+        secondTry.completedUnitCount = 10
+        failedTry.completedUnitCount = 90
+        await controller.waitForIdle()
+        let state = await controller.collectionStateForTesting(camA)
+        XCTAssertEqual(state, .transferring(0.1))
+    }
+
     func testFailedTransferMarksLaneAndRetryReRequests() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         controller.didFinishReceivingResource(

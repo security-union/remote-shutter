@@ -99,6 +99,38 @@ class SnapshotTestCase: XCTestCase {
         return image
     }
 
+    /// The real window's pixels once the screen has settled, for comparing
+    /// two renders: settled means two polls in a row are identical, because
+    /// CI commits frames and draws materials far later than a local machine.
+    /// Nil when this host can't draw a window, or the screen never settles.
+    /// There is no `ImageRenderer` fallback, because it omits the material and
+    /// layout a pixel comparison is about.
+    func settledWindowRender<Screen: View>(_ screen: Screen) -> UIImage? {
+        window.rootViewController = UIHostingController(rootView: screen)
+        window.makeKeyAndVisible()
+        var previous = pixels(of: snapshot())
+        let deadline = Date(timeIntervalSinceNow: 15)
+        while Date() < deadline {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.5))
+            CATransaction.flush()
+            let image = snapshot()
+            let current = pixels(of: image)
+            if let current, current == previous, !isUniform(current) { return image }
+            previous = current
+        }
+        return nil
+    }
+
+    private func pixels(of image: UIImage) -> Data? {
+        image.cgImage?.dataProvider?.data as Data?
+    }
+
+    private func isUniform(_ pixels: Data) -> Bool {
+        pixels.prefix(4).count == 4 && pixels.indices.allSatisfy {
+            pixels[$0] == pixels[pixels.startIndex + ($0 - pixels.startIndex) % 4]
+        }
+    }
+
     private func snapshot() -> UIImage {
         let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
         return renderer.image { context in
