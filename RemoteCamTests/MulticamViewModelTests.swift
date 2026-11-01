@@ -8,6 +8,7 @@
 import MPCCompat
 import Stormo
 import XCTest
+import SwiftUI
 @testable import RemoteShutter
 
 final class MulticamViewModelTests: XCTestCase {
@@ -550,6 +551,31 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
             XCTAssertLessThanOrEqual(changed.width, 32 + slop, "something else changed at \(size): \(changed)")
             XCTAssertLessThanOrEqual(changed.height, 32 + slop, "something else changed at \(size): \(changed)")
             XCTAssertGreaterThanOrEqual(changed.maxX, size.width - 16 - slop, "off its corner at \(size): \(changed)")
+        }
+    }
+
+    /// The cluster's size is what keeps the shutter centered: no mix of modes
+    /// and camera switches may change it.
+    func testControlClusterKeepsItsFootprint() {
+        func size(showsFlash: Bool, showsTorch: Bool, control: CameraSwitchControl) -> CGSize {
+            let cluster = ControlCluster(
+                showsFlash: showsFlash, showsTorch: showsTorch,
+                isFlashEnabled: false, isFlashButtonEnabled: true,
+                isTorchEnabled: false, isTorchButtonEnabled: true, isTrayOpen: false,
+                cameraSwitch: CameraSwitchControlView(
+                    control: control, devices: [], activeDeviceID: nil, isEnabled: true,
+                    onToggleCamera: {}, onSelectCameraDevice: { _ in }),
+                onToggleFlash: {}, onToggleTorch: {}, onToggleTray: {})
+            return UIHostingController(rootView: cluster).sizeThatFits(in: UIView.layoutFittingExpandedSize)
+        }
+        let expected = CGSize(width: ControlCluster.footprint, height: ControlCluster.footprint)
+        for showsFlash in [true, false] {
+            for showsTorch in [true, false] {
+                for control in [CameraSwitchControl.hidden, .flipButton, .deviceMenu] {
+                    XCTAssertEqual(size(showsFlash: showsFlash, showsTorch: showsTorch, control: control), expected,
+                                   "flash \(showsFlash), torch \(showsTorch), \(control)")
+                }
+            }
         }
     }
 

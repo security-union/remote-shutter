@@ -530,16 +530,19 @@ extension View {
     /// Glass, interactive so it answers a touch the way system controls do,
     /// with the system's own edge and adaptive tint. Before that, the nearest
     /// thing: a dark-tinted material with a hairline edge.
-    @ViewBuilder func pillGlass() -> some View {
+    func pillGlass() -> some View { pillGlass(in: Capsule()) }
+
+    /// The same glass in another shape.
+    @ViewBuilder func pillGlass<Outline: Shape>(in outline: Outline) -> some View {
         if #available(iOS 26.0, macCatalyst 26.0, *) {
-            glassEffect(.regular.interactive(), in: Capsule())
+            glassEffect(.regular.interactive(), in: outline)
         } else {
             background(
                 ZStack {
                     Color.black.opacity(0.3)
                         .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
-                    Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1)
+                        .clipShape(outline)
+                    outline.stroke(Color.white.opacity(0.25), lineWidth: 1)
                 })
         }
     }

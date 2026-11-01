@@ -177,15 +177,13 @@ struct MulticamView: View {
             case .trailing: sideCluster(onLeading: false)
             }
         }
-        .overlay(alignment: .topTrailing) { focusedStatusBadge }
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 8)
     }
 
-    /// Back (leading) · focused link + camera chip · Spacer · flash/torch/tray,
-    /// with the recording timecode centered over it all — the same slots as
-    /// the monitor's `topBar`; the rig tray takes the settings glyph's place.
+    /// Back (leading) · focused link + camera chip · Spacer · status badge,
+    /// with the recording timecode centered over it all.
     private var topBar: some View {
         ZStack {
             // Focus mode: the focused camera fills the screen, so its tile
@@ -201,23 +199,21 @@ struct MulticamView: View {
     }
 
     /// Focus mode: the focused camera has no tile, so its status badge sits
-    /// on the corner its tile would have, right under the top bar. An overlay
-    /// of the chrome, not a row in it: short windows have no height to spare,
-    /// so the badge must never push the controls. It stays inside the chrome's
-    /// bounds, so the retry button is tappable. Grid mode draws one on each
+    /// on the corner its tile would have, the end of the top bar. Its slot is
+    /// reserved, so nothing moves when it appears. Grid mode draws one on each
     /// tile instead. REC stays out because the top bar's timer already says it.
     @ViewBuilder
     private var focusedStatusBadge: some View {
         if viewModel.displayMode != .grid, let focused = viewModel.focusedLane {
-            LaneStatusBadge(lane: focused, showsRecording: false, diameter: 32,
+            LaneStatusBadge(lane: focused, showsRecording: false, diameter: Self.focusedBadgeDiameter,
                             onRetry: { onRetryCollection(focused) })
                 .id(focused.peerID)
-                .padding(.top, Self.topBarHeight + 8)
+                .frame(width: Self.focusedBadgeDiameter, height: Self.focusedBadgeDiameter)
+                .padding(.leading, 8)
         }
     }
 
-    /// The tallest control in the top bar sets its height.
-    private static let topBarHeight: CGFloat = 44
+    private static let focusedBadgeDiameter: CGFloat = 32
 
     private var topBarControls: some View {
         HStack(spacing: 0) {
@@ -231,20 +227,7 @@ struct MulticamView: View {
             focusedCameraChip
                 .padding(.leading, 8)
             Spacer(minLength: 0)
-            ControlCapsule(showsFlash: viewModel.mode == .photo,
-                           showsTorch: viewModel.showsTorchButton,
-                           isFlashEnabled: viewModel.focusedFlashOn,
-                           isFlashButtonEnabled: viewModel.focusedFlashEnabled,
-                           isTorchEnabled: viewModel.focusedTorchOn,
-                           isTorchButtonEnabled: viewModel.focusedTorchEnabled,
-                           isTrayOpen: viewModel.showingRigTray,
-                           onToggleFlash: withFocused(onToggleFlash),
-                           onToggleTorch: withFocused(onToggleTorch),
-                           onToggleTray: {
-                               logInfo("director: rig tray opened")
-                               viewModel.showingRigTray = true
-                           })
-                .equatable()
+            focusedStatusBadge
         }
     }
 
@@ -274,9 +257,9 @@ struct MulticamView: View {
                     exposureReadoutStrip
                     exposureRulers(axis: .horizontal)
                     focusedZoomPill
+                    actionCluster(axis: .horizontal)
                 }
             }
-            actionCluster(axis: .horizontal)
             modeSelector
         }
         .frame(maxWidth: .infinity)
@@ -355,9 +338,8 @@ struct MulticamView: View {
         }
     }
 
-    /// Grid toggle · shutter · flip — the monitor's gallery · shutter · switch
-    /// cluster, slot for slot. The gallery slot carries the grid toggle (the
-    /// only added glyph); the switch slot carries the focused-camera flip.
+    /// Grid toggle · shutter · control cluster. The two sides get equal
+    /// columns, so the shutter stays centered and the wider cluster fits.
     private func actionCluster(axis: Axis) -> some View {
         let leading = gridToggleButton
         let shutter = ShutterButton(
@@ -367,25 +349,50 @@ struct MulticamView: View {
             isEnabled: viewModel.canFire,
             action: onShutter)
             .equatable()
-        let flip = CameraSwitchControlView(
-            control: viewModel.focusedSwitchControl,
-            devices: viewModel.focusedCameraDevices,
-            activeDeviceID: viewModel.focusedActiveDeviceID,
-            isEnabled: viewModel.focusedCameraCanFlip,
-            isSwitching: viewModel.focusedIsSwitching,
-            onToggleCamera: withFocused(onFlipCamera),
-            onSelectCameraDevice: { id in
-                if let focused = viewModel.focusedLane { onSelectCameraDevice(focused, id) }
-            })
-            .equatable()
+        let cluster = controlCluster
 
         return Group {
             if axis == .horizontal {
-                HStack(spacing: 40) { leading; shutter; flip }.frame(maxWidth: .infinity)
+                HStack(spacing: 0) {
+                    leading.frame(maxWidth: Self.actionColumnWidth)
+                    shutter
+                    cluster.frame(maxWidth: Self.actionColumnWidth)
+                }
+                .frame(maxWidth: .infinity)
             } else {
-                VStack(spacing: 24) { leading; shutter; flip }.frame(maxHeight: .infinity)
+                VStack(spacing: 16) { leading; shutter; cluster }.frame(maxHeight: .infinity)
             }
         }
+    }
+
+    /// Wide windows keep the grid toggle and the cluster near the shutter.
+    private static let actionColumnWidth: CGFloat = 136
+
+    private var controlCluster: some View {
+        ControlCluster(showsFlash: viewModel.mode == .photo,
+                       showsTorch: viewModel.showsTorchButton,
+                       isFlashEnabled: viewModel.focusedFlashOn,
+                       isFlashButtonEnabled: viewModel.focusedFlashEnabled,
+                       isTorchEnabled: viewModel.focusedTorchOn,
+                       isTorchButtonEnabled: viewModel.focusedTorchEnabled,
+                       isTrayOpen: viewModel.showingRigTray,
+                       cameraSwitch: CameraSwitchControlView(
+                           control: viewModel.focusedSwitchControl,
+                           devices: viewModel.focusedCameraDevices,
+                           activeDeviceID: viewModel.focusedActiveDeviceID,
+                           isEnabled: viewModel.focusedCameraCanFlip,
+                           isSwitching: viewModel.focusedIsSwitching,
+                           onToggleCamera: withFocused(onFlipCamera),
+                           onSelectCameraDevice: { id in
+                               if let focused = viewModel.focusedLane { onSelectCameraDevice(focused, id) }
+                           }),
+                       onToggleFlash: withFocused(onToggleFlash),
+                       onToggleTorch: withFocused(onToggleTorch),
+                       onToggleTray: {
+                           logInfo("director: rig tray opened")
+                           viewModel.showingRigTray = true
+                       })
+            .equatable()
     }
 
     /// The focused camera's zoom pill — the monitor's `ZoomPill`, same

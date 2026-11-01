@@ -85,22 +85,29 @@ struct GlassCircleButton: View {
     }
 }
 
-// MARK: - Control capsule
+// MARK: - Control cluster
 
-/// The state-carrying toggles, top-trailing: flash (photo only), torch, and the
-/// tray button. `Equatable` over value inputs so the ~20fps frame stream — and
-/// any unrelated view-model change — cannot rebuild it.
-struct ControlCapsule: View, Equatable {
+/// The camera's controls, beside the shutter: flash (photo only), torch, the
+/// camera switch and the tray button, two by two. The footprint never changes
+/// and neither does any button's slot, so the shutter stays centered and
+/// nothing shifts as controls come and go. `Equatable` over value inputs so
+/// the ~20fps frame stream — and any unrelated view-model change — cannot
+/// rebuild it.
+struct ControlCluster: View, Equatable {
+    static let slotSize: CGFloat = 44
+    private static let padding: CGFloat = 4
+    static let footprint = slotSize * 2 + padding * 2
+
     let showsFlash: Bool
-    /// The multicam director shows the torch only in focus mode and only when
-    /// the focused camera's current device has one; the 1:1 monitor always
-    /// shows it.
-    var showsTorch: Bool = true
+    /// Shown only in focus mode and only when the focused camera's current
+    /// device has a torch.
+    let showsTorch: Bool
     let isFlashEnabled: Bool
     let isFlashButtonEnabled: Bool
     let isTorchEnabled: Bool
     let isTorchButtonEnabled: Bool
     let isTrayOpen: Bool
+    let cameraSwitch: CameraSwitchControlView
     let onToggleFlash: () -> Void
     let onToggleTorch: () -> Void
     let onToggleTray: () -> Void
@@ -113,34 +120,43 @@ struct ControlCapsule: View, Equatable {
             && lhs.isTorchEnabled == rhs.isTorchEnabled
             && lhs.isTorchButtonEnabled == rhs.isTorchButtonEnabled
             && lhs.isTrayOpen == rhs.isTrayOpen
+            && lhs.cameraSwitch == rhs.cameraSwitch
     }
 
     var body: some View {
-        HStack(spacing: 6) {
-            if showsFlash {
-                glyph(isFlashEnabled ? "bolt.fill" : "bolt.slash.fill",
-                      isActive: isFlashEnabled,
-                      isEnabled: isFlashButtonEnabled,
-                      action: onToggleFlash)
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                if showsFlash {
+                    glyph(isFlashEnabled ? "bolt.fill" : "bolt.slash.fill",
+                          isActive: isFlashEnabled,
+                          isEnabled: isFlashButtonEnabled,
+                          action: onToggleFlash)
+                } else {
+                    emptySlot
+                }
+                if showsTorch {
+                    glyph(isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill",
+                          isActive: isTorchEnabled,
+                          isEnabled: isTorchButtonEnabled,
+                          action: onToggleTorch)
+                } else {
+                    emptySlot
+                }
             }
-            if showsTorch {
-                glyph(isTorchEnabled ? "flashlight.on.fill" : "flashlight.off.fill",
-                      isActive: isTorchEnabled,
-                      isEnabled: isTorchButtonEnabled,
-                      action: onToggleTorch)
-            } else {
-                // The slot stays reserved so the flash and tray glyphs never
-                // shift as the torch control comes and goes.
-                Color.clear.frame(width: 38, height: 34)
+            HStack(spacing: 0) {
+                cameraSwitch.frame(width: Self.slotSize, height: Self.slotSize)
+                glyph("circle.grid.3x3.fill",
+                      isActive: isTrayOpen,
+                      isEnabled: true,
+                      action: onToggleTray)
             }
-            glyph("circle.grid.3x3.fill",
-                  isActive: isTrayOpen,
-                  isEnabled: true,
-                  action: onToggleTray)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 4)
-        .background(Capsule().fill(.ultraThinMaterial))
+        .padding(Self.padding)
+        .pillGlass(in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private var emptySlot: some View {
+        Color.clear.frame(width: Self.slotSize, height: Self.slotSize)
     }
 
     private func glyph(_ name: String, isActive: Bool, isEnabled: Bool, action: @escaping () -> Void) -> some View {
@@ -148,9 +164,11 @@ struct ControlCapsule: View, Equatable {
             Image(systemName: name)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(isEnabled ? (isActive ? AppTheme.accent : .white) : .white.opacity(0.35))
-                .frame(width: 38, height: 34)
+                .frame(width: Self.slotSize, height: Self.slotSize)
                 .contentShape(Rectangle())
         }
+        // Catalyst's default style pads a button past its slot.
+        .buttonStyle(.plain)
         .disabled(!isEnabled)
     }
 }
@@ -375,16 +393,10 @@ struct CameraSwitchControlView: View, Equatable {
     var body: some View {
         switch control {
         case .hidden:
-            Color.clear.frame(width: 44, height: 44)   // keep the shutter centered
+            Color.clear.frame(width: ControlCluster.slotSize, height: ControlCluster.slotSize)
         case .flipButton:
-            // Label built like GlassCircleButton (glyph → frame → material
-            // background): on Catalyst that whole construction is clickable,
-            // where a pre-framed ZStack label hit-tests as almost nothing.
-            Button(action: onToggleCamera) {
-                switchGlyph
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(.ultraThinMaterial))
-            }
+            Button(action: onToggleCamera) { switchIcon }
+                .buttonStyle(.plain)
             .disabled(!isEnabled)
         case .deviceMenu:
             Menu {
@@ -398,27 +410,20 @@ struct CameraSwitchControlView: View, Equatable {
             } label: {
                 switchIcon
             }
+            .menuIndicator(.hidden)
+            .buttonStyle(.plain)
             .disabled(!isEnabled)
         }
     }
 
     private var switchIcon: some View {
-        ZStack {
-            Circle()
-                .fill(.ultraThinMaterial)
-                .frame(width: 44, height: 44)
-            switchGlyph
-        }
-        .frame(width: 44, height: 44)
-        .contentShape(Circle())
-    }
-
-    private var switchGlyph: some View {
         Image(systemName: "arrow.triangle.2.circlepath.camera.fill")
             .font(.system(size: 19, weight: .semibold))
             .foregroundColor(isEnabled ? .white : .white.opacity(0.35))
             .rotationEffect(.degrees(isSwitching ? 180 : 0))
             .animation(.easeInOut(duration: 0.35), value: isSwitching)
+            .frame(width: ControlCluster.slotSize, height: ControlCluster.slotSize)
+            .contentShape(Rectangle())
     }
 }
 
