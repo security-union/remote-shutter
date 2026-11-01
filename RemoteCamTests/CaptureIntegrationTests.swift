@@ -633,15 +633,10 @@ final class CaptureIntegrationTests: XCTestCase {
         }
     }
 
-    /// The production ordering, reproduced. The coordinator asks for
-    /// capabilities on `BecomeCamera` (camera screen `viewDidLoad`), which
-    /// happens BEFORE the rig configures the capture session (`viewDidAppear`
-    /// -> `startCameraOnce`). AVCapturePhotoOutput.h is explicit: "If you've
-    /// not yet added your receiver to an AVCaptureSession with a video
-    /// source, no codec types are available." So the early probe reads an
-    /// empty codec list, and `cameraInfoCacheValid` makes that answer final.
-    ///
-    /// The invariant: what we REPORT about HEIF must equal what the live
+    /// The production ordering: the coordinator asks for capabilities on
+    /// `BecomeCamera` (camera screen `viewDidLoad`), before the rig configures
+    /// the capture session (`viewDidAppear` -> `startCameraOnce`). The
+    /// invariant: what the camera reports about HEIF equals what its live
     /// photo output says.
     @MainActor
     func testHEIFReportMatchesLiveOutputAcrossSetup() async throws {
@@ -692,13 +687,6 @@ final class CaptureIntegrationTests: XCTestCase {
                        + "while the photo output says \(liveHEVC)")
     }
 
-    /// `AVCapturePhotoOutput.h` documents `availablePhotoCodecTypes` as
-    /// key-value observable; this is the signal that replaces the capabilities
-    /// retry ladder, so if it ever stops firing the ladder's removal is unsafe.
-    /// reconfigurations that follow. Each fire invalidates the per-lens format
-    /// matrix, so a fire per `commitConfiguration` would mean re-walking every
-    /// device's formats on the queue that configures the camera. This test
-    /// exists to keep that number honest.
     /// What one capabilities reply costs. Every control command is answered
     /// with the camera's full state (Docs/control-plane.md), so this is the
     /// per-command price on the camera. Prints gather vs encode separately,

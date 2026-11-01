@@ -915,11 +915,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     private func gatherAllCameraCapabilitiesLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        // A probe is only meaningful against a CONFIGURED session. With no
-        // video input, session-dependent answers (`canSetSessionPreset`, the
-        // output's codec list) read as "nothing is supported" — recording
-        // that as the hardware matrix is how a camera ends up advertising
-        // capabilities it plainly has.
+        // Session-dependent answers (`canSetSessionPreset`, the output's codec
+        // list) are only valid once the session has a video input.
         guard videoDeviceInput != nil else {
             debugLog("🔍 DEBUG: gatherAllCameraCapabilities skipped — session has no input yet")
             return
@@ -1138,11 +1135,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         #endif
     }
 
-    /// THE one answer to "what photo formats can this camera produce", read
-    /// from the live photo output on `sessionQueue` — the same place and the
-    /// same way the shutter reads it in `cloneCameraSettings`.
-    /// `AVCapturePhotoOutput.h`: "If you've not yet added your receiver to an
-    /// AVCaptureSession with a video source, no codec types are available."
+    /// The photo formats this camera can produce, read from the live photo
+    /// output on `sessionQueue` — the same read the shutter makes in
+    /// `cloneCameraSettings`. `AVCapturePhotoOutput.h`: "If you've not yet
+    /// added your receiver to an AVCaptureSession with a video source, no
+    /// codec types are available."
     private func livePhotoSupportLocked() -> (heif: Bool, hdr: Bool) {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         // Every iOS 15+ device can do .quality prioritization (HDR).

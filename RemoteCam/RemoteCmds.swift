@@ -481,8 +481,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
         public let supportedResolutions: [VideoResolution]
         public let supportedFrameRates: [VideoFrameRate]
         public let resolutionFrameRates: [Int: [VideoFrameRate]] // VideoResolution.rawValue -> supported FPS
-        /// Restamped per message from the live photo output — see
-        /// `withPhotoSupport`. Not a cached hardware fact.
+        /// Stamped per message from the live photo output (`withPhotoSupport`).
         public var supportsHEIF: Bool
         public var supportsHDR: Bool
         public let zoomStops: [CGFloat] // Hardware zoom factors for each stop (e.g., [1.0, 2.0, 6.0])
@@ -510,12 +509,9 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.wideAngleZoomFactor = wideAngleZoomFactor
         }
 
-        /// The same hardware profile with the photo-format capability
-        /// restamped. HEIF is a property of the live `AVCapturePhotoOutput`,
-        /// not of a camera position: the output reports no codecs at all until
-        /// it is attached to a session with a video source, so the value is
-        /// read where the message is built rather than cached with the
-        /// per-lens matrix.
+        /// This profile with the photo-format capability set from the live
+        /// `AVCapturePhotoOutput`, which only reports codecs once attached to a
+        /// session with a video source.
         public func withPhotoSupport(heif: Bool, hdr: Bool) -> CameraInfo {
             var copy = self
             copy.supportsHEIF = heif
