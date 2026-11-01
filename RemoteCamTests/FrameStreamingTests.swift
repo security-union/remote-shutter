@@ -419,6 +419,39 @@ final class FrameEncoderTests: XCTestCase {
     }
 }
 
+// MARK: - Preview lane
+
+final class PreviewLaneTests: XCTestCase {
+
+    /// The rule that keeps the capture queue on time: a frame offered while
+    /// the lane is still encoding is skipped (never queued), and the lane
+    /// takes frames again as soon as that encode returns.
+    func testBusyLaneSkipsTheFrameAndTakesTheNextOneAfterTheEncode() {
+        let lane = PreviewLane(queue: DispatchQueue(label: "test preview lane"))
+        let holdEncode = DispatchSemaphore(value: 0)
+        let firstEncodeRunning = expectation(description: "first encode running")
+
+        XCTAssertTrue(lane.offer { firstEncodeRunning.fulfill(); holdEncode.wait() })
+        wait(for: [firstEncodeRunning], timeout: 2)
+
+        XCTAssertFalse(lane.offer { XCTFail("a skipped frame must never be encoded") })
+        XCTAssertFalse(lane.offer { XCTFail("a skipped frame must never be encoded") })
+        XCTAssertEqual(lane.skipped.value, 2)
+        XCTAssertEqual(lane.encoded.value, 0, "the first frame is still in the encoder")
+
+        holdEncode.signal()
+        let secondEncodeRan = expectation(description: "second encode ran")
+        let deadline = Date().addingTimeInterval(2)
+        while !lane.offer({ secondEncodeRan.fulfill() }) && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.005)
+        }
+        wait(for: [secondEncodeRan], timeout: 2)
+        // The lane counts the frame after the encode returns, so give it a moment.
+        while lane.encoded.value < 2 && Date() < deadline { Thread.sleep(forTimeInterval: 0.005) }
+        XCTAssertEqual(lane.encoded.value, 2)
+    }
+}
+
 // MARK: - HEVC peer preview codec
 
 final class HEVCStreamingTests: XCTestCase {
@@ -466,7 +499,13 @@ final class HEVCStreamingTests: XCTestCase {
         let decoder = PeerHEVCPreviewDecoder()
 
         // A fresh session's first frame is a keyframe carrying VPS/SPS/PPS.
-        let payload = encodedData(encoder.encode(pixelBuffer: makePixelBuffer(width: 256, height: 128)))
+        // The encoder is pipelined (it never waits on the hardware), so the
+        // keyframe comes back from a LATER call; feed frames until it does.
+        var payload: Data?
+        for _ in 0..<30 where payload == nil {
+            payload = encodedData(encoder.encode(pixelBuffer: makePixelBuffer(width: 256, height: 128)))
+            if payload == nil { Thread.sleep(forTimeInterval: 0.02) }
+        }
         try XCTSkipIf(payload == nil, "HEVC hardware encode unavailable on this simulator/host")
 
         let parts = try XCTUnwrap(HEVCFrameContainer.unpack(payload!))

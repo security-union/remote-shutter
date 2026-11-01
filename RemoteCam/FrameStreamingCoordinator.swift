@@ -11,10 +11,51 @@ import CoreImage
 import UIKit
 
 /**
+ The preview's own lane: a serial queue that holds at most one frame beyond
+ the one being encoded. `offer` is a zero-copy hand-off (the capture buffer
+ is retained, never copied) that returns at once; while the lane is still
+ busy with the previous frame the new one is skipped, never queued — the
+ preview loses a frame, the movie does not, and the camera's small buffer
+ pool never backs up.
+ */
+final class PreviewLane {
+    private let queue: DispatchQueue
+    private let busy = Locked(false)
+
+    /// Frames encoded and frames skipped because the lane was busy.
+    let encoded = Locked(0)
+    let skipped = Locked(0)
+
+    init(queue: DispatchQueue) {
+        self.queue = queue
+    }
+
+    /// Runs `encode` on the lane unless it is still encoding the previous
+    /// frame. Returns whether the frame was taken.
+    @discardableResult
+    func offer(_ encode: @escaping () -> Void) -> Bool {
+        var taken = false
+        busy.mutate { if !$0 { $0 = true; taken = true } }
+        guard taken else {
+            skipped.mutate { $0 += 1 }
+            return false
+        }
+        queue.async { [self] in
+            encode()
+            encoded.mutate { $0 += 1 }
+            busy.value = false
+        }
+        return true
+    }
+}
+
+/**
  The capture session's sample-buffer delegate: fans every frame out to the
- live-preview streamers (phone monitor or Apple Watch) and, while recording,
- to the `RecordingPipeline`. Non-UI — its only UIKit dependency is
- `UIInterfaceOrientation` for the frame streamer.
+ recording pipeline (on the capture queue, where it arrives) and to the
+ live-preview streamers (phone monitor or Apple Watch) on their own
+ `PreviewLane`, so preview work can never make the capture queue late.
+ Non-UI — its only UIKit dependency is `UIInterfaceOrientation` for the
+ frame streamer.
 
  Owned by `CameraRig`, which injects the actor sink and two providers
  instead of the coordinator keeping its own copies of the rig's state.
@@ -23,10 +64,12 @@ final class FrameStreamingCoordinator: NSObject {
 
     private let engine: CaptureEngine
     private let pipeline: RecordingPipeline
+    /// Where every preview encoder runs; the streamers below are confined to it.
+    private let previewQueue = DispatchQueue(label: "camera preview lane", attributes: [], target: nil)
+    private(set) lazy var previewLane = PreviewLane(queue: previewQueue)
     /// Feeds encoded monitor frames to the FrameSender actor.
     private let frameSink: FrameStreamer.Send
-    /// Reads the VC's orientation. Called on the capture queue — the same
-    /// cross-thread property read this code did before the extraction.
+    /// Reads the VC's orientation. Called on the preview queue.
     private let orientationProvider: () -> UIInterfaceOrientation
     /// True when the Apple Watch is the remote (no connected remote peer).
     private let isWatchRemoteMode: () -> Bool
@@ -39,16 +82,16 @@ final class FrameStreamingCoordinator: NSObject {
     /// pipeline's crop context to avoid cross-queue contention.
     private let watchPreviewContext = CIContext(options: [.useSoftwareRenderer: false])
     /// Streams preview frames to the Apple Watch with ack back-pressure and lazy encoding.
-    /// Runs on `dataOutputQueue`, where the capture callback hands it sample buffers.
+    /// Runs on `previewQueue`, where the preview lane hands it sample buffers.
     private lazy var watchPreviewStreamer = WatchPreviewStreamer(
-        queue: engine.dataOutputQueue,
+        queue: previewQueue,
         maxInFlight: StreamingConfig.default.watchPreviewMaxInFlight,
         ackTimeout: StreamingConfig.default.watchPreviewAckTimeout)
     /// Streams preview frames to the phone monitor: paces, encodes, and hands
     /// frames to the FrameSender actor. Uses a stateful video stream (lazy +
     /// credit-gated): HEVC (VideoToolbox hardware) when this device can encode
     /// it, else VP9 (software). Falls back to HEIC/JPEG stills only when no video
-    /// codec is available at runtime (dev-only). Runs on `videoDataOutputQueue`.
+    /// codec is available at runtime (dev-only). Runs on `previewQueue`.
     private lazy var frameStreamer = FrameStreamer(
         creditAvailable: frameCreditAvailable,
         takeKeyframeRequest: takePeerKeyframeRequest,
@@ -75,7 +118,7 @@ final class FrameStreamingCoordinator: NSObject {
     /// Encoder chain for the Watch preview, built from
     /// `StreamingConfig.watchPreferredCodecs` (VP9 video stream first, with
     /// permanent HEIC-then-JPEG still fallback).
-    /// Runs on `videoDataOutputQueue` via `watchPreviewStreamer.offer`.
+    /// Runs on `previewQueue` via `watchPreviewStreamer.offer`.
     private lazy var watchFrameEncoders: [FrameEncoding] = {
         let config = StreamingConfig.default
         return config.watchPreferredCodecs.compactMap { codec in
@@ -118,11 +161,11 @@ final class FrameStreamingCoordinator: NSObject {
         watchPreviewStreamer.acknowledge()
     }
 
-    /// Multicam: retune the phone-monitor preview stream. Hops onto the capture
-    /// queue the streamer lives on, so the reconfigure is serialized with frame
+    /// Multicam: retune the phone-monitor preview stream. Hops onto the preview
+    /// lane the streamer lives on, so the reconfigure is serialized with frame
     /// encoding.
     func applyStreamProfile(_ profile: StreamProfile) {
-        engine.dataOutputQueue.async { [weak self] in
+        previewQueue.async { [weak self] in
             self?.frameStreamer.applyProfile(profile)
         }
     }
@@ -130,7 +173,7 @@ final class FrameStreamingCoordinator: NSObject {
     /// Capture interruption: drop the hardware video encoder so post-wake
     /// frames build a fresh session — never feed a background-killed one.
     func handleCaptureInterruption() {
-        engine.dataOutputQueue.async { [weak self] in
+        previewQueue.async { [weak self] in
             self?.frameStreamer.dropVideoEncoder()
         }
     }
@@ -140,8 +183,16 @@ final class FrameStreamingCoordinator: NSObject {
     /// forever). Written per-frame on the data queue, read from the watchdog.
     let lastVideoFrameAt = Locked<TimeInterval>(0)
 
+    /// Video frames the camera delivered, frames it discarded because this
+    /// queue was still busy with the previous one
+    /// (`alwaysDiscardsLateVideoFrames`), and the last discard reason. A
+    /// discarded frame is missing from the movie; this is where that shows.
+    let videoFramesDelivered = Locked(0)
+    let videoFramesDropped = Locked(0)
+    let lastDropReason = Locked<String?>(nil)
+
     /// Last Watch-preview codec announced at .info, so the selected format is
-    /// visible in Console without per-frame chatter. Capture-queue confined.
+    /// visible in Console without per-frame chatter. Preview-queue confined.
     private var lastAnnouncedWatchCodec: RemoteCmd.StreamCodec?
 }
 
@@ -153,18 +204,35 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
                        from connection: AVCaptureConnection) {
         // Route by output identity (`let`s, safe from any thread) rather than
         // comparing connections, which are sessionQueue-owned mutable state.
-        if captureOutput === engine.videoDataOutput {
+        let isVideo = captureOutput === engine.videoDataOutput
+        if isVideo {
             lastVideoFrameAt.value = Date().timeIntervalSinceReferenceDate
-            sendFrameToMonitor(captureOutput, didOutput: sampleBuffer, from: connection)
+            videoFramesDelivered.mutate { $0 += 1 }
         }
+        // Recording first: the append is the only work left on this queue.
         if (pipeline.recordingWillBeStarted || pipeline.isRecording) && !pipeline.recordingWillBeStopped {
             pipeline.processFrame(captureOutput, didOutput: sampleBuffer)
         }
+        if isVideo {
+            previewLane.offer { [weak self] in self?.sendFrameToMonitor(sampleBuffer) }
+        }
     }
 
-    func sendFrameToMonitor(_ captureOutput: AVCaptureOutput,
-                            didOutput sampleBuffer: CMSampleBuffer,
-                            from connection: AVCaptureConnection) {
+    func captureOutput(_ captureOutput: AVCaptureOutput,
+                       didDrop sampleBuffer: CMSampleBuffer,
+                       from connection: AVCaptureConnection) {
+        guard captureOutput === engine.videoDataOutput else { return }
+        videoFramesDropped.mutate { $0 += 1 }
+        if let reason = CMGetAttachment(sampleBuffer,
+                                        key: kCMSampleBufferAttachmentKey_DroppedFrameReason,
+                                        attachmentModeOut: nil) {
+            lastDropReason.value = String(describing: reason)
+        }
+    }
+
+    /// Preview-lane only: encodes one frame for whichever remote is attached.
+    func sendFrameToMonitor(_ sampleBuffer: CMSampleBuffer) {
+        dispatchPrecondition(condition: .onQueue(previewQueue))
         // Watch Remote mode has no connected remote peer — the iPhone is the camera
         // and the only consumer is the Apple Watch. The streamer applies ack back-pressure
         // and only invokes the encode when it's actually ready to send.

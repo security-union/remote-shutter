@@ -34,7 +34,7 @@ flowchart TB
         RIG["CameraRig"]:::plain
         ENG["CaptureEngine<br/><i>sessionQueue</i>"]:::worker
         PIPE["RecordingPipeline<br/><i>dataOutputQueue</i>"]:::worker
-        STR["FrameStreamingCoordinator<br/><i>dataOutputQueue</i>"]:::worker
+        STR["FrameStreamingCoordinator<br/><i>dataOutputQueue → previewQueue</i>"]:::worker
         FSND["FrameSender<br/><i>own queue</i>"]:::worker
         CVM["CameraViewModel"]:::viewmodel
         CSV["CameraScreenView"]:::swiftui
@@ -135,9 +135,14 @@ snapshots to the director screen.
 `AVCaptureSession`: `CaptureEngine` (configuration + stills, confined to its
 `sessionQueue`), `RecordingPipeline` (asset writer + recording state, confined to
 the single `dataOutputQueue` that delivers both video and audio frames), and
-`FrameStreamingCoordinator` (fans each frame out to the live preview and, while
-recording, the pipeline). Queue confinement + a one-way hop rule; the only shared
-values are a handful of `Locked<T>` boxes on the per-frame hot path. The session's
+`FrameStreamingCoordinator` (the capture delegate: while recording it appends the
+original frame to the pipeline on the data queue, then hands the same frame by
+reference to its `PreviewLane`, a separate queue where every preview encoder
+runs and which skips a frame rather than queue one, so the preview can never
+make the capture queue late). The `HEVCFrameEncoder` is pipelined for the same
+reason: it shares the hardware encoder with the movie writer and never waits on
+it. Queue confinement + a one-way hop rule; the only shared values are a handful
+of `Locked<T>` boxes on the per-frame hot path. The session's
 configuration follows the rig's `currentCameraMode`: photo mode runs the
 full-sensor `.photo` preset (stills at the active format's `maxPhotoDimensions`,
 `.quality` prioritization, preview-sized buffers to the streamer), video mode runs

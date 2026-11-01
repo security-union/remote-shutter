@@ -104,7 +104,7 @@ Every screen is a SwiftUI view hosted by a thin UIKit shell (no storyboards or x
 - **WatchRemoteCameraController** — Watch-remote mode, embeds the camera screen and bridges `WCSession` commands into the coordinator
 - View models (`WelcomeViewModel`, `DeviceScannerViewModel`, `MulticamViewModel`, `CameraViewModel`) are ObservableObjects; all `@Published` writes happen on main
 
-Threading: the coordinator serializes via its actor inbox; `CaptureEngine` state is confined to its `sessionQueue`; recording state to the single `dataOutputQueue` (which delivers both video and audio frames); the few per-frame cross-domain values use `Locked<T>`. The full test suite runs clean under Thread Sanitizer — keep it that way.
+Threading: the coordinator serializes via its actor inbox; `CaptureEngine` state is confined to its `sessionQueue`; recording state to the single `dataOutputQueue` (which delivers both video and audio frames and does nothing else heavy); every preview encoder (peer HEVC/VP9, Watch) runs on the `FrameStreamingCoordinator`'s preview queue, fed through `PreviewLane` (zero-copy hand-off, skip-if-busy, never blocks capture). The `HEVCFrameEncoder` is pipelined: it never waits on the hardware encoder, which the movie writer shares. The few per-frame cross-domain values use `Locked<T>`. The full test suite runs clean under Thread Sanitizer — keep it that way. `CaptureIntegrationTests.testMovieKeepsTheSelectedFrameRateAt4K30UnderPreviewLoad` is the hardware gate for this: a 4K30 take must write 30 fps with the preview running.
 
 ### P2P Communication
 

@@ -21,7 +21,7 @@
 //  `CaptureEngine.onDeviceSwapped` and `FrameSender.requestKeyframe`); only a
 //  genuine resolution change re-syncs on its own.
 //
-//  Confined to the capture queue like every FrameEncoding conformer; all
+//  Confined to the preview queue like every FrameEncoding conformer; all
 //  buffers are reused across frames and never shared across threads.
 //
 
@@ -48,7 +48,7 @@ final class VP9FrameEncoder: StreamVideoEncoding {
     private var sessionHeight = 0
     private var pts: Int64 = 0
 
-    /// Scratch buffers reused across frames (capture-queue confined).
+    /// Scratch buffers reused across frames (preview-queue confined).
     private var scaledBGRA: UnsafeMutableRawPointer?
     private var scaledBGRACapacity = 0
     private var i420 = Data()
@@ -79,7 +79,7 @@ final class VP9FrameEncoder: StreamVideoEncoding {
 
     /// Forces the next encoded frame to be a keyframe by dropping the current
     /// Rust session; `encode` remakes it on the next call and a fresh session's
-    /// first frame is always a keyframe. Capture-queue confined like `encode` —
+    /// first frame is always a keyframe. Preview-queue confined like `encode` —
     /// answers a monitor's RequestKeyframe so a desynced decoder re-syncs
     /// immediately instead of waiting for the periodic keyframe.
     func forceKeyframe() {

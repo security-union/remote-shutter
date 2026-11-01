@@ -23,8 +23,8 @@
 //     only keeps the preview alive on an odd build. Stills are independent
 //     frames, sent .unreliable; the FrameSender drops them under back-pressure.
 //
-//  Confined to the capture queue: `handle` must only be called from the
-//  AVCaptureVideoDataOutput callback queue (same contract as
+//  Confined to the preview queue: `handle` must only be called from the
+//  FrameStreamingCoordinator's preview lane (same contract as
 //  WatchPreviewStreamer).
 //
 
@@ -40,7 +40,7 @@ final class FrameStreamer {
 
     /// The live preview profile (resolution/bitrate/fps). Starts at the full
     /// peer profile — byte-identical to the 1:1 stream — and only a multicam
-    /// director changes it (via `applyProfile`) to tier previews. Capture-queue
+    /// director changes it (via `applyProfile`) to tier previews. Preview-queue
     /// confined, like every other field here.
     private var activeProfile: StreamProfile
 
@@ -49,7 +49,7 @@ final class FrameStreamer {
     private var frameCount = 0
     private var sequenceNumber: UInt32 = 0
     /// Last codec announced at .info, so the selected format is visible in
-    /// Console without per-frame chatter. Capture-queue confined.
+    /// Console without per-frame chatter. Preview-queue confined.
     private var lastAnnouncedCodec: RemoteCmd.StreamCodec?
 
     /// True when the credit window has room for another in-flight frame — the
@@ -96,7 +96,7 @@ final class FrameStreamer {
         self.makeVideoEncoder = makeVideoEncoder
     }
 
-    /// Multicam: switch this stream to a new preview profile. Capture-queue
+    /// Multicam: switch this stream to a new preview profile. Preview-queue
     /// confined (called from `FrameSender`). Rebuilds the still chain and drops
     /// the video encoder so it is rebuilt at the new resolution on the next
     /// frame — the same rebuild path the failure fallback already uses, so the
@@ -105,7 +105,7 @@ final class FrameStreamer {
     /// session behind the video encoder died with it. Drop the encoder — and
     /// clear the permanent-fail latch — so the first post-wake credited frame
     /// builds a FRESH session instead of feeding (or tearing down) a corpse
-    /// whose calls block on a recovering media daemon. Capture-queue only.
+    /// whose calls block on a recovering media daemon. Preview-queue only.
     func dropVideoEncoder() {
         videoEncoder = nil
         videoFailed = false
@@ -124,7 +124,7 @@ final class FrameStreamer {
     /// enabled, is a separate path and not reflected here.
     var activeCodec: RemoteCmd.StreamCodec? { encoders.first?.codec }
 
-    /// Capture-queue only. Encodes and sends this frame unless pacing skips it,
+    /// Preview-queue only. Encodes and sends this frame unless pacing skips it,
     /// back-pressure gates the VP9 stream, or every codec has failed.
     func handle(pixelBuffer: CVPixelBuffer,
                 position: AVCaptureDevice.Position,
