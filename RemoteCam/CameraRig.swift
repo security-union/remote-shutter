@@ -205,6 +205,13 @@ final class CameraRig: @unchecked Sendable {
         // The exposure policy caps a long shutter at the frame duration while
         // a clip is rolling; recording truth lives here, not in the engine.
         engine.isRecordingProvider = { [weak self] in self?.isRecording ?? false }
+        engine.onPhotoCapabilitiesChanged = { [weak self] in
+            // The photo output can now answer for itself (fires on the session
+            // queue). Re-advertise, so a monitor that asked too early is
+            // corrected the instant the truth exists.
+            guard let self, !self.isWatchRemoteMode else { return }
+            self.session ! RemoteCmd.RequestCameraCapabilities()
+        }
         engine.onCameraDevicesChanged = { [weak self] in
             // Hot-plug (fires on the session queue): refresh the picker and,
             // when a monitor is connected, re-advertise capabilities.

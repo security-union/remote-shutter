@@ -508,6 +508,27 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.wideAngleZoomFactor = wideAngleZoomFactor
         }
 
+        /// The same hardware profile with the photo-format capability
+        /// restamped. HEIF is a property of the live `AVCapturePhotoOutput`,
+        /// not of a camera position: the output reports no codecs at all until
+        /// it is attached to a session with a video source, so the value is
+        /// read where the message is built rather than cached with the
+        /// per-lens matrix.
+        public func withPhotoSupport(heif: Bool, hdr: Bool) -> CameraInfo {
+            CameraInfo(
+                availableLenses: availableLenses,
+                hasFlash: hasFlash,
+                hasTorch: hasTorch,
+                zoomCapabilities: getZoomCapabilities(),
+                supportedResolutions: supportedResolutions,
+                supportedFrameRates: supportedFrameRates,
+                resolutionFrameRates: getResolutionFrameRates(),
+                supportsHEIF: heif,
+                supportsHDR: hdr,
+                zoomStops: zoomStops,
+                wideAngleZoomFactor: wideAngleZoomFactor)
+        }
+
         public func getZoomCapabilities() -> [CameraLensType: ZoomRange] {
             return Dictionary(uniqueKeysWithValues: zoomCapabilities.compactMap { (rawValue, range) in
                 guard let lensType = CameraLensType(rawValue: rawValue) else { return nil }

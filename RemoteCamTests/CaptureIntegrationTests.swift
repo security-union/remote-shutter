@@ -588,6 +588,138 @@ final class CaptureIntegrationTests: XCTestCase {
         print("📸 default format: \(format) (hevc \(hevcAvailable))")
     }
 
+    /// Diagnostic for the current Mac and any attached Continuity Camera.
+    /// Run on the Mac with the iPhone connected and unlocked; this prints the
+    /// discovered device identities plus the HEVC photo codec exposed by a
+    /// photo output configured against each device.
+    func testProbePhotoCodecsForConnectedCameras() async throws {
+        let auth = AVCaptureDevice.authorizationStatus(for: .video)
+        if auth == .notDetermined {
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            guard granted else { throw XCTSkip("camera permission denied") }
+        } else if auth != .authorized {
+            throw XCTSkip("camera permission is not authorized")
+        }
+
+        var types: [AVCaptureDevice.DeviceType] = [
+            .builtInWideAngleCamera, .builtInUltraWideCamera, .builtInTelephotoCamera,
+            .builtInDualCamera, .builtInDualWideCamera, .builtInTripleCamera
+        ]
+        if #available(iOS 17.0, macCatalyst 17.0, *) { types.append(.external) }
+        let devices = AVCaptureDevice.DiscoverySession(
+            deviceTypes: types, mediaType: .video, position: .unspecified
+        ).devices
+        XCTAssertFalse(devices.isEmpty, "No video capture devices discovered")
+
+        for device in devices {
+            let session = AVCaptureSession()
+            let output = AVCapturePhotoOutput()
+            do {
+                session.beginConfiguration()
+                let input = try AVCaptureDeviceInput(device: device)
+                guard session.canAddInput(input), session.canAddOutput(output) else {
+                    session.commitConfiguration()
+                    print("HEIF PROBE device=\(device.localizedName) type=\(device.deviceType.rawValue) cannot configure")
+                    continue
+                }
+                session.addInput(input)
+                session.addOutput(output)
+                session.commitConfiguration()
+                print("HEIF PROBE device=\(device.localizedName) type=\(device.deviceType.rawValue) position=\(device.position.rawValue) codecs=\(output.availablePhotoCodecTypes.map(\.rawValue)) hevc=\(output.availablePhotoCodecTypes.contains(.hevc))")
+            } catch {
+                if session.isRunning { session.stopRunning() }
+                print("HEIF PROBE device=\(device.localizedName) type=\(device.deviceType.rawValue) error=\(error)")
+            }
+        }
+    }
+
+    /// The production ordering, reproduced. The coordinator asks for
+    /// capabilities on `BecomeCamera` (camera screen `viewDidLoad`), which
+    /// happens BEFORE the rig configures the capture session (`viewDidAppear`
+    /// -> `startCameraOnce`). AVCapturePhotoOutput.h is explicit: "If you've
+    /// not yet added your receiver to an AVCaptureSession with a video
+    /// source, no codec types are available." So the early probe reads an
+    /// empty codec list, and `cameraInfoCacheValid` makes that answer final.
+    ///
+    /// The invariant: what we REPORT about HEIF must equal what the live
+    /// photo output says.
+    @MainActor
+    func testHEIFReportMatchesLiveOutputAcrossSetup() async throws {
+        var status = AVCaptureDevice.authorizationStatus(for: .video)
+        if status == .notDetermined {
+            status = await AVCaptureDevice.requestAccess(for: .video) ? .authorized : .denied
+        }
+        guard status == .authorized else {
+            throw XCTSkip("no camera permission in this environment")
+        }
+
+        rig = CameraRig(session: SessionCoordinator(), frameSender: FrameSender())
+
+        // 1. The BecomeCamera probe, before any session configuration.
+        await rig.gatherAllCameraCapabilities()
+        let earlyCodecs = rig.engine.photoOutput.availablePhotoCodecTypes
+        let earlyResp = await rig.gatherCurrentCameraCapabilities()
+        print("HEIF ORDERING early: codecs=\(earlyCodecs.map(\.rawValue)) "
+              + "resp=\(earlyResp == nil ? "nil" : "present") "
+              + "front=\(String(describing: earlyResp?.frontCamera?.supportsHEIF)) "
+              + "back=\(String(describing: earlyResp?.backCamera?.supportsHEIF))")
+
+        // 2. The camera screen appears and configures the session.
+        rig.startCameraOnce()
+        let deadline = Date().addingTimeInterval(10)
+        while rig.cameraViewModel.isBusy && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        guard rig.cameraViewModel.previewSession != nil else {
+            throw XCTSkip("no camera on this machine (simulator/CI)")
+        }
+
+        // 3. What the remote is now told, against the live truth.
+        await rig.gatherAllCameraCapabilities()
+        let liveHEVC = rig.engine.photoOutput.availablePhotoCodecTypes.contains(.hevc)
+        guard let resp = await rig.gatherCurrentCameraCapabilities() else {
+            return XCTFail("no capabilities after setup")
+        }
+        let reported = resp.getCurrentCameraInfo()?.supportsHEIF
+        print("HEIF ORDERING after setup: liveHEVC=\(liveHEVC) "
+              + "reported=\(String(describing: reported)) "
+              + "currentPhotoFormat=\(resp.currentPhotoFormat) "
+              + "front=\(String(describing: resp.frontCamera?.supportsHEIF)) "
+              + "back=\(String(describing: resp.backCamera?.supportsHEIF))")
+
+        XCTAssertEqual(reported, liveHEVC,
+                       "remote is told HEIF=\(String(describing: reported)) "
+                       + "while the photo output says \(liveHEVC)")
+    }
+
+    /// The camera announces that it can answer, instead of being polled.
+    /// `AVCapturePhotoOutput.h` documents `availablePhotoCodecTypes` as
+    /// key-value observable; this is the signal that replaces the capabilities
+    /// retry ladder, so if it ever stops firing the ladder's removal is unsafe.
+    @MainActor
+    func testPhotoCodecsObservationFiresWhenSessionComesUp() async throws {
+        var status = AVCaptureDevice.authorizationStatus(for: .video)
+        if status == .notDetermined {
+            status = await AVCaptureDevice.requestAccess(for: .video) ? .authorized : .denied
+        }
+        guard status == .authorized else {
+            throw XCTSkip("no camera permission in this environment")
+        }
+
+        rig = CameraRig(session: SessionCoordinator(), frameSender: FrameSender())
+        let fired = expectation(description: "photo capabilities became answerable")
+        fired.assertForOverFulfill = false
+        rig.engine.onPhotoCapabilitiesChanged = { fired.fulfill() }
+
+        rig.startCameraOnce()
+        await fulfillment(of: [fired], timeout: 10)
+
+        let codecs = rig.engine.photoOutput.availablePhotoCodecTypes
+        print("HEIF KVO: fired with codecs=\(codecs.map(\.rawValue))")
+        XCTAssertTrue(codecs.contains(.hevc),
+                      "observation fired but the output still reports no HEVC")
+    }
+
     /// HEIF in, HEIF out: the aspect crop must not silently convert to JPEG.
     func testHEICSurvivesAspectCrop() async throws {
         try await startRealRig()
