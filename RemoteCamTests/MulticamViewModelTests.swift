@@ -536,7 +536,7 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
             let viewModel = MulticamViewModel()
             viewModel.apply([laneInfo(peer, focused: true, collection: collection)])
             let image = settledWindowRender(directorView(viewModel))
-            try XCTSkipIf(image == nil, "this host can't draw a window")
+            try XCTSkipIf(image == nil, "this host can't draw a settled window")
             return try XCTUnwrap(image)
         }
         for size in [CGSize(width: 320, height: 568), CGSize(width: 375, height: 667),
