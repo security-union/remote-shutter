@@ -295,7 +295,7 @@ Honest list of what is deliberately first-draft, for whoever picks this up next.
 The director is the only remote screen, so there is no parallel implementation to
 keep in step with. What it composes from shared files:
 
-- View atoms in `MonitorView.swift`: `GlassCircleButton`, `ControlCapsule`,
+- View atoms in `MonitorView.swift`: `GlassCircleButton`, `ControlCluster`,
   `ShutterButton`, `MonitorTrayTile`, `LiveFrameView` (with
   `AspectRatioCropOverlay`), `CameraSwitchControlView`, `CaptureModeSelector`,
   `TrayPanelShell`; plus `ZoomPill` and the layout enums in `MonitorChrome.swift`
