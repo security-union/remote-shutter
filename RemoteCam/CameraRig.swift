@@ -345,15 +345,6 @@ final class CameraRig: @unchecked Sendable {
                 self.rotateCameraToOrientation(orientation: self.orientation)
                 self.armFirstFrameWatchdog()
                 Task { await self.refreshCameraDeviceList() }
-                // The session is configured, so the camera can finally answer
-                // for itself: ONE unsolicited advert, for the monitor that asked
-                // during startup and was told nothing (`sendCapabilities`). The
-                // director treats an unsolicited advert as link-up (clock probe,
-                // preview tier), so this must stay a single, deterministic push —
-                // not a KVO on the codec list, which a camera flip fires twice.
-                if !self.isWatchRemoteMode {
-                    self.session ! RemoteCmd.RequestCameraCapabilities()
-                }
             }
         }
     }

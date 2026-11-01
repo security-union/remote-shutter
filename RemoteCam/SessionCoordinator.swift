@@ -114,6 +114,14 @@ final class FireScheduledCapture: Message, @unchecked Sendable {
         super.init(sender: nil)
     }
 }
+/// Retry tick for the capabilities ladder.
+final class RetryCapabilities: Message, @unchecked Sendable {
+    let attempt: Int
+    init(attempt: Int) {
+        self.attempt = attempt
+        super.init()
+    }
+}
 
 // MARK: - Coordinator
 
@@ -993,10 +1001,10 @@ public actor SessionCoordinator {
             // and the refusal leaves the camera state, so nothing is streamed to
             // it and no capabilities are negotiated.
             guard await enforcePeerAppVersion(became) else { break }
-            await sendCapabilities()
+            await attemptToSendCapabilities(attempt: 0)
 
         case is RemoteCmd.RequestCameraCapabilities:
-            await sendCapabilities()
+            await attemptToSendCapabilities(attempt: 0)
 
         case is RemoteCmd.RequestKeyframe:
             // The monitor's VP9 decoder desynced — force the next preview frame
@@ -1283,24 +1291,22 @@ public actor SessionCoordinator {
         sendCameraStateReport()
     }
 
-    /// Answers with what the camera can do, or says nothing when it cannot
-    /// answer yet. There is no retry: a camera that isn't configured has no
-    /// truth to send, and the rig announces it the moment setup completes
-    /// (`CameraRig.startCameraOnce` → `RequestCameraCapabilities`). Guessing
-    /// with delays only ever raced it.
-    ///
+    /// Capabilities retry ladder: the capture device isn't ready right after
+    /// setup, so retry with growing delays (0.2s × attempt, max 5).
     /// Every capabilities answer is accompanied by a fresh state report:
     /// caps say what the camera HAS, the report says what it is DOING.
-    private func sendCapabilities() async {
+    private func attemptToSendCapabilities(attempt: Int) async {
         guard let ctrl else { return }
         await ctrl.gatherAllCameraCapabilities()
-        guard let capabilities = await ctrl.gatherCurrentCameraCapabilities() else {
-            logInfo("camera: capabilities asked for before the capture session is up — "
-                    + "the rig advertises when setup completes")
-            return
+        if let capabilities = await ctrl.gatherCurrentCameraCapabilities() {
+            await sendOrGoToScanning(capabilities)
+            sendCameraStateReport()
+        } else if attempt < 5 {
+            let next = attempt + 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2 * Double(next)) { [weak self] in
+                self?.tell(RetryCapabilities(attempt: next))
+            }
         }
-        await sendOrGoToScanning(capabilities)
-        sendCameraStateReport()
     }
 
     /// The whole of "can we hold a session with this peer", asked the moment
@@ -1491,10 +1497,10 @@ public actor SessionCoordinator {
 
         case let became as RemoteCmd.PeerBecameMonitor:
             guard await enforcePeerAppVersion(became) else { break }
-            await sendCapabilities()
+            await attemptToSendCapabilities(attempt: 0)
 
         case is RemoteCmd.RequestCameraCapabilities:
-            await sendCapabilities()
+            await attemptToSendCapabilities(attempt: 0)
 
         case is UICmd.ScannerDidAppear:
             await dismissCameraAlert()
@@ -1564,13 +1570,13 @@ public actor SessionCoordinator {
             // does. The response carries the live recording truth the
             // monitor derives its screen from.
             guard await enforcePeerAppVersion(became) else { break }
-            await sendCapabilities()
+            await attemptToSendCapabilities(attempt: 0)
 
         case let became as RemoteCmd.RoleAnnouncement:
             await enforcePeerAppVersion(became)
 
         case is RemoteCmd.RequestCameraCapabilities:
-            await sendCapabilities()
+            await attemptToSendCapabilities(attempt: 0)
 
         case is RemoteCmd.EndSession:
             // A deliberate goodbye is intent, not a drop: finalize + save,
@@ -1927,8 +1933,11 @@ public actor SessionCoordinator {
             // state push. (`ctrl` is nil on a remote, so this no-ops there.)
             if let ctrl {
                 await ctrl.setPreviewMode(ui.mode)
-                await sendCapabilities()
+                await attemptToSendCapabilities(attempt: 0)
             }
+
+        case let retry as RetryCapabilities:
+            await attemptToSendCapabilities(attempt: retry.attempt)
 
         case let sendVideo as UICmd.SendVideoResource:
             await handleSendVideoResource(sendVideo)

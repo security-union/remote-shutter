@@ -916,35 +916,6 @@ class SessionCoordinatorTests: XCTestCase {
         coordinator.stop()
     }
 
-    // MARK: - Capabilities before the capture session is up
-
-    /// A monitor can ask for capabilities before the camera's capture session
-    /// is configured (BecomeCamera fires from viewDidLoad; setup starts after
-    /// viewDidAppear). The camera must then say NOTHING — not a guess, not a
-    /// retry timer — and answer exactly once when asked again after setup.
-    /// This is what replaced the 0.2s-per-attempt retry ladder, and it runs
-    /// everywhere (no camera needed), unlike the hardware tests that pin the
-    /// rest of the fix.
-    func testCapabilitiesAreSilentBeforeSetupAndAnsweredOnceAfter() async {
-        let ctrl = FakeCameraControlling()
-        ctrl.capabilitiesReady = false
-        await harness.coordinator.seed(state: .camera,
-                                       lobby: harness.lobbyWrapper,
-                                       peer: harness.peer,
-                                       ctrl: ctrl)
-        harness.fakeMP.sentMessages.removeAll()
-
-        await harness.deliver(RemoteCmd.RequestCameraCapabilities())
-        let early = harness.fakeMP.sentMessages.filter { $0.msg is RemoteCmd.CameraCapabilitiesResp }
-        XCTAssertTrue(early.isEmpty,
-                      "nothing is advertised before the session is configured — the early answer is a lie")
-
-        ctrl.capabilitiesReady = true
-        await harness.deliver(RemoteCmd.RequestCameraCapabilities())
-        let after = harness.fakeMP.sentMessages.filter { $0.msg is RemoteCmd.CameraCapabilitiesResp }
-        XCTAssertEqual(after.count, 1, "exactly one advert once the camera can answer")
-    }
-
     // MARK: - Keyframe requests across camera states
 
     /// The preview keeps streaming while a picture is taken, so the monitor can
