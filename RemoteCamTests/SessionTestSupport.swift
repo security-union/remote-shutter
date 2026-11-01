@@ -120,6 +120,9 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     var exitCameraCalls = 0
     var countdownTicks: [Int] = []
     var gatherCapabilitiesCalls = 0
+    /// False = the capture session isn't configured yet: the real engine
+    /// answers `gatherCurrentCameraCapabilities` with nil until it is.
+    var capabilitiesReady = true
     var zoomCalls: [CGFloat] = []
     var focusCalls: [CGPoint] = []
     var lensSwitches: [CameraLensType] = []
@@ -307,6 +310,7 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
     func setAspectRatio(_ ratio: AspectRatio) async -> AspectRatio { aspectRatio = ratio; return ratio }
     func gatherAllCameraCapabilities() async { gatherCapabilitiesCalls += 1 }
     func gatherCurrentCameraCapabilities() async -> RemoteCmd.CameraCapabilitiesResp? {
+        guard capabilitiesReady else { return nil }
         let entries: [RemoteCmd.CameraDeviceEntry] = advertisesCameraDevices
             ? availableDevices.map {
                 RemoteCmd.CameraDeviceEntry(

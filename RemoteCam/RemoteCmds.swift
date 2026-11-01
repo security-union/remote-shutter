@@ -481,8 +481,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
         public let supportedResolutions: [VideoResolution]
         public let supportedFrameRates: [VideoFrameRate]
         public let resolutionFrameRates: [Int: [VideoFrameRate]] // VideoResolution.rawValue -> supported FPS
-        public let supportsHEIF: Bool
-        public let supportsHDR: Bool
+        /// Restamped per message from the live photo output — see
+        /// `withPhotoSupport`. Not a cached hardware fact.
+        public var supportsHEIF: Bool
+        public var supportsHDR: Bool
         public let zoomStops: [CGFloat] // Hardware zoom factors for each stop (e.g., [1.0, 2.0, 6.0])
         public let wideAngleZoomFactor: CGFloat // Hardware zoom factor for the wide-angle camera (the "1x" reference)
 
@@ -515,18 +517,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// read where the message is built rather than cached with the
         /// per-lens matrix.
         public func withPhotoSupport(heif: Bool, hdr: Bool) -> CameraInfo {
-            CameraInfo(
-                availableLenses: availableLenses,
-                hasFlash: hasFlash,
-                hasTorch: hasTorch,
-                zoomCapabilities: getZoomCapabilities(),
-                supportedResolutions: supportedResolutions,
-                supportedFrameRates: supportedFrameRates,
-                resolutionFrameRates: getResolutionFrameRates(),
-                supportsHEIF: heif,
-                supportsHDR: hdr,
-                zoomStops: zoomStops,
-                wideAngleZoomFactor: wideAngleZoomFactor)
+            var copy = self
+            copy.supportsHEIF = heif
+            copy.supportsHDR = hdr
+            return copy
         }
 
         public func getZoomCapabilities() -> [CameraLensType: ZoomRange] {

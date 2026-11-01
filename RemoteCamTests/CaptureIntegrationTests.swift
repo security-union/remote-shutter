@@ -692,32 +692,36 @@ final class CaptureIntegrationTests: XCTestCase {
                        + "while the photo output says \(liveHEVC)")
     }
 
-    /// The camera announces that it can answer, instead of being polled.
     /// `AVCapturePhotoOutput.h` documents `availablePhotoCodecTypes` as
     /// key-value observable; this is the signal that replaces the capabilities
     /// retry ladder, so if it ever stops firing the ladder's removal is unsafe.
+    /// reconfigurations that follow. Each fire invalidates the per-lens format
+    /// matrix, so a fire per `commitConfiguration` would mean re-walking every
+    /// device's formats on the queue that configures the camera. This test
+    /// exists to keep that number honest.
+    /// What one capabilities reply costs. Every control command is answered
+    /// with the camera's full state (Docs/control-plane.md), so this is the
+    /// per-command price on the camera. Prints gather vs encode separately,
+    /// so the AVFoundation lookups and the FlatBuffer are blamed apart.
     @MainActor
-    func testPhotoCodecsObservationFiresWhenSessionComesUp() async throws {
-        var status = AVCaptureDevice.authorizationStatus(for: .video)
-        if status == .notDetermined {
-            status = await AVCaptureDevice.requestAccess(for: .video) ? .authorized : .denied
+    func testCapabilitiesMessageCost() async throws {
+        try await startRealRig()
+        guard let warm = await rig.gatherCurrentCameraCapabilities() else {
+            return XCTFail("no capabilities after setup")
         }
-        guard status == .authorized else {
-            throw XCTSkip("no camera permission in this environment")
-        }
+        let iterations = 200
 
-        rig = CameraRig(session: SessionCoordinator(), frameSender: FrameSender())
-        let fired = expectation(description: "photo capabilities became answerable")
-        fired.assertForOverFulfill = false
-        rig.engine.onPhotoCapabilitiesChanged = { fired.fulfill() }
+        var t0 = DispatchTime.now().uptimeNanoseconds
+        for _ in 0..<iterations { _ = await rig.gatherCurrentCameraCapabilities() }
+        let gatherMicros = Double(DispatchTime.now().uptimeNanoseconds - t0) / 1_000 / Double(iterations)
 
-        rig.startCameraOnce()
-        await fulfillment(of: [fired], timeout: 10)
+        t0 = DispatchTime.now().uptimeNanoseconds
+        var bytes = 0
+        for _ in 0..<iterations { bytes = warm.toFlatBuffer().count }
+        let encodeMicros = Double(DispatchTime.now().uptimeNanoseconds - t0) / 1_000 / Double(iterations)
 
-        let codecs = rig.engine.photoOutput.availablePhotoCodecTypes
-        print("HEIF KVO: fired with codecs=\(codecs.map(\.rawValue))")
-        XCTAssertTrue(codecs.contains(.hevc),
-                      "observation fired but the output still reports no HEVC")
+        print(String(format: "CAPS COST: gather=%.0fµs encode=%.0fµs total=%.0fµs bytes=%d devices=%d",
+                     gatherMicros, encodeMicros, gatherMicros + encodeMicros, bytes, warm.cameraDevices.count))
     }
 
     /// HEIF in, HEIF out: the aspect crop must not silently convert to JPEG.

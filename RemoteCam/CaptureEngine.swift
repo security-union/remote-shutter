@@ -173,7 +173,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     private func setupCameraLocked(sampleBufferDelegate: AVCaptureVideoDataOutputSampleBufferDelegate & AVCaptureAudioDataOutputSampleBufferDelegate) -> Bool {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        observePhotoCodecsLocked()
         self.cameraSettings.isHighResolutionPhotoEnabled = true
         self.videoDataOutput.setSampleBufferDelegate(sampleBufferDelegate, queue: self.dataOutputQueue)
         self.videoDataOutput.videoSettings =
@@ -707,19 +706,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// runtime error. Built-in iOS cameras never fire this.
     var onCameraDevicesChanged: (() -> Void)?
 
-    /// The photo output started (or stopped) being able to answer for itself —
-    /// the moment a camera's advertised photo formats become true. Fires on
-    /// `sessionQueue`.
-    var onPhotoCapabilitiesChanged: (() -> Void)?
-
     private var deviceConnectionObservers: [NSObjectProtocol] = []
     /// KVO on `isSuspended` per discovered device — there is no notification
     /// for suspension; Apple documents key-value observing this property.
     private var suspensionObservations: [NSKeyValueObservation] = []
-    /// KVO on the photo output's codec list — Apple documents the property as
-    /// key-value observable, which is how the camera announces that it can
-    /// answer instead of being polled.
-    private var photoCodecObservation: NSKeyValueObservation?
 
     /// Devices whose capture graph deterministically fails to run this launch
     /// (repeated session runtime errors — e.g. a virtual camera with no sensor).
@@ -848,23 +838,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.cameraInfoCacheValid = false
             self.refreshSuspensionObserversLocked()
             self.onCameraDevicesChanged?()
-        }
-    }
-
-    /// `availablePhotoCodecTypes` is empty until the output is attached to a
-    /// session with a video source, and the property is key-value observable
-    /// (AVCapturePhotoOutput.h). Observing it is how the camera learns it can
-    /// answer — no retry ladder, no delays. Registered BEFORE configuration so
-    /// the empty-to-populated transition is a change we actually see.
-    private func observePhotoCodecsLocked() {
-        dispatchPrecondition(condition: .onQueue(sessionQueue))
-        guard photoCodecObservation == nil else { return }
-        photoCodecObservation = photoOutput.observe(\.availablePhotoCodecTypes) { [weak self] _, _ in
-            guard let self else { return }
-            self.sessionQueue.async {
-                self.cameraInfoCacheValid = false
-                self.onPhotoCapabilitiesChanged?()
-            }
         }
     }
 

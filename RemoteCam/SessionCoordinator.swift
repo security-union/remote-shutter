@@ -1285,10 +1285,9 @@ public actor SessionCoordinator {
 
     /// Answers with what the camera can do, or says nothing when it cannot
     /// answer yet. There is no retry: a camera that isn't configured has no
-    /// truth to send, and it announces itself the moment it does — the photo
-    /// output's codec list is key-value observable (AVCapturePhotoOutput.h),
-    /// and the engine's observation pushes a fresh advert through
-    /// `RequestCameraCapabilities`. Guessing with delays only ever raced it.
+    /// truth to send, and the rig announces it the moment setup completes
+    /// (`CameraRig.startCameraOnce` → `RequestCameraCapabilities`). Guessing
+    /// with delays only ever raced it.
     ///
     /// Every capabilities answer is accompanied by a fresh state report:
     /// caps say what the camera HAS, the report says what it is DOING.
@@ -1297,7 +1296,7 @@ public actor SessionCoordinator {
         await ctrl.gatherAllCameraCapabilities()
         guard let capabilities = await ctrl.gatherCurrentCameraCapabilities() else {
             logInfo("camera: capabilities asked for before the capture session is up — "
-                    + "the engine's codec observation will advertise when it is")
+                    + "the rig advertises when setup completes")
             return
         }
         await sendOrGoToScanning(capabilities)
