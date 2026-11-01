@@ -915,6 +915,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     private func gatherAllCameraCapabilitiesLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
+        // Session-dependent answers (`canSetSessionPreset`, the output's codec
+        // list) are only valid once the session has a video input.
+        guard videoDeviceInput != nil else {
+            debugLog("🔍 DEBUG: gatherAllCameraCapabilities skipped — session has no input yet")
+            return
+        }
         if cameraInfoCacheValid {
             debugLog("🔍 DEBUG: gatherAllCameraCapabilities served from cache")
             return
@@ -1005,9 +1011,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
         let supportedFrameRates = VideoFrameRate.selectableCases.filter { allSupportedFrameRates.contains($0) }
 
-        let supportsHEIF = photoOutput.availablePhotoCodecTypes.contains(.hevc)
-        let supportsHDR = true // All iOS 15+ devices support .quality prioritization (HDR)
-
         // Discover zoom stops from the preferred (virtual) device
         let preferredDevice = preferredCamera(for: position)
         if let device = preferredDevice {
@@ -1033,8 +1036,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             supportedResolutions: supportedResolutions,
             supportedFrameRates: supportedFrameRates,
             resolutionFrameRates: resolutionFrameRates,
-            supportsHEIF: supportsHEIF,
-            supportsHDR: supportsHDR,
             zoomStops: discoveredZoomStops,
             wideAngleZoomFactor: wideAngle
         )
@@ -1060,9 +1061,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         debugLog("🔍 DEBUG: backCameraInfo: \(backCameraInfo != nil ? "available" : "nil")")
 
         let (deviceEntries, activeDeviceID) = cameraDeviceEntriesLocked()
+        let photo = livePhotoSupportLocked()
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: frontCameraInfo,
-            backCamera: backCameraInfo,
+            frontCamera: frontCameraInfo?.withPhotoSupport(heif: photo.heif, hdr: photo.hdr),
+            backCamera: backCameraInfo?.withPhotoSupport(heif: photo.heif, hdr: photo.hdr),
             currentCamera: currentDevice.position,
             currentLens: currentLensType,
             currentZoom: currentZoomFactor,
@@ -1114,6 +1116,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// Per-device CameraInfo for the advertised list. iOS reuses the cached
     /// position-based info; Mac cameras get a minimal single-lens profile.
     private func deviceInfoLocked(for device: AVCaptureDevice) -> RemoteCmd.CameraInfo? {
+        let photo = livePhotoSupportLocked()
         #if targetEnvironment(macCatalyst)
         return RemoteCmd.CameraInfo(
             availableLenses: [.wideAngle],
@@ -1122,13 +1125,25 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             zoomCapabilities: [.wideAngle: RemoteCmd.ZoomRange(
                 minZoom: device.minAvailableVideoZoomFactor,
                 maxZoom: device.maxAvailableVideoZoomFactor)])
+            .withPhotoSupport(heif: photo.heif, hdr: photo.hdr)
         #else
         switch device.position {
-        case .front: return frontCameraInfo
-        case .back: return backCameraInfo
+        case .front: return frontCameraInfo?.withPhotoSupport(heif: photo.heif, hdr: photo.hdr)
+        case .back: return backCameraInfo?.withPhotoSupport(heif: photo.heif, hdr: photo.hdr)
         default: return nil
         }
         #endif
+    }
+
+    /// The photo formats this camera can produce, read from the live photo
+    /// output on `sessionQueue` — the same read the shutter makes in
+    /// `cloneCameraSettings`. `AVCapturePhotoOutput.h`: "If you've not yet
+    /// added your receiver to an AVCaptureSession with a video source, no
+    /// codec types are available."
+    private func livePhotoSupportLocked() -> (heif: Bool, hdr: Bool) {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        // Every iOS 15+ device can do .quality prioritization (HDR).
+        return (photoOutput.availablePhotoCodecTypes.contains(.hevc), true)
     }
 
     // MARK: - Focus / Exposure Point
