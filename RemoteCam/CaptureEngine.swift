@@ -5,6 +5,7 @@
 //  Copyright © 2026 Security Union. All rights reserved.
 //
 
+import Atomics
 import UIKit
 import AVFoundation
 
@@ -83,6 +84,16 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     let audioDataOutput = AVCaptureAudioDataOutput()
 
     let videoDataOutput = AVCaptureVideoDataOutput()
+    /// Second output, scaled to the preview size by the camera itself (iOS 16,
+    /// WWDC22 110429), so the preview never touches a full-size frame. While
+    /// not attached (`reconcilePreviewOutputLocked`), the preview reads
+    /// `videoDataOutput` as before.
+    let previewDataOutput = AVCaptureVideoDataOutput()
+    let previewOutputQueue = DispatchQueue(
+        label: "camera preview output queue", attributes: [], target: nil)
+    private let previewOutputAttached = ManagedAtomic(false)
+    var isPreviewOutputAttached: Bool { previewOutputAttached.load(ordering: .acquiring) }
+    var previewLongEdge = Int(StreamingConfig.default.maxLongEdge)
     /// Delivery queue for BOTH the video and audio sample-buffer delegates —
     /// one queue so `processFrame` is naturally serialized — and the home of
     /// all recording state in `RecordingPipeline`.
@@ -96,7 +107,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     /// The active camera position, mirrored for the frame streamer's per-frame
     /// reads (everything else about the device is sessionQueue-confined).
-    let currentPositionShared = Locked(AVCaptureDevice.Position.back)
+    let currentPositionShared = ManagedAtomic(AVCaptureDevice.Position.back)
 
     /// Orientation the engine last applied to the output/photo connections.
     /// The `CameraRig` keeps its own `orientation` for the preview and
@@ -178,6 +189,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         self.videoDataOutput.videoSettings =
             [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
         self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
+        self.previewDataOutput.setSampleBufferDelegate(sampleBufferDelegate, queue: self.previewOutputQueue)
+        self.previewDataOutput.automaticallyConfiguresOutputBufferDimensions = false
+        self.previewDataOutput.alwaysDiscardsLateVideoFrames = true
+        clearPreviewOutputSizeLocked()
         if self.captureSession.isRunning {
             self.captureSession.stopRunning()
         }
@@ -200,12 +215,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.captureSession.addInput(self.videoDeviceInput)
             self.captureSession.addOutput(self.videoDataOutput)
 
-            try self.setFrameRate(framerate: fpsSetting.value, videoDevice: videoDevice)
+            try self.setFrameRate(framerate: fpsSetting.load(ordering: .relaxed), videoDevice: videoDevice)
 
             // Initialize current state
             self.updateAvailableLensTypes(for: videoDevice.position)
             self.zoomStops = self.discoverZoomStops(for: videoDevice)
-            self.currentPositionShared.value = videoDevice.position
+            self.currentPositionShared.store(videoDevice.position, ordering: .relaxed)
 
             // Start at the wide-angle zoom factor (matches native Camera app "1x")
             let wideZoom = self.wideAngleZoomFactor(for: videoDevice)
@@ -220,6 +235,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // This prevents requesting microphone permission upfront
             self.configSessionOutput()
             self.captureSession.commitConfiguration()
+            self.reconcilePreviewOutputLocked()
             self.updateMaxPhotoDimensionsLocked()
             self.currentPhotoFormat = Self.defaultPhotoFormat(
                 hevcAvailable: self.photoOutput.availablePhotoCodecTypes.contains(.hevc))
@@ -359,6 +375,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         let newInput = try AVCaptureDeviceInput(device: newDevice)
         captureSession.beginConfiguration()
+        suspendPreviewOutputSizeLocked()
         let previousInput = videoDeviceInput
         if let previousInput {
             captureSession.removeInput(previousInput)
@@ -383,17 +400,18 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         // session churn and diverges from Apple's reference.)
         videoConnection = videoDataOutput.connection(with: .video)
         audioConnection = audioDataOutput.connection(with: .audio)
-        try setFrameRate(framerate: fpsSetting.value, videoDevice: newDevice)
+        try setFrameRate(framerate: fpsSetting.load(ordering: .relaxed), videoDevice: newDevice)
 
         updateAvailableLensTypes(for: newDevice)
         zoomStops = discoverZoomStops(for: newDevice)
-        currentPositionShared.value = newDevice.position
+        currentPositionShared.store(newDevice.position, ordering: .relaxed)
         currentZoomFactor = newDevice.videoZoomFactor
         currentLensType = lensTypeForZoomFactor(currentZoomFactor, device: newDevice)
 
         rotateOutputsLocked(orientation: orientation)
         let newFlashMode: AVCaptureDevice.FlashMode? = newDevice.hasFlash ? cameraSettings.flashMode : nil
         captureSession.commitConfiguration()
+        reconcilePreviewOutputLocked()
         updateMaxPhotoDimensionsLocked()
         applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
         resetFocusExposureToAutoLocked()   // a stale focus point must not carry across a device change
@@ -869,7 +887,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         let descriptors = available.map { self.descriptorLocked($0) }
         guard let resolved = CameraDeviceDescriptor.resolveSelection(
                 requestedID: "", available: descriptors,
-                fallbackPosition: currentPositionShared.value),
+                fallbackPosition: currentPositionShared.load(ordering: .relaxed)),
               let device = available.first(where: { $0.uniqueID == resolved.uniqueID }) else { return }
         _ = try? swapToDeviceLocked(device, orientation: orientation)
     }
@@ -1230,20 +1248,20 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         // this call must carry the APPLIED value, not the one from a frame
         // ago — so wait for that handler, bounded so a driver that never
         // calls it (some Mac cameras) cannot hang the inbox.
-        let applied = Locked(false)
+        let applied = ManagedAtomic(false)
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let resume: () -> Void = {
-                var first = false
-                applied.mutate { if !$0 { $0 = true; first = true } }
-                if first { continuation.resume() }
+                if applied.compareExchange(expected: false, desired: true, ordering: .acquiringAndReleasing).exchanged {
+                    continuation.resume()
+                }
             }
             sessionQueue.async {
                 guard let device = self.videoDeviceInput?.device else {
-                    applied.mutate { $0 = true }
+                    applied.store(true, ordering: .releasing)
                     return continuation.resume(throwing: NSError(domain: "No camera device available", code: 0, userInfo: nil))
                 }
                 if case .manual = intent, self.exposureStateLocked(device)?.supportsManual != true {
-                    applied.mutate { $0 = true }
+                    applied.store(true, ordering: .releasing)
                     return continuation.resume(throwing: NSError(
                         domain: NSLocalizedString("This camera can't do manual exposure", comment: "manual exposure refused"),
                         code: 0, userInfo: nil))
@@ -1346,7 +1364,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 device.exposureMode = .continuousAutoExposure
                 // A long manual shutter may have stretched the frame duration;
                 // auto restores the frame rate the quality setting chose.
-                try? setFrameRate(framerate: fpsSetting.value, videoDevice: device)
+                try? setFrameRate(framerate: fpsSetting.load(ordering: .relaxed), videoDevice: device)
             }
             if case let .auto(bias) = plan, device.exposureTargetBias != bias {
                 device.setExposureTargetBias(bias, completionHandler: done)
@@ -1606,6 +1624,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         if let videoConnection = self.videoConnection {
             applyCaptureOrientationLocked(o, to: videoConnection)
         }
+        if let previewConnection = previewDataOutput.connection(with: .video) {
+            applyCaptureOrientationLocked(o, to: previewConnection)
+            if isPreviewOutputAttached { applyPreviewOutputSizeLocked() }
+        }
         if let photoConnection = self.photoOutput.connection(with: AVMediaType.video) {
             applyCaptureOrientationLocked(o, to: photoConnection)
             return true
@@ -1667,7 +1689,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
         let safeFPS = resolved.fps
         if safeFPS != framerate {
-            fpsSetting.value = safeFPS
+            fpsSetting.store(safeFPS, ordering: .relaxed)
             currentVideoFrameRate = VideoFrameRate.selectableCases.last(where: { $0.value <= safeFPS }) ?? .fps30
             onStatusChanged?()
         }
@@ -1749,10 +1771,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return false
         }
         captureSession.beginConfiguration()
+        suspendPreviewOutputSizeLocked()
         captureSession.sessionPreset = .photo
         captureSession.commitConfiguration()
         if let device = videoDeviceInput?.device {
-            try? setFrameRate(framerate: fpsSetting.value, videoDevice: device)
+            try? setFrameRate(framerate: fpsSetting.load(ordering: .relaxed), videoDevice: device)
         }
         restoreAfterFormatChangeLocked()
         onStatusChanged?()
@@ -1780,6 +1803,117 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         applyDesiredTorchLocked()
         applyExposureIntentLocked()
         updateMaxPhotoDimensionsLocked()
+        reconcilePreviewOutputLocked()
+    }
+
+    // MARK: - Dedicated preview output
+
+    /// Largest size with long edge ≤ `maxLongEdge`, the source's exact aspect
+    /// ratio (AVFoundation throws otherwise) and even edges, swapped for
+    /// portrait. nil when the source is already that small.
+    static func previewOutputDimensions(sourceWidth: Int, sourceHeight: Int,
+                                        portrait: Bool, maxLongEdge: Int) -> (width: Int, height: Int)? {
+        guard sourceWidth > 0, sourceHeight > 0, maxLongEdge > 0 else { return nil }
+        let divisor = gcd(sourceWidth, sourceHeight)
+        let unitWidth = sourceWidth / divisor
+        let unitHeight = sourceHeight / divisor
+        var steps = min(maxLongEdge, max(sourceWidth, sourceHeight)) / max(unitWidth, unitHeight)
+        if (unitWidth % 2 != 0 || unitHeight % 2 != 0) && steps % 2 != 0 { steps -= 1 }
+        let width = steps * unitWidth
+        let height = steps * unitHeight
+        guard width >= 2, height >= 2, width * height < sourceWidth * sourceHeight else { return nil }
+        return portrait ? (height, width) : (width, height)
+    }
+
+    private static func gcd(_ a: Int, _ b: Int) -> Int { b == 0 ? a : gcd(b, a % b) }
+
+    func hardwareCostSnapshot() -> Float {
+        syncOnSessionQueue {
+            if #available(iOS 16.0, macCatalyst 16.0, *) { return captureSession.hardwareCost }
+            return 0
+        }
+    }
+
+    /// The one place that decides whether the second output exists: attached
+    /// when the format is larger than the preview, the session accepts it and
+    /// `hardwareCost` ≤ 1.0 (above, the session cannot run); detached
+    /// otherwise. Runs at setup and after every format or device change.
+    private func reconcilePreviewOutputLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard #available(iOS 16.0, macCatalyst 16.0, *) else { return }
+        guard let device = videoDeviceInput?.device,
+              previewOutputDimensionsLocked(for: device) != nil else {
+            return detachPreviewOutputLocked()
+        }
+        if !captureSession.outputs.contains(previewDataOutput) {
+            guard captureSession.canAddOutput(previewDataOutput) else {
+                logWarning("session refuses a second video data output — preview reads the recording output")
+                return detachPreviewOutputLocked()
+            }
+            captureSession.beginConfiguration()
+            captureSession.addOutput(previewDataOutput)
+            if let connection = previewDataOutput.connection(with: .video) {
+                applyCaptureOrientationLocked(OrientationUtils.transform(o: orientation), to: connection)
+            }
+            captureSession.commitConfiguration()
+        }
+        let cost = captureSession.hardwareCost
+        guard cost <= 1.0 else {
+            logWarning("two video data outputs exceed the hardware budget (\(cost)) — preview reads the recording output")
+            return detachPreviewOutputLocked()
+        }
+        applyPreviewOutputSizeLocked()
+        previewOutputAttached.store(true, ordering: .releasing)
+    }
+
+    private func detachPreviewOutputLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        previewOutputAttached.store(false, ordering: .releasing)
+        clearPreviewOutputSizeLocked()
+        guard captureSession.outputs.contains(previewDataOutput) else { return }
+        captureSession.beginConfiguration()
+        captureSession.removeOutput(previewDataOutput)
+        captureSession.commitConfiguration()
+    }
+
+    /// Before a format, preset or device change: a size larger than the
+    /// incoming format makes AVFoundation throw. Reconciled after the commit.
+    private func suspendPreviewOutputSizeLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        previewOutputAttached.store(false, ordering: .releasing)
+        clearPreviewOutputSizeLocked()
+    }
+
+    /// Computed from the live format and orientation every time: a
+    /// disagreement with either is an uncatchable exception.
+    private func applyPreviewOutputSizeLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard #available(iOS 16.0, macCatalyst 16.0, *),
+              let device = videoDeviceInput?.device,
+              let dims = previewOutputDimensionsLocked(for: device) else {
+            return clearPreviewOutputSizeLocked()
+        }
+        debugLog("preview output \(dims.width)x\(dims.height) for \(device.localizedName)")
+        previewDataOutput.videoSettings = [
+            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA),
+            kCVPixelBufferWidthKey as String: dims.width,
+            kCVPixelBufferHeightKey as String: dims.height
+        ]
+    }
+
+    private func clearPreviewOutputSizeLocked() {
+        previewDataOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
+    }
+
+    private func previewOutputDimensionsLocked(for device: AVCaptureDevice) -> (width: Int, height: Int)? {
+        let dims = CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
+        // A Mac connection reports `.portrait` while delivering landscape
+        // buffers: orientation counts only where the app applies it.
+        let connection = previewDataOutput.connection(with: .video)
+        let rotated = OrientationUtils.appliesInterfaceRotation && connection?.isVideoOrientationSupported == true
+        let portrait = rotated && (connection?.videoOrientation == .portrait || connection?.videoOrientation == .portraitUpsideDown)
+        return Self.previewOutputDimensions(sourceWidth: Int(dims.width), sourceHeight: Int(dims.height),
+                                            portrait: portrait, maxLongEdge: previewLongEdge)
     }
 
     /// The format a fresh session starts on: HEIC where the hardware encodes
@@ -1819,12 +1953,13 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         guard captureMode != .Photo else {
             currentVideoResolution = resolution
             currentVideoFrameRate = frameRate
-            fpsSetting.value = frameRate.value
+            fpsSetting.store(frameRate.value, ordering: .relaxed)
             onStatusChanged?()
             return (resolution, frameRate)
         }
 
         captureSession.beginConfiguration()
+        suspendPreviewOutputSizeLocked()
 
         var appliedFrameRate = frameRate
 
@@ -1862,7 +1997,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
         currentVideoResolution = resolution
         currentVideoFrameRate = appliedFrameRate
-        fpsSetting.value = appliedFrameRate.value
+        fpsSetting.store(appliedFrameRate.value, ordering: .relaxed)
         onStatusChanged?()
 
         return (resolution, appliedFrameRate)

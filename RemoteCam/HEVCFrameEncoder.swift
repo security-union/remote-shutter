@@ -135,8 +135,16 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
         if dstWidth != sessionWidth || dstHeight != sessionHeight {
             guard remakeSession(width: dstWidth, height: dstHeight) else { return .failed }
         }
-        guard let session, let scaled = scaledBuffer(from: pixelBuffer, width: dstWidth, height: dstHeight) else {
-            return .failed
+        guard let session else { return .failed }
+        // Only a buffer larger than the session takes the GPU scale pass.
+        let input: CVPixelBuffer
+        if srcWidth == dstWidth && srcHeight == dstHeight {
+            input = pixelBuffer
+        } else {
+            guard let scaled = scaledBuffer(from: pixelBuffer, width: dstWidth, height: dstHeight) else {
+                return .failed
+            }
+            input = scaled
         }
 
         // Dead-session watchdog. Backgrounding revokes hardware sessions: a
@@ -167,7 +175,7 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
             let completed = self.completed
             let status = VTCompressionSessionEncodeFrame(
                 session,
-                imageBuffer: scaled,
+                imageBuffer: input,
                 presentationTimeStamp: CMTimeMake(value: pts, timescale: Int32(max(settings.fps, 1))),
                 duration: .invalid,
                 frameProperties: frameProperties as CFDictionary?,

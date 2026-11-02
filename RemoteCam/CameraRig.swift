@@ -5,16 +5,17 @@
 //  Copyright © 2026 Security Union LLC. All rights reserved.
 //
 
+import Atomics
 import Foundation
 import AVFoundation
 import UIKit
 
 /**
 Default fps, it would be neat if we would adjust this based on network conditions.
-Lock-boxed: written on the engine's session queue (frame-rate changes), read
-per-frame on the data queue by the frame streamer.
+Atomic: written on the engine's session queue (frame-rate changes), read
+per-frame on the preview lane by the frame streamer.
 */
-let fpsSetting = Locked(30)
+let fpsSetting = ManagedAtomic(30)
 
 /**
  The camera device, as one non-UI object: owns the capture stack
@@ -51,16 +52,16 @@ final class CameraRig: @unchecked Sendable {
 
     /// Orientation used for the preview and the frame streamer. The engine
     /// keeps its own copy for the output/photo connections (kept in sync here).
-    /// Lock-boxed: written on main (rotation), read per-frame on the data queue.
-    private let orientationShared = Locked(UIInterfaceOrientation.portrait)
+    /// Atomic: written on main (rotation), read per-frame on the preview lane.
+    private let orientationShared = ManagedAtomic(UIInterfaceOrientation.portrait)
     var orientation: UIInterfaceOrientation {
-        get { orientationShared.value }
-        set { orientationShared.value = newValue }
+        get { orientationShared.load(ordering: .relaxed) }
+        set { orientationShared.store(newValue, ordering: .relaxed) }
     }
 
     /// Whether `startCameraOnce` has published the session (guards rotation).
-    /// Lock-boxed: written on main, read on the actor mailbox (toggleCamera).
-    private let sessionPublished = Locked(false)
+    /// Atomic: written on main, read on the actor mailbox (toggleCamera).
+    private let sessionPublished = ManagedAtomic(false)
 
     let session: SessionCoordinator
     let frameSender: FrameSender
@@ -79,16 +80,16 @@ final class CameraRig: @unchecked Sendable {
     // MARK: - Countdown Torch
     let countdownTorch = CameraCountdownTorch()
 
-    /// Lock-boxed: written on the actor mailbox (mode changes) and main
+    /// Atomic: written on the actor mailbox (mode changes) and main
     /// (recording chrome), read wherever the status overlay updates.
-    private let currentCameraModeShared = Locked(RecordingMode.Photo)
+    private let currentCameraModeShared = ManagedAtomic(RecordingMode.Photo)
     /// The capture mode, mirrored to the engine on every write: the session
     /// configuration follows it (photo = full-sensor photo format, video =
     /// the selected video format). The engine dedupes repeated sets.
     var currentCameraMode: RecordingMode {
-        get { currentCameraModeShared.value }
+        get { currentCameraModeShared.load(ordering: .relaxed) }
         set {
-            currentCameraModeShared.value = newValue
+            currentCameraModeShared.store(newValue, ordering: .relaxed)
             engine.setCaptureMode(newValue)
         }
     }
@@ -225,26 +226,25 @@ final class CameraRig: @unchecked Sendable {
     /// is an infinite spinner with no error. Armed after every session start
     /// and device switch; on stall it falls back to the next healthy device
     /// once, then surfaces an error.
-    private let watchdogGeneration = Locked(0)
+    private let watchdogGeneration = ManagedAtomic(0)
     private static let firstFrameTimeout: TimeInterval = 5
 
     func armFirstFrameWatchdog(allowFallback: Bool = true) {
-        var generation = 0
-        watchdogGeneration.mutate { $0 += 1; generation = $0 }
+        let generation = watchdogGeneration.wrappingIncrementThenLoad(ordering: .relaxed)
         let armedAt = Date().timeIntervalSinceReferenceDate
         DispatchQueue.global(qos: .userInitiated).asyncAfter(
             deadline: .now() + Self.firstFrameTimeout
         ) { [weak self] in
             guard let self,
-                  self.watchdogGeneration.value == generation,
-                  self.streamingCoordinator.lastVideoFrameAt.value < armedAt else { return }
+                  self.watchdogGeneration.load(ordering: .relaxed) == generation,
+                  self.streamingCoordinator.lastVideoFrameAt < armedAt else { return }
             self.handleFrameStall(allowFallback: allowFallback)
         }
     }
 
     /// Cancels any armed watchdog (screen teardown).
     private func disarmFirstFrameWatchdog() {
-        watchdogGeneration.mutate { $0 += 1 }
+        watchdogGeneration.wrappingIncrement(ordering: .relaxed)
     }
 
     private func handleFrameStall(allowFallback: Bool) {
@@ -341,7 +341,7 @@ final class CameraRig: @unchecked Sendable {
                     self.cameraViewModel.previewSession = nil
                     return
                 }
-                self.sessionPublished.value = true
+                self.sessionPublished.store(true, ordering: .releasing)
                 self.rotateCameraToOrientation(orientation: self.orientation)
                 self.armFirstFrameWatchdog()
                 Task { await self.refreshCameraDeviceList() }
@@ -369,7 +369,7 @@ final class CameraRig: @unchecked Sendable {
     /// Callable from main (rotation) or the actor mailbox (toggleCamera).
     func rotateCameraToOrientation(orientation: UIInterfaceOrientation) {
         // Rotation is meaningless until setupCamera has published the session.
-        guard sessionPublished.value else { return }
+        guard sessionPublished.load(ordering: .acquiring) else { return }
         let videoOrientation = OrientationUtils.transform(o: orientation)
         DispatchQueue.main.async {
             // @Published — main thread only.
@@ -488,7 +488,7 @@ extension CameraRig: CameraControlling {
         let since = Date().timeIntervalSinceReferenceDate
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
-            if streamingCoordinator.lastVideoFrameAt.value > since { return true }
+            if streamingCoordinator.lastVideoFrameAt > since { return true }
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
         return false
@@ -641,3 +641,8 @@ extension CameraRig: CameraControlling {
         streamingCoordinator.acknowledgeWatchPreview()
     }
 }
+
+// Words that cross queue domains as `ManagedAtomic`s.
+extension AVCaptureDevice.Position: @retroactive AtomicValue {}
+extension UIInterfaceOrientation: @retroactive AtomicValue {}
+extension RecordingMode: AtomicValue {}

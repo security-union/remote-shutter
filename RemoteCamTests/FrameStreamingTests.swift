@@ -436,8 +436,8 @@ final class PreviewLaneTests: XCTestCase {
 
         XCTAssertFalse(lane.offer { XCTFail("a skipped frame must never be encoded") })
         XCTAssertFalse(lane.offer { XCTFail("a skipped frame must never be encoded") })
-        XCTAssertEqual(lane.skipped.value, 2)
-        XCTAssertEqual(lane.encoded.value, 0, "the first frame is still in the encoder")
+        XCTAssertEqual(lane.skipped, 2)
+        XCTAssertEqual(lane.encoded, 0, "the first frame is still in the encoder")
 
         holdEncode.signal()
         let secondEncodeRan = expectation(description: "second encode ran")
@@ -447,8 +447,36 @@ final class PreviewLaneTests: XCTestCase {
         }
         wait(for: [secondEncodeRan], timeout: 2)
         // The lane counts the frame after the encode returns, so give it a moment.
-        while lane.encoded.value < 2 && Date() < deadline { Thread.sleep(forTimeInterval: 0.005) }
-        XCTAssertEqual(lane.encoded.value, 2)
+        while lane.encoded < 2 && Date() < deadline { Thread.sleep(forTimeInterval: 0.005) }
+        XCTAssertEqual(lane.encoded, 2)
+    }
+}
+
+// MARK: - Frame routing
+
+final class FrameRouteTests: XCTestCase {
+    typealias Route = FrameStreamingCoordinator.FrameRoute
+
+    func testRecordingOutputFeedsBothWithoutADedicatedPreviewOutput() {
+        XCTAssertEqual(Route.decide(isRecordingVideo: true, isAudio: false, isPreviewOutput: false, hasDedicatedPreview: false),
+                       Route(toRecorder: true, toPreview: true))
+    }
+
+    func testRecordingOutputFeedsOnlyTheRecorderWithADedicatedPreviewOutput() {
+        XCTAssertEqual(Route.decide(isRecordingVideo: true, isAudio: false, isPreviewOutput: false, hasDedicatedPreview: true),
+                       Route(toRecorder: true, toPreview: false))
+    }
+
+    func testPreviewOutputFeedsOnlyThePreviewLane() {
+        XCTAssertEqual(Route.decide(isRecordingVideo: false, isAudio: false, isPreviewOutput: true, hasDedicatedPreview: true),
+                       Route(toRecorder: false, toPreview: true))
+    }
+
+    func testAudioFeedsOnlyTheRecorder() {
+        for dedicated in [false, true] {
+            XCTAssertEqual(Route.decide(isRecordingVideo: false, isAudio: true, isPreviewOutput: false, hasDedicatedPreview: dedicated),
+                           Route(toRecorder: true, toPreview: false))
+        }
     }
 }
 

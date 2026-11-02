@@ -7,6 +7,7 @@
 
 // swiftlint:disable cyclomatic_complexity function_body_length
 
+import Atomics
 import Combine
 import Foundation
 import MPCCompat
@@ -141,7 +142,7 @@ public actor MulticamController {
     // MARK: Inbox (mirrors SessionCoordinator)
 
     private nonisolated let inboxContinuation: Locked<AsyncStream<Message>.Continuation?> = Locked(nil)
-    private nonisolated let pendingCount = Locked(0)
+    private nonisolated let pendingCount = ManagedAtomic(0)
 
     public init() {
         var continuation: AsyncStream<Message>.Continuation!
@@ -152,19 +153,19 @@ public actor MulticamController {
             for await msg in stream {
                 guard let self else { break }
                 await self.handle(msg)
-                pending.mutate { $0 -= 1 }
+                pending.wrappingDecrement(ordering: .relaxed)
             }
         }
     }
 
     public nonisolated func tell(_ msg: Message) {
-        pendingCount.mutate { $0 += 1 }
+        pendingCount.wrappingIncrement(ordering: .relaxed)
         inboxContinuation.value?.yield(msg)
     }
 
     /// Test support: suspend until every enqueued message is processed.
     public nonisolated func waitForIdle() async {
-        while pendingCount.value > 0 {
+        while pendingCount.load(ordering: .relaxed) > 0 {
             await Task.yield()
         }
     }

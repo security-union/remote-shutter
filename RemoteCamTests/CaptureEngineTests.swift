@@ -6,6 +6,50 @@ import AVFoundation
 /// need no `AVCaptureDevice`, so they run on the simulator.
 final class CaptureEngineTests: XCTestCase {
 
+    // MARK: - previewOutputDimensions
+
+    func testPreviewSizeFor4KIsExact16By9AndEven() {
+        let dims = CaptureEngine.previewOutputDimensions(sourceWidth: 3840, sourceHeight: 2160,
+                                                         portrait: false, maxLongEdge: 1200)
+        XCTAssertEqual(dims?.width, 1184)
+        XCTAssertEqual(dims?.height, 666)
+    }
+
+    func testPreviewSizeSwapsForPortrait() {
+        let dims = CaptureEngine.previewOutputDimensions(sourceWidth: 1920, sourceHeight: 1080,
+                                                         portrait: true, maxLongEdge: 1200)
+        XCTAssertEqual(dims?.width, 666)
+        XCTAssertEqual(dims?.height, 1184)
+    }
+
+    func testPreviewSizeForFullSensorPhotoFormat() {
+        let dims = CaptureEngine.previewOutputDimensions(sourceWidth: 4032, sourceHeight: 3024,
+                                                         portrait: false, maxLongEdge: 1200)
+        XCTAssertEqual(dims?.width, 1200)
+        XCTAssertEqual(dims?.height, 900)
+    }
+
+    func testNoPreviewSizeWhenTheSourceIsAlreadyPreviewSized() {
+        XCTAssertNil(CaptureEngine.previewOutputDimensions(sourceWidth: 640, sourceHeight: 480,
+                                                           portrait: false, maxLongEdge: 1200))
+        XCTAssertNil(CaptureEngine.previewOutputDimensions(sourceWidth: 0, sourceHeight: 1080,
+                                                           portrait: false, maxLongEdge: 1200))
+    }
+
+    func testPreviewSizeKeepsTheSourceAspectExactlyForEveryCommonFormat() {
+        let formats = [(3840, 2160), (1920, 1080), (1280, 720), (4032, 3024), (2048, 1536), (1440, 1080), (3024, 3024)]
+        for (w, h) in formats {
+            guard let dims = CaptureEngine.previewOutputDimensions(sourceWidth: w, sourceHeight: h,
+                                                                   portrait: false, maxLongEdge: 1200) else {
+                continue // already preview-sized: no second output
+            }
+            XCTAssertEqual(dims.width * h, dims.height * w, "\(w)x\(h) → \(dims) is not the same ratio")
+            XCTAssertEqual(dims.width % 2, 0); XCTAssertEqual(dims.height % 2, 0)
+            XCTAssertLessThanOrEqual(max(dims.width, dims.height), 1200)
+            XCTAssertLessThan(dims.width * dims.height, w * h)
+        }
+    }
+
     // MARK: - resolveFrameRate
     // Supported rates form disjoint ranges; a value outside every range
     // raises an uncatchable ObjC exception in AVFoundation, so the resolver
