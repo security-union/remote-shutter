@@ -35,7 +35,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         Task { await StoreManager.shared.loadProducts() }
 
-        SleepPreventer.preventDisplaySleep()
         WatchSessionManager.shared.activate()
 
         return true
