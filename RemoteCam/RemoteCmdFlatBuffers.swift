@@ -998,20 +998,11 @@ extension RemoteCmd.TimerCountdown {
 // MARK: - fromFlatBuffer() factory
 
 extension RemoteCmd {
-    /// Decodes without copying the datagram: the FlatBuffers view reads the
-    /// Data's own bytes (any alignment), the verifier checks offsets and
-    /// bounds, and a frame's payload comes back as a slice of `data`.
+    /// Decodes without copying the datagram. Fields are copied into the
+    /// Message; a frame's payload comes back as a slice of `data`.
     static func fromFlatBuffer(_ data: Data) -> Message? {
-        data.withUnsafeBytes { raw -> Message? in
-            guard let base = raw.baseAddress, !raw.isEmpty else { return nil }
-            var buffer = ByteBuffer(assumingMemoryBound: UnsafeMutableRawPointer(mutating: base),
-                                    capacity: raw.count, allowReadingUnalignedBuffers: true)
-            // getCheckedRoot, minus its alignment check: a Data slice can start anywhere.
-            guard var verifier = try? Verifier(buffer: &buffer, checkAlignment: false),
-                  (try? ForwardOffset<RemoteShutter_P2PMessage>.verify(&verifier, at: 0, of: RemoteShutter_P2PMessage.self)) != nil
-            else { return nil }
+        withVerifiedBuffer(over: data) { buffer in
             let msg: RemoteShutter_P2PMessage = getRoot(byteBuffer: &buffer)
-
             switch msg.type {
             case .cameracommand:
                 return decodeCommand(msg)
@@ -1020,6 +1011,23 @@ extension RemoteCmd {
             case .framedata:
                 return decodeFrame(msg, in: data, buffer: buffer)
             }
+        }
+    }
+
+    /// Lends the datagram's own bytes to FlatBuffers for the duration of
+    /// `body`, after the verifier has checked every offset and bound. The view
+    /// is read-only and dies with `body`: return copies or byte offsets, never
+    /// the view. Alignment is not checked because a Data slice can start at
+    /// any address; the buffer is told to read unaligned.
+    private static func withVerifiedBuffer<T>(over data: Data, _ body: (inout ByteBuffer) -> T?) -> T? {
+        data.withUnsafeBytes { raw -> T? in
+            guard let base = raw.baseAddress, !raw.isEmpty else { return nil }
+            var buffer = ByteBuffer(assumingMemoryBound: UnsafeMutableRawPointer(mutating: base),
+                                    capacity: raw.count, allowReadingUnalignedBuffers: true)
+            guard var verifier = try? Verifier(buffer: &buffer, checkAlignment: false),
+                  (try? ForwardOffset<RemoteShutter_P2PMessage>.verify(&verifier, at: 0, of: RemoteShutter_P2PMessage.self)) != nil
+            else { return nil }
+            return body(&buffer)
         }
     }
 
