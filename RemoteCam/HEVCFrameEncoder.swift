@@ -47,23 +47,42 @@ import VideoToolbox
 /// deserialized `Data` is not guaranteed 4-byte aligned.
 enum HEVCFrameContainer {
     static func pack(parameterSets: Data?, frame: Data) -> Data {
-        var out = Data(capacity: 4 + (parameterSets?.count ?? 0) + frame.count)
-        out.appendUInt32LE(UInt32(parameterSets?.count ?? 0))
-        if let parameterSets { out.append(parameterSets) }
+        var out = header(parameterSets: parameterSets, frameLength: frame.count)
         out.append(frame)
         return out
     }
 
-    /// Splits a payload back into its parameter-set blob (nil on inter frames)
-    /// and frame bytes. Returns nil if the header is truncated or lies.
+    /// The encoder's block buffer lands straight in the container: one copy.
+    static func pack(parameterSets: Data?, frame: CMBlockBuffer) -> Data? {
+        let frameLength = CMBlockBufferGetDataLength(frame)
+        var out = header(parameterSets: parameterSets, frameLength: frameLength)
+        let headerLength = out.count
+        out.count += frameLength
+        let copied = out.withUnsafeMutableBytes { raw -> Bool in
+            guard let base = raw.baseAddress else { return false }
+            return CMBlockBufferCopyDataBytes(frame, atOffset: 0, dataLength: frameLength,
+                                              destination: base + headerLength) == kCMBlockBufferNoErr
+        }
+        return copied ? out : nil
+    }
+
+    private static func header(parameterSets: Data?, frameLength: Int) -> Data {
+        var out = Data(capacity: 4 + (parameterSets?.count ?? 0) + frameLength)
+        out.appendUInt32LE(UInt32(parameterSets?.count ?? 0))
+        if let parameterSets { out.append(parameterSets) }
+        return out
+    }
+
+    /// Splits a payload into its parameter-set blob (nil on inter frames) and
+    /// frame bytes, as slices of `data` (which may itself be a slice). Returns
+    /// nil if the header is truncated or lies.
     static func unpack(_ data: Data) -> (parameterSets: Data?, frame: Data)? {
         guard data.count >= 4 else { return nil }
         let paramLen = Int(data.readUInt32LE(at: 0))
         let frameStart = 4 + paramLen
         guard frameStart <= data.count else { return nil }
-        let params = paramLen > 0 ? data.subdata(in: 4..<frameStart) : nil
-        let frame = data.subdata(in: frameStart..<data.count)
-        return (params, frame)
+        let params = paramLen > 0 ? data.dropFirst(4).prefix(paramLen) : nil
+        return (params, data.dropFirst(frameStart))
     }
 }
 
@@ -311,18 +330,11 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
     /// VPS/SPS/PPS parameter sets on keyframes so the stream self-describes.
     private static func package(_ sampleBuffer: CMSampleBuffer) -> Data? {
         guard let dataBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) else { return nil }
-        var totalLength = 0
-        var dataPointer: UnsafeMutablePointer<Int8>?
-        guard CMBlockBufferGetDataPointer(dataBuffer, atOffset: 0, lengthAtOffsetOut: nil,
-                                          totalLengthOut: &totalLength, dataPointerOut: &dataPointer) == kCMBlockBufferNoErr,
-              let dataPointer else { return nil }
-        let frame = Data(bytes: dataPointer, count: totalLength)
-
         var parameterSets: Data?
         if isKeyframe(sampleBuffer), let format = CMSampleBufferGetFormatDescription(sampleBuffer) {
             parameterSets = extractParameterSets(from: format)
         }
-        return HEVCFrameContainer.pack(parameterSets: parameterSets, frame: frame)
+        return HEVCFrameContainer.pack(parameterSets: parameterSets, frame: dataBuffer)
     }
 
     private static func isKeyframe(_ sampleBuffer: CMSampleBuffer) -> Bool {

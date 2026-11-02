@@ -228,6 +228,40 @@ final class RemoteCmdSerializationTests: XCTestCase {
 
     // MARK: - 9. SendFrame
 
+    private func thirtyKilobyteFrame() -> RemoteCmd.SendFrame {
+        RemoteCmd.SendFrame(data: Data((0..<30_000).map { UInt8(truncatingIfNeeded: $0 &* 7) }), sender: nil,
+                            fps: 30, camPosition: .back, camOrientation: .portrait,
+                            codec: .hevc, sequenceNumber: 9)
+    }
+
+    func testSendFrame_payloadIsASliceOfTheDatagramEvenWhenUnaligned() throws {
+        let original = thirtyKilobyteFrame()
+        var padded = Data([0xEE])          // the datagram's first byte lands at an odd address
+        padded.append(original.toFlatBuffer())
+        let datagram = padded[1...]
+
+        let decoded = try XCTUnwrap(RemoteCmd.fromFlatBuffer(datagram) as? RemoteCmd.SendFrame)
+        XCTAssertEqual(decoded.data, original.data)
+        XCTAssertEqual(decoded.sequenceNumber, 9)
+        let isView: Bool = datagram.withUnsafeBytes { wire in
+            decoded.data.withUnsafeBytes { payload in
+                guard let w = wire.baseAddress, let p = payload.baseAddress else { return false }
+                return p >= w && p + payload.count <= w + wire.count
+            }
+        }
+        XCTAssertTrue(isView, "the payload must be a view into the datagram, not a copy")
+    }
+
+    func testSendFrame_decodeThroughput() {
+        let wire = thirtyKilobyteFrame().toFlatBuffer()
+        measure { for _ in 0..<1000 { _ = RemoteCmd.fromFlatBuffer(wire) } }
+    }
+
+    func testSendFrame_encodeThroughput() {
+        let frame = thirtyKilobyteFrame()
+        measure { for _ in 0..<1000 { _ = frame.toFlatBuffer() } }
+    }
+
     func testSendFrame_roundTrip() {
         let frameData = Data(repeating: 0xFF, count: 128)
         let original = RemoteCmd.SendFrame(
