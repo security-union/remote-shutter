@@ -3,33 +3,39 @@
 //  RemoteShutter
 //
 //  Monitor-side streaming pipeline: decodes incoming frames off the actor
-//  mailbox on a dedicated queue, watches for stalls (no frame for
-//  stallTimeout -> onStall so the state machine re-requests one), recovers on
-//  foreground, and logs sequence gaps + per-second stream stats.
+//  mailbox on a dedicated queue, returns the camera's frame credit once each
+//  frame is consumed, watches for stalls (no frame for stallTimeout -> onStall
+//  so the state machine re-requests one), recovers on foreground, and logs
+//  sequence gaps + per-second stream stats.
 //
-//  Stills (JPEG/HEIC, and frames from legacy peers) decode through
-//  UIImage(data:), which sniffs the container from magic bytes. VP9 is a
-//  stateful video stream, decoded by `PeerVP9PreviewDecoder`; an undecodable
-//  VP9 frame (joined mid-stream, transient loss) asks the camera for a keyframe
-//  via `onKeyframeNeeded`, rate-limited, so the decoder re-syncs.
+//  Video decodes into 4:2:0 pixel buffers the display shows as-is: HEVC through
+//  VideoToolbox, VP9 through `PeerVP9PreviewDecoder`. Both streams are stateful,
+//  so an undecodable frame (joined mid-stream, transient loss) asks the camera
+//  for a keyframe via `onKeyframeNeeded`, rate-limited, and the decoder
+//  re-syncs. Stills (JPEG/HEIC, the camera's fallback when it has no video
+//  encoder) decode through UIImage(data:), which sniffs the container.
 //
 
 import UIKit
-import Accelerate
-import CoreImage
 import VideoToolbox
 import VideocallCodecs
 
 /// `@unchecked Sendable`: `receive(_:)` hops straight to `decodeQueue`, and all
-/// mutable decode state is confined there; the `onImage`/`onStall`/
-/// `onKeyframeNeeded` callbacks are wired once before `start()`. This lets the
-/// multicam controller hold a per-lane frame sink that calls `receive` from the
-/// actor without reaching into a `UIViewController`.
+/// mutable decode state is confined there; the `onFrame`/`onFrameConsumed`/
+/// `onStall`/`onKeyframeNeeded` callbacks are wired once before `start()`. This
+/// lets the multicam controller hold a per-lane frame sink that calls `receive`
+/// from the actor without reaching into a `UIViewController`.
 final class FrameStreamReceiver: @unchecked Sendable {
 
     /// Decoded frame ready for display. Called on the decode queue — hop to
-    /// main before touching UI.
-    var onImage: ((UIImage) -> Void)?
+    /// main before touching UI, and call `shown` once the frame is on screen.
+    var onFrame: ((_ frame: PreviewFrame, _ shown: @escaping () -> Void) -> Void)?
+    /// A received frame was consumed (shown, or dropped as undecodable): its
+    /// credit goes back to the camera. Exactly once per frame. Called on the
+    /// decode queue or from the display's `shown`.
+    var onFrameConsumed: (() -> Void)?
+    /// The one `shown` handed to every `onFrame`, so a frame allocates nothing.
+    private lazy var returnCredit: () -> Void = { [weak self] in self?.onFrameConsumed?() }
     /// No frame has arrived for `config.stallTimeout`. Called on the decode
     /// queue, at most once per timeout while the stall persists.
     var onStall: (() -> Void)?
@@ -122,29 +128,49 @@ final class FrameStreamReceiver: @unchecked Sendable {
         lastFrameAt = time
         trackSequence(frame)
         trackStats(frame, at: time)
+        consume(decode(frame, at: time))
+    }
 
-        // Stateful video streams (HEVC preferred, VP9 fallback): an undecodable
-        // frame (joined mid-stream, transient loss) asks the camera for a
-        // keyframe so the decoder re-syncs.
-        if frame.codec == .hevc || frame.codec == .vp9 {
-            let image = frame.codec == .hevc
-                ? hevcDecoder.decode(frame.data)
-                : vp9Decoder.decode(frame.data)
-            if let image {
-                onImage?(image)
-            } else {
+    /// One received frame -> at most one frame to show. Video (HEVC, VP9) is
+    /// stateful: an undecodable frame (joined mid-stream, transient loss) asks
+    /// the camera for a keyframe so the decoder re-syncs. Stills decode through
+    /// UIImage(data:), which sniffs the container.
+    private func decode(_ frame: RemoteCmd.OnFrame, at time: TimeInterval) -> PreviewFrame? {
+        switch frame.codec {
+        case .hevc:
+            guard let buffer = hevcDecoder.decode(frame.data) else {
                 requestKeyframe(at: time)
+                return nil
             }
-            return
+            return .pixelBuffer(buffer)
+        case .vp9:
+            guard let buffer = vp9Decoder.decode(frame.data) else {
+                requestKeyframe(at: time)
+                return nil
+            }
+            return .pixelBuffer(buffer)
+        case .jpeg, .heic:
+            guard let image = UIImage(data: frame.data) else {
+                StreamLog.decode.error("""
+                    undecodable frame seq=\(frame.sequenceNumber) \
+                    codec=\(String(describing: frame.codec)) bytes=\(frame.data.count)
+                    """)
+                return nil
+            }
+            return .image(image)
         }
+    }
 
-        // Stills (JPEG/HEIC/legacy): UIImage(data:) sniffs the container.
-        guard let image = UIImage(data: frame.data) else {
-            StreamLog.decode.error(
-                "undecodable frame seq=\(frame.sequenceNumber) codec=\(String(describing: frame.codec)) bytes=\(frame.data.count)")
+    /// Returns the camera's credit exactly once per frame: now for a frame that
+    /// produced nothing, otherwise when the display reports it shown. That is
+    /// what paces the camera's window (`FrameCreditWindow`) to this receiver's
+    /// real decode + display rate.
+    private func consume(_ output: PreviewFrame?) {
+        guard let output, let onFrame else {
+            onFrameConsumed?()
             return
         }
-        onImage?(image)
+        onFrame(output, returnCredit)
     }
 
     /// Asks the camera for a keyframe when the VP9 decoder can't decode, but no
@@ -202,57 +228,35 @@ final class FrameStreamReceiver: @unchecked Sendable {
 }
 
 /// Decodes the camera's VP9 preview stream with the pure-Rust `Vp9Decoder`
-/// (VideocallCodecs). The decoder is stateful — it needs a keyframe first, then
-/// inter frames in order — so it follows a drop-but-recover policy: an
-/// undecodable frame (monitor joined mid-stream, a delta frame was lost) returns
-/// nil, the caller asks the camera for a keyframe, and the stream re-syncs. A
-/// failure streak longer than one keyframe interval recreates the decoder to
-/// drain any poisoned state.
+/// (VideocallCodecs) into the same 4:2:0 pixel buffers the HEVC path hands the
+/// display. The decoder is stateful — it needs a keyframe first, then inter
+/// frames in order — so it follows a drop-but-recover policy: an undecodable
+/// frame (monitor joined mid-stream, a delta frame was lost) returns nil, the
+/// caller asks the camera for a keyframe, and the stream re-syncs. A failure
+/// streak longer than one keyframe interval recreates the decoder to drain any
+/// poisoned state.
 ///
 /// Not thread-safe: confined to the caller's serial queue (the
 /// `FrameStreamReceiver.decodeQueue`), mirroring the Watch's decoder.
-///
-/// Output frames are tightly-packed I420; vImage converts them to ARGB with the
-/// same full-range ITU-R 601 tables the camera used on the way in
-/// (`VP9FrameEncoder`).
 final class PeerVP9PreviewDecoder {
 
     private var decoder = Vp9Decoder()
     private var failureStreak = 0
     private let maxFailureStreak: Int
     private var announcedStreamLive = false
-    private var conversion = vImage_YpCbCrToARGB()
-    private let identityPermute: [UInt8] = [0, 1, 2, 3]
-    /// Reused ARGB destination for every frame — allocating a multi-MB buffer
-    /// per frame at stream rate churns memory. vImage converts into the
-    /// context's backing store in place; `makeImage()` snapshots it with
-    /// copy-on-write pages, so overwriting it for the next frame cannot corrupt
-    /// an image already handed out. Recreated only when the stream dimensions
-    /// change. Queue-confined like the decoder.
-    private var argbContext: CGContext?
+    /// Pool of bi-planar 4:2:0 buffers at the stream's dimensions; recreated
+    /// only when they change.
+    private var pool: CVPixelBufferPool?
+    private var poolSize = (width: 0, height: 0)
 
     init(maxFailureStreak: Int = 30) {
         self.maxFailureStreak = maxFailureStreak
-
-        // Full-range 8-bit YpCbCr — identical range to VP9FrameEncoder's output.
-        var pixelRange = vImage_YpCbCrPixelRange(
-            Yp_bias: 0, CbCr_bias: 128,
-            YpRangeMax: 255, CbCrRangeMax: 255,
-            YpMax: 255, YpMin: 1,
-            CbCrMax: 255, CbCrMin: 0)
-        vImageConvert_YpCbCrToARGB_GenerateConversion(
-            kvImage_YpCbCrToARGBMatrix_ITU_R_601_4,
-            &pixelRange,
-            &conversion,
-            kvImage420Yp8_Cb8_Cr8,
-            kvImageARGB8888,
-            vImage_Flags(kvImageNoFlags))
     }
 
-    /// Decodes one VP9 frame on the caller's queue. Returns the rendered image,
-    /// or nil for a dropped/undecodable frame (the caller then requests a
-    /// keyframe). A long failure streak recreates the decoder.
-    func decode(_ frame: Data) -> UIImage? {
+    /// Decodes one VP9 frame on the caller's queue. Returns the decoded 4:2:0
+    /// pixel buffer, or nil for a dropped/undecodable frame (the caller then
+    /// requests a keyframe). A long failure streak recreates the decoder.
+    func decode(_ frame: Data) -> CVPixelBuffer? {
         do {
             let decoded = try decoder.decode(frame: frame)
             failureStreak = 0
@@ -260,7 +264,7 @@ final class PeerVP9PreviewDecoder {
                 announcedStreamLive = true
                 StreamLog.decode.info("VP9 preview stream live (\(decoded.width)x\(decoded.height))")
             }
-            return makeImage(from: decoded)
+            return makePixelBuffer(from: decoded)
         } catch {
             failureStreak += 1
             StreamLog.decode.debug("dropped undecodable VP9 frame (streak \(self.failureStreak)): \(error)")
@@ -274,8 +278,11 @@ final class PeerVP9PreviewDecoder {
         }
     }
 
-    /// Tightly-packed I420 -> ARGB8888 -> CGImage -> UIImage.
-    private func makeImage(from decoded: DecodedFrame) -> UIImage? {
+    /// Tightly-packed planar I420 -> bi-planar 4:2:0 (full-range ITU-R 601, as
+    /// the camera's `VP9FrameEncoder` wrote it): the luma plane is copied row by
+    /// row and the two chroma planes are interleaved. Same samples, no color
+    /// conversion.
+    func makePixelBuffer(from decoded: DecodedFrame) -> CVPixelBuffer? {
         let width = Int(decoded.width)
         let height = Int(decoded.height)
         let chromaWidth = (width + 1) / 2
@@ -283,50 +290,62 @@ final class PeerVP9PreviewDecoder {
         let lumaBytes = width * height
         let chromaBytes = chromaWidth * chromaHeight
         guard width > 0, height > 0,
-              decoded.data.count >= lumaBytes + 2 * chromaBytes else { return nil }
+              decoded.data.count >= lumaBytes + 2 * chromaBytes,
+              let buffer = dequeueBuffer(width: width, height: height) else { return nil }
 
-        if argbContext == nil || argbContext?.width != width || argbContext?.height != height {
-            argbContext = CGContext(
-                data: nil,                       // CG owns (and reuses) the buffer
-                width: width, height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: 0,                  // CG picks an aligned stride
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue)
-        }
-        guard let context = argbContext, let dstBase = context.data else { return nil }
+        CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+        guard let lumaDst = CVPixelBufferGetBaseAddressOfPlane(buffer, 0),
+              let chromaDst = CVPixelBufferGetBaseAddressOfPlane(buffer, 1) else { return nil }
+        let lumaStride = CVPixelBufferGetBytesPerRowOfPlane(buffer, 0)
+        let chromaStride = CVPixelBufferGetBytesPerRowOfPlane(buffer, 1)
 
-        let converted: Bool = decoded.data.withUnsafeBytes { srcRaw -> Bool in
-            guard let srcBase = srcRaw.baseAddress else { return false }
-            var yp = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: srcBase),
-                                   height: vImagePixelCount(height),
-                                   width: vImagePixelCount(width),
-                                   rowBytes: width)
-            var cb = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: srcBase + lumaBytes),
-                                   height: vImagePixelCount(chromaHeight),
-                                   width: vImagePixelCount(chromaWidth),
-                                   rowBytes: chromaWidth)
-            var cr = vImage_Buffer(data: UnsafeMutableRawPointer(mutating: srcBase + lumaBytes + chromaBytes),
-                                   height: vImagePixelCount(chromaHeight),
-                                   width: vImagePixelCount(chromaWidth),
-                                   rowBytes: chromaWidth)
-            var dst = vImage_Buffer(data: dstBase,
-                                    height: vImagePixelCount(height),
-                                    width: vImagePixelCount(width),
-                                    rowBytes: context.bytesPerRow)
-            return vImageConvert_420Yp8_Cb8_Cr8ToARGB8888(
-                &yp, &cb, &cr, &dst, &conversion, identityPermute, 255,
-                vImage_Flags(kvImageNoFlags)) == kvImageNoError
+        decoded.data.withUnsafeBytes { raw in
+            guard let src = raw.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return }
+            for row in 0..<height {
+                memcpy(lumaDst + row * lumaStride, src + row * width, width)
+            }
+            let cb = src + lumaBytes
+            let cr = cb + chromaBytes
+            let dst = chromaDst.assumingMemoryBound(to: UInt8.self)
+            for row in 0..<chromaHeight {
+                let out = dst + row * chromaStride
+                let srcOffset = row * chromaWidth
+                for x in 0..<chromaWidth {
+                    out[2 * x] = cb[srcOffset + x]
+                    out[2 * x + 1] = cr[srcOffset + x]
+                }
+            }
         }
-        guard converted, let cgImage = context.makeImage() else { return nil }
-        return UIImage(cgImage: cgImage)
+        CVBufferSetAttachment(buffer, kCVImageBufferYCbCrMatrixKey,
+                              kCVImageBufferYCbCrMatrix_ITU_R_601_4, .shouldPropagate)
+        return buffer
+    }
+
+    private func dequeueBuffer(width: Int, height: Int) -> CVPixelBuffer? {
+        if pool == nil || poolSize != (width, height) {
+            let attributes: [CFString: Any] = [
+                kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+                kCVPixelBufferWidthKey: width,
+                kCVPixelBufferHeightKey: height,
+                kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary
+            ]
+            var created: CVPixelBufferPool?
+            CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, attributes as CFDictionary, &created)
+            pool = created
+            poolSize = (width, height)
+        }
+        guard let pool else { return nil }
+        var buffer: CVPixelBuffer?
+        CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &buffer)
+        return buffer
     }
 }
 
 /// Decodes the camera's HEVC preview stream with VideoToolbox
-/// (`VTDecompressionSession`). Mirrors `PeerVP9PreviewDecoder`'s contract exactly
-/// — stateful, drop-but-recover — so `FrameStreamReceiver` treats the two video
-/// codecs uniformly.
+/// (`VTDecompressionSession`) into 4:2:0 pixel buffers the display shows as-is.
+/// Mirrors `PeerVP9PreviewDecoder`'s contract — stateful, drop-but-recover — so
+/// `FrameStreamReceiver` treats the two video codecs uniformly.
 ///
 /// Each keyframe payload carries its VPS/SPS/PPS parameter sets inline (see
 /// `HEVCFrameContainer`), from which the session's `CMFormatDescription` is
@@ -340,7 +359,6 @@ final class PeerHEVCPreviewDecoder {
 
     private var session: VTDecompressionSession?
     private var formatDescription: CMVideoFormatDescription?
-    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
     private var failureStreak = 0
     private let maxFailureStreak: Int
     private var announcedStreamLive = false
@@ -353,10 +371,10 @@ final class PeerHEVCPreviewDecoder {
         if let session { VTDecompressionSessionInvalidate(session) }
     }
 
-    /// Decodes one HEVC frame on the caller's queue. Returns the rendered image,
-    /// or nil for a dropped/undecodable frame (the caller then requests a
-    /// keyframe).
-    func decode(_ data: Data) -> UIImage? {
+    /// Decodes one HEVC frame on the caller's queue. Returns the decoded 4:2:0
+    /// pixel buffer, or nil for a dropped/undecodable frame (the caller then
+    /// requests a keyframe).
+    func decode(_ data: Data) -> CVPixelBuffer? {
         guard let (parameterSets, frame) = HEVCFrameContainer.unpack(data) else {
             return recordFailure("malformed HEVC container (\(data.count) bytes)")
         }
@@ -377,28 +395,25 @@ final class PeerHEVCPreviewDecoder {
         // threads (where `._1xRealTimePlayback` pacing lands) is a priority
         // inversion. Real-time is already requested per-session via
         // `kVTDecompressionPropertyKey_RealTime`.
-        var image: UIImage?
+        var decoded: CVPixelBuffer?
         let status = VTDecompressionSessionDecodeFrame(
             session, sampleBuffer: sampleBuffer, flags: [], infoFlagsOut: nil
-        ) { [ciContext] decodeStatus, _, imageBuffer, _, _ in
-            guard decodeStatus == noErr, let imageBuffer else { return }
-            let ciImage = CIImage(cvPixelBuffer: imageBuffer)
-            if let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) {
-                image = UIImage(cgImage: cgImage)
-            }
+        ) { decodeStatus, _, imageBuffer, _, _ in
+            guard decodeStatus == noErr else { return }
+            decoded = imageBuffer
         }
         guard status == noErr else { return recordFailure("VTDecompressionSessionDecodeFrame: \(status)") }
 
-        guard let image else { return recordFailure("HEVC decode produced no image") }
+        guard let decoded else { return recordFailure("HEVC decode produced no image") }
         failureStreak = 0
         if !announcedStreamLive {
             announcedStreamLive = true
             StreamLog.decode.info("HEVC preview stream live")
         }
-        return image
+        return decoded
     }
 
-    private func recordFailure(_ reason: String) -> UIImage? {
+    private func recordFailure(_ reason: String) -> CVPixelBuffer? {
         failureStreak += 1
         StreamLog.decode.debug("dropped undecodable HEVC frame (streak \(self.failureStreak)): \(reason)")
         if failureStreak >= maxFailureStreak {
@@ -430,8 +445,10 @@ final class PeerHEVCPreviewDecoder {
         session = nil
         formatDescription = format
 
+        // 4:2:0, IOSurface-backed: what the display layer composites as-is.
         let destAttributes: [CFString: Any] = [
-            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+            kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary
         ]
         var newSession: VTDecompressionSession?
         let status = VTDecompressionSessionCreate(

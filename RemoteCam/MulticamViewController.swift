@@ -232,12 +232,18 @@ public final class MulticamViewController: UIViewController {
     }
 
     /// Wire a freshly created lane's decoder: its frames drive only its own
-    /// `FrameDisplayModel`, and its stall/keyframe recovery targets only its
-    /// own peer on the controller.
+    /// `FrameDisplayModel`, a shown frame returns its camera's credit, and its
+    /// stall/keyframe recovery targets only its own peer on the controller.
     private func wire(_ lane: CameraLane) {
         let peer = lane.peerID
-        lane.receiver.onImage = { [weak lane] image in
-            OperationQueue.main.addOperation { lane?.frames.cameraImage = image }
+        lane.receiver.onFrame = { [weak lane] frame, shown in
+            DispatchQueue.main.async {
+                lane?.frames.show(frame)
+                shown()
+            }
+        }
+        lane.receiver.onFrameConsumed = { [weak self] in
+            self?.controller.ackFrame(for: peer)
         }
         lane.receiver.onStall = { [weak self] in
             self?.controller.nudgeFrame(for: peer)

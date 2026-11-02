@@ -100,17 +100,23 @@ exactly one tile:
 flowchart LR
     A["didReceiveFrame<br/>nonisolated · transport thread"]
       -->|tell| B["inbox pump<br/>actor · FIFO"]
-    B -->|"frameSinks[peerId]"| C["FrameStreamReceiver.receive<br/>decode queue"]
-    C -->|"onImage → main"| D["FrameDisplayModel<br/>main · @Published image"]
-    D -->|publish| E["LiveFrameView<br/>this lane's tile only"]
+    B -->|"frameSinks[peerId]"| C["FrameStreamReceiver.receive<br/>decode queue · 4:2:0 out"]
+    C -->|"onFrame → main"| D["FrameDisplayModel<br/>main · pushes to the lane's PreviewSurface layer"]
+    D -->|"shown → ackFrame"| B
     B -->|"RequestFrame → source peer only"| F["credit-window ack (Seam B)"]
 ```
+
+The credit goes back once the frame is on screen (or was dropped as
+undecodable), so the camera's window paces it to the director's real decode +
+display rate. The frame itself bypasses SwiftUI state: the decoder's 4:2:0
+pixel buffer goes straight to an `AVSampleBufferDisplayLayer`, and SwiftUI
+observes only the frame's pixel size.
 
 Two things make this robust:
 
 - **Rendering isolation.** Each lane owns its own `FrameStreamReceiver` and
-  `FrameDisplayModel`, so a frame from camera B publishes into camera B's model
-  and re-renders only camera B's tile — never camera A, never the chrome.
+  `FrameDisplayModel`, so a frame from camera B lands on camera B's surface
+  and nowhere else — never camera A, never the chrome.
 - **Sink routing, not display calls.** The actor routes frames through a
   per-lane `@Sendable` closure (`MulticamFrameSink`) registered when the lane is
   created. The actor never calls into a `UIViewController`; it calls a Sendable

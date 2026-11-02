@@ -665,7 +665,7 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
             guard let image = UIImage(contentsOfFile: path) else {
                 return XCTFail("missing tile \(path)")
             }
-            lane.frames.cameraImage = image
+            lane.frames.show(.image(image))
         }
         vm.displayMode = .grid
 

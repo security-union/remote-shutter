@@ -564,6 +564,8 @@ public actor MulticamController {
             switch c.kind {
             case .focus, .invite, .remove, .disconnect, .retryCollection:
                 logInfo("director: \(c.kind) → \(c.peer.displayName)")
+            case .ackFrame:
+                break
             case .nudgeFrame, .requestKeyframe, .reconnectTick, .capsRetryTick:
                 logDebug("director: \(c.kind) → \(c.peer.displayName)")
             }
@@ -573,7 +575,7 @@ public actor MulticamController {
             case .remove: handleRemoveCamera(c.peer)
             case .disconnect: handleDisconnectCamera(c.peer)
             case .retryCollection: handleRetryCollection(c.peer)
-            case .nudgeFrame: handleNudgeFrame(c.peer)
+            case .ackFrame, .nudgeFrame: handleRequestFrame(c.peer)
             case .requestKeyframe: handleRequestKeyframe(c.peer)
             case .reconnectTick: reBrowseIfStillMissing(c.peer)
             case .capsRetryTick: reRequestCapsIfStillMissing(c.peer)
@@ -862,12 +864,15 @@ public actor MulticamController {
     private func handleFrame(_ frame: RemoteCmd.OnFrame) {
         guard let link = links[frame.peerId] else { return }
         if frame.codec == .vp9 { link.sawVP9 = true }
-        // Route to exactly this lane's decoder (rendering isolation), then ack
-        // only this camera so its credit window advances and no other camera
-        // sends on a frame it didn't produce (Seam B).
+        // Route to exactly this lane's decoder (rendering isolation). The
+        // camera's credit comes back through `ackFrame(for:)` once the lane has
+        // consumed the frame, so the window paces the camera to this director.
         frameSinks[frame.peerId]?(frame)
-        sendTo(frame.peerId, RemoteCmd.RequestFrame(sender: nil))
     }
+
+    /// A lane consumed a frame: return that camera's credit, and only that
+    /// camera's, so no camera sends on a frame it didn't produce (Seam B).
+    public nonisolated func ackFrame(for peer: MCPeerID) { tell(MCPeerCommand(.ackFrame, peer)) }
 
     // MARK: - Per-camera controls (target carried by the command)
 
@@ -1776,7 +1781,9 @@ public actor MulticamController {
     /// camera's pump (the others are unaffected).
     public nonisolated func nudgeFrame(for peer: MCPeerID) { tell(MCPeerCommand(.nudgeFrame, peer)) }
 
-    private func handleNudgeFrame(_ peer: MCPeerID) {
+    /// One `RequestFrame` to one camera: a credit for a consumed frame, or a
+    /// stall nudge. The camera's window treats a stray one as a no-op.
+    private func handleRequestFrame(_ peer: MCPeerID) {
         guard links[peer] != nil else { return }
         sendTo(peer, RemoteCmd.RequestFrame(sender: nil))
     }
@@ -2039,7 +2046,10 @@ final class MCControlTimeout: Message, @unchecked Sendable {
 }
 
 final class MCPeerCommand: Message, @unchecked Sendable {
-    enum Kind { case focus, invite, remove, disconnect, retryCollection, nudgeFrame, requestKeyframe, reconnectTick, capsRetryTick }
+    enum Kind {
+        case focus, invite, remove, disconnect, retryCollection
+        case ackFrame, nudgeFrame, requestKeyframe, reconnectTick, capsRetryTick
+    }
     let kind: Kind
     let peer: MCPeerID
     init(_ kind: Kind, _ peer: MCPeerID) { self.kind = kind; self.peer = peer; super.init(sender: nil) }

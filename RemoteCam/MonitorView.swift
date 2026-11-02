@@ -333,23 +333,22 @@ struct MonitorTrayTile: View {
 
 // MARK: - Live Frame View
 
-/// Renders the streamed preview frames. Deliberately its own view observing
-/// only `FrameDisplayModel`: frames publish ~20×/sec, and observing them
-/// from `MonitorView` re-rendered every control on each frame.
+/// Renders the streamed preview frames. Its own view, observing only the
+/// `FrameDisplayModel`'s frame size: the frames go to the `PreviewSurface`'s
+/// layer, so SwiftUI lays out the fitted frame and crop bars per size change.
 struct LiveFrameView: View {
     @ObservedObject var frames: FrameDisplayModel
     let aspectRatio: AspectRatio
 
     var body: some View {
-        if let image = frames.cameraImage {
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
+        if let size = frames.frameSize {
+            PreviewSurface(frames: frames)
+                .aspectRatio(size.width / size.height, contentMode: .fit)
                 .clipped()
                 .overlay(
                     AspectRatioCropOverlay(
                         selectedRatio: aspectRatio,
-                        imageSize: image.size
+                        imageSize: size
                     )
                 )
         } else {

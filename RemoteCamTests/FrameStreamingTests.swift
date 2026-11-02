@@ -296,13 +296,18 @@ final class FrameStreamReceiverTests: XCTestCase {
 
     private var clock: TimeInterval = 1000
     private var receiver: FrameStreamReceiver!
-    private var images: [UIImage] = []
+    private var frames: [PreviewFrame] = []
+    private var credits = 0
     private var stallCount = 0
 
     override func setUp() {
         super.setUp()
         receiver = FrameStreamReceiver(now: { [weak self] in self?.clock ?? 0 })
-        receiver.onImage = { [weak self] in self?.images.append($0) }
+        receiver.onFrame = { [weak self] frame, shown in
+            self?.frames.append(frame)
+            shown()
+        }
+        receiver.onFrameConsumed = { [weak self] in self?.credits += 1 }
         receiver.onStall = { [weak self] in self?.stallCount += 1 }
     }
 
@@ -333,7 +338,30 @@ final class FrameStreamReceiverTests: XCTestCase {
 
     func testDecodesFrameAndEmitsImage() {
         deliver(makeOnFrame(data: validJPEG, sequenceNumber: 1))
-        XCTAssertEqual(images.count, 1)
+        XCTAssertEqual(frames.count, 1)
+    }
+
+    /// Back-pressure: every received frame returns exactly one credit, whether
+    /// it rendered or not — on display for a decodable frame, at once for one
+    /// that produced nothing. Fewer would starve the camera's window; more
+    /// would let the camera run ahead of this phone.
+    func testEveryFrameReturnsExactlyOneCredit() {
+        deliver(makeOnFrame(data: validJPEG, sequenceNumber: 1))
+        deliver(makeOnFrame(data: Data([0xFF, 0x00]), sequenceNumber: 2))          // undecodable still
+        deliver(makeOnFrame(data: Data([0x01]), codec: .hevc, sequenceNumber: 3))  // video before a keyframe
+        XCTAssertEqual(frames.count, 1)
+        XCTAssertEqual(credits, 3)
+    }
+
+    /// The credit for a decodable frame waits for the display: a frame still
+    /// on its way to the screen holds its slot in the camera's window.
+    func testCreditWaitsUntilTheDisplayShowedTheFrame() {
+        var pendingShown: (() -> Void)?
+        receiver.onFrame = { _, shown in pendingShown = shown }
+        deliver(makeOnFrame(data: validJPEG, sequenceNumber: 1))
+        XCTAssertEqual(credits, 0)
+        pendingShown?()
+        XCTAssertEqual(credits, 1)
     }
 
     /// Old-camera → new-monitor: an old camera streams stills tagged JPEG (a
@@ -346,13 +374,13 @@ final class FrameStreamReceiverTests: XCTestCase {
 
         deliver(makeOnFrame(data: validJPEG, codec: .jpeg, sequenceNumber: 1))
 
-        XCTAssertEqual(images.count, 1, "a JPEG still from an old camera must render")
+        XCTAssertEqual(frames.count, 1, "a JPEG still from an old camera must render")
         XCTAssertEqual(keyframeRequests, 0, "stills never trigger a VP9 keyframe request")
     }
 
     func testUndecodableFrameEmitsNothingButCountsAsActivity() {
         deliver(makeOnFrame(data: Data([0xDE, 0xAD]), sequenceNumber: 1))
-        XCTAssertTrue(images.isEmpty)
+        XCTAssertTrue(frames.isEmpty)
 
         // The broken frame still proves the link is alive — no stall.
         clock += 1.0
@@ -560,8 +588,8 @@ final class HEVCStreamingTests: XCTestCase {
         XCTAssertEqual(data.readUInt32LE(at: 1), 0x0403_0201)
     }
 
-    /// End-to-end: the HEVC encoder's keyframe decodes back to an image at the
-    /// downscaled size. Hardware HEVC encode is A10+/host-dependent — and the iOS
+    /// End-to-end: the HEVC encoder's keyframe decodes back to a 4:2:0 pixel
+    /// buffer at the downscaled size. Hardware HEVC encode is A10+/host-dependent — and the iOS
     /// simulator can create a session but emit nothing — so this skips whenever
     /// the encode produces no frame, exactly as the sibling HEIC test does.
     func testHEVCEncodeDecodeRoundTrip() throws {
@@ -583,7 +611,9 @@ final class HEVCStreamingTests: XCTestCase {
         let parts = try XCTUnwrap(HEVCFrameContainer.unpack(payload!))
         XCTAssertNotNil(parts.parameterSets, "keyframe must carry parameter sets so the monitor can re-sync")
 
-        let image = try XCTUnwrap(decoder.decode(payload!), "keyframe should decode to an image")
-        XCTAssertLessThanOrEqual(max(image.size.width, image.size.height), 128)
+        let buffer = try XCTUnwrap(decoder.decode(payload!), "keyframe should decode to a pixel buffer")
+        XCTAssertLessThanOrEqual(max(CVPixelBufferGetWidth(buffer), CVPixelBufferGetHeight(buffer)), 128)
+        XCTAssertEqual(CVPixelBufferGetPixelFormatType(buffer), kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+                       "the decoder hands the display 4:2:0, never an RGB conversion")
     }
 }
