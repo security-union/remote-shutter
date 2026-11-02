@@ -458,7 +458,7 @@ final class PeerHEVCPreviewDecoder {
             guard offset + 4 <= data.count else { return [] }
             let size = Int(data.readUInt32LE(at: offset)); offset += 4
             guard offset + size <= data.count else { return [] }
-            sets.append(data.subdata(in: offset..<(offset + size)))
+            sets.append(data.dropFirst(offset).prefix(size))
             offset += size
         }
         return sets

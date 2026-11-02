@@ -503,6 +503,18 @@ final class HEVCStreamingTests: XCTestCase {
 
     /// A truncated header or a length that overruns the buffer is rejected rather
     /// than read out of bounds (FlatBuffers `Data` may be unaligned).
+    func testHEVCFrameContainerUnpacksASliceAsSlices() throws {
+        let params = Data([1, 2, 3])
+        let frame = Data(repeating: 0xAB, count: 64)
+        var padded = Data([0, 0, 0])
+        padded.append(HEVCFrameContainer.pack(parameterSets: params, frame: frame))
+
+        let parts = try XCTUnwrap(HEVCFrameContainer.unpack(padded[3...]))
+        XCTAssertEqual(parts.parameterSets, params)
+        XCTAssertEqual(parts.frame, frame)
+        XCTAssertEqual(parts.frame.startIndex, padded.count - frame.count, "a slice of the input, not a copy")
+    }
+
     func testHEVCFrameContainerRejectsMalformed() {
         XCTAssertNil(HEVCFrameContainer.unpack(Data([0, 0])), "header shorter than 4 bytes")
         XCTAssertNil(HEVCFrameContainer.unpack(Data([0xFF, 0xFF, 0xFF, 0xFF, 0])), "param length overruns buffer")

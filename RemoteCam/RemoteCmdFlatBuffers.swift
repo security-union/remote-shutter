@@ -18,6 +18,9 @@ import UIKit
 /// Used by MultipeerService.send() as the single encode entry point.
 func serializeToFlatBuffer(_ msg: Message) -> Data? {
     switch msg {
+    // Per-frame messages first: the chain is linear.
+    case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
+    case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
     case let m as RemoteCmd.StartRecordingVideo: return m.toFlatBuffer()
     case let m as RemoteCmd.StartRecordingVideoAck: return m.toFlatBuffer()
     case let m as RemoteCmd.StopRecordingVideo: return m.toFlatBuffer()
@@ -26,8 +29,6 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.TakePic: return m.toFlatBuffer()
     case let m as RemoteCmd.TakePicAck: return m.toFlatBuffer()
     case let m as RemoteCmd.TakePicResp: return m.toFlatBuffer()
-    case let m as RemoteCmd.SendFrame: return m.toFlatBuffer()
-    case let m as RemoteCmd.RequestFrame: return m.toFlatBuffer()
     case let m as RemoteCmd.RequestKeyframe: return m.toFlatBuffer()
     case let m as RemoteCmd.ClockSyncPing: return m.toFlatBuffer()
     case let m as RemoteCmd.ClockSyncPong: return m.toFlatBuffer()
@@ -555,7 +556,9 @@ extension RemoteCmd.TakePicResp {
 
 extension RemoteCmd.SendFrame {
     func toFlatBuffer() -> Data {
-        var fbb = FlatBufferBuilder()
+        // Sized for the payload: the default 1 KiB builder would double and
+        // copy its way up to a frame's size on every frame.
+        var fbb = FlatBufferBuilder(initialSize: Int32(clamping: data.count + 64))
         let imageOffset = fbb.createVector(bytes: data)
         let frame = RemoteShutter_FrameData.createFrameData(
             &fbb,
@@ -995,21 +998,44 @@ extension RemoteCmd.TimerCountdown {
 // MARK: - fromFlatBuffer() factory
 
 extension RemoteCmd {
+    /// Decodes without copying the datagram: the FlatBuffers view reads the
+    /// Data's own bytes (any alignment), the verifier checks offsets and
+    /// bounds, and a frame's payload comes back as a slice of `data`.
     static func fromFlatBuffer(_ data: Data) -> Message? {
-        let bytes = [UInt8](data)
-        var buffer = ByteBuffer(bytes: bytes)
-        guard let msg: RemoteShutter_P2PMessage = try? getCheckedRoot(byteBuffer: &buffer) else {
-            return nil
-        }
+        data.withUnsafeBytes { raw -> Message? in
+            guard let base = raw.baseAddress, !raw.isEmpty else { return nil }
+            var buffer = ByteBuffer(assumingMemoryBound: UnsafeMutableRawPointer(mutating: base),
+                                    capacity: raw.count, allowReadingUnalignedBuffers: true)
+            // getCheckedRoot, minus its alignment check: a Data slice can start anywhere.
+            guard var verifier = try? Verifier(buffer: &buffer, checkAlignment: false),
+                  (try? ForwardOffset<RemoteShutter_P2PMessage>.verify(&verifier, at: 0, of: RemoteShutter_P2PMessage.self)) != nil
+            else { return nil }
+            let msg: RemoteShutter_P2PMessage = getRoot(byteBuffer: &buffer)
 
-        switch msg.type {
-        case .cameracommand:
-            return decodeCommand(msg)
-        case .camerastateresponse:
-            return decodeResponse(msg)
-        case .framedata:
-            return decodeFrame(msg)
+            switch msg.type {
+            case .cameracommand:
+                return decodeCommand(msg)
+            case .camerastateresponse:
+                return decodeResponse(msg)
+            case .framedata:
+                return decodeFrame(msg, in: data, buffer: buffer)
+            }
         }
+    }
+
+    /// Byte range of the frame payload inside the verified buffer: the same
+    /// walk as the generated `frameData.imageData` accessor, which only offers
+    /// a copying `[UInt8]`. 10 and 4 are those fields' vtable slots.
+    private static func imageDataRange(in buffer: ByteBuffer) -> Range<Int>? {
+        let root = Table(bb: buffer, position: Int32(buffer.read(def: UOffset.self, position: buffer.reader))
+                                                  + Int32(buffer.reader))
+        let frameField = root.offset(10)
+        guard frameField != 0 else { return nil }
+        let frame = Table(bb: buffer, position: root.indirect(frameField + root.position))
+        let imageField = frame.offset(4)
+        guard imageField != 0 else { return nil }
+        let start = Int(frame.vector(at: imageField))
+        return start ..< start + Int(frame.vector(count: imageField))
     }
 
     private static func decodeCommand(_ msg: RemoteShutter_P2PMessage) -> Message? {
@@ -1314,9 +1340,9 @@ extension RemoteCmd {
         )
     }
 
-    private static func decodeFrame(_ msg: RemoteShutter_P2PMessage) -> Message? {
-        guard let frame = msg.frameData else { return nil }
-        let imageData = Data(frame.imageData)
+    private static func decodeFrame(_ msg: RemoteShutter_P2PMessage, in data: Data, buffer: ByteBuffer) -> Message? {
+        guard let frame = msg.frameData, let range = imageDataRange(in: buffer) else { return nil }
+        let imageData = data.dropFirst(range.lowerBound).prefix(range.count)
         let position = fromFBCamPos(frame.cameraPosition)
         let orientation = UIInterfaceOrientation(rawValue: Int(frame.orientation)) ?? .portrait
 
