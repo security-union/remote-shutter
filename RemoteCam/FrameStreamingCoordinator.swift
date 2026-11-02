@@ -191,9 +191,38 @@ final class FrameStreamingCoordinator: NSObject {
     let videoFramesDropped = Locked(0)
     let lastDropReason = Locked<String?>(nil)
 
+    /// Preview frames the camera discarded because the preview output's
+    /// delegate was still busy — expected under load, and no hole in the movie.
+    let previewFramesDiscarded = Locked(0)
+    /// Dimensions of the newest buffer each path received, for the hardware
+    /// probe: the preview reads a preview-sized buffer while the movie gets
+    /// the full format.
+    let lastRecordingFrameSize = Locked(CGSize.zero)
+    let lastPreviewFrameSize = Locked(CGSize.zero)
+
     /// Last Watch-preview codec announced at .info, so the selected format is
     /// visible in Console without per-frame chatter. Preview-queue confined.
     private var lastAnnouncedWatchCodec: RemoteCmd.StreamCodec?
+
+    /// Which consumers one delivered sample buffer feeds. A pure table, so it
+    /// is unit-tested: the recorder only ever sees the recording outputs; the
+    /// preview lane reads the dedicated preview output when the engine has one
+    /// attached, else the recording output.
+    struct FrameRoute: Equatable {
+        let toRecorder: Bool
+        let toPreview: Bool
+
+        static func decide(isRecordingVideo: Bool, isAudio: Bool,
+                           isPreviewOutput: Bool, hasDedicatedPreview: Bool) -> FrameRoute {
+            FrameRoute(toRecorder: isRecordingVideo || isAudio,
+                       toPreview: isPreviewOutput || (isRecordingVideo && !hasDedicatedPreview))
+        }
+    }
+
+    private static func size(of sampleBuffer: CMSampleBuffer) -> CGSize {
+        guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return .zero }
+        return CGSize(width: CVPixelBufferGetWidth(buffer), height: CVPixelBufferGetHeight(buffer))
+    }
 }
 
 extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegate,
@@ -204,16 +233,26 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
                        from connection: AVCaptureConnection) {
         // Route by output identity (`let`s, safe from any thread) rather than
         // comparing connections, which are sessionQueue-owned mutable state.
-        let isVideo = captureOutput === engine.videoDataOutput
-        if isVideo {
+        // Recording outputs deliver on the data queue, the preview output on
+        // its own queue; the recorder only ever runs on the former.
+        let isRecordingVideo = captureOutput === engine.videoDataOutput
+        let route = FrameRoute.decide(
+            isRecordingVideo: isRecordingVideo,
+            isAudio: captureOutput === engine.audioDataOutput,
+            isPreviewOutput: captureOutput === engine.previewDataOutput,
+            hasDedicatedPreview: engine.isPreviewOutputAttached.value)
+        if isRecordingVideo {
             lastVideoFrameAt.value = Date().timeIntervalSinceReferenceDate
             videoFramesDelivered.mutate { $0 += 1 }
+            lastRecordingFrameSize.value = Self.size(of: sampleBuffer)
         }
-        // Recording first: the append is the only work left on this queue.
-        if (pipeline.recordingWillBeStarted || pipeline.isRecording) && !pipeline.recordingWillBeStopped {
+        // Recording first: the append is the only work left on the data queue.
+        if route.toRecorder,
+           (pipeline.recordingWillBeStarted || pipeline.isRecording) && !pipeline.recordingWillBeStopped {
             pipeline.processFrame(captureOutput, didOutput: sampleBuffer)
         }
-        if isVideo {
+        if route.toPreview {
+            lastPreviewFrameSize.value = Self.size(of: sampleBuffer)
             previewLane.offer { [weak self] in self?.sendFrameToMonitor(sampleBuffer) }
         }
     }
@@ -221,6 +260,10 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
     func captureOutput(_ captureOutput: AVCaptureOutput,
                        didDrop sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
+        if captureOutput === engine.previewDataOutput {
+            previewFramesDiscarded.mutate { $0 += 1 }
+            return
+        }
         guard captureOutput === engine.videoDataOutput else { return }
         videoFramesDropped.mutate { $0 += 1 }
         if let reason = CMGetAttachment(sampleBuffer,

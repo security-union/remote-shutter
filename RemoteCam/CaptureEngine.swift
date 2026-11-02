@@ -83,6 +83,20 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     let audioDataOutput = AVCaptureAudioDataOutput()
 
     let videoDataOutput = AVCaptureVideoDataOutput()
+    /// A second video data output sized for the live preview, so the preview
+    /// lane never receives (or shrinks) a full-size recording frame — the
+    /// camera's image processor scales it (iOS 16, WWDC22 session 110429;
+    /// iOS 15 keeps the single output).
+    /// Attached by `reconcilePreviewOutputLocked`, the single policy point;
+    /// `isPreviewOutputAttached` is what the per-frame router reads. When it
+    /// is not attached the preview reads `videoDataOutput`, as it always has.
+    let previewDataOutput = AVCaptureVideoDataOutput()
+    /// Its own delivery queue: a preview frame never waits behind a 4K append.
+    let previewOutputQueue = DispatchQueue(
+        label: "camera preview output queue", attributes: [], target: nil)
+    let isPreviewOutputAttached = Locked(false)
+    /// Long edge of the preview output's buffers — the peer stream's size.
+    var previewLongEdge = Int(StreamingConfig.default.maxLongEdge)
     /// Delivery queue for BOTH the video and audio sample-buffer delegates —
     /// one queue so `processFrame` is naturally serialized — and the home of
     /// all recording state in `RecordingPipeline`.
@@ -178,6 +192,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         self.videoDataOutput.videoSettings =
             [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
         self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
+        self.previewDataOutput.setSampleBufferDelegate(sampleBufferDelegate, queue: self.previewOutputQueue)
+        self.previewDataOutput.automaticallyConfiguresOutputBufferDimensions = false
+        self.previewDataOutput.alwaysDiscardsLateVideoFrames = true
+        clearPreviewOutputSizeLocked()
         if self.captureSession.isRunning {
             self.captureSession.stopRunning()
         }
@@ -220,6 +238,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             // This prevents requesting microphone permission upfront
             self.configSessionOutput()
             self.captureSession.commitConfiguration()
+            self.reconcilePreviewOutputLocked()
             self.updateMaxPhotoDimensionsLocked()
             self.currentPhotoFormat = Self.defaultPhotoFormat(
                 hevcAvailable: self.photoOutput.availablePhotoCodecTypes.contains(.hevc))
@@ -359,6 +378,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         let newInput = try AVCaptureDeviceInput(device: newDevice)
         captureSession.beginConfiguration()
+        // The preview size is tied to the outgoing format; a size larger than
+        // the incoming format makes AVFoundation throw. Reconciled after commit.
+        suspendPreviewOutputSizeLocked()
         let previousInput = videoDeviceInput
         if let previousInput {
             captureSession.removeInput(previousInput)
@@ -394,6 +416,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         rotateOutputsLocked(orientation: orientation)
         let newFlashMode: AVCaptureDevice.FlashMode? = newDevice.hasFlash ? cameraSettings.flashMode : nil
         captureSession.commitConfiguration()
+        reconcilePreviewOutputLocked()
         updateMaxPhotoDimensionsLocked()
         applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
         resetFocusExposureToAutoLocked()   // a stale focus point must not carry across a device change
@@ -1606,6 +1629,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         if let videoConnection = self.videoConnection {
             applyCaptureOrientationLocked(o, to: videoConnection)
         }
+        if let previewConnection = previewDataOutput.connection(with: .video) {
+            applyCaptureOrientationLocked(o, to: previewConnection)
+            if isPreviewOutputAttached.value { applyPreviewOutputSizeLocked() }
+        }
         if let photoConnection = self.photoOutput.connection(with: AVMediaType.video) {
             applyCaptureOrientationLocked(o, to: photoConnection)
             return true
@@ -1749,6 +1776,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return false
         }
         captureSession.beginConfiguration()
+        suspendPreviewOutputSizeLocked()
         captureSession.sessionPreset = .photo
         captureSession.commitConfiguration()
         if let device = videoDeviceInput?.device {
@@ -1780,6 +1808,128 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         applyDesiredTorchLocked()
         applyExposureIntentLocked()
         updateMaxPhotoDimensionsLocked()
+        reconcilePreviewOutputLocked()
+    }
+
+    // MARK: - Dedicated preview output
+
+    /// The preview output's buffer size for a source format: the largest size
+    /// whose long edge is at most `maxLongEdge`, whose aspect ratio equals the
+    /// source's exactly and whose edges are both even (AVFoundation throws on
+    /// a mismatched ratio; 4:2:0 encoders need even edges), swapped for a
+    /// portrait connection. nil when the source is already that small — a
+    /// second output would then only duplicate the first.
+    static func previewOutputDimensions(sourceWidth: Int, sourceHeight: Int,
+                                        portrait: Bool, maxLongEdge: Int) -> (width: Int, height: Int)? {
+        guard sourceWidth > 0, sourceHeight > 0, maxLongEdge > 0 else { return nil }
+        let divisor = gcd(sourceWidth, sourceHeight)
+        let unitWidth = sourceWidth / divisor
+        let unitHeight = sourceHeight / divisor
+        var steps = min(maxLongEdge, max(sourceWidth, sourceHeight)) / max(unitWidth, unitHeight)
+        if (unitWidth % 2 != 0 || unitHeight % 2 != 0) && steps % 2 != 0 { steps -= 1 }
+        let width = steps * unitWidth
+        let height = steps * unitHeight
+        guard width >= 2, height >= 2, width * height < sourceWidth * sourceHeight else { return nil }
+        return portrait ? (height, width) : (width, height)
+    }
+
+    private static func gcd(_ a: Int, _ b: Int) -> Int { b == 0 ? a : gcd(b, a % b) }
+
+    /// Reads the session's hardware budget use (nonzero only with two video
+    /// data outputs). For the hardware probe.
+    func hardwareCostSnapshot() -> Float {
+        syncOnSessionQueue {
+            if #available(iOS 16.0, macCatalyst 16.0, *) { return captureSession.hardwareCost }
+            return 0
+        }
+    }
+
+    /// The single policy point for the second output: attached when the
+    /// active format is larger than the preview, the session accepts the
+    /// output and the hardware budget allows it (`hardwareCost` above 1.0
+    /// means the session cannot run); detached otherwise, and the preview
+    /// falls back to the recording output. Runs at setup and after every
+    /// format or device change.
+    private func reconcilePreviewOutputLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard #available(iOS 16.0, macCatalyst 16.0, *) else { return }
+        guard let device = videoDeviceInput?.device,
+              previewOutputDimensionsLocked(for: device) != nil else {
+            return detachPreviewOutputLocked()
+        }
+        if !captureSession.outputs.contains(previewDataOutput) {
+            guard captureSession.canAddOutput(previewDataOutput) else {
+                logWarning("session refuses a second video data output — preview reads the recording output")
+                return detachPreviewOutputLocked()
+            }
+            captureSession.beginConfiguration()
+            captureSession.addOutput(previewDataOutput)
+            if let connection = previewDataOutput.connection(with: .video) {
+                applyCaptureOrientationLocked(OrientationUtils.transform(o: orientation), to: connection)
+            }
+            captureSession.commitConfiguration()
+        }
+        let cost = captureSession.hardwareCost
+        guard cost <= 1.0 else {
+            logWarning("two video data outputs exceed the hardware budget (\(cost)) — preview reads the recording output")
+            return detachPreviewOutputLocked()
+        }
+        applyPreviewOutputSizeLocked()
+        isPreviewOutputAttached.value = true
+    }
+
+    private func detachPreviewOutputLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        isPreviewOutputAttached.value = false
+        clearPreviewOutputSizeLocked()
+        guard captureSession.outputs.contains(previewDataOutput) else { return }
+        captureSession.beginConfiguration()
+        captureSession.removeOutput(previewDataOutput)
+        captureSession.commitConfiguration()
+    }
+
+    /// Call before a format, preset or device change: the router falls back
+    /// to the recording output and the size is dropped, because a width or
+    /// height larger than the incoming format makes AVFoundation throw.
+    /// `reconcilePreviewOutputLocked` re-applies both after the commit.
+    private func suspendPreviewOutputSizeLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        isPreviewOutputAttached.value = false
+        clearPreviewOutputSizeLocked()
+    }
+
+    /// Writes the size for the active format and the connection's current
+    /// orientation — computed from the live values every time, never cached,
+    /// because a disagreement with either is an uncatchable exception.
+    private func applyPreviewOutputSizeLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        guard #available(iOS 16.0, macCatalyst 16.0, *),
+              let device = videoDeviceInput?.device,
+              let dims = previewOutputDimensionsLocked(for: device) else {
+            return clearPreviewOutputSizeLocked()
+        }
+        debugLog("preview output \(dims.width)x\(dims.height) for \(device.localizedName)")
+        previewDataOutput.videoSettings = [
+            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA),
+            kCVPixelBufferWidthKey as String: dims.width,
+            kCVPixelBufferHeightKey as String: dims.height
+        ]
+    }
+
+    private func clearPreviewOutputSizeLocked() {
+        previewDataOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
+    }
+
+    private func previewOutputDimensionsLocked(for device: AVCaptureDevice) -> (width: Int, height: Int)? {
+        let dims = CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
+        // The connection's orientation only shapes the buffers where it is
+        // applied (`applyCaptureOrientationLocked`); a Mac connection reports
+        // a default `.portrait` while delivering landscape buffers.
+        let connection = previewDataOutput.connection(with: .video)
+        let rotated = OrientationUtils.appliesInterfaceRotation && connection?.isVideoOrientationSupported == true
+        let portrait = rotated && (connection?.videoOrientation == .portrait || connection?.videoOrientation == .portraitUpsideDown)
+        return Self.previewOutputDimensions(sourceWidth: Int(dims.width), sourceHeight: Int(dims.height),
+                                            portrait: portrait, maxLongEdge: previewLongEdge)
     }
 
     /// The format a fresh session starts on: HEIC where the hardware encodes
@@ -1825,6 +1975,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
 
         captureSession.beginConfiguration()
+        suspendPreviewOutputSizeLocked()
 
         var appliedFrameRate = frameRate
 

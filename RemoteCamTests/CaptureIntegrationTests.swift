@@ -821,13 +821,25 @@ final class CaptureIntegrationTests: XCTestCase {
 
         let movie = try await Self.videoTrackSummary(at: movieUrl())
         let writtenFPS = Double(movie.frames) / movie.seconds
+        let dedicated = rig.engine.isPreviewOutputAttached.value
+        let previewSize = coordinator.lastPreviewFrameSize.value
+        let recordingSize = coordinator.lastRecordingFrameSize.value
         print("""
             🎞 \(device.localizedName): \(dims.width)x\(dims.height) @ 30 fps for \(String(format: "%.0f", wall)) s, \
             thermal \(ProcessInfo.processInfo.thermalState.rawValue), interruptions \(interruptions.value)
             🎞   camera   delivered \(delivered), discarded \(dropped) (\(coordinator.lastDropReason.value ?? "none"))
             🎞   preview  encoded \(encoded) (\(String(format: "%.1f", Double(encoded) / wall)) fps), skipped \(skipped)
+            🎞   outputs  dedicated preview \(dedicated), hardware cost \(rig.engine.hardwareCostSnapshot()), \
+            preview buffer \(Int(previewSize.width))x\(Int(previewSize.height)), \
+            recording buffer \(Int(recordingSize.width))x\(Int(recordingSize.height)), \
+            preview discarded \(coordinator.previewFramesDiscarded.value)
             🎞   movie    \(movie.frames) frames / \(String(format: "%.1f", movie.seconds)) s = \(String(format: "%.2f", writtenFPS)) fps
             """)
+        if dedicated {
+            XCTAssertLessThanOrEqual(max(previewSize.width, previewSize.height), CGFloat(rig.engine.previewLongEdge),
+                                     "the preview output must deliver preview-sized buffers")
+            XCTAssertEqual(Int(recordingSize.width), Int(dims.width), "the recording output must keep the full format")
+        }
 
         XCTAssertEqual(dropped, 0, "the camera discarded \(dropped) frames — each is a hole in the movie")
         XCTAssertGreaterThanOrEqual(writtenFPS, 0.97 * 30, """

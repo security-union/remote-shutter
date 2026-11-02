@@ -452,6 +452,34 @@ final class PreviewLaneTests: XCTestCase {
     }
 }
 
+// MARK: - Frame routing
+
+final class FrameRouteTests: XCTestCase {
+    typealias Route = FrameStreamingCoordinator.FrameRoute
+
+    func testRecordingOutputFeedsBothWithoutADedicatedPreviewOutput() {
+        XCTAssertEqual(Route.decide(isRecordingVideo: true, isAudio: false, isPreviewOutput: false, hasDedicatedPreview: false),
+                       Route(toRecorder: true, toPreview: true))
+    }
+
+    func testRecordingOutputFeedsOnlyTheRecorderWithADedicatedPreviewOutput() {
+        XCTAssertEqual(Route.decide(isRecordingVideo: true, isAudio: false, isPreviewOutput: false, hasDedicatedPreview: true),
+                       Route(toRecorder: true, toPreview: false))
+    }
+
+    func testPreviewOutputFeedsOnlyThePreviewLane() {
+        XCTAssertEqual(Route.decide(isRecordingVideo: false, isAudio: false, isPreviewOutput: true, hasDedicatedPreview: true),
+                       Route(toRecorder: false, toPreview: true))
+    }
+
+    func testAudioFeedsOnlyTheRecorder() {
+        for dedicated in [false, true] {
+            XCTAssertEqual(Route.decide(isRecordingVideo: false, isAudio: true, isPreviewOutput: false, hasDedicatedPreview: dedicated),
+                           Route(toRecorder: true, toPreview: false))
+        }
+    }
+}
+
 // MARK: - HEVC peer preview codec
 
 final class HEVCStreamingTests: XCTestCase {
