@@ -44,4 +44,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
         self.window = window
     }
+
+    /// UIKit keeps the idle timer per scene: a value set at app launch, before
+    /// the scene exists, is dropped on iOS 15 (the 6s locked mid-session) and
+    /// never re-asserted after backgrounding. Each activation asks again.
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        SleepPreventer.preventDisplaySleep()
+    }
 }
