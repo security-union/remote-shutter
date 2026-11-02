@@ -124,6 +124,11 @@ final class FrameStreamer {
     /// enabled, is a separate path and not reflected here.
     var activeCodec: RemoteCmd.StreamCodec? { encoders.first?.codec }
 
+    #if DEBUG
+    /// Test support (caller's queue): the hardware encoder's counters, if HEVC.
+    var videoEncoderStats: HEVCFrameEncoder.Stats? { (videoEncoder as? HEVCFrameEncoder)?.stats }
+    #endif
+
     /// Preview-queue only. Encodes and sends this frame unless pacing skips it,
     /// back-pressure gates the VP9 stream, or every codec has failed.
     func handle(pixelBuffer: CVPixelBuffer,

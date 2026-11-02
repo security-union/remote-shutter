@@ -36,6 +36,7 @@ import Foundation
 import CoreVideo
 import CoreImage
 import VideoToolbox
+import Atomics
 
 /// Wire container for one HEVC preview frame: an optional parameter-set blob
 /// (present on keyframes) followed by the AVCC frame data. Serialized so the
@@ -120,10 +121,54 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
     /// in order by the next `encode` call. `.skipped` records a frame the
     /// encoder produced nothing for.
     private let completed = Locked<[FrameKey: FrameEncodeResult]>([:])
-    /// Encoder depth. Enough to keep the hardware busy while the writer's 4K
-    /// frames interleave with ours; small enough that preview latency stays
-    /// under a tenth of a second at 30 fps.
-    private static let maxInFlight = 3
+    /// Frames allowed inside the hardware at once. Depth does not set the
+    /// preview's latency (the encoder does); it decides whether a frame waits
+    /// or is thrown away. While the writer's 4K take shares the encoder, an
+    /// answer measured 50-120 ms on an iPhone 18 Pro: six frames cover 200 ms
+    /// at 30 fps, so no frame is dropped.
+    private static let maxInFlight = 6
+
+    #if DEBUG
+    /// Test support: where the encoder's frames went and how long the hardware
+    /// took to answer, since the session started.
+    struct Stats: CustomStringConvertible {
+        var encoded = 0, held = 0, waited = 0
+        var callbacks = 0, latencySumNs: UInt64 = 0, latencyMaxNs: UInt64 = 0
+        var meanLatencyMs: Double { callbacks == 0 ? 0 : Double(latencySumNs) / Double(callbacks) / 1e6 }
+        var description: String {
+            "encoded \(encoded), held \(held), waited \(waited); callback mean " +
+            String(format: "%.1f ms, max %.1f ms", meanLatencyMs, Double(latencyMaxNs) / 1e6)
+        }
+        func since(_ earlier: Stats) -> Stats {
+            Stats(encoded: encoded - earlier.encoded, held: held - earlier.held, waited: waited - earlier.waited,
+                  callbacks: callbacks - earlier.callbacks, latencySumNs: latencySumNs - earlier.latencySumNs,
+                  latencyMaxNs: latencyMaxNs)
+        }
+    }
+    /// Preview-lane confined counts plus the callback-thread latency atomics.
+    private var laneStats = Stats()
+    private let latencySumNs = ManagedAtomic<UInt64>(0)
+    private let latencyMaxNs = ManagedAtomic<UInt64>(0)
+    private let callbacks = ManagedAtomic(0)
+    var stats: Stats {
+        var s = laneStats
+        s.callbacks = callbacks.load(ordering: .relaxed)
+        s.latencySumNs = latencySumNs.load(ordering: .relaxed)
+        s.latencyMaxNs = latencyMaxNs.load(ordering: .relaxed)
+        return s
+    }
+    private func recordLatency(since submittedAt: DispatchTime) {
+        let ns = DispatchTime.now().uptimeNanoseconds - submittedAt.uptimeNanoseconds
+        latencySumNs.wrappingIncrement(by: ns, ordering: .relaxed)
+        callbacks.wrappingIncrement(ordering: .relaxed)
+        var seen = latencyMaxNs.load(ordering: .relaxed)
+        while seen < ns {
+            let (done, current) = latencyMaxNs.compareExchange(expected: seen, desired: ns, ordering: .relaxed)
+            if done { break }
+            seen = current
+        }
+    }
+    #endif
 
     init(maxLongEdge: CGFloat, settings: HEVCSettings) {
         self.maxLongEdge = Int(maxLongEdge)
@@ -192,6 +237,7 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
             }
             let key = FrameKey(generation: generation, pts: pts)
             let completed = self.completed
+            let submittedAt = DispatchTime.now()
             let status = VTCompressionSessionEncodeFrame(
                 session,
                 imageBuffer: input,
@@ -199,21 +245,28 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
                 duration: .invalid,
                 frameProperties: frameProperties as CFDictionary?,
                 infoFlagsOut: nil
-            ) { encodeStatus, _, sampleBuffer in
+            ) { [weak self] encodeStatus, _, sampleBuffer in
                 let result: FrameEncodeResult
                 if encodeStatus == noErr, let sampleBuffer, let payload = Self.package(sampleBuffer) {
                     result = .encoded(payload)
                 } else {
                     result = .skipped
                 }
+                #if DEBUG
+                self?.recordLatency(since: submittedAt)
+                #endif
                 completed.mutate { $0[key] = result }
             }
             guard status == noErr else {
                 StreamLog.encode.error("HEVC encode submit failed: \(status)")
                 return .failed
             }
-            inFlight.append((key, DispatchTime.now()))
+            inFlight.append((key, submittedAt))
             pts += 1
+        } else {
+            #if DEBUG
+            laneStats.held += 1
+            #endif
         }
 
         // Collect: hand back the oldest finished frame, in order.
@@ -222,8 +275,16 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
             completed.mutate { result = $0.removeValue(forKey: oldest.key) }
             guard let result else { break }          // still in the encoder
             inFlight.removeFirst()
-            if case .encoded = result { return result }
+            if case .encoded = result {
+                #if DEBUG
+                laneStats.encoded += 1
+                #endif
+                return result
+            }
         }
+        #if DEBUG
+        laneStats.waited += 1
+        #endif
         return .skipped
     }
 
