@@ -294,6 +294,22 @@ final class MulticamControllerTests: XCTestCase {
                        "the frame ack must address only the camera that sent the frame")
     }
 
+    func testFramesDoNotRebuildTheSnapshots() async {
+        let (controller, _, _) = await makeController(peers: [camA, camB])
+        await controller.waitForIdle()
+        let before = await controller.snapshotPasses
+
+        for _ in 0..<30 { controller.didReceiveFrame(sendFrame(), from: camB) }
+        await controller.waitForIdle()
+        let afterFrames = await controller.snapshotPasses
+        XCTAssertEqual(afterFrames, before, "a frame changes nothing a snapshot reads")
+
+        controller.didReceiveMessage(multicamCaps(), from: camA)
+        await controller.waitForIdle()
+        let afterCaps = await controller.snapshotPasses
+        XCTAssertGreaterThan(afterCaps, before, "a state change still rebuilds and publishes")
+    }
+
     // MARK: - Per-camera commands (target carried by the command)
 
     /// Routing is the parameter, not the focus register: a command aimed at

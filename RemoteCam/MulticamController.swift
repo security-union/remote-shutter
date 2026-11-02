@@ -394,8 +394,15 @@ public actor MulticamController {
         let recording: Bool
     }
 
+    /// Test support: snapshot rebuilds so far.
+    private(set) var snapshotPasses = 0
+
     func handle(_ msg: Message) async {
         await route(msg)
+        // A frame is routed and acked; it changes nothing a snapshot reads.
+        // Rebuilding them N×30 times a second would be the actor's main job.
+        if msg is RemoteCmd.OnFrame { return }
+        snapshotPasses += 1
         publishChangedSnapshots()
     }
 
