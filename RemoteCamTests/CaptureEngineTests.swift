@@ -7,9 +7,6 @@ import AVFoundation
 final class CaptureEngineTests: XCTestCase {
 
     // MARK: - previewOutputDimensions
-    // AVFoundation throws (uncatchably) on a size whose aspect ratio differs
-    // from the active format's, so the answer must be exact, and the HEVC
-    // encoder needs even edges.
 
     func testPreviewSizeFor4KIsExact16By9AndEven() {
         let dims = CaptureEngine.previewOutputDimensions(sourceWidth: 3840, sourceHeight: 2160,

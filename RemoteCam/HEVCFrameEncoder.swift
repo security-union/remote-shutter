@@ -136,9 +136,7 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
             guard remakeSession(width: dstWidth, height: dstHeight) else { return .failed }
         }
         guard let session else { return .failed }
-        // A buffer already at the session size (the camera's preview output
-        // delivers one) goes straight in; only a larger one takes the GPU
-        // scale pass.
+        // Only a buffer larger than the session takes the GPU scale pass.
         let input: CVPixelBuffer
         if srcWidth == dstWidth && srcHeight == dstHeight {
             input = pixelBuffer

@@ -191,12 +191,9 @@ final class FrameStreamingCoordinator: NSObject {
     let videoFramesDropped = Locked(0)
     let lastDropReason = Locked<String?>(nil)
 
-    /// Preview frames the camera discarded because the preview output's
-    /// delegate was still busy — expected under load, and no hole in the movie.
+    /// Preview-output discards (no hole in the movie) and the newest buffer
+    /// size each path received, for the hardware probe.
     let previewFramesDiscarded = Locked(0)
-    /// Dimensions of the newest buffer each path received, for the hardware
-    /// probe: the preview reads a preview-sized buffer while the movie gets
-    /// the full format.
     let lastRecordingFrameSize = Locked(CGSize.zero)
     let lastPreviewFrameSize = Locked(CGSize.zero)
 
@@ -204,10 +201,9 @@ final class FrameStreamingCoordinator: NSObject {
     /// visible in Console without per-frame chatter. Preview-queue confined.
     private var lastAnnouncedWatchCodec: RemoteCmd.StreamCodec?
 
-    /// Which consumers one delivered sample buffer feeds. A pure table, so it
-    /// is unit-tested: the recorder only ever sees the recording outputs; the
-    /// preview lane reads the dedicated preview output when the engine has one
-    /// attached, else the recording output.
+    /// Who gets a delivered buffer: the recorder only sees the recording
+    /// outputs; the preview reads the dedicated output when attached, else
+    /// the recording output.
     struct FrameRoute: Equatable {
         let toRecorder: Bool
         let toPreview: Bool
@@ -233,8 +229,6 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
                        from connection: AVCaptureConnection) {
         // Route by output identity (`let`s, safe from any thread) rather than
         // comparing connections, which are sessionQueue-owned mutable state.
-        // Recording outputs deliver on the data queue, the preview output on
-        // its own queue; the recorder only ever runs on the former.
         let isRecordingVideo = captureOutput === engine.videoDataOutput
         let route = FrameRoute.decide(
             isRecordingVideo: isRecordingVideo,

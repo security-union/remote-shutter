@@ -83,19 +83,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     let audioDataOutput = AVCaptureAudioDataOutput()
 
     let videoDataOutput = AVCaptureVideoDataOutput()
-    /// A second video data output sized for the live preview, so the preview
-    /// lane never receives (or shrinks) a full-size recording frame — the
-    /// camera's image processor scales it (iOS 16, WWDC22 session 110429;
-    /// iOS 15 keeps the single output).
-    /// Attached by `reconcilePreviewOutputLocked`, the single policy point;
-    /// `isPreviewOutputAttached` is what the per-frame router reads. When it
-    /// is not attached the preview reads `videoDataOutput`, as it always has.
+    /// Second output, scaled to the preview size by the camera itself (iOS 16,
+    /// WWDC22 110429), so the preview never touches a full-size frame. While
+    /// not attached (`reconcilePreviewOutputLocked`), the preview reads
+    /// `videoDataOutput` as before.
     let previewDataOutput = AVCaptureVideoDataOutput()
-    /// Its own delivery queue: a preview frame never waits behind a 4K append.
     let previewOutputQueue = DispatchQueue(
         label: "camera preview output queue", attributes: [], target: nil)
     let isPreviewOutputAttached = Locked(false)
-    /// Long edge of the preview output's buffers — the peer stream's size.
     var previewLongEdge = Int(StreamingConfig.default.maxLongEdge)
     /// Delivery queue for BOTH the video and audio sample-buffer delegates —
     /// one queue so `processFrame` is naturally serialized — and the home of
@@ -378,8 +373,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         let newInput = try AVCaptureDeviceInput(device: newDevice)
         captureSession.beginConfiguration()
-        // The preview size is tied to the outgoing format; a size larger than
-        // the incoming format makes AVFoundation throw. Reconciled after commit.
         suspendPreviewOutputSizeLocked()
         let previousInput = videoDeviceInput
         if let previousInput {
@@ -1813,12 +1806,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     // MARK: - Dedicated preview output
 
-    /// The preview output's buffer size for a source format: the largest size
-    /// whose long edge is at most `maxLongEdge`, whose aspect ratio equals the
-    /// source's exactly and whose edges are both even (AVFoundation throws on
-    /// a mismatched ratio; 4:2:0 encoders need even edges), swapped for a
-    /// portrait connection. nil when the source is already that small — a
-    /// second output would then only duplicate the first.
+    /// Largest size with long edge ≤ `maxLongEdge`, the source's exact aspect
+    /// ratio (AVFoundation throws otherwise) and even edges, swapped for
+    /// portrait. nil when the source is already that small.
     static func previewOutputDimensions(sourceWidth: Int, sourceHeight: Int,
                                         portrait: Bool, maxLongEdge: Int) -> (width: Int, height: Int)? {
         guard sourceWidth > 0, sourceHeight > 0, maxLongEdge > 0 else { return nil }
@@ -1835,8 +1825,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     private static func gcd(_ a: Int, _ b: Int) -> Int { b == 0 ? a : gcd(b, a % b) }
 
-    /// Reads the session's hardware budget use (nonzero only with two video
-    /// data outputs). For the hardware probe.
     func hardwareCostSnapshot() -> Float {
         syncOnSessionQueue {
             if #available(iOS 16.0, macCatalyst 16.0, *) { return captureSession.hardwareCost }
@@ -1844,12 +1832,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
-    /// The single policy point for the second output: attached when the
-    /// active format is larger than the preview, the session accepts the
-    /// output and the hardware budget allows it (`hardwareCost` above 1.0
-    /// means the session cannot run); detached otherwise, and the preview
-    /// falls back to the recording output. Runs at setup and after every
-    /// format or device change.
+    /// The one place that decides whether the second output exists: attached
+    /// when the format is larger than the preview, the session accepts it and
+    /// `hardwareCost` ≤ 1.0 (above, the session cannot run); detached
+    /// otherwise. Runs at setup and after every format or device change.
     private func reconcilePreviewOutputLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard #available(iOS 16.0, macCatalyst 16.0, *) else { return }
@@ -1888,19 +1874,16 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         captureSession.commitConfiguration()
     }
 
-    /// Call before a format, preset or device change: the router falls back
-    /// to the recording output and the size is dropped, because a width or
-    /// height larger than the incoming format makes AVFoundation throw.
-    /// `reconcilePreviewOutputLocked` re-applies both after the commit.
+    /// Before a format, preset or device change: a size larger than the
+    /// incoming format makes AVFoundation throw. Reconciled after the commit.
     private func suspendPreviewOutputSizeLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         isPreviewOutputAttached.value = false
         clearPreviewOutputSizeLocked()
     }
 
-    /// Writes the size for the active format and the connection's current
-    /// orientation — computed from the live values every time, never cached,
-    /// because a disagreement with either is an uncatchable exception.
+    /// Computed from the live format and orientation every time: a
+    /// disagreement with either is an uncatchable exception.
     private func applyPreviewOutputSizeLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard #available(iOS 16.0, macCatalyst 16.0, *),
@@ -1922,9 +1905,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     private func previewOutputDimensionsLocked(for device: AVCaptureDevice) -> (width: Int, height: Int)? {
         let dims = CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
-        // The connection's orientation only shapes the buffers where it is
-        // applied (`applyCaptureOrientationLocked`); a Mac connection reports
-        // a default `.portrait` while delivering landscape buffers.
+        // A Mac connection reports `.portrait` while delivering landscape
+        // buffers: orientation counts only where the app applies it.
         let connection = previewDataOutput.connection(with: .video)
         let rotated = OrientationUtils.appliesInterfaceRotation && connection?.isVideoOrientationSupported == true
         let portrait = rotated && (connection?.videoOrientation == .portrait || connection?.videoOrientation == .portraitUpsideDown)
