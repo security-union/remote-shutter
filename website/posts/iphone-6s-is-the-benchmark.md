@@ -54,7 +54,9 @@ We'd been asking the capture session for BGRA frames. The sensor produces 4:2:0.
 
 The preview also used to be cut from the 4K recording frame on the GPU. Now the camera asks for a second, already-scaled output, so the preview lane never touches a 4K frame. And the preview encoder was stuck behind the movie writer's frames on the hardware encoder, dropping one preview frame in five. It has its own lane and six frames of slack now.
 
-Smaller ones. The remote copied every inbound datagram three times before the decoder saw a byte; it reads the datagram in place now. The director rebuilt its entire settings menu on every frame, 30 times a second, and diffed it to "unchanged"; it skips frames. The screen-awake flag was set once at launch and iOS 15 quietly dropped it, so the 6s locked itself mid-shoot; it's reasserted per scene.
+Then the wire. Frames travel as FlatBuffers, whose whole pitch is that you read the bytes where they land. We weren't. The remote copied every inbound datagram three times before the decoder saw a byte: the `Data` into a byte array, the array into the FlatBuffers buffer, then the payload back out as a fresh `Data`. The camera copied twice on the way out and let the builder grow from 1 KiB by doubling until the frame fit. Now the FlatBuffers view reads the datagram in place, the verifier still checks every offset, the payload is a slice, and the builder is sized for the frame. Zero copies in, one out.
+
+Smaller ones. The director rebuilt its entire settings menu on every frame, 30 times a second, and diffed it to "unchanged"; it skips frames. The screen-awake flag was set once at launch and iOS 15 quietly dropped it, so the 6s locked itself mid-shoot; it's reasserted per scene.
 
 ## Numbers
 
