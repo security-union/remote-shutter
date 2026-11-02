@@ -12,7 +12,7 @@ import Stormo
 import UIKit
 import AVFoundation
 
-public enum RecordingMode {
+public enum RecordingMode: Int {
     case Photo
     case Video
     case Shorts

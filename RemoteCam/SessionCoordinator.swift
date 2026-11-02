@@ -9,6 +9,7 @@
 // The per-state message switches ARE the state machine — their width is the
 // protocol's width, previously spread across seven Theater state files.
 
+import Atomics
 import Foundation
 import MPCCompat
 import Stormo
@@ -140,7 +141,7 @@ public actor SessionCoordinator {
     // MARK: Inbox
 
     private nonisolated let inboxContinuation: Locked<AsyncStream<Message>.Continuation?> = Locked(nil)
-    private nonisolated let pendingCount = Locked(0)
+    private nonisolated let pendingCount = ManagedAtomic(0)
 
     public init() {
         var continuation: AsyncStream<Message>.Continuation!
@@ -153,7 +154,7 @@ public actor SessionCoordinator {
             for await msg in stream {
                 guard let self else { break }
                 await self.handle(msg)
-                pending.mutate { $0 -= 1 }
+                pending.wrappingDecrement(ordering: .relaxed)
             }
         }
     }
@@ -161,13 +162,13 @@ public actor SessionCoordinator {
     /// Fire-and-forget, callable from any thread; delivery order is the call
     /// order (the stream continuation is the serialization point).
     public nonisolated func tell(_ msg: Message) {
-        pendingCount.mutate { $0 += 1 }
+        pendingCount.wrappingIncrement(ordering: .relaxed)
         inboxContinuation.value?.yield(msg)
     }
 
     /// Test support: suspends until every message enqueued so far is processed.
     public nonisolated func waitForIdle() async {
-        while pendingCount.value > 0 {
+        while pendingCount.load(ordering: .relaxed) > 0 {
             await Task.yield()
         }
     }

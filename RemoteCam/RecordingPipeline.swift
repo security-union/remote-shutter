@@ -5,6 +5,7 @@
 //  Copyright © 2026 Security Union LLC. All rights reserved.
 //
 
+import Atomics
 import Foundation
 import AVFoundation
 import Photos
@@ -39,7 +40,7 @@ enum RecordingStoragePolicy {
  `processFrame` is naturally serialized. Record start syncs once into the
  engine's `sessionQueue` for the audio-input configuration (one-way; the
  session queue never syncs back). The only cross-queue reads are through
- `recordingStartedAt`/`isRecording`, backed by one `Locked<Date?>`.
+ `recordingStartedAt`/`isRecording`, one atomic bit pattern (0 = not recording).
  */
 class RecordingPipeline {
 
@@ -75,9 +76,12 @@ class RecordingPipeline {
     /// (`shouldAutorotate` on main, `setVideoQuality`'s guard on the actor
     /// mailbox, watch snapshots), and both timers. Lock-backed so those
     /// readers never touch the data queue.
-    private let recordingStartShared = Locked<Date?>(nil)
-    var isRecording: Bool { recordingStartShared.value != nil }
-    var recordingStartedAt: Date? { recordingStartShared.value }
+    private let recordingStartBits = ManagedAtomic<UInt64>(0)
+    var isRecording: Bool { recordingStartBits.load(ordering: .acquiring) != 0 }
+    var recordingStartedAt: Date? {
+        let bits = recordingStartBits.load(ordering: .acquiring)
+        return bits == 0 ? nil : Date(timeIntervalSinceReferenceDate: Double(bitPattern: bits))
+    }
 
     private(set) var recordingWillBeStarted: Bool = false
     private(set) var recordingWillBeStopped: Bool = false
@@ -303,7 +307,7 @@ class RecordingPipeline {
                 self.sendMessage?(RemoteCmd.StopRecordingVideoResp())
                 return
             }
-            self.recordingStartShared.value = nil
+            self.recordingStartBits.store(0, ordering: .releasing)
             self.recordingWillBeStopped = true
 
             // Stop recording timer
@@ -372,7 +376,7 @@ class RecordingPipeline {
         assetWriter = nil
         pixelBufferAdaptor = nil
         cachedVideoCropRect = nil
-        recordingStartShared.value = nil
+        recordingStartBits.store(0, ordering: .releasing)
     }
 
     // MARK: - Failure funnel
@@ -623,7 +627,7 @@ class RecordingPipeline {
                 // `recording_start_unix_ms`, and `isRecording` itself —
                 // derives from this one stamp.
                 let startTime = Date()
-                self.recordingStartShared.value = startTime
+                self.recordingStartBits.store(startTime.timeIntervalSinceReferenceDate.bitPattern, ordering: .releasing)
 
                 // Start recording timer and notify monitor
                 DispatchQueue.main.async { [weak self] in

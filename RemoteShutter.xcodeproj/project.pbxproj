@@ -96,6 +96,7 @@
 		6AFBFC4B9D8E918C026E1A8D /* CameraCountdownTorch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5357E53C7F38D6A7BD0FDB5F /* CameraCountdownTorch.swift */; };
 		77CE73A56185CD1426B83EEE /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3644AC8CC7EEDECC00BE3D9 /* MultipeerService.swift */; };
 		7D02D87D84E8B4BD8D8F321B /* Stormo in Frameworks */ = {isa = PBXBuildFile; productRef = 6B8522FCDD8E4B1F29B307A3 /* Stormo */; };
+		A70A1C5B0A7E4D3F9C2B1E03 /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = A70A1C5B0A7E4D3F9C2B1E02 /* Atomics */; };
 		7EEA33327E4D84592E5583F4 /* Pods_RemoteShutterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2CBCE8B82BF3D236B662AC6 /* Pods_RemoteShutterTests.framework */; };
 		852E4309250D4B1D00F5151E /* RemoteShutterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852E4308250D4B1D00F5151E /* RemoteShutterUITests.swift */; };
 		874ECE4F11DE0C041937D86C /* RemoteShutterWatch/WatchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8080E0FDE21CFE4B92AEAB /* RemoteShutterWatch/WatchSettingsView.swift */; };
@@ -496,6 +497,7 @@
 				28DAF89E6644742C1F1E47E6 /* FlatBuffers in Frameworks */,
 				6A6CABFCEF39FA1EA8934047 /* MPCCompat in Frameworks */,
 				7D02D87D84E8B4BD8D8F321B /* Stormo in Frameworks */,
+				A70A1C5B0A7E4D3F9C2B1E03 /* Atomics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -899,6 +901,7 @@
 				8C0454249B071E09F8788E2E /* FlatBuffers */,
 				6525F6CE651CB5D9401943FD /* MPCCompat */,
 				6B8522FCDD8E4B1F29B307A3 /* Stormo */,
+				A70A1C5B0A7E4D3F9C2B1E02 /* Atomics */,
 			);
 			productName = RemoteCam;
 			productReference = 85F118E5250ACBE100B73E48 /* RemoteShutter.app */;
@@ -1019,6 +1022,7 @@
 			packageReferences = (
 				C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */,
 				72565EF424F9D7BBFAF363C0 /* XCRemoteSwiftPackageReference "Stormo" */,
+				A70A1C5B0A7E4D3F9C2B1E01 /* XCRemoteSwiftPackageReference "swift-atomics" */,
 			);
 			productRefGroup = 06E1D4E91BB7699700E07321;
 			projectDirPath = "";
@@ -1890,6 +1894,14 @@
 				version = 25.2.10;
 			};
 		};
+		A70A1C5B0A7E4D3F9C2B1E01 /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-atomics.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.3.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1912,6 +1924,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C6A10DA8E1BE99C0854F5462 /* XCRemoteSwiftPackageReference "flatbuffers" */;
 			productName = FlatBuffers;
+		};
+		A70A1C5B0A7E4D3F9C2B1E02 /* Atomics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A70A1C5B0A7E4D3F9C2B1E01 /* XCRemoteSwiftPackageReference "swift-atomics" */;
+			productName = Atomics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

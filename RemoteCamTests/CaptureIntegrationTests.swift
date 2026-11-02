@@ -75,7 +75,7 @@ final class CaptureIntegrationTests: XCTestCase {
 
     /// Timestamp source the rig's own watchdog uses.
     private var lastFrameAt: TimeInterval {
-        rig.streamingCoordinator.lastVideoFrameAt.value
+        rig.streamingCoordinator.lastVideoFrameAt
     }
 
     /// Waits until a frame newer than `since` arrives. Suspends (never
@@ -802,28 +802,28 @@ final class CaptureIntegrationTests: XCTestCase {
         guard rig.isRecording else {
             return XCTFail("recording never started within 10s — \(await diagnostics())")
         }
-        let delivered0 = coordinator.videoFramesDelivered.value
-        let dropped0 = coordinator.videoFramesDropped.value
-        let encoded0 = lane.encoded.value
-        let skipped0 = lane.skipped.value
+        let delivered0 = coordinator.videoFramesDelivered
+        let dropped0 = coordinator.videoFramesDropped
+        let encoded0 = lane.encoded
+        let skipped0 = lane.skipped
         let started = Date()
         while Date().timeIntervalSince(started) < seconds {
             try? await Task.sleep(nanoseconds: 250_000_000)
         }
         let wall = Date().timeIntervalSince(started)
-        let delivered = coordinator.videoFramesDelivered.value - delivered0
-        let dropped = coordinator.videoFramesDropped.value - dropped0
-        let encoded = lane.encoded.value - encoded0
-        let skipped = lane.skipped.value - skipped0
+        let delivered = coordinator.videoFramesDelivered - delivered0
+        let dropped = coordinator.videoFramesDropped - dropped0
+        let encoded = lane.encoded - encoded0
+        let skipped = lane.skipped - skipped0
         rig.stopRecordingVideo(false)
         await fulfillment(of: [finished], timeout: 30)
         XCTAssertNil(failure.value, "recording ended in failure: \(failure.value ?? "")")
 
         let movie = try await Self.videoTrackSummary(at: movieUrl())
         let writtenFPS = Double(movie.frames) / movie.seconds
-        let dedicated = rig.engine.isPreviewOutputAttached.value
-        let previewSize = coordinator.lastPreviewFrameSize.value
-        let recordingSize = coordinator.lastRecordingFrameSize.value
+        let dedicated = rig.engine.isPreviewOutputAttached
+        let previewSize = coordinator.lastPreviewFrameSize
+        let recordingSize = coordinator.lastRecordingFrameSize
         print("""
             🎞 \(device.localizedName): \(dims.width)x\(dims.height) @ 30 fps for \(String(format: "%.0f", wall)) s, \
             thermal \(ProcessInfo.processInfo.thermalState.rawValue), interruptions \(interruptions.value)
@@ -832,7 +832,7 @@ final class CaptureIntegrationTests: XCTestCase {
             🎞   outputs  dedicated preview \(dedicated), hardware cost \(rig.engine.hardwareCostSnapshot()), \
             preview buffer \(Int(previewSize.width))x\(Int(previewSize.height)), \
             recording buffer \(Int(recordingSize.width))x\(Int(recordingSize.height)), \
-            preview discarded \(coordinator.previewFramesDiscarded.value)
+            preview discarded \(coordinator.previewFramesDiscarded)
             🎞   movie    \(movie.frames) frames / \(String(format: "%.1f", movie.seconds)) s = \(String(format: "%.2f", writtenFPS)) fps
             """)
         if dedicated {

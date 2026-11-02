@@ -436,8 +436,8 @@ final class PreviewLaneTests: XCTestCase {
 
         XCTAssertFalse(lane.offer { XCTFail("a skipped frame must never be encoded") })
         XCTAssertFalse(lane.offer { XCTFail("a skipped frame must never be encoded") })
-        XCTAssertEqual(lane.skipped.value, 2)
-        XCTAssertEqual(lane.encoded.value, 0, "the first frame is still in the encoder")
+        XCTAssertEqual(lane.skipped, 2)
+        XCTAssertEqual(lane.encoded, 0, "the first frame is still in the encoder")
 
         holdEncode.signal()
         let secondEncodeRan = expectation(description: "second encode ran")
@@ -447,8 +447,8 @@ final class PreviewLaneTests: XCTestCase {
         }
         wait(for: [secondEncodeRan], timeout: 2)
         // The lane counts the frame after the encode returns, so give it a moment.
-        while lane.encoded.value < 2 && Date() < deadline { Thread.sleep(forTimeInterval: 0.005) }
-        XCTAssertEqual(lane.encoded.value, 2)
+        while lane.encoded < 2 && Date() < deadline { Thread.sleep(forTimeInterval: 0.005) }
+        XCTAssertEqual(lane.encoded, 2)
     }
 }
 

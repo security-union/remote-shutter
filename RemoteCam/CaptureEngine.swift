@@ -5,6 +5,7 @@
 //  Copyright © 2026 Security Union. All rights reserved.
 //
 
+import Atomics
 import UIKit
 import AVFoundation
 
@@ -90,7 +91,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     let previewDataOutput = AVCaptureVideoDataOutput()
     let previewOutputQueue = DispatchQueue(
         label: "camera preview output queue", attributes: [], target: nil)
-    let isPreviewOutputAttached = Locked(false)
+    private let previewOutputAttached = ManagedAtomic(false)
+    var isPreviewOutputAttached: Bool { previewOutputAttached.load(ordering: .acquiring) }
     var previewLongEdge = Int(StreamingConfig.default.maxLongEdge)
     /// Delivery queue for BOTH the video and audio sample-buffer delegates —
     /// one queue so `processFrame` is naturally serialized — and the home of
@@ -105,7 +107,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     /// The active camera position, mirrored for the frame streamer's per-frame
     /// reads (everything else about the device is sessionQueue-confined).
-    let currentPositionShared = Locked(AVCaptureDevice.Position.back)
+    let currentPositionShared = ManagedAtomic(AVCaptureDevice.Position.back)
 
     /// Orientation the engine last applied to the output/photo connections.
     /// The `CameraRig` keeps its own `orientation` for the preview and
@@ -213,12 +215,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.captureSession.addInput(self.videoDeviceInput)
             self.captureSession.addOutput(self.videoDataOutput)
 
-            try self.setFrameRate(framerate: fpsSetting.value, videoDevice: videoDevice)
+            try self.setFrameRate(framerate: fpsSetting.load(ordering: .relaxed), videoDevice: videoDevice)
 
             // Initialize current state
             self.updateAvailableLensTypes(for: videoDevice.position)
             self.zoomStops = self.discoverZoomStops(for: videoDevice)
-            self.currentPositionShared.value = videoDevice.position
+            self.currentPositionShared.store(videoDevice.position, ordering: .relaxed)
 
             // Start at the wide-angle zoom factor (matches native Camera app "1x")
             let wideZoom = self.wideAngleZoomFactor(for: videoDevice)
@@ -398,11 +400,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         // session churn and diverges from Apple's reference.)
         videoConnection = videoDataOutput.connection(with: .video)
         audioConnection = audioDataOutput.connection(with: .audio)
-        try setFrameRate(framerate: fpsSetting.value, videoDevice: newDevice)
+        try setFrameRate(framerate: fpsSetting.load(ordering: .relaxed), videoDevice: newDevice)
 
         updateAvailableLensTypes(for: newDevice)
         zoomStops = discoverZoomStops(for: newDevice)
-        currentPositionShared.value = newDevice.position
+        currentPositionShared.store(newDevice.position, ordering: .relaxed)
         currentZoomFactor = newDevice.videoZoomFactor
         currentLensType = lensTypeForZoomFactor(currentZoomFactor, device: newDevice)
 
@@ -885,7 +887,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         let descriptors = available.map { self.descriptorLocked($0) }
         guard let resolved = CameraDeviceDescriptor.resolveSelection(
                 requestedID: "", available: descriptors,
-                fallbackPosition: currentPositionShared.value),
+                fallbackPosition: currentPositionShared.load(ordering: .relaxed)),
               let device = available.first(where: { $0.uniqueID == resolved.uniqueID }) else { return }
         _ = try? swapToDeviceLocked(device, orientation: orientation)
     }
@@ -1246,20 +1248,20 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         // this call must carry the APPLIED value, not the one from a frame
         // ago — so wait for that handler, bounded so a driver that never
         // calls it (some Mac cameras) cannot hang the inbox.
-        let applied = Locked(false)
+        let applied = ManagedAtomic(false)
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let resume: () -> Void = {
-                var first = false
-                applied.mutate { if !$0 { $0 = true; first = true } }
-                if first { continuation.resume() }
+                if applied.compareExchange(expected: false, desired: true, ordering: .acquiringAndReleasing).exchanged {
+                    continuation.resume()
+                }
             }
             sessionQueue.async {
                 guard let device = self.videoDeviceInput?.device else {
-                    applied.mutate { $0 = true }
+                    applied.store(true, ordering: .releasing)
                     return continuation.resume(throwing: NSError(domain: "No camera device available", code: 0, userInfo: nil))
                 }
                 if case .manual = intent, self.exposureStateLocked(device)?.supportsManual != true {
-                    applied.mutate { $0 = true }
+                    applied.store(true, ordering: .releasing)
                     return continuation.resume(throwing: NSError(
                         domain: NSLocalizedString("This camera can't do manual exposure", comment: "manual exposure refused"),
                         code: 0, userInfo: nil))
@@ -1362,7 +1364,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 device.exposureMode = .continuousAutoExposure
                 // A long manual shutter may have stretched the frame duration;
                 // auto restores the frame rate the quality setting chose.
-                try? setFrameRate(framerate: fpsSetting.value, videoDevice: device)
+                try? setFrameRate(framerate: fpsSetting.load(ordering: .relaxed), videoDevice: device)
             }
             if case let .auto(bias) = plan, device.exposureTargetBias != bias {
                 device.setExposureTargetBias(bias, completionHandler: done)
@@ -1624,7 +1626,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
         if let previewConnection = previewDataOutput.connection(with: .video) {
             applyCaptureOrientationLocked(o, to: previewConnection)
-            if isPreviewOutputAttached.value { applyPreviewOutputSizeLocked() }
+            if isPreviewOutputAttached { applyPreviewOutputSizeLocked() }
         }
         if let photoConnection = self.photoOutput.connection(with: AVMediaType.video) {
             applyCaptureOrientationLocked(o, to: photoConnection)
@@ -1687,7 +1689,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
         let safeFPS = resolved.fps
         if safeFPS != framerate {
-            fpsSetting.value = safeFPS
+            fpsSetting.store(safeFPS, ordering: .relaxed)
             currentVideoFrameRate = VideoFrameRate.selectableCases.last(where: { $0.value <= safeFPS }) ?? .fps30
             onStatusChanged?()
         }
@@ -1773,7 +1775,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         captureSession.sessionPreset = .photo
         captureSession.commitConfiguration()
         if let device = videoDeviceInput?.device {
-            try? setFrameRate(framerate: fpsSetting.value, videoDevice: device)
+            try? setFrameRate(framerate: fpsSetting.load(ordering: .relaxed), videoDevice: device)
         }
         restoreAfterFormatChangeLocked()
         onStatusChanged?()
@@ -1861,12 +1863,12 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return detachPreviewOutputLocked()
         }
         applyPreviewOutputSizeLocked()
-        isPreviewOutputAttached.value = true
+        previewOutputAttached.store(true, ordering: .releasing)
     }
 
     private func detachPreviewOutputLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        isPreviewOutputAttached.value = false
+        previewOutputAttached.store(false, ordering: .releasing)
         clearPreviewOutputSizeLocked()
         guard captureSession.outputs.contains(previewDataOutput) else { return }
         captureSession.beginConfiguration()
@@ -1878,7 +1880,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// incoming format makes AVFoundation throw. Reconciled after the commit.
     private func suspendPreviewOutputSizeLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        isPreviewOutputAttached.value = false
+        previewOutputAttached.store(false, ordering: .releasing)
         clearPreviewOutputSizeLocked()
     }
 
@@ -1951,7 +1953,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         guard captureMode != .Photo else {
             currentVideoResolution = resolution
             currentVideoFrameRate = frameRate
-            fpsSetting.value = frameRate.value
+            fpsSetting.store(frameRate.value, ordering: .relaxed)
             onStatusChanged?()
             return (resolution, frameRate)
         }
@@ -1995,7 +1997,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
         currentVideoResolution = resolution
         currentVideoFrameRate = appliedFrameRate
-        fpsSetting.value = appliedFrameRate.value
+        fpsSetting.store(appliedFrameRate.value, ordering: .relaxed)
         onStatusChanged?()
 
         return (resolution, appliedFrameRate)

@@ -7,11 +7,11 @@
 
 import Foundation
 
-/// Minimal lock-guarded value box for the few values that legitimately cross
-/// the capture stack's queue domains (orientation, recording flag, fps, camera
-/// position). Everything else is confined to a single queue — reach for this
-/// only when a per-frame or cross-domain read genuinely can't hop queues.
-/// (`NSLock` because the iOS 15 floor rules out `OSAllocatedUnfairLock`/`Mutex`.)
+/// Lock-guarded box for the few non-word values that cross queue domains (a
+/// string, a continuation, a dictionary). A word — Int, Bool, an enum, a bit
+/// pattern — is a `ManagedAtomic` instead; everything else is confined to one
+/// queue. (`NSLock` because the iOS 15 floor rules out
+/// `OSAllocatedUnfairLock`/`Mutex`.)
 final class Locked<Value>: @unchecked Sendable {
     private var storage: Value
     private let lock = NSLock()

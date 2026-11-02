@@ -5,6 +5,7 @@
 //  Copyright © 2026 Security Union LLC. All rights reserved.
 //
 
+import Atomics
 import Foundation
 import AVFoundation
 import CoreImage
@@ -20,11 +21,13 @@ import UIKit
  */
 final class PreviewLane {
     private let queue: DispatchQueue
-    private let busy = Locked(false)
+    private let busy = ManagedAtomic(false)
+    private let encodedCount = ManagedAtomic(0)
+    private let skippedCount = ManagedAtomic(0)
 
     /// Frames encoded and frames skipped because the lane was busy.
-    let encoded = Locked(0)
-    let skipped = Locked(0)
+    var encoded: Int { encodedCount.load(ordering: .relaxed) }
+    var skipped: Int { skippedCount.load(ordering: .relaxed) }
 
     init(queue: DispatchQueue) {
         self.queue = queue
@@ -34,16 +37,14 @@ final class PreviewLane {
     /// frame. Returns whether the frame was taken.
     @discardableResult
     func offer(_ encode: @escaping () -> Void) -> Bool {
-        var taken = false
-        busy.mutate { if !$0 { $0 = true; taken = true } }
-        guard taken else {
-            skipped.mutate { $0 += 1 }
+        guard busy.compareExchange(expected: false, desired: true, ordering: .acquiringAndReleasing).exchanged else {
+            skippedCount.wrappingIncrement(ordering: .relaxed)
             return false
         }
         queue.async { [self] in
             encode()
-            encoded.mutate { $0 += 1 }
-            busy.value = false
+            encodedCount.wrappingIncrement(ordering: .relaxed)
+            busy.store(false, ordering: .releasing)
         }
         return true
     }
@@ -181,21 +182,27 @@ final class FrameStreamingCoordinator: NSObject {
     /// Wall-clock of the most recent video sample buffer, for the rig's
     /// first-frame watchdog (a suspended or stalled camera delivers nothing,
     /// forever). Written per-frame on the data queue, read from the watchdog.
-    let lastVideoFrameAt = Locked<TimeInterval>(0)
+    private let lastVideoFrameBits = ManagedAtomic<UInt64>(0)
+    var lastVideoFrameAt: TimeInterval { Double(bitPattern: lastVideoFrameBits.load(ordering: .relaxed)) }
 
     /// Video frames the camera delivered, frames it discarded because this
     /// queue was still busy with the previous one
     /// (`alwaysDiscardsLateVideoFrames`), and the last discard reason. A
     /// discarded frame is missing from the movie; this is where that shows.
-    let videoFramesDelivered = Locked(0)
-    let videoFramesDropped = Locked(0)
+    private let deliveredCount = ManagedAtomic(0)
+    private let droppedCount = ManagedAtomic(0)
+    var videoFramesDelivered: Int { deliveredCount.load(ordering: .relaxed) }
+    var videoFramesDropped: Int { droppedCount.load(ordering: .relaxed) }
     let lastDropReason = Locked<String?>(nil)
 
     /// Preview-output discards (no hole in the movie) and the newest buffer
-    /// size each path received, for the hardware probe.
-    let previewFramesDiscarded = Locked(0)
-    let lastRecordingFrameSize = Locked(CGSize.zero)
-    let lastPreviewFrameSize = Locked(CGSize.zero)
+    /// size each path received, packed width:height, for the hardware probe.
+    private let previewDiscardedCount = ManagedAtomic(0)
+    private let recordingFrameBits = ManagedAtomic<UInt64>(0)
+    private let previewFrameBits = ManagedAtomic<UInt64>(0)
+    var previewFramesDiscarded: Int { previewDiscardedCount.load(ordering: .relaxed) }
+    var lastRecordingFrameSize: CGSize { Self.size(bits: recordingFrameBits.load(ordering: .relaxed)) }
+    var lastPreviewFrameSize: CGSize { Self.size(bits: previewFrameBits.load(ordering: .relaxed)) }
 
     /// Last Watch-preview codec announced at .info, so the selected format is
     /// visible in Console without per-frame chatter. Preview-queue confined.
@@ -215,9 +222,13 @@ final class FrameStreamingCoordinator: NSObject {
         }
     }
 
-    private static func size(of sampleBuffer: CMSampleBuffer) -> CGSize {
-        guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return .zero }
-        return CGSize(width: CVPixelBufferGetWidth(buffer), height: CVPixelBufferGetHeight(buffer))
+    private static func bits(of sampleBuffer: CMSampleBuffer) -> UInt64 {
+        guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return 0 }
+        return UInt64(CVPixelBufferGetWidth(buffer)) << 32 | UInt64(CVPixelBufferGetHeight(buffer))
+    }
+
+    private static func size(bits: UInt64) -> CGSize {
+        CGSize(width: Int(bits >> 32), height: Int(bits & 0xFFFF_FFFF))
     }
 }
 
@@ -234,11 +245,11 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
             isRecordingVideo: isRecordingVideo,
             isAudio: captureOutput === engine.audioDataOutput,
             isPreviewOutput: captureOutput === engine.previewDataOutput,
-            hasDedicatedPreview: engine.isPreviewOutputAttached.value)
+            hasDedicatedPreview: engine.isPreviewOutputAttached)
         if isRecordingVideo {
-            lastVideoFrameAt.value = Date().timeIntervalSinceReferenceDate
-            videoFramesDelivered.mutate { $0 += 1 }
-            lastRecordingFrameSize.value = Self.size(of: sampleBuffer)
+            lastVideoFrameBits.store(Date().timeIntervalSinceReferenceDate.bitPattern, ordering: .relaxed)
+            deliveredCount.wrappingIncrement(ordering: .relaxed)
+            recordingFrameBits.store(Self.bits(of: sampleBuffer), ordering: .relaxed)
         }
         // Recording first: the append is the only work left on the data queue.
         if route.toRecorder,
@@ -246,7 +257,7 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
             pipeline.processFrame(captureOutput, didOutput: sampleBuffer)
         }
         if route.toPreview {
-            lastPreviewFrameSize.value = Self.size(of: sampleBuffer)
+            previewFrameBits.store(Self.bits(of: sampleBuffer), ordering: .relaxed)
             previewLane.offer { [weak self] in self?.sendFrameToMonitor(sampleBuffer) }
         }
     }
@@ -255,11 +266,11 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
                        didDrop sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         if captureOutput === engine.previewDataOutput {
-            previewFramesDiscarded.mutate { $0 += 1 }
+            previewDiscardedCount.wrappingIncrement(ordering: .relaxed)
             return
         }
         guard captureOutput === engine.videoDataOutput else { return }
-        videoFramesDropped.mutate { $0 += 1 }
+        droppedCount.wrappingIncrement(ordering: .relaxed)
         if let reason = CMGetAttachment(sampleBuffer,
                                         key: kCMSampleBufferAttachmentKey_DroppedFrameReason,
                                         attachmentModeOut: nil) {
@@ -280,9 +291,9 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
 
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         frameStreamer.handle(pixelBuffer: pixelBuffer,
-                             position: engine.currentPositionShared.value,
+                             position: engine.currentPositionShared.load(ordering: .relaxed),
                              orientation: orientationProvider(),
-                             fps: fpsSetting.value)
+                             fps: fpsSetting.load(ordering: .relaxed))
     }
 
     /// Builds a compact frame of the current capture for the Apple Watch live

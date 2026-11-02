@@ -6,6 +6,7 @@
 //  Copyright © 2020 Security Union. All rights reserved.
 //
 
+import Atomics
 import Foundation
 import MPCCompat
 import Stormo
@@ -47,12 +48,12 @@ final class FrameSender {
     /// Cross-queue mirror of `window.hasCredit`, so the capture-queue frame
     /// streamer can gate VP9 encoding on back-pressure without hopping onto this
     /// queue. Updated inside `queue` on every window change.
-    private let creditAvailableMirror = Locked<Bool>(true)
+    private let creditAvailableMirror = ManagedAtomic(true)
 
     /// Set by the coordinator when the monitor requests a keyframe (decoder
     /// re-sync); read-and-cleared once by the frame streamer on the capture
     /// queue, which forces the next VP9 frame to be a keyframe.
-    private let keyframeRequestPending = Locked<Bool>(false)
+    private let keyframeRequestPending = ManagedAtomic(false)
 
     /// Send failures pop the session to scanning (via the inbox).
     weak var coordinator: SessionCoordinator?
@@ -103,18 +104,16 @@ final class FrameSender {
     }
 
     /// Whether the credit window currently has room. Safe to call from any
-    /// thread (reads the lock-boxed mirror); the capture-queue frame streamer
+    /// thread (reads the atomic mirror); the capture-queue frame streamer
     /// uses it to gate VP9 encoding.
-    func hasCredit() -> Bool { creditAvailableMirror.value }
+    func hasCredit() -> Bool { creditAvailableMirror.load(ordering: .acquiring) }
 
     /// The monitor asked for a keyframe — arm it. Safe from any thread.
-    func requestKeyframe() { keyframeRequestPending.value = true }
+    func requestKeyframe() { keyframeRequestPending.store(true, ordering: .releasing) }
 
     /// Reads-and-clears a pending keyframe request (capture queue).
     func takeKeyframeRequest() -> Bool {
-        var pending = false
-        keyframeRequestPending.mutate { pending = $0; $0 = false }
-        return pending
+        keyframeRequestPending.exchange(false, ordering: .acquiringAndReleasing)
     }
 
     /// Offer a frame; sends if the credit window allows, drops otherwise.
@@ -171,7 +170,7 @@ final class FrameSender {
     /// window mutation.
     private func refreshCreditMirror() {
         dispatchPrecondition(condition: .onQueue(queue))
-        creditAvailableMirror.value = window.hasCredit
+        creditAvailableMirror.store(window.hasCredit, ordering: .releasing)
     }
 
     private func armAckWatchdog() {
