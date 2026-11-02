@@ -50,6 +50,15 @@ final class CaptureEngineTests: XCTestCase {
         }
     }
 
+    // MARK: - capturePixelFormat
+
+    func testCapturePixelFormatPrefersFullRange420AndNeverBGRA() {
+        let full = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, video = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+        XCTAssertEqual(CaptureEngine.capturePixelFormat(available: [kCVPixelFormatType_32BGRA, video, full]), full)
+        XCTAssertEqual(CaptureEngine.capturePixelFormat(available: [kCVPixelFormatType_32BGRA, video]), video)
+        XCTAssertNil(CaptureEngine.capturePixelFormat(available: [kCVPixelFormatType_32BGRA]), "unknown camera: leave the default")
+    }
+
     // MARK: - resolveFrameRate
     // Supported rates form disjoint ranges; a value outside every range
     // raises an uncatchable ObjC exception in AVFoundation, so the resolver

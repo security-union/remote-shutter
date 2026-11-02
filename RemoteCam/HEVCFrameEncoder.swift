@@ -96,8 +96,10 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
 
     /// GPU context that scales each capture buffer into the encoder's input size.
     private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
-    /// Pool of BGRA buffers at the current session geometry, fed to VideoToolbox.
+    /// Pool at the session geometry, in the capture's own pixel format so the
+    /// scale pass hands the encoder what it would have got unscaled.
     private var pixelBufferPool: CVPixelBufferPool?
+    private var poolPixelFormat: OSType = 0
 
     /// Hardware compression session plus the geometry it was created for.
     private var session: VTCompressionSession?
@@ -333,12 +335,12 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
         pts = 0
         generation += 1
         forceNextKeyframe = false
-        pixelBufferPool = Self.makePool(width: width, height: height)
+        pixelBufferPool = nil
         StreamLog.encode.info("""
             HEVC encoder session started: \(width)x\(height) @ \(self.settings.bitrateKbps) kbps, \
             keyframe every \(self.settings.keyframeInterval) frames
             """)
-        return pixelBufferPool != nil
+        return true
     }
 
     /// Deliberately NO flush (`VTCompressionSessionCompleteFrames`): for a
@@ -358,9 +360,9 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
         completed.value.removeAll()
     }
 
-    private static func makePool(width: Int, height: Int) -> CVPixelBufferPool? {
+    private static func makePool(width: Int, height: Int, pixelFormat: OSType) -> CVPixelBufferPool? {
         let attrs: [CFString: Any] = [
-            kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferPixelFormatTypeKey: pixelFormat,
             kCVPixelBufferWidthKey: width,
             kCVPixelBufferHeightKey: height,
             kCVPixelBufferIOSurfacePropertiesKey: [:] as CFDictionary
@@ -370,8 +372,13 @@ final class HEVCFrameEncoder: StreamVideoEncoding {
         return pool
     }
 
-    /// Scales the capture buffer into a pooled BGRA buffer at the session size.
+    /// Scales the capture buffer into a pooled buffer at the session size.
     private func scaledBuffer(from source: CVPixelBuffer, width: Int, height: Int) -> CVPixelBuffer? {
+        let format = CVPixelBufferGetPixelFormatType(source)
+        if pixelBufferPool == nil || poolPixelFormat != format {
+            pixelBufferPool = Self.makePool(width: width, height: height, pixelFormat: format)
+            poolPixelFormat = format
+        }
         guard let pool = pixelBufferPool else { return nil }
         var dst: CVPixelBuffer?
         guard CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &dst) == kCVReturnSuccess,
