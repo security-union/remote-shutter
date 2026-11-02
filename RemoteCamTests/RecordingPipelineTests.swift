@@ -9,6 +9,15 @@ import AVFoundation
 /// the pipeline's own queue and assert exactly one start-ack fires.
 final class RecordingPipelineTests: XCTestCase {
 
+    /// iPhone 6s (A9) has no HEVC encoder; asking AVFoundation for HEVC
+    /// settings there raises an uncatchable exception. The codec must come
+    /// from the output's own list.
+    func testRecordingCodecFollowsWhatTheOutputCanWrite() {
+        XCTAssertEqual(RecordingPipeline.recordingCodec(available: [.h264, .hevc, .jpeg]), .hevc)
+        XCTAssertEqual(RecordingPipeline.recordingCodec(available: [.h264, .jpeg]), .h264, "A9: H.264 take, not a crash")
+        XCTAssertNil(RecordingPipeline.recordingCodec(available: [.jpeg]), "nothing we know: take the output's recommendation")
+    }
+
     private func makeWriter() throws -> AVAssetWriter {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("RecordingPipelineTests-\(UUID().uuidString).mov")
