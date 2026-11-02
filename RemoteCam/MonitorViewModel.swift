@@ -12,12 +12,33 @@ enum MonitorUIState {
 
 // MARK: - Frame Display Model
 
-/// The live-preview frame stream, isolated from the rest of the monitor's
-/// state: frames arrive ~20×/sec, and publishing them through the main view
-/// model re-rendered every control on each frame (the device menu visibly
-/// flickered). Only the preview's `LiveFrameView` observes this.
+/// One lane's live-preview frames. Frames go straight to the attached
+/// `PreviewSurfaceView`s; SwiftUI observes only `frameSize`, which changes
+/// rarely (first frame, rotation, stream tier). Main thread only.
 final class FrameDisplayModel: ObservableObject {
-    @Published var cameraImage: UIImage?
+    /// Pixel size of the latest frame; `LiveFrameView` lays out the letterbox
+    /// and crop overlay from it. Nil until the first frame.
+    @Published private(set) var frameSize: CGSize?
+    /// The frame on screen, so a surface attached later starts with it.
+    private(set) var latest: PreviewFrame?
+    private let surfaces = NSHashTable<PreviewSurfaceView>.weakObjects()
+
+    func show(_ frame: PreviewFrame) {
+        latest = frame
+        for case let surface as PreviewSurfaceView in surfaces.objectEnumerator() { surface.show(frame) }
+        let size = frame.pixelSize
+        if frameSize != size { frameSize = size }
+    }
+
+    func attach(_ surface: PreviewSurfaceView) {
+        surfaces.add(surface)
+        surface.show(latest)
+    }
+
+    func detach(_ surface: PreviewSurfaceView) {
+        surfaces.remove(surface)
+        surface.show(nil)
+    }
 }
 
 // MARK: - Camera switch control

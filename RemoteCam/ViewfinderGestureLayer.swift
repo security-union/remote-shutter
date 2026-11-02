@@ -22,9 +22,9 @@ import UIKit
 /// BELOW the chrome so a tap on a control is never stolen as a focus tap.
 struct ViewfinderGestureLayer: View {
 
-    /// Read at tap time: the live frame whose pixel size maps the tap into
+    /// Read at tap time: the live frame's pixel size, which maps the tap into
     /// normalized image space (nil while no frame has arrived — taps ignored).
-    let cameraImage: () -> UIImage?
+    let frameSize: () -> CGSize?
     /// Read at gesture time (not captured at render), so a pinch always starts
     /// from the camera's current factor and scale — the same values the zoom
     /// pill uses.
@@ -99,9 +99,9 @@ struct ViewfinderGestureLayer: View {
     /// (not the letterbox), shows the reticle and forwards it to the screen.
     private func handleFocusTap(at location: CGPoint) {
         guard focusEnabled,
-              let image = cameraImage(),
+              let imageSize = frameSize(),
               let normalized = FocusPointMapping.normalizedImagePoint(
-                tap: location, viewSize: viewSize, imageSize: image.size)
+                tap: location, viewSize: viewSize, imageSize: imageSize)
         else { return }
         let reticle = FocusReticle(point: location)
         focusReticle = reticle

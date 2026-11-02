@@ -578,7 +578,7 @@ struct MulticamView: View {
             ZStack {
                 LiveFrameView(frames: focused.frames, aspectRatio: viewModel.rigSettings.aspectRatio)
                 ViewfinderGestureLayer(
-                    cameraImage: { focused.frames.cameraImage },
+                    frameSize: { focused.frames.frameSize },
                     zoomScale: { focused.zoomScale },
                     currentZoomFactor: { focused.zoomFactor },
                     focusEnabled: focused.supportsFocusPoint,

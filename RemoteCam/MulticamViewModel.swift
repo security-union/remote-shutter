@@ -52,8 +52,8 @@ final class CameraLane: ObservableObject, Identifiable {
     var hasTorch: Bool { info.hasTorch }
 
     /// This lane's own decoder + stall watchdog. The view controller wires its
-    /// `onImage` to set `frames.cameraImage`, and its stall/keyframe callbacks
-    /// back to the controller for this peer.
+    /// `onFrame` to `frames.show`, its consumed-frame credit and its
+    /// stall/keyframe callbacks back to the controller for this peer.
     let receiver = FrameStreamReceiver()
 
     init(info: MulticamLaneInfo) {

@@ -274,7 +274,7 @@ final class MulticamControllerTests: XCTestCase {
 
     // MARK: - Frame routing (Seam B)
 
-    func testFrameRoutesToItsLaneAndAcksOnlyItsSource() async {
+    func testFrameRoutesToItsLaneAndIsAckedOnlyOnceThatLaneConsumedIt() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         // Register a per-lane sink for each camera, mirroring how the view
         // controller wires one at lane creation.
@@ -289,9 +289,15 @@ final class MulticamControllerTests: XCTestCase {
 
         XCTAssertEqual(collector.peers, [camB],
                        "the frame reaches only its own lane's decoder, never another's")
+        XCTAssertTrue(sent(transport, RemoteCmd.RequestFrame.self).isEmpty,
+                      "receipt is not consumption: the credit waits until the lane has shown the frame")
+
+        controller.ackFrame(for: camB)
+        await controller.waitForIdle()
+
         let acks = sent(transport, RemoteCmd.RequestFrame.self)
         XCTAssertEqual(acks.map(\.peers), [[camB]],
-                       "the frame ack must address only the camera that sent the frame")
+                       "the frame ack must address only the camera whose frame was shown")
     }
 
     func testFramesDoNotRebuildTheSnapshots() async {
