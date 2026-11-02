@@ -8,7 +8,8 @@
 //  still's size, which is the whole point — more preview fps through the same
 //  WCSession byte budget.
 //
-//  Per frame: downscale the 32BGRA capture buffer with vImage, convert to
+//  Per frame: take a BGRA view of the capture buffer (its own bytes, or a
+//  4:2:0 capture buffer converted with vImage), downscale it, convert to
 //  planar I420 (full-range ITU-R 601, mirrored by the Watch decoder), feed the
 //  Rust encoder. The Rust session is recreated whenever the scaled *output*
 //  dimensions change, and a fresh session's first frame is a keyframe.
@@ -51,7 +52,12 @@ final class VP9FrameEncoder: StreamVideoEncoding {
     /// Scratch buffers reused across frames (preview-queue confined).
     private var scaledBGRA: UnsafeMutableRawPointer?
     private var scaledBGRACapacity = 0
+    private var sourceBGRA: UnsafeMutableRawPointer?
+    private var sourceBGRACapacity = 0
     private var i420 = Data()
+    /// 4:2:0 -> ARGB table for the capture's range and matrix, rebuilt when they change.
+    private var toARGB = vImage_YpCbCrToARGB()
+    private var toARGBKey: (format: OSType, bt709: Bool) = (0, false)
 
     init(maxLongEdge: CGFloat, settings: VP9Settings) {
         self.maxLongEdge = Int(maxLongEdge)
@@ -75,6 +81,7 @@ final class VP9FrameEncoder: StreamVideoEncoding {
 
     deinit {
         scaledBGRA?.deallocate()
+        sourceBGRA?.deallocate()
     }
 
     /// Forces the next encoded frame to be a keyframe by dropping the current
@@ -89,10 +96,6 @@ final class VP9FrameEncoder: StreamVideoEncoding {
     }
 
     func encode(pixelBuffer: CVPixelBuffer) -> FrameEncodeResult {
-        guard CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_32BGRA else {
-            return .failed
-        }
-
         let srcWidth = CVPixelBufferGetWidth(pixelBuffer)
         let srcHeight = CVPixelBufferGetHeight(pixelBuffer)
         guard srcWidth > 0, srcHeight > 0 else { return .failed }
@@ -107,15 +110,10 @@ final class VP9FrameEncoder: StreamVideoEncoding {
         }
         guard let session, let scaledBGRA else { return .failed }
 
-        // 1. Downscale BGRA with vImage (channel-order agnostic).
+        // 1. Downscale with vImage (channel-order agnostic).
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
-        guard let srcBase = CVPixelBufferGetBaseAddress(pixelBuffer) else { return .failed }
-
-        var src = vImage_Buffer(data: srcBase,
-                                height: vImagePixelCount(srcHeight),
-                                width: vImagePixelCount(srcWidth),
-                                rowBytes: CVPixelBufferGetBytesPerRow(pixelBuffer))
+        guard var src = bgraView(of: pixelBuffer) else { return .failed }
         var dst = vImage_Buffer(data: scaledBGRA,
                                 height: vImagePixelCount(dstHeight),
                                 width: vImagePixelCount(dstWidth),
@@ -158,6 +156,59 @@ final class VP9FrameEncoder: StreamVideoEncoding {
             StreamLog.encode.error("VP9 encode failed: \(error)")
             return .failed
         }
+    }
+
+    /// The frame as BGRA: the buffer's own bytes, or a 4:2:0 capture buffer
+    /// converted into scratch with the buffer's declared range and matrix, so
+    /// the I420 handed to the Rust encoder is what BGRA capture produced.
+    private func bgraView(of pixelBuffer: CVPixelBuffer) -> vImage_Buffer? {
+        let width = CVPixelBufferGetWidth(pixelBuffer), height = CVPixelBufferGetHeight(pixelBuffer)
+        switch CVPixelBufferGetPixelFormatType(pixelBuffer) {
+        case kCVPixelFormatType_32BGRA:
+            guard let base = CVPixelBufferGetBaseAddress(pixelBuffer) else { return nil }
+            return vImage_Buffer(data: base, height: vImagePixelCount(height), width: vImagePixelCount(width),
+                                 rowBytes: CVPixelBufferGetBytesPerRow(pixelBuffer))
+        case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
+            guard let ypBase = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0),
+                  let cbCrBase = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1),
+                  var info = yCbCrToARGB(for: pixelBuffer) else { return nil }
+            let bytes = width * 4 * height
+            if bytes > sourceBGRACapacity {
+                sourceBGRA?.deallocate()
+                sourceBGRA = .allocate(byteCount: bytes, alignment: 64)
+                sourceBGRACapacity = bytes
+            }
+            var yp = vImage_Buffer(data: ypBase, height: vImagePixelCount(height), width: vImagePixelCount(width),
+                                   rowBytes: CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0))
+            var cbCr = vImage_Buffer(data: cbCrBase, height: vImagePixelCount(height / 2), width: vImagePixelCount(width / 2),
+                                     rowBytes: CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1))
+            var dst = vImage_Buffer(data: sourceBGRA, height: vImagePixelCount(height), width: vImagePixelCount(width),
+                                    rowBytes: width * 4)
+            guard vImageConvert_420Yp8_CbCr8ToARGB8888(&yp, &cbCr, &dst, &info, bgraToARGB, 255,
+                                                       vImage_Flags(kvImageNoFlags)) == kvImageNoError else { return nil }
+            return dst
+        default:
+            return nil
+        }
+    }
+
+    private func yCbCrToARGB(for pixelBuffer: CVPixelBuffer) -> vImage_YpCbCrToARGB? {
+        let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
+        let matrix = CVBufferCopyAttachment(pixelBuffer, kCVImageBufferYCbCrMatrixKey, nil) as? String
+        let bt709 = matrix != (kCVImageBufferYCbCrMatrix_ITU_R_601_4 as String)
+        if toARGBKey != (format, bt709) {
+            var range = format == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+                ? vImage_YpCbCrPixelRange(Yp_bias: 0, CbCr_bias: 128, YpRangeMax: 255, CbCrRangeMax: 255,
+                                          YpMax: 255, YpMin: 0, CbCrMax: 255, CbCrMin: 0)
+                : vImage_YpCbCrPixelRange(Yp_bias: 16, CbCr_bias: 128, YpRangeMax: 235, CbCrRangeMax: 240,
+                                          YpMax: 235, YpMin: 16, CbCrMax: 240, CbCrMin: 16)
+            guard vImageConvert_YpCbCrToARGB_GenerateConversion(
+                bt709 ? kvImage_YpCbCrToARGBMatrix_ITU_R_709_2 : kvImage_YpCbCrToARGBMatrix_ITU_R_601_4,
+                &range, &toARGB, kvImage420Yp8_CbCr8, kvImageARGB8888,
+                vImage_Flags(kvImageNoFlags)) == kvImageNoError else { return nil }
+            toARGBKey = (format, bt709)
+        }
+        return toARGB
     }
 
     /// (Re)creates the Rust encoder and scratch buffers for a new geometry.

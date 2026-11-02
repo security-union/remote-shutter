@@ -207,6 +207,8 @@ final class FrameStreamingCoordinator: NSObject {
     var previewFramesDiscarded: Int { previewDiscardedCount.load(ordering: .relaxed) }
     var lastRecordingFrameSize: CGSize { Self.size(bits: recordingFrameBits.load(ordering: .relaxed)) }
     var lastPreviewFrameSize: CGSize { Self.size(bits: previewFrameBits.load(ordering: .relaxed)) }
+    var lastRecordingPixelFormat: String { Self.fourCC(bits: recordingFrameBits.load(ordering: .relaxed)) }
+    var lastPreviewPixelFormat: String { Self.fourCC(bits: previewFrameBits.load(ordering: .relaxed)) }
 
     /// Last Watch-preview codec announced at .info, so the selected format is
     /// visible in Console without per-frame chatter. Preview-queue confined.
@@ -226,13 +228,20 @@ final class FrameStreamingCoordinator: NSObject {
         }
     }
 
+    /// pixel format << 32 | width << 16 | height, so one atomic word carries all three.
     private static func bits(of sampleBuffer: CMSampleBuffer) -> UInt64 {
         guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return 0 }
-        return UInt64(CVPixelBufferGetWidth(buffer)) << 32 | UInt64(CVPixelBufferGetHeight(buffer))
+        return UInt64(CVPixelBufferGetPixelFormatType(buffer)) << 32
+            | UInt64(CVPixelBufferGetWidth(buffer)) << 16 | UInt64(CVPixelBufferGetHeight(buffer))
     }
 
     private static func size(bits: UInt64) -> CGSize {
-        CGSize(width: Int(bits >> 32), height: Int(bits & 0xFFFF_FFFF))
+        CGSize(width: Int(bits >> 16 & 0xFFFF), height: Int(bits & 0xFFFF))
+    }
+
+    private static func fourCC(bits: UInt64) -> String {
+        let code = UInt32(truncatingIfNeeded: bits >> 32)
+        return String(bytes: [24, 16, 8, 0].map { UInt8(code >> $0 & 0xFF) }, encoding: .ascii) ?? "?"
     }
 }
 

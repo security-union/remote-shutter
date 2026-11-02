@@ -129,6 +129,19 @@ final class VP9StreamingTests: XCTestCase {
         XCTAssertEqual(meanChroma, 128, accuracy: 8, "gray must produce neutral Cb/Cr")
     }
 
+    /// A 4:2:0 capture buffer must reach the Rust encoder as the same I420 a
+    /// BGRA buffer of the same gray did: full-range 601, neutral chroma.
+    func testFrameEncoderAcceptsBiplanarCaptureBuffers() throws {
+        let encoder = VP9FrameEncoder(maxLongEdge: 100, settings: .test)
+        let data = try XCTUnwrap(encodedData(encoder.encode(
+            pixelBuffer: makeBiplanarPixelBuffer(width: 400, height: 200, luma: 128))))
+        let decoded = try Vp9Decoder().decode(frame: data)
+        XCTAssertEqual(decoded.width, 100)
+        XCTAssertEqual(meanLuma(of: decoded), 128, accuracy: 16)
+        let chroma = decoded.data.dropFirst(Int(decoded.width) * Int(decoded.height))
+        XCTAssertEqual(chroma.reduce(0.0) { $0 + Double($1) } / Double(chroma.count), 128, accuracy: 8)
+    }
+
     func testFrameEncoderStreamsConsecutiveFrames() throws {
         let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .test)
         let decoder = Vp9Decoder()

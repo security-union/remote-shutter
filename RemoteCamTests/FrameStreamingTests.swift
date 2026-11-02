@@ -69,6 +69,22 @@ func makePixelBuffer(width: Int = 64, height: Int = 32) -> CVPixelBuffer {
     return pixelBuffer!
 }
 
+/// Full-range 4:2:0 capture-style buffer, uniform gray at `luma` with neutral chroma.
+func makeBiplanarPixelBuffer(width: Int, height: Int, luma: UInt8 = 128) -> CVPixelBuffer {
+    var pixelBuffer: CVPixelBuffer?
+    let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height,
+                                     kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, nil, &pixelBuffer)
+    precondition(status == kCVReturnSuccess, "CVPixelBufferCreate failed: \(status)")
+    let buffer = pixelBuffer!
+    CVPixelBufferLockBaseAddress(buffer, [])
+    memset(CVPixelBufferGetBaseAddressOfPlane(buffer, 0), Int32(luma),
+           CVPixelBufferGetBytesPerRowOfPlane(buffer, 0) * height)
+    memset(CVPixelBufferGetBaseAddressOfPlane(buffer, 1), 128,
+           CVPixelBufferGetBytesPerRowOfPlane(buffer, 1) * (height / 2))
+    CVPixelBufferUnlockBaseAddress(buffer, [])
+    return buffer
+}
+
 private func makeOnFrame(data: Data = Data([1]),
                          codec: RemoteCmd.StreamCodec = .jpeg,
                          sequenceNumber: UInt32) -> RemoteCmd.OnFrame {
@@ -409,6 +425,22 @@ final class FrameEncoderTests: XCTestCase {
         try XCTSkipIf(data == nil, "HEVC encoder unavailable on this simulator/host")
         let image = try XCTUnwrap(UIImage(data: data!))
         XCTAssertLessThanOrEqual(max(image.size.width, image.size.height), 100)
+    }
+
+    /// The capture outputs deliver 4:2:0 now; the scale pass must render into
+    /// a pool of the same format and the hardware must take it.
+    func testHEVCEncoderScalesABiplanarCaptureBuffer() throws {
+        let encoder = HEVCFrameEncoder(maxLongEdge: 100, settings: StreamingConfig.default.peerHEVC)
+        let buffer = makeBiplanarPixelBuffer(width: 400, height: 200)
+        var payload: Data?
+        for _ in 0..<20 where payload == nil {           // pipelined: the first calls return .skipped
+            if case .encoded(let data) = encoder.encode(pixelBuffer: buffer) { payload = data }
+            Thread.sleep(forTimeInterval: 0.02)
+        }
+        try XCTSkipIf(payload == nil, "HEVC encoder unavailable on this host")
+        let parts = try XCTUnwrap(HEVCFrameContainer.unpack(payload!))
+        XCTAssertNotNil(parts.parameterSets, "the first frame is a keyframe carrying parameter sets")
+        XCTAssertGreaterThan(parts.frame.count, 0)
     }
 
     func testSmallFrameIsNotUpscaled() throws {

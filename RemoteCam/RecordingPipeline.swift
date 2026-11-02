@@ -544,11 +544,12 @@ class RecordingPipeline {
             videoInput.expectsMediaDataInRealTime = true
 
             if let cropRect = cachedVideoCropRect {
-                // Pool attributes match output dimensions — avoids per-frame CVPixelBufferCreate
+                // Pool buffers match the crop size and the capture's own pixel
+                // format: no per-frame allocation, and the crop render converts nothing.
                 let poolAttrs: [String: Any] = [
                     kCVPixelBufferWidthKey as String: Int(cropRect.width),
                     kCVPixelBufferHeightKey as String: Int(cropRect.height),
-                    kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)
+                    kCVPixelBufferPixelFormatTypeKey as String: Int(CMFormatDescriptionGetMediaSubType(formatDescription))
                 ]
                 pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
                     assetWriterInput: videoInput,

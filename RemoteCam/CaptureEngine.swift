@@ -186,8 +186,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         self.cameraSettings.isHighResolutionPhotoEnabled = true
         self.videoDataOutput.setSampleBufferDelegate(sampleBufferDelegate, queue: self.dataOutputQueue)
-        self.videoDataOutput.videoSettings =
-            [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)] as [String: Any]
         self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
         self.previewDataOutput.setSampleBufferDelegate(sampleBufferDelegate, queue: self.previewOutputQueue)
         self.previewDataOutput.automaticallyConfiguresOutputBufferDimensions = false
@@ -1838,8 +1836,24 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// when the format is larger than the preview, the session accepts it and
     /// `hardwareCost` ≤ 1.0 (above, the session cannot run); detached
     /// otherwise. Runs at setup and after every format or device change.
+    /// The sensor pipeline produces 4:2:0. BGRA is a conversion of every frame
+    /// at about 2.6x the memory traffic (TN3121), which the encoders then
+    /// convert back; both outputs ask for 4:2:0 so nothing converts. Full
+    /// range first: the Watch VP9 path is full range end to end. nil leaves
+    /// the device's own default.
+    static func capturePixelFormat(available: [OSType]) -> OSType? {
+        [kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange]
+            .first(where: available.contains)
+    }
+
+    private func pixelFormatSettings(for output: AVCaptureVideoDataOutput) -> [String: Any] {
+        guard let format = Self.capturePixelFormat(available: output.availableVideoPixelFormatTypes) else { return [:] }
+        return [kCVPixelBufferPixelFormatTypeKey as String: Int(format)]
+    }
+
     private func reconcilePreviewOutputLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
+        videoDataOutput.videoSettings = pixelFormatSettings(for: videoDataOutput)
         guard #available(iOS 16.0, macCatalyst 16.0, *) else { return }
         guard let device = videoDeviceInput?.device,
               previewOutputDimensionsLocked(for: device) != nil else {
@@ -1894,15 +1908,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return clearPreviewOutputSizeLocked()
         }
         debugLog("preview output \(dims.width)x\(dims.height) for \(device.localizedName)")
-        previewDataOutput.videoSettings = [
-            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA),
-            kCVPixelBufferWidthKey as String: dims.width,
-            kCVPixelBufferHeightKey as String: dims.height
-        ]
+        var settings = pixelFormatSettings(for: previewDataOutput)
+        settings[kCVPixelBufferWidthKey as String] = dims.width
+        settings[kCVPixelBufferHeightKey as String] = dims.height
+        previewDataOutput.videoSettings = settings
     }
 
     private func clearPreviewOutputSizeLocked() {
-        previewDataOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
+        previewDataOutput.videoSettings = pixelFormatSettings(for: previewDataOutput)
     }
 
     private func previewOutputDimensionsLocked(for device: AVCaptureDevice) -> (width: Int, height: Int)? {

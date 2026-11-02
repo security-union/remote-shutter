@@ -782,8 +782,8 @@ final class CaptureIntegrationTests: XCTestCase {
             🎞   camera   delivered \(delivered), discarded \(dropped) (\(coordinator.lastDropReason.value ?? "none"))
             🎞   preview  encoded \(encoded) (\(String(format: "%.1f", Double(encoded) / wall)) fps), skipped \(skipped)
             🎞   outputs  dedicated preview \(dedicated), hardware cost \(rig.engine.hardwareCostSnapshot()), \
-            preview buffer \(Int(previewSize.width))x\(Int(previewSize.height)), \
-            recording buffer \(Int(recordingSize.width))x\(Int(recordingSize.height)), \
+            preview buffer \(Int(previewSize.width))x\(Int(previewSize.height)) \(coordinator.lastPreviewPixelFormat), \
+            recording buffer \(Int(recordingSize.width))x\(Int(recordingSize.height)) \(coordinator.lastRecordingPixelFormat), \
             preview discarded \(coordinator.previewFramesDiscarded)
             🎞   movie    \(movie.frames) frames / \(String(format: "%.1f", movie.seconds)) s = \(String(format: "%.2f", writtenFPS)) fps
             """)
@@ -822,6 +822,7 @@ final class CaptureIntegrationTests: XCTestCase {
         print("""
             🎞 \(device.localizedName): \(dims.width)x\(dims.height) @ 30 fps, \
             dedicated preview \(rig.engine.isPreviewOutputAttached), hardware cost \(rig.engine.hardwareCostSnapshot()), \
+            buffers preview \(rig.streamingCoordinator.lastPreviewPixelFormat) recording \(rig.streamingCoordinator.lastRecordingPixelFormat), \
             thermal \(ProcessInfo.processInfo.thermalState.rawValue), interruptions \(interruptions.value)
             🎞   \(idle)
             🎞   \(recording)
