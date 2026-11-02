@@ -496,6 +496,12 @@ class RecordingPipeline {
 
     // MARK: - Asset writer inputs
 
+    /// HEVC where the hardware encodes it, else H.264, else whatever the output
+    /// recommends (nil). Pure: the crash this guards is in the AVFoundation call.
+    static func recordingCodec(available: [AVVideoCodecType]) -> AVVideoCodecType? {
+        [AVVideoCodecType.hevc, .h264].first(where: available.contains)
+    }
+
     func setupAssetWriterVideoInput(_ formatDescription: CMVideoFormatDescription,
                                     assetWriter: AVAssetWriter) -> Bool {
         // Ask for settings that are COHERENT with the codec we want, rather than taking
@@ -504,13 +510,14 @@ class RecordingPipeline {
         // avc1 with H.264 profile levels, so patching HEVC over the top produced a
         // dictionary `canApply` refused — the video input was never added,
         // readyToRecordVideo never flipped, recording never started, and `stopRecording`
-        // then early-returned in silence while the monitor waited forever. (On iPhone the
-        // recommendation is already HEVC, so the overwrite was a no-op and it worked.)
-        // Fall back to the plain recommendation where HEVC isn't offered: a recording in
-        // the device's preferred codec beats no recording at all.
-        var videoSettings = self.engine.videoDataOutput.recommendedVideoSettings(
-            forVideoCodecType: .hevc, assetWriterOutputFileType: .mov)
-            ?? self.engine.videoDataOutput.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
+        // then early-returned in silence while the monitor waited forever.
+        // The codec must come from the output's own list: asking for one it
+        // cannot write raises an ObjC exception that Swift cannot catch (every
+        // pre-A10 iPhone, no HEVC encoder, crashed on its first take).
+        let output = self.engine.videoDataOutput
+        let codec = Self.recordingCodec(available: output.availableVideoCodecTypesForAssetWriter(writingTo: .mov))
+        var videoSettings = codec.flatMap { output.recommendedVideoSettings(forVideoCodecType: $0, assetWriterOutputFileType: .mov) }
+            ?? output.recommendedVideoSettingsForAssetWriter(writingTo: .mov)
 
         let dims = CMVideoFormatDescriptionGetDimensions(formatDescription)
         let sourceWidth = CGFloat(dims.width)
