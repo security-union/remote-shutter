@@ -68,6 +68,10 @@ final class FrameStreamingCoordinator: NSObject {
     /// Where every preview encoder runs; the streamers below are confined to it.
     private let previewQueue = DispatchQueue(label: "camera preview lane", attributes: [], target: nil)
     private(set) lazy var previewLane = PreviewLane(queue: previewQueue)
+    #if DEBUG
+    /// Test support: the preview HEVC encoder's counters, read on its own lane.
+    var previewEncoderStats: HEVCFrameEncoder.Stats? { previewQueue.sync { frameStreamer.videoEncoderStats } }
+    #endif
     /// Feeds encoded monitor frames to the FrameSender actor.
     private let frameSink: FrameStreamer.Send
     /// Reads the VC's orientation. Called on the preview queue.
