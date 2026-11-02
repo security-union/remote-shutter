@@ -225,14 +225,42 @@ final class PeerVP9PreviewDecoderTests: XCTestCase {
         return buffer
     }
 
-    func testDecodesKeyframeToImage() throws {
+    func testDecodesKeyframeToABiplanar420Buffer() throws {
         let encoder = VP9FrameEncoder(maxLongEdge: 64, settings: .test)
         let data = try XCTUnwrap(encodedData(encoder.encode(
             pixelBuffer: makeSolidPixelBuffer(width: 128, height: 64, shade: 120))))
 
         let decoder = PeerVP9PreviewDecoder()
-        let image = decoder.decode(data)
-        XCTAssertNotNil(image, "a keyframe must render an image")
+        let buffer = try XCTUnwrap(decoder.decode(data), "a keyframe must decode to a frame")
+        XCTAssertEqual(CVPixelBufferGetPixelFormatType(buffer), kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+                       "VP9 hands the display the same 4:2:0 buffers as HEVC")
+        XCTAssertEqual(CVPixelBufferGetWidth(buffer), 64)
+        XCTAssertEqual(CVPixelBufferGetHeight(buffer), 32)
+    }
+
+    /// The I420 -> bi-planar repack is a plane copy plus a chroma interleave.
+    /// A 4x2 frame with distinct values in every plane lands byte-for-byte.
+    func testI420RepacksIntoBiplanarWithoutChangingSamples() throws {
+        let luma: [UInt8] = [10, 11, 12, 13, 20, 21, 22, 23]
+        let cb: [UInt8] = [100, 101]
+        let cr: [UInt8] = [200, 201]
+        let frame = DecodedFrame(data: Data(luma + cb + cr), width: 4, height: 2)
+
+        let buffer = try XCTUnwrap(PeerVP9PreviewDecoder().makePixelBuffer(from: frame))
+        CVPixelBufferLockBaseAddress(buffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        let lumaPlane = try XCTUnwrap(CVPixelBufferGetBaseAddressOfPlane(buffer, 0))
+            .assumingMemoryBound(to: UInt8.self)
+        let lumaStride = CVPixelBufferGetBytesPerRowOfPlane(buffer, 0)
+        XCTAssertEqual(Array(UnsafeBufferPointer(start: lumaPlane, count: 4)), [10, 11, 12, 13])
+        XCTAssertEqual(Array(UnsafeBufferPointer(start: lumaPlane + lumaStride, count: 4)), [20, 21, 22, 23])
+        let chromaPlane = try XCTUnwrap(CVPixelBufferGetBaseAddressOfPlane(buffer, 1))
+            .assumingMemoryBound(to: UInt8.self)
+        XCTAssertEqual(Array(UnsafeBufferPointer(start: chromaPlane, count: 4)), [100, 200, 101, 201],
+                       "chroma interleaves as Cb, Cr per sample")
+        let matrix = CVBufferGetAttachment(buffer, kCVImageBufferYCbCrMatrixKey, nil)?.takeUnretainedValue()
+        XCTAssertEqual(matrix as? String, kCVImageBufferYCbCrMatrix_ITU_R_601_4 as String,
+                       "tagged with the matrix the camera encoded with")
     }
 
     /// A mid-stream delta frame with no keyframe first is undecodable — the

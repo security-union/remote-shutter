@@ -3,9 +3,9 @@
 //  RemoteShutter
 //
 //  The director's live-preview surface. A decoded frame goes straight to a
-//  CoreAnimation layer: the HEVC decoder's 4:2:0 pixel buffer as-is to an
-//  `AVSampleBufferDisplayLayer`, a still (JPEG/HEIC) or VP9 bitmap as a
-//  `CALayer`'s contents. SwiftUI sees only the frame's pixel size.
+//  CoreAnimation layer: a video frame's 4:2:0 pixel buffer as-is to an
+//  `AVSampleBufferDisplayLayer`, a still (JPEG/HEIC) as a `CALayer`'s
+//  contents. SwiftUI sees only the frame's pixel size.
 //
 
 import UIKit
@@ -14,9 +14,9 @@ import AVFoundation
 
 /// One decoded preview frame, in the form the decoder produced it.
 enum PreviewFrame {
-    /// A video frame: the decoder's own 4:2:0 pixel buffer.
+    /// A video frame (HEVC or VP9): the decoder's own 4:2:0 pixel buffer.
     case pixelBuffer(CVPixelBuffer)
-    /// A still (JPEG/HEIC) or a VP9 bitmap.
+    /// A still (JPEG/HEIC).
     case image(UIImage)
 
     /// Pixel dimensions, upright as displayed.
