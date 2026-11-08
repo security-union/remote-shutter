@@ -14,56 +14,47 @@ faq:
 
 ![A scuffed iPhone 6s on a sun-bleached workbench, dust on the cracked screen, flies resting on it](/blog/iphone-6s-flies.jpg)
 
-The iPhone 6s came out in September 2015. Trump was still on his first campaign. It has two CPU cores, 2 GB of RAM, and the last iOS it will ever get is 15. I put Remote Shutter on one this week and it crashed in under twenty seconds.
+Remote Shutter pairs two devices. One is the camera. The other is the remote: it shows a live video preview from the camera and has the shutter button. The camera compresses that preview and streams it to the remote over a direct peer-to-peer Wi-Fi link.
 
-Good. That's why I keep one.
+The iPhone 6s came out in September 2015. Trump was still on his first campaign. It has two CPU cores, 2 GB of RAM, and iOS 15 at most. It's the slowest phone the app supports, so I use it as the performance benchmark. A new iPhone hides waste, like copying a 4K frame three times, behind a few percent of CPU. The 6s turns the same waste into dropped frames or a crash. This week it crashed in two different ways.
 
-## Fast hardware hides slow code
+## Crash 1: recording asked for an encoder the phone doesn't have
 
-You can't optimize on an iPhone 18 Pro. Everything is fast. Copy a 4K frame three times, convert it to RGB and back, and the phone shrugs. The profiler says 4% CPU and you go surf.
+Starting a recording killed the app. The recorder asked AVFoundation for HEVC (H.265) output settings. The 6s has no HEVC encoder, and AVFoundation doesn't return an error in that case. It raises an Objective-C exception, which Swift can't catch, so our H.264 fallback on the next line never ran.
 
-A 6s doesn't shrug. Every wasted byte comes back as heat, a dropped frame, or the kernel killing your process. It's a free profiler with a battery. Code that runs well on the 6s runs well on everything Apple has shipped in eleven years, and your new-phone users get the battery life.
+The fix: ask the camera which codecs it can actually write, then pick HEVC if it's on the list and H.264 if not. Phones with HEVC behave exactly as before.
 
-So I pulled the crash logs off the old phone over USB and read them. Two different deaths.
+## Crash 2: the remote ran out of memory
 
-## Death one: asking for hardware that isn't there
+With the 6s as the remote, the preview played for about 19 seconds. Then iOS killed the app with `vm-compressor-space-shortage`, meaning the whole system ran out of memory. The app's footprint stayed flat at 46 MB, so it wasn't a leak. It was allocating and freeing large buffers faster than iOS could reclaim them, because of two bugs.
 
-Start a recording on the 6s and the app aborted on the spot. The recorder asked AVFoundation for HEVC writer settings. The A9 has no HEVC encoder. That call doesn't return an error you can handle. It raises an Objective-C exception, Swift can't catch those, and the fallback on the next line never ran. Same stack trace in a crash report from September that nobody had read.
+**Flow control acknowledged frames too early.** The camera may have at most ten frames the remote hasn't acknowledged yet. The remote acked each frame the moment it arrived, before decoding it, so the camera kept sending 30 frames per second. The 6s couldn't decode that fast, and the undecoded frames piled up in a queue with no size limit.
 
-Fix: ask the camera what it can actually write and pick from that list. HEVC if it's there, H.264 if not. Phones with HEVC make the exact same call as before.
+**Every frame was converted to RGB just to draw it.** The decoder outputs YUV 4:2:0, the format cameras and video codecs use natively, about 1.6 MB per frame at preview size. We then converted each frame to an RGB image with Core Image so SwiftUI could display it. That's a GPU pass, a copy back to CPU memory and a new 4.3 MB allocation, 30 times a second: roughly 130 MB/s of throwaway memory.
 
-## Death two: the remote decoded itself to death
+The fixes:
 
-This one was the lesson. Run the 6s as the remote, point another phone at something, and the preview streams great. For nineteen seconds. Then iOS kills the app with `vm-compressor-space-shortage`. Out of memory, system wide.
+- **Ack after display.** The remote now acks a frame once it's on screen. The camera can't get more than ten frames ahead of the screen.
+- **Display the 4:2:0 frame directly.** The decoded buffer goes straight into an `AVSampleBufferDisplayLayer`, which draws YUV without converting or copying it.
+- **Same for VP9.** A 6s acting as the camera sends VP9, since it can't encode HEVC. The VP9 decoder had the same RGB conversion. It now writes straight into the same 4:2:0 buffer format, with no color conversion.
 
-The app's footprint was 46 MB and flat, so nothing was leaking. It was churn. Two bugs multiplying each other.
+## The camera had the same problems
 
-First, nobody told the camera to slow down. The protocol has a credit window: the camera sends a frame, the remote acks it, the camera sends another. Sounds right. Except the remote acked the instant a frame arrived, before decoding it. So the camera streamed at a full 30 fps no matter how slowly the 6s kept up, and undecoded frames piled into a queue with no bound. On a fast phone the queue drains and you never notice. On two A9 cores it's the 405 at 5 pm. Everything is moving and nothing is arriving.
+- **Capture format.** We asked the camera for BGRA (RGB) frames, but the sensor produces 4:2:0. So iOS converted every 4K frame to BGRA, about 2.6x the memory traffic, and both video encoders converted it back. Frames now stay 4:2:0 from sensor to network.
+- **Preview scaling.** The preview was scaled down from each 4K recording frame. The camera now provides a second, smaller output for it.
+- **Shared hardware encoder.** While recording, the preview encoder waited behind the movie recorder for the hardware encoder and dropped about one preview frame in five. Now it doesn't wait.
+- **Network copies.** Messages use FlatBuffers, a format designed to be read directly from the received bytes. We were copying instead: three times per incoming frame on the remote, twice per outgoing frame on the camera. Now it's zero copies in and one out.
 
-Second, every decoded frame became a bitmap. The camera sends 4:2:0 video. The decoder hands back a 4:2:0 pixel buffer, about 1.6 MB at preview size. Then we ran it through Core Image to make a `CGImage` so SwiftUI could draw it with `Image(uiImage:)`. A `CGImage` is RGB. That's a GPU render, a copy back to the CPU, and a fresh 4.3 MB allocation. Thirty times a second. 130 MB/s of garbage, which SwiftUI then uploaded back to the GPU to draw. A round trip for nothing.
+Two smaller ones: the multi-camera screen rebuilt its settings menu on every preview frame for no reason, and the keep-screen-awake setting was lost on iOS 15, so the 6s locked mid-shoot.
 
-Fixes, in order of how much they mattered:
+## Results
 
-- **Ack when you show the frame, not when you receive it.** The credit goes back once the frame is on screen, so the camera paces itself to what the remote can display. No frames are dropped. There are just never more than ten in flight.
-- **Draw the pixel buffer. Don't convert it.** The decoded 4:2:0 buffer goes straight into an `AVSampleBufferDisplayLayer`, wrapped, not copied. SwiftUI only learns the frame's pixel size, which changes maybe twice a session. A frame re-renders nothing. There is no RGB anywhere on the remote now.
-- **VP9 too.** The 6s as a camera has to send VP9, since it can't encode HEVC. That decoder was doing the same RGB dance with vImage. Now it repacks its planes into the same 4:2:0 buffer. A memcpy and an interleave, no color math.
+On an iPhone 18 Pro recording 4K at 30 fps:
 
-## The camera side had the same disease
+- Preview encoding time per frame: 60 ms to 33 ms.
+- Preview on the remote during the recording: 23 fps to 29.8 fps.
+- The recorded movie: 30.2 fps, zero dropped frames.
 
-We'd been asking the capture session for BGRA frames. The sensor produces 4:2:0. So every 4K frame got converted to BGRA at roughly 2.6× the memory traffic, and both encoders converted it straight back. Now it's 4:2:0 from the sensor to the wire.
+On the 6s, both crashes are gone. It records, and it works as the remote.
 
-The preview also used to be cut from the 4K recording frame on the GPU. Now the camera asks for a second, already-scaled output, so the preview lane never touches a 4K frame. And the preview encoder was stuck behind the movie writer's frames on the hardware encoder, dropping one preview frame in five. It has its own lane and six frames of slack now.
-
-Then the wire. Frames travel as FlatBuffers, whose whole pitch is that you read the bytes where they land. We weren't. The remote copied every inbound datagram three times before the decoder saw a byte: the `Data` into a byte array, the array into the FlatBuffers buffer, then the payload back out as a fresh `Data`. The camera copied twice on the way out and let the builder grow from 1 KiB by doubling until the frame fit. Now the FlatBuffers view reads the datagram in place, the verifier still checks every offset, the payload is a slice, and the builder is sized for the frame. Zero copies in, one out.
-
-Smaller ones. The director rebuilt its entire settings menu on every frame, 30 times a second, and diffed it to "unchanged"; it skips frames. The screen-awake flag was set once at launch and iOS 15 quietly dropped it, so the 6s locked itself mid-shoot; it's reasserted per scene.
-
-## Numbers
-
-iPhone 18 Pro, recording 4K at 30: the preview encoder's time per frame went from 60 ms to 33 ms, and the remote's preview went from 23 fps to 29.8 fps during the take. The movie writes 30.2 fps with zero dropped frames. Decoding a frame on the remote went from 9 µs to 7 µs, which is nothing, but it was nothing we were paying for.
-
-The 6s: it records. It streams. The new build is on the phone as I write this, and the memory graph is the test.
-
-None of this was clever. It's three rules. Don't copy what you can borrow. Don't convert what the hardware already gives you in the right format. Don't send faster than the other side can consume. A 2015 phone enforced them for me because nothing newer would.
-
-Keep an old phone in the drawer. Mine is older than half the scooters on the Venice boardwalk, and it has found more bugs than any of them.
+None of this was clever. Read data in place instead of copying it, keep the format the hardware produces, and don't send faster than the receiver can process. An old phone breaks the moment you forget one, which is why I keep one in the drawer.
