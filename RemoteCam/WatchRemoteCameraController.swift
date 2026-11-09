@@ -200,7 +200,7 @@ public class WatchRemoteCameraController: UIViewController {
                 switch mode {
                 case .photo: return .Photo
                 case .video: return .Video
-                case .shorts, .unknown: return nil
+                case .shorts, .portrait, .unknown: return nil
                 }
             }()
             if let newMode {

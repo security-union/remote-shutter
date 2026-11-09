@@ -675,6 +675,10 @@ public actor MulticamController {
             if caps.aspectRatio != activeAspectRatio {
                 sendControl(.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: activeAspectRatio), to: peer)
             }
+            // A camera that can't take Portrait drops the whole rig to Photo.
+            if rigCameraMode == .Portrait && !rigSupportsPortrait() {
+                handleSetCameraMode(.Photo)
+            }
             // Mode pre-warm rides the same gate: reporting a mode is the
             // capability, and only a differing camera is commanded.
             if let reported = caps.cameraMode, reported != rigCameraMode {
@@ -1442,6 +1446,13 @@ public actor MulticamController {
         return order.filter { armed.contains($0) }
     }
 
+    /// Portrait is offered only when every live camera reports it; one camera
+    /// that can't (an older build, a single-lens phone, a Mac) hides it.
+    private func rigSupportsPortrait() -> Bool {
+        let live = order.compactMap { links[$0] }.filter { $0.status != .failed }
+        return !live.isEmpty && live.allSatisfy { $0.capabilities?.supportsPortrait == true }
+    }
+
     /// The tray's snapshot, derived on demand from the live lane set — never
     /// stored, so it cannot go stale when a camera joins or drops.
     private func rigSettingsSnapshot() -> RigSettingsSnapshot {
@@ -1466,7 +1477,8 @@ public actor MulticamController {
             },
             standbyOn: rigPreviewMode == .standby,
             exposureAvailable: focusedPeer.flatMap { links[$0]?.capabilities?.exposure } != nil,
-            exposureControlsOn: exposureControlsOn)
+            exposureControlsOn: exposureControlsOn,
+            portraitAvailable: rigSupportsPortrait())
     }
 
     // MARK: Ack aggregation (shared across photo / start / stop)

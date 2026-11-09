@@ -263,6 +263,27 @@ final class MulticamViewModelTests: XCTestCase {
         XCTAssertEqual(vm.focusedSwitchControl, .flipButton)
         XCTAssertEqual(vm.focusedActiveDeviceID, "back")
     }
+
+    // MARK: - Portrait
+
+    func testPortraitSegmentShowsOnlyWhenTheRigCanTakeIt() {
+        XCTAssertEqual(MulticamViewModel.modes(portraitAvailable: false), [.photo, .video])
+        XCTAssertEqual(MulticamViewModel.modes(portraitAvailable: true), [.photo, .portrait, .video])
+    }
+
+    /// The tab disappearing under a Portrait selection falls back to Photo.
+    func testLosingPortraitFallsBackToPhoto() {
+        let vm = MulticamViewModel()
+        var settings = RigSettingsSnapshot()
+        settings.portraitAvailable = true
+        vm.rigSettings = settings
+        vm.mode = .portrait
+
+        settings.portraitAvailable = false
+        vm.rigSettings = settings
+
+        XCTAssertEqual(vm.mode, .photo)
+    }
 }
 
 /// The shared enablement rules both camera-control paths derive from.
@@ -513,7 +534,7 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
 
     private func directorView(_ vm: MulticamViewModel) -> MulticamView {
         MulticamView(viewModel: vm,
-                     onFocusLane: { _ in }, onShutter: {}, onToggleMode: {},
+                     onFocusLane: { _ in }, onShutter: {}, onSelectMode: { _ in },
                      onAddCamera: {}, onInviteCamera: { _ in }, onSetTimer: { _ in },
                      onSelectVideoQuality: { _, _ in }, onAutomaticVideoQuality: {},
                      onSetPhotoFormat: { _ in }, onSetHDR: { _ in },

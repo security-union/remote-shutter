@@ -589,6 +589,61 @@ final class CaptureIntegrationTests: XCTestCase {
         XCTAssertFalse(data.isEmpty, "a still must capture after round-tripping the modes")
     }
 
+    /// Portrait on real hardware: a camera that advertises it turns depth
+    /// on, the still comes back with the blur baked in (re-encoded, no depth
+    /// kept) at 12MP or less, and frames keep flowing both ways. Both stills
+    /// are attached to the result so the blur can be eyeballed.
+    func testPortraitStillIsBlurredWithin12MPAndFramesKeepFlowing() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+        let device = try XCTUnwrap(rig.engine.currentDevice())
+        guard CaptureEngine.supportsPortrait(device) else {
+            throw XCTSkip("\(device.localizedName) delivers no depth")
+        }
+        _ = await rig.engine.setAspectRatio(.fourThree)
+        let photo = try await captureStill()
+        attach(photo, named: "photo-mode")
+        let zoomBefore = (device.minAvailableVideoZoomFactor, device.maxAvailableVideoZoomFactor)
+
+        var mark = Date().timeIntervalSinceReferenceDate
+        rig.currentCameraMode = .Portrait
+        let output = rig.engine.photoOutput
+        await eventually { output.isDepthDataDeliveryEnabled }
+        XCTAssertTrue(output.isDepthDataDeliveryEnabled, "Portrait turns depth on")
+        guard await waitForFrames(since: mark) != nil else {
+            return XCTFail("no frames after →portrait — \(await diagnostics())")
+        }
+        print("📸 portrait: \(device.localizedName) matte=\(output.isPortraitEffectsMatteDeliveryEnabled) "
+              + "zoom \(zoomBefore) → (\(device.minAvailableVideoZoomFactor), \(device.maxAvailableVideoZoomFactor))")
+
+        let portrait = try await captureStill()
+        attach(portrait, named: "portrait-mode")
+        let dims = try stillDimensions(portrait)
+        print("📸 portrait: still \(dims.width)x\(dims.height), \(portrait.count) bytes")
+        XCTAssertLessThanOrEqual(Int64(dims.width) * Int64(dims.height), CaptureEngine.portraitMaxPhotoPixels)
+        let source = try XCTUnwrap(CGImageSourceCreateWithData(portrait as CFData, nil))
+        XCTAssertNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(source, 0, kCGImageAuxiliaryDataTypeDisparity),
+                     "the native-ratio still was re-rendered by the blur, not passed through")
+        XCTAssertNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(source, 0, kCGImageAuxiliaryDataTypeDepth))
+
+        mark = Date().timeIntervalSinceReferenceDate
+        rig.currentCameraMode = .Photo
+        await eventually { !output.isDepthDataDeliveryEnabled }
+        XCTAssertFalse(output.isDepthDataDeliveryEnabled, "Photo turns depth off")
+        guard await waitForFrames(since: mark) != nil else {
+            return XCTFail("no frames after →photo — \(await diagnostics())")
+        }
+    }
+
+    private func attach(_ data: Data, named name: String) {
+        let attachment = XCTAttachment(data: data, uniformTypeIdentifier: "public.heic")
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     /// A fresh session starts on the best format the hardware encodes.
     func testDefaultPhotoFormatMatchesTheHardware() async throws {
         try await startRealRig()

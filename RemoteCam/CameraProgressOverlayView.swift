@@ -86,6 +86,7 @@ struct CameraProgressOverlayView: View {
         case .Photo: return "Photo"
         case .Video: return "Video"
         case .Shorts: return "Shorts"
+        case .Portrait: return "Portrait"
         }
     }
 }

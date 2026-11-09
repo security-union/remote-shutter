@@ -55,6 +55,12 @@ final class MultiCamChromeTests: XCTestCase {
                        [.timer, .aspect, .resolution, .cameraStandby, .settings, .help])
     }
 
+    /// Portrait is a still mode: the same tiles as Photo.
+    func testRigTrayPortraitModeListsPhotoTiles() {
+        XCTAssertEqual(RigTray.items(mode: .portrait, standbyAvailable: true),
+                       RigTray.items(mode: .photo, standbyAvailable: true))
+    }
+
     /// A rig with no standby-capable camera omits the tile (not dims it).
     func testRigTrayOmitsStandbyWhenUnavailable() {
         XCTAssertFalse(RigTray.items(mode: .photo, standbyAvailable: false).contains(.cameraStandby))

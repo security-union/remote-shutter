@@ -56,14 +56,14 @@ public final class MulticamViewController: UIViewController {
             viewModel: viewModel,
             onFocusLane: { [weak self] lane in self?.controller.setFocusedPeer(lane.peerID) },
             onShutter: { [weak self] in self?.triggerShutter() },
-            onToggleMode: { [weak self] in
+            onSelectMode: { [weak self] mode in
                 // The mode is frozen while a shot is in play — recording,
                 // collecting acks, or counting down. What you armed is what fires.
                 guard let self, !self.viewModel.isRecording, !self.viewModel.isCapturing,
                       self.viewModel.rigSettings.countdown == nil else { return }
-                self.viewModel.mode = self.viewModel.mode == .photo ? .video : .photo
-                logInfo("director: mode → \(self.viewModel.mode)")
-                self.controller.setCameraMode(self.viewModel.mode == .video ? .Video : .Photo)
+                self.viewModel.mode = mode
+                logInfo("director: mode → \(mode)")
+                self.controller.setCameraMode(mode.recordingMode)
             },
             onAddCamera: { [weak self] in self?.handleAddCameraTapped() },
             onInviteCamera: { [weak self] peer in
@@ -178,7 +178,7 @@ public final class MulticamViewController: UIViewController {
     /// Route the shutter: a photo, or record start/stop, per the current mode.
     private func triggerShutter() {
         switch (viewModel.mode, viewModel.isRecording) {
-        case (.photo, _): controller.capturePhoto()
+        case (.photo, _), (.portrait, _): controller.capturePhoto()
         case (.video, false): controller.startRecording()
         case (.video, true): controller.stopRecording()
         }

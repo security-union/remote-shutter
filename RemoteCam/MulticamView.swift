@@ -19,8 +19,8 @@ struct MulticamView: View {
     let onFocusLane: (CameraLane) -> Void
     /// The synced shutter — photo, or record start/stop depending on mode.
     let onShutter: () -> Void
-    /// Toggle the shutter between photo and video mode.
-    let onToggleMode: () -> Void
+    /// A mode segment tapped — the host decides whether the rig may switch.
+    let onSelectMode: (MonitorMode) -> Void
     /// "Add camera" tapped — the host decides paywall vs. the sheet.
     let onAddCamera: () -> Void
     /// Invite a discovered camera into the rig.
@@ -369,7 +369,7 @@ struct MulticamView: View {
     private static let actionColumnWidth: CGFloat = 136
 
     private var controlCluster: some View {
-        ControlCluster(showsFlash: viewModel.mode == .photo,
+        ControlCluster(showsFlash: viewModel.mode != .video,
                        showsTorch: viewModel.showsTorchButton,
                        isFlashEnabled: viewModel.focusedFlashOn,
                        isFlashButtonEnabled: viewModel.focusedFlashEnabled,
@@ -440,21 +440,19 @@ struct MulticamView: View {
         }
     }
 
-    /// PHOTO / VIDEO segmented capsule — the shared `CaptureModeSelector`.
-    /// Tapping the inactive segment flips the rig mode; disabled while
-    /// recording.
+    /// PHOTO / PORTRAIT / VIDEO segmented capsule — the shared
+    /// `CaptureModeSelector`. PORTRAIT shows only when every camera in the rig
+    /// can take it. Tapping an inactive segment selects that rig mode;
+    /// disabled while recording.
     private var modeSelector: some View {
         CaptureModeSelector(
-            segments: [
-                CaptureModeSelector.Segment(
-                    id: 0, title: NSLocalizedString("PHOTO", comment: "capture mode"),
-                    isActive: viewModel.mode != .video,
-                    action: { if viewModel.mode == .video { onToggleMode() } }),
-                CaptureModeSelector.Segment(
-                    id: 1, title: NSLocalizedString("VIDEO", comment: "capture mode"),
-                    isActive: viewModel.mode == .video,
-                    action: { if viewModel.mode != .video { onToggleMode() } }),
-            ],
+            segments: MulticamViewModel.modes(portraitAvailable: viewModel.rigSettings.portraitAvailable)
+                .enumerated().map { index, mode in
+                    CaptureModeSelector.Segment(
+                        id: index, title: mode.selectorTitle,
+                        isActive: viewModel.mode == mode,
+                        action: { if viewModel.mode != mode { onSelectMode(mode) } })
+                },
             isEnabled: !viewModel.isRecording)
     }
 
@@ -994,7 +992,7 @@ private extension View {
 
 struct RigTrayPanel: View {
     let settings: RigSettingsSnapshot
-    /// Photo vs video — the tray lists only the tiles that matter to the mode.
+    /// Still vs video — the tray lists only the tiles that matter to the mode.
     let mode: MonitorMode
     /// Mid-recording the capture settings dim (standby and help stay live).
     let isRecording: Bool
@@ -1092,6 +1090,16 @@ struct RigTrayPanel: View {
             onSelectVideoQuality(next.resolution, next.frameRate)
         } else {
             onAutomaticVideoQuality()
+        }
+    }
+}
+
+extension MonitorMode {
+    var selectorTitle: String {
+        switch self {
+        case .photo: return NSLocalizedString("PHOTO", comment: "capture mode")
+        case .portrait: return NSLocalizedString("PORTRAIT", comment: "capture mode")
+        case .video: return NSLocalizedString("VIDEO", comment: "capture mode")
         }
     }
 }

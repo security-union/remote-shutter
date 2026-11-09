@@ -331,6 +331,7 @@ struct CameraStandbyView: View {
         case .Photo: return NSLocalizedString("Photo", comment: "capture mode")
         case .Video: return NSLocalizedString("Video", comment: "capture mode")
         case .Shorts: return NSLocalizedString("Shorts", comment: "capture mode")
+        case .Portrait: return NSLocalizedString("Portrait", comment: "capture mode")
         }
     }
 }

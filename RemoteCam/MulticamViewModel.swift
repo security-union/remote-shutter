@@ -81,8 +81,13 @@ final class MulticamViewModel: ObservableObject {
     @Published var isRecording: Bool = false
     /// When the rig actually started rolling — drives the classic
     /// `RecordingTimer` in the top bar. Nil unless recording.
-    /// Photo vs video shutter mode.
+    /// Photo, portrait or video shutter mode.
     @Published var mode: MonitorMode = .photo
+    /// The selector's segments, left to right. Portrait sits next to Photo,
+    /// as in Apple's Camera, and only when the whole rig can take it.
+    static func modes(portraitAvailable: Bool) -> [MonitorMode] {
+        portraitAvailable ? [.photo, .portrait, .video] : [.photo, .video]
+    }
     /// Focus (viewfinder + strip) vs grid (monitor wall) layout.
     @Published var displayMode: MulticamDisplayMode = .focus
     /// Cameras discovered but not yet in the rig — the add-camera sheet's list.
@@ -90,7 +95,12 @@ final class MulticamViewModel: ObservableObject {
     /// Whether the add-camera sheet is showing.
     @Published var showingAddCamera: Bool = false
     /// Rig-wide settings (timer + quality intersection) for the tray.
-    @Published var rigSettings = RigSettingsSnapshot()
+    @Published var rigSettings = RigSettingsSnapshot() {
+        // A camera that can't do Portrait joined or switched lenses: the
+        // tab is gone, so the selection falls back to Photo (the controller
+        // makes the same call for the cameras).
+        didSet { if mode == .portrait && !rigSettings.portraitAvailable { mode = .photo } }
+    }
     /// Whether the rig settings tray is showing.
     @Published var showingRigTray: Bool = false
     /// What a tray tile asked for once the tray is gone (Settings, Help).
@@ -141,7 +151,7 @@ final class MulticamViewModel: ObservableObject {
     /// nothing while recording). One source of truth for both paths.
     var focusedControlState: FocusedCameraControlState {
         FocusedCameraControlState(isLinked: focusedLane?.status == .linked,
-                                  isPhotoMode: mode == .photo,
+                                  isPhotoMode: mode != .video,
                                   isRecording: isRecording)
     }
     /// Controls with a command in flight to the focused camera: the button

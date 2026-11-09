@@ -437,7 +437,8 @@ private func encodeCapabilitiesEnvelope(
         activeDeviceIdOffset: activeIDOffset,
         previewMode: toFBPreviewMode(c.previewMode),
         exposureOffset: exposureOffset,
-        cameraMode: c.cameraMode.map { toFBRecordingMode($0) } ?? .unknown)
+        cameraMode: c.cameraMode.map { toFBRecordingMode($0) } ?? .unknown,
+        supportsPortrait: c.supportsPortrait)
 
     return (capsOffset, stateOffset)
 }
@@ -935,6 +936,7 @@ func toFBRecordingMode(_ mode: RecordingMode) -> RemoteShutter_RecordingModeEnum
     case .Photo: return .photo
     case .Video: return .video
     case .Shorts: return .shorts
+    case .Portrait: return .portrait
     }
 }
 
@@ -944,6 +946,7 @@ func fromFBRecordingMode(_ mode: RemoteShutter_RecordingModeEnum) -> RecordingMo
     case .photo: return .Photo
     case .video: return .Video
     case .shorts: return .Shorts
+    case .portrait: return .Portrait
     case .unknown: return nil
     }
 }
@@ -1343,6 +1346,7 @@ extension RemoteCmd {
             aspectRatio: state.map { fromFBAspectRatio($0.aspectRatio) } ?? .sixteenNine,
             exposure: state?.exposure.map { decodeExposureState($0) },
             cameraMode: state.flatMap { fromFBRecordingMode($0.cameraMode) },
+            supportsPortrait: state?.supportsPortrait ?? false,
             inReplyTo: inReplyTo,
             error: error
         )
