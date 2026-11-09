@@ -12,6 +12,49 @@ import Stormo
 import AVFoundation
 import Combine
 
+// MARK: - Waiting for a condition
+
+/// How long a test waits for a condition before giving up. It only stops a
+/// hung test: nothing is timed against it, so a slow runner just waits longer.
+let conditionCeiling: TimeInterval = 10
+
+/// Polls `condition` until it holds, suspending between polls so actors and
+/// off-actor tasks run. Returns the final value for the caller to assert.
+@discardableResult
+func eventually(timeout: TimeInterval = conditionCeiling,
+                _ condition: () async -> Bool) async -> Bool {
+    let deadline = Date(timeIntervalSinceNow: timeout)
+    while Date() < deadline {
+        if await condition() { return true }
+        try? await Task.sleep(nanoseconds: 5_000_000)
+    }
+    return await condition()
+}
+
+/// `eventually` for a condition fed by main-queue hops or main run-loop
+/// timers: each poll turns the main run loop first.
+@discardableResult
+func eventuallyOnMain(timeout: TimeInterval = conditionCeiling,
+                      _ condition: @escaping () -> Bool) async -> Bool {
+    await eventually(timeout: timeout) {
+        await MainActor.run {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
+            return condition()
+        }
+    }
+}
+
+/// Synchronous `eventuallyOnMain`, for tests already on the main thread.
+@discardableResult
+func turnRunLoopUntil(timeout: TimeInterval = conditionCeiling,
+                      _ condition: () -> Bool) -> Bool {
+    let deadline = Date(timeIntervalSinceNow: timeout)
+    while !condition() && Date() < deadline {
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
+    }
+    return condition()
+}
+
 @testable import RemoteShutter
 
 // MARK: - Fake transport

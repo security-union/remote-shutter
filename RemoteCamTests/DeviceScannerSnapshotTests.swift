@@ -66,11 +66,8 @@ final class DeviceScannerSnapshotTests: SnapshotTestCase {
         )
         _ = renderScreen(named: "scanner-remote-scanning", screen)
 
-        // Let the run loop turn until the threshold has genuinely passed.
-        let deadline = Date(timeIntervalSinceNow: 16.5)
-        while Date() < deadline {
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.5))
-        }
+        // Let the run loop turn until the escalation threshold has passed.
+        turnRunLoopUntil(timeout: 16 + conditionCeiling) { model.shouldShowWifiEscalation(now: Date()) }
         // Behavioral check first — it must hold on every runner, headless or not.
         XCTAssertTrue(model.shouldShowWifiEscalation(now: Date()),
                       "escalation should be active 16s after scanning started")

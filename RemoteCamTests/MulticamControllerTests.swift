@@ -140,17 +140,11 @@ final class MulticamControllerTests: XCTestCase {
         return caps
     }
 
-    /// Pump the main run loop until `condition` holds (or ~1s passes) — the
-    /// controller publishes to the display via a main-queue hop whose timing
-    /// varies under suite load, so fixed sleeps flake.
+    /// Pump the main run loop until `condition` holds — the controller
+    /// publishes to the display via a main-queue hop whose timing varies under
+    /// suite load, so fixed sleeps flake.
     private func pumpMainUntil(_ condition: @escaping () -> Bool) async {
-        for _ in 0..<50 {
-            let done = await MainActor.run { () -> Bool in
-                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02))
-                return condition()
-            }
-            if done { return }
-        }
+        await eventuallyOnMain(condition)
     }
 
     // MARK: - Handshake
@@ -546,8 +540,8 @@ final class MulticamControllerTests: XCTestCase {
         controller.didReceiveMessage(RemoteCmd.ScheduledCaptureAck(captureId: captureID!), from: camA)
         await controller.waitForIdle()
 
-        // Wait out the ack timeout; camB never answered.
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        // camB never answers: wait for the ack timeout to resolve the shot.
+        await eventually { await controller.captureStateForTesting() == nil }
         let resolved = await controller.captureStateForTesting()
         let outA = await controller.captureOutcomeForTesting(camA)
         let outB = await controller.captureOutcomeForTesting(camB)
@@ -844,7 +838,12 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
         transport.sentMessages.removeAll()
 
-        try? await Task.sleep(nanoseconds: 300_000_000) // camB stays silent
+        // camB stays silent: wait for the start deadline to void the take.
+        await eventually {
+            let starting = await controller.startingStateForTesting()
+            let recording = await controller.recordingStateForTesting()
+            return starting == nil && recording == nil
+        }
         await controller.waitForIdle()
 
         let stops = sent(transport, RemoteCmd.ScheduledStopRecording.self)
@@ -1502,7 +1501,10 @@ final class MulticamControllerTests: XCTestCase {
 
         // And the recomputed snapshot is published to the screen, not just
         // computable on demand.
-        await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
+        await pumpMainUntil {
+            display.rigSettings?.videoOptions
+                .first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled == true
+        }
         XCTAssertEqual(display.rigSettings?.videoOptions
             .first { $0.resolution == .uhd4k && $0.frameRate == .fps30 }?.enabled, true)
     }
@@ -1585,7 +1587,7 @@ final class MulticamControllerTests: XCTestCase {
         await controller.waitForIdle()
 
         // No caps answer → the director keeps asking.
-        try? await Task.sleep(nanoseconds: 250_000_000)
+        await eventually { sent(transport, RemoteCmd.RequestCameraCapabilities.self).count >= 2 }
         await controller.waitForIdle()
         let whileMissing = sent(transport, RemoteCmd.RequestCameraCapabilities.self).count
         XCTAssertGreaterThanOrEqual(whileMissing, 2, "must re-ask while capabilities are missing")
@@ -1595,6 +1597,7 @@ final class MulticamControllerTests: XCTestCase {
         controller.didReceiveMessage(capsWith(full4K), from: camA)
         await controller.waitForIdle()
         let atCaps = sent(transport, RemoteCmd.RequestCameraCapabilities.self).count
+        // An absence has no event to wait for: let several retry delays pass.
         try? await Task.sleep(nanoseconds: 250_000_000)
         await controller.waitForIdle()
         let after = sent(transport, RemoteCmd.RequestCameraCapabilities.self).count
@@ -2544,7 +2547,7 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertTrue(lanes.isEmpty)
         // exitMulticam() is posted to the main queue; wait for that hop before
         // reading the display flag (waitForIdle only drains the actor inbox).
-        for _ in 0..<100 where !display.didExit { try? await Task.sleep(nanoseconds: 2_000_000) }
+        await eventuallyOnMain { display.didExit }
         XCTAssertTrue(display.didExit, "disconnecting the last camera leaves the director")
     }
 

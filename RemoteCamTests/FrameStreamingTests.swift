@@ -461,9 +461,10 @@ final class FrameEncoderTests: XCTestCase {
         let encoder = HEVCFrameEncoder(maxLongEdge: 100, settings: StreamingConfig.default.peerHEVC)
         let buffer = makeBiplanarPixelBuffer(width: 400, height: 200)
         var payload: Data?
-        for _ in 0..<20 where payload == nil {           // pipelined: the first calls return .skipped
+        let deadline = Date(timeIntervalSinceNow: conditionCeiling)
+        while payload == nil && Date() < deadline {      // pipelined: the first calls return .skipped
             if case .encoded(let data) = encoder.encode(pixelBuffer: buffer) { payload = data }
-            Thread.sleep(forTimeInterval: 0.02)
+            if payload == nil { Thread.sleep(forTimeInterval: 0.02) }
         }
         try XCTSkipIf(payload == nil, "HEVC encoder unavailable on this host")
         let parts = try XCTUnwrap(HEVCFrameContainer.unpack(payload!))
@@ -501,12 +502,12 @@ final class PreviewLaneTests: XCTestCase {
 
         holdEncode.signal()
         let secondEncodeRan = expectation(description: "second encode ran")
-        let deadline = Date().addingTimeInterval(2)
+        let deadline = Date().addingTimeInterval(conditionCeiling)
         while !lane.offer({ secondEncodeRan.fulfill() }) && Date() < deadline {
             Thread.sleep(forTimeInterval: 0.005)
         }
-        wait(for: [secondEncodeRan], timeout: 2)
-        // The lane counts the frame after the encode returns, so give it a moment.
+        wait(for: [secondEncodeRan], timeout: conditionCeiling)
+        // The lane counts the frame after the encode returns: wait for the count.
         while lane.encoded < 2 && Date() < deadline { Thread.sleep(forTimeInterval: 0.005) }
         XCTAssertEqual(lane.encoded, 2)
     }
@@ -602,7 +603,8 @@ final class HEVCStreamingTests: XCTestCase {
         // The encoder is pipelined (it never waits on the hardware), so the
         // keyframe comes back from a LATER call; feed frames until it does.
         var payload: Data?
-        for _ in 0..<30 where payload == nil {
+        let deadline = Date(timeIntervalSinceNow: conditionCeiling)
+        while payload == nil && Date() < deadline {
             payload = encodedData(encoder.encode(pixelBuffer: makePixelBuffer(width: 256, height: 128)))
             if payload == nil { Thread.sleep(forTimeInterval: 0.02) }
         }
