@@ -1293,7 +1293,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     private func exposureFactsLocked(_ device: AVCaptureDevice) -> ExposureFacts {
         let format = device.activeFormat
         return ExposureFacts(
-            supportsCustom: device.isExposureModeSupported(.custom),
+            supportsCustom: Self.runsManual(device),
             minDurationSeconds: CMTimeGetSeconds(format.minExposureDuration),
             maxDurationSeconds: CMTimeGetSeconds(format.maxExposureDuration),
             minISO: format.minISO,
@@ -1378,9 +1378,53 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             if CMTimeCompare(duration, format.minExposureDuration) < 0 { duration = format.minExposureDuration }
             if CMTimeCompare(duration, format.maxExposureDuration) > 0 { duration = format.maxExposureDuration }
             let safeISO = min(max(iso, format.minISO), format.maxISO)
-            device.setExposureModeCustom(duration: duration, iso: safeISO, completionHandler: done)
+            switch Self.manualAperture(for: format) {
+            case .locked:
+                device.setExposureModeCustom(duration: duration, iso: safeISO, completionHandler: done)
+            case .auto:
+                Self.setManualExposureWithAutoAperture(device, duration: duration, iso: safeISO, completion: done)
+            case nil:
+                // Never call a custom mode the format refuses: it raises an
+                // NSInvalidArgumentException that Swift cannot catch.
+                debugLog("🌗 EXPOSURE: \(device.localizedName) refuses locked shutter + ISO — staying auto")
+                exposureIntent = .auto(bias: 0)
+                completion?()
+                return
+            }
             debugLog("🌗 EXPOSURE: manual \(CMTimeGetSeconds(duration))s ISO \(safeISO) on \(device.localizedName)")
         }
+    }
+
+    /// How Manual (shutter + ISO locked) runs on a format. `.locked` also
+    /// locks the aperture, the only option before variable-aperture lenses.
+    /// A variable-aperture lens (iPhone 18 Pro) refuses all three locked but
+    /// accepts shutter + ISO locked with the aperture left to auto exposure.
+    /// Nil = the format takes neither, so Manual is not offered.
+    enum ManualAperture: Equatable { case locked, auto }
+
+    static func manualAperture(for format: AVCaptureDevice.Format) -> ManualAperture? {
+        if #available(iOS 27.0, macCatalyst 27.0, *) {
+            let locked = format.supportsExposureModeCustom(
+                lensAperture: AVCaptureDevice.currentLensAperture,
+                duration: AVCaptureDevice.currentExposureDuration, iso: AVCaptureDevice.currentISO)
+            if locked { return .locked }
+            let autoAperture = format.supportsExposureModeCustom(
+                lensAperture: AVCaptureDevice.autoLensAperture,
+                duration: AVCaptureDevice.currentExposureDuration, iso: AVCaptureDevice.currentISO)
+            return autoAperture ? .auto : nil
+        }
+        return .locked
+    }
+
+    private static func setManualExposureWithAutoAperture(
+        _ device: AVCaptureDevice, duration: CMTime, iso: Float, completion: ((CMTime) -> Void)?
+    ) {
+        if #available(iOS 27.0, macCatalyst 27.0, *) {
+            device.setExposureModeCustom(lensAperture: AVCaptureDevice.autoLensAperture,
+                                         duration: duration, iso: iso, completionHandler: completion)
+            return
+        }
+        completion?(.invalid)
     }
 
     /// The lens Manual exposure runs on: the device itself when it accepts
@@ -1392,13 +1436,19 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// used in a RUNNING session, and the first state exchange happens before
     /// the session starts.
     private func manualExposureLensLocked(for device: AVCaptureDevice) -> AVCaptureDevice? {
-        if device.isExposureModeSupported(.custom) { return device }
+        if Self.runsManual(device) { return device }
         guard device.isVirtualDevice else { return nil }
-        if let active = device.activePrimaryConstituent, active.isExposureModeSupported(.custom) {
+        if let active = device.activePrimaryConstituent, Self.runsManual(active) {
             return active
         }
-        let candidates = device.constituentDevices.filter { $0.isExposureModeSupported(.custom) }
+        let candidates = device.constituentDevices.filter { Self.runsManual($0) }
         return candidates.first { $0.deviceType == .builtInWideAngleCamera } ?? candidates.first
+    }
+
+    /// The device takes `.custom` and its active format accepts shutter + ISO
+    /// locked, with the aperture locked or left to auto exposure.
+    private static func runsManual(_ device: AVCaptureDevice) -> Bool {
+        device.isExposureModeSupported(.custom) && manualAperture(for: device.activeFormat) != nil
     }
 
     /// The physical lens `device` must run on for Manual, or nil when it can
@@ -1408,7 +1458,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// `swapToDeviceLocked` calls `applyExposureIntentLocked`, so a swap from
     /// there would recurse.
     private func manualExposureHopTargetLocked(for device: AVCaptureDevice) -> AVCaptureDevice? {
-        guard case .manual = exposureIntent, !device.isExposureModeSupported(.custom) else { return nil }
+        guard case .manual = exposureIntent, !Self.runsManual(device) else { return nil }
         return manualExposureLensLocked(for: device)
     }
 
