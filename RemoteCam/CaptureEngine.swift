@@ -1403,7 +1403,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     enum ManualAperture: Equatable { case locked, auto }
 
     static func manualAperture(for format: AVCaptureDevice.Format) -> ManualAperture? {
-        #if compiler(>=6.4)
         if #available(iOS 27.0, macCatalyst 27.0, *) {
             let locked = format.supportsExposureModeCustom(
                 lensAperture: AVCaptureDevice.currentLensAperture,
@@ -1414,20 +1413,17 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                 duration: AVCaptureDevice.currentExposureDuration, iso: AVCaptureDevice.currentISO)
             return autoAperture ? .auto : nil
         }
-        #endif
         return .locked
     }
 
     private static func setManualExposureWithAutoAperture(
         _ device: AVCaptureDevice, duration: CMTime, iso: Float, completion: ((CMTime) -> Void)?
     ) {
-        #if compiler(>=6.4)
         if #available(iOS 27.0, macCatalyst 27.0, *) {
             device.setExposureModeCustom(lensAperture: AVCaptureDevice.autoLensAperture,
                                          duration: duration, iso: iso, completionHandler: completion)
             return
         }
-        #endif
         completion?(.invalid)
     }
 
