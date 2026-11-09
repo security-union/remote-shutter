@@ -22,7 +22,17 @@ import Photos
 /// Which capture mode the director is in; shared with the tray and rig menu.
 enum MonitorMode: Equatable {
     case photo
+    case portrait
     case video
+
+    /// The session configuration the cameras run for this mode.
+    var recordingMode: RecordingMode {
+        switch self {
+        case .photo: return .Photo
+        case .portrait: return .Portrait
+        case .video: return .Video
+        }
+    }
 }
 
 /// The session's complete state space — every `become` state of the old
@@ -1031,7 +1041,7 @@ public actor SessionCoordinator {
             await sendOrGoToScanning(RemoteCmd.StopRecordingVideoResp(error: unableToProcessError(msg)), mode: .reliable)
 
         case let pic as RemoteCmd.TakePic:
-            ctrl.currentCameraMode = .Photo
+            ctrl.currentCameraMode = ctrl.currentCameraMode.stillMode
             ctrl.updateCameraStatus()
             ctrl.takePicture(pic.sendMediaToPeer)
             let generation = scheduleTimeout(.cameraTakingPic)
@@ -1057,7 +1067,7 @@ public actor SessionCoordinator {
             // auto-collects every angle — unless the director's "Send Media
             // to Remote" setting is off, in which case the still stays here.
             pendingSyncMetadata = fire.metadata
-            ctrl.currentCameraMode = .Photo
+            ctrl.currentCameraMode = ctrl.currentCameraMode.stillMode
             ctrl.updateCameraStatus()
             ctrl.takePicture(fire.sendMediaToPeer)
             let generation = scheduleTimeout(.cameraTakingPic)
@@ -1359,7 +1369,7 @@ public actor SessionCoordinator {
 
         // Photo configuration is armed at arrival: the session reconfigures
         // during the countdown, never between the cameras' fire instants.
-        ctrl?.currentCameraMode = .Photo
+        if let ctrl { ctrl.currentCameraMode = ctrl.currentCameraMode.stillMode }
         ctrl?.updateCameraStatus()
 
         let metadata = CaptureSyncMetadata(
@@ -2088,7 +2098,7 @@ public actor SessionCoordinator {
 
         switch msg {
         case is RemoteCmd.TakePic:
-            ctrl.currentCameraMode = .Photo
+            ctrl.currentCameraMode = ctrl.currentCameraMode.stillMode
             ctrl.takePicture(false)
             let generation = scheduleTimeout(.watchRemoteCameraTakingPic)
             await transition(to: .watchCameraTakingPic(generation: generation))

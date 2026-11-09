@@ -2327,6 +2327,40 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(modes, [.Video], "the rig's mode wins on join")
     }
 
+    /// Portrait is offered only when every camera reports it, and a camera
+    /// that can't take it drops a Portrait rig back to Photo.
+    func testPortraitNeedsEveryCameraAndFallsBackToPhoto() async {
+        let (controller, transport, _) = await makeController(peers: [camA, camB])
+        func caps(portrait: Bool) -> RemoteCmd.CameraCapabilitiesResp {
+            RemoteCmd.CameraCapabilitiesResp(
+                frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+                supportsMulticam: true, cameraMode: .Photo, supportsPortrait: portrait, error: nil)
+        }
+        controller.didReceiveMessage(caps(portrait: true), from: camA)
+        await controller.waitForIdle()
+        var settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertFalse(settings.portraitAvailable, "camB hasn't said it can")
+
+        controller.didReceiveMessage(caps(portrait: true), from: camB)
+        await controller.waitForIdle()
+        settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertTrue(settings.portraitAvailable, "every camera can")
+
+        controller.setCameraMode(.Portrait)
+        await controller.waitForIdle()
+        let before = sent(transport, RemoteCmd.SetCameraMode.self).count
+
+        // camB flips to a lens without depth.
+        controller.didReceiveMessage(caps(portrait: false), from: camB)
+        await controller.waitForIdle()
+        settings = await controller.rigSettingsSnapshotForTesting()
+        XCTAssertFalse(settings.portraitAvailable)
+        let modes = sent(transport, RemoteCmd.SetCameraMode.self).dropFirst(before)
+            .compactMap { ($0.msg as? RemoteCmd.SetCameraMode)?.mode }
+        XCTAssertFalse(modes.isEmpty, "the rig is told to leave Portrait")
+        XCTAssertTrue(modes.allSatisfy { $0 == .Photo }, "and drops to Photo, never Portrait")
+    }
+
     /// Exposure is sent only to a camera whose state carries the block, and
     /// Manual only when the block says the device accepts it.
     func testExposureIsGatedOnTheLanesExposureBlock() async {

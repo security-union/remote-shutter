@@ -625,6 +625,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// mode pre-warming; the director never sends `SetCameraMode` to it
         /// (presence is the capability, as with `exposure`).
         public let cameraMode: RecordingMode?
+        /// The ACTIVE camera can take Portrait stills (it delivers depth).
+        /// False for old peers; the director offers Portrait only when every
+        /// camera in the rig reports it.
+        public let supportsPortrait: Bool
         /// The control command this answers; `.requestcapabilities` for an
         /// unsolicited push. Set by the camera coordinator before sending.
         public var inReplyTo: RemoteShutter_CommandAction
@@ -649,6 +653,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    aspectRatio: AspectRatio = .sixteenNine,
                    exposure: ExposureState? = nil,
                    cameraMode: RecordingMode? = nil,
+                   supportsPortrait: Bool = false,
                    inReplyTo: RemoteShutter_CommandAction = .requestcapabilities,
                    error: Error?) {
             self.frontCamera = frontCamera
@@ -671,6 +676,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.aspectRatio = aspectRatio
             self.exposure = exposure
             self.cameraMode = cameraMode
+            self.supportsPortrait = supportsPortrait
             self.inReplyTo = inReplyTo
             self.error = error
             super.init(sender: nil)

@@ -227,8 +227,9 @@ public enum RemoteShutter_RecordingModeEnum: Int8, Enum, Verifiable {
   case photo = 1
   case video = 2
   case shorts = 3
+  case portrait = 4
 
-  public static var max: RemoteShutter_RecordingModeEnum { return .shorts }
+  public static var max: RemoteShutter_RecordingModeEnum { return .portrait }
   public static var min: RemoteShutter_RecordingModeEnum { return .unknown }
 }
 
@@ -1160,6 +1161,7 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
     case previewMode = 26
     case exposure = 28
     case cameraMode = 30
+    case supportsPortrait = 32
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1179,7 +1181,8 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
   public var previewMode: RemoteShutter_CameraPreviewModeEnum { let o = _accessor.offset(VTOFFSET.previewMode.v); return o == 0 ? .unknown : RemoteShutter_CameraPreviewModeEnum(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var exposure: RemoteShutter_ExposureState? { let o = _accessor.offset(VTOFFSET.exposure.v); return o == 0 ? nil : RemoteShutter_ExposureState(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
   public var cameraMode: RemoteShutter_RecordingModeEnum { let o = _accessor.offset(VTOFFSET.cameraMode.v); return o == 0 ? .unknown : RemoteShutter_RecordingModeEnum(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
-  public static func startCameraState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 14) }
+  public var supportsPortrait: Bool { let o = _accessor.offset(VTOFFSET.supportsPortrait.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
+  public static func startCameraState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 15) }
   public static func add(currentCamera: RemoteShutter_CameraPosition, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentCamera.rawValue, def: 0, at: VTOFFSET.currentCamera.p) }
   public static func add(currentLens: RemoteShutter_CameraLensType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentLens.rawValue, def: 0, at: VTOFFSET.currentLens.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
@@ -1194,6 +1197,8 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
   public static func add(previewMode: RemoteShutter_CameraPreviewModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: previewMode.rawValue, def: 0, at: VTOFFSET.previewMode.p) }
   public static func add(exposure: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: exposure, at: VTOFFSET.exposure.p) }
   public static func add(cameraMode: RemoteShutter_RecordingModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: cameraMode.rawValue, def: 0, at: VTOFFSET.cameraMode.p) }
+  public static func add(supportsPortrait: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsPortrait, def: false,
+   at: VTOFFSET.supportsPortrait.p) }
   public static func endCameraState(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraState(
     _ fbb: inout FlatBufferBuilder,
@@ -1210,7 +1215,8 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
     activeDeviceIdOffset activeDeviceId: Offset = Offset(),
     previewMode: RemoteShutter_CameraPreviewModeEnum = .unknown,
     exposureOffset exposure: Offset = Offset(),
-    cameraMode: RemoteShutter_RecordingModeEnum = .unknown
+    cameraMode: RemoteShutter_RecordingModeEnum = .unknown,
+    supportsPortrait: Bool = false
   ) -> Offset {
     let __start = RemoteShutter_CameraState.startCameraState(&fbb)
     RemoteShutter_CameraState.add(currentCamera: currentCamera, &fbb)
@@ -1227,6 +1233,7 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
     RemoteShutter_CameraState.add(previewMode: previewMode, &fbb)
     RemoteShutter_CameraState.add(exposure: exposure, &fbb)
     RemoteShutter_CameraState.add(cameraMode: cameraMode, &fbb)
+    RemoteShutter_CameraState.add(supportsPortrait: supportsPortrait, &fbb)
     return RemoteShutter_CameraState.endCameraState(&fbb, start: __start)
   }
 
@@ -1246,6 +1253,7 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.previewMode.p, fieldName: "previewMode", required: false, type: RemoteShutter_CameraPreviewModeEnum.self)
     try _v.visit(field: VTOFFSET.exposure.p, fieldName: "exposure", required: false, type: ForwardOffset<RemoteShutter_ExposureState>.self)
     try _v.visit(field: VTOFFSET.cameraMode.p, fieldName: "cameraMode", required: false, type: RemoteShutter_RecordingModeEnum.self)
+    try _v.visit(field: VTOFFSET.supportsPortrait.p, fieldName: "supportsPortrait", required: false, type: Bool.self)
     _v.finish()
   }
 }

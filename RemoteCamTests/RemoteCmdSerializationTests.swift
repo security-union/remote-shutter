@@ -962,6 +962,32 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.mode, .Photo)
     }
 
+    func testSetCameraMode_portrait_roundTrip() {
+        let original = RemoteCmd.SetCameraMode(mode: .Portrait)
+        let decoded: RemoteCmd.SetCameraMode = roundTrip(original)
+        XCTAssertEqual(decoded.mode, .Portrait)
+    }
+
+    func testCapabilitiesCarryPortraitSupportAndMode() {
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            cameraMode: .Portrait, supportsPortrait: true, error: nil)
+        let result = roundTrip(caps)
+        XCTAssertTrue(result.supportsPortrait)
+        XCTAssertEqual(result.cameraMode, .Portrait)
+    }
+
+    /// A peer that predates Portrait sends no flag: it decodes as unsupported,
+    /// so the director never offers the mode to it.
+    func testCapabilitiesWithoutPortraitFlagDecodeAsUnsupported() {
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil,
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            cameraMode: .Photo, error: nil)
+        XCTAssertFalse(roundTrip(caps).supportsPortrait)
+    }
+
     // MARK: - SetAspectRatio Round-Trip
 
     func testSetAspectRatio_fourThree_roundTrip() {

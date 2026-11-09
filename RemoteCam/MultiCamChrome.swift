@@ -80,7 +80,7 @@ enum RigTray {
         switch mode {
         case .video:
             items.append(.resolution)
-        case .photo:
+        case .photo, .portrait:
             items.append(contentsOf: [.format, .hdr])
         }
 

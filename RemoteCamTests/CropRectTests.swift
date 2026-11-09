@@ -216,6 +216,13 @@ final class CropRectTests: XCTestCase {
                        "the EXIF dims must be rewritten to the cropped size")
     }
 
+    /// A still without depth has nothing to blur: Portrait returns nil and
+    /// the capture path falls back to the plain crop.
+    func testPortraitPhotoDataWithoutDepthIsNil() {
+        let jpeg = makeJPEG(width: 400, height: 300, userComment: "no-depth")
+        XCTAssertNil(CR.portraitPhotoData(jpeg, to: .fourThree))
+    }
+
     func testCropPhotoDataReturnsOriginalBytesWhenRatioMatches() {
         let jpeg = makeJPEG(width: 1600, height: 900, userComment: "unused")
         XCTAssertEqual(CR.cropPhotoData(jpeg, to: .sixteenNine), jpeg,

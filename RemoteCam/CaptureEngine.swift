@@ -8,6 +8,7 @@
 import Atomics
 import UIKit
 import AVFoundation
+import CoreImage
 
 /// Classifies capture-session runtime errors by recency. One error is
 /// transient (media services reset — resume and move on); a repeat inside the
@@ -196,7 +197,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
         self.captureSession.beginConfiguration()
         self.captureSession.sessionPreset =
-            (self.captureMode == .Photo && Self.photoPresetSupported
+            (self.captureMode.isStill && Self.photoPresetSupported
              && self.captureSession.canSetSessionPreset(.photo))
             ? .photo : .high
 
@@ -234,6 +235,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.configSessionOutput()
             self.captureSession.commitConfiguration()
             self.reconcilePreviewOutputLocked()
+            self.applyDepthDeliveryLocked()
             self.updateMaxPhotoDimensionsLocked()
             self.currentPhotoFormat = Self.defaultPhotoFormat(
                 hevcAvailable: self.photoOutput.availablePhotoCodecTypes.contains(.hevc))
@@ -409,6 +411,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         rotateOutputsLocked(orientation: orientation)
         let newFlashMode: AVCaptureDevice.FlashMode? = newDevice.hasFlash ? cameraSettings.flashMode : nil
         captureSession.commitConfiguration()
+        applyDepthDeliveryLocked()   // the new device may or may not deliver depth
         reconcilePreviewOutputLocked()
         updateMaxPhotoDimensionsLocked()
         applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
@@ -1105,6 +1108,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             aspectRatio: currentAspectRatio,
             exposure: exposureStateLocked(currentDevice),
             cameraMode: captureMode,
+            supportsPortrait: Self.supportsPortrait(currentDevice),
             error: nil
         )
 
@@ -1779,28 +1783,62 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     /// Follows the rig's `currentCameraMode`. Stores the mode even before the
     /// session is set up (setup reads it); once live, reconfigures the session:
-    /// Photo gets the full-sensor `.photo` preset, Video/Shorts get the selected
-    /// video format back. Dedupes, so repeated sets are free.
+    /// Photo and Portrait get the full-sensor `.photo` preset (Portrait adds
+    /// depth delivery), Video/Shorts get the selected video format back.
+    /// Dedupes, so repeated sets are free.
     func setCaptureMode(_ mode: RecordingMode) {
         sessionQueue.async {
             guard mode != self.captureMode else { return }
+            let previous = self.captureMode
             self.captureMode = mode
             guard self.videoDeviceInput?.device != nil else { return }
-            self.applyCaptureModeLocked()
+            self.applyCaptureModeLocked(from: previous)
         }
     }
 
     /// Reconfigures the session for the stored mode. A real reconfiguration
     /// changes the frame dimensions (16:9 video ↔ 4:3 full sensor) — a scene
-    /// cut for the preview encoder, announced like a device swap.
-    private func applyCaptureModeLocked() {
+    /// cut for the preview encoder, announced like a device swap. Photo ↔
+    /// Portrait keeps the photo format and only toggles depth delivery.
+    private func applyCaptureModeLocked(from previous: RecordingMode) {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
-        let changed = captureMode == .Photo
-            ? applyPhotoFormatLocked()
-            : setVideoQualityLocked(resolution: currentVideoResolution,
-                                    frameRate: currentVideoFrameRate,
-                                    isRecording: false) != nil
+        let changed: Bool
+        if captureMode.isStill && previous.isStill {
+            changed = false
+        } else if captureMode.isStill {
+            changed = applyPhotoFormatLocked()
+        } else {
+            changed = setVideoQualityLocked(resolution: currentVideoResolution,
+                                            frameRate: currentVideoFrameRate,
+                                            isRecording: false) != nil
+        }
+        applyDepthDeliveryLocked()
         if changed { onDeviceSwapped?() }
+    }
+
+    /// Whether `device` can take Portrait stills: it has formats that deliver
+    /// depth (dual/triple back cameras, TrueDepth front) and the platform runs
+    /// the photo preset (Mac cameras have no depth).
+    static func supportsPortrait(_ device: AVCaptureDevice) -> Bool {
+        photoPresetSupported && device.formats.contains { !$0.supportedDepthDataFormats.isEmpty }
+    }
+
+    /// Depth (and the person matte, where offered) is delivered only in
+    /// Portrait. Turning it on can narrow a virtual device's zoom range and
+    /// photo sizes, so the format tail re-clamps zoom and the photo ceiling.
+    private func applyDepthDeliveryLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        let depth = captureMode == .Portrait && photoOutput.isDepthDataDeliverySupported
+        let matte = depth && photoOutput.isPortraitEffectsMatteDeliverySupported
+        guard photoOutput.isDepthDataDeliveryEnabled != depth
+                || photoOutput.isPortraitEffectsMatteDeliveryEnabled != matte else { return }
+        captureSession.beginConfiguration()
+        if !matte { photoOutput.isPortraitEffectsMatteDeliveryEnabled = false }
+        photoOutput.isDepthDataDeliveryEnabled = depth
+        if matte { photoOutput.isPortraitEffectsMatteDeliveryEnabled = true }
+        captureSession.commitConfiguration()
+        restoreAfterFormatChangeLocked()
+        onStatusChanged?()
     }
 
     /// Puts the session on the full-sensor `.photo` preset, keeping the
@@ -1987,6 +2025,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         hevcAvailable ? .heif : .jpeg
     }
 
+    /// Portrait stills cap at 12MP. Larger sizes with depth on are untested,
+    /// and an unsupported photo size raises an uncatchable exception.
+    static let portraitMaxPhotoPixels: Int64 = 12_600_000
+
     /// Single point that keeps the photo output asking for everything the
     /// ACTIVE format can produce (12/24/48MP on modern iPhones). Must run
     /// after the configuration commit — `activeFormat` settles there.
@@ -1994,9 +2036,11 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard let device = videoDeviceInput?.device else { return }
         if #available(iOS 16.0, macCatalyst 16.0, *) {
-            guard let dims = device.activeFormat.supportedMaxPhotoDimensions
-                .max(by: { Int64($0.width) * Int64($0.height) < Int64($1.width) * Int64($1.height) })
-            else { return }
+            let pixels = { (d: CMVideoDimensions) in Int64(d.width) * Int64(d.height) }
+            let candidates = device.activeFormat.supportedMaxPhotoDimensions.filter {
+                !photoOutput.isDepthDataDeliveryEnabled || pixels($0) <= Self.portraitMaxPhotoPixels
+            }
+            guard let dims = candidates.max(by: { pixels($0) < pixels($1) }) else { return }
             photoOutput.maxPhotoDimensions = dims
         }
     }
@@ -2013,7 +2057,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         guard !isRecording else { return nil }
         guard let device = videoDeviceInput?.device else { return nil }
 
-        guard captureMode != .Photo else {
+        guard !captureMode.isStill else {
             currentVideoResolution = resolution
             currentVideoFrameRate = frameRate
             fpsSetting.store(frameRate.value, ordering: .relaxed)
@@ -2124,15 +2168,54 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             return nil
         }
 
+        return encode(croppedCG, like: source, type: type)
+    }
+
+    /// Simulated aperture for Portrait stills; Apple's Camera opens at f/4.5.
+    static let portraitAperture: Float = 4.5
+    private static let portraitContext = CIContext()
+
+    /// A Portrait still: Core Image's portrait filter blurs the background
+    /// from the photo's own depth (and person matte, when delivered), then the
+    /// result is cropped to the aspect ratio and encoded like `cropPhotoData`
+    /// (sensor space, EXIF orientation and metadata carried). The blur is baked
+    /// in; the depth is not kept. Nil when the data carries no depth, so the
+    /// caller falls back to a plain crop.
+    static func portraitPhotoData(_ data: Data, to aspectRatio: AspectRatio) -> Data? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let type = CGImageSourceGetType(source),
+              let filter = portraitContext.depthBlurEffectFilter(forImageData: data, options: nil) else {
+            debugLog("portraitPhotoData: no depth in photo data (\(data.count) bytes)")
+            return nil
+        }
+        filter.setValue(portraitAperture, forKey: "inputAperture")
+        guard let blurred = filter.outputImage else { return nil }
+        let extent = blurred.extent
+        let rect = cropRect(sourceWidth: extent.width, sourceHeight: extent.height,
+                            aspectRatio: aspectRatio)?
+            .offsetBy(dx: extent.minX, dy: extent.minY) ?? extent
+        let colorSpace = CGImageSourceCreateImageAtIndex(source, 0, nil)?.colorSpace
+            ?? CGColorSpace(name: CGColorSpace.sRGB)!
+        guard let cgImage = portraitContext.createCGImage(
+            blurred, from: rect, format: .RGBA8, colorSpace: colorSpace) else {
+            debugLog("portraitPhotoData: render failed for rect \(rect)")
+            return nil
+        }
+        return encode(cgImage, like: source, type: type)
+    }
+
+    /// Encodes `image` into `type` with `source`'s metadata, EXIF pixel
+    /// dimensions rewritten to the image's size.
+    private static func encode(_ image: CGImage, like source: CGImageSource, type: CFString) -> Data? {
         let properties = destinationProperties(
-            of: source, croppedWidth: croppedCG.width, croppedHeight: croppedCG.height)
+            of: source, croppedWidth: image.width, croppedHeight: image.height)
         let output = NSMutableData()
         guard let dest = CGImageDestinationCreateWithData(output, type, 1, nil) else {
             return nil
         }
-        CGImageDestinationAddImage(dest, croppedCG, properties as CFDictionary)
+        CGImageDestinationAddImage(dest, image, properties as CFDictionary)
         guard CGImageDestinationFinalize(dest) else {
-            debugLog("cropPhotoData: CGImageDestinationFinalize failed")
+            debugLog("encode: CGImageDestinationFinalize failed")
             return nil
         }
         return output as Data
@@ -2187,6 +2270,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             newSettings.isHighResolutionPhotoEnabled = settings.isHighResolutionPhotoEnabled
         }
         newSettings.photoQualityPrioritization = .quality
+        if photoOutput.isDepthDataDeliveryEnabled {
+            newSettings.isDepthDataDeliveryEnabled = true
+            newSettings.isPortraitEffectsMatteDeliveryEnabled = photoOutput.isPortraitEffectsMatteDeliveryEnabled
+        }
         return newSettings
     }
 
@@ -2213,6 +2300,10 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         // through the session queue. Any ratio other than the still's own is
         // a crop of the full capture; a failed crop delivers the full frame.
         let aspectRatio = currentAspectRatioValue()
+        if photo.depthData != nil, let portrait = Self.portraitPhotoData(photoData, to: aspectRatio) {
+            onPicture?(portrait, nil)
+            return
+        }
         onPicture?(Self.cropPhotoData(photoData, to: aspectRatio) ?? photoData, nil)
     }
 }

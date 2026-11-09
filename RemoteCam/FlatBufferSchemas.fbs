@@ -189,7 +189,9 @@ enum RecordingModeEnum : byte {
     Unknown = 0,
     Photo = 1,
     Video = 2,
-    Shorts = 3
+    Shorts = 3,
+    Portrait = 4   // a still with the background blurred from depth. Only
+                   // sent to a camera whose CameraState sets supports_portrait.
 }
 
 enum AspectRatioEnum : byte {
@@ -391,6 +393,10 @@ table CameraState {
     // stills, video = the selected video format). Absent/Unknown = peer
     // predates mode pre-warming; a director must not send SetCameraMode.
     camera_mode: RecordingModeEnum;
+    // The active camera can take Portrait stills (it delivers depth). Moves
+    // with every device swap. False/absent = a director must not send
+    // Portrait; it offers the mode only when every camera in the rig sets it.
+    supports_portrait: bool;
 }
 
 table CameraCapabilities {

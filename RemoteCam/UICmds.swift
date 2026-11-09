@@ -16,6 +16,15 @@ public enum RecordingMode: Int {
     case Photo
     case Video
     case Shorts
+    /// A still with the background blurred from the camera's depth data.
+    case Portrait
+
+    /// Photo and Portrait both shoot stills on the full-sensor photo format.
+    public var isStill: Bool { self == .Photo || self == .Portrait }
+
+    /// The mode a shutter press shoots in: a still mode stays, a video mode
+    /// falls back to Photo.
+    public var stillMode: RecordingMode { isStill ? self : .Photo }
 }
 
 /// Commands that travel within one device: a screen to the session coordinator,

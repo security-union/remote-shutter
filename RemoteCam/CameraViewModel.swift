@@ -88,7 +88,7 @@ class CameraViewModel: ObservableObject {
             switch mode {
             case .Video, .Shorts:
                 self.qualityInfo = "\(resolution.displayName) \(frameRate.displayName)fps"
-            case .Photo:
+            case .Photo, .Portrait:
                 var info = photoFormat.displayName
                 if hdrMode == .on { info += " HDR" }
                 self.qualityInfo = info

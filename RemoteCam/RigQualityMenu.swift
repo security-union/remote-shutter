@@ -189,6 +189,8 @@ struct RigSettingsSnapshot: Equatable {
     var exposureAvailable: Bool = false
     /// The director's remembered choice to show the exposure controls.
     var exposureControlsOn: Bool = false
+    /// Every live camera in the rig can take Portrait stills.
+    var portraitAvailable: Bool = false
 
     /// The glass quality tile cycles in place: Automatic → each enabled option
     /// in order → back to Automatic. `nil` is Automatic. Disabled options
@@ -222,7 +224,7 @@ struct RigSettingsSnapshot: Equatable {
                   let who = opt.blockedBy.first else { return nil }
             return String(format: NSLocalizedString("%@ can’t do %@", comment: "camera blocks a quality"),
                           who, opt.label)
-        case .photo:
+        case .photo, .portrait:
             if !heifAvailable, let who = heifBlockedBy.first {
                 return String(format: NSLocalizedString("%@ can’t do %@", comment: "camera blocks a quality"),
                               who, PhotoFormat.heif.displayName)

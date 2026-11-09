@@ -343,6 +343,32 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(camera.takePictureCalls, [true])
     }
 
+    /// A shutter press keeps a still mode: Portrait shoots Portrait.
+    func testTakePicKeepsPortrait() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.currentCameraMode = .Portrait
+
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
+
+        XCTAssertEqual(camera.currentCameraMode, .Portrait)
+        XCTAssertEqual(camera.takePictureCalls, [false])
+    }
+
+    /// A scheduled (synced) shot armed in Portrait stays Portrait.
+    func testScheduledCaptureKeepsPortrait() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.currentCameraMode = .Portrait
+
+        await harness.deliver(RemoteCmd.ScheduledCapture(
+            fireAtCameraClockMillis: SyncClock.nowMillis() + 800,
+            anchorMillis: SyncClock.nowMillis(), captureId: "CAP-PORTRAIT",
+            sessionId: "S", cameraIndex: 1))
+
+        XCTAssertEqual(camera.currentCameraMode, .Portrait)
+    }
+
     // MARK: - Recording truth derivation (v10)
 
     private var reportSeq: UInt64 = 0
