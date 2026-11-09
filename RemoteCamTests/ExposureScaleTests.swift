@@ -257,16 +257,20 @@ final class ExposureScaleTests: XCTestCase {
         XCTAssertEqual(sent, [0.5])
     }
 
+    /// Waits for the trailing send itself, not a fixed delay: on a stalled
+    /// main thread an overdue timer and an overdue dispatch run in either order.
     func testTrailingEdgeDeliversTheLastValueOnly() {
         var sent: [Double] = []
-        let sender = ThrottledValueSender(interval: 0.05) { sent.append($0) }
+        let landed = expectation(description: "trailing")
+        let sender = ThrottledValueSender(interval: 0.05) { value in
+            sent.append(value)
+            if sent.count == 2 { landed.fulfill() }
+        }
         sender.submit(1)
         sender.submit(2)
         sender.submit(3)
         XCTAssertEqual(sent, [1], "the burst is held")
-        let landed = expectation(description: "trailing")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { landed.fulfill() }
-        wait(for: [landed], timeout: 1)
+        withExtendedLifetime(sender) { wait(for: [landed], timeout: 2) }
         XCTAssertEqual(sent, [1, 3], "then only the final position lands")
     }
 }
