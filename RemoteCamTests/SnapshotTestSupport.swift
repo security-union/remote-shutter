@@ -54,11 +54,10 @@ class SnapshotTestCase: XCTestCase {
         host.view.layoutIfNeeded()
 
         // SwiftUI commits its first frame on the runloop, and headless CI
-        // simulators take noticeably longer than a local machine — poll until
-        // the chrome shows up instead of trusting a fixed delay. On a warm
-        // local run the first snapshot already passes.
+        // simulators take far longer than a local machine — poll until the
+        // chrome shows up. On a warm local run the first snapshot already passes.
         var image = snapshot()
-        let deadline = Date(timeIntervalSinceNow: 2.5)
+        let deadline = Date(timeIntervalSinceNow: conditionCeiling)
         while !hasChrome(image) && Date() < deadline {
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
             CATransaction.flush()
@@ -143,7 +142,8 @@ class SnapshotTestCase: XCTestCase {
     }
 
     /// A screen that failed to render is a uniform fill; a real one has both
-    /// dark background and bright chrome. Samples a coarse pixel grid.
+    /// dark background and bright chrome. Samples every 4th pixel each way:
+    /// chrome is thin strokes (text, icons, rings) that a coarser grid misses.
     func hasChrome(_ image: UIImage) -> Bool {
         guard let cgImage = image.cgImage,
               let data = cgImage.dataProvider?.data,
@@ -153,8 +153,8 @@ class SnapshotTestCase: XCTestCase {
         let bytesPerRow = cgImage.bytesPerRow
         let bytesPerPixel = cgImage.bitsPerPixel / 8
         var sawDark = false, sawBright = false
-        for row in stride(from: 0, to: cgImage.height, by: 32) {
-            for col in stride(from: 0, to: cgImage.width, by: 32) {
+        for row in stride(from: 0, to: cgImage.height, by: 4) {
+            for col in stride(from: 0, to: cgImage.width, by: 4) {
                 let offset = row * bytesPerRow + col * bytesPerPixel
                 let luminance = (Int(bytes[offset]) + Int(bytes[offset + 1]) + Int(bytes[offset + 2])) / 3
                 if luminance < 40 { sawDark = true }
@@ -173,7 +173,7 @@ class SnapshotTestCase: XCTestCase {
     /// Light-theme screens can't promise dark pixels (hasChrome's contract),
     /// especially on the CI ImageRenderer path where UIKit-backed subviews are
     /// omitted. A real render still has tonal variance; a failed one is a
-    /// uniform fill. Samples the same coarse grid as hasChrome.
+    /// uniform fill. Samples the same grid as hasChrome.
     func assertRendered(_ image: UIImage, file: StaticString = #filePath, line: UInt = #line) {
         guard let cgImage = image.cgImage,
               let data = cgImage.dataProvider?.data,
@@ -184,8 +184,8 @@ class SnapshotTestCase: XCTestCase {
         let bytesPerRow = cgImage.bytesPerRow
         let bytesPerPixel = cgImage.bitsPerPixel / 8
         var minLum = 255, maxLum = 0
-        for row in stride(from: 0, to: cgImage.height, by: 32) {
-            for col in stride(from: 0, to: cgImage.width, by: 32) {
+        for row in stride(from: 0, to: cgImage.height, by: 4) {
+            for col in stride(from: 0, to: cgImage.width, by: 4) {
                 let offset = row * bytesPerRow + col * bytesPerPixel
                 let luminance = (Int(bytes[offset]) + Int(bytes[offset + 1]) + Int(bytes[offset + 2])) / 3
                 minLum = min(minLum, luminance)

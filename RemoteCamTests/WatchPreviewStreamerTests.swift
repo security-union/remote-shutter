@@ -109,11 +109,15 @@ final class WatchPreviewStreamerTests: XCTestCase {
         XCTAssertFalse(offer(2), "still gated immediately after sending")
 
         // No ack ever arrives — the watchdog must re-arm the stream.
+        // Gated offers are dropped, so offering until one goes through waits
+        // for the watchdog itself.
         let released = expectation(description: "watchdog re-armed the stream")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.2) {
-            if self.offer(3) { released.fulfill() }
+        DispatchQueue.global().async {
+            let deadline = Date(timeIntervalSinceNow: conditionCeiling)
+            while !self.offer(3) && Date() < deadline { usleep(5_000) }
+            released.fulfill()
         }
-        wait(for: [released], timeout: 2.0)
+        wait(for: [released], timeout: conditionCeiling + 1)
         XCTAssertEqual(sent, [Data([1]), Data([3])])
     }
 
@@ -146,10 +150,12 @@ final class WatchPreviewStreamerTests: XCTestCase {
 
         // No ack ever arrives — the watchdog must clear the entire window.
         let released = expectation(description: "watchdog cleared the window")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.2) {
-            if self.offer(7) { released.fulfill() }
+        DispatchQueue.global().async {
+            let deadline = Date(timeIntervalSinceNow: conditionCeiling)
+            while !self.offer(7) && Date() < deadline { usleep(5_000) }
+            released.fulfill()
         }
-        wait(for: [released], timeout: 2.0)
+        wait(for: [released], timeout: conditionCeiling + 1)
         XCTAssertEqual(sent, [Data([1]), Data([2]), Data([3]), Data([7])])
     }
 }

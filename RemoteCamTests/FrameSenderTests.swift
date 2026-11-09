@@ -174,7 +174,7 @@ class FrameSenderTests: XCTestCase {
         XCTAssertEqual(sentFrameCount, windowSize)
 
         // No acks arrive. After the timeout the sender must accept frames again.
-        let deadline = Date(timeIntervalSinceNow: FrameSender.ackTimeout + 1.0)
+        let deadline = Date(timeIntervalSinceNow: FrameSender.ackTimeout + conditionCeiling)
         while sentFrameCount < windowSize + 1 && Date() < deadline {
             frameSender.send(makeFrame())
             frameSender.drain()

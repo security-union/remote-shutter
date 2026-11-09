@@ -253,7 +253,7 @@ class LoopbackSessionTests: XCTestCase {
     /// Keeps draining until `condition` holds. Scheduled captures fire on an
     /// off-actor delay (`captureLeadMillis`), so a fixed drain is not enough.
     @discardableResult
-    private func waitUntil(timeout: TimeInterval = 3,
+    private func waitUntil(timeout: TimeInterval = conditionCeiling,
                            _ condition: () async -> Bool) async -> Bool {
         let deadline = Date(timeIntervalSinceNow: timeout)
         while Date() < deadline {

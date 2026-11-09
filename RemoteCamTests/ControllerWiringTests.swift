@@ -22,7 +22,7 @@ class ControllerWiringTests: XCTestCase {
     }
 
     @discardableResult
-    private func waitUntil(timeout: TimeInterval = 5,
+    private func waitUntil(timeout: TimeInterval = conditionCeiling,
                            _ condition: () -> Bool) -> Bool {
         let deadline = Date(timeIntervalSinceNow: timeout)
         while !condition() && Date() < deadline { pump(0.02) }

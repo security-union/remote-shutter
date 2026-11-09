@@ -313,9 +313,7 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertNil(acks[0].error, "accepted")
 
         // The fire is enqueued by an off-actor delay task; wait for it.
-        for _ in 0..<200 where camera.takePictureCalls.isEmpty {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
+        await eventually { !camera.takePictureCalls.isEmpty }
         XCTAssertEqual(camera.takePictureCalls, [true],
                        "the scheduled shutter fires, saving locally AND returning the still to the director")
     }
@@ -341,9 +339,7 @@ class SessionCoordinatorTests: XCTestCase {
                       "arming the mode is not the shutter — the fire is still \(800)ms out")
 
         // And the fire still happens.
-        for _ in 0..<200 where camera.takePictureCalls.isEmpty {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
+        await eventually { !camera.takePictureCalls.isEmpty }
         XCTAssertEqual(camera.takePictureCalls, [true])
     }
 
@@ -360,13 +356,7 @@ class SessionCoordinatorTests: XCTestCase {
 
     /// Pumps the main queue until `condition` holds.
     private func pumpMain(_ condition: @escaping () -> Bool) async {
-        for _ in 0..<50 {
-            let done = await MainActor.run { () -> Bool in
-                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02))
-                return condition()
-            }
-            if done { return }
-        }
+        await eventuallyOnMain(condition)
     }
 
     /// The pipeline terminated a recording on its own (storage gate refusal,
@@ -756,9 +746,7 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(acks.map(\.captureId), ["R7"])
         XCTAssertFalse(acks[0].isStop)
 
-        for _ in 0..<200 where camera.startRecordingCalls == 0 {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
+        await eventually { camera.startRecordingCalls > 0 }
         // The recording carries its sync metadata (anchor as opaque key).
         XCTAssertEqual(camera.videoSyncMetadata?.captureID, "R7")
         XCTAssertEqual(camera.videoSyncMetadata?.cameraIndex, 4)
@@ -768,9 +756,7 @@ class SessionCoordinatorTests: XCTestCase {
         await harness.deliver(RemoteCmd.ScheduledStopRecording(
             fireAtCameraClockMillis: SyncClock.nowMillis(),
             anchorMillis: 42, captureId: "R7", sessionId: "S3", cameraIndex: 4))
-        for _ in 0..<200 where camera.stopRecordingCalls.isEmpty {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
+        await eventually { !camera.stopRecordingCalls.isEmpty }
         XCTAssertEqual(camera.stopRecordingCalls, [true],
                        "scheduled stop saves locally AND pushes the clip to the director")
     }
@@ -784,17 +770,13 @@ class SessionCoordinatorTests: XCTestCase {
         await harness.deliver(RemoteCmd.ScheduledStartRecording(
             fireAtCameraClockMillis: SyncClock.nowMillis(),
             anchorMillis: 42, captureId: "R8", sessionId: "S3", cameraIndex: 1))
-        for _ in 0..<200 where camera.startRecordingCalls == 0 {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
+        await eventually { camera.startRecordingCalls > 0 }
 
         await harness.deliver(RemoteCmd.ScheduledStopRecording(
             fireAtCameraClockMillis: SyncClock.nowMillis(),
             anchorMillis: 42, captureId: "R8", sessionId: "S3", cameraIndex: 1,
             sendMediaToPeer: false))
-        for _ in 0..<200 where camera.stopRecordingCalls.isEmpty {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
+        await eventually { !camera.stopRecordingCalls.isEmpty }
         XCTAssertEqual(camera.stopRecordingCalls, [false],
                        "setting off: the clip is saved locally and stays here")
     }
@@ -808,9 +790,7 @@ class SessionCoordinatorTests: XCTestCase {
             fireAtCameraClockMillis: SyncClock.nowMillis(),
             anchorMillis: SyncClock.nowMillis(), captureId: "CAP-3",
             sessionId: "S", cameraIndex: 1, sendMediaToPeer: false))
-        for _ in 0..<200 where camera.takePictureCalls.isEmpty {
-            try? await Task.sleep(nanoseconds: 10_000_000)
-        }
+        await eventually { !camera.takePictureCalls.isEmpty }
         XCTAssertEqual(camera.takePictureCalls, [false],
                        "setting off: the shutter fires without returning the still")
     }
@@ -1130,8 +1110,21 @@ class SessionReconnectTests: XCTestCase {
         }
     }
 
-    /// Sleep past one retry tick, then drain the inbox and main queue.
-    private func awaitRetryTick() async {
+    /// Waits for the retry loop's next tick: every tick restarts discovery.
+    private func awaitNextRetryTick() async {
+        let starts = harness.fakeMP.discoveryStarts
+        let ticked = await eventually {
+            await harness.coordinator.waitForIdle()
+            return harness.fakeMP.discoveryStarts > starts
+        }
+        XCTAssertTrue(ticked, "the retry loop must tick")
+        await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
+    }
+
+    /// For loops that must NOT tick: lets a few ticks' worth of time pass. An
+    /// absence has no event to wait for; a slow runner can only make this
+    /// window longer, never fail it.
+    private func letRetryTicksPass() async {
         try? await Task.sleep(nanoseconds: 120_000_000)
         await harness.coordinator.waitForIdle()
         await MainActor.run { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.02)) }
@@ -1176,7 +1169,7 @@ class SessionReconnectTests: XCTestCase {
         XCTAssertTrue(stillWaiting, "the overlay is up while we wait")
 
         let startsAfterDrop = harness.fakeMP.discoveryStarts
-        await awaitRetryTick()
+        await awaitNextRetryTick()
         XCTAssertGreaterThan(harness.fakeMP.discoveryStarts, startsAfterDrop,
                              "each tick rebuilds the radios")
         XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
@@ -1205,7 +1198,7 @@ class SessionReconnectTests: XCTestCase {
         await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
         XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1, "one attempt starts")
 
-        await awaitRetryTick()
+        await letRetryTicksPass()
         await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
         XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1,
                        "an in-flight handshake is left alone")
@@ -1222,7 +1215,8 @@ class SessionReconnectTests: XCTestCase {
         harness.fakeMP.connectedPeers = []
         let startsBefore = harness.fakeMP.discoveryStarts
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-        await awaitRetryTick()
+        await eventually { harness.fakeMP.discoveryStarts > startsBefore }
+        await letRetryTicksPass()
         await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
 
         XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
@@ -1237,14 +1231,14 @@ class SessionReconnectTests: XCTestCase {
         harness.lobby.role = .monitor
         harness.fakeMP.connectedPeers = []
         await harness.deliver(DisconnectPeer(peer: harness.peer, sender: nil))
-        await awaitRetryTick()
+        await awaitNextRetryTick()
 
         await harness.deliver(UICmd.CancelReconnect())
         let cleared = await isReconnecting()
         XCTAssertFalse(cleared)
 
         let invitesAtCancel = harness.fakeMP.invitedPeers.count
-        await awaitRetryTick()
+        await letRetryTicksPass()
         XCTAssertEqual(harness.fakeMP.invitedPeers.count, invitesAtCancel,
                        "no further invites after Cancel")
     }
@@ -1264,7 +1258,7 @@ class SessionReconnectTests: XCTestCase {
 
         let waiting = await isReconnecting()
         XCTAssertFalse(waiting, "a cancelled wait stays cancelled")
-        await awaitRetryTick()
+        await letRetryTicksPass()
         await harness.deliver(UICmd.BrowserFoundPeer(peer: harness.peer))
         XCTAssertEqual(harness.fakeMP.invitedPeers.count, 1,
                        "and the peer is not chased again")
@@ -1306,7 +1300,7 @@ class SessionReconnectTests: XCTestCase {
         let waiting = await isReconnecting()
         XCTAssertFalse(waiting, "an announced exit is expected, not a loss")
 
-        await awaitRetryTick()
+        await letRetryTicksPass()
         XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty, "nobody chases a peer that left")
 
         // The next, UNannounced loss still starts a wait.
@@ -1348,7 +1342,7 @@ class SessionReconnectTests: XCTestCase {
 
         let waiting = await isReconnecting()
         XCTAssertFalse(waiting, "we left on purpose ⇒ no overlay")
-        await awaitRetryTick()
+        await letRetryTicksPass()
         XCTAssertTrue(harness.fakeMP.invitedPeers.isEmpty,
                       "and no invites back to a peer we cannot talk to")
         let state = await harness.stateName()
