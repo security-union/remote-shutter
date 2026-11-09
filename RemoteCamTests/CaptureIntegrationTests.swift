@@ -200,7 +200,8 @@ final class CaptureIntegrationTests: XCTestCase {
         let manual = await rig.gatherCurrentCameraCapabilities()
         XCTAssertEqual(manual?.exposure?.mode, .manual)
         XCTAssertEqual(manual?.exposure?.durationSeconds ?? 0, 1.0 / 250, accuracy: 1.0 / 2000)
-        XCTAssertEqual(manual?.exposure?.iso ?? 0, min(400, before.maxISO), accuracy: 1)
+        // Within 1%: the iPhone 18 Pro lands 400 as 398.77 (its gain steps).
+        XCTAssertEqual(manual?.exposure?.iso ?? 0, min(400, before.maxISO), accuracy: min(400, before.maxISO) / 100)
         XCTAssertEqual(manual?.activeDeviceID, logicalBefore, "a lens hop never leaks into the logical device")
         print("🌗 probe: manual landed — \(manual?.exposure.map { "\($0)" } ?? "nil") active=\(manual?.activeDeviceID ?? "?")")
 
