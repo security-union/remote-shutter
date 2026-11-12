@@ -284,6 +284,52 @@ final class MulticamViewModelTests: XCTestCase {
 
         XCTAssertEqual(vm.mode, .photo)
     }
+
+    /// The aperture ruler shows in Portrait mode only, and only when the rig
+    /// reports Portrait with a shared range. Zoom then takes the column width.
+    func testApertureRulerShowsOnlyInPortraitWithAReport() {
+        let vm = MulticamViewModel()
+        var settings = RigSettingsSnapshot()
+        settings.portraitAvailable = true
+        settings.portrait = RigPortraitReport(states: [PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16)])
+        vm.rigSettings = settings
+
+        vm.mode = .photo
+        XCTAssertNil(vm.portraitAperture, "Photo mode has no blur to set")
+        XCTAssertFalse(vm.showsColumnRulers)
+
+        vm.mode = .portrait
+        XCTAssertEqual(vm.portraitAperture?.aperture, 4.5)
+        XCTAssertTrue(vm.showsColumnRulers)
+
+        vm.displayMode = .grid
+        XCTAssertNotNil(vm.portraitAperture, "a rig setting, so it stays in the grid")
+
+        settings.portrait = nil
+        vm.rigSettings = settings
+        XCTAssertNil(vm.portraitAperture, "no report, no ruler")
+    }
+
+    /// The f-stop ruler: ⅓-stop clicks over the camera's range, the full
+    /// stops drawn tall, photography's names on the readout.
+    func testApertureRulerClicksInThirdStopsWithFullStopsTall() {
+        let track = ApertureStops.track(min: 1.4, max: 16)
+        XCTAssertEqual(track.mapping, .log2)
+        XCTAssertEqual(track.detents, .stepped)
+        XCTAssertEqual(track.minValue, 1.4, accuracy: 1e-6)
+        XCTAssertEqual(track.maxValue, 16, accuracy: 1e-6)
+        XCTAssertEqual(track.majorStops.map(ApertureStops.label),
+                       ["f/1.4", "f/2", "f/2.8", "f/4", "f/5.6", "f/8", "f/11", "f/16"])
+        XCTAssertEqual(track.stops.count, 22, "⅓ stops from f/1.4 to f/16")
+        XCTAssertTrue(track.position(for: 2) < track.position(for: 8), "the more-blur end comes first")
+
+        XCTAssertEqual(ApertureStops.label(4.5), "f/4.5", "the camera's default reads as itself")
+        XCTAssertEqual(ApertureStops.label(pow(2, 13.0 / 6)), "f/4.5")
+        XCTAssertEqual(ApertureStops.label(pow(2, 11.0 / 6)), "f/3.5")
+        XCTAssertEqual(ApertureStops.label(1.7), "f/1.7", "off the grid reads as what it is")
+        XCTAssertEqual(ApertureStops.nominal(pow(2, 2.5)), 5.6, accuracy: 1e-9, "the click is sent by its name")
+        XCTAssertEqual(ApertureStops.nominal(1.7), 1.7, accuracy: 1e-9)
+    }
 }
 
 /// The shared enablement rules both camera-control paths derive from.
@@ -540,7 +586,8 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
                      onSetPhotoFormat: { _ in }, onSetHDR: { _ in },
                      onSetAspectRatio: { _ in }, onSetStandby: { _ in },
                      onSetExposureControls: { _ in }, onExposureChange: { _, _, _ in },
-                     onSetExposureMode: { _, _ in }, onOpenSettings: {}, onOpenHelp: {},
+                     onSetExposureMode: { _, _ in }, onApertureChange: { _ in },
+                     onSetPortraitOutput: { _ in }, onOpenSettings: {}, onOpenHelp: {},
                      onRetryCollection: { _ in }, onFlipCamera: { _ in },
                      onSelectCameraDevice: { _, _ in }, onToggleTorch: { _ in },
                      onToggleFlash: { _ in }, onDisconnectCamera: { _ in },

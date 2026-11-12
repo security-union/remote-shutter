@@ -413,3 +413,14 @@
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Diese Kamera unterstützt keine manuelle Belichtung";
 "The camera ignored that exposure setting" = "Die Kamera hat diese Belichtungseinstellung ignoriert";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "FOTO";
+"PORTRAIT" = "PORTRÄT";
+"VIDEO" = "VIDEO";
+"Editable" = "Bearbeitbar";
+"Baked" = "Eingebrannt";
+"Keeps depth so the blur can be changed in Photos" = "Behält die Tiefe, damit die Unschärfe in Fotos änderbar bleibt";
+"Blur saved into the photo" = "Unschärfe wird ins Foto gespeichert";
+"Portrait blur aperture" = "Blende der Porträt-Unschärfe";
+"Portrait photos" = "Porträtfotos";

@@ -413,3 +413,14 @@
 "Zoom" = "变焦";
 "This camera can't do manual exposure" = "此相机不支持手动曝光";
 "The camera ignored that exposure setting" = "相机忽略了该曝光设置";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "照片";
+"PORTRAIT" = "人像";
+"VIDEO" = "视频";
+"Editable" = "可编辑";
+"Baked" = "已合成";
+"Keeps depth so the blur can be changed in Photos" = "保留景深，可在“照片”中更改虚化";
+"Blur saved into the photo" = "虚化直接存入照片";
+"Portrait blur aperture" = "人像虚化光圈";
+"Portrait photos" = "人像照片";

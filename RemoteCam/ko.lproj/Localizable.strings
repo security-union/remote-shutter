@@ -413,3 +413,14 @@
 "Zoom" = "줌";
 "This camera can't do manual exposure" = "이 카메라는 수동 노출을 지원하지 않습니다";
 "The camera ignored that exposure setting" = "카메라가 해당 노출 설정을 무시했습니다";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "사진";
+"PORTRAIT" = "인물 사진";
+"VIDEO" = "비디오";
+"Editable" = "편집 가능";
+"Baked" = "적용됨";
+"Keeps depth so the blur can be changed in Photos" = "심도를 보존해 사진 앱에서 흐림을 바꿀 수 있습니다";
+"Blur saved into the photo" = "흐림이 사진에 저장됩니다";
+"Portrait blur aperture" = "인물 사진 흐림 조리개";
+"Portrait photos" = "인물 사진";

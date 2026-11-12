@@ -413,3 +413,14 @@
 "Zoom" = "Zum";
 "This camera can't do manual exposure" = "Kamera ini tidak menyokong pendedahan manual";
 "The camera ignored that exposure setting" = "Kamera mengabaikan tetapan pendedahan itu";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "FOTO";
+"PORTRAIT" = "POTRET";
+"VIDEO" = "VIDEO";
+"Editable" = "Boleh diedit";
+"Baked" = "Kekal";
+"Keeps depth so the blur can be changed in Photos" = "Menyimpan kedalaman supaya kabur boleh diubah dalam Foto";
+"Blur saved into the photo" = "Kabur disimpan dalam foto";
+"Portrait blur aperture" = "Bukaan kabur potret";
+"Portrait photos" = "Foto potret";

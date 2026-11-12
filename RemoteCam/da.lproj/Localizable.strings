@@ -292,3 +292,14 @@
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Dette kamera understøtter ikke manuel eksponering";
 "The camera ignored that exposure setting" = "Kameraet ignorerede den eksponeringsindstilling";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "FOTO";
+"PORTRAIT" = "PORTRÆT";
+"VIDEO" = "VIDEO";
+"Editable" = "Redigerbar";
+"Baked" = "Indbrændt";
+"Keeps depth so the blur can be changed in Photos" = "Bevarer dybden, så sløringen kan ændres i Fotos";
+"Blur saved into the photo" = "Sløringen gemmes i fotoet";
+"Portrait blur aperture" = "Blænde for portrætsløring";
+"Portrait photos" = "Portrætfotos";

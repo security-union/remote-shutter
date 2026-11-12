@@ -44,6 +44,10 @@ struct MulticamView: View {
     let onExposureChange: (CameraLane, ExposureRulerKind, Double) -> Void
     /// The AUTO / MANUAL chip.
     let onSetExposureMode: (CameraLane, ExposureMode) -> Void
+    /// A drag on Portrait's aperture ruler (a rig setting: every camera).
+    let onApertureChange: (Float) -> Void
+    /// Baked or Editable picked in the tray (a rig setting: every camera).
+    let onSetPortraitOutput: (PortraitOutput) -> Void
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
     /// Open the help sheet (the shared one every screen presents).
@@ -131,6 +135,7 @@ struct MulticamView: View {
                      onSetAspectRatio: onSetAspectRatio,
                      onSetStandby: onSetStandby,
                      onSetExposureControls: onSetExposureControls,
+                     onSetPortraitOutput: onSetPortraitOutput,
                      // Close the tray first, as the camera screen does — the
                      // sheet returns to a clean viewfinder.
                      onOpenSettings: { viewModel.closeRigTray(then: onOpenSettings) },
@@ -256,6 +261,7 @@ struct MulticamView: View {
                 VStack(spacing: 14) {
                     exposureReadoutStrip
                     exposureRulers(axis: .horizontal)
+                    apertureRuler(axis: .horizontal)
                     focusedZoomPill
                     actionCluster(axis: .horizontal)
                 }
@@ -310,6 +316,16 @@ struct MulticamView: View {
         }
     }
 
+    /// Portrait mode's f-stop ruler, in the exposure rulers' column: across
+    /// the bottom, just above zoom, in portrait; standing beside the left
+    /// thumb's exposure ruler, inboard of it, in landscape.
+    @ViewBuilder
+    private func apertureRuler(axis: Axis) -> some View {
+        if let portrait = viewModel.portraitAperture {
+            ApertureRulerPill(portrait: portrait, axis: axis, onChange: onApertureChange)
+        }
+    }
+
     /// Wide shapes: the action cluster rides the docked rail; the strip and
     /// mode selector sit inboard — the monitor's `sideCluster` shape.
     private func sideCluster(onLeading: Bool) -> some View {
@@ -322,6 +338,7 @@ struct MulticamView: View {
         HStack(alignment: .bottom, spacing: 16) {
             if onLeading { actionCluster(axis: .vertical) }
             exposureRuler(side: .leading)
+            apertureRuler(axis: .vertical)
             if !onLeading { Spacer(minLength: 0) }
 
             VStack(spacing: 10) {
@@ -406,9 +423,9 @@ struct MulticamView: View {
            let focused = viewModel.focusedLane {
             ZoomPill(scale: viewModel.focusedZoomScale,
                      currentZoomFactor: viewModel.focusedZoomFactor,
-                     // Line up with the exposure rulers when they are on
-                     // screen; keep the tight lens cluster when alone.
-                     uniformTrackLength: viewModel.showsExposureControls
+                     // Line up with the exposure and aperture rulers when
+                     // any is on screen; keep the tight lens cluster alone.
+                     uniformTrackLength: viewModel.showsColumnRulers
                          ? ExposureRulerMetrics.track(axis: .horizontal) : nil,
                      onZoomChange: { onZoomChange(focused, $0) })
         }
@@ -1009,6 +1026,8 @@ struct RigTrayPanel: View {
     let onSetStandby: (Bool) -> Void
     /// The EXPOSURE tile: show the exposure readouts and rulers on the director.
     let onSetExposureControls: (Bool) -> Void
+    /// Baked or Editable, for every camera's Portrait stills.
+    let onSetPortraitOutput: (PortraitOutput) -> Void
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
     /// Open the help sheet (the same one every screen presents).
@@ -1017,11 +1036,29 @@ struct RigTrayPanel: View {
     private let timerStops = [0, 3, 5, 10, 20]
 
     var body: some View {
-        TrayPanelShell(footnote: settings.blockerFootnote(for: mode), presentation: presentation) {
-            ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable,
-                                  exposureAvailable: settings.exposureAvailable),
-                    id: \.self) { item in
-                tile(for: item)
+        VStack(spacing: presentation == .overlay ? 10 : 0) {
+            if RigTray.showsPortraitOutput(mode: mode, portrait: settings.portrait) {
+                PortraitOutputPicker(selected: settings.portrait?.output, isEnabled: !isRecording,
+                                     onSelect: onSetPortraitOutput)
+                    .padding(.top, presentation == .sheet ? 24 : 12)
+                    .padding(.bottom, presentation == .sheet ? 0 : 12)
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity)
+                    // A sheet brings its own glass; as an overlay the shell
+                    // draws glass behind the tiles only, so the picker gets
+                    // the same panel to read over the viewfinder.
+                    .background(Group {
+                        if presentation == .overlay {
+                            RoundedRectangle(cornerRadius: 24, style: .continuous).fill(.ultraThinMaterial)
+                        }
+                    })
+            }
+            TrayPanelShell(footnote: settings.blockerFootnote(for: mode), presentation: presentation) {
+                ForEach(RigTray.items(mode: mode, standbyAvailable: settings.standbyAvailable,
+                                      exposureAvailable: settings.exposureAvailable),
+                        id: \.self) { item in
+                    tile(for: item)
+                }
             }
         }
     }
@@ -1090,6 +1127,58 @@ struct RigTrayPanel: View {
             onSelectVideoQuality(next.resolution, next.frameRate)
         } else {
             onAutomaticVideoQuality()
+        }
+    }
+}
+
+/// Baked or Editable for Portrait stills, at the top of the rig tray in
+/// Portrait mode: the app's segmented capsule with one plain line under it
+/// saying what the selected choice does.
+struct PortraitOutputPicker: View {
+    /// What the cameras report; nil while they disagree (none highlighted).
+    let selected: PortraitOutput?
+    let isEnabled: Bool
+    let onSelect: (PortraitOutput) -> Void
+
+    var body: some View {
+        VStack(spacing: 8) {
+            CaptureModeSelector(
+                segments: RigTray.portraitOutputs.enumerated().map { index, output in
+                    CaptureModeSelector.Segment(
+                        id: index, title: output.title,
+                        isActive: selected == output,
+                        action: { if selected != output { onSelect(output) } })
+                },
+                isEnabled: isEnabled)
+            if let selected {
+                Text(selected.explanation)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(NSLocalizedString("Portrait photos", comment: "a11y"))
+    }
+}
+
+extension PortraitOutput {
+    var title: String {
+        switch self {
+        case .editable: return NSLocalizedString("Editable", comment: "portrait output: depth kept")
+        case .baked: return NSLocalizedString("Baked", comment: "portrait output: blur rendered in")
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .editable:
+            return NSLocalizedString("Keeps depth so the blur can be changed in Photos",
+                                     comment: "portrait output explanation")
+        case .baked:
+            return NSLocalizedString("Blur saved into the photo", comment: "portrait output explanation")
         }
     }
 }
