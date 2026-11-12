@@ -1056,3 +1056,61 @@ final class CaptureIntegrationTests: XCTestCase {
         return (frames, seconds)
     }
 }
+
+extension CaptureIntegrationTests {
+
+    /// Portrait's live preview blur on real hardware: entering Portrait
+    /// attaches the depth output and maps arrive, preview frames keep flowing
+    /// through the blur (fps and per-frame blur cost logged), and leaving
+    /// Portrait detaches the output and drops the map.
+    func testPortraitPreviewIsBlurredFromLiveDepth() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+        let device = try XCTUnwrap(rig.engine.currentDevice())
+        guard CaptureEngine.supportsPortrait(device) else {
+            throw XCTSkip("\(device.localizedName) delivers no depth")
+        }
+        let engine = rig.engine, coordinator = rig.streamingCoordinator
+        let session = engine.captureSession, depthOutput = engine.depthPreviewOutput
+        XCTAssertFalse(session.outputs.contains(depthOutput), "no depth output outside Portrait")
+
+        rig.currentCameraMode = .Portrait
+        await eventually { engine.liveDepth.isStreaming }
+        XCTAssertTrue(session.outputs.contains(depthOutput), "Portrait attaches the depth output")
+        await eventually { engine.liveDepth.latest != nil }
+        let map = try XCTUnwrap(engine.liveDepth.latest, "a depth map arrives in Portrait").depthDataMap
+        let mapWidth = CVPixelBufferGetWidth(map), mapHeight = CVPixelBufferGetHeight(map)
+
+        let seconds = ProcessInfo.processInfo.environment["PROBE_SECONDS"].flatMap(Double.init) ?? 10
+        let lane = coordinator.previewLane, encoded0 = lane.encoded, skipped0 = lane.skipped
+        let blur0 = coordinator.portraitBlurStats, depth0 = engine.liveDepth.delivered
+        let started = Date()
+        while Date().timeIntervalSince(started) < seconds { try? await Task.sleep(nanoseconds: 250_000_000) }
+        let wall = Date().timeIntervalSince(started)
+        let blur = coordinator.portraitBlurStats
+        let previewFPS = Double(lane.encoded - encoded0) / wall
+        let depthFPS = Double(engine.liveDepth.delivered - depth0) / wall
+        let blurredFPS = Double(blur.frames - blur0.frames) / wall
+        print("📸 portrait preview: \(device.localizedName) depth \(mapWidth)x\(mapHeight) "
+              + String(format: "%.1f fps; preview %.1f fps, lane busy %d; blurred %.1f fps at %.2f ms/frame (f/%.1f); ",
+                       depthFPS, previewFPS, lane.skipped - skipped0, blurredFPS, blur.averageMillis,
+                       engine.portraitAperture)
+              + "dedicated preview \(engine.isPreviewOutputAttached), hardware cost \(engine.hardwareCostSnapshot()), "
+              + "frames \(coordinator.lastPreviewPixelFormat) \(coordinator.lastPreviewFrameSize)")
+        XCTAssertGreaterThan(depthFPS, 0, "depth keeps arriving in Portrait")
+        XCTAssertGreaterThan(previewFPS, 20, "the preview keeps flowing in Portrait")
+        XCTAssertGreaterThan(blur.frames, blur0.frames, "Portrait frames go through the blur")
+
+        let mark = Date().timeIntervalSinceReferenceDate
+        rig.currentCameraMode = .Photo
+        await eventually { !session.outputs.contains(depthOutput) }
+        XCTAssertFalse(session.outputs.contains(depthOutput), "leaving Portrait detaches the depth output")
+        XCTAssertFalse(engine.liveDepth.isStreaming)
+        XCTAssertNil(engine.liveDepth.latest, "no stale map after Portrait")
+        guard await waitForFrames(since: mark) != nil else {
+            return XCTFail("no frames after →photo — \(await diagnostics())")
+        }
+    }
+}
