@@ -236,6 +236,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             self.captureSession.commitConfiguration()
             self.reconcilePreviewOutputLocked()
             self.applyDepthDeliveryLocked()
+            self.applyDepthPreviewOutputLocked()
             self.updateMaxPhotoDimensionsLocked()
             self.currentPhotoFormat = Self.defaultPhotoFormat(
                 hevcAvailable: self.photoOutput.availablePhotoCodecTypes.contains(.hevc))
@@ -412,6 +413,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         let newFlashMode: AVCaptureDevice.FlashMode? = newDevice.hasFlash ? cameraSettings.flashMode : nil
         captureSession.commitConfiguration()
         applyDepthDeliveryLocked()   // the new device may or may not deliver depth
+        applyDepthPreviewOutputLocked()
         reconcilePreviewOutputLocked()
         updateMaxPhotoDimensionsLocked()
         applyDesiredTorchLocked()   // restore torch onto the new camera (no-op if it has none)
@@ -1814,6 +1816,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
                                             isRecording: false) != nil
         }
         applyDepthDeliveryLocked()
+        applyDepthPreviewOutputLocked()
         if changed { onDeviceSwapped?() }
     }
 
@@ -1937,6 +1940,61 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         applyExposureIntentLocked()
         updateMaxPhotoDimensionsLocked()
         reconcilePreviewOutputLocked()
+    }
+
+    // MARK: - Live depth for the preview blur
+
+    /// Streams disparity next to the video while Portrait is on, so the
+    /// streamed preview can be blurred like the still (`PortraitPreviewBlur`).
+    let depthPreviewOutput = AVCaptureDepthDataOutput()
+    /// The newest disparity map, read on the preview lane; nil whenever
+    /// `depthPreviewOutput` is detached.
+    let liveDepth = LiveDepth()
+    private let depthPreviewQueue = DispatchQueue(
+        label: "camera depth preview queue", attributes: [], target: nil)
+
+    /// Attaches the depth output exactly while Portrait has depth delivery
+    /// on and the session accepts it within its hardware budget; detaches it
+    /// and drops the last map otherwise. Runs after every depth-delivery
+    /// change. Every AVFoundation set is guarded: a refused one is an
+    /// uncatchable exception.
+    private func applyDepthPreviewOutputLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        let wanted = captureMode == .Portrait && photoOutput.isDepthDataDeliveryEnabled
+        let attached = captureSession.outputs.contains(depthPreviewOutput)
+        guard wanted else {
+            liveDepth.stop()
+            if attached { removeDepthPreviewOutputLocked() }
+            return
+        }
+        guard !attached else { return }
+        guard captureSession.canAddOutput(depthPreviewOutput) else {
+            logWarning("session refuses a depth data output — the Portrait preview stays sharp")
+            return
+        }
+        depthPreviewOutput.isFilteringEnabled = true
+        depthPreviewOutput.alwaysDiscardsLateDepthData = true
+        depthPreviewOutput.setDelegate(liveDepth, callbackQueue: depthPreviewQueue)
+        captureSession.beginConfiguration()
+        captureSession.addOutput(depthPreviewOutput)
+        // Pinned to the sensor's landscape orientation; the blur turns the
+        // map to match the frame (`PortraitPreviewBlur.depthOrientation`).
+        if let connection = depthPreviewOutput.connection(with: .depthData) {
+            applyCaptureOrientationLocked(.landscapeRight, to: connection)
+        }
+        captureSession.commitConfiguration()
+        if #available(iOS 16.0, macCatalyst 16.0, *), captureSession.hardwareCost > 1.0 {
+            logWarning("depth output exceeds the hardware budget (\(captureSession.hardwareCost)) — the Portrait preview stays sharp")
+            return removeDepthPreviewOutputLocked()
+        }
+        liveDepth.start()
+    }
+
+    private func removeDepthPreviewOutputLocked() {
+        dispatchPrecondition(condition: .onQueue(sessionQueue))
+        captureSession.beginConfiguration()
+        captureSession.removeOutput(depthPreviewOutput)
+        captureSession.commitConfiguration()
     }
 
     // MARK: - Dedicated preview output
