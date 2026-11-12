@@ -1870,22 +1870,44 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         photoPresetSupported && device.formats.contains { !$0.supportedDepthDataFormats.isEmpty }
     }
 
-    /// Depth (and the person matte, where offered) is delivered only in
-    /// Portrait. Turning it on can narrow a virtual device's zoom range and
-    /// photo sizes, so the format tail re-clamps zoom and the photo ceiling.
+    /// Depth, the person matte and the hair/skin/teeth/glasses mattes (each
+    /// where offered) are delivered only in Portrait. Each matte depends on
+    /// depth, so they switch on after it and off before it. Turning depth on
+    /// can narrow a virtual device's zoom range and photo sizes, so the
+    /// format tail re-clamps zoom and the photo ceiling.
     private func applyDepthDeliveryLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         let depth = captureMode == .Portrait && photoOutput.isDepthDataDeliverySupported
         let matte = depth && photoOutput.isPortraitEffectsMatteDeliverySupported
+        let segmentation = {
+            depth ? Self.portraitMatteTypes(available: self.photoOutput.availableSemanticSegmentationMatteTypes) : []
+        }
         guard photoOutput.isDepthDataDeliveryEnabled != depth
-                || photoOutput.isPortraitEffectsMatteDeliveryEnabled != matte else { return }
+                || photoOutput.isPortraitEffectsMatteDeliveryEnabled != matte
+                || Set(photoOutput.enabledSemanticSegmentationMatteTypes) != Set(segmentation()) else { return }
         captureSession.beginConfiguration()
+        if !depth { photoOutput.enabledSemanticSegmentationMatteTypes = [] }
         if !matte { photoOutput.isPortraitEffectsMatteDeliveryEnabled = false }
         photoOutput.isDepthDataDeliveryEnabled = depth
         if matte { photoOutput.isPortraitEffectsMatteDeliveryEnabled = true }
+        if depth { photoOutput.enabledSemanticSegmentationMatteTypes = segmentation() }
         captureSession.commitConfiguration()
+        // The offered mattes settle with the commit, and a change to them
+        // clears the enabled list, so it is checked again once settled.
+        if depth, Set(photoOutput.enabledSemanticSegmentationMatteTypes) != Set(segmentation()) {
+            photoOutput.enabledSemanticSegmentationMatteTypes = segmentation()
+        }
         restoreAfterFormatChangeLocked()
         onStatusChanged?()
+    }
+
+    /// The semantic mattes Portrait asks for: hair, skin, teeth and glasses,
+    /// narrowed to what the output offers (asking for anything else raises).
+    static func portraitMatteTypes(
+        available: [AVSemanticSegmentationMatte.MatteType]
+    ) -> [AVSemanticSegmentationMatte.MatteType] {
+        let wanted: [AVSemanticSegmentationMatte.MatteType] = [.hair, .skin, .teeth, .glasses]
+        return wanted.filter(available.contains)
     }
 
     /// Puts the session on the full-sensor `.photo` preset, keeping the
@@ -2072,9 +2094,21 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         hevcAvailable ? .heif : .jpeg
     }
 
-    /// Portrait stills cap at 12MP. Larger sizes with depth on are untested,
-    /// and an unsupported photo size raises an uncatchable exception.
-    static let portraitMaxPhotoPixels: Int64 = 12_600_000
+    /// Portrait stills cap at 24MP: quality prioritization with depth on
+    /// delivers 24MP captures with depth (Apple, WWDC26 camera lab).
+    static let portraitMaxPhotoPixels: Int64 = 25_000_000
+
+    /// The photo size to ask for, always one of the format's own sizes (an
+    /// unsupported size raises an uncatchable exception): the largest, or
+    /// with depth on the largest within `portraitMaxPhotoPixels`, or the
+    /// smallest when every size is over it.
+    static func maxPhotoDimensions(supported: [CMVideoDimensions], depthEnabled: Bool) -> CMVideoDimensions? {
+        let pixels = { (d: CMVideoDimensions) in Int64(d.width) * Int64(d.height) }
+        let largest = { (dims: [CMVideoDimensions]) in dims.max(by: { pixels($0) < pixels($1) }) }
+        guard depthEnabled else { return largest(supported) }
+        return largest(supported.filter { pixels($0) <= portraitMaxPhotoPixels })
+            ?? supported.min(by: { pixels($0) < pixels($1) })
+    }
 
     /// Single point that keeps the photo output asking for everything the
     /// ACTIVE format can produce (12/24/48MP on modern iPhones). Must run
@@ -2083,11 +2117,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         guard let device = videoDeviceInput?.device else { return }
         if #available(iOS 16.0, macCatalyst 16.0, *) {
-            let pixels = { (d: CMVideoDimensions) in Int64(d.width) * Int64(d.height) }
-            let candidates = device.activeFormat.supportedMaxPhotoDimensions.filter {
-                !photoOutput.isDepthDataDeliveryEnabled || pixels($0) <= Self.portraitMaxPhotoPixels
-            }
-            guard let dims = candidates.max(by: { pixels($0) < pixels($1) }) else { return }
+            guard let dims = Self.maxPhotoDimensions(
+                supported: device.activeFormat.supportedMaxPhotoDimensions,
+                depthEnabled: photoOutput.isDepthDataDeliveryEnabled) else { return }
             photoOutput.maxPhotoDimensions = dims
         }
     }
@@ -2285,8 +2317,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
         newSettings.photoQualityPrioritization = .quality
         if photoOutput.isDepthDataDeliveryEnabled {
+            // Everything the output delivers is embedded in the file: an
+            // Editable still is that file, and a Baked one is rendered from it.
             newSettings.isDepthDataDeliveryEnabled = true
+            newSettings.embedsDepthDataInPhoto = true
             newSettings.isPortraitEffectsMatteDeliveryEnabled = photoOutput.isPortraitEffectsMatteDeliveryEnabled
+            newSettings.embedsPortraitEffectsMatteInPhoto = true
+            newSettings.enabledSemanticSegmentationMatteTypes = photoOutput.enabledSemanticSegmentationMatteTypes
+            newSettings.embedsSemanticSegmentationMattesInPhoto = true
         }
         return newSettings
     }
@@ -2310,14 +2348,23 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         guard let photoData = photo.fileDataRepresentation() else {
             return
         }
-        // Delivered on an AVFoundation callback queue; the aspect is read
-        // through the session queue. Any ratio other than the still's own is
-        // a crop of the full capture; a failed crop delivers the full frame.
-        let aspectRatio = currentAspectRatioValue()
-        if photo.depthData != nil,
-           let portrait = PortraitRenderer.render(photoData, aperture: portraitAperture, aspectRatio: aspectRatio) {
-            onPicture?(portrait, nil)
+        // Delivered on an AVFoundation callback queue; mode, Portrait output
+        // and aspect are read through the session queue. An Editable Portrait
+        // still is the capture file itself. Otherwise any ratio other than the
+        // still's own is a crop of the full capture; a failed render falls
+        // back to the crop, and a failed crop delivers the full frame.
+        let (mode, output, aspectRatio) = syncOnSessionQueue { (captureMode, portraitOutput, currentAspectRatio) }
+        switch PortraitRenderer.delivery(mode: mode, output: output, hasDepth: photo.depthData != nil) {
+        case .passThrough:
+            onPicture?(photoData, nil)
             return
+        case .bake:
+            if let portrait = PortraitRenderer.render(photoData, aperture: portraitAperture, aspectRatio: aspectRatio) {
+                onPicture?(portrait, nil)
+                return
+            }
+        case .crop:
+            break
         }
         onPicture?(Self.cropPhotoData(photoData, to: aspectRatio) ?? photoData, nil)
     }

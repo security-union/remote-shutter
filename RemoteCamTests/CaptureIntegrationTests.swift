@@ -589,11 +589,15 @@ final class CaptureIntegrationTests: XCTestCase {
         XCTAssertFalse(data.isEmpty, "a still must capture after round-tripping the modes")
     }
 
-    /// Portrait on real hardware: a camera that advertises it turns depth
-    /// on, the still comes back with the blur baked in (re-encoded, no depth
-    /// kept) at 12MP or less, and frames keep flowing both ways. Both stills
-    /// are attached to the result so the blur can be eyeballed.
-    func testPortraitStillIsBlurredWithin12MPAndFramesKeepFlowing() async throws {
+    /// Portrait on real hardware, both outputs. A camera that advertises it
+    /// turns depth and the mattes on. Editable (the default) returns the
+    /// capture file itself: depth and the person matte embedded, the native
+    /// ratio even with 16:9 selected (a crop would re-encode and drop the
+    /// depth). Baked returns the blur rendered in: no depth, within the 24MP
+    /// ceiling, and still HDR (a gain map) when the capture had one. Frames
+    /// keep flowing both ways. Every still is attached so the blur can be
+    /// eyeballed.
+    func testPortraitStillsAreEditableOrBakedHDRWithin24MPAndFramesKeepFlowing() async throws {
         try await startRealRig()
         guard await waitForFrames(since: 0) != nil else {
             throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
@@ -605,6 +609,8 @@ final class CaptureIntegrationTests: XCTestCase {
         _ = await rig.engine.setAspectRatio(.fourThree)
         let photo = try await captureStill()
         attach(photo, named: "photo-mode")
+        let photoHasGainMap = PortraitRenderer.hasGainMap(
+            try XCTUnwrap(CGImageSourceCreateWithData(photo as CFData, nil)))
         let zoomBefore = (device.minAvailableVideoZoomFactor, device.maxAvailableVideoZoomFactor)
 
         var mark = Date().timeIntervalSinceReferenceDate
@@ -616,22 +622,64 @@ final class CaptureIntegrationTests: XCTestCase {
             return XCTFail("no frames after →portrait — \(await diagnostics())")
         }
         print("📸 portrait: \(device.localizedName) matte=\(output.isPortraitEffectsMatteDeliveryEnabled) "
+              + "semantic=\(output.enabledSemanticSegmentationMatteTypes.map(\.rawValue)) "
+              + "of \(output.availableSemanticSegmentationMatteTypes.map(\.rawValue)) "
               + "zoom \(zoomBefore) → (\(device.minAvailableVideoZoomFactor), \(device.maxAvailableVideoZoomFactor))")
+        XCTAssertEqual(Set(output.enabledSemanticSegmentationMatteTypes),
+                       Set(CaptureEngine.portraitMatteTypes(available: output.availableSemanticSegmentationMatteTypes)),
+                       "Portrait asks for every offered hair/skin/teeth/glasses matte")
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            let dims = output.maxPhotoDimensions
+            print("📸 portrait: photo ceiling \(dims.width)x\(dims.height) of "
+                  + "\(device.activeFormat.supportedMaxPhotoDimensions.map { "\($0.width)x\($0.height)" })")
+            XCTAssertLessThanOrEqual(Int64(dims.width) * Int64(dims.height), CaptureEngine.portraitMaxPhotoPixels)
+        }
 
-        let portrait = try await captureStill()
-        attach(portrait, named: "portrait-mode")
-        let dims = try stillDimensions(portrait)
-        print("📸 portrait: still \(dims.width)x\(dims.height), \(portrait.count) bytes")
-        XCTAssertLessThanOrEqual(Int64(dims.width) * Int64(dims.height), CaptureEngine.portraitMaxPhotoPixels)
-        let source = try XCTUnwrap(CGImageSourceCreateWithData(portrait as CFData, nil))
-        XCTAssertNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(source, 0, kCGImageAuxiliaryDataTypeDisparity),
-                     "the native-ratio still was re-rendered by the blur, not passed through")
-        XCTAssertNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(source, 0, kCGImageAuxiliaryDataTypeDepth))
+        // Editable: the capture file, untouched.
+        await rig.engine.setPortrait(aperture: nil, output: .editable)
+        _ = await rig.engine.setAspectRatio(.sixteenNine)
+        let editable = try await captureStill()
+        attach(editable, named: "portrait-editable")
+        let editableSource = try XCTUnwrap(CGImageSourceCreateWithData(editable as CFData, nil))
+        XCTAssertNotNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(editableSource, 0, kCGImageAuxiliaryDataTypeDisparity)
+                        ?? CGImageSourceCopyAuxiliaryDataInfoAtIndex(editableSource, 0, kCGImageAuxiliaryDataTypeDepth),
+                        "the Editable still carries its depth for Photos' Depth Control")
+        if output.isPortraitEffectsMatteDeliveryEnabled {
+            XCTAssertNotNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(
+                editableSource, 0, kCGImageAuxiliaryDataTypePortraitEffectsMatte))
+        }
+        let editableDims = try stillDimensions(editable)
+        XCTAssertNil(CaptureEngine.cropRect(sourceWidth: CGFloat(editableDims.width),
+                                            sourceHeight: CGFloat(editableDims.height),
+                                            aspectRatio: .fourThree),
+                     "the Editable still is the native 4:3 capture, not a 16:9 re-encode")
+        XCTAssertEqual(PortraitRenderer.hasGainMap(editableSource), photoHasGainMap,
+                       "the capture file keeps whatever gain map the camera wrote")
+        print("📸 portrait editable: \(editableDims.width)x\(editableDims.height), \(editable.count) bytes")
+
+        // Baked: the blur rendered in, still HDR.
+        await rig.engine.setPortrait(aperture: 2.8, output: .baked)
+        _ = await rig.engine.setAspectRatio(.fourThree)
+        let baked = try await captureStill()
+        attach(baked, named: "portrait-baked")
+        let bakedDims = try stillDimensions(baked)
+        print("📸 portrait baked: \(bakedDims.width)x\(bakedDims.height), \(baked.count) bytes")
+        XCTAssertLessThanOrEqual(Int64(bakedDims.width) * Int64(bakedDims.height), CaptureEngine.portraitMaxPhotoPixels)
+        let bakedSource = try XCTUnwrap(CGImageSourceCreateWithData(baked as CFData, nil))
+        XCTAssertNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(bakedSource, 0, kCGImageAuxiliaryDataTypeDisparity),
+                     "the Baked still was re-rendered by the blur, not passed through")
+        XCTAssertNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(bakedSource, 0, kCGImageAuxiliaryDataTypeDepth))
+        if #available(iOS 18.0, macCatalyst 18.0, *), photoHasGainMap,
+           CGImageSourceGetType(bakedSource) as String? == "public.heic" {
+            XCTAssertTrue(PortraitRenderer.hasGainMap(bakedSource), "the Baked still keeps the capture's HDR")
+        }
+        await rig.engine.setPortrait(aperture: PortraitRenderer.defaultAperture, output: .editable)
 
         mark = Date().timeIntervalSinceReferenceDate
         rig.currentCameraMode = .Photo
         await eventually { !output.isDepthDataDeliveryEnabled }
         XCTAssertFalse(output.isDepthDataDeliveryEnabled, "Photo turns depth off")
+        XCTAssertTrue(output.enabledSemanticSegmentationMatteTypes.isEmpty, "Photo turns the mattes off")
         guard await waitForFrames(since: mark) != nil else {
             return XCTFail("no frames after →photo — \(await diagnostics())")
         }
