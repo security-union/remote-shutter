@@ -21,7 +21,7 @@ whole state; nothing on the remote is guessed from a tap. Companion to
 
 | Kind | Direction | Rule |
 |---|---|---|
-| Control command: `SetZoom`, `SwitchLens`, `ToggleFlash`, `ToggleTorch`, `ToggleCamera`, `SelectCameraDevice`, `SetVideoQuality`, `SetPhotoQuality`, `SetAspectRatio`, `SetCameraPreviewMode` | remote → camera | answered by exactly one `CameraCapabilitiesResp` |
+| Control command: `SetZoom`, `SwitchLens`, `ToggleFlash`, `ToggleTorch`, `ToggleCamera`, `SelectCameraDevice`, `SetVideoQuality`, `SetPhotoQuality`, `SetAspectRatio`, `SetCameraPreviewMode`, `SetExposure`, `SetCameraMode`, `SetPortraitAperture` | remote → camera | answered by exactly one `CameraCapabilitiesResp` |
 | `CameraCapabilitiesResp` | camera → remote | the camera's full state; `inReplyTo` names the command it answers, `error` says why it was refused (nil = applied) |
 | `RequestCameraCapabilities` | either | the remote asks for a push; the rig sends it to its own coordinator to push after a change it made itself |
 | `FocusAtPoint`, `TimerCountdown` | remote → camera | fire-and-forget by design: a tap-to-focus already shows its reticle; a countdown tick is a broadcast |
@@ -45,7 +45,7 @@ The phase policy, `controlRefusal(_:phase:)`, is a table:
 
 | Command | idle | taking picture | recording | transmitting video | not a camera |
 |---|---|---|---|---|---|
-| SetZoom, SwitchLens, ToggleTorch, SetPhotoQuality, SetAspectRatio, SetCameraPreviewMode | applied | busy | applied | applied | refused |
+| SetZoom, SwitchLens, ToggleTorch, SetPhotoQuality, SetAspectRatio, SetCameraPreviewMode, SetExposure, SetPortraitAperture | applied | busy | applied | applied | refused |
 | ToggleFlash, SetVideoQuality, SetCameraMode | applied | busy | recording | recording | refused |
 | ToggleCamera, SelectCameraDevice | applied | busy | recording | busy | refused |
 
@@ -117,3 +117,15 @@ exchange and is told to update.
 contract: one command, one optional `ExposureState` block in the state
 reply, capability by presence, one row in the phase table, one gated
 `sendControl` on the director. Cinematic video would follow the same shape.
+
+## Portrait aperture
+
+`SetPortraitAperture` (action 36) follows the same shape. Its payload is
+`portrait_aperture`, the f-number the director asks for. The state reply
+carries an optional `PortraitState` block (the applied aperture and the
+range this camera accepts), present exactly when `supports_portrait` is
+true, so presence is the capability. The camera clamps into its range
+(`PortraitRenderer.apertureRange`, read from Core Image's depth blur) and
+keeps the value across device swaps and mode changes; it opens at
+`PortraitRenderer.defaultAperture`, f/4.5. The aperture is a rig setting:
+every camera gets the same value.

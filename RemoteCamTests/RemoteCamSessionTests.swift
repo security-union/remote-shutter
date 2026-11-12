@@ -1105,6 +1105,46 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(resps.count, 1)
         XCTAssertNotNil(resps.first?.error, "refusals are said out loud")
     }
+
+    // MARK: - SetPortraitAperture
+
+    /// The rig's f-number lands on the camera, clamped into its range, and is
+    /// answered with the one state reply carrying the applied value.
+    func testCameraAppliesSetPortraitApertureAndReportsIt() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.portraitState = PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16)
+
+        await harness.deliver(RemoteCmd.SetPortraitAperture(aperture: 40))
+
+        XCTAssertEqual(camera.portraitApertures, [40])
+        let resps = harness.fakeMP.sentMessages.map(\.msg)
+            .compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
+            .filter { $0.inReplyTo == .setportraitaperture }
+        XCTAssertEqual(resps.count, 1, "exactly one reply, tagged with the command")
+        XCTAssertNil(resps.first?.error)
+        XCTAssertEqual(resps.first?.portrait?.aperture, 16, "the reply carries the clamped truth")
+        XCTAssertEqual(resps.first?.supportsPortrait, true)
+    }
+
+    /// Mid-capture the camera is busy: the aperture is refused out loud, with
+    /// the unchanged truth, never dropped and never applied.
+    func testSetPortraitApertureIsRefusedWhileTakingAPicture() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.portraitState = PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16)
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
+
+        await harness.deliver(RemoteCmd.SetPortraitAperture(aperture: 2))
+
+        XCTAssertTrue(camera.portraitApertures.isEmpty, "a busy camera applies nothing")
+        let resps = harness.fakeMP.sentMessages.map(\.msg)
+            .compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
+            .filter { $0.inReplyTo == .setportraitaperture }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNotNil(resps.first?.error, "refusals are said out loud")
+        XCTAssertEqual(resps.first?.portrait?.aperture, 4.5)
+    }
 }
 
 // MARK: - Peer-backgrounded reconnect flow (C-5)

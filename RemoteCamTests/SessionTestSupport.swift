@@ -227,6 +227,16 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
         }
     }
 
+    /// The Portrait block this fake advertises (nil = no Portrait; set one to
+    /// make it a Portrait camera), and the f-numbers it was asked to apply.
+    var portraitState: PortraitState?
+    var portraitApertures: [Float] = []
+    func setPortraitAperture(_ aperture: Float) async {
+        portraitApertures.append(aperture)
+        guard let range = portraitState.map({ $0.minAperture...$0.maxAperture }) else { return }
+        portraitState?.aperture = min(max(aperture, range.lowerBound), range.upperBound)
+    }
+
     func setZoom(zoomFactor: CGFloat) async throws -> (CGFloat, CameraLensType, RemoteCmd.ZoomRange) {
         if let errorToThrow { throw errorToThrow }
         zoomCalls.append(zoomFactor)
@@ -375,6 +385,8 @@ class FakeCameraControlling: CameraControlling, @unchecked Sendable {
             flashMode: flashMode,
             aspectRatio: aspectRatio,
             exposure: exposureState,
+            supportsPortrait: portraitState != nil,
+            portrait: portraitState,
             error: nil)
     }
 
