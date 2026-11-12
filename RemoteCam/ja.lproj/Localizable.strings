@@ -413,3 +413,14 @@
 "Zoom" = "ズーム";
 "This camera can't do manual exposure" = "このカメラはマニュアル露出に対応していません";
 "The camera ignored that exposure setting" = "カメラがその露出設定を無視しました";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "写真";
+"PORTRAIT" = "ポートレート";
+"VIDEO" = "ビデオ";
+"Editable" = "編集可能";
+"Baked" = "適用済み";
+"Keeps depth so the blur can be changed in Photos" = "深度を保存し、写真アプリでぼけを変更できます";
+"Blur saved into the photo" = "ぼけを写真に焼き込みます";
+"Portrait blur aperture" = "ポートレートのぼけの絞り";
+"Portrait photos" = "ポートレート写真";

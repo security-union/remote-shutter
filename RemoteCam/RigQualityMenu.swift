@@ -191,6 +191,9 @@ struct RigSettingsSnapshot: Equatable {
     var exposureControlsOn: Bool = false
     /// Every live camera in the rig can take Portrait stills.
     var portraitAvailable: Bool = false
+    /// Portrait's aperture and output as the cameras report them, with the
+    /// range every one accepts. Nil when no camera reports a block.
+    var portrait: RigPortraitReport?
 
     /// The glass quality tile cycles in place: Automatic → each enabled option
     /// in order → back to Automatic. `nil` is Automatic. Disabled options
@@ -234,5 +237,85 @@ struct RigSettingsSnapshot: Equatable {
             }
             return nil
         }
+    }
+}
+
+// MARK: - Portrait (rig aperture and output)
+
+/// Portrait's two rig settings as the director intends them. Nil until the
+/// operator picks one or the first Portrait camera reports, so the rig opens
+/// at the camera's own default rather than a director constant. Pure; the
+/// controller fans it out (pinned by `MulticamControllerTests`).
+struct RigPortraitIntent: Equatable {
+    var aperture: Float?
+    var output: PortraitOutput?
+
+    /// Two f-numbers closer than this are the same setting (a float that
+    /// crossed the wire, or a camera that clamped by a rounding hair).
+    static let apertureTolerance: Float = 0.01
+
+    /// Fill what the rig has not chosen yet from a camera's report.
+    mutating func adopt(_ reported: PortraitState) {
+        if aperture == nil { aperture = reported.aperture }
+        if output == nil { output = reported.output }
+    }
+
+    /// Pull the aperture inside the range every camera accepts, so the rig
+    /// never asks one camera for what another cannot do. True when it moved.
+    mutating func fit(into report: RigPortraitReport?) -> Bool {
+        guard let report, let current = aperture else { return false }
+        let fitted = min(max(current, report.minAperture), report.maxAperture)
+        guard fitted != current else { return false }
+        aperture = fitted
+        return true
+    }
+
+    /// The command that brings a camera reporting `reported` in line with
+    /// the rig, carrying only what differs (nil = keep). Nil when it already
+    /// matches or reports no Portrait block, which is the capability. The
+    /// aperture is clamped into the camera's own range first, so a camera
+    /// that cannot reach the rig's value is not asked again and again.
+    func correction(for reported: PortraitState?) -> PortraitCorrection? {
+        guard let reported else { return nil }
+        var wantAperture: Float?
+        if let aperture {
+            let reachable = min(max(aperture, reported.minAperture), reported.maxAperture)
+            if abs(reachable - reported.aperture) > Self.apertureTolerance { wantAperture = reachable }
+        }
+        let wantOutput = output.flatMap { $0 == reported.output ? nil : $0 }
+        guard wantAperture != nil || wantOutput != nil else { return nil }
+        return PortraitCorrection(aperture: wantAperture, output: wantOutput)
+    }
+}
+
+/// One `SetPortrait`'s payload: nil = keep the camera's value.
+struct PortraitCorrection: Equatable {
+    let aperture: Float?
+    let output: PortraitOutput?
+}
+
+/// What the director's Portrait controls show, read from the cameras'
+/// reports, never from the tap.
+struct RigPortraitReport: Equatable {
+    /// The first camera's applied aperture (the focused one, by the
+    /// controller's ordering), inside the rig's range.
+    let aperture: Float
+    /// The range every camera accepts: the intersection of their ranges, so
+    /// any value on the ruler lands on every camera unclamped.
+    let minAperture: Float
+    let maxAperture: Float
+    /// The output every camera reports, or nil while they disagree.
+    let output: PortraitOutput?
+
+    /// Nil when no camera reports a block, or their ranges share no value.
+    init?(states: [PortraitState]) {
+        guard let first = states.first,
+              let low = states.map(\.minAperture).max(),
+              let high = states.map(\.maxAperture).min(),
+              low <= high else { return nil }
+        aperture = min(max(first.aperture, low), high)
+        minAperture = low
+        maxAperture = high
+        output = states.allSatisfy { $0.output == first.output } ? first.output : nil
     }
 }

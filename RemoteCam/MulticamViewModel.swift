@@ -196,6 +196,15 @@ final class MulticamViewModel: ObservableObject {
         displayMode == .focus && rigSettings.exposureControlsOn && focusedExposure != nil
             && focusedLane?.status == .linked
     }
+    /// Portrait's aperture, from the cameras' reports. The ruler shows only
+    /// in Portrait mode, with every camera able to take Portrait and a range
+    /// they share. It is a rig setting, so it stays in the grid too.
+    var portraitAperture: RigPortraitReport? {
+        guard mode == .portrait, rigSettings.portraitAvailable else { return nil }
+        return rigSettings.portrait
+    }
+    /// Any ruler in the column beside zoom, so zoom takes the column's width.
+    var showsColumnRulers: Bool { showsExposureControls || portraitAperture != nil }
     var showsFocusedZoomPill: Bool {
         guard let focused = focusedLane, focused.status == .linked else { return false }
         return !focused.zoomScale.isDegenerate

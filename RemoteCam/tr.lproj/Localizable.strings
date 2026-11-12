@@ -413,3 +413,14 @@
 "Zoom" = "Yakınlaştırma";
 "This camera can't do manual exposure" = "Bu kamera manuel pozlamayı desteklemiyor";
 "The camera ignored that exposure setting" = "Kamera bu pozlama ayarını yok saydı";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "FOTOĞRAF";
+"PORTRAIT" = "PORTRE";
+"VIDEO" = "VİDEO";
+"Editable" = "Düzenlenebilir";
+"Baked" = "Kalıcı";
+"Keeps depth so the blur can be changed in Photos" = "Derinliği saklar, bulanıklık Fotoğraflar’da değiştirilebilir";
+"Blur saved into the photo" = "Bulanıklık fotoğrafa kaydedilir";
+"Portrait blur aperture" = "Portre bulanıklığı diyaframı";
+"Portrait photos" = "Portre fotoğrafları";

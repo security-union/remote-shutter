@@ -413,3 +413,14 @@
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Máy ảnh này không hỗ trợ phơi sáng thủ công";
 "The camera ignored that exposure setting" = "Máy ảnh đã bỏ qua cài đặt phơi sáng đó";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "ẢNH";
+"PORTRAIT" = "CHÂN DUNG";
+"VIDEO" = "VIDEO";
+"Editable" = "Chỉnh được";
+"Baked" = "Cố định";
+"Keeps depth so the blur can be changed in Photos" = "Giữ độ sâu để có thể đổi độ mờ trong Ảnh";
+"Blur saved into the photo" = "Độ mờ được lưu vào ảnh";
+"Portrait blur aperture" = "Khẩu độ làm mờ chân dung";
+"Portrait photos" = "Ảnh chân dung";
