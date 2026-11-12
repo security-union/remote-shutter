@@ -213,6 +213,8 @@
 		CAFEBABE0151000000000002 /* MultiCamChromeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0151000000000001 /* MultiCamChromeTests.swift */; };
 		CAFEBABE0140000000000001 /* CameraLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0140000000000002 /* CameraLink.swift */; };
 		E0E0206A0000000000000002 /* ExposurePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206A0000000000000001 /* ExposurePolicy.swift */; };
+		E0E020810000000000000002 /* PortraitPreviewBlur.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E020810000000000000001 /* PortraitPreviewBlur.swift */; };
+		E0E020800000000000000002 /* PortraitRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E020800000000000000001 /* PortraitRenderer.swift */; };
 		CAFEBABE0141000000000001 /* MulticamController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0141000000000002 /* MulticamController.swift */; };
 		CAFEBABE0142000000000001 /* MulticamViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0142000000000002 /* MulticamViewModel.swift */; };
 		CAFEBABE0143000000000001 /* MulticamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0143000000000002 /* MulticamView.swift */; };
@@ -220,6 +222,8 @@
 		CAFEBABE0145000000000002 /* MulticamControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0145000000000001 /* MulticamControllerTests.swift */; };
 		E0E0206A0000000000000004 /* ExposurePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206A0000000000000003 /* ExposurePolicyTests.swift */; };
 		E0E0206F0000000000000002 /* ExposureScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E0206F0000000000000001 /* ExposureScaleTests.swift */; };
+		E0E020830000000000000002 /* PortraitPreviewBlurTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E020830000000000000001 /* PortraitPreviewBlurTests.swift */; };
+		E0E020820000000000000002 /* PortraitRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E020820000000000000001 /* PortraitRendererTests.swift */; };
 		CAFEBABE0146000000000002 /* MulticamViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0146000000000001 /* MulticamViewModelTests.swift */; };
 		CAFEBABE0133000000000002 /* ClockOffsetEstimatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */; };
 		CAFEBABE0131000000000002 /* CaptureSyncMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */; };
@@ -474,6 +478,8 @@
 		CAFEBABE0151000000000001 /* MultiCamChromeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiCamChromeTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0140000000000002 /* CameraLink.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraLink.swift; sourceTree = "<group>"; };
 		E0E0206A0000000000000001 /* ExposurePolicy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExposurePolicy.swift; sourceTree = "<group>"; };
+		E0E020810000000000000001 /* PortraitPreviewBlur.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PortraitPreviewBlur.swift; sourceTree = "<group>"; };
+		E0E020800000000000000001 /* PortraitRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PortraitRenderer.swift; sourceTree = "<group>"; };
 		CAFEBABE0141000000000002 /* MulticamController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MulticamController.swift; sourceTree = "<group>"; };
 		CAFEBABE0142000000000002 /* MulticamViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MulticamViewModel.swift; sourceTree = "<group>"; };
 		CAFEBABE0143000000000002 /* MulticamView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MulticamView.swift; sourceTree = "<group>"; };
@@ -481,6 +487,8 @@
 		CAFEBABE0145000000000001 /* MulticamControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MulticamControllerTests.swift; sourceTree = "<group>"; };
 		E0E0206A0000000000000003 /* ExposurePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposurePolicyTests.swift; sourceTree = "<group>"; };
 		E0E0206F0000000000000001 /* ExposureScaleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExposureScaleTests.swift; sourceTree = "<group>"; };
+		E0E020830000000000000001 /* PortraitPreviewBlurTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortraitPreviewBlurTests.swift; sourceTree = "<group>"; };
+		E0E020820000000000000001 /* PortraitRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortraitRendererTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0146000000000001 /* MulticamViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MulticamViewModelTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0133000000000001 /* ClockOffsetEstimatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockOffsetEstimatorTests.swift; sourceTree = "<group>"; };
 		CAFEBABE0131000000000001 /* CaptureSyncMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSyncMetadataTests.swift; sourceTree = "<group>"; };
@@ -632,6 +640,8 @@
 				CAFEBABE0145000000000001 /* MulticamControllerTests.swift */,
 				E0E0206A0000000000000003 /* ExposurePolicyTests.swift */,
 				E0E0206F0000000000000001 /* ExposureScaleTests.swift */,
+				E0E020830000000000000001 /* PortraitPreviewBlurTests.swift */,
+				E0E020820000000000000001 /* PortraitRendererTests.swift */,
 				CAFEBABE0146000000000001 /* MulticamViewModelTests.swift */,
 				CAFEBABE0002000000000001 /* WatchCaptureCountdownTests.swift */,
 				CAFEBABE0003000000000001 /* WatchSerializationTests.swift */,
@@ -733,6 +743,8 @@
 				CAFEBABE0150000000000002 /* MultiCamChrome.swift */,
 				CAFEBABE0140000000000002 /* CameraLink.swift */,
 				E0E0206A0000000000000001 /* ExposurePolicy.swift */,
+				E0E020810000000000000001 /* PortraitPreviewBlur.swift */,
+				E0E020800000000000000001 /* PortraitRenderer.swift */,
 				CAFEBABE0141000000000002 /* MulticamController.swift */,
 				CAFEBABE0142000000000002 /* MulticamViewModel.swift */,
 				CAFEBABE0143000000000002 /* MulticamView.swift */,
@@ -1246,6 +1258,8 @@
 				CAFEBABE0150000000000001 /* MultiCamChrome.swift in Sources */,
 				CAFEBABE0140000000000001 /* CameraLink.swift in Sources */,
 				E0E0206A0000000000000002 /* ExposurePolicy.swift in Sources */,
+				E0E020810000000000000002 /* PortraitPreviewBlur.swift in Sources */,
+				E0E020800000000000000002 /* PortraitRenderer.swift in Sources */,
 				CAFEBABE0141000000000001 /* MulticamController.swift in Sources */,
 				CAFEBABE0142000000000001 /* MulticamViewModel.swift in Sources */,
 				CAFEBABE0143000000000001 /* MulticamView.swift in Sources */,
@@ -1326,6 +1340,8 @@
 				CAFEBABE0145000000000002 /* MulticamControllerTests.swift in Sources */,
 				E0E0206A0000000000000004 /* ExposurePolicyTests.swift in Sources */,
 				E0E0206F0000000000000002 /* ExposureScaleTests.swift in Sources */,
+				E0E020830000000000000002 /* PortraitPreviewBlurTests.swift in Sources */,
+				E0E020820000000000000002 /* PortraitRendererTests.swift in Sources */,
 				CAFEBABE0146000000000002 /* MulticamViewModelTests.swift in Sources */,
 				CAFEBABE0002000000000002 /* WatchCaptureCountdownTests.swift in Sources */,
 				CAFEBABE0003000000000002 /* WatchSerializationTests.swift in Sources */,

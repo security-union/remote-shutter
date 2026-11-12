@@ -1081,6 +1081,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
         let (deviceEntries, activeDeviceID) = cameraDeviceEntriesLocked()
         let photo = livePhotoSupportLocked()
+        let portrait = portraitStateLocked(currentDevice)
         let capabilities = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: frontCameraInfo?.withPhotoSupport(heif: photo.heif, hdr: photo.hdr),
             backCamera: backCameraInfo?.withPhotoSupport(heif: photo.heif, hdr: photo.hdr),
@@ -1108,7 +1109,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             aspectRatio: currentAspectRatio,
             exposure: exposureStateLocked(currentDevice),
             cameraMode: captureMode,
-            supportsPortrait: Self.supportsPortrait(currentDevice),
+            supportsPortrait: portrait != nil,
+            portrait: portrait,
             error: nil
         )
 
@@ -1816,6 +1818,38 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         if changed { onDeviceSwapped?() }
     }
 
+    // MARK: - Portrait aperture
+
+    /// The rig's Portrait f-number, already clamped. Written only on
+    /// sessionQueue; read lock-free from the photo callback and the preview
+    /// queue (a Float's bit pattern, so it fits one atomic word).
+    private let portraitApertureBits = ManagedAtomic<UInt32>(PortraitRenderer.defaultAperture.bitPattern)
+
+    /// The f-number Portrait's blur uses now. Safe from any queue.
+    var portraitAperture: Float {
+        Float(bitPattern: portraitApertureBits.load(ordering: .acquiring))
+    }
+
+    /// Stores the director's f-number, clamped into the renderer's range. A
+    /// rig setting: kept across device swaps and mode changes, so it applies
+    /// whenever Portrait is next possible.
+    func setPortraitAperture(_ aperture: Float) async {
+        await onSessionQueue {
+            let clamped = PortraitRenderer.clampedAperture(aperture)
+            self.portraitApertureBits.store(clamped.bitPattern, ordering: .releasing)
+            self.onStatusChanged?()
+        }
+    }
+
+    /// The Portrait block of the state reply: present exactly when the active
+    /// device supports Portrait.
+    private func portraitStateLocked(_ device: AVCaptureDevice) -> PortraitState? {
+        guard Self.supportsPortrait(device) else { return nil }
+        let range = PortraitRenderer.apertureRange
+        return PortraitState(aperture: portraitAperture,
+                             minAperture: range.lowerBound, maxAperture: range.upperBound)
+    }
+
     /// Whether `device` can take Portrait stills: it has formats that deliver
     /// depth (dual/triple back cameras, TrueDepth front) and the platform runs
     /// the photo preset (Mac cameras have no depth).
@@ -2171,42 +2205,9 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         return encode(croppedCG, like: source, type: type)
     }
 
-    /// Simulated aperture for Portrait stills; Apple's Camera opens at f/4.5.
-    static let portraitAperture: Float = 4.5
-    private static let portraitContext = CIContext()
-
-    /// A Portrait still: Core Image's portrait filter blurs the background
-    /// from the photo's own depth (and person matte, when delivered), then the
-    /// result is cropped to the aspect ratio and encoded like `cropPhotoData`
-    /// (sensor space, EXIF orientation and metadata carried). The blur is baked
-    /// in; the depth is not kept. Nil when the data carries no depth, so the
-    /// caller falls back to a plain crop.
-    static func portraitPhotoData(_ data: Data, to aspectRatio: AspectRatio) -> Data? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let type = CGImageSourceGetType(source),
-              let filter = portraitContext.depthBlurEffectFilter(forImageData: data, options: nil) else {
-            debugLog("portraitPhotoData: no depth in photo data (\(data.count) bytes)")
-            return nil
-        }
-        filter.setValue(portraitAperture, forKey: "inputAperture")
-        guard let blurred = filter.outputImage else { return nil }
-        let extent = blurred.extent
-        let rect = cropRect(sourceWidth: extent.width, sourceHeight: extent.height,
-                            aspectRatio: aspectRatio)?
-            .offsetBy(dx: extent.minX, dy: extent.minY) ?? extent
-        let colorSpace = CGImageSourceCreateImageAtIndex(source, 0, nil)?.colorSpace
-            ?? CGColorSpace(name: CGColorSpace.sRGB)!
-        guard let cgImage = portraitContext.createCGImage(
-            blurred, from: rect, format: .RGBA8, colorSpace: colorSpace) else {
-            debugLog("portraitPhotoData: render failed for rect \(rect)")
-            return nil
-        }
-        return encode(cgImage, like: source, type: type)
-    }
-
     /// Encodes `image` into `type` with `source`'s metadata, EXIF pixel
     /// dimensions rewritten to the image's size.
-    private static func encode(_ image: CGImage, like source: CGImageSource, type: CFString) -> Data? {
+    static func encode(_ image: CGImage, like source: CGImageSource, type: CFString) -> Data? {
         let properties = destinationProperties(
             of: source, croppedWidth: image.width, croppedHeight: image.height)
         let output = NSMutableData()
@@ -2300,7 +2301,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         // through the session queue. Any ratio other than the still's own is
         // a crop of the full capture; a failed crop delivers the full frame.
         let aspectRatio = currentAspectRatioValue()
-        if photo.depthData != nil, let portrait = Self.portraitPhotoData(photoData, to: aspectRatio) {
+        if photo.depthData != nil,
+           let portrait = PortraitRenderer.render(photoData, aperture: portraitAperture, aspectRatio: aspectRatio) {
             onPicture?(portrait, nil)
             return
         }

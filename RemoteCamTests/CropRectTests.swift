@@ -220,7 +220,8 @@ final class CropRectTests: XCTestCase {
     /// the capture path falls back to the plain crop.
     func testPortraitPhotoDataWithoutDepthIsNil() {
         let jpeg = makeJPEG(width: 400, height: 300, userComment: "no-depth")
-        XCTAssertNil(CR.portraitPhotoData(jpeg, to: .fourThree))
+        XCTAssertNil(PortraitRenderer.render(jpeg, aperture: PortraitRenderer.defaultAperture,
+                                             aspectRatio: .fourThree))
     }
 
     func testCropPhotoDataReturnsOriginalBytesWhenRatioMatches() {
