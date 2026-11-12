@@ -1105,6 +1105,48 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(resps.count, 1)
         XCTAssertNotNil(resps.first?.error, "refusals are said out loud")
     }
+
+    // MARK: - SetPortrait
+
+    /// The rig's Portrait settings land on the camera, the aperture clamped
+    /// into its range, answered with the one state reply carrying the truth.
+    func testCameraAppliesSetPortraitAndReportsIt() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.portraitState = PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16)
+
+        await harness.deliver(RemoteCmd.SetPortrait(aperture: 40, output: .baked))
+
+        XCTAssertEqual(camera.portraitRequests.map(\.aperture), [40])
+        XCTAssertEqual(camera.portraitRequests.map(\.output), [.baked])
+        let resps = harness.fakeMP.sentMessages.map(\.msg)
+            .compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
+            .filter { $0.inReplyTo == .setportrait }
+        XCTAssertEqual(resps.count, 1, "exactly one reply, tagged with the command")
+        XCTAssertNil(resps.first?.error)
+        XCTAssertEqual(resps.first?.portrait,
+                       PortraitState(aperture: 16, minAperture: 1.4, maxAperture: 16, output: .baked),
+                       "the reply carries the clamped truth")
+    }
+
+    /// Mid-capture the camera is busy: the settings are refused out loud,
+    /// with the unchanged truth, never dropped and never applied.
+    func testSetPortraitIsRefusedWhileTakingAPicture() async {
+        await enterCamera()
+        harness.fakeMP.sendResult = true
+        camera.portraitState = PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16)
+        await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
+
+        await harness.deliver(RemoteCmd.SetPortrait(aperture: 2, output: .baked))
+
+        XCTAssertTrue(camera.portraitRequests.isEmpty, "a busy camera applies nothing")
+        let resps = harness.fakeMP.sentMessages.map(\.msg)
+            .compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
+            .filter { $0.inReplyTo == .setportrait }
+        XCTAssertEqual(resps.count, 1)
+        XCTAssertNotNil(resps.first?.error, "refusals are said out loud")
+        XCTAssertEqual(resps.first?.portrait, PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16))
+    }
 }
 
 // MARK: - Peer-backgrounded reconnect flow (C-5)

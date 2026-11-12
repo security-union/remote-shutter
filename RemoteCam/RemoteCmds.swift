@@ -625,10 +625,11 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// mode pre-warming; the director never sends `SetCameraMode` to it
         /// (presence is the capability, as with `exposure`).
         public let cameraMode: RecordingMode?
-        /// The ACTIVE camera can take Portrait stills (it delivers depth).
-        /// False for old peers; the director offers Portrait only when every
-        /// camera in the rig reports it.
-        public let supportsPortrait: Bool
+        /// Portrait's settings on the ACTIVE camera. Presence is the
+        /// capability: the camera can take Portrait stills (it delivers
+        /// depth). The director offers Portrait only when every camera in the
+        /// rig reports it, and sends `SetPortrait` only to one that does.
+        public let portrait: PortraitState?
         /// The control command this answers; `.requestcapabilities` for an
         /// unsolicited push. Set by the camera coordinator before sending.
         public var inReplyTo: RemoteShutter_CommandAction
@@ -653,7 +654,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    aspectRatio: AspectRatio = .sixteenNine,
                    exposure: ExposureState? = nil,
                    cameraMode: RecordingMode? = nil,
-                   supportsPortrait: Bool = false,
+                   portrait: PortraitState? = nil,
                    inReplyTo: RemoteShutter_CommandAction = .requestcapabilities,
                    error: Error?) {
             self.frontCamera = frontCamera
@@ -676,7 +677,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.aspectRatio = aspectRatio
             self.exposure = exposure
             self.cameraMode = cameraMode
-            self.supportsPortrait = supportsPortrait
+            self.portrait = portrait
             self.inReplyTo = inReplyTo
             self.error = error
             super.init(sender: nil)
@@ -870,6 +871,23 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    // MARK: - Portrait Command
+
+    /// Director -> camera: Portrait's rig settings. Nil = keep the camera's
+    /// value. The camera clamps the aperture into the range it reports and
+    /// answers, like every control command, with its full state. Only sent to
+    /// a camera whose state carries a `portrait` block.
+    public class SetPortrait: Message, @unchecked Sendable {
+        public let aperture: Float?
+        public let output: PortraitOutput?
+
+        public init(aperture: Float?, output: PortraitOutput?) {
+            self.aperture = aperture
+            self.output = output
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Aspect Ratio Commands
 
     public class SetAspectRatio: Message, @unchecked Sendable {
@@ -893,5 +911,33 @@ extension RemoteShutter_RefusalReason {
         case .unknown:
             return nil
         }
+    }
+}
+
+/// What a Portrait still is.
+public enum PortraitOutput: Equatable, Sendable {
+    /// The blur is rendered into the still.
+    case baked
+    /// The default. The capture file is delivered untouched, with depth and mattes
+    /// embedded and no blur, at the native ratio, so Photos offers its own
+    /// depth control.
+    case editable
+}
+
+/// Portrait's settings, as the camera reports them in every state reply: the
+/// f-number applied to the blur, the range this camera accepts, and the
+/// output. Presence is the capability (carried exactly when the active camera
+/// can take Portrait stills).
+public struct PortraitState: Equatable, Sendable {
+    public var aperture: Float
+    public var minAperture: Float
+    public var maxAperture: Float
+    public var output: PortraitOutput
+
+    public init(aperture: Float, minAperture: Float, maxAperture: Float, output: PortraitOutput = .editable) {
+        self.aperture = aperture
+        self.minAperture = minAperture
+        self.maxAperture = maxAperture
+        self.output = output
     }
 }

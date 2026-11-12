@@ -413,3 +413,14 @@
 "Zoom" = "ज़ूम";
 "This camera can't do manual exposure" = "यह कैमरा मैनुअल एक्सपोज़र नहीं कर सकता";
 "The camera ignored that exposure setting" = "कैमरे ने उस एक्सपोज़र सेटिंग को अनदेखा कर दिया";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "फ़ोटो";
+"PORTRAIT" = "पोर्ट्रेट";
+"VIDEO" = "वीडियो";
+"Editable" = "संपादन योग्य";
+"Baked" = "स्थायी";
+"Keeps depth so the blur can be changed in Photos" = "डेप्थ सहेजता है, ताकि फ़ोटो ऐप में ब्लर बदला जा सके";
+"Blur saved into the photo" = "ब्लर फ़ोटो में ही सहेजा जाता है";
+"Portrait blur aperture" = "पोर्ट्रेट ब्लर का अपर्चर";
+"Portrait photos" = "पोर्ट्रेट फ़ोटो";

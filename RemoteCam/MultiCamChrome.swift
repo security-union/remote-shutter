@@ -90,4 +90,13 @@ enum RigTray {
         items.append(.help)
         return items
     }
+
+    /// Baked / Editable sits at the top of the tray in Portrait mode, and
+    /// only when the rig reports Portrait (its block is the capability).
+    static func showsPortraitOutput(mode: MonitorMode, portrait: RigPortraitReport?) -> Bool {
+        mode == .portrait && portrait != nil
+    }
+
+    /// The picker's segments, left to right: the camera's default first.
+    static let portraitOutputs: [PortraitOutput] = [.editable, .baked]
 }

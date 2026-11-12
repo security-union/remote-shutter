@@ -21,7 +21,7 @@ whole state; nothing on the remote is guessed from a tap. Companion to
 
 | Kind | Direction | Rule |
 |---|---|---|
-| Control command: `SetZoom`, `SwitchLens`, `ToggleFlash`, `ToggleTorch`, `ToggleCamera`, `SelectCameraDevice`, `SetVideoQuality`, `SetPhotoQuality`, `SetAspectRatio`, `SetCameraPreviewMode` | remote → camera | answered by exactly one `CameraCapabilitiesResp` |
+| Control command: `SetZoom`, `SwitchLens`, `ToggleFlash`, `ToggleTorch`, `ToggleCamera`, `SelectCameraDevice`, `SetVideoQuality`, `SetPhotoQuality`, `SetAspectRatio`, `SetCameraPreviewMode`, `SetExposure`, `SetCameraMode`, `SetPortrait` | remote → camera | answered by exactly one `CameraCapabilitiesResp` |
 | `CameraCapabilitiesResp` | camera → remote | the camera's full state; `inReplyTo` names the command it answers, `error` says why it was refused (nil = applied) |
 | `RequestCameraCapabilities` | either | the remote asks for a push; the rig sends it to its own coordinator to push after a change it made itself |
 | `FocusAtPoint`, `TimerCountdown` | remote → camera | fire-and-forget by design: a tap-to-focus already shows its reticle; a countdown tick is a broadcast |
@@ -45,7 +45,7 @@ The phase policy, `controlRefusal(_:phase:)`, is a table:
 
 | Command | idle | taking picture | recording | transmitting video | not a camera |
 |---|---|---|---|---|---|
-| SetZoom, SwitchLens, ToggleTorch, SetPhotoQuality, SetAspectRatio, SetCameraPreviewMode | applied | busy | applied | applied | refused |
+| SetZoom, SwitchLens, ToggleTorch, SetPhotoQuality, SetAspectRatio, SetCameraPreviewMode, SetExposure, SetPortrait | applied | busy | applied | applied | refused |
 | ToggleFlash, SetVideoQuality, SetCameraMode | applied | busy | recording | recording | refused |
 | ToggleCamera, SelectCameraDevice | applied | busy | recording | busy | refused |
 
@@ -117,3 +117,20 @@ exchange and is told to update.
 contract: one command, one optional `ExposureState` block in the state
 reply, capability by presence, one row in the phase table, one gated
 `sendControl` on the director. Cinematic video would follow the same shape.
+
+## Portrait
+
+`SetPortrait` (action 36) follows the same shape. It carries Portrait's two
+rig settings, which every camera gets the same: `portrait_aperture`, the
+f-number (0 = keep), and `portrait_output` (Unknown = keep). Baked renders
+the blur into the still. Editable delivers the capture file untouched, with
+depth and mattes and no blur, at the native ratio, so Photos offers its own
+depth control.
+
+The state reply carries an optional `PortraitState` block: the applied
+aperture, the range this camera accepts, and the output. Its presence is the
+capability, as with `ExposureState`: the active camera can take Portrait
+stills. The range is f/1.4...f/16, narrowed to what Core Image's depth blur
+accepts (`PortraitRenderer.apertureRange`). The camera opens at f/4.5
+(`PortraitRenderer.defaultAperture`) and Editable, and keeps both across device
+swaps and mode changes.

@@ -52,6 +52,10 @@ protocol CameraControlling: AnyObject, Sendable {
     /// Auto (EV bias) or Manual (shutter + ISO) exposure. The device clamps
     /// into its active format's range; the state reply carries the truth.
     func setExposure(_ intent: ExposureIntent) async throws
+    /// Portrait's rig settings; nil keeps the current value. The camera clamps
+    /// the aperture into the range it reports; the state reply's `portrait`
+    /// block carries the applied values.
+    func setPortrait(aperture: Float?, output: PortraitOutput?) async
     /// Sets the focus/exposure point of interest from a monitor tap. `x`/`y` are
     /// normalized (0..1) in the upright display image, origin top-left.
     /// Fire-and-forget: a no-op if the active device has no point of interest.

@@ -61,6 +61,18 @@ final class MultiCamChromeTests: XCTestCase {
                        RigTray.items(mode: .photo, standbyAvailable: true))
     }
 
+    /// Baked / Editable is offered in Portrait mode, and only when the rig
+    /// reports Portrait; the camera's default (Editable) comes first.
+    func testRigTrayOffersPortraitOutputOnlyInPortraitWithAReport() {
+        let report = RigPortraitReport(states: [PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16)])
+        XCTAssertNotNil(report)
+        XCTAssertTrue(RigTray.showsPortraitOutput(mode: .portrait, portrait: report))
+        XCTAssertFalse(RigTray.showsPortraitOutput(mode: .portrait, portrait: nil))
+        XCTAssertFalse(RigTray.showsPortraitOutput(mode: .photo, portrait: report))
+        XCTAssertFalse(RigTray.showsPortraitOutput(mode: .video, portrait: report))
+        XCTAssertEqual(RigTray.portraitOutputs, [.editable, .baked])
+    }
+
     /// A rig with no standby-capable camera omits the tile (not dims it).
     func testRigTrayOmitsStandbyWhenUnavailable() {
         XCTAssertFalse(RigTray.items(mode: .photo, standbyAvailable: false).contains(.cameraStandby))

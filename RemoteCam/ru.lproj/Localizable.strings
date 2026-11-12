@@ -413,3 +413,14 @@
 "Zoom" = "Зум";
 "This camera can't do manual exposure" = "Эта камера не поддерживает ручную экспозицию";
 "The camera ignored that exposure setting" = "Камера проигнорировала эту настройку экспозиции";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "ФОТО";
+"PORTRAIT" = "ПОРТРЕТ";
+"VIDEO" = "ВИДЕО";
+"Editable" = "Редактируемый";
+"Baked" = "Встроенный";
+"Keeps depth so the blur can be changed in Photos" = "Сохраняет глубину, чтобы размытие можно было изменить в «Фото»";
+"Blur saved into the photo" = "Размытие сохраняется в снимке";
+"Portrait blur aperture" = "Диафрагма размытия портрета";
+"Portrait photos" = "Портретные снимки";

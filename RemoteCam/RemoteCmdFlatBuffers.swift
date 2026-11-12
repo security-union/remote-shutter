@@ -59,6 +59,7 @@ func serializeToFlatBuffer(_ msg: Message) -> Data? {
     case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
     case let m as RemoteCmd.SetAspectRatio: return m.toFlatBuffer()
     case let m as RemoteCmd.SetCameraMode: return m.toFlatBuffer()
+    case let m as RemoteCmd.SetPortrait: return m.toFlatBuffer()
     default: return nil
     }
 }
@@ -422,6 +423,11 @@ private func encodeCapabilitiesEnvelope(
         supportsMulticam: c.supportsMulticam)
 
     let exposureOffset = c.exposure.map { encodeExposureState($0, &fbb) } ?? Offset()
+    let portraitOffset = c.portrait.map {
+        RemoteShutter_PortraitState.createPortraitState(
+            &fbb, aperture: $0.aperture, minAperture: $0.minAperture, maxAperture: $0.maxAperture,
+            output: toFBPortraitOutput($0.output))
+    } ?? Offset()
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
         currentCamera: toFBCamPos(c.currentCamera),
@@ -438,7 +444,7 @@ private func encodeCapabilitiesEnvelope(
         previewMode: toFBPreviewMode(c.previewMode),
         exposureOffset: exposureOffset,
         cameraMode: c.cameraMode.map { toFBRecordingMode($0) } ?? .unknown,
-        supportsPortrait: c.supportsPortrait)
+        portraitOffset: portraitOffset)
 
     return (capsOffset, stateOffset)
 }
@@ -988,6 +994,34 @@ extension RemoteCmd.SetCameraMode {
     }
 }
 
+// MARK: - SetPortrait toFlatBuffer()
+
+extension RemoteCmd.SetPortrait {
+    func toFlatBuffer() -> Data {
+        var fbb = FlatBufferBuilder()
+        let params = RemoteShutter_CommandParameters.createCommandParameters(
+            &fbb, portraitAperture: aperture ?? 0,
+            portraitOutput: output.map { toFBPortraitOutput($0) } ?? .unknown)
+        return buildCommand(&fbb, action: .setportrait, parameters: params)
+    }
+}
+
+func toFBPortraitOutput(_ output: PortraitOutput) -> RemoteShutter_PortraitOutput {
+    switch output {
+    case .baked: return .baked
+    case .editable: return .editable
+    }
+}
+
+/// Nil for Unknown/absent: "keep the camera's value".
+func fromFBPortraitOutput(_ output: RemoteShutter_PortraitOutput) -> PortraitOutput? {
+    switch output {
+    case .baked: return .baked
+    case .editable: return .editable
+    case .unknown: return nil
+    }
+}
+
 // MARK: - TimerCountdown toFlatBuffer()
 
 extension RemoteCmd.TimerCountdown {
@@ -1209,6 +1243,14 @@ extension RemoteCmd {
             guard let mode = fromFBRecordingMode(params?.cameraMode ?? .unknown) else { return nil }
             return SetCameraMode(mode: mode)
 
+        case .setportrait:
+            // 0 / Unknown = keep. A command that changes nothing is malformed:
+            // dropped, never guessed.
+            let aperture = params.map(\.portraitAperture).flatMap { $0 > 0 ? $0 : nil }
+            let output = params.flatMap { fromFBPortraitOutput($0.portraitOutput) }
+            guard aperture != nil || output != nil else { return nil }
+            return SetPortrait(aperture: aperture, output: output)
+
         case .selectcameradevice:
             return SelectCameraDevice(uniqueID: params?.deviceUniqueId ?? "")
 
@@ -1287,7 +1329,7 @@ extension RemoteCmd {
 
         case .requestcapabilities, .setzoom, .switchlens, .toggleflash, .toggletorch,
              .togglecamera, .selectcameradevice, .setvideoquality, .setphotoquality,
-             .setaspectratio, .setcamerapreviewmode, .setexposure, .setcameramode:
+             .setaspectratio, .setcamerapreviewmode, .setexposure, .setcameramode, .setportrait:
             // Every control command is answered by the camera's full state
             // under the command's own action (Docs/control-plane.md).
             return decodeCameraCapabilitiesResp(resp, inReplyTo: resp.action, error: nsError)
@@ -1346,7 +1388,10 @@ extension RemoteCmd {
             aspectRatio: state.map { fromFBAspectRatio($0.aspectRatio) } ?? .sixteenNine,
             exposure: state?.exposure.map { decodeExposureState($0) },
             cameraMode: state.flatMap { fromFBRecordingMode($0.cameraMode) },
-            supportsPortrait: state?.supportsPortrait ?? false,
+            portrait: state?.portrait.map {
+                PortraitState(aperture: $0.aperture, minAperture: $0.minAperture, maxAperture: $0.maxAperture,
+                              output: fromFBPortraitOutput($0.output) ?? .editable)
+            },
             inReplyTo: inReplyTo,
             error: error
         )
