@@ -83,7 +83,7 @@ enum CommandAction : byte {
                                // every control command, by the camera's full
                                // state; only sent to a camera whose CameraState
                                // carries an ExposureState.
-    SetCameraMode = 35         // director -> camera: pre-warm the photo/video
+    SetCameraMode = 35,        // director -> camera: pre-warm the photo/video
                                // session configuration when the director's
                                // mode toggle flips, so the sensor reconfigure
                                // (~0.5s) is paid at the toggle, not at the
@@ -94,6 +94,12 @@ enum CommandAction : byte {
                                // control command. Only sent to a camera whose
                                // CameraState reports camera_mode (presence is
                                // the capability, as with ExposureState).
+    SetPortraitAperture = 36   // director -> camera: the simulated f-number of
+                               // Portrait's blur, a rig setting. Payload
+                               // portrait_aperture; the camera clamps it into
+                               // its reported range. Answered like every
+                               // control command. Only sent to a camera whose
+                               // CameraState carries a PortraitState.
 }
 
 // Auto vs. manual exposure, as the camera reports it and the director asks.
@@ -278,6 +284,8 @@ table CommandParameters {
     exposure_iso: float;
     // SetCameraMode payload: the director's photo/video toggle.
     camera_mode: RecordingModeEnum;
+    // SetPortraitAperture payload: the f-number asked for.
+    portrait_aperture: float;
 }
 
 // MARK: - Command Structure
@@ -371,6 +379,16 @@ table ExposureState {
     max_frame_duration_seconds: double;
 }
 
+// Portrait's simulated aperture: the f-number applied to the blur and the
+// range this camera accepts. Presence in CameraState is the capability: it is
+// carried exactly when supports_portrait is true, and SetPortraitAperture is
+// only sent to a camera that reports it.
+table PortraitState {
+    aperture: float;
+    min_aperture: float;
+    max_aperture: float;
+}
+
 table CameraState {
     current_camera: CameraPosition;
     current_lens: CameraLensType;
@@ -397,6 +415,8 @@ table CameraState {
     // with every device swap. False/absent = a director must not send
     // Portrait; it offers the mode only when every camera in the rig sets it.
     supports_portrait: bool;
+    // Portrait's aperture and range. Present exactly when supports_portrait.
+    portrait: PortraitState;
 }
 
 table CameraCapabilities {

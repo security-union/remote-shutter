@@ -629,6 +629,10 @@ public class RemoteCmd: Message, @unchecked Sendable {
         /// False for old peers; the director offers Portrait only when every
         /// camera in the rig reports it.
         public let supportsPortrait: Bool
+        /// Portrait's applied aperture and the range this camera accepts.
+        /// Present exactly when `supportsPortrait` is true; the director sends
+        /// `SetPortraitAperture` only to a camera that reports it.
+        public let portrait: PortraitState?
         /// The control command this answers; `.requestcapabilities` for an
         /// unsolicited push. Set by the camera coordinator before sending.
         public var inReplyTo: RemoteShutter_CommandAction
@@ -654,6 +658,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
                    exposure: ExposureState? = nil,
                    cameraMode: RecordingMode? = nil,
                    supportsPortrait: Bool = false,
+                   portrait: PortraitState? = nil,
                    inReplyTo: RemoteShutter_CommandAction = .requestcapabilities,
                    error: Error?) {
             self.frontCamera = frontCamera
@@ -677,6 +682,7 @@ public class RemoteCmd: Message, @unchecked Sendable {
             self.exposure = exposure
             self.cameraMode = cameraMode
             self.supportsPortrait = supportsPortrait
+            self.portrait = portrait
             self.inReplyTo = inReplyTo
             self.error = error
             super.init(sender: nil)
@@ -870,6 +876,21 @@ public class RemoteCmd: Message, @unchecked Sendable {
         }
     }
 
+    // MARK: - Portrait Aperture Command
+
+    /// Director -> camera: the simulated f-number of Portrait's blur, a rig
+    /// setting. The camera clamps it into the range it reports and answers,
+    /// like every control command, with its full state. Only sent to a camera
+    /// whose state carries a `portrait` block.
+    public class SetPortraitAperture: Message, @unchecked Sendable {
+        public let aperture: Float
+
+        public init(aperture: Float) {
+            self.aperture = aperture
+            super.init(sender: nil)
+        }
+    }
+
     // MARK: - Aspect Ratio Commands
 
     public class SetAspectRatio: Message, @unchecked Sendable {
@@ -893,5 +914,20 @@ extension RemoteShutter_RefusalReason {
         case .unknown:
             return nil
         }
+    }
+}
+
+/// Portrait's simulated aperture, as the camera reports it in every state
+/// reply: the f-number applied to the blur and the range this camera accepts.
+/// Presence is the capability (carried exactly when Portrait is supported).
+public struct PortraitState: Equatable, Sendable {
+    public var aperture: Float
+    public var minAperture: Float
+    public var maxAperture: Float
+
+    public init(aperture: Float, minAperture: Float, maxAperture: Float) {
+        self.aperture = aperture
+        self.minAperture = minAperture
+        self.maxAperture = maxAperture
     }
 }
