@@ -75,7 +75,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
         case let m as RemoteCmd.TimerCountdown: return m.toFlatBuffer()
         case let m as RemoteCmd.SetAspectRatio: return m.toFlatBuffer()
         case let m as RemoteCmd.SetCameraMode: return m.toFlatBuffer()
-        case let m as RemoteCmd.SetPortraitAperture: return m.toFlatBuffer()
+        case let m as RemoteCmd.SetPortrait: return m.toFlatBuffer()
         default:
             XCTFail("No toFlatBuffer() for \(type(of: msg))")
             fatalError()
@@ -969,60 +969,53 @@ final class RemoteCmdSerializationTests: XCTestCase {
         XCTAssertEqual(decoded.mode, .Portrait)
     }
 
-    func testCapabilitiesCarryPortraitSupportAndMode() {
-        let caps = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            cameraMode: .Portrait, supportsPortrait: true, error: nil)
-        let result = roundTrip(caps)
-        XCTAssertTrue(result.supportsPortrait)
-        XCTAssertEqual(result.cameraMode, .Portrait)
+    // MARK: - SetPortrait + the portrait block of the state reply
+
+    func testSetPortrait_roundTrip() {
+        let both: RemoteCmd.SetPortrait = roundTrip(RemoteCmd.SetPortrait(aperture: 2.8, output: .editable))
+        XCTAssertEqual(both.aperture, 2.8)
+        XCTAssertEqual(both.output, .editable)
     }
 
-    /// A peer that predates Portrait sends no flag: it decodes as unsupported,
-    /// so the director never offers the mode to it.
-    func testCapabilitiesWithoutPortraitFlagDecodeAsUnsupported() {
-        let caps = RemoteCmd.CameraCapabilitiesResp(
-            frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            cameraMode: .Photo, error: nil)
-        XCTAssertFalse(roundTrip(caps).supportsPortrait)
+    /// 0 / Unknown on the wire mean "keep": each half travels alone.
+    func testSetPortraitCarriesEachSettingAlone() {
+        let apertureOnly: RemoteCmd.SetPortrait = roundTrip(RemoteCmd.SetPortrait(aperture: 8, output: nil))
+        XCTAssertEqual(apertureOnly.aperture, 8)
+        XCTAssertNil(apertureOnly.output)
+        let outputOnly: RemoteCmd.SetPortrait = roundTrip(RemoteCmd.SetPortrait(aperture: nil, output: .baked))
+        XCTAssertNil(outputOnly.aperture)
+        XCTAssertEqual(outputOnly.output, .baked)
     }
 
-    // MARK: - SetPortraitAperture + the portrait block of the state reply
-
-    func testSetPortraitAperture_roundTrip() {
-        let decoded: RemoteCmd.SetPortraitAperture = roundTrip(RemoteCmd.SetPortraitAperture(aperture: 2.8))
-        XCTAssertEqual(decoded.aperture, 2.8)
-    }
-
-    /// No f-number on the wire is malformed: the command is dropped, never
-    /// applied as f/0.
-    func testSetPortraitApertureWithoutValueIsDropped() {
+    /// A SetPortrait that changes nothing is malformed: dropped.
+    func testSetPortraitWithNothingToChangeIsDropped() {
         var fbb = FlatBufferBuilder()
-        let cmd = RemoteShutter_CameraCommand.createCameraCommand(&fbb, action: .setportraitaperture)
+        let cmd = RemoteShutter_CameraCommand.createCameraCommand(&fbb, action: .setportrait)
         let msg = RemoteShutter_P2PMessage.createP2PMessage(&fbb, type: .cameracommand, commandOffset: cmd)
         fbb.finish(offset: msg, fileId: "RCAM")
         XCTAssertNil(RemoteCmd.fromFlatBuffer(fbb.data))
     }
 
-    func testCapabilitiesCarryThePortraitBlock() {
-        let block = PortraitState(aperture: 2.8, minAperture: 1, maxAperture: 22)
+    func testCapabilitiesCarryThePortraitBlockAndMode() {
+        let block = PortraitState(aperture: 2.8, minAperture: 1.4, maxAperture: 16, output: .baked)
         let caps = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
             currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
-            supportsPortrait: true, portrait: block,
-            inReplyTo: .setportraitaperture, error: nil)
+            cameraMode: .Portrait, portrait: block,
+            inReplyTo: .setportrait, error: nil)
         let decoded = roundTrip(caps)
         XCTAssertEqual(decoded.portrait, block)
-        XCTAssertTrue(decoded.supportsPortrait)
-        XCTAssertEqual(decoded.inReplyTo, .setportraitaperture)
+        XCTAssertEqual(decoded.cameraMode, .Portrait)
+        XCTAssertEqual(decoded.inReplyTo, .setportrait)
     }
 
+    /// A camera that can't take Portrait sends no block, so the director
+    /// never offers the mode to it.
     func testCapabilitiesWithoutPortraitDecodeWithNoPortraitBlock() {
         let caps = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
-            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0, error: nil)
+            currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,
+            cameraMode: .Photo, error: nil)
         XCTAssertNil(roundTrip(caps).portrait)
     }
 

@@ -16,17 +16,18 @@ enum PortraitRenderer {
     /// director asks for another f-number.
     static let defaultAperture: Float = 4.5
 
-    /// The f-numbers the blur accepts, read from `CIDepthBlurEffect`'s
-    /// `inputAperture` slider attributes. f/1.4...f/16 (Apple Camera's range)
-    /// when the filter does not describe a usable one.
+    /// The f-numbers a camera reports: f/1.4...f/16 (Apple's Depth Control
+    /// range), narrowed to what `CIDepthBlurEffect`'s `inputAperture` accepts
+    /// on this device.
     static let apertureRange: ClosedRange<Float> = {
-        let fallback: ClosedRange<Float> = 1.4...16
+        let apple: ClosedRange<Float> = 1.4...16
         guard let attributes = CIFilter(name: "CIDepthBlurEffect")?
                 .attributes["inputAperture"] as? [String: Any],
-              let low = (attributes[kCIAttributeSliderMin] as? NSNumber)?.floatValue,
-              let high = (attributes[kCIAttributeSliderMax] as? NSNumber)?.floatValue,
-              low > 0, high > low else { return fallback }
-        return low...high
+              let low = (attributes[kCIAttributeMin] as? NSNumber)?.floatValue,
+              let high = (attributes[kCIAttributeMax] as? NSNumber)?.floatValue else { return apple }
+        let lower = max(apple.lowerBound, low)
+        let upper = min(apple.upperBound, high)
+        return upper > lower ? lower...upper : apple
     }()
 
     /// `aperture` clamped into `apertureRange`; the default for a value that

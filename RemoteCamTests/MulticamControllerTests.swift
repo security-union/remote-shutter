@@ -2334,7 +2334,9 @@ final class MulticamControllerTests: XCTestCase {
         func caps(portrait: Bool) -> RemoteCmd.CameraCapabilitiesResp {
             RemoteCmd.CameraCapabilitiesResp(
                 frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
-                supportsMulticam: true, cameraMode: .Photo, supportsPortrait: portrait, error: nil)
+                supportsMulticam: true, cameraMode: .Photo,
+                portrait: portrait ? PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16) : nil,
+                error: nil)
         }
         controller.didReceiveMessage(caps(portrait: true), from: camA)
         await controller.waitForIdle()

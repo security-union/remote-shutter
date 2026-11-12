@@ -1106,44 +1106,46 @@ class SessionCoordinatorTests: XCTestCase {
         XCTAssertNotNil(resps.first?.error, "refusals are said out loud")
     }
 
-    // MARK: - SetPortraitAperture
+    // MARK: - SetPortrait
 
-    /// The rig's f-number lands on the camera, clamped into its range, and is
-    /// answered with the one state reply carrying the applied value.
-    func testCameraAppliesSetPortraitApertureAndReportsIt() async {
+    /// The rig's Portrait settings land on the camera, the aperture clamped
+    /// into its range, answered with the one state reply carrying the truth.
+    func testCameraAppliesSetPortraitAndReportsIt() async {
         await enterCamera()
         harness.fakeMP.sendResult = true
         camera.portraitState = PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16)
 
-        await harness.deliver(RemoteCmd.SetPortraitAperture(aperture: 40))
+        await harness.deliver(RemoteCmd.SetPortrait(aperture: 40, output: .baked))
 
-        XCTAssertEqual(camera.portraitApertures, [40])
+        XCTAssertEqual(camera.portraitRequests.map(\.aperture), [40])
+        XCTAssertEqual(camera.portraitRequests.map(\.output), [.baked])
         let resps = harness.fakeMP.sentMessages.map(\.msg)
             .compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
-            .filter { $0.inReplyTo == .setportraitaperture }
+            .filter { $0.inReplyTo == .setportrait }
         XCTAssertEqual(resps.count, 1, "exactly one reply, tagged with the command")
         XCTAssertNil(resps.first?.error)
-        XCTAssertEqual(resps.first?.portrait?.aperture, 16, "the reply carries the clamped truth")
-        XCTAssertEqual(resps.first?.supportsPortrait, true)
+        XCTAssertEqual(resps.first?.portrait,
+                       PortraitState(aperture: 16, minAperture: 1.4, maxAperture: 16, output: .baked),
+                       "the reply carries the clamped truth")
     }
 
-    /// Mid-capture the camera is busy: the aperture is refused out loud, with
-    /// the unchanged truth, never dropped and never applied.
-    func testSetPortraitApertureIsRefusedWhileTakingAPicture() async {
+    /// Mid-capture the camera is busy: the settings are refused out loud,
+    /// with the unchanged truth, never dropped and never applied.
+    func testSetPortraitIsRefusedWhileTakingAPicture() async {
         await enterCamera()
         harness.fakeMP.sendResult = true
         camera.portraitState = PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16)
         await harness.deliver(RemoteCmd.TakePic(sender: nil, sendMediaToPeer: false))
 
-        await harness.deliver(RemoteCmd.SetPortraitAperture(aperture: 2))
+        await harness.deliver(RemoteCmd.SetPortrait(aperture: 2, output: .baked))
 
-        XCTAssertTrue(camera.portraitApertures.isEmpty, "a busy camera applies nothing")
+        XCTAssertTrue(camera.portraitRequests.isEmpty, "a busy camera applies nothing")
         let resps = harness.fakeMP.sentMessages.map(\.msg)
             .compactMap { $0 as? RemoteCmd.CameraCapabilitiesResp }
-            .filter { $0.inReplyTo == .setportraitaperture }
+            .filter { $0.inReplyTo == .setportrait }
         XCTAssertEqual(resps.count, 1)
         XCTAssertNotNil(resps.first?.error, "refusals are said out loud")
-        XCTAssertEqual(resps.first?.portrait?.aperture, 4.5)
+        XCTAssertEqual(resps.first?.portrait, PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16))
     }
 }
 

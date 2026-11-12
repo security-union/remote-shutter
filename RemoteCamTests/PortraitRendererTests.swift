@@ -10,10 +10,11 @@ import XCTest
 
 final class PortraitRendererTests: XCTestCase {
     /// The camera reports this range to the director, so it must be a real
-    /// f-number range with the default inside it.
+    /// f-number range inside Apple's f/1.4...f/16, with the default in it.
     func testApertureRangeHoldsTheDefault() {
         let range = PortraitRenderer.apertureRange
-        XCTAssertGreaterThan(range.lowerBound, 0)
+        XCTAssertGreaterThanOrEqual(range.lowerBound, 1.4)
+        XCTAssertLessThanOrEqual(range.upperBound, 16)
         XCTAssertTrue(range.contains(PortraitRenderer.defaultAperture))
     }
 

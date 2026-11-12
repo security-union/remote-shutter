@@ -44,10 +44,23 @@ public enum RemoteShutter_CommandAction: Int8, Enum, Verifiable {
   case stoprecordingfinished = 33
   case setexposure = 34
   case setcameramode = 35
-  case setportraitaperture = 36
+  case setportrait = 36
 
-  public static var max: RemoteShutter_CommandAction { return .setportraitaperture }
+  public static var max: RemoteShutter_CommandAction { return .setportrait }
   public static var min: RemoteShutter_CommandAction { return .unknown }
+}
+
+
+public enum RemoteShutter_PortraitOutput: Int8, Enum, Verifiable {
+  public typealias T = Int8
+  public static var byteSize: Int { return MemoryLayout<Int8>.size }
+  public var value: Int8 { return self.rawValue }
+  case unknown = 0
+  case baked = 1
+  case editable = 2
+
+  public static var max: RemoteShutter_PortraitOutput { return .editable }
+  public static var min: RemoteShutter_PortraitOutput { return .unknown }
 }
 
 
@@ -397,6 +410,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     case exposureIso = 72
     case cameraMode = 74
     case portraitAperture = 76
+    case portraitOutput = 78
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -440,7 +454,8 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public var exposureIso: Float32 { let o = _accessor.offset(VTOFFSET.exposureIso.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
   public var cameraMode: RemoteShutter_RecordingModeEnum { let o = _accessor.offset(VTOFFSET.cameraMode.v); return o == 0 ? .unknown : RemoteShutter_RecordingModeEnum(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var portraitAperture: Float32 { let o = _accessor.offset(VTOFFSET.portraitAperture.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
-  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 37) }
+  public var portraitOutput: RemoteShutter_PortraitOutput { let o = _accessor.offset(VTOFFSET.portraitOutput.v); return o == 0 ? .unknown : RemoteShutter_PortraitOutput(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public static func startCommandParameters(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 38) }
   public static func add(sendToRemote: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: sendToRemote, def: false,
    at: VTOFFSET.sendToRemote.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
@@ -476,6 +491,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
   public static func add(exposureIso: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: exposureIso, def: 0.0, at: VTOFFSET.exposureIso.p) }
   public static func add(cameraMode: RemoteShutter_RecordingModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: cameraMode.rawValue, def: 0, at: VTOFFSET.cameraMode.p) }
   public static func add(portraitAperture: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: portraitAperture, def: 0.0, at: VTOFFSET.portraitAperture.p) }
+  public static func add(portraitOutput: RemoteShutter_PortraitOutput, _ fbb: inout FlatBufferBuilder) { fbb.add(element: portraitOutput.rawValue, def: 0, at: VTOFFSET.portraitOutput.p) }
   public static func endCommandParameters(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCommandParameters(
     _ fbb: inout FlatBufferBuilder,
@@ -512,7 +528,8 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     exposureDurationSeconds: Double = 0.0,
     exposureIso: Float32 = 0.0,
     cameraMode: RemoteShutter_RecordingModeEnum = .unknown,
-    portraitAperture: Float32 = 0.0
+    portraitAperture: Float32 = 0.0,
+    portraitOutput: RemoteShutter_PortraitOutput = .unknown
   ) -> Offset {
     let __start = RemoteShutter_CommandParameters.startCommandParameters(&fbb)
     RemoteShutter_CommandParameters.add(sendToRemote: sendToRemote, &fbb)
@@ -549,6 +566,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     RemoteShutter_CommandParameters.add(exposureIso: exposureIso, &fbb)
     RemoteShutter_CommandParameters.add(cameraMode: cameraMode, &fbb)
     RemoteShutter_CommandParameters.add(portraitAperture: portraitAperture, &fbb)
+    RemoteShutter_CommandParameters.add(portraitOutput: portraitOutput, &fbb)
     return RemoteShutter_CommandParameters.endCommandParameters(&fbb, start: __start)
   }
 
@@ -588,6 +606,7 @@ public struct RemoteShutter_CommandParameters: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.exposureIso.p, fieldName: "exposureIso", required: false, type: Float32.self)
     try _v.visit(field: VTOFFSET.cameraMode.p, fieldName: "cameraMode", required: false, type: RemoteShutter_RecordingModeEnum.self)
     try _v.visit(field: VTOFFSET.portraitAperture.p, fieldName: "portraitAperture", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.portraitOutput.p, fieldName: "portraitOutput", required: false, type: RemoteShutter_PortraitOutput.self)
     _v.finish()
   }
 }
@@ -1157,6 +1176,7 @@ public struct RemoteShutter_PortraitState: FlatBufferObject, Verifiable {
     case aperture = 4
     case minAperture = 6
     case maxAperture = 8
+    case output = 10
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1164,21 +1184,25 @@ public struct RemoteShutter_PortraitState: FlatBufferObject, Verifiable {
   public var aperture: Float32 { let o = _accessor.offset(VTOFFSET.aperture.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
   public var minAperture: Float32 { let o = _accessor.offset(VTOFFSET.minAperture.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
   public var maxAperture: Float32 { let o = _accessor.offset(VTOFFSET.maxAperture.v); return o == 0 ? 0.0 : _accessor.readBuffer(of: Float32.self, at: o) }
-  public static func startPortraitState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 3) }
+  public var output: RemoteShutter_PortraitOutput { let o = _accessor.offset(VTOFFSET.output.v); return o == 0 ? .unknown : RemoteShutter_PortraitOutput(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
+  public static func startPortraitState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 4) }
   public static func add(aperture: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: aperture, def: 0.0, at: VTOFFSET.aperture.p) }
   public static func add(minAperture: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: minAperture, def: 0.0, at: VTOFFSET.minAperture.p) }
   public static func add(maxAperture: Float32, _ fbb: inout FlatBufferBuilder) { fbb.add(element: maxAperture, def: 0.0, at: VTOFFSET.maxAperture.p) }
+  public static func add(output: RemoteShutter_PortraitOutput, _ fbb: inout FlatBufferBuilder) { fbb.add(element: output.rawValue, def: 0, at: VTOFFSET.output.p) }
   public static func endPortraitState(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createPortraitState(
     _ fbb: inout FlatBufferBuilder,
     aperture: Float32 = 0.0,
     minAperture: Float32 = 0.0,
-    maxAperture: Float32 = 0.0
+    maxAperture: Float32 = 0.0,
+    output: RemoteShutter_PortraitOutput = .unknown
   ) -> Offset {
     let __start = RemoteShutter_PortraitState.startPortraitState(&fbb)
     RemoteShutter_PortraitState.add(aperture: aperture, &fbb)
     RemoteShutter_PortraitState.add(minAperture: minAperture, &fbb)
     RemoteShutter_PortraitState.add(maxAperture: maxAperture, &fbb)
+    RemoteShutter_PortraitState.add(output: output, &fbb)
     return RemoteShutter_PortraitState.endPortraitState(&fbb, start: __start)
   }
 
@@ -1187,6 +1211,7 @@ public struct RemoteShutter_PortraitState: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.aperture.p, fieldName: "aperture", required: false, type: Float32.self)
     try _v.visit(field: VTOFFSET.minAperture.p, fieldName: "minAperture", required: false, type: Float32.self)
     try _v.visit(field: VTOFFSET.maxAperture.p, fieldName: "maxAperture", required: false, type: Float32.self)
+    try _v.visit(field: VTOFFSET.output.p, fieldName: "output", required: false, type: RemoteShutter_PortraitOutput.self)
     _v.finish()
   }
 }
@@ -1217,8 +1242,7 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
     case previewMode = 26
     case exposure = 28
     case cameraMode = 30
-    case supportsPortrait = 32
-    case portrait = 34
+    case portrait = 32
     var v: Int32 { Int32(self.rawValue) }
     var p: VOffset { self.rawValue }
   }
@@ -1238,9 +1262,8 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
   public var previewMode: RemoteShutter_CameraPreviewModeEnum { let o = _accessor.offset(VTOFFSET.previewMode.v); return o == 0 ? .unknown : RemoteShutter_CameraPreviewModeEnum(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
   public var exposure: RemoteShutter_ExposureState? { let o = _accessor.offset(VTOFFSET.exposure.v); return o == 0 ? nil : RemoteShutter_ExposureState(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
   public var cameraMode: RemoteShutter_RecordingModeEnum { let o = _accessor.offset(VTOFFSET.cameraMode.v); return o == 0 ? .unknown : RemoteShutter_RecordingModeEnum(rawValue: _accessor.readBuffer(of: Int8.self, at: o)) ?? .unknown }
-  public var supportsPortrait: Bool { let o = _accessor.offset(VTOFFSET.supportsPortrait.v); return o == 0 ? false : _accessor.readBuffer(of: Bool.self, at: o) }
   public var portrait: RemoteShutter_PortraitState? { let o = _accessor.offset(VTOFFSET.portrait.v); return o == 0 ? nil : RemoteShutter_PortraitState(_accessor.bb, o: _accessor.indirect(o + _accessor.position)) }
-  public static func startCameraState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 16) }
+  public static func startCameraState(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 15) }
   public static func add(currentCamera: RemoteShutter_CameraPosition, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentCamera.rawValue, def: 0, at: VTOFFSET.currentCamera.p) }
   public static func add(currentLens: RemoteShutter_CameraLensType, _ fbb: inout FlatBufferBuilder) { fbb.add(element: currentLens.rawValue, def: 0, at: VTOFFSET.currentLens.p) }
   public static func add(zoomFactor: Double, _ fbb: inout FlatBufferBuilder) { fbb.add(element: zoomFactor, def: 0.0, at: VTOFFSET.zoomFactor.p) }
@@ -1255,8 +1278,6 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
   public static func add(previewMode: RemoteShutter_CameraPreviewModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: previewMode.rawValue, def: 0, at: VTOFFSET.previewMode.p) }
   public static func add(exposure: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: exposure, at: VTOFFSET.exposure.p) }
   public static func add(cameraMode: RemoteShutter_RecordingModeEnum, _ fbb: inout FlatBufferBuilder) { fbb.add(element: cameraMode.rawValue, def: 0, at: VTOFFSET.cameraMode.p) }
-  public static func add(supportsPortrait: Bool, _ fbb: inout FlatBufferBuilder) { fbb.add(element: supportsPortrait, def: false,
-   at: VTOFFSET.supportsPortrait.p) }
   public static func add(portrait: Offset, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: portrait, at: VTOFFSET.portrait.p) }
   public static func endCameraState(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset { let end = Offset(offset: fbb.endTable(at: start)); return end }
   public static func createCameraState(
@@ -1275,7 +1296,6 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
     previewMode: RemoteShutter_CameraPreviewModeEnum = .unknown,
     exposureOffset exposure: Offset = Offset(),
     cameraMode: RemoteShutter_RecordingModeEnum = .unknown,
-    supportsPortrait: Bool = false,
     portraitOffset portrait: Offset = Offset()
   ) -> Offset {
     let __start = RemoteShutter_CameraState.startCameraState(&fbb)
@@ -1293,7 +1313,6 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
     RemoteShutter_CameraState.add(previewMode: previewMode, &fbb)
     RemoteShutter_CameraState.add(exposure: exposure, &fbb)
     RemoteShutter_CameraState.add(cameraMode: cameraMode, &fbb)
-    RemoteShutter_CameraState.add(supportsPortrait: supportsPortrait, &fbb)
     RemoteShutter_CameraState.add(portrait: portrait, &fbb)
     return RemoteShutter_CameraState.endCameraState(&fbb, start: __start)
   }
@@ -1314,7 +1333,6 @@ public struct RemoteShutter_CameraState: FlatBufferObject, Verifiable {
     try _v.visit(field: VTOFFSET.previewMode.p, fieldName: "previewMode", required: false, type: RemoteShutter_CameraPreviewModeEnum.self)
     try _v.visit(field: VTOFFSET.exposure.p, fieldName: "exposure", required: false, type: ForwardOffset<RemoteShutter_ExposureState>.self)
     try _v.visit(field: VTOFFSET.cameraMode.p, fieldName: "cameraMode", required: false, type: RemoteShutter_RecordingModeEnum.self)
-    try _v.visit(field: VTOFFSET.supportsPortrait.p, fieldName: "supportsPortrait", required: false, type: Bool.self)
     try _v.visit(field: VTOFFSET.portrait.p, fieldName: "portrait", required: false, type: ForwardOffset<RemoteShutter_PortraitState>.self)
     _v.finish()
   }

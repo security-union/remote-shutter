@@ -1109,7 +1109,6 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
             aspectRatio: currentAspectRatio,
             exposure: exposureStateLocked(currentDevice),
             cameraMode: captureMode,
-            supportsPortrait: portrait != nil,
             portrait: portrait,
             error: nil
         )
@@ -1818,7 +1817,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         if changed { onDeviceSwapped?() }
     }
 
-    // MARK: - Portrait aperture
+    // MARK: - Portrait settings
 
     /// The rig's Portrait f-number, already clamped. Written only on
     /// sessionQueue; read lock-free from the photo callback and the preview
@@ -1830,13 +1829,26 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         Float(bitPattern: portraitApertureBits.load(ordering: .acquiring))
     }
 
-    /// Stores the director's f-number, clamped into the renderer's range. A
-    /// rig setting: kept across device swaps and mode changes, so it applies
-    /// whenever Portrait is next possible.
-    func setPortraitAperture(_ aperture: Float) async {
+    /// Baked or Editable. sessionQueue-confined; the photo callback reads it
+    /// through `currentPortraitOutputValue()`.
+    private var portraitOutput: PortraitOutput = .editable
+
+    /// Portrait's output for callers outside the session queue.
+    func currentPortraitOutputValue() -> PortraitOutput {
+        syncOnSessionQueue { portraitOutput }
+    }
+
+    /// Stores the director's Portrait settings; nil keeps the current value.
+    /// The aperture is clamped into the renderer's range. Rig settings: kept
+    /// across device swaps and mode changes, so they apply whenever Portrait
+    /// is next possible.
+    func setPortrait(aperture: Float?, output: PortraitOutput?) async {
         await onSessionQueue {
-            let clamped = PortraitRenderer.clampedAperture(aperture)
-            self.portraitApertureBits.store(clamped.bitPattern, ordering: .releasing)
+            if let aperture {
+                let clamped = PortraitRenderer.clampedAperture(aperture)
+                self.portraitApertureBits.store(clamped.bitPattern, ordering: .releasing)
+            }
+            if let output { self.portraitOutput = output }
             self.onStatusChanged?()
         }
     }
@@ -1847,7 +1859,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         guard Self.supportsPortrait(device) else { return nil }
         let range = PortraitRenderer.apertureRange
         return PortraitState(aperture: portraitAperture,
-                             minAperture: range.lowerBound, maxAperture: range.upperBound)
+                             minAperture: range.lowerBound, maxAperture: range.upperBound,
+                             output: portraitOutput)
     }
 
     /// Whether `device` can take Portrait stills: it has formats that deliver

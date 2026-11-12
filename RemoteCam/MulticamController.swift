@@ -1450,7 +1450,7 @@ public actor MulticamController {
     /// that can't (an older build, a single-lens phone, a Mac) hides it.
     private func rigSupportsPortrait() -> Bool {
         let live = order.compactMap { links[$0] }.filter { $0.status != .failed }
-        return !live.isEmpty && live.allSatisfy { $0.capabilities?.supportsPortrait == true }
+        return !live.isEmpty && live.allSatisfy { $0.capabilities?.portrait != nil }
     }
 
     /// The tray's snapshot, derived on demand from the live lane set — never

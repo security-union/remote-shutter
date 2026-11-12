@@ -1128,7 +1128,7 @@ public actor SessionCoordinator {
         case (is RemoteCmd.SetZoom, _), (is RemoteCmd.SwitchLens, _), (is RemoteCmd.ToggleTorch, _),
              (is RemoteCmd.SetPhotoQuality, _), (is RemoteCmd.SetAspectRatio, _),
              (is RemoteCmd.SetCameraPreviewMode, _), (is RemoteCmd.SetExposure, _),
-             (is RemoteCmd.SetPortraitAperture, _):
+             (is RemoteCmd.SetPortrait, _):
             return nil
         case (is RemoteCmd.ToggleFlash, _), (is RemoteCmd.SetVideoQuality, _),
              (is RemoteCmd.SetCameraMode, _):
@@ -1160,7 +1160,7 @@ public actor SessionCoordinator {
         case is RemoteCmd.SetCameraPreviewMode: action = .setcamerapreviewmode
         case is RemoteCmd.SetExposure: action = .setexposure
         case is RemoteCmd.SetCameraMode: action = .setcameramode
-        case is RemoteCmd.SetPortraitAperture: action = .setportraitaperture
+        case is RemoteCmd.SetPortrait: action = .setportrait
         default: return false
         }
         if let refusal = Self.controlRefusal(msg, phase: phase) {
@@ -1217,8 +1217,8 @@ public actor SessionCoordinator {
             case let mode as RemoteCmd.SetCameraMode:
                 ctrl.currentCameraMode = mode.mode
                 ctrl.updateCameraStatus()
-            case let portrait as RemoteCmd.SetPortraitAperture:
-                await ctrl.setPortraitAperture(portrait.aperture)
+            case let portrait as RemoteCmd.SetPortrait:
+                await ctrl.setPortrait(aperture: portrait.aperture, output: portrait.output)
             default:
                 break
             }
