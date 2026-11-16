@@ -1,2 +1,1 @@
 iPhone 18 Pro'da kamera uzaktan kumandadan manuel pozlamaya alındığında oluşan çökme düzeltildi.
-Remote Shutter'ı tüm cihazlarınızda güncelleyin: sürüm 17 yalnızca sürüm 17 ile eşleşir.

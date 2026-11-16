@@ -1,2 +1,1 @@
 Đã sửa lỗi ứng dụng bị thoát trên iPhone 18 Pro khi chuyển camera sang phơi sáng thủ công từ điều khiển.
-Hãy cập nhật Remote Shutter trên mọi thiết bị: phiên bản 17 chỉ ghép nối với phiên bản 17.

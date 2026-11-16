@@ -1,2 +1,1 @@
 Fixed a crash on iPhone 18 Pro when switching the camera to manual exposure from the remote.
-Update Remote Shutter on every device: version 17 only pairs with version 17.

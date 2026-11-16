@@ -1,2 +1,1 @@
 Absturz auf dem iPhone 18 Pro behoben, der beim Umschalten der Kamera auf manuelle Belichtung über die Fernbedienung auftrat.
-Aktualisiere Remote Shutter auf allen Geräten: Version 17 koppelt sich nur mit Version 17.
